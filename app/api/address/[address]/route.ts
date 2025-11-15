@@ -20,9 +20,6 @@ export async function GET(
     const { address } = await params;
     const addressType = detectAddressType(address);
 
-    console.log('🔍 [ADDRESS API] Address:', address);
-    console.log('🔍 [ADDRESS API] Detected type:', addressType);
-
     if (addressType === 'invalid') {
       return NextResponse.json(
         { error: 'Invalid Zcash address format' },
@@ -53,12 +50,9 @@ export async function GET(
 
     // For unified addresses, check if they contain a transparent receiver
     if (addressType === 'unified') {
-      console.log('🔍 [ADDRESS API] Checking if UA has transparent receiver...');
       const hasTransparent = await checkUnifiedAddressForTransparent(address);
-      console.log('🔍 [ADDRESS API] Has transparent receiver:', hasTransparent);
 
       if (!hasTransparent) {
-        console.log('✅ [ADDRESS API] Returning shielded response for fully shielded UA');
         // Fully shielded unified address - treat like a shielded address
         return NextResponse.json(
           {
@@ -77,7 +71,6 @@ export async function GET(
           }
         );
       }
-      console.log('🔍 [ADDRESS API] UA has transparent receiver, continuing to fetch data...');
     }
 
     // For transparent and unified addresses
@@ -120,9 +113,6 @@ async function checkUnifiedAddressForTransparent(address: string): Promise<boole
   const rpcUrl = process.env.ZCASH_RPC_URL || 'http://localhost:18232';
   const rpcCookie = process.env.ZCASH_RPC_COOKIE;
 
-  console.log('🔍 [CHECK UA] RPC URL:', rpcUrl);
-  console.log('🔍 [CHECK UA] Has cookie:', !!rpcCookie);
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -144,17 +134,13 @@ async function checkUnifiedAddressForTransparent(address: string): Promise<boole
     });
 
     const data = await response.json();
-    console.log('🔍 [CHECK UA] RPC Response:', JSON.stringify(data, null, 2));
 
     if (data.error || !data.result) {
-      console.log('❌ [CHECK UA] Error or no result');
       return false;
     }
 
     // Check if the result contains a transparentaddress field
     const hasTransparent = !!data.result.transparentaddress;
-    console.log('🔍 [CHECK UA] transparentaddress field:', data.result.transparentaddress);
-    console.log('🔍 [CHECK UA] Has transparent:', hasTransparent);
 
     return hasTransparent;
   } catch (error) {
@@ -220,7 +206,6 @@ async function fetchAddressData(address: string, type: string) {
       }
 
       queryAddress = transparentAddress;
-      console.log(`Unified address ${address} -> transparent ${transparentAddress}`);
     }
 
     // Make RPC call to get address info
@@ -241,7 +226,6 @@ async function fetchAddressData(address: string, type: string) {
     }
 
     const rpcData = await response.json();
-    console.log('🔍 [FETCH ADDRESS] getaddressbalance response:', JSON.stringify(rpcData, null, 2));
 
     if (rpcData.error) {
       console.error('❌ [FETCH ADDRESS] RPC Error:', rpcData.error);
@@ -256,7 +240,6 @@ async function fetchAddressData(address: string, type: string) {
     }
 
     // Get transactions for this address (with pagination to avoid "Response is too big")
-    console.log('🔍 [FETCH ADDRESS] Fetching transactions for:', queryAddress);
 
     // First, get the blockchain height to calculate pagination
     const heightResponse = await fetch(rpcUrl, {
@@ -276,8 +259,6 @@ async function fetchAddressData(address: string, type: string) {
     const startHeight = Math.max(0, currentHeight - 1000);
     const endHeight = currentHeight;
 
-    console.log(`🔍 [FETCH ADDRESS] Fetching txs from block ${startHeight} to ${endHeight}`);
-
     const txResponse = await fetch(rpcUrl, {
       method: 'POST',
       headers,
@@ -294,13 +275,10 @@ async function fetchAddressData(address: string, type: string) {
     });
 
     const txData = await txResponse.json();
-    console.log('🔍 [FETCH ADDRESS] getaddresstxids response:', txData.error ? `Error: ${txData.error.message}` : `Success: ${txData.result?.length || 0} txs`);
     const txids = txData.result || [];
-    console.log('🔍 [FETCH ADDRESS] Found', txids.length, 'transactions');
 
     // Fetch details for the most recent 25 transactions
     const recentTxids = txids.slice(-25).reverse(); // Get last 25 and reverse (newest first)
-    console.log('🔍 [FETCH ADDRESS] Fetching details for', recentTxids.length, 'most recent transactions');
 
     const transactionDetails = await Promise.all(
       recentTxids.map(async (txid: string) => {

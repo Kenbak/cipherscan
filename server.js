@@ -170,6 +170,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// Get blockchain info (current height, etc.)
+app.get('/api/info', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT MAX(height) as max_height FROM blocks');
+    const currentHeight = result.rows[0]?.max_height || 0;
+
+    res.json({
+      blocks: currentHeight,
+      height: currentHeight,
+    });
+  } catch (error) {
+    console.error('Error fetching blockchain info:', error);
+    res.status(500).json({ error: 'Failed to fetch blockchain info' });
+  }
+});
+
 // Get recent blocks
 app.get('/api/blocks', async (req, res) => {
   try {
@@ -457,6 +473,108 @@ app.get('/api/tx/:txid/raw', async (req, res) => {
   } catch (error) {
     console.error('Error fetching raw transaction:', error);
     res.status(500).json({ error: 'Failed to fetch raw transaction: ' + error.message });
+  }
+});
+
+// Batch get raw transactions (for wallet scanning)
+app.post('/api/tx/raw/batch', async (req, res) => {
+  try {
+    const { txids } = req.body;
+
+    if (!txids || !Array.isArray(txids)) {
+      return res.status(400).json({ error: 'txids array is required' });
+    }
+
+    if (txids.length === 0) {
+      return res.json({ transactions: [] });
+    }
+
+    if (txids.length > 1000) {
+      return res.status(400).json({ error: 'Maximum 1000 transactions per batch' });
+    }
+
+    console.log(`🔍 [BATCH RAW] Fetching ${txids.length} raw transactions`);
+
+    // Fetch all raw TXs in parallel (FAST!)
+    const results = await Promise.all(
+      txids.map(async (txid) => {
+        try {
+          const rawHex = await callZebraRPC('getrawtransaction', [txid, 0]);
+          return { txid, hex: rawHex, success: true };
+        } catch (error) {
+          console.error(`Error fetching raw TX ${txid}:`, error.message);
+          return { txid, error: error.message, success: false };
+        }
+      })
+    );
+
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+
+    console.log(`✅ [BATCH RAW] Success: ${successful.length}, Failed: ${failed.length}`);
+
+    res.json({
+      transactions: successful,
+      failed: failed.length > 0 ? failed : undefined,
+      total: txids.length,
+      successful: successful.length,
+    });
+  } catch (error) {
+    console.error('Error in batch raw transaction fetch:', error);
+    res.status(500).json({ error: 'Failed to fetch raw transactions' });
+  }
+});
+
+// Batch scan for Orchard transactions (for wallet scanning)
+app.post('/api/scan/orchard', async (req, res) => {
+  try {
+    const { startHeight, endHeight } = req.body;
+
+    if (!startHeight || !endHeight) {
+      return res.status(400).json({ error: 'startHeight and endHeight are required' });
+    }
+
+    if (isNaN(startHeight) || isNaN(endHeight)) {
+      return res.status(400).json({ error: 'Invalid block heights' });
+    }
+
+    if (startHeight > endHeight) {
+      return res.status(400).json({ error: 'startHeight cannot be greater than endHeight' });
+    }
+
+    // Limit to 1 million blocks max (safety)
+    if (endHeight - startHeight > 1000000) {
+      return res.status(400).json({ error: 'Range too large (max 1 million blocks)' });
+    }
+
+    console.log(`🔍 [SCAN] Scanning Orchard TXs from ${startHeight} to ${endHeight}`);
+
+    // Get all Orchard transactions in this range (SUPER FAST with PostgreSQL index!)
+    const result = await pool.query(
+      `SELECT
+        t.txid,
+        t.block_height,
+        b.timestamp
+      FROM transactions t
+      JOIN blocks b ON t.block_height = b.height
+      WHERE t.block_height BETWEEN $1 AND $2
+        AND t.has_orchard = true
+      ORDER BY t.block_height DESC`,
+      [startHeight, endHeight]
+    );
+
+    console.log(`✅ [SCAN] Found ${result.rows.length} Orchard transactions`);
+
+    res.json({
+      startHeight,
+      endHeight,
+      totalBlocks: endHeight - startHeight + 1,
+      orchardTransactions: result.rows.length,
+      transactions: result.rows,
+    });
+  } catch (error) {
+    console.error('Error scanning Orchard transactions:', error);
+    res.status(500).json({ error: 'Failed to scan transactions' });
   }
 });
 
