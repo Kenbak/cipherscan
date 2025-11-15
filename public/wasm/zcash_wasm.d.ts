@@ -2,6 +2,9 @@
 /* eslint-disable */
 export function main(): void;
 export function detect_key_type(viewing_key: string): string;
+/**
+ * Orchard memo decryption - The Official Way™
+ */
 export function decrypt_memo(tx_hex: string, viewing_key: string): string;
 export function test_wasm(): string;
 
@@ -11,8 +14,8 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly decrypt_memo: (a: number, b: number, c: number, d: number) => [number, number, number, number];
   readonly detect_key_type: (a: number, b: number) => [number, number];
-  readonly main: () => void;
   readonly test_wasm: () => [number, number];
+  readonly main: () => void;
   readonly __wbindgen_externrefs: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

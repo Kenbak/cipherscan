@@ -125,7 +125,6 @@ export function NavBar() {
                     >
                       <span>Mempool Viewer</span>
                     </Link>
-                    {/* TODO: Re-enable when Orchard memo decryption is working
                     <Link
                       href="/decrypt"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
@@ -133,7 +132,6 @@ export function NavBar() {
                       <span>🔓 Decrypt Memo</span>
                     </Link>
                     <div className="border-t border-cipher-border my-2"></div>
-                    */}
                     <Link
                       href="/docs"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
@@ -204,7 +202,6 @@ export function NavBar() {
             >
               Mempool Viewer
             </Link>
-            {/* TODO: Re-enable when Orchard memo decryption is working
             <Link
               href="/decrypt"
               onClick={() => setMobileMenuOpen(false)}
@@ -212,7 +209,6 @@ export function NavBar() {
             >
               🔓 Decrypt Memo
             </Link>
-            */}
                 <Link
                   href="/docs"
                   onClick={() => setMobileMenuOpen(false)}
