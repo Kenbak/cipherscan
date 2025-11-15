@@ -1,0 +1,72 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# WASM build artifacts
+wasm/target/
+wasm/pkg/
+
+# WASM compiled output (commit this for deployment)
+# public/wasm/ - DO NOT ignore, we want to commit the compiled WASM
+
+# ========================================
+# 🔐 SECURITY: Never commit sensitive files
+# ========================================
+exit
+exit.pub
+*.pem
+*.key
+*_ENV.md
+*_CREDENTIALS.md
+.env.production.local
+
+# Server config backups
+*rpc*password*
+*credentials*
+
+# ========================================
+# 🚫 INTERNAL: Do not commit private files
+# ========================================
+GEMINI_BOUNTY_ROADMAP.md
+*BOUNTY*.md
+*bounty*.md
+*HACKATHON*.md
+*hackathon*.md
+GEMINI_*.md
+ZYPHERPUNK_*.md
+.commit-guidelines.md
+MEMO_DECODER_SUMMARY.md
+docs/IMPLEMENTATION_SUMMARY.md
+test-ufvk-parse/
+app/test-wasm/
