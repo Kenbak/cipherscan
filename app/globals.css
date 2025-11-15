@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import JetBrains Mono font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/**
+ * CIPHER Design System
+ *
+ * Emoji Usage (consistent across all pages):
+ * 🔐 - Logo / Brand (CIPHER)
+ * 📦 - Blocks
+ * 📝 - Transactions
+ * 👤 - Addresses
+ * 💰 - Amounts / Money
+ * 🛡️ - Shielded / Privacy
+ * 💡 - Help / Information
+ * ✅ - Success / Confirmed
+ * ⚠️ - Warning
+ * 📭 - Empty state
+ *
+ * Color Usage:
+ * CYAN (#00D4FF) - Brand identity, titles, links
+ * GREEN (#00FF41) - Success, confirmations, positive
+ * ORANGE (#FF6B35) - Warnings, fees only
+ * WHITE - Primary amounts and data
+ * GRAY - Secondary text and labels
+ */
+
+@layer base {
+  body {
+    @apply bg-cipher-bg text-gray-100 font-sans;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+  }
+
+  code {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  /* Unified card system - consistent padding and spacing */
+  .card {
+    @apply bg-cipher-surface rounded-lg shadow-xl border border-cipher-border;
+    @apply p-6; /* Standard padding everywhere */
+    @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Card sections with consistent spacing */
+  .card-section {
+    @apply mb-6; /* Standard spacing between sections */
+  }
+
+  .card-section:last-child {
+    @apply mb-0;
+  }
+
+  /* Unified badge system - same size, padding, and style everywhere */
+  .badge {
+    @apply inline-flex items-center justify-center;
+    @apply px-3 py-1.5;
+    @apply rounded-md;
+    @apply text-xs font-mono font-semibold uppercase tracking-wider;
+    @apply border;
+    @apply transition-all duration-200;
+  }
+
+  .badge-success {
+    @apply bg-cipher-green/10 text-cipher-green border-cipher-green/30;
+    @apply hover:bg-cipher-green/20;
+  }
+
+  .badge-info {
+    @apply bg-cipher-cyan/10 text-cipher-cyan border-cipher-cyan/30;
+    @apply hover:bg-cipher-cyan/20;
+  }
+
+  .badge-warning {
+    @apply bg-cipher-orange/10 text-cipher-orange border-cipher-orange/30;
+    @apply hover:bg-cipher-orange/20;
+  }
+
+  .btn-primary {
+    @apply bg-cipher-cyan text-cipher-bg font-semibold px-6 py-3 rounded-lg;
+    @apply hover:bg-cipher-cyan/90 transition-all duration-200;
+    @apply shadow-lg shadow-cipher-cyan/20 hover:shadow-cipher-cyan/40;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  .terminal-border {
+    @apply border border-cipher-cyan/30 relative;
+  }
+
+  .terminal-border::before {
+    content: '';
+    @apply absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cipher-cyan;
+  }
+
+  .terminal-border::after {
+    content: '';
+    @apply absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-cipher-cyan;
+  }
+}
+
+@layer utilities {
+  /* Cypherpunk scan line animation */
+  @keyframes scan {
+    0% {
+      top: 0%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
+  }
+
+  .animate-scan {
+    animation: scan 3s ease-in-out infinite;
+  }
+}

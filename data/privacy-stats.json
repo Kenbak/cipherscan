@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-11-01T03:00:00Z",
+  "lastBlockScanned": 2189157,
+  "totals": {
+    "blocks": 2189157,
+    "shieldedTx": 145230,
+    "transparentTx": 425430,
+    "mixedTx": 15420,
+    "fullyShieldedTx": 128500
+  },
+  "shieldedPool": {
+    "currentSize": 8500000.50,
+    "totalShielded": 12000000,
+    "totalUnshielded": 3500000
+  },
+  "metrics": {
+    "shieldedPercentage": 25.4,
+    "privacyScore": 68,
+    "avgShieldedPerDay": 185,
+    "adoptionTrend": "growing"
+  },
+  "trends": {
+    "daily": [
+      {"date": "2025-10-25", "blocks": 2188000, "shielded": 144800, "transparent": 424500, "poolSize": 8450000, "shieldedPercentage": 25.3},
+      {"date": "2025-10-26", "blocks": 2188100, "shielded": 144900, "transparent": 424700, "poolSize": 8460000, "shieldedPercentage": 25.35},
+      {"date": "2025-10-27", "blocks": 2188200, "shielded": 145000, "transparent": 424900, "poolSize": 8470000, "shieldedPercentage": 25.38},
+      {"date": "2025-10-28", "blocks": 2188300, "shielded": 145050, "transparent": 425050, "poolSize": 8475000, "shieldedPercentage": 25.37},
+      {"date": "2025-10-29", "blocks": 2188400, "shielded": 145100, "transparent": 425150, "poolSize": 8480000, "shieldedPercentage": 25.39},
+      {"date": "2025-10-30", "blocks": 2188500, "shielded": 145150, "transparent": 425250, "poolSize": 8490000, "shieldedPercentage": 25.41},
+      {"date": "2025-10-31", "blocks": 2188600, "shielded": 145190, "transparent": 425350, "poolSize": 8495000, "shieldedPercentage": 25.42},
+      {"date": "2025-11-01", "blocks": 2189157, "shielded": 145230, "transparent": 425430, "poolSize": 8500000, "shieldedPercentage": 25.4}
+    ],
+    "weekly": [],
+    "monthly": []
+  }
+}
