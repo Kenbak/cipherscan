@@ -80,8 +80,9 @@ export async function decryptMemo(txHex: string, viewingKey: string): Promise<st
 export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<string> {
   console.log('🔍 Fetching raw transaction hex for:', txid);
 
-  // Use the /raw endpoint
-  const apiUrl = `https://api.testnet.cipherscan.app/api/tx/${txid}/raw`;
+  // Use the correct API based on network
+  const apiBaseUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+  const apiUrl = `${apiBaseUrl}/api/tx/${txid}/raw`;
 
   try {
     const response = await fetch(apiUrl);

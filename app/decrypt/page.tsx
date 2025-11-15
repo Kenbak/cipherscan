@@ -56,6 +56,22 @@ export default function DecryptPage() {
       return;
     }
 
+    // Sanitize inputs
+    const sanitizedTxid = txid.trim().replace(/[^a-fA-F0-9]/g, '');
+    const sanitizedViewingKey = viewingKey.trim();
+
+    // Validate txid (should be 64 hex characters)
+    if (!/^[a-fA-F0-9]{64}$/.test(sanitizedTxid)) {
+      setError('Invalid transaction ID format. Must be 64 hexadecimal characters.');
+      return;
+    }
+
+    // Validate viewing key format
+    if (!sanitizedViewingKey.startsWith('uviewtest') && !sanitizedViewingKey.startsWith('uview')) {
+      setError('Invalid viewing key format. Must start with "uviewtest" or "uview".');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setMemo(null);
@@ -79,8 +95,8 @@ export default function DecryptPage() {
     try {
       const { testWasm, detectKeyType, decryptMemoFromTxid } = await import('@/lib/wasm-loader');
       const testResult = await testWasm();
-      const keyType = await detectKeyType(viewingKey);
-      const result = await decryptMemoFromTxid(txid, viewingKey);
+      const keyType = await detectKeyType(sanitizedViewingKey);
+      const result = await decryptMemoFromTxid(sanitizedTxid, sanitizedViewingKey);
 
       // Wait for minimum time
       await minLoadTime;
@@ -149,25 +165,27 @@ export default function DecryptPage() {
       <div className="max-w-7xl mx-auto">
 
         {/* Header - Full Width */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-3">
+        <div className="mb-6 sm:mb-8 text-center px-2">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
             <Icons.Lock />
-            <h1 className="text-4xl font-bold font-mono">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono">
               Decrypt Shielded Memo
             </h1>
           </div>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-400 text-sm sm:text-base md:text-lg">
             Decode encrypted memos from shielded Zcash transactions.
           </p>
         </div>
 
         {/* Privacy Notice - Full Width */}
-        <div className="card mb-8 bg-green-900/20 border-green-500/30">
-          <div className="flex items-start gap-4">
-            <Icons.Shield />
+        <div className="card mb-6 sm:mb-8 bg-green-900/20 border-green-500/30">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex-shrink-0">
+              <Icons.Shield />
+            </div>
             <div className="flex-1">
-              <h3 className="font-bold text-green-300 text-lg mb-2">100% Client-Side Decryption</h3>
-              <p className="text-gray-300 leading-relaxed">
+              <h3 className="font-bold text-green-300 text-base sm:text-lg mb-2">100% Client-Side Decryption</h3>
+              <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
                 Your viewing key <strong>never leaves your browser</strong>. All decryption happens locally
                 using WebAssembly. Nothing is stored on our servers. Zero-knowledge, cypherpunk approved.
               </p>
@@ -176,30 +194,30 @@ export default function DecryptPage() {
         </div>
 
         {/* 2 Column Layout: Inputs Left + Terminal Right */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
 
           {/* LEFT: Input Form */}
           <div className="card h-fit lg:h-auto">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
 
               {/* Transaction ID */}
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">
+                <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
                   Transaction ID
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter transaction ID (64 hex characters)"
+                  placeholder="Enter tx ID (64 hex chars)"
                   value={txid}
                   onChange={(e) => setTxid(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+                  className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
                 />
               </div>
 
               {/* Viewing Key */}
               <div>
-                <label className="block text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">
+                <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
                   Unified Full Viewing Key
                 </label>
                 <input
@@ -208,9 +226,9 @@ export default function DecryptPage() {
                   value={viewingKey}
                   onChange={(e) => setViewingKey(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+                  className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
                 />
-                <p className="text-xs text-gray-500 mt-2 font-mono">
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
                   Starts with <code className="text-cipher-cyan">uviewtest</code> (testnet)
                 </p>
               </div>
@@ -220,13 +238,13 @@ export default function DecryptPage() {
                 <button
                   onClick={decodeMemo}
                   disabled={loading || !txid || !viewingKey}
-                  className="w-full bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center gap-3">
-                      <span className="relative flex h-4 w-4">
+                    <span className="flex items-center justify-center gap-2 sm:gap-3">
+                      <span className="relative flex h-3 w-3 sm:h-4 sm:w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-bg opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-cipher-bg"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 sm:h-4 sm:w-4 bg-cipher-bg"></span>
                       </span>
                       Decrypting...
                     </span>
@@ -243,7 +261,7 @@ export default function DecryptPage() {
               {(memo || error) && (
                 <button
                   onClick={reset}
-                  className="w-full bg-cipher-surface hover:bg-cipher-border text-white font-bold py-3 px-6 rounded-lg transition-colors border-2 border-cipher-border"
+                  className="w-full bg-cipher-surface hover:bg-cipher-border text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors border-2 border-cipher-border text-sm sm:text-base"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Icons.Refresh />
@@ -258,11 +276,11 @@ export default function DecryptPage() {
           <div className="flex flex-col">
             {!loading && !memo && !error && (
               <div className="card flex items-center justify-center bg-cipher-surface/30 lg:min-h-full">
-                <div className="text-center px-6 py-20">
-                  <div className="flex justify-center mb-4">
+                <div className="text-center px-4 sm:px-6 py-16 sm:py-20">
+                  <div className="flex justify-center mb-3 sm:mb-4">
                     <Icons.Terminal />
                   </div>
-                  <p className="text-gray-500 font-mono">
+                  <p className="text-gray-500 font-mono text-xs sm:text-sm">
                     Enter a transaction ID and viewing key to decrypt the memo...
                   </p>
                 </div>
@@ -272,24 +290,24 @@ export default function DecryptPage() {
             {loading && (
               <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full">
                 {/* Terminal Header */}
-                <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-4 py-3 flex items-center gap-3">
+                <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
                   <Icons.Terminal />
-                  <span className="font-mono text-sm text-cipher-cyan">DECRYPTING.log</span>
-                  <div className="ml-auto flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">DECRYPTING.log</span>
+                  <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
                   </div>
                 </div>
 
                 {/* Terminal Content - Loading */}
-                <div className="bg-black/80 p-6 font-mono flex-1">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-3">
+                <div className="bg-black/80 p-3 sm:p-4 md:p-6 font-mono flex-1">
+                  <div className="space-y-2 text-xs sm:text-sm">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       <span className="text-cipher-cyan">$</span>
-                      <span className="text-gray-400">./decrypt --wasm --zero-knowledge</span>
+                      <span className="text-gray-400 break-all">./decrypt --wasm --zero-knowledge</span>
                     </div>
-                    <div className="pl-6 space-y-2 text-cipher-green mt-4">
+                    <div className="pl-4 sm:pl-6 space-y-1.5 sm:space-y-2 text-cipher-green mt-3 sm:mt-4 text-[10px] sm:text-xs">
                       {loadingStep >= 0 && <p>[✓] Initializing WASM cryptographic engine...</p>}
                       {loadingStep >= 1 && <p>[✓] Parsing unified viewing key...</p>}
                       {loadingStep >= 2 && <p>[✓] Deriving zero-knowledge proof keys...</p>}
@@ -305,7 +323,7 @@ export default function DecryptPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-cipher-cyan mt-4">
+                    <div className="flex items-center gap-2 text-cipher-cyan mt-3 sm:mt-4">
                       <span className="animate-pulse">▊</span>
                     </div>
                   </div>
@@ -315,11 +333,13 @@ export default function DecryptPage() {
 
             {error && (
               <div className="card bg-red-900/20 border-2 border-red-500/50 lg:h-full">
-                <div className="flex items-start gap-4">
-                  <Icons.X />
-                  <div className="flex-1">
-                    <h3 className="font-bold text-red-300 text-lg mb-2">Decryption Failed</h3>
-                    <p className="text-sm text-gray-300 font-mono break-all leading-relaxed">{error}</p>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex-shrink-0">
+                    <Icons.X />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-red-300 text-base sm:text-lg mb-2">Decryption Failed</h3>
+                    <p className="text-xs sm:text-sm text-gray-300 font-mono break-all leading-relaxed">{error}</p>
                   </div>
                 </div>
               </div>
@@ -328,43 +348,43 @@ export default function DecryptPage() {
             {memo && (
               <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full">
                 {/* Terminal Header */}
-                <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-4 py-3 flex items-center gap-3">
+                <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
                   <Icons.Check />
-                  <span className="font-mono text-sm text-cipher-green">DECRYPTED_MEMO.txt</span>
-                  <div className="ml-auto flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="font-mono text-xs sm:text-sm text-cipher-green truncate">DECRYPTED_MEMO.txt</span>
+                  <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
                   </div>
                 </div>
 
                 {/* Terminal Content */}
-                <div className="bg-black/80 p-6 font-mono flex-1">
-                  <div className="flex items-start gap-3 mb-4">
-                    <span className="text-cipher-cyan">$</span>
-                    <span className="text-gray-400">cat DECRYPTED_MEMO.txt</span>
+                <div className="bg-black/80 p-3 sm:p-4 md:p-6 font-mono flex-1 overflow-x-hidden">
+                  <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <span className="text-cipher-cyan text-sm sm:text-base">$</span>
+                    <span className="text-gray-400 text-xs sm:text-sm break-all">cat DECRYPTED_MEMO.txt</span>
                   </div>
 
                   {/* ASCII Art Separator */}
-                  <div className="text-cipher-cyan/40 text-xs mb-4">
-                    <p>════════════════════════════════════════════════════</p>
+                  <div className="text-cipher-cyan/40 text-[10px] sm:text-xs mb-3 sm:mb-4 overflow-x-auto">
+                    <p className="whitespace-nowrap">════════════════════════════════════════════════════</p>
                   </div>
 
-                  <div className="pl-6 border-l-2 border-cipher-cyan/30">
-                    <p className="text-xs text-cipher-cyan mb-2">[ DECRYPTED OUTPUT ]</p>
-                    <p className="text-xl text-cipher-green leading-relaxed break-words">
+                  <div className="pl-3 sm:pl-4 md:pl-6 border-l-2 border-cipher-cyan/30">
+                    <p className="text-[10px] sm:text-xs text-cipher-cyan mb-2">[ DECRYPTED OUTPUT ]</p>
+                    <p className="text-base sm:text-lg md:text-xl text-cipher-green leading-relaxed break-words">
                       {memo}
                     </p>
                   </div>
 
                   {/* Bottom Separator */}
-                  <div className="text-cipher-cyan/40 text-xs mt-6">
-                    <p>════════════════════════════════════════════════════</p>
+                  <div className="text-cipher-cyan/40 text-[10px] sm:text-xs mt-4 sm:mt-6 overflow-x-auto">
+                    <p className="whitespace-nowrap">════════════════════════════════════════════════════</p>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4 text-cipher-cyan text-sm">
+                  <div className="flex items-center gap-2 mt-3 sm:mt-4 text-cipher-cyan text-xs sm:text-sm">
                     <Icons.Check />
-                    <span>Decryption successful • Zero-knowledge verified</span>
+                    <span className="break-words">Decryption successful • Zero-knowledge verified</span>
                   </div>
                   <div className="flex items-center gap-2 mt-2 text-cipher-cyan">
                     <span className="animate-pulse">▊</span>
