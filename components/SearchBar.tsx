@@ -18,20 +18,34 @@ export function SearchBar({ compact = false }: SearchBarProps) {
 
     if (!query.trim()) return;
 
-    const trimmedQuery = query.trim();
+    // Sanitize input: remove any HTML/script tags and dangerous characters
+    const trimmedQuery = query.trim()
+      .replace(/[<>\"']/g, '') // Remove HTML-related characters
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, ''); // Remove event handlers
+
+    // Validate length (prevent extremely long inputs)
+    if (trimmedQuery.length > 200) {
+      console.warn('Query too long, truncating');
+      return;
+    }
 
     // Check if it's an address using the proper detection function
     const addressType = detectAddressType(trimmedQuery);
 
     if (addressType !== 'invalid') {
       // It's a valid address (transparent, shielded, or unified)
-      router.push(`/address/${trimmedQuery}`);
+      router.push(`/address/${encodeURIComponent(trimmedQuery)}`);
     } else if (!isNaN(Number(trimmedQuery))) {
       // It's a block number
-      router.push(`/block/${trimmedQuery}`);
+      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else {
-      // It's a transaction ID
-      router.push(`/tx/${trimmedQuery}`);
+      // It's a transaction ID (validate it's hex)
+      if (/^[a-fA-F0-9]+$/.test(trimmedQuery)) {
+        router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
+      } else {
+        console.warn('Invalid transaction ID format');
+      }
     }
   };
 

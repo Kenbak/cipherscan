@@ -129,7 +129,7 @@ export function NavBar() {
                       href="/decrypt"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
                     >
-                      <span>🔓 Decrypt Memo</span>
+                      <span>Decrypt Memo</span>
                     </Link>
                     <div className="border-t border-cipher-border my-2"></div>
                     <Link
@@ -207,7 +207,7 @@ export function NavBar() {
               onClick={() => setMobileMenuOpen(false)}
               className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
             >
-              🔓 Decrypt Memo
+              Decrypt Memo
             </Link>
                 <Link
                   href="/docs"
