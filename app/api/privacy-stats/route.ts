@@ -33,13 +33,9 @@ export async function GET() {
       );
     }
 
-    console.log('🔍 [PRIVACY STATS] Fetching from:', apiUrl);
-
     const response = await fetch(apiUrl, {
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
-
-    console.log('🔍 [PRIVACY STATS] Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -54,7 +50,6 @@ export async function GET() {
     }
 
     const stats = await response.json();
-    console.log('✅ [PRIVACY STATS] Stats loaded successfully');
 
     // Check if stats are stale (>48 hours old)
     const lastUpdated = new Date(stats.lastUpdated);

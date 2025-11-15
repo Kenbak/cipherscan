@@ -20,6 +20,7 @@ const config: Config = {
 
           // Functional colors
           green: '#00FF41',      // SUCCESS - Confirmations, positive actions
+          purple: '#A855F7',     // SHIELDED - Privacy, encryption, shielded transactions
           orange: '#FF6B35',     // WARNING - Only for alerts and negative values
 
           // Grayscale for everything else
