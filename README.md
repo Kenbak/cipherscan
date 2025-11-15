@@ -14,9 +14,12 @@ Make the Zcash blockchain accessible to **everyone**, not just developers.
 
 - 🔍 **Search** addresses, transactions, and blocks
 - 💰 **View balances** and transaction history
-- 🛡️ **Understand privacy** - see which addresses are shielded
-- 📝 **Read memos** - private messages in transactions
-- 📚 **Educational** - every term explained simply
+- 🛡️ **Privacy Dashboard** - Real-time shielded adoption metrics
+- 🔓 **Decrypt Memos** - Client-side Orchard memo decryption (WASM)
+- 📊 **Mempool Viewer** - Real-time pending transactions
+- 📡 **Live Updates** - WebSocket for real-time block updates
+- 📚 **Educational** - Privacy-preserving blockchain explorer
+- 🔐 **100% Private** - Viewing keys never leave your browser
 
 ## 🚀 Quick Start
 
@@ -35,7 +38,10 @@ npm run dev
 - **Next.js 15** - React framework with App Router
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
-- **Zcash RPC** - Real blockchain data via JSON-RPC
+- **PostgreSQL** - Fast indexed blockchain data
+- **Express.js** - API server with WebSocket support
+- **Rust + WASM** - Client-side Orchard memo decryption
+- **Zebra** - Zcash node (testnet/mainnet)
 
 ## ⚙️ Configuration (Optional)
 
@@ -50,6 +56,7 @@ ZCASH_RPC_PASSWORD=your_password
 
 ## 📋 Roadmap
 
+### ✅ Completed
 - [x] Connect to Zcash RPC server
 - [x] Fetch real blockchain data
 - [x] Display recent blocks
@@ -57,16 +64,40 @@ ZCASH_RPC_PASSWORD=your_password
 - [x] Address lookup (transparent & shielded)
 - [x] Block explorer with navigation
 - [x] Transaction viewer with shielded data detection
-- [ ] Decode shielded memos (for transparent addresses)
-- [ ] Add search filters
-- [ ] Mobile responsive design improvements
-- [ ] Dark mode
-- [ ] Performance optimizations
-- [ ] Mempool viewer
+- [x] PostgreSQL indexer for fast queries
+- [x] Privacy analytics dashboard
+- [x] Mempool viewer
+- [x] WebSocket real-time updates
+- [x] Client-side Orchard memo decryption (WASM)
+- [x] Mobile responsive design
+
+### 🚧 In Progress
+- [ ] Scan all transactions for a viewing key
+- [ ] Mainnet deployment
+- [ ] Performance optimizations (caching, CDN)
+
+### 🔮 Future
+- [ ] Sapling memo decryption
+- [ ] Batch transaction scanning
+- [ ] Export transaction history to CSV
+- [ ] Advanced search filters
+- [ ] Dark mode toggle
 
 ## 🌐 Live
 
-Coming soon: **cipherscan.app**
+- **Testnet**: [testnet.cipherscan.app](https://testnet.cipherscan.app)
+- **Mainnet**: Coming soon
+
+## 🔐 Privacy Features
+
+CipherScan allows you to decrypt your shielded memos **entirely client-side** using WebAssembly:
+
+1. **100% Private** - Your viewing key never leaves your browser
+2. **Orchard Support** - Decrypt Orchard shielded transactions
+3. **Zero-Knowledge** - No server-side key processing
+4. **Open Source** - Verifiable privacy guarantees
+
+Try it: [testnet.cipherscan.app/decrypt](https://testnet.cipherscan.app/decrypt)
 
 ## 🤝 Contributing
 
