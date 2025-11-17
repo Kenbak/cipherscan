@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@mayaprotocol/zcash-js": "^1.0.7",
-    "@next/third-parties": "^16.0.1",
     "@types/pg": "^8.15.6",
     "next": "^15.1.6",
     "node-fetch": "^3.3.2",
