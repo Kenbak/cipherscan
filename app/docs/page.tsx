@@ -240,10 +240,6 @@ export default function DocsPage() {
               Mainnet API will be available at <code className="text-cipher-cyan">cipherscan.app/api</code>
             </p>
             <p>
-              <strong className="text-white">Performance:</strong> This API uses a PostgreSQL database indexed from the Zcash blockchain,
-              providing <strong className="text-cipher-green">instant responses</strong> (typically &lt;50ms) compared to traditional RPC calls.
-            </p>
-            <p>
               <strong className="text-white">Rate Limiting:</strong> If you exceed 300 requests per minute,
               you'll receive a <code className="text-red-400">429 Too Many Requests</code> response.
             </p>
