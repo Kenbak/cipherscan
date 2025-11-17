@@ -20,19 +20,13 @@ export async function loadWasm(): Promise<ZcashWasm> {
   }
 
   try {
-    console.log('🔍 Loading WASM module from /wasm/...');
-
     // Use dynamic import to load the wasm-bindgen generated JS
     // We need to use a function to avoid webpack trying to resolve it at build time
     const loadWasmModule = new Function('return import("/wasm/zcash_wasm.js")');
     const wasmInit = await loadWasmModule();
 
-    console.log('✅ WASM JS module loaded, initializing...');
-
     // Initialize the WASM (this loads the .wasm file from public/)
     await wasmInit.default();
-
-    console.log('✅ WASM initialized successfully!');
 
     // Extract the exported functions
     wasmModule = {
@@ -78,8 +72,6 @@ export async function decryptMemo(txHex: string, viewingKey: string): Promise<st
  * Decrypt a memo from a transaction ID (fetches raw hex first)
  */
 export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<string> {
-  console.log('🔍 Fetching raw transaction hex for:', txid);
-
   // Use the correct API based on network
   const apiBaseUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
   const apiUrl = `${apiBaseUrl}/api/tx/${txid}/raw`;
@@ -94,13 +86,11 @@ export async function decryptMemoFromTxid(txid: string, viewingKey: string): Pro
 
     // Check if we have raw hex
     if (txData.hex) {
-      console.log(`✅ Got raw hex from API (${txData.hex.length} chars = ${txData.hex.length / 2} bytes)`);
       return decryptMemo(txData.hex, viewingKey);
     }
 
     throw new Error('Transaction data does not include raw hex');
   } catch (error) {
-    console.error('❌ Failed to fetch transaction:', error);
-    throw new Error(`Could not fetch transaction ${txid}. Please provide the raw transaction hex instead.`);
+    throw new Error(`Could not fetch transaction. Please provide the raw transaction hex instead.`);
   }
 }
