@@ -13,7 +13,7 @@ export default function DocsPage() {
   };
 
   // Use the PostgreSQL API for testnet (fast, indexed)
-  const baseUrl = typeof window !== 'undefined' 
+  const baseUrl = typeof window !== 'undefined'
     ? (window.location.hostname.includes('testnet') ? 'https://api.testnet.cipherscan.app' : window.location.origin)
     : 'https://api.testnet.cipherscan.app';
 

@@ -1,7 +1,11 @@
-# Allow all search engines
+# CipherScan - Zcash Blockchain Explorer
+# Privacy-first, open source block explorer
+
 User-agent: *
 Allow: /
 
 # Sitemap
 Sitemap: https://testnet.cipherscan.app/sitemap.xml
 
+# Crawl-delay for politeness (optional)
+Crawl-delay: 1
