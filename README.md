@@ -90,7 +90,10 @@ ZCASH_RPC_PASSWORD=your_password
 
 ## 🔐 Privacy Features
 
-CipherScan allows you to decrypt your shielded memos **entirely client-side** using WebAssembly:
+CipherScan is built with **privacy-first** principles:
+
+### Client-Side Memo Decryption
+Decrypt your shielded memos **entirely in your browser** using WebAssembly:
 
 1. **100% Private** - Your viewing key never leaves your browser
 2. **Orchard Support** - Decrypt Orchard shielded transactions
@@ -98,6 +101,12 @@ CipherScan allows you to decrypt your shielded memos **entirely client-side** us
 4. **Open Source** - Verifiable privacy guarantees
 
 Try it: [testnet.cipherscan.app/decrypt](https://testnet.cipherscan.app/decrypt)
+
+### No Tracking
+- ❌ **No Google Analytics** - We don't track your activity
+- ❌ **No IP Logging** - Aligned with Zcash privacy values
+- ❌ **No Cookies** - No unnecessary data collection
+- ✅ **Open Source** - Verify our privacy claims yourself
 
 ## 🤝 Contributing
 

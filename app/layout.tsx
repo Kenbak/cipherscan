@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Image from "next/image";
-import { GoogleAnalytics } from '@next/third-parties/google';
 import { NavBar } from "@/components/NavBar";
 import { DonateButton } from "@/components/DonateButton";
 import "./globals.css";
@@ -67,11 +66,6 @@ export const metadata: Metadata = {
   // Manifest for PWA
   manifest: "/manifest.json",
 
-  // Google Search Console Verification
-  verification: {
-    google: 'UZExU7CsBdY8qvEATObJg__1uXGSrLb8umTF',
-  },
-
   // Category
   category: 'technology',
 };
@@ -87,8 +81,6 @@ export default function RootLayout({
         <NavBar />
         <main className="min-h-screen">{children}</main>
 
-        {/* Google Analytics - Add your GA4 Measurement ID here */}
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ''} />
         <footer className="bg-cipher-surface/50 border-t border-cipher-border mt-12 sm:mt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
             {/* Footer Grid - 3 columns on desktop, stack on mobile */}
