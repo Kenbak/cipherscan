@@ -61,7 +61,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search address, tx hash, block..."
+            placeholder="Search address, tx hash, block number..."
             className="w-full pl-8 pr-3 py-2 text-sm font-mono bg-cipher-surface border border-cipher-border rounded-lg focus:border-cipher-cyan focus:outline-none transition-all text-gray-200 placeholder-gray-500"
           />
         </div>
@@ -84,7 +84,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="Search address, tx, block..."
+            placeholder="Search address, tx, block number..."
             className="w-full pl-8 sm:pl-10 pr-24 sm:pr-32 py-3 sm:py-5 text-sm sm:text-base font-mono bg-cipher-surface border-2 border-cipher-border rounded-lg focus:border-cipher-cyan focus:outline-none transition-all text-gray-200 placeholder-gray-600"
           />
           <button
