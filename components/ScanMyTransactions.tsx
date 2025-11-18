@@ -53,6 +53,7 @@ interface ScanResult {
   height: number;
   timestamp: number;
   memo: string;
+  amount: number; // Amount in ZEC
 }
 
 export function ScanMyTransactions() {
@@ -187,7 +188,7 @@ export function ScanMyTransactions() {
           // Get raw hex from our batch
           const rawHex = allRawTxs.get(tx.txid);
           if (rawHex) {
-            const memoText = await decryptMemo(rawHex, sanitizedKey);
+            const decrypted = await decryptMemo(rawHex, sanitizedKey);
 
             // Success! This tx belongs to user
             foundCount++; // Increment local counter
@@ -195,7 +196,8 @@ export function ScanMyTransactions() {
               txid: tx.txid,
               height: tx.block_height,
               timestamp: tx.timestamp,
-              memo: memoText,
+              memo: decrypted.memo,
+              amount: decrypted.amount,
             });
           }
         } catch (err) {
@@ -442,6 +444,19 @@ export function ScanMyTransactions() {
 
                     {/* Separator */}
                     <span className="text-gray-600">•</span>
+
+                    {/* Amount */}
+                    {result.amount > 0 && (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-gray-500 font-bold uppercase tracking-wider">Amount:</span>
+                          <span className="text-cipher-green font-mono font-semibold">
+                            +{result.amount.toString().replace(/\.?0+$/, '')} ZEC
+                          </span>
+                        </div>
+                        <span className="text-gray-600">•</span>
+                      </>
+                    )}
 
                     {/* Transaction */}
                     <div className="flex items-center gap-2 flex-1 min-w-0">

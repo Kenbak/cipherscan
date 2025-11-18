@@ -1,12 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
-export function main(): void;
 export function detect_key_type(viewing_key: string): string;
 /**
  * Orchard memo decryption - The Official Way™
  */
 export function decrypt_memo(tx_hex: string, viewing_key: string): string;
 export function test_wasm(): string;
+export function main(): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
