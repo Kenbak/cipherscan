@@ -88,6 +88,10 @@ export function ScanMyTransactions() {
     setTotalBlocks(0);
     setCurrentBlock(0);
 
+    // Minimum loading time for smooth animation
+    const startTime = Date.now();
+    const minScanTime = 1500; // 1.5 seconds minimum
+
     try {
       const { decryptMemo } = await import('@/lib/wasm-loader');
 
@@ -132,7 +136,20 @@ export function ScanMyTransactions() {
       const orchardTxs = scanData.transactions || [];
 
       if (orchardTxs.length === 0) {
+        // Simulate progress for smooth animation
+        setScanProgress(50);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setScanProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         setScanError(`No Orchard transactions found in the last ${scanPeriod}.`);
+
+        // Ensure minimum time
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < minScanTime) {
+          await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+        }
+
         setScanning(false);
         return;
       }
@@ -160,6 +177,7 @@ export function ScanMyTransactions() {
       let txsProcessed = 0;
       const totalTxs = orchardTxs.length;
       let foundCount = 0; // Track locally
+      const foundMessages: ScanResult[] = []; // Store results locally
 
       for (const tx of orchardTxs) {
         try {
@@ -173,33 +191,66 @@ export function ScanMyTransactions() {
 
             // Success! This tx belongs to user
             foundCount++; // Increment local counter
-            setScanResults(prev => [...prev, {
+            foundMessages.push({
               txid: tx.txid,
               height: tx.block_height,
               timestamp: tx.timestamp,
               memo: memoText,
-            }]);
+            });
           }
         } catch (err) {
           // Not our tx, skip silently
         }
 
         txsProcessed++;
-        setScanProgress(Math.round((txsProcessed / totalTxs) * 100));
+        const newProgress = Math.round((txsProcessed / totalTxs) * 100);
+        setScanProgress(newProgress);
+
+        // Force UI update every 5 TXs or at key milestones
+        if (txsProcessed % 5 === 0 || newProgress === 25 || newProgress === 50 || newProgress === 75) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
       }
 
-      // Use local counter instead of state
+      // Ensure progress bar reaches 100%
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Now display results after progress is complete
       if (foundCount === 0) {
         setScanError(`Scanned ${totalTxs} Orchard transactions in the last ${scanPeriod} but none matched your viewing key.`);
       } else {
+        setScanResults(foundMessages);
         // Scroll to results after a short delay to let state update
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
       }
+
+      // Ensure minimum scan time for smooth animation
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
     } catch (err: any) {
       console.error('❌ [SCAN] Fatal error:', err);
+
+      // Simulate progress for smooth animation even on error
+      const currentProgress = scanProgress;
+      if (currentProgress < 50) {
+        setScanProgress(50);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       setScanError(err.message || 'Failed to scan transactions');
+
+      // Ensure minimum time even on error
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
     } finally {
       setScanning(false);
     }
@@ -332,79 +383,123 @@ export function ScanMyTransactions() {
         </div>
       </div>
 
-      {/* Results */}
+      {/* Results - Encrypted Mail Client */}
       {scanResults.length > 0 && (
-        <div ref={resultsRef} className="card scroll-mt-8">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-              <Icons.Check />
-              Encrypted Messages ({scanResults.length})
-            </h2>
-            {!scanning && (
-              <button
-                onClick={scanMyTransactions}
-                className="text-xs sm:text-sm text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1"
-              >
-                <Icons.Refresh />
-                Refresh
-              </button>
-            )}
+        <div ref={resultsRef} className="scroll-mt-8 border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl">
+          {/* Terminal-Style Header */}
+          <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">~/encrypted_inbox</span>
+              <span className="hidden sm:inline text-xs text-gray-500 font-mono">
+                [{scanResults.length} msg{scanResults.length > 1 ? 's' : ''}]
+              </span>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {!scanning && (
+                <button
+                  onClick={scanMyTransactions}
+                  className="text-xs text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
+                  title="Refresh inbox"
+                >
+                  <Icons.Refresh />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+              )}
+              <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3 sm:space-y-4">
-            {scanResults.map((result, idx) => (
+          {/* Messages List */}
+          <div className="bg-black/80 p-4 space-y-3">
+            {[...scanResults].reverse().map((result, idx) => (
               <div
                 key={idx}
-                className="bg-cipher-bg border border-cipher-border rounded-lg overflow-hidden hover:border-cipher-purple/50 transition-all duration-300 group animate-fade-in"
+                className="bg-cipher-surface/50 border-2 border-cipher-cyan/30 rounded overflow-hidden hover:border-cipher-cyan/60 transition-colors duration-200 animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
-                {/* Compact Header */}
-                <div className="bg-cipher-surface/30 px-4 py-2.5 flex items-center justify-between border-b border-cipher-border/50">
-                  {/* Left: Lock + TX */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-cipher-purple/10 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
+                {/* Message Header - Old School Email Style (Single Line) */}
+                <div className="bg-gradient-to-r from-cipher-surface/80 to-cipher-surface/60 px-4 py-3 border-b-2 border-cipher-border">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
+                    {/* From */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 font-bold uppercase tracking-wider">From:</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-cipher-purple/20 border border-cipher-purple/40 rounded">
+                        <svg className="w-2.5 h-2.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs font-semibold text-cipher-purple uppercase">
+                          Shielded
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[9px] text-gray-600 font-mono">tx:</span>
-                    <Link
-                      href={`/tx/${result.txid}`}
-                      className="font-mono text-[10px] sm:text-xs text-cipher-cyan hover:underline truncate"
-                    >
-                      {result.txid.slice(0, 12)}...{result.txid.slice(-8)}
-                    </Link>
-                    <span className="hidden md:inline-flex items-center gap-1 text-[9px] text-gray-500 font-mono">
-                      <span className="text-gray-600">from:</span>
-                      <span className="px-1.5 py-0.5 bg-cipher-purple/10 rounded text-cipher-purple uppercase tracking-wide">
-                        Shielded
-                      </span>
-                    </span>
-                  </div>
 
-                  {/* Right: Block + Date */}
-                  <div className="flex-shrink-0 text-right">
-                    <div className="text-[10px] text-gray-400 font-mono">
-                      #{result.height.toLocaleString()}
+                    {/* Separator */}
+                    <span className="text-gray-600">•</span>
+
+                    {/* Transaction */}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-gray-500 font-bold uppercase tracking-wider whitespace-nowrap">TX:</span>
+                      <Link
+                        href={`/tx/${result.txid}`}
+                        className="font-mono text-cipher-cyan hover:text-cipher-green hover:underline truncate transition-colors"
+                      >
+                        {result.txid.slice(0, 12)}...{result.txid.slice(-8)}
+                      </Link>
                     </div>
-                    <div className="text-[9px] text-gray-500 font-mono">
+
+                    {/* Separator */}
+                    <span className="text-gray-600 hidden sm:inline">•</span>
+
+                    {/* Block */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-500 font-bold uppercase tracking-wider">Block:</span>
+                      <span className="text-gray-400 font-mono">
+                        #{result.height.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Separator */}
+                    <span className="text-gray-600 hidden sm:inline">•</span>
+
+                    {/* Time */}
+                    <div className="text-white font-semibold ml-auto">
                       {formatTime(result.timestamp)}
                     </div>
                   </div>
                 </div>
 
-                {/* Message Body */}
+                {/* Message Body - Email Content Area */}
                 {result.memo && (
-                  <div className="p-4">
-                    <div className="bg-black/20 border-l-2 border-cipher-purple rounded-r p-3">
-                      <p className="text-sm sm:text-base text-white font-mono break-words leading-relaxed">
-                        {result.memo}
-                      </p>
+                  <div className="p-5 bg-white/[0.02]">
+                    <div className="text-sm text-gray-400 uppercase tracking-wider mb-3 font-bold">
+                      Message:
                     </div>
+                    <p className="text-base text-white leading-relaxed break-words pl-4 border-l-2 border-cipher-purple/30">
+                      {result.memo}
+                    </p>
                   </div>
                 )}
               </div>
             ))}
+          </div>
+
+          {/* Terminal Footer */}
+          <div className="bg-black/80 px-4 py-3 border-t-2 border-cipher-cyan">
+            <div className="flex items-center justify-between text-xs text-gray-400 font-mono">
+              <span>
+                ✓ {scanResults.length} message{scanResults.length > 1 ? 's' : ''} decrypted
+              </span>
+              <span className="text-cipher-green">
+                🔐 client-side
+              </span>
+            </div>
           </div>
         </div>
       )}

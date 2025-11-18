@@ -139,7 +139,7 @@ export default function RootLayout({
                       </svg>
                     </a>
                   </div>
-                  
+
                   <p className="text-xs text-gray-500 font-mono">
                     Powered by Zebrad
                   </p>
