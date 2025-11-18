@@ -76,7 +76,9 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
         }
     };
 
-    // Step 6: Try to decrypt
+    // Step 6: Try to decrypt all actions and collect valid memos
+    let mut found_memos = Vec::new();
+
     for action in orchard_actions.iter() {
         // Create domain for THIS specific action
         let domain = OrchardDomain::for_action(*action);
@@ -89,12 +91,27 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
             if let Some((_note, _recipient, memo)) = try_note_decryption(&domain, &prepared_ivk, *action) {
                 let memo_bytes = memo.as_slice();
                 let memo_len = memo_bytes.iter().position(|&b| b == 0).unwrap_or(memo_bytes.len());
-                let memo_text = String::from_utf8_lossy(&memo_bytes[..memo_len]);
 
-                return Ok(memo_text.to_string());
+                // Skip empty memos
+                if memo_len == 0 {
+                    continue;
+                }
+
+                // Validate UTF-8 and skip invalid text
+                if let Ok(memo_text) = String::from_utf8(memo_bytes[..memo_len].to_vec()) {
+                    // Skip if memo is only whitespace
+                    if !memo_text.trim().is_empty() {
+                        found_memos.push(memo_text);
+                    }
+                }
             }
         }
     }
 
-    Err("No memo found or viewing key doesn't match any outputs.".to_string())
+    // Return the first valid memo found
+    if let Some(memo) = found_memos.first() {
+        Ok(memo.clone())
+    } else {
+        Err("No memo found or viewing key doesn't match any outputs.".to_string())
+    }
 }
