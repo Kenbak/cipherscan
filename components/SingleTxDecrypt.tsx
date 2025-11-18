@@ -35,6 +35,7 @@ export function SingleTxDecrypt() {
   const [txid, setTxid] = useState('');
   const [viewingKey, setViewingKey] = useState('');
   const [memo, setMemo] = useState<string | null>(null);
+  const [amount, setAmount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -90,7 +91,8 @@ export function SingleTxDecrypt() {
       // Wait for minimum time
       await minLoadTime;
       clearInterval(stepInterval);
-      setMemo(result);
+      setMemo(result.memo);
+      setAmount(result.amount);
     } catch (err: any) {
       await minLoadTime;
       clearInterval(stepInterval);
@@ -103,6 +105,7 @@ export function SingleTxDecrypt() {
 
   const reset = () => {
     setMemo(null);
+    setAmount(0);
     setError(null);
     setTxid('');
     setViewingKey('');
@@ -292,6 +295,18 @@ export function SingleTxDecrypt() {
 
               <div className="pl-3 sm:pl-4 md:pl-6 border-l-2 border-cipher-cyan/30">
                 <p className="text-[10px] sm:text-xs text-cipher-cyan mb-2">[ DECRYPTED OUTPUT ]</p>
+
+                {/* Amount */}
+                {amount > 0 && (
+                  <div className="mb-3 sm:mb-4">
+                    <span className="text-xs sm:text-sm text-gray-400">Amount: </span>
+                    <span className="text-lg sm:text-xl font-bold text-cipher-green font-mono">
+                      +{amount.toString().replace(/\.?0+$/, '')} ZEC
+                    </span>
+                  </div>
+                )}
+
+                {/* Memo */}
                 <p className="text-base sm:text-lg md:text-xl text-cipher-green leading-relaxed break-words">
                   {memo}
                 </p>

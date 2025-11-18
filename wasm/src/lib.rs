@@ -12,6 +12,15 @@ use zcash_address::unified::{Container, Encoding, Fvk, Ufvk};
 use zcash_primitives::transaction::Transaction;
 use std::io::Cursor;
 
+// For JSON serialization
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct DecryptedOutput {
+    pub memo: String,
+    pub amount: f64, // Amount in ZEC
+}
+
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -76,8 +85,8 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
         }
     };
 
-    // Step 6: Try to decrypt all actions and collect valid memos
-    let mut found_memos = Vec::new();
+    // Step 6: Try to decrypt all actions and collect valid outputs (memo + amount)
+    let mut found_outputs = Vec::new();
 
     for action in orchard_actions.iter() {
         // Create domain for THIS specific action
@@ -88,7 +97,7 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
             let ivk = fvk.to_ivk(scope);
             let prepared_ivk = PreparedIncomingViewingKey::new(&ivk);
 
-            if let Some((_note, _recipient, memo)) = try_note_decryption(&domain, &prepared_ivk, *action) {
+            if let Some((note, _recipient, memo)) = try_note_decryption(&domain, &prepared_ivk, *action) {
                 let memo_bytes = memo.as_slice();
                 let memo_len = memo_bytes.iter().position(|&b| b == 0).unwrap_or(memo_bytes.len());
 
@@ -101,16 +110,24 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
                 if let Ok(memo_text) = String::from_utf8(memo_bytes[..memo_len].to_vec()) {
                     // Skip if memo is only whitespace
                     if !memo_text.trim().is_empty() {
-                        found_memos.push(memo_text);
+                        // Extract amount from note (in zatoshis, convert to ZEC)
+                        let amount_zatoshis = note.value().inner();
+                        let amount_zec = amount_zatoshis as f64 / 100_000_000.0;
+
+                        found_outputs.push(DecryptedOutput {
+                            memo: memo_text,
+                            amount: amount_zec,
+                        });
                     }
                 }
             }
         }
     }
 
-    // Return the first valid memo found
-    if let Some(memo) = found_memos.first() {
-        Ok(memo.clone())
+    // Return the first valid output found as JSON
+    if let Some(output) = found_outputs.first() {
+        serde_json::to_string(output)
+            .map_err(|e| format!("JSON serialization failed: {:?}", e))
     } else {
         Err("No memo found or viewing key doesn't match any outputs.".to_string())
     }

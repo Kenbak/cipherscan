@@ -4,6 +4,11 @@
 let wasmModule: any = null;
 let wasmInitialized = false;
 
+export interface DecryptedOutput {
+  memo: string;
+  amount: number; // Amount in ZEC
+}
+
 export interface ZcashWasm {
   test_wasm: () => string;
   detect_key_type: (viewingKey: string) => string;
@@ -62,16 +67,21 @@ export async function detectKeyType(viewingKey: string): Promise<string> {
 
 /**
  * Decrypt a memo from a transaction
+ * @returns DecryptedOutput with memo and amount
  */
-export async function decryptMemo(txHex: string, viewingKey: string): Promise<string> {
+export async function decryptMemo(txHex: string, viewingKey: string): Promise<DecryptedOutput> {
   const wasm = await loadWasm();
-  return wasm.decrypt_memo(txHex, viewingKey);
+  const result = wasm.decrypt_memo(txHex, viewingKey);
+
+  // Parse JSON response from WASM
+  return JSON.parse(result);
 }
 
 /**
  * Decrypt a memo from a transaction ID (fetches raw hex first)
+ * @returns DecryptedOutput with memo and amount
  */
-export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<string> {
+export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<DecryptedOutput> {
   // Use the correct API based on network
   const apiBaseUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
   const apiUrl = `${apiBaseUrl}/api/tx/${txid}/raw`;
