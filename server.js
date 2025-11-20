@@ -963,7 +963,7 @@ async function fetchNetworkStatsOptimized() {
     }
 
     const { height, difficulty, timestamp, blocks_24h, avg_difficulty } = dbStats.rows[0];
-    
+
     // Get blockchain size from DB
     const sizeResult = await pool.query(`
       SELECT SUM(size) as total_size
@@ -971,9 +971,15 @@ async function fetchNetworkStatsOptimized() {
     `);
     const blockchainSizeBytes = parseInt(sizeResult.rows[0]?.total_size || 0);
     const blockchainSizeGB = (blockchainSizeBytes / (1024 * 1024 * 1024)).toFixed(2);
-    
-    // Only 1 RPC call for real-time peer info (can't get from DB)
+
+    // Get network info (Zebra 3.0+ has more detailed info)
+    const networkInfo = await callZebraRPC('getnetworkinfo').catch(() => null);
     const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    // Extract peer count and network details
+    const peerCount = networkInfo?.connections || (Array.isArray(peerInfo) ? peerInfo.length : 0);
+    const protocolVersion = networkInfo?.protocolversion || null;
+    const subversion = networkInfo?.subversion || null;
 
     // Calculate hashrate
     const blocks24h = parseInt(blocks_24h || 0);
@@ -998,8 +1004,10 @@ async function fetchNetworkStatsOptimized() {
         dailyRevenue,
       },
       network: {
-        peers: Array.isArray(peerInfo) ? peerInfo.length : 0,
+        peers: peerCount,
         height: parseInt(height),
+        protocolVersion: protocolVersion,
+        subversion: subversion,
       },
       blockchain: {
         height: parseInt(height),
@@ -1067,7 +1075,7 @@ app.get('/api/network/stats', async (req, res) => {
 
 /**
  * GET /api/network/fees
- * 
+ *
  * Get estimated transaction fees (slow, standard, fast)
  */
 app.get('/api/network/fees', async (req, res) => {
@@ -1091,9 +1099,63 @@ app.get('/api/network/fees', async (req, res) => {
     console.log(`✅ [FEES] Fee estimates returned`);
   } catch (error) {
     console.error('❌ [FEES] Error fetching fees:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch fee estimates',
+    });
+  }
+});
+
+/**
+ * GET /api/network/health
+ * 
+ * Get Zebra node health status (Zebra 3.0+)
+ * Checks if Zebra's built-in health endpoints are available
+ */
+app.get('/api/network/health', async (req, res) => {
+  try {
+    console.log('🏥 [HEALTH] Checking Zebra node health...');
+
+    const zebraHealthUrl = process.env.ZEBRA_HEALTH_URL || 'http://127.0.0.1:8080';
+
+    // Try to fetch Zebra's health endpoints (Zebra 3.0+)
+    const [healthyRes, readyRes] = await Promise.allSettled([
+      fetch(`${zebraHealthUrl}/healthy`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+      fetch(`${zebraHealthUrl}/ready`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+    ]);
+
+    const healthy = healthyRes.status === 'fulfilled' && healthyRes.value?.ok;
+    const ready = readyRes.status === 'fulfilled' && readyRes.value?.ok;
+
+    // Fallback: check via RPC if health endpoints not available
+    let fallbackHealthy = false;
+    if (!healthy) {
+      try {
+        const blockchainInfo = await callZebraRPC('getblockchaininfo');
+        fallbackHealthy = blockchainInfo && blockchainInfo.blocks > 0;
+      } catch (error) {
+        fallbackHealthy = false;
+      }
+    }
+
+    res.json({
+      success: true,
+      zebra: {
+        healthy: healthy || fallbackHealthy,
+        ready: ready,
+        healthEndpointAvailable: healthy,
+        readyEndpointAvailable: ready,
+      },
+      note: healthy ? 'Zebra 3.0+ health endpoints available' : 'Using RPC fallback (Zebra < 3.0 or health endpoints not configured)',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [HEALTH] Node healthy: ${healthy || fallbackHealthy}, ready: ${ready}`);
+  } catch (error) {
+    console.error('❌ [HEALTH] Error checking health:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Failed to check node health',
     });
   }
 });
@@ -1119,18 +1181,25 @@ app.get('/api/network/peers', async (req, res) => {
     }
 
     // Format peer data for frontend
-    const peers = peerInfo.map((peer) => ({
-      id: peer.id || null,
-      addr: peer.addr || 'unknown',
-      version: peer.version || null,
-      subver: peer.subver || null,
-      inbound: peer.inbound || false,
-      startingheight: peer.startingheight || null,
-      synced_headers: peer.synced_headers || null,
-      synced_blocks: peer.synced_blocks || null,
-      conntime: peer.conntime || null,
-      pingtime: peer.pingtime || null,
-    }));
+    // Note: Zebra returns minimal peer info (just address)
+    // zcashd returns more details (version, ping, etc.)
+    const peers = peerInfo.map((peer, index) => {
+      // Extract country/region from IP (simplified)
+      const addr = peer.addr || peer.address || 'unknown';
+      const ip = addr.split(':')[0];
+
+      return {
+        id: index + 1,
+        addr: addr,
+        ip: ip,
+        inbound: peer.inbound !== undefined ? peer.inbound : false,
+        // Optional fields (may be null with Zebra)
+        version: peer.version || null,
+        subver: peer.subver || null,
+        pingtime: peer.pingtime || null,
+        conntime: peer.conntime || null,
+      };
+    });
 
     res.json({
       success: true,
@@ -1142,7 +1211,7 @@ app.get('/api/network/peers', async (req, res) => {
     console.log(`✅ [PEERS] Returned ${peers.length} peers`);
   } catch (error) {
     console.error('❌ [PEERS] Error fetching peers:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch peer information',
     });
