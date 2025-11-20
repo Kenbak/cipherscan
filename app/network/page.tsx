@@ -283,7 +283,7 @@ export default function NetworkPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
         <MiniStatCard
           label="Hashrate"
-          value={stats.mining.networkHashrateRaw < 1000 
+          value={stats.mining.networkHashrateRaw < 1000
             ? `${stats.mining.networkHashrateRaw.toFixed(2)} H/s`
             : stats.mining.networkHashrate
           }
@@ -357,8 +357,8 @@ interface MiniStatCardProps {
 function MiniStatCard({ icon, label, value, subtitle, highlight }: MiniStatCardProps) {
   return (
     <div className={`p-4 rounded-lg border transition-all ${
-      highlight 
-        ? 'bg-green-900/10 border-green-500/30 hover:border-green-500/50' 
+      highlight
+        ? 'bg-green-900/10 border-green-500/30 hover:border-green-500/50'
         : 'bg-cipher-surface/50 border-cipher-border hover:border-cipher-cyan/30'
     }`}>
       <div className="flex items-center gap-2 mb-3">

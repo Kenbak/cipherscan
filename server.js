@@ -647,17 +647,18 @@ app.get('/api/privacy-stats', async (req, res) => {
 
     const stats = statsResult.rows[0];
 
-    // Get daily trends (last 7 days)
+    // Get daily trends (last 30 days for better charts)
     const trendsResult = await pool.query(`
       SELECT
         date,
         shielded_count,
         transparent_count,
         shielded_percentage,
-        pool_size
+        pool_size,
+        privacy_score
       FROM privacy_trends_daily
       ORDER BY date DESC
-      LIMIT 7
+      LIMIT 30
     `);
 
     res.json({
@@ -686,6 +687,7 @@ app.get('/api/privacy-stats', async (req, res) => {
           transparent: parseInt(row.transparent_count),
           shieldedPercentage: parseFloat(row.shielded_percentage),
           poolSize: parseInt(row.pool_size) / 100000000, // Convert to ZEC
+          privacyScore: parseInt(row.privacy_score) || 0,
         })),
       },
       lastUpdated: stats.updated_at.toISOString(),
