@@ -114,6 +114,12 @@ export function NavBar() {
                 {toolsOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-cipher-surface border border-cipher-border rounded-lg shadow-xl py-2 z-50">
                     <Link
+                      href="/network"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
+                    >
+                      <span>Network Stats</span>
+                    </Link>
+                    <Link
                       href="/privacy"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
                     >
@@ -188,6 +194,13 @@ export function NavBar() {
             {/* Tools Links - Only on Testnet */}
             {!isMainnet && (
               <>
+                <Link
+                  href="/network"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+                >
+                  Network Stats
+                </Link>
                 <Link
                   href="/privacy"
                   onClick={() => setMobileMenuOpen(false)}

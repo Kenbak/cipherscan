@@ -1,0 +1,62 @@
+# Zebra Configuration for Zcash Mainnet
+# Based on zec.rocks best practices
+
+[network]
+# Mainnet configuration
+network = "Mainnet"
+
+# Listen for peer connections on this address
+listen_addr = "0.0.0.0:8233"
+
+# Initial peers to connect to
+initial_mainnet_peers = [
+    "mainnet.seeder.zfnd.org:8233",
+    "mainnet.is.yolo.money:8233",
+    "mainnet.seeder.zcash.network:8233"
+]
+
+# Maximum number of peer connections
+peerset_initial_target_size = 50
+
+[state]
+# Directory for blockchain state
+cache_dir = "/var/lib/zebrad-cache"
+
+# Enable checkpoint sync for faster initial sync
+checkpoint_sync = true
+
+# Delete old database versions on startup
+delete_old_database = true
+
+[sync]
+# Download and verify blocks in parallel
+parallel_cpu_threads = 4
+
+# Checkpoint verification (faster initial sync)
+checkpoint_sync = true
+
+# Maximum number of blocks to download concurrently
+max_concurrent_block_requests = 50
+
+[mempool]
+# Enable transaction mempool
+eviction_memory_time = "1h"
+tx_cost_limit = 80000000
+
+[rpc]
+# RPC listen address (localhost only for security)
+listen_addr = "127.0.0.1:8232"
+
+# Enable these RPC methods
+# getinfo, getblockchaininfo, getblock, getrawtransaction, sendrawtransaction, getaddressbalance, etc.
+
+[tracing]
+# Logging configuration
+filter = "info"
+
+# Log to file
+log_file = "/var/log/zebrad/zebrad.log"
+
+[metrics]
+# Prometheus metrics endpoint
+endpoint_addr = "127.0.0.1:9999"

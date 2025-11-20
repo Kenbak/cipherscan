@@ -1,0 +1,22 @@
+[Unit]
+Description=Zebra Zcash Node (Mainnet)
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/.cache/zebra
+ExecStart=/root/.cargo/bin/zebrad --config /etc/zebrad-mainnet.toml start
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+

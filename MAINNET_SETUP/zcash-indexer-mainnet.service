@@ -1,0 +1,22 @@
+[Unit]
+Description=Zcash Blockchain Indexer (Mainnet)
+After=network.target postgresql.service redis-server.service zebrad-mainnet.service
+Wants=postgresql.service redis-server.service zebrad-mainnet.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/zcash-indexer-mainnet
+EnvironmentFile=/root/zcash-indexer-mainnet/.env
+ExecStart=/usr/bin/node /root/zcash-indexer-mainnet/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
