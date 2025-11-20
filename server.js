@@ -945,7 +945,8 @@ async function fetchNetworkStatsOptimized() {
       last_24h AS (
         SELECT
           COUNT(*) as blocks_24h,
-          AVG(difficulty) as avg_difficulty
+          AVG(difficulty) as avg_difficulty,
+          SUM(transaction_count) as tx_24h
         FROM blocks
         WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
       )
@@ -954,7 +955,8 @@ async function fetchNetworkStatsOptimized() {
         latest.difficulty,
         latest.timestamp,
         last_24h.blocks_24h,
-        last_24h.avg_difficulty
+        last_24h.avg_difficulty,
+        last_24h.tx_24h
       FROM latest, last_24h
     `);
 
@@ -962,7 +964,7 @@ async function fetchNetworkStatsOptimized() {
       throw new Error('No blockchain data available');
     }
 
-    const { height, difficulty, timestamp, blocks_24h, avg_difficulty } = dbStats.rows[0];
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
 
     // Get blockchain size from DB
     const sizeResult = await pool.query(`
@@ -983,6 +985,7 @@ async function fetchNetworkStatsOptimized() {
 
     // Calculate hashrate
     const blocks24h = parseInt(blocks_24h || 0);
+    const tx24h = parseInt(tx_24h || 0);
     const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
     const difficultyNum = parseFloat(difficulty || 0);
     const networkHashrate = difficultyNum / avgBlockTime;
@@ -1015,6 +1018,7 @@ async function fetchNetworkStatsOptimized() {
         syncProgress: 100, // Assume synced if we have recent blocks
         sizeBytes: blockchainSizeBytes,
         sizeGB: parseFloat(blockchainSizeGB),
+        tx24h,
       },
       timestamp: Date.now(),
     };
@@ -1108,7 +1112,7 @@ app.get('/api/network/fees', async (req, res) => {
 
 /**
  * GET /api/network/health
- * 
+ *
  * Get Zebra node health status (Zebra 3.0+)
  * Checks if Zebra's built-in health endpoints are available
  */
@@ -1153,7 +1157,7 @@ app.get('/api/network/health', async (req, res) => {
     console.log(`✅ [HEALTH] Node healthy: ${healthy || fallbackHealthy}, ready: ${ready}`);
   } catch (error) {
     console.error('❌ [HEALTH] Error checking health:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: error.message || 'Failed to check node health',
     });
@@ -1162,7 +1166,7 @@ app.get('/api/network/health', async (req, res) => {
 
 /**
  * GET /api/network/peers
- * 
+ *
  * Get detailed information about connected peers
  */
 app.get('/api/network/peers', async (req, res) => {
