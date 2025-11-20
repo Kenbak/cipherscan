@@ -13,6 +13,7 @@ export interface ZcashWasm {
   test_wasm: () => string;
   detect_key_type: (viewingKey: string) => string;
   decrypt_memo: (txHex: string, viewingKey: string) => string;
+  decrypt_compact_output: (nullifierHex: string, cmuHex: string, ephemeralKeyHex: string, ciphertextHex: string, viewingKey: string) => string;
 }
 
 /**
@@ -34,11 +35,12 @@ export async function loadWasm(): Promise<ZcashWasm> {
     await wasmInit.default();
 
     // Extract the exported functions
-    wasmModule = {
-      test_wasm: wasmInit.test_wasm,
-      detect_key_type: wasmInit.detect_key_type,
-      decrypt_memo: wasmInit.decrypt_memo,
-    };
+      wasmModule = {
+        test_wasm: wasmInit.test_wasm,
+        detect_key_type: wasmInit.detect_key_type,
+        decrypt_memo: wasmInit.decrypt_memo,
+        decrypt_compact_output: wasmInit.decrypt_compact_output,
+      };
 
     wasmInitialized = true;
     return wasmModule;
@@ -103,4 +105,113 @@ export async function decryptMemoFromTxid(txid: string, viewingKey: string): Pro
   } catch (error) {
     throw new Error(`Could not fetch transaction. Please provide the raw transaction hex instead.`);
   }
+}
+
+/**
+ * Filter compact block outputs to find which ones belong to the viewing key
+ * Returns the TXIDs that match (without decrypting the full memo)
+ */
+export async function filterCompactOutputs(
+  compactBlocks: any[],
+  viewingKey: string
+): Promise<{ txid: string; height: number; timestamp: number }[]> {
+  console.log(`🔍 [FILTER] Starting to filter ${compactBlocks.length} compact blocks...`);
+
+  // Debug: Log first block structure
+  if (compactBlocks.length > 0) {
+    console.log('🔍 [FILTER] First block structure:', JSON.stringify(compactBlocks[0], null, 2).slice(0, 500));
+    if (compactBlocks[0].vtx && compactBlocks[0].vtx.length > 0) {
+      console.log('🔍 [FILTER] First TX structure:', JSON.stringify(compactBlocks[0].vtx[0], null, 2).slice(0, 500));
+    }
+  }
+
+  const wasm = await loadWasm();
+  const matchingTxs: { txid: string; height: number; timestamp: number }[] = [];
+
+  let totalOutputs = 0;
+  let blocksProcessed = 0;
+
+  for (const block of compactBlocks) {
+    blocksProcessed++;
+    if (blocksProcessed % 10000 === 0) {
+      console.log(`🔍 [FILTER] Processed ${blocksProcessed}/${compactBlocks.length} blocks, found ${matchingTxs.length} matches so far...`);
+    }
+
+    for (const tx of block.vtx || []) {
+      let txMatched = false;
+
+      // Check Orchard actions (most common for new TXs)
+      for (const action of tx.actions || []) {
+        totalOutputs++;
+
+        // Debug: Log first action
+        if (totalOutputs === 1) {
+          console.log('🔍 [FILTER] First Orchard action structure:', action);
+        }
+
+        try {
+          // Try to decrypt this Orchard action
+          const result = wasm.decrypt_compact_output(
+            action.nullifier,
+            action.cmx,
+            action.ephemeralKey,
+            action.ciphertext,
+            viewingKey
+          );
+
+          // If decryption succeeds, this TX belongs to us!
+          console.log(`✅ [FILTER] Found matching TX (Orchard): ${tx.hash.slice(0, 8)}... at block ${block.height}`);
+          matchingTxs.push({
+            txid: tx.hash,
+            height: parseInt(block.height),
+            timestamp: block.time,
+          });
+
+          txMatched = true;
+          break;
+        } catch (error) {
+          // Log first error for debugging
+          if (totalOutputs === 1) {
+            console.log('🔍 [FILTER] First decryption error:', error);
+          }
+          // Not our action, continue
+        }
+      }
+
+      // If already matched, skip Sapling outputs
+      if (txMatched) continue;
+
+      // Check Sapling outputs (for older TXs)
+      for (const output of tx.outputs || []) {
+        totalOutputs++;
+
+        try {
+          // Try to decrypt this Sapling output
+          // Note: Sapling doesn't have nullifiers in compact blocks, use dummy
+          const result = wasm.decrypt_compact_output(
+            '0000000000000000000000000000000000000000000000000000000000000000',
+            output.cmu,
+            output.ephemeralKey,
+            output.ciphertext,
+            viewingKey
+          );
+
+          // If decryption succeeds, this TX belongs to us!
+          console.log(`✅ [FILTER] Found matching TX (Sapling): ${tx.hash.slice(0, 8)}... at block ${block.height}`);
+          matchingTxs.push({
+            txid: tx.hash,
+            height: parseInt(block.height),
+            timestamp: block.time,
+          });
+
+          break;
+        } catch (error) {
+          // Not our output, continue
+        }
+      }
+    }
+  }
+
+  console.log(`✅ [FILTER] Filtering complete! Checked ${totalOutputs} outputs across ${compactBlocks.length} blocks, found ${matchingTxs.length} matches`);
+  return matchingTxs;
 }

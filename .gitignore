@@ -70,3 +70,8 @@ MEMO_DECODER_SUMMARY.md
 docs/IMPLEMENTATION_SUMMARY.md
 test-ufvk-parse/
 app/test-wasm/
+
+# ========================================
+# 🔧 SERVER SETUP: Internal deployment files
+# ========================================
+MAINNET_SETUP/

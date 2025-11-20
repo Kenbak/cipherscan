@@ -58,7 +58,8 @@ interface ScanResult {
 
 export function ScanMyTransactions() {
   const [viewingKey, setViewingKey] = useState('');
-  const [scanPeriod, setScanPeriod] = useState<'1h' | '6h' | '24h' | '7d'>('1h');
+  const [scanPeriod, setScanPeriod] = useState<'1h' | '6h' | '24h' | '7d' | 'birthday'>('1h');
+  const [birthdayBlock, setBirthdayBlock] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [totalBlocks, setTotalBlocks] = useState(0);
@@ -68,6 +69,160 @@ export function ScanMyTransactions() {
 
   // Ref to scroll to results
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Birthday scan using Lightwalletd (FAST!)
+  const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number) => {
+    console.log('🎂 [BIRTHDAY SCAN] Starting scan from block', birthdayHeight);
+    setScanning(true);
+    setScanError(null);
+    setScanResults([]);
+    setScanProgress(0);
+    setTotalBlocks(0);
+    setCurrentBlock(0);
+
+    const startTime = Date.now();
+    const minScanTime = 1500;
+
+    try {
+      const { filterCompactOutputs, decryptMemo } = await import('@/lib/wasm-loader');
+      const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+
+      // Get current block height
+      console.log('📊 [BIRTHDAY SCAN] Fetching current block height...');
+      const infoRes = await fetch(`${apiUrl}/api/info`);
+      if (!infoRes.ok) {
+        throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
+      }
+      const infoData = await infoRes.json();
+      const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
+
+      const totalBlocks = currentHeight - birthdayHeight;
+      setTotalBlocks(totalBlocks);
+      console.log(`📦 [BIRTHDAY SCAN] Scanning ${totalBlocks.toLocaleString()} blocks (${birthdayHeight} → ${currentHeight})`);
+
+      // Step 1: Fetch compact blocks from Lightwalletd (FAST!)
+      console.log('⚡ [BIRTHDAY SCAN] Fetching compact blocks from Lightwalletd...');
+      setScanProgress(10);
+      const compactRes = await fetch(`${apiUrl}/api/lightwalletd/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          startHeight: birthdayHeight,
+          endHeight: currentHeight,
+        }),
+      });
+
+      if (!compactRes.ok) {
+        throw new Error(`Failed to fetch compact blocks: ${compactRes.status}`);
+      }
+
+      const compactData = await compactRes.json();
+      console.log(`✅ [BIRTHDAY SCAN] Received ${compactData.blocksScanned} compact blocks`);
+      setScanProgress(30);
+
+      // Step 2: Filter compact outputs to find matching TXs (WASM filtering)
+      console.log('🔍 [BIRTHDAY SCAN] Filtering compact outputs with WASM...');
+      const matchingTxs = await filterCompactOutputs(compactData.blocks, sanitizedKey);
+      console.log(`✅ [BIRTHDAY SCAN] Found ${matchingTxs.length} matching transactions`);
+      setScanProgress(50);
+
+      if (matchingTxs.length === 0) {
+        console.log('❌ [BIRTHDAY SCAN] No matching transactions found');
+        setScanError(`Scanned ${totalBlocks.toLocaleString()} blocks but found no transactions matching your viewing key.`);
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < minScanTime) {
+          await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+        }
+        setScanning(false);
+        return;
+      }
+
+      // Step 3: Fetch raw hex for matching TXs (batch)
+      console.log(`📥 [BIRTHDAY SCAN] Fetching raw hex for ${matchingTxs.length} transactions...`);
+      const txids = matchingTxs.map(tx => tx.txid);
+      const batchSize = 1000;
+      const allRawTxs = new Map<string, string>();
+
+      for (let i = 0; i < txids.length; i += batchSize) {
+        const batch = txids.slice(i, i + batchSize);
+        console.log(`📦 [BIRTHDAY SCAN] Fetching batch ${Math.floor(i / batchSize) + 1} (${batch.length} TXs)...`);
+        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txids: batch }),
+        });
+
+        if (!batchRes.ok) {
+          throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
+        }
+
+        const batchData = await batchRes.json();
+        batchData.transactions.forEach((tx: any) => {
+          allRawTxs.set(tx.txid, tx.hex);
+        });
+
+        setScanProgress(50 + Math.round((i / txids.length) * 30));
+      }
+      console.log(`✅ [BIRTHDAY SCAN] Fetched ${allRawTxs.size} raw transactions`);
+
+      // Step 4: Decrypt memos with WASM
+      console.log('🔓 [BIRTHDAY SCAN] Decrypting memos...');
+      const foundMessages: ScanResult[] = [];
+      let processed = 0;
+
+      for (const matchingTx of matchingTxs) {
+        try {
+          const rawHex = allRawTxs.get(matchingTx.txid);
+          if (rawHex) {
+            const decrypted = await decryptMemo(rawHex, sanitizedKey);
+            foundMessages.push({
+              txid: matchingTx.txid,
+              height: matchingTx.height,
+              timestamp: matchingTx.timestamp,
+              memo: decrypted.memo,
+              amount: decrypted.amount,
+            });
+            console.log(`✅ [BIRTHDAY SCAN] Decrypted memo for TX ${matchingTx.txid.slice(0, 8)}...`);
+          }
+        } catch (err) {
+          console.log(`⚠️  [BIRTHDAY SCAN] Failed to decrypt TX ${matchingTx.txid.slice(0, 8)}...`);
+        }
+
+        processed++;
+        setScanProgress(80 + Math.round((processed / matchingTxs.length) * 20));
+      }
+      console.log(`✅ [BIRTHDAY SCAN] Decrypted ${foundMessages.length} memos out of ${matchingTxs.length} transactions`);
+
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (foundMessages.length === 0) {
+        setScanError(`Found ${matchingTxs.length} matching transactions but none had readable memos.`);
+      } else {
+        setScanResults(foundMessages);
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
+    } catch (err: any) {
+      console.error('❌ [BIRTHDAY SCAN] Fatal error:', err);
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setScanError(err.message || 'Failed to scan from birthday');
+
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const scanMyTransactions = async () => {
     if (!viewingKey) {
@@ -80,6 +235,17 @@ export function ScanMyTransactions() {
     if (!sanitizedKey.startsWith('uviewtest') && !sanitizedKey.startsWith('uview')) {
       setScanError('Invalid viewing key format. Must start with "uviewtest" or "uview".');
       return;
+    }
+
+    // Validate birthday block if birthday mode
+    if (scanPeriod === 'birthday') {
+      const birthday = parseInt(birthdayBlock);
+      if (!birthdayBlock || isNaN(birthday) || birthday < 0) {
+        setScanError('Please enter a valid birthday block number.');
+        return;
+      }
+      // Use birthday scan method
+      return scanFromBirthday(sanitizedKey, birthday);
     }
 
     setScanning(true);
@@ -308,7 +474,7 @@ export function ScanMyTransactions() {
             </label>
             <select
               value={scanPeriod}
-              onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d')}
+              onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d' | 'birthday')}
               disabled={scanning}
               className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             >
@@ -316,11 +482,34 @@ export function ScanMyTransactions() {
               <option value="6h">Last 6 hours (~288 blocks)</option>
               <option value="24h">Last 24 hours (~1,152 blocks)</option>
               <option value="7d">Last 7 days (~8,064 blocks)</option>
+              <option value="birthday">Since wallet birthday 🎂</option>
             </select>
             <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
-              How far back to scan for your transactions
+              {scanPeriod === 'birthday'
+                ? 'Scan from wallet creation (may take 1-2 minutes)'
+                : 'How far back to scan for your transactions'}
             </p>
           </div>
+
+          {/* Birthday Block Input (only show if birthday is selected) */}
+          {scanPeriod === 'birthday' && (
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+                Wallet Birthday Block <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g., 3121131"
+                value={birthdayBlock}
+                onChange={(e) => setBirthdayBlock(e.target.value)}
+                disabled={scanning}
+                className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              />
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+                Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
+              </p>
+            </div>
+          )}
 
           {/* Scan Button */}
           {!scanning && scanResults.length === 0 && (
