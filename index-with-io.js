@@ -32,6 +32,26 @@ const redis = Redis.createClient({
 });
 redis.connect().catch(console.error);
 
+// Calculate privacy score (0-100) based on shielded percentage and pool size
+function calculatePrivacyScore(shieldedPercentage, poolSizeZatoshis) {
+  // Convert zatoshis to ZEC
+  const poolSizeZEC = poolSizeZatoshis / 100000000;
+
+  // Factor 1: Shielded adoption percentage (0-40 points)
+  const adoptionScore = Math.min(shieldedPercentage * 4, 40);
+
+  // Factor 2: Pool size relative to total supply (0-30 points)
+  // Assuming ~21M total ZEC supply, higher pool = better privacy
+  const poolRatio = (poolSizeZEC / 21000000) * 100;
+  const poolScore = Math.min(poolRatio * 3, 30);
+
+  // Factor 3: Bonus for high adoption (0-30 points)
+  // If shielded % > 5%, give bonus points
+  const bonusScore = shieldedPercentage > 5 ? Math.min((shieldedPercentage - 5) * 3, 30) : 0;
+
+  return Math.round(adoptionScore + poolScore + bonusScore);
+}
+
 async function zebradRPC(method, params = []) {
   let auth = '';
 
@@ -300,10 +320,165 @@ async function syncToTip() {
   console.log('\n✅ Sync complete!\n');
 }
 
+async function initializePrivacyTrends() {
+  console.log('🔍 Initializing privacy trends (last 30 days)...');
+
+  try {
+    // Check how many days we have
+    const countResult = await db.query('SELECT COUNT(*) as count FROM privacy_trends_daily');
+    const existingDays = parseInt(countResult.rows[0].count);
+
+    if (existingDays >= 30) {
+      console.log(`✅ Privacy trends already initialized (${existingDays} days)`);
+      return;
+    }
+
+    console.log(`📊 Found ${existingDays} days, populating missing data...`);
+
+    const latestBlockResult = await db.query('SELECT MAX(height) as max_height FROM blocks');
+    const latestBlock = parseInt(latestBlockResult.rows[0].max_height);
+    const blocksPerDay = 1152;
+
+    // Populate last 30 days
+    for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+      const endBlock = latestBlock - (dayOffset * blocksPerDay);
+      const startBlock = endBlock - blocksPerDay;
+
+      // Get the date for this range
+      const blockTimestampResult = await db.query(
+        'SELECT timestamp FROM blocks WHERE height = $1',
+        [endBlock]
+      );
+
+      if (blockTimestampResult.rows.length === 0) continue;
+
+      const timestamp = parseInt(blockTimestampResult.rows[0].timestamp);
+      const date = new Date(timestamp * 1000).toISOString().split('T')[0];
+
+      // Check if this date already exists
+      const existingResult = await db.query(
+        'SELECT id FROM privacy_trends_daily WHERE date = $1',
+        [date]
+      );
+
+      if (existingResult.rows.length > 0) continue;
+
+      // Calculate stats for this day
+      const statsResult = await db.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
+          COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count
+        FROM transactions
+        WHERE block_height >= $1 AND block_height <= $2
+      `, [startBlock, endBlock]);
+
+      const stats = statsResult.rows[0];
+      const shieldedCount = parseInt(stats.shielded_count || 0);
+      const transparentCount = parseInt(stats.transparent_count || 0);
+      const totalCount = shieldedCount + transparentCount;
+      const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
+
+      const poolSizeResult = await db.query(`
+        SELECT shielded_pool_size FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+      `);
+      const poolSize = poolSizeResult.rows[0]?.shielded_pool_size || 0;
+
+      // Calculate privacy score for this day
+      const privacyScore = calculatePrivacyScore(shieldedPercentage, poolSize);
+
+      await db.query(`
+        INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `, [date, shieldedCount, transparentCount, shieldedPercentage, poolSize, privacyScore]);
+
+      console.log(`  ✅ ${date}: ${shieldedPercentage.toFixed(2)}% shielded`);
+    }
+
+    console.log('✅ Privacy trends initialization complete!\n');
+  } catch (err) {
+    console.error('❌ Error initializing privacy trends:', err.message);
+  }
+}
+
+async function updatePrivacyTrendsDaily() {
+  try {
+    console.log('📊 Updating privacy trends for today...');
+
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check if we already have data for today
+    const existingResult = await db.query(
+      'SELECT id FROM privacy_trends_daily WHERE date = $1',
+      [today]
+    );
+
+    // Calculate stats for the last 24 hours (last ~1152 blocks)
+    const latestBlockResult = await db.query('SELECT MAX(height) as max_height FROM blocks');
+    const latestBlock = parseInt(latestBlockResult.rows[0].max_height);
+    const blocksPerDay = 1152; // ~75 seconds per block
+    const startBlock = latestBlock - blocksPerDay;
+
+    const statsResult = await db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
+        COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count
+      FROM transactions
+      WHERE block_height >= $1 AND block_height <= $2
+    `, [startBlock, latestBlock]);
+
+    const stats = statsResult.rows[0];
+    const shieldedCount = parseInt(stats.shielded_count || 0);
+    const transparentCount = parseInt(stats.transparent_count || 0);
+    const totalCount = shieldedCount + transparentCount;
+    const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
+
+    // Get current pool size
+    const poolSizeResult = await db.query(`
+      SELECT shielded_pool_size FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+    `);
+    const poolSize = poolSizeResult.rows[0]?.shielded_pool_size || 0;
+
+    // Calculate privacy score
+    const privacyScore = calculatePrivacyScore(shieldedPercentage, poolSize);
+
+    // Insert or update today's data
+    if (existingResult.rows.length > 0) {
+      await db.query(`
+        UPDATE privacy_trends_daily SET
+          shielded_count = $2,
+          transparent_count = $3,
+          shielded_percentage = $4,
+          pool_size = $5,
+          privacy_score = $6,
+          created_at = NOW()
+        WHERE date = $1
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, poolSize, privacyScore]);
+      console.log(`✅ Updated privacy trends for ${today}: ${shieldedPercentage.toFixed(2)}% shielded (score: ${privacyScore})`);
+    } else {
+      await db.query(`
+        INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, poolSize, privacyScore]);
+      console.log(`✅ Created privacy trends for ${today}: ${shieldedPercentage.toFixed(2)}% shielded (score: ${privacyScore})`);
+    }
+
+  } catch (err) {
+    console.error('❌ Error updating privacy trends:', err.message);
+  }
+}
+
 async function listenForBlocks() {
   console.log('👂 Listening for new blocks...\n');
 
   let lastHeight = await zebradRPC('getblockcount');
+  let blocksIndexedToday = 0;
+
+  // Initialize privacy trends (populate last 30 days if needed)
+  await initializePrivacyTrends();
+
+  // Update privacy trends for today
+  await updatePrivacyTrendsDaily();
 
   setInterval(async () => {
     try {
@@ -314,6 +489,12 @@ async function listenForBlocks() {
 
         for (let height = lastHeight + 1; height <= currentHeight; height++) {
           await indexBlock(height);
+          blocksIndexedToday++;
+
+          // Update privacy trends every 100 blocks
+          if (blocksIndexedToday % 100 === 0) {
+            await updatePrivacyTrendsDaily();
+          }
         }
 
         lastHeight = currentHeight;
@@ -322,6 +503,11 @@ async function listenForBlocks() {
       console.error('❌ Error checking for new blocks:', err.message);
     }
   }, 10000);
+
+  // Also update privacy trends every hour
+  setInterval(async () => {
+    await updatePrivacyTrendsDaily();
+  }, 3600000); // 1 hour
 }
 
 async function main() {

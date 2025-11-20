@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+
+// Format date for charts (shorter format)
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 
 // Icons
 const Icons = {
@@ -39,6 +47,11 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   ),
+  Star: () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+    </svg>
+  ),
 };
 
 interface PrivacyStats {
@@ -69,6 +82,7 @@ interface PrivacyStats {
       transparent: number;
       poolSize: number;
       shieldedPercentage: number;
+      privacyScore: number;
     }>;
   };
 }
@@ -78,6 +92,7 @@ export default function PrivacyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'adoption' | 'pool' | 'activity' | 'score'>('adoption');
 
   useEffect(() => {
     // Fetch privacy stats
@@ -314,39 +329,275 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        {/* Recent Trends */}
+        {/* Charts Section with Tabs */}
         {stats.trends.daily.length > 0 && (
           <div className="card mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Recent Privacy Trends (Last 7 Days)</h2>
-
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="min-w-[600px] px-4 sm:px-0">
-                <table className="w-full">
-                <thead>
-                  <tr className="text-left text-sm text-gray-500 border-b border-gray-800">
-                    <th className="pb-3">Date</th>
-                    <th className="pb-3">Shielded</th>
-                    <th className="pb-3">Transparent</th>
-                    <th className="pb-3">Privacy %</th>
-                    <th className="pb-3">Pool Size</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.trends.daily.slice(-7).reverse().map((day) => (
-                    <tr key={day.date} className="border-b border-gray-800/50">
-                      <td className="py-3 text-sm font-mono">{day.date}</td>
-                      <td className="py-3 text-purple-400">{day.shielded.toLocaleString()}</td>
-                      <td className="py-3 text-gray-400">{day.transparent.toLocaleString()}</td>
-                      <td className="py-3 text-cipher-cyan">{day.shieldedPercentage.toFixed(2)}%</td>
-                      <td className="py-3 text-cipher-green">
-                        {(day.poolSize / 1000000).toFixed(2)}M {CURRENCY}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6 border-b border-cipher-border overflow-x-auto">
+              <button
+                onClick={() => setActiveTab('adoption')}
+                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'adoption'
+                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <div className="w-4 h-4">
+                  <Icons.TrendUp />
+                </div>
+                Adoption Trend
+              </button>
+              <button
+                onClick={() => setActiveTab('pool')}
+                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'pool'
+                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <div className="w-4 h-4">
+                  <Icons.Shield />
+                </div>
+                Pool Growth
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'activity'
+                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <div className="w-4 h-4">
+                  <Icons.Chart />
+                </div>
+                Daily Activity
+              </button>
+              <button
+                onClick={() => setActiveTab('score')}
+                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'score'
+                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <div className="w-4 h-4">
+                  <Icons.Star />
+                </div>
+                Privacy Score
+              </button>
             </div>
+
+            {/* Chart Content */}
+            {activeTab === 'adoption' && (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={[...stats.trends.daily].reverse()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    tickFormatter={formatDate}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                    labelFormatter={(label) => formatDate(label)}
+                    formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Shielded']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="shieldedPercentage"
+                    stroke="#A78BFA"
+                    strokeWidth={3}
+                    dot={{ fill: '#A78BFA', r: 3 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === 'pool' && (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={[...stats.trends.daily].reverse()}>
+                  <defs>
+                    <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    tickFormatter={formatDate}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                    label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                    labelFormatter={(label) => formatDate(label)}
+                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(2)}M ZEC`, 'Pool Size']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="poolSize"
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorPool)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === 'activity' && (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={[...stats.trends.daily].reverse().slice(-14)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    tickFormatter={formatDate}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    stroke="#9CA3AF"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #4B5563',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}
+                    labelStyle={{ color: '#E5E7EB', fontWeight: 'bold', marginBottom: '8px' }}
+                    itemStyle={{ color: '#D1D5DB' }}
+                    labelFormatter={(label) => formatDate(label)}
+                    formatter={(value: any, name: string) => {
+                      const color = name === 'shielded' ? '#A78BFA' : '#9CA3AF';
+                      const icon = name === 'shielded' ? '🛡️' : '👁️';
+                      const displayName = name === 'shielded' ? 'Shielded' : 'Transparent';
+                      return [
+                        <span style={{ color, fontWeight: '600' }}>
+                          {icon} {Number(value).toLocaleString()} txs
+                        </span>,
+                        displayName
+                      ];
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: '#9CA3AF' }}
+                    formatter={(value) => value === 'shielded' ? '🛡️ Shielded' : '👁️ Transparent'}
+                  />
+                  <Bar
+                    dataKey="shielded"
+                    fill="#A78BFA"
+                    name="shielded"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={{ fill: '#8B5CF6' }}
+                  />
+                  <Bar
+                    dataKey="transparent"
+                    fill="#6B7280"
+                    name="transparent"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={{ fill: '#4B5563' }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === 'score' && (
+              <div>
+                <div className="mb-4 text-sm text-gray-400">
+                  Privacy Score combines shielded adoption rate, pool growth, and transaction privacy to measure overall network privacy health (0-100).
+                </div>
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={[...stats.trends.daily].reverse()}>
+                    <defs>
+                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#9CA3AF"
+                      tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                      tickFormatter={formatDate}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      stroke="#9CA3AF"
+                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      domain={[0, 100]}
+                      label={{ value: 'Privacy Score', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        padding: '12px'
+                      }}
+                      labelFormatter={(label) => formatDate(label)}
+                      formatter={(value: any) => {
+                        const score = Number(value);
+                        let rating = '🔴 Low';
+                        if (score >= 70) rating = '🟢 Excellent';
+                        else if (score >= 50) rating = '🟡 Good';
+                        else if (score >= 30) rating = '🟠 Fair';
+                        return [`${score.toFixed(1)} / 100 (${rating})`, 'Privacy Score'];
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="privacyScore"
+                      stroke="#A78BFA"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorScore)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
 
