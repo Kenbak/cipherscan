@@ -107,6 +107,41 @@ async function callZebraRPC(method, params = []) {
   });
 }
 
+// ============================================================================
+// LIGHTWALLETD GRPC CLIENT
+// ============================================================================
+
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
+
+// Load proto files
+const PROTO_PATH = path.join(__dirname, 'proto/service.proto');
+const COMPACT_FORMATS_PATH = path.join(__dirname, 'proto/compact_formats.proto');
+
+let CompactTxStreamer = null;
+
+// Initialize gRPC client
+try {
+  const packageDefinition = protoLoader.loadSync(
+    [PROTO_PATH, COMPACT_FORMATS_PATH],
+    {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    }
+  );
+
+  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+  CompactTxStreamer = protoDescriptor.cash.z.wallet.sdk.rpc.CompactTxStreamer;
+  console.log('✅ Lightwalletd gRPC client initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Lightwalletd gRPC client:', error);
+  console.error('   Make sure proto files exist in proto/ directory');
+}
+
 // Trust proxy (for Nginx reverse proxy)
 app.set('trust proxy', true);
 
@@ -886,6 +921,291 @@ app.get('/api/mempool', async (req, res) => {
 });
 
 // ============================================================================
+// NETWORK STATS - PRODUCTION READY with Caching & WebSocket
+// ============================================================================
+
+// In-memory cache for network stats
+let networkStatsCache = null;
+let networkStatsCacheTime = 0;
+const NETWORK_STATS_CACHE_DURATION = 30000; // 30 seconds
+
+/**
+ * Fetch network stats (optimized - 1 PostgreSQL query + 1 RPC call)
+ */
+async function fetchNetworkStatsOptimized() {
+  try {
+    // Single optimized PostgreSQL query (FAST!)
+    const dbStats = await pool.query(`
+      WITH latest AS (
+        SELECT height, timestamp, difficulty
+        FROM blocks
+        ORDER BY height DESC
+        LIMIT 1
+      ),
+      last_24h AS (
+        SELECT
+          COUNT(*) as blocks_24h,
+          AVG(difficulty) as avg_difficulty
+        FROM blocks
+        WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
+      )
+      SELECT
+        latest.height,
+        latest.difficulty,
+        latest.timestamp,
+        last_24h.blocks_24h,
+        last_24h.avg_difficulty
+      FROM latest, last_24h
+    `);
+
+    if (!dbStats.rows[0]) {
+      throw new Error('No blockchain data available');
+    }
+
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty } = dbStats.rows[0];
+
+    // Only 1 RPC call for real-time peer info (can't get from DB)
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    // Calculate hashrate
+    const blocks24h = parseInt(blocks_24h || 0);
+    const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
+    const difficultyNum = parseFloat(difficulty || 0);
+    const networkHashrate = difficultyNum / avgBlockTime;
+    const hashrateInTH = (networkHashrate / 1e12).toFixed(2);
+
+    // Calculate daily mining revenue
+    const blockReward = 3.125; // Current ZEC block reward
+    const dailyRevenue = blocks24h * blockReward;
+
+    return {
+      success: true,
+      mining: {
+        networkHashrate: `${hashrateInTH} TH/s`,
+        networkHashrateRaw: networkHashrate,
+        difficulty: difficultyNum,
+        avgBlockTime, // in seconds
+        blocks24h,
+        blockReward,
+        dailyRevenue,
+      },
+      network: {
+        peers: Array.isArray(peerInfo) ? peerInfo.length : 0,
+        height: parseInt(height),
+      },
+      blockchain: {
+        height: parseInt(height),
+        latestBlockTime: parseInt(timestamp),
+        syncProgress: 100, // Assume synced if we have recent blocks
+      },
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('❌ [NETWORK] Error fetching stats:', error);
+    throw error;
+  }
+}
+
+/**
+ * GET /api/network/stats
+ *
+ * Get network statistics (cached for 30s)
+ */
+app.get('/api/network/stats', async (req, res) => {
+  try {
+    const now = Date.now();
+
+    // Return cached data if fresh (< 30s old)
+    if (networkStatsCache && (now - networkStatsCacheTime) < NETWORK_STATS_CACHE_DURATION) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        cacheAge: Math.round((now - networkStatsCacheTime) / 1000),
+      });
+    }
+
+    // Fetch fresh data
+    console.log('📊 [NETWORK] Fetching fresh network stats...');
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update cache
+    networkStatsCache = stats;
+    networkStatsCacheTime = now;
+
+    console.log(`✅ [NETWORK] Stats fetched and cached`);
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ [NETWORK] Error in API endpoint:', error);
+
+    // If cache exists, return stale data with warning
+    if (networkStatsCache) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        stale: true,
+        cacheAge: Math.round((Date.now() - networkStatsCacheTime) / 1000),
+        warning: 'Using stale data due to fetch error',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch network stats',
+    });
+  }
+});
+
+/**
+ * GET /api/network/fees
+ *
+ * Get estimated transaction fees (slow, standard, fast)
+ */
+app.get('/api/network/fees', async (req, res) => {
+  try {
+    console.log('💰 [FEES] Fetching fee estimates...');
+
+    // Get recent transactions from mempool to estimate fees
+    // For now, return static values (Zcash fees are very low and predictable)
+    res.json({
+      success: true,
+      fees: {
+        slow: 0.000005,      // ~0.0005 cents
+        standard: 0.00001,   // ~0.001 cents
+        fast: 0.000015,      // ~0.0015 cents
+      },
+      unit: 'ZEC',
+      note: 'Zcash transaction fees are extremely low and predictable',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [FEES] Fee estimates returned`);
+  } catch (error) {
+    console.error('❌ [FEES] Error fetching fees:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch fee estimates',
+    });
+  }
+});
+
+// ============================================================================
+// LIGHTWALLETD SCAN ENDPOINT
+// ============================================================================
+
+/**
+ * POST /api/lightwalletd/scan
+ *
+ * Scan blocks for Orchard transactions using Lightwalletd
+ * Returns compact blocks for client-side decryption
+ */
+app.post('/api/lightwalletd/scan', async (req, res) => {
+  try {
+    const { startHeight, endHeight } = req.body;
+
+    // Validate inputs
+    if (!startHeight) {
+      return res.status(400).json({ error: 'startHeight is required' });
+    }
+
+    if (isNaN(startHeight) || (endHeight && isNaN(endHeight))) {
+      return res.status(400).json({ error: 'Invalid block heights' });
+    }
+
+    if (!CompactTxStreamer) {
+      return res.status(503).json({ error: 'Lightwalletd client not initialized' });
+    }
+
+    console.log(`🔍 [LIGHTWALLETD] Scanning blocks ${startHeight} to ${endHeight || 'latest'}`);
+
+    // Create gRPC client (local connection, no SSL)
+    const client = new CompactTxStreamer(
+      '127.0.0.1:9067',
+      grpc.credentials.createInsecure()
+    );
+
+    // Get current block height if endHeight not provided
+    let finalEndHeight = endHeight;
+    if (!finalEndHeight) {
+      finalEndHeight = await new Promise((resolve, reject) => {
+        client.GetLatestBlock({}, (error, response) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(parseInt(response.height));
+        });
+      });
+    }
+
+    console.log(`📦 [LIGHTWALLETD] Fetching blocks ${startHeight} to ${finalEndHeight}`);
+
+    // Stream blocks from Lightwalletd
+    const blocks = [];
+
+    await new Promise((resolve, reject) => {
+      const call = client.GetBlockRange({
+        start: { height: startHeight },
+        end: { height: finalEndHeight },
+      });
+
+      call.on('data', (block) => {
+        blocks.push(block);
+      });
+
+      call.on('end', () => {
+        resolve();
+      });
+
+      call.on('error', (error) => {
+        reject(error);
+      });
+    });
+
+    // Close client
+    client.close();
+
+    console.log(`✅ [LIGHTWALLETD] Fetched ${blocks.length} blocks`);
+
+    // Return compact blocks (simplified structure for frontend)
+    res.json({
+      success: true,
+      blocksScanned: blocks.length,
+      startHeight,
+      endHeight: finalEndHeight,
+      blocks: blocks.map((block) => ({
+        height: block.height,
+        hash: block.hash ? Buffer.from(block.hash).toString('hex') : null,
+        time: block.time,
+        vtx: block.vtx ? block.vtx.map((tx) => ({
+          index: tx.index,
+          hash: tx.hash ? Buffer.from(tx.hash).toString('hex') : null,
+          // Sapling outputs
+          outputs: tx.outputs ? tx.outputs.map((output) => ({
+            cmu: output.cmu ? Buffer.from(output.cmu).toString('hex') : null,
+            ephemeralKey: output.epk ? Buffer.from(output.epk).toString('hex') : null,
+            ciphertext: output.ciphertext ? Buffer.from(output.ciphertext).toString('hex') : null,
+          })) : [],
+          // Orchard actions (THIS IS WHERE THE DATA IS!)
+          actions: tx.actions ? tx.actions.map((action) => ({
+            nullifier: action.nullifier ? Buffer.from(action.nullifier).toString('hex') : null,
+            cmx: action.cmx ? Buffer.from(action.cmx).toString('hex') : null,
+            ephemeralKey: action.ephemeralKey ? Buffer.from(action.ephemeralKey).toString('hex') : null,
+            ciphertext: action.ciphertext ? Buffer.from(action.ciphertext).toString('hex') : null,
+          })) : [],
+        })) : [],
+      })),
+    });
+
+  } catch (error) {
+    console.error('❌ [LIGHTWALLETD] Error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to scan blocks',
+      details: error.details || null,
+    });
+  }
+});
+
+// ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
 // ============================================================================
 
@@ -912,19 +1232,28 @@ wss.on('connection', (ws) => {
   }));
 });
 
-// Broadcast new block to all connected clients
-function broadcastNewBlock(block) {
-  const message = JSON.stringify({
-    type: 'new_block',
-    data: block,
-  });
+// Broadcast message to all connected clients
+function broadcastToAll(message) {
+  const messageStr = JSON.stringify(message);
 
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      client.send(messageStr);
     }
   });
 }
+
+// Broadcast new block to all connected clients
+function broadcastNewBlock(block) {
+  broadcastToAll({
+    type: 'new_block',
+    data: block,
+  });
+}
+
+// ============================================================================
+// BACKGROUND JOBS
+// ============================================================================
 
 // Poll for new blocks every 10 seconds
 let lastKnownHeight = 0;
@@ -953,6 +1282,36 @@ setInterval(async () => {
     console.error('Error polling for new blocks:', error);
   }
 }, 10000);
+
+// Update network stats every 30 seconds and broadcast via WebSocket
+async function updateNetworkStatsBackground() {
+  try {
+    console.log('📊 [BACKGROUND] Updating network stats...');
+
+    // Fetch fresh stats
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update cache
+    networkStatsCache = stats;
+    networkStatsCacheTime = Date.now();
+
+    // Broadcast to all connected WebSocket clients
+    broadcastToAll({
+      type: 'network_stats',
+      data: stats,
+    });
+
+    console.log(`✅ [BACKGROUND] Network stats updated and broadcasted to ${clients.size} clients`);
+  } catch (error) {
+    console.error('❌ [BACKGROUND] Failed to update network stats:', error);
+  }
+}
+
+// Run immediately on startup
+updateNetworkStatsBackground();
+
+// Then run every 30 seconds
+setInterval(updateNetworkStatsBackground, 30000);
 
 // ============================================================================
 // ERROR HANDLING
