@@ -963,7 +963,15 @@ async function fetchNetworkStatsOptimized() {
     }
 
     const { height, difficulty, timestamp, blocks_24h, avg_difficulty } = dbStats.rows[0];
-
+    
+    // Get blockchain size from DB
+    const sizeResult = await pool.query(`
+      SELECT SUM(size) as total_size
+      FROM blocks
+    `);
+    const blockchainSizeBytes = parseInt(sizeResult.rows[0]?.total_size || 0);
+    const blockchainSizeGB = (blockchainSizeBytes / (1024 * 1024 * 1024)).toFixed(2);
+    
     // Only 1 RPC call for real-time peer info (can't get from DB)
     const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
 
@@ -997,6 +1005,8 @@ async function fetchNetworkStatsOptimized() {
         height: parseInt(height),
         latestBlockTime: parseInt(timestamp),
         syncProgress: 100, // Assume synced if we have recent blocks
+        sizeBytes: blockchainSizeBytes,
+        sizeGB: parseFloat(blockchainSizeGB),
       },
       timestamp: Date.now(),
     };
@@ -1057,7 +1067,7 @@ app.get('/api/network/stats', async (req, res) => {
 
 /**
  * GET /api/network/fees
- *
+ * 
  * Get estimated transaction fees (slow, standard, fast)
  */
 app.get('/api/network/fees', async (req, res) => {
@@ -1081,9 +1091,60 @@ app.get('/api/network/fees', async (req, res) => {
     console.log(`✅ [FEES] Fee estimates returned`);
   } catch (error) {
     console.error('❌ [FEES] Error fetching fees:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       error: error.message || 'Failed to fetch fee estimates',
+    });
+  }
+});
+
+/**
+ * GET /api/network/peers
+ * 
+ * Get detailed information about connected peers
+ */
+app.get('/api/network/peers', async (req, res) => {
+  try {
+    console.log('🌐 [PEERS] Fetching peer information...');
+
+    // Get detailed peer info from Zebra
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    if (!Array.isArray(peerInfo)) {
+      return res.json({
+        success: true,
+        count: 0,
+        peers: [],
+      });
+    }
+
+    // Format peer data for frontend
+    const peers = peerInfo.map((peer) => ({
+      id: peer.id || null,
+      addr: peer.addr || 'unknown',
+      version: peer.version || null,
+      subver: peer.subver || null,
+      inbound: peer.inbound || false,
+      startingheight: peer.startingheight || null,
+      synced_headers: peer.synced_headers || null,
+      synced_blocks: peer.synced_blocks || null,
+      conntime: peer.conntime || null,
+      pingtime: peer.pingtime || null,
+    }));
+
+    res.json({
+      success: true,
+      count: peers.length,
+      peers,
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [PEERS] Returned ${peers.length} peers`);
+  } catch (error) {
+    console.error('❌ [PEERS] Error fetching peers:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Failed to fetch peer information',
     });
   }
 });
