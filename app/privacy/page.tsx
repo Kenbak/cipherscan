@@ -6,6 +6,7 @@ import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -94,8 +95,18 @@ export default function PrivacyPage() {
   const [zecPrice, setZecPrice] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'adoption' | 'pool' | 'activity' | 'score'>('adoption');
 
+  // WebSocket connection for real-time privacy stats updates
+  const { isConnected } = useWebSocket({
+    onMessage: (data) => {
+      if (data.type === 'privacy_stats') {
+        setStats(data.data);
+        setLoading(false);
+      }
+    },
+  });
+
   useEffect(() => {
-    // Fetch privacy stats
+    // Fetch privacy stats (initial load + fallback)
     // For testnet, call Express API directly; for mainnet, use Next.js API
     const apiUrl = usePostgresApiClient()
       ? `${getApiUrl()}/api/privacy-stats`
@@ -179,6 +190,9 @@ export default function PrivacyPage() {
             Live privacy statistics for the Zcash testnet blockchain.
             Track shielded adoption, privacy score, and transparency trends.
           </p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+
+          </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-2">
             Last updated: {new Date(stats.lastUpdated).toLocaleString()}
           </p>
