@@ -661,6 +661,9 @@ app.get('/api/privacy-stats', async (req, res) => {
       LIMIT 30
     `);
 
+    // Use the most recent daily privacy score instead of the old global one
+    const latestDailyScore = trendsResult.rows.length > 0 ? parseInt(trendsResult.rows[0].privacy_score) || 0 : parseInt(stats.privacy_score);
+
     res.json({
       totals: {
         blocks: parseInt(stats.total_blocks),
@@ -676,7 +679,7 @@ app.get('/api/privacy-stats', async (req, res) => {
       },
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
-        privacyScore: parseInt(stats.privacy_score),
+        privacyScore: latestDailyScore, // Use latest daily score
         avgShieldedPerDay: parseFloat(stats.avg_shielded_per_day),
         adoptionTrend: stats.adoption_trend,
       },
