@@ -107,6 +107,41 @@ async function callZebraRPC(method, params = []) {
   });
 }
 
+// ============================================================================
+// LIGHTWALLETD GRPC CLIENT
+// ============================================================================
+
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
+
+// Load proto files
+const PROTO_PATH = path.join(__dirname, 'proto/service.proto');
+const COMPACT_FORMATS_PATH = path.join(__dirname, 'proto/compact_formats.proto');
+
+let CompactTxStreamer = null;
+
+// Initialize gRPC client
+try {
+  const packageDefinition = protoLoader.loadSync(
+    [PROTO_PATH, COMPACT_FORMATS_PATH],
+    {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    }
+  );
+
+  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+  CompactTxStreamer = protoDescriptor.cash.z.wallet.sdk.rpc.CompactTxStreamer;
+  console.log('✅ Lightwalletd gRPC client initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Lightwalletd gRPC client:', error);
+  console.error('   Make sure proto files exist in proto/ directory');
+}
+
 // Trust proxy (for Nginx reverse proxy)
 app.set('trust proxy', true);
 
@@ -612,17 +647,18 @@ app.get('/api/privacy-stats', async (req, res) => {
 
     const stats = statsResult.rows[0];
 
-    // Get daily trends (last 7 days)
+    // Get daily trends (last 30 days for better charts)
     const trendsResult = await pool.query(`
       SELECT
         date,
         shielded_count,
         transparent_count,
         shielded_percentage,
-        pool_size
+        pool_size,
+        privacy_score
       FROM privacy_trends_daily
       ORDER BY date DESC
-      LIMIT 7
+      LIMIT 30
     `);
 
     res.json({
@@ -651,6 +687,7 @@ app.get('/api/privacy-stats', async (req, res) => {
           transparent: parseInt(row.transparent_count),
           shieldedPercentage: parseFloat(row.shielded_percentage),
           poolSize: parseInt(row.pool_size) / 100000000, // Convert to ZEC
+          privacyScore: parseInt(row.privacy_score) || 0,
         })),
       },
       lastUpdated: stats.updated_at.toISOString(),
@@ -886,6 +923,425 @@ app.get('/api/mempool', async (req, res) => {
 });
 
 // ============================================================================
+// NETWORK STATS - PRODUCTION READY with Caching & WebSocket
+// ============================================================================
+
+// In-memory cache for network stats
+let networkStatsCache = null;
+let networkStatsCacheTime = 0;
+const NETWORK_STATS_CACHE_DURATION = 30000; // 30 seconds
+
+/**
+ * Fetch network stats (optimized - 1 PostgreSQL query + 1 RPC call)
+ */
+async function fetchNetworkStatsOptimized() {
+  try {
+    // Single optimized PostgreSQL query (FAST!)
+    const dbStats = await pool.query(`
+      WITH latest AS (
+        SELECT height, timestamp, difficulty
+        FROM blocks
+        ORDER BY height DESC
+        LIMIT 1
+      ),
+      last_24h AS (
+        SELECT
+          COUNT(*) as blocks_24h,
+          AVG(difficulty) as avg_difficulty,
+          SUM(transaction_count) as tx_24h
+        FROM blocks
+        WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
+      )
+      SELECT
+        latest.height,
+        latest.difficulty,
+        latest.timestamp,
+        last_24h.blocks_24h,
+        last_24h.avg_difficulty,
+        last_24h.tx_24h
+      FROM latest, last_24h
+    `);
+
+    if (!dbStats.rows[0]) {
+      throw new Error('No blockchain data available');
+    }
+
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
+
+    // Get blockchain size from DB
+    const sizeResult = await pool.query(`
+      SELECT SUM(size) as total_size
+      FROM blocks
+    `);
+    const blockchainSizeBytes = parseInt(sizeResult.rows[0]?.total_size || 0);
+    const blockchainSizeGB = (blockchainSizeBytes / (1024 * 1024 * 1024)).toFixed(2);
+
+    // Get network info (Zebra 3.0+ has more detailed info)
+    const networkInfo = await callZebraRPC('getnetworkinfo').catch(() => null);
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    // Extract peer count and network details
+    const peerCount = networkInfo?.connections || (Array.isArray(peerInfo) ? peerInfo.length : 0);
+    const protocolVersion = networkInfo?.protocolversion || null;
+    const subversion = networkInfo?.subversion || null;
+
+    // Calculate hashrate
+    const blocks24h = parseInt(blocks_24h || 0);
+    const tx24h = parseInt(tx_24h || 0);
+    const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
+    const difficultyNum = parseFloat(difficulty || 0);
+    const networkHashrate = difficultyNum / avgBlockTime;
+    const hashrateInTH = (networkHashrate / 1e12).toFixed(2);
+
+    // Calculate daily mining revenue
+    const blockReward = 3.125; // Current ZEC block reward
+    const dailyRevenue = blocks24h * blockReward;
+
+    return {
+      success: true,
+      mining: {
+        networkHashrate: `${hashrateInTH} TH/s`,
+        networkHashrateRaw: networkHashrate,
+        difficulty: difficultyNum,
+        avgBlockTime, // in seconds
+        blocks24h,
+        blockReward,
+        dailyRevenue,
+      },
+      network: {
+        peers: peerCount,
+        height: parseInt(height),
+        protocolVersion: protocolVersion,
+        subversion: subversion,
+      },
+      blockchain: {
+        height: parseInt(height),
+        latestBlockTime: parseInt(timestamp),
+        syncProgress: 100, // Assume synced if we have recent blocks
+        sizeBytes: blockchainSizeBytes,
+        sizeGB: parseFloat(blockchainSizeGB),
+        tx24h,
+      },
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('❌ [NETWORK] Error fetching stats:', error);
+    throw error;
+  }
+}
+
+/**
+ * GET /api/network/stats
+ *
+ * Get network statistics (cached for 30s)
+ */
+app.get('/api/network/stats', async (req, res) => {
+  try {
+    const now = Date.now();
+
+    // Return cached data if fresh (< 30s old)
+    if (networkStatsCache && (now - networkStatsCacheTime) < NETWORK_STATS_CACHE_DURATION) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        cacheAge: Math.round((now - networkStatsCacheTime) / 1000),
+      });
+    }
+
+    // Fetch fresh data
+    console.log('📊 [NETWORK] Fetching fresh network stats...');
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update cache
+    networkStatsCache = stats;
+    networkStatsCacheTime = now;
+
+    console.log(`✅ [NETWORK] Stats fetched and cached`);
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ [NETWORK] Error in API endpoint:', error);
+
+    // If cache exists, return stale data with warning
+    if (networkStatsCache) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        stale: true,
+        cacheAge: Math.round((Date.now() - networkStatsCacheTime) / 1000),
+        warning: 'Using stale data due to fetch error',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch network stats',
+    });
+  }
+});
+
+/**
+ * GET /api/network/fees
+ *
+ * Get estimated transaction fees (slow, standard, fast)
+ */
+app.get('/api/network/fees', async (req, res) => {
+  try {
+    console.log('💰 [FEES] Fetching fee estimates...');
+
+    // Get recent transactions from mempool to estimate fees
+    // For now, return static values (Zcash fees are very low and predictable)
+    res.json({
+      success: true,
+      fees: {
+        slow: 0.000005,      // ~0.0005 cents
+        standard: 0.00001,   // ~0.001 cents
+        fast: 0.000015,      // ~0.0015 cents
+      },
+      unit: 'ZEC',
+      note: 'Zcash transaction fees are extremely low and predictable',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [FEES] Fee estimates returned`);
+  } catch (error) {
+    console.error('❌ [FEES] Error fetching fees:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch fee estimates',
+    });
+  }
+});
+
+/**
+ * GET /api/network/health
+ *
+ * Get Zebra node health status (Zebra 3.0+)
+ * Checks if Zebra's built-in health endpoints are available
+ */
+app.get('/api/network/health', async (req, res) => {
+  try {
+    console.log('🏥 [HEALTH] Checking Zebra node health...');
+
+    const zebraHealthUrl = process.env.ZEBRA_HEALTH_URL || 'http://127.0.0.1:8080';
+
+    // Try to fetch Zebra's health endpoints (Zebra 3.0+)
+    const [healthyRes, readyRes] = await Promise.allSettled([
+      fetch(`${zebraHealthUrl}/healthy`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+      fetch(`${zebraHealthUrl}/ready`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+    ]);
+
+    const healthy = healthyRes.status === 'fulfilled' && healthyRes.value?.ok;
+    const ready = readyRes.status === 'fulfilled' && readyRes.value?.ok;
+
+    // Fallback: check via RPC if health endpoints not available
+    let fallbackHealthy = false;
+    if (!healthy) {
+      try {
+        const blockchainInfo = await callZebraRPC('getblockchaininfo');
+        fallbackHealthy = blockchainInfo && blockchainInfo.blocks > 0;
+      } catch (error) {
+        fallbackHealthy = false;
+      }
+    }
+
+    res.json({
+      success: true,
+      zebra: {
+        healthy: healthy || fallbackHealthy,
+        ready: ready,
+        healthEndpointAvailable: healthy,
+        readyEndpointAvailable: ready,
+      },
+      note: healthy ? 'Zebra 3.0+ health endpoints available' : 'Using RPC fallback (Zebra < 3.0 or health endpoints not configured)',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [HEALTH] Node healthy: ${healthy || fallbackHealthy}, ready: ${ready}`);
+  } catch (error) {
+    console.error('❌ [HEALTH] Error checking health:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check node health',
+    });
+  }
+});
+
+/**
+ * GET /api/network/peers
+ *
+ * Get detailed information about connected peers
+ */
+app.get('/api/network/peers', async (req, res) => {
+  try {
+    console.log('🌐 [PEERS] Fetching peer information...');
+
+    // Get detailed peer info from Zebra
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    if (!Array.isArray(peerInfo)) {
+      return res.json({
+        success: true,
+        count: 0,
+        peers: [],
+      });
+    }
+
+    // Format peer data for frontend
+    // Note: Zebra returns minimal peer info (just address)
+    // zcashd returns more details (version, ping, etc.)
+    const peers = peerInfo.map((peer, index) => {
+      // Extract country/region from IP (simplified)
+      const addr = peer.addr || peer.address || 'unknown';
+      const ip = addr.split(':')[0];
+
+      return {
+        id: index + 1,
+        addr: addr,
+        ip: ip,
+        inbound: peer.inbound !== undefined ? peer.inbound : false,
+        // Optional fields (may be null with Zebra)
+        version: peer.version || null,
+        subver: peer.subver || null,
+        pingtime: peer.pingtime || null,
+        conntime: peer.conntime || null,
+      };
+    });
+
+    res.json({
+      success: true,
+      count: peers.length,
+      peers,
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [PEERS] Returned ${peers.length} peers`);
+  } catch (error) {
+    console.error('❌ [PEERS] Error fetching peers:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch peer information',
+    });
+  }
+});
+
+// ============================================================================
+// LIGHTWALLETD SCAN ENDPOINT
+// ============================================================================
+
+/**
+ * POST /api/lightwalletd/scan
+ *
+ * Scan blocks for Orchard transactions using Lightwalletd
+ * Returns compact blocks for client-side decryption
+ */
+app.post('/api/lightwalletd/scan', async (req, res) => {
+  try {
+    const { startHeight, endHeight } = req.body;
+
+    // Validate inputs
+    if (!startHeight) {
+      return res.status(400).json({ error: 'startHeight is required' });
+    }
+
+    if (isNaN(startHeight) || (endHeight && isNaN(endHeight))) {
+      return res.status(400).json({ error: 'Invalid block heights' });
+    }
+
+    if (!CompactTxStreamer) {
+      return res.status(503).json({ error: 'Lightwalletd client not initialized' });
+    }
+
+    console.log(`🔍 [LIGHTWALLETD] Scanning blocks ${startHeight} to ${endHeight || 'latest'}`);
+
+    // Create gRPC client (local connection, no SSL)
+    const client = new CompactTxStreamer(
+      '127.0.0.1:9067',
+      grpc.credentials.createInsecure()
+    );
+
+    // Get current block height if endHeight not provided
+    let finalEndHeight = endHeight;
+    if (!finalEndHeight) {
+      finalEndHeight = await new Promise((resolve, reject) => {
+        client.GetLatestBlock({}, (error, response) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(parseInt(response.height));
+        });
+      });
+    }
+
+    console.log(`📦 [LIGHTWALLETD] Fetching blocks ${startHeight} to ${finalEndHeight}`);
+
+    // Stream blocks from Lightwalletd
+    const blocks = [];
+
+    await new Promise((resolve, reject) => {
+      const call = client.GetBlockRange({
+        start: { height: startHeight },
+        end: { height: finalEndHeight },
+      });
+
+      call.on('data', (block) => {
+        blocks.push(block);
+      });
+
+      call.on('end', () => {
+        resolve();
+      });
+
+      call.on('error', (error) => {
+        reject(error);
+      });
+    });
+
+    // Close client
+    client.close();
+
+    console.log(`✅ [LIGHTWALLETD] Fetched ${blocks.length} blocks`);
+
+    // Return compact blocks (simplified structure for frontend)
+    res.json({
+      success: true,
+      blocksScanned: blocks.length,
+      startHeight,
+      endHeight: finalEndHeight,
+      blocks: blocks.map((block) => ({
+        height: block.height,
+        hash: block.hash ? Buffer.from(block.hash).toString('hex') : null,
+        time: block.time,
+        vtx: block.vtx ? block.vtx.map((tx) => ({
+          index: tx.index,
+          hash: tx.hash ? Buffer.from(tx.hash).toString('hex') : null,
+          // Sapling outputs
+          outputs: tx.outputs ? tx.outputs.map((output) => ({
+            cmu: output.cmu ? Buffer.from(output.cmu).toString('hex') : null,
+            ephemeralKey: output.epk ? Buffer.from(output.epk).toString('hex') : null,
+            ciphertext: output.ciphertext ? Buffer.from(output.ciphertext).toString('hex') : null,
+          })) : [],
+          // Orchard actions (THIS IS WHERE THE DATA IS!)
+          actions: tx.actions ? tx.actions.map((action) => ({
+            nullifier: action.nullifier ? Buffer.from(action.nullifier).toString('hex') : null,
+            cmx: action.cmx ? Buffer.from(action.cmx).toString('hex') : null,
+            ephemeralKey: action.ephemeralKey ? Buffer.from(action.ephemeralKey).toString('hex') : null,
+            ciphertext: action.ciphertext ? Buffer.from(action.ciphertext).toString('hex') : null,
+          })) : [],
+        })) : [],
+      })),
+    });
+
+  } catch (error) {
+    console.error('❌ [LIGHTWALLETD] Error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to scan blocks',
+      details: error.details || null,
+    });
+  }
+});
+
+// ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
 // ============================================================================
 
@@ -912,19 +1368,28 @@ wss.on('connection', (ws) => {
   }));
 });
 
-// Broadcast new block to all connected clients
-function broadcastNewBlock(block) {
-  const message = JSON.stringify({
-    type: 'new_block',
-    data: block,
-  });
+// Broadcast message to all connected clients
+function broadcastToAll(message) {
+  const messageStr = JSON.stringify(message);
 
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      client.send(messageStr);
     }
   });
 }
+
+// Broadcast new block to all connected clients
+function broadcastNewBlock(block) {
+  broadcastToAll({
+    type: 'new_block',
+    data: block,
+  });
+}
+
+// ============================================================================
+// BACKGROUND JOBS
+// ============================================================================
 
 // Poll for new blocks every 10 seconds
 let lastKnownHeight = 0;
@@ -953,6 +1418,36 @@ setInterval(async () => {
     console.error('Error polling for new blocks:', error);
   }
 }, 10000);
+
+// Update network stats every 30 seconds and broadcast via WebSocket
+async function updateNetworkStatsBackground() {
+  try {
+    console.log('📊 [BACKGROUND] Updating network stats...');
+
+    // Fetch fresh stats
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update cache
+    networkStatsCache = stats;
+    networkStatsCacheTime = Date.now();
+
+    // Broadcast to all connected WebSocket clients
+    broadcastToAll({
+      type: 'network_stats',
+      data: stats,
+    });
+
+    console.log(`✅ [BACKGROUND] Network stats updated and broadcasted to ${clients.size} clients`);
+  } catch (error) {
+    console.error('❌ [BACKGROUND] Failed to update network stats:', error);
+  }
+}
+
+// Run immediately on startup
+updateNetworkStatsBackground();
+
+// Then run every 30 seconds
+setInterval(updateNetworkStatsBackground, 30000);
 
 // ============================================================================
 // ERROR HANDLING
