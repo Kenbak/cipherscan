@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Icons
 const Icons = {
@@ -104,6 +105,18 @@ export default function NetworkPage() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
+
+  // WebSocket connection for real-time updates
+  const { isConnected, lastMessage } = useWebSocket({
+    onMessage: (data) => {
+      if (data.type === 'network_stats') {
+        setPreviousStats(stats); // Save previous for comparison
+        setStats(data.data);
+        setLoading(false);
+      }
+    },
+  });
 
   const fetchData = async () => {
     try {
@@ -121,6 +134,7 @@ export default function NetworkPage() {
       const statsData = await statsRes.json();
       const healthData = await healthRes.json();
 
+      setPreviousStats(stats); // Save previous for comparison
       setStats(statsData);
       setHealth(healthData);
       setError(null);
@@ -133,10 +147,11 @@ export default function NetworkPage() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchData();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    // Fallback polling (in case WebSocket fails)
+    const interval = setInterval(fetchData, 60000); // Every 60s (less frequent since we have WS)
     return () => clearInterval(interval);
   }, []);
 
@@ -185,9 +200,9 @@ export default function NetworkPage() {
           <p className="text-gray-400 text-base sm:text-lg max-w-3xl mx-auto px-2">
             Real-time Zcash testnet metrics. Mining stats, network health, and blockchain data.
           </p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">
-            Auto-refresh every 30 seconds
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+
+          </div>
         </div>
 
         {/* Health Status Banner */}

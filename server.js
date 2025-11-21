@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const { Pool } = require('pg');
 const WebSocket = require('ws');
 const http = require('http');
+const redis = require('redis');
 
 // Initialize Express
 const app = express();
@@ -38,6 +39,61 @@ pool.query('SELECT NOW()', (err, res) => {
   }
   console.log('✅ Database connected:', res.rows[0].now);
 });
+
+// ============================================================================
+// REDIS CLIENT
+// ============================================================================
+
+// Create Redis client
+const redisClient = redis.createClient({
+  socket: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+  },
+  // No password for local Redis
+});
+
+// Create Redis Pub/Sub clients (separate connections required)
+const redisPub = redisClient.duplicate();
+const redisSub = redisClient.duplicate();
+
+// Connect to Redis
+(async () => {
+  try {
+    await redisClient.connect();
+    await redisPub.connect();
+    await redisSub.connect();
+    console.log('✅ Redis connected');
+  } catch (err) {
+    console.error('❌ Redis connection failed:', err);
+    console.warn('⚠️  Continuing without Redis (fallback to in-memory cache)');
+  }
+})();
+
+// Handle Redis errors
+redisClient.on('error', (err) => console.error('Redis Client Error:', err));
+redisPub.on('error', (err) => console.error('Redis Pub Error:', err));
+redisSub.on('error', (err) => console.error('Redis Sub Error:', err));
+
+// Subscribe to Redis broadcast channel (for multi-server support)
+(async () => {
+  try {
+    if (redisSub.isOpen) {
+      await redisSub.subscribe('zcash:broadcast', (message) => {
+        console.log('📡 [Redis] Received broadcast from another server');
+        // Forward to local WebSocket clients
+        clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      });
+      console.log('✅ Subscribed to Redis broadcast channel');
+    }
+  } catch (err) {
+    console.error('❌ Redis subscribe error:', err);
+  }
+})();
 
 // ============================================================================
 // ZEBRA RPC HELPER
@@ -661,6 +717,9 @@ app.get('/api/privacy-stats', async (req, res) => {
       LIMIT 30
     `);
 
+    // Use the most recent daily privacy score instead of the old global one
+    const latestDailyScore = trendsResult.rows.length > 0 ? parseInt(trendsResult.rows[0].privacy_score) || 0 : parseInt(stats.privacy_score);
+
     res.json({
       totals: {
         blocks: parseInt(stats.total_blocks),
@@ -676,7 +735,7 @@ app.get('/api/privacy-stats', async (req, res) => {
       },
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
-        privacyScore: parseInt(stats.privacy_score),
+        privacyScore: latestDailyScore, // Use latest daily score
         avgShieldedPerDay: parseFloat(stats.avg_shielded_per_day),
         adoptionTrend: stats.adoption_trend,
       },
@@ -926,10 +985,45 @@ app.get('/api/mempool', async (req, res) => {
 // NETWORK STATS - PRODUCTION READY with Caching & WebSocket
 // ============================================================================
 
-// In-memory cache for network stats
+// Cache configuration
+const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
+const NETWORK_STATS_CACHE_DURATION = 30; // 30 seconds (Redis uses seconds)
+
+// Fallback in-memory cache (if Redis fails)
 let networkStatsCache = null;
 let networkStatsCacheTime = 0;
-const NETWORK_STATS_CACHE_DURATION = 30000; // 30 seconds
+
+/**
+ * Get data from Redis cache
+ */
+async function getFromRedisCache(key) {
+  try {
+    if (!redisClient.isOpen) {
+      return null;
+    }
+    const data = await redisClient.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch (err) {
+    console.error('Redis GET error:', err);
+    return null;
+  }
+}
+
+/**
+ * Set data in Redis cache with TTL
+ */
+async function setInRedisCache(key, data, ttlSeconds) {
+  try {
+    if (!redisClient.isOpen) {
+      return false;
+    }
+    await redisClient.setEx(key, ttlSeconds, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Redis SET error:', err);
+    return false;
+  }
+}
 
 /**
  * Fetch network stats (optimized - 1 PostgreSQL query + 1 RPC call)
@@ -1037,38 +1131,60 @@ async function fetchNetworkStatsOptimized() {
  */
 app.get('/api/network/stats', async (req, res) => {
   try {
-    const now = Date.now();
+    // Try Redis cache first
+    const cachedData = await getFromRedisCache(NETWORK_STATS_CACHE_KEY);
+    if (cachedData) {
+      return res.json({
+        ...cachedData,
+        cached: true,
+        source: 'redis',
+      });
+    }
 
-    // Return cached data if fresh (< 30s old)
-    if (networkStatsCache && (now - networkStatsCacheTime) < NETWORK_STATS_CACHE_DURATION) {
+    // Fallback to in-memory cache
+    const now = Date.now();
+    if (networkStatsCache && (now - networkStatsCacheTime) < (NETWORK_STATS_CACHE_DURATION * 1000)) {
       return res.json({
         ...networkStatsCache,
         cached: true,
-        cacheAge: Math.round((now - networkStatsCacheTime) / 1000),
+        source: 'memory',
       });
     }
 
     // Fetch fresh data
-    console.log('📊 [NETWORK] Fetching fresh network stats...');
     const stats = await fetchNetworkStatsOptimized();
 
-    // Update cache
+    // Update Redis cache
+    await setInRedisCache(NETWORK_STATS_CACHE_KEY, stats, NETWORK_STATS_CACHE_DURATION);
+
+    // Update in-memory cache (fallback)
     networkStatsCache = stats;
     networkStatsCacheTime = now;
 
-    console.log(`✅ [NETWORK] Stats fetched and cached`);
     res.json(stats);
   } catch (error) {
     console.error('❌ [NETWORK] Error in API endpoint:', error);
 
-    // If cache exists, return stale data with warning
+    // Try Redis cache as fallback
+    const cachedData = await getFromRedisCache(NETWORK_STATS_CACHE_KEY);
+    if (cachedData) {
+      return res.json({
+        ...cachedData,
+        cached: true,
+        stale: true,
+        source: 'redis',
+        warning: 'Using stale Redis data due to fetch error',
+      });
+    }
+
+    // Try in-memory cache as last resort
     if (networkStatsCache) {
       return res.json({
         ...networkStatsCache,
         cached: true,
         stale: true,
-        cacheAge: Math.round((Date.now() - networkStatsCacheTime) / 1000),
-        warning: 'Using stale data due to fetch error',
+        source: 'memory',
+        warning: 'Using stale memory data due to fetch error',
       });
     }
 
@@ -1347,36 +1463,81 @@ app.post('/api/lightwalletd/scan', async (req, res) => {
 
 let clients = new Set();
 
-wss.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
+/**
+ * Rate limit WebSocket connections using Redis
+ * Returns true if allowed, false if rate limited
+ */
+async function checkWebSocketRateLimit(ip) {
+  try {
+    if (!redisClient.isOpen) {
+      return true; // Allow if Redis is down
+    }
+
+    const key = `ws:ratelimit:${ip}`;
+    const count = await redisClient.incr(key);
+
+    if (count === 1) {
+      // First connection, set 1-minute TTL
+      await redisClient.expire(key, 60);
+    }
+
+    // Allow max 10 connections per minute per IP
+    return count <= 10;
+  } catch (err) {
+    console.error('Redis rate limit error:', err);
+    return true; // Allow if error
+  }
+}
+
+wss.on('connection', async (ws, req) => {
+  // Get client IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+
+  // Check rate limit
+  const allowed = await checkWebSocketRateLimit(ip);
+  if (!allowed) {
+    ws.close(1008, 'Rate limit exceeded. Max 10 connections per minute.');
+    return;
+  }
+
   clients.add(ws);
 
   ws.on('close', () => {
-    console.log('🔌 WebSocket client disconnected');
     clients.delete(ws);
   });
 
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
+  ws.on('error', () => {
     clients.delete(ws);
   });
 
-  // Send initial connection message
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Connected to Zcash Explorer API',
-  }));
+  // Send initial data immediately
+  if (networkStatsCache) {
+    ws.send(JSON.stringify({
+      type: 'network_stats',
+      data: networkStatsCache,
+    }));
+  }
 });
 
-// Broadcast message to all connected clients
-function broadcastToAll(message) {
+// Broadcast message to all connected clients (local + Redis Pub/Sub)
+async function broadcastToAll(message) {
   const messageStr = JSON.stringify(message);
 
+  // Broadcast to local WebSocket clients
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(messageStr);
     }
   });
+
+  // Publish to Redis for multi-server support
+  try {
+    if (redisPub.isOpen) {
+      await redisPub.publish('zcash:broadcast', messageStr);
+    }
+  } catch (err) {
+    console.error('Redis publish error:', err);
+  }
 }
 
 // Broadcast new block to all connected clients

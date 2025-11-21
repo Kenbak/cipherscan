@@ -57,7 +57,6 @@ exit.pub
 MAINNET_SETUP/
 *config-dump*
 
-# Cursor IDE
 .cursor/
 
 # ========================================
