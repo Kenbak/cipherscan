@@ -43,24 +43,16 @@ async function loadWasm() {
   if (wasmModule) return wasmModule;
 
   try {
-    console.log('[Worker] Loading WASM module...');
-
     // Get the full URL to the WASM module in /public/wasm
     const origin = self.location.origin;
     const wasmJsUrl = `${origin}/wasm/zcash_wasm.js`;
-
-    console.log('[Worker] WASM URL:', wasmJsUrl);
-
+    
     // Use dynamic import with full URL to bypass Next.js bundling
     const wasmInit = await import(/* @vite-ignore */ /* webpackIgnore: true */ wasmJsUrl);
-
-    console.log('[Worker] WASM module imported, initializing...');
-
+    
     // Initialize the WASM module (it will load the .wasm file automatically)
     await wasmInit.default();
-
-    console.log('[Worker] WASM initialized successfully');
-
+    
     wasmModule = {
       batch_filter_compact_outputs: wasmInit.batch_filter_compact_outputs,
     };
@@ -88,9 +80,7 @@ async function filterCompactBlocks(
   for (let chunkStart = 0; chunkStart < totalBlocks; chunkStart += CHUNK_SIZE) {
     // Check for cancellation
     if (shouldCancel) {
-      console.log('🛑 [Worker] Cancelled by user, returning partial results');
-      // Return partial results instead of throwing
-      return matchingTxs;
+      return matchingTxs; // Return partial results
     }
 
     const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, totalBlocks);

@@ -104,8 +104,6 @@ export function ScanMyTransactions() {
 
   // Birthday scan using Lightwalletd + Web Worker (FAST + SMOOTH!)
   const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number) => {
-    console.log('🎂 [BIRTHDAY SCAN] Starting scan from block', birthdayHeight);
-
     // Create AbortController for this scan
     abortControllerRef.current = new AbortController();
 
@@ -134,7 +132,6 @@ export function ScanMyTransactions() {
       }
 
       // Get current block height
-      console.log('📊 [BIRTHDAY SCAN] Fetching current block height...');
       setScanPhase('fetching');
       const infoRes = await fetch(`${apiUrl}/api/info`, {
         signal: abortControllerRef.current.signal
@@ -147,7 +144,6 @@ export function ScanMyTransactions() {
 
       const totalBlocks = currentHeight - birthdayHeight;
       setTotalBlocks(totalBlocks);
-      console.log(`📦 [BIRTHDAY SCAN] Scanning ${totalBlocks.toLocaleString()} blocks (${birthdayHeight} → ${currentHeight})`);
 
       // Check for cancellation
       if (cancelRequested) {
@@ -155,8 +151,7 @@ export function ScanMyTransactions() {
         return;
       }
 
-      // Step 1: Fetch compact blocks from Lightwalletd (FAST!)
-      console.log('⚡ [BIRTHDAY SCAN] Fetching compact blocks from Lightwalletd...');
+      // Step 1: Fetch compact blocks from Lightwalletd
       setScanProgress(10);
       const compactRes = await fetch(`${apiUrl}/api/lightwalletd/scan`, {
         method: 'POST',
@@ -173,7 +168,6 @@ export function ScanMyTransactions() {
       }
 
       const compactData = await compactRes.json();
-      console.log(`✅ [BIRTHDAY SCAN] Received ${compactData.blocksScanned} compact blocks`);
       setScanProgress(30);
 
       // Check for cancellation
@@ -183,7 +177,6 @@ export function ScanMyTransactions() {
       }
 
       // Step 2: Filter compact outputs to find matching TXs (Web Worker - 0% UI FREEZE!)
-      console.log('🚀 [BIRTHDAY SCAN] Filtering compact outputs with Web Worker...');
       setScanPhase('filtering');
       setBlocksProcessed(0);
 
@@ -199,8 +192,7 @@ export function ScanMyTransactions() {
           setMatchesFound(progress.matchesFound);
         }
       );
-
-      console.log(`✅ [BIRTHDAY SCAN] Found ${matchingTxs.length} matching transactions`);
+      
       setScanProgress(50);
       setMatchesFound(matchingTxs.length);
 
@@ -211,7 +203,6 @@ export function ScanMyTransactions() {
       }
 
       if (matchingTxs.length === 0) {
-        console.log('❌ [BIRTHDAY SCAN] No matching transactions found');
         setScanError(`Scanned ${totalBlocks.toLocaleString()} blocks but found no transactions matching your viewing key.`);
         const elapsedTime = Date.now() - startTime;
         if (elapsedTime < minScanTime) {
@@ -223,7 +214,6 @@ export function ScanMyTransactions() {
       }
 
       // Step 3: Fetch raw hex for matching TXs (batch)
-      console.log(`📥 [BIRTHDAY SCAN] Fetching raw hex for ${matchingTxs.length} transactions...`);
       setScanPhase('decrypting');
       const txids = matchingTxs.map(tx => tx.txid);
       const batchSize = 1000;
@@ -237,7 +227,6 @@ export function ScanMyTransactions() {
         }
 
         const batch = txids.slice(i, i + batchSize);
-        console.log(`📦 [BIRTHDAY SCAN] Fetching batch ${Math.floor(i / batchSize) + 1} (${batch.length} TXs)...`);
         const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -255,10 +244,8 @@ export function ScanMyTransactions() {
 
         setScanProgress(50 + Math.round((i / txids.length) * 30));
       }
-      console.log(`✅ [BIRTHDAY SCAN] Fetched ${allRawTxs.size} raw transactions`);
 
       // Step 4: Decrypt memos with WASM
-      console.log('🔓 [BIRTHDAY SCAN] Decrypting memos...');
       const foundMessages: ScanResult[] = [];
       let processed = 0;
 
@@ -280,16 +267,14 @@ export function ScanMyTransactions() {
               memo: decrypted.memo,
               amount: decrypted.amount,
             });
-            console.log(`✅ [BIRTHDAY SCAN] Decrypted memo for TX ${matchingTx.txid.slice(0, 8)}...`);
           }
         } catch (err) {
-          console.log(`⚠️  [BIRTHDAY SCAN] Failed to decrypt TX ${matchingTx.txid.slice(0, 8)}...`);
+          // Failed to decrypt this TX (empty memo or change output)
         }
 
         processed++;
         setScanProgress(80 + Math.round((processed / matchingTxs.length) * 20));
       }
-      console.log(`✅ [BIRTHDAY SCAN] Decrypted ${foundMessages.length} memos out of ${matchingTxs.length} transactions`);
 
       setScanProgress(100);
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -310,12 +295,11 @@ export function ScanMyTransactions() {
     } catch (err: any) {
       // Check if it's an abort error (user cancelled)
       if (err.name === 'AbortError' || err.message.includes('cancelled')) {
-        console.log('✅ [BIRTHDAY SCAN] Scan cancelled by user');
         setScanResults([]);
-        // Don't show error message for user cancellation
+        // Silent cancellation - no error message
       } else {
         // Real error - log and show
-        console.error('❌ [BIRTHDAY SCAN] Fatal error:', err);
+        console.error('Scan error:', err);
         setScanProgress(100);
         await new Promise(resolve => setTimeout(resolve, 200));
         setScanError(err.message || 'Failed to scan from birthday');
