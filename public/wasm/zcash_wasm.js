@@ -93,19 +93,19 @@ function takeFromExternrefTable0(idx) {
  * Decrypt a compact block output (from Lightwalletd)
  * This is MUCH faster than decrypt_memo because it doesn't need the full TX
  * @param {string} nullifier_hex
- * @param {string} cmu_hex
+ * @param {string} cmx_hex
  * @param {string} ephemeral_key_hex
  * @param {string} ciphertext_hex
  * @param {string} viewing_key
  * @returns {string}
  */
-export function decrypt_compact_output(nullifier_hex, cmu_hex, ephemeral_key_hex, ciphertext_hex, viewing_key) {
+export function decrypt_compact_output(nullifier_hex, cmx_hex, ephemeral_key_hex, ciphertext_hex, viewing_key) {
     let deferred7_0;
     let deferred7_1;
     try {
         const ptr0 = passStringToWasm0(nullifier_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(cmu_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(cmx_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
         const ptr2 = passStringToWasm0(ephemeral_key_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
@@ -234,12 +234,6 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
-    imports.wbg.__wbg___wbindgen_throw_b855445ff6a94295 = function(arg0, arg1) {
-        throw new Error(getStringFromWasm0(arg0, arg1));
-    };
-    imports.wbg.__wbg_log_8cec76766b8c0e33 = function(arg0) {
-        console.log(arg0);
-    };
     imports.wbg.__wbindgen_cast_2241b6af4c4b2941 = function(arg0, arg1) {
         // Cast intrinsic for `Ref(String) -> Externref`.
         const ret = getStringFromWasm0(arg0, arg1);

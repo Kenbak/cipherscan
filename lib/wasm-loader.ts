@@ -113,28 +113,24 @@ export async function decryptMemoFromTxid(txid: string, viewingKey: string): Pro
  */
 export async function filterCompactOutputs(
   compactBlocks: any[],
-  viewingKey: string
+  viewingKey: string,
+  onProgress?: (blocksProcessed: number, totalBlocks: number, matchesFound: number) => void
 ): Promise<{ txid: string; height: number; timestamp: number }[]> {
   console.log(`🔍 [FILTER] Starting to filter ${compactBlocks.length} compact blocks...`);
-
-  // Debug: Log first block structure
-  if (compactBlocks.length > 0) {
-    console.log('🔍 [FILTER] First block structure:', JSON.stringify(compactBlocks[0], null, 2).slice(0, 500));
-    if (compactBlocks[0].vtx && compactBlocks[0].vtx.length > 0) {
-      console.log('🔍 [FILTER] First TX structure:', JSON.stringify(compactBlocks[0].vtx[0], null, 2).slice(0, 500));
-    }
-  }
 
   const wasm = await loadWasm();
   const matchingTxs: { txid: string; height: number; timestamp: number }[] = [];
 
   let totalOutputs = 0;
   let blocksProcessed = 0;
+  const progressInterval = Math.max(1, Math.floor(compactBlocks.length / 100)); // Update every 1%
 
   for (const block of compactBlocks) {
     blocksProcessed++;
-    if (blocksProcessed % 10000 === 0) {
-      console.log(`🔍 [FILTER] Processed ${blocksProcessed}/${compactBlocks.length} blocks, found ${matchingTxs.length} matches so far...`);
+
+    // Update progress callback every 1% (or every 5000 blocks, whichever is less frequent)
+    if (onProgress && (blocksProcessed % Math.min(progressInterval, 5000) === 0 || blocksProcessed === compactBlocks.length)) {
+      onProgress(blocksProcessed, compactBlocks.length, matchingTxs.length);
     }
 
     for (const tx of block.vtx || []) {
@@ -143,11 +139,6 @@ export async function filterCompactOutputs(
       // Check Orchard actions (most common for new TXs)
       for (const action of tx.actions || []) {
         totalOutputs++;
-
-        // Debug: Log first action
-        if (totalOutputs === 1) {
-          console.log('🔍 [FILTER] First Orchard action structure:', action);
-        }
 
         try {
           // Try to decrypt this Orchard action
@@ -170,11 +161,7 @@ export async function filterCompactOutputs(
           txMatched = true;
           break;
         } catch (error) {
-          // Log first error for debugging
-          if (totalOutputs === 1) {
-            console.log('🔍 [FILTER] First decryption error:', error);
-          }
-          // Not our action, continue
+          // Not our action, continue silently
         }
       }
 
@@ -206,7 +193,7 @@ export async function filterCompactOutputs(
 
           break;
         } catch (error) {
-          // Not our output, continue
+          // Not our output, continue silently
         }
       }
     }

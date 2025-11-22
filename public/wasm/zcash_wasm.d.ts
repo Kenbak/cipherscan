@@ -4,7 +4,7 @@
  * Decrypt a compact block output (from Lightwalletd)
  * This is MUCH faster than decrypt_memo because it doesn't need the full TX
  */
-export function decrypt_compact_output(nullifier_hex: string, cmu_hex: string, ephemeral_key_hex: string, ciphertext_hex: string, viewing_key: string): string;
+export function decrypt_compact_output(nullifier_hex: string, cmx_hex: string, ephemeral_key_hex: string, ciphertext_hex: string, viewing_key: string): string;
 export function detect_key_type(viewing_key: string): string;
 /**
  * Orchard memo decryption - The Official Way™
@@ -20,8 +20,8 @@ export interface InitOutput {
   readonly decrypt_compact_output: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
   readonly decrypt_memo: (a: number, b: number, c: number, d: number) => [number, number, number, number];
   readonly detect_key_type: (a: number, b: number) => [number, number];
-  readonly main: () => void;
   readonly test_wasm: () => [number, number];
+  readonly main: () => void;
   readonly __wbindgen_externrefs: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

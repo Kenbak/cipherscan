@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const { Pool } = require('pg');
 const WebSocket = require('ws');
 const http = require('http');
+const redis = require('redis');
 
 // Initialize Express
 const app = express();
@@ -40,45 +41,65 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // ============================================================================
+// REDIS CLIENT
+// ============================================================================
+
+// Create Redis client
+const redisClient = redis.createClient({
+  socket: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+  },
+  // No password for local Redis
+});
+
+// Create Redis Pub/Sub clients (separate connections required)
+const redisPub = redisClient.duplicate();
+const redisSub = redisClient.duplicate();
+
+// Connect to Redis
+(async () => {
+  try {
+    await redisClient.connect();
+    await redisPub.connect();
+    await redisSub.connect();
+    console.log('✅ Redis connected');
+  } catch (err) {
+    console.error('❌ Redis connection failed:', err);
+    console.warn('⚠️  Continuing without Redis (fallback to in-memory cache)');
+  }
+})();
+
+// Handle Redis errors
+redisClient.on('error', (err) => console.error('Redis Client Error:', err));
+redisPub.on('error', (err) => console.error('Redis Pub Error:', err));
+redisSub.on('error', (err) => console.error('Redis Sub Error:', err));
+
+// Subscribe to Redis broadcast channel (for multi-server support)
+(async () => {
+  try {
+    if (redisSub.isOpen) {
+      await redisSub.subscribe('zcash:broadcast', (message) => {
+        console.log('📡 [Redis] Received broadcast from another server');
+        // Forward to local WebSocket clients
+        clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      });
+      console.log('✅ Subscribed to Redis broadcast channel');
+    }
+  } catch (err) {
+    console.error('❌ Redis subscribe error:', err);
+  }
+})();
+
+// ============================================================================
 // ZEBRA RPC HELPER
 // ============================================================================
 
 const https = require('https');
-
-// ============================================================================
-// LIGHTWALLETD GRPC CLIENT
-// ============================================================================
-
-const grpc = require('@grpc/grpc-js');
-const protoLoader = require('@grpc/proto-loader');
-const path = require('path');
-
-// Load proto files
-const PROTO_PATH = path.join(__dirname, 'proto/service.proto');
-const COMPACT_FORMATS_PATH = path.join(__dirname, 'proto/compact_formats.proto');
-
-let CompactTxStreamer = null;
-
-// Initialize gRPC client
-try {
-  const packageDefinition = protoLoader.loadSync(
-    [PROTO_PATH, COMPACT_FORMATS_PATH],
-    {
-      keepCase: true,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-    }
-  );
-
-  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
-  CompactTxStreamer = protoDescriptor.cash.z.wallet.sdk.rpc.CompactTxStreamer;
-  console.log('✅ Lightwalletd gRPC client initialized');
-} catch (error) {
-  console.error('❌ Failed to initialize Lightwalletd gRPC client:', error);
-  console.error('   Make sure proto files exist in /root/zcash-api/proto/');
-}
 
 /**
  * Call Zebra RPC
@@ -140,6 +161,41 @@ async function callZebraRPC(method, params = []) {
     req.write(requestBody);
     req.end();
   });
+}
+
+// ============================================================================
+// LIGHTWALLETD GRPC CLIENT
+// ============================================================================
+
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
+
+// Load proto files
+const PROTO_PATH = path.join(__dirname, 'proto/service.proto');
+const COMPACT_FORMATS_PATH = path.join(__dirname, 'proto/compact_formats.proto');
+
+let CompactTxStreamer = null;
+
+// Initialize gRPC client
+try {
+  const packageDefinition = protoLoader.loadSync(
+    [PROTO_PATH, COMPACT_FORMATS_PATH],
+    {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    }
+  );
+
+  const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+  CompactTxStreamer = protoDescriptor.cash.z.wallet.sdk.rpc.CompactTxStreamer;
+  console.log('✅ Lightwalletd gRPC client initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Lightwalletd gRPC client:', error);
+  console.error('   Make sure proto files exist in proto/ directory');
 }
 
 // Trust proxy (for Nginx reverse proxy)
@@ -512,6 +568,7 @@ app.get('/api/tx/:txid/raw', async (req, res) => {
 });
 
 // Batch get raw transactions (for wallet scanning)
+// Batch get raw transactions (for wallet scanning)
 app.post('/api/tx/raw/batch', async (req, res) => {
   try {
     const { txids } = req.body;
@@ -529,15 +586,51 @@ app.post('/api/tx/raw/batch', async (req, res) => {
     }
 
     console.log(`🔍 [BATCH RAW] Fetching ${txids.length} raw transactions`);
+    console.log(`🔍 [BATCH RAW] First 3 TXIDs:`, txids.slice(0, 3));
 
-    // Fetch all raw TXs in parallel (FAST!)
+    // Try Lightwalletd first (has full TX index), fallback to Zebra RPC
     const results = await Promise.all(
       txids.map(async (txid) => {
         try {
+          // Try Lightwalletd GetTransaction first
+          if (CompactTxStreamer) {
+            try {
+              const client = new CompactTxStreamer(
+                '127.0.0.1:9067',
+                grpc.credentials.createInsecure()
+              );
+
+              const rawTx = await new Promise((resolve, reject) => {
+                client.GetTransaction(
+                  { hash: Buffer.from(txid, 'hex') },
+                  (error, response) => {
+                    client.close();
+                    if (error) {
+                      reject(error);
+                    } else {
+                      resolve(response);
+                    }
+                  }
+                );
+              });
+
+              if (rawTx && rawTx.data) {
+                const hexData = Buffer.from(rawTx.data).toString('hex');
+                console.log(`✅ [BATCH RAW] Found in Lightwalletd: ${txid.slice(0, 8)}`);
+                return { txid, hex: hexData, success: true, source: 'lightwalletd' };
+              }
+            } catch (lwdError) {
+              // Lightwalletd failed, try Zebra RPC
+              console.log(`⚠️  [BATCH RAW] Lightwalletd failed for ${txid.slice(0, 8)}, trying Zebra...`);
+            }
+          }
+
+          // Fallback to Zebra RPC
           const rawHex = await callZebraRPC('getrawtransaction', [txid, 0]);
-          return { txid, hex: rawHex, success: true };
+          console.log(`✅ [BATCH RAW] Found in Zebra RPC: ${txid.slice(0, 8)}`);
+          return { txid, hex: rawHex, success: true, source: 'rpc' };
         } catch (error) {
-          console.error(`Error fetching raw TX ${txid}:`, error.message);
+          console.error(`❌ [BATCH RAW] Error fetching ${txid.slice(0, 8)}:`, error.message);
           return { txid, error: error.message, success: false };
         }
       })
@@ -549,7 +642,7 @@ app.post('/api/tx/raw/batch', async (req, res) => {
     console.log(`✅ [BATCH RAW] Success: ${successful.length}, Failed: ${failed.length}`);
 
     res.json({
-      transactions: successful,
+      transactions: successful.map(r => ({ txid: r.txid, hex: r.hex })),
       failed: failed.length > 0 ? failed : undefined,
       total: txids.length,
       successful: successful.length,
@@ -647,18 +740,22 @@ app.get('/api/privacy-stats', async (req, res) => {
 
     const stats = statsResult.rows[0];
 
-    // Get daily trends (last 7 days)
+    // Get daily trends (last 30 days for better charts)
     const trendsResult = await pool.query(`
       SELECT
         date,
         shielded_count,
         transparent_count,
         shielded_percentage,
-        pool_size
+        pool_size,
+        privacy_score
       FROM privacy_trends_daily
       ORDER BY date DESC
-      LIMIT 7
+      LIMIT 30
     `);
+
+    // Use the most recent daily privacy score instead of the old global one
+    const latestDailyScore = trendsResult.rows.length > 0 ? parseInt(trendsResult.rows[0].privacy_score) || 0 : parseInt(stats.privacy_score);
 
     res.json({
       totals: {
@@ -675,7 +772,7 @@ app.get('/api/privacy-stats', async (req, res) => {
       },
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
-        privacyScore: parseInt(stats.privacy_score),
+        privacyScore: latestDailyScore, // Use latest daily score
         avgShieldedPerDay: parseFloat(stats.avg_shielded_per_day),
         adoptionTrend: stats.adoption_trend,
       },
@@ -686,6 +783,7 @@ app.get('/api/privacy-stats', async (req, res) => {
           transparent: parseInt(row.transparent_count),
           shieldedPercentage: parseFloat(row.shielded_percentage),
           poolSize: parseInt(row.pool_size) / 100000000, // Convert to ZEC
+          privacyScore: parseInt(row.privacy_score) || 0,
         })),
       },
       lastUpdated: stats.updated_at.toISOString(),
@@ -817,6 +915,468 @@ app.get('/api/address/:address', async (req, res) => {
 // Memo decryption endpoint removed - now handled client-side with WASM
 // See app/decrypt/page.tsx for the client-side implementation
 
+// Mempool endpoint - calls Zebra RPC directly
+app.get('/api/mempool', async (req, res) => {
+  try {
+    // Get all transaction IDs in mempool
+    const txids = await callZebraRPC('getrawmempool', []);
+
+    if (txids.length === 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        showing: 0,
+        transactions: [],
+        stats: {
+          total: 0,
+          shielded: 0,
+          transparent: 0,
+          shieldedPercentage: 0,
+        },
+      });
+    }
+
+    // Fetch details for each transaction (limit to 50 for performance)
+    const txidsToFetch = txids.slice(0, 50);
+    const transactions = await Promise.all(
+      txidsToFetch.map(async (txid) => {
+        try {
+          const tx = await callZebraRPC('getrawtransaction', [txid, 1]);
+
+          // Analyze transaction type (including Orchard support)
+          const hasShieldedInputs = (tx.vShieldedSpend && tx.vShieldedSpend.length > 0) ||
+                                   (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
+                                   (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
+          const hasShieldedOutputs = (tx.vShieldedOutput && tx.vShieldedOutput.length > 0) ||
+                                     (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
+                                     (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
+          const hasTransparentInputs = tx.vin && tx.vin.length > 0 && !tx.vin[0].coinbase;
+          const hasTransparentOutputs = tx.vout && tx.vout.length > 0;
+
+          // Determine transaction type
+          let txType = 'transparent';
+          if (hasShieldedInputs || hasShieldedOutputs) {
+            if (hasTransparentInputs || hasTransparentOutputs) {
+              txType = 'mixed'; // Shielding or deshielding
+            } else {
+              txType = 'shielded'; // Fully shielded
+            }
+          }
+
+          // Calculate size
+          const size = tx.hex ? tx.hex.length / 2 : 0;
+
+          return {
+            txid: tx.txid,
+            size,
+            type: txType,
+            time: tx.time || Math.floor(Date.now() / 1000),
+            vin: tx.vin?.length || 0,
+            vout: tx.vout?.length || 0,
+            vShieldedSpend: tx.vShieldedSpend?.length || 0,
+            vShieldedOutput: tx.vShieldedOutput?.length || 0,
+            orchardActions: tx.orchard?.actions?.length || 0,
+          };
+        } catch (error) {
+          console.error(`Error fetching tx ${txid}:`, error.message);
+          return null;
+        }
+      })
+    );
+
+    // Filter out failed fetches
+    const validTransactions = transactions.filter((tx) => tx !== null);
+
+    // Calculate stats
+    const shieldedCount = validTransactions.filter(
+      (tx) => tx.type === 'shielded' || tx.type === 'mixed'
+    ).length;
+    const transparentCount = validTransactions.filter((tx) => tx.type === 'transparent').length;
+
+    const stats = {
+      total: txids.length,
+      shielded: shieldedCount,
+      transparent: transparentCount,
+      shieldedPercentage: validTransactions.length > 0
+        ? Math.round((shieldedCount / validTransactions.length) * 100)
+        : 0,
+    };
+
+    res.json({
+      success: true,
+      count: txids.length,
+      showing: validTransactions.length,
+      transactions: validTransactions,
+      stats,
+    });
+  } catch (error) {
+    console.error('Mempool API error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch mempool',
+    });
+  }
+});
+
+// ============================================================================
+// NETWORK STATS - PRODUCTION READY with Caching & WebSocket
+// ============================================================================
+
+// Cache configuration
+const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
+const NETWORK_STATS_CACHE_DURATION = 30; // 30 seconds (Redis uses seconds)
+
+// Fallback in-memory cache (if Redis fails)
+let networkStatsCache = null;
+let networkStatsCacheTime = 0;
+
+/**
+ * Get data from Redis cache
+ */
+async function getFromRedisCache(key) {
+  try {
+    if (!redisClient.isOpen) {
+      return null;
+    }
+    const data = await redisClient.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch (err) {
+    console.error('Redis GET error:', err);
+    return null;
+  }
+}
+
+/**
+ * Set data in Redis cache with TTL
+ */
+async function setInRedisCache(key, data, ttlSeconds) {
+  try {
+    if (!redisClient.isOpen) {
+      return false;
+    }
+    await redisClient.setEx(key, ttlSeconds, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Redis SET error:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetch network stats (optimized - 1 PostgreSQL query + 1 RPC call)
+ */
+async function fetchNetworkStatsOptimized() {
+  try {
+    // Single optimized PostgreSQL query (FAST!)
+    const dbStats = await pool.query(`
+      WITH latest AS (
+        SELECT height, timestamp, difficulty
+        FROM blocks
+        ORDER BY height DESC
+        LIMIT 1
+      ),
+      last_24h AS (
+        SELECT
+          COUNT(*) as blocks_24h,
+          AVG(difficulty) as avg_difficulty,
+          SUM(transaction_count) as tx_24h
+        FROM blocks
+        WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
+      )
+      SELECT
+        latest.height,
+        latest.difficulty,
+        latest.timestamp,
+        last_24h.blocks_24h,
+        last_24h.avg_difficulty,
+        last_24h.tx_24h
+      FROM latest, last_24h
+    `);
+
+    if (!dbStats.rows[0]) {
+      throw new Error('No blockchain data available');
+    }
+
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
+
+    // Get blockchain size from DB
+    const sizeResult = await pool.query(`
+      SELECT SUM(size) as total_size
+      FROM blocks
+    `);
+    const blockchainSizeBytes = parseInt(sizeResult.rows[0]?.total_size || 0);
+    const blockchainSizeGB = (blockchainSizeBytes / (1024 * 1024 * 1024)).toFixed(2);
+
+    // Get network info (Zebra 3.0+ has more detailed info)
+    const networkInfo = await callZebraRPC('getnetworkinfo').catch(() => null);
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    // Extract peer count and network details
+    const peerCount = networkInfo?.connections || (Array.isArray(peerInfo) ? peerInfo.length : 0);
+    const protocolVersion = networkInfo?.protocolversion || null;
+    const subversion = networkInfo?.subversion || null;
+
+    // Calculate hashrate
+    const blocks24h = parseInt(blocks_24h || 0);
+    const tx24h = parseInt(tx_24h || 0);
+    const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
+    const difficultyNum = parseFloat(difficulty || 0);
+    const networkHashrate = difficultyNum / avgBlockTime;
+    const hashrateInTH = (networkHashrate / 1e12).toFixed(2);
+
+    // Calculate daily mining revenue
+    const blockReward = 3.125; // Current ZEC block reward
+    const dailyRevenue = blocks24h * blockReward;
+
+    return {
+      success: true,
+      mining: {
+        networkHashrate: `${hashrateInTH} TH/s`,
+        networkHashrateRaw: networkHashrate,
+        difficulty: difficultyNum,
+        avgBlockTime, // in seconds
+        blocks24h,
+        blockReward,
+        dailyRevenue,
+      },
+      network: {
+        peers: peerCount,
+        height: parseInt(height),
+        protocolVersion: protocolVersion,
+        subversion: subversion,
+      },
+      blockchain: {
+        height: parseInt(height),
+        latestBlockTime: parseInt(timestamp),
+        syncProgress: 100, // Assume synced if we have recent blocks
+        sizeBytes: blockchainSizeBytes,
+        sizeGB: parseFloat(blockchainSizeGB),
+        tx24h,
+      },
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('❌ [NETWORK] Error fetching stats:', error);
+    throw error;
+  }
+}
+
+/**
+ * GET /api/network/stats
+ *
+ * Get network statistics (cached for 30s)
+ */
+app.get('/api/network/stats', async (req, res) => {
+  try {
+    // Try Redis cache first
+    const cachedData = await getFromRedisCache(NETWORK_STATS_CACHE_KEY);
+    if (cachedData) {
+      return res.json({
+        ...cachedData,
+        cached: true,
+        source: 'redis',
+      });
+    }
+
+    // Fallback to in-memory cache
+    const now = Date.now();
+    if (networkStatsCache && (now - networkStatsCacheTime) < (NETWORK_STATS_CACHE_DURATION * 1000)) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        source: 'memory',
+      });
+    }
+
+    // Fetch fresh data
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update Redis cache
+    await setInRedisCache(NETWORK_STATS_CACHE_KEY, stats, NETWORK_STATS_CACHE_DURATION);
+
+    // Update in-memory cache (fallback)
+    networkStatsCache = stats;
+    networkStatsCacheTime = now;
+
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ [NETWORK] Error in API endpoint:', error);
+
+    // Try Redis cache as fallback
+    const cachedData = await getFromRedisCache(NETWORK_STATS_CACHE_KEY);
+    if (cachedData) {
+      return res.json({
+        ...cachedData,
+        cached: true,
+        stale: true,
+        source: 'redis',
+        warning: 'Using stale Redis data due to fetch error',
+      });
+    }
+
+    // Try in-memory cache as last resort
+    if (networkStatsCache) {
+      return res.json({
+        ...networkStatsCache,
+        cached: true,
+        stale: true,
+        source: 'memory',
+        warning: 'Using stale memory data due to fetch error',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch network stats',
+    });
+  }
+});
+
+/**
+ * GET /api/network/fees
+ *
+ * Get estimated transaction fees (slow, standard, fast)
+ */
+app.get('/api/network/fees', async (req, res) => {
+  try {
+    console.log('💰 [FEES] Fetching fee estimates...');
+
+    // Get recent transactions from mempool to estimate fees
+    // For now, return static values (Zcash fees are very low and predictable)
+    res.json({
+      success: true,
+      fees: {
+        slow: 0.000005,      // ~0.0005 cents
+        standard: 0.00001,   // ~0.001 cents
+        fast: 0.000015,      // ~0.0015 cents
+      },
+      unit: 'ZEC',
+      note: 'Zcash transaction fees are extremely low and predictable',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [FEES] Fee estimates returned`);
+  } catch (error) {
+    console.error('❌ [FEES] Error fetching fees:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch fee estimates',
+    });
+  }
+});
+
+/**
+ * GET /api/network/health
+ *
+ * Get Zebra node health status (Zebra 3.0+)
+ * Checks if Zebra's built-in health endpoints are available
+ */
+app.get('/api/network/health', async (req, res) => {
+  try {
+    console.log('🏥 [HEALTH] Checking Zebra node health...');
+
+    const zebraHealthUrl = process.env.ZEBRA_HEALTH_URL || 'http://127.0.0.1:8080';
+
+    // Try to fetch Zebra's health endpoints (Zebra 3.0+)
+    const [healthyRes, readyRes] = await Promise.allSettled([
+      fetch(`${zebraHealthUrl}/healthy`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+      fetch(`${zebraHealthUrl}/ready`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
+    ]);
+
+    const healthy = healthyRes.status === 'fulfilled' && healthyRes.value?.ok;
+    const ready = readyRes.status === 'fulfilled' && readyRes.value?.ok;
+
+    // Fallback: check via RPC if health endpoints not available
+    let fallbackHealthy = false;
+    if (!healthy) {
+      try {
+        const blockchainInfo = await callZebraRPC('getblockchaininfo');
+        fallbackHealthy = blockchainInfo && blockchainInfo.blocks > 0;
+      } catch (error) {
+        fallbackHealthy = false;
+      }
+    }
+
+    res.json({
+      success: true,
+      zebra: {
+        healthy: healthy || fallbackHealthy,
+        ready: ready,
+        healthEndpointAvailable: healthy,
+        readyEndpointAvailable: ready,
+      },
+      note: healthy ? 'Zebra 3.0+ health endpoints available' : 'Using RPC fallback (Zebra < 3.0 or health endpoints not configured)',
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [HEALTH] Node healthy: ${healthy || fallbackHealthy}, ready: ${ready}`);
+  } catch (error) {
+    console.error('❌ [HEALTH] Error checking health:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check node health',
+    });
+  }
+});
+
+/**
+ * GET /api/network/peers
+ *
+ * Get detailed information about connected peers
+ */
+app.get('/api/network/peers', async (req, res) => {
+  try {
+    console.log('🌐 [PEERS] Fetching peer information...');
+
+    // Get detailed peer info from Zebra
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
+    if (!Array.isArray(peerInfo)) {
+      return res.json({
+        success: true,
+        count: 0,
+        peers: [],
+      });
+    }
+
+    // Format peer data for frontend
+    // Note: Zebra returns minimal peer info (just address)
+    // zcashd returns more details (version, ping, etc.)
+    const peers = peerInfo.map((peer, index) => {
+      // Extract country/region from IP (simplified)
+      const addr = peer.addr || peer.address || 'unknown';
+      const ip = addr.split(':')[0];
+
+      return {
+        id: index + 1,
+        addr: addr,
+        ip: ip,
+        inbound: peer.inbound !== undefined ? peer.inbound : false,
+        // Optional fields (may be null with Zebra)
+        version: peer.version || null,
+        subver: peer.subver || null,
+        pingtime: peer.pingtime || null,
+        conntime: peer.conntime || null,
+      };
+    });
+
+    res.json({
+      success: true,
+      count: peers.length,
+      peers,
+      timestamp: Date.now(),
+    });
+
+    console.log(`✅ [PEERS] Returned ${peers.length} peers`);
+  } catch (error) {
+    console.error('❌ [PEERS] Error fetching peers:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch peer information',
+    });
+  }
+});
+
 // ============================================================================
 // LIGHTWALLETD SCAN ENDPOINT
 // ============================================================================
@@ -934,149 +1494,100 @@ app.post('/api/lightwalletd/scan', async (req, res) => {
   }
 });
 
-// Mempool endpoint - calls Zebra RPC directly
-app.get('/api/mempool', async (req, res) => {
-  try {
-    // Get all transaction IDs in mempool
-    const txids = await callZebraRPC('getrawmempool', []);
-
-    if (txids.length === 0) {
-      return res.json({
-        success: true,
-        count: 0,
-        showing: 0,
-        transactions: [],
-        stats: {
-          total: 0,
-          shielded: 0,
-          transparent: 0,
-          shieldedPercentage: 0,
-        },
-      });
-    }
-
-    // Fetch details for each transaction (limit to 50 for performance)
-    const txidsToFetch = txids.slice(0, 50);
-    const transactions = await Promise.all(
-      txidsToFetch.map(async (txid) => {
-        try {
-          const tx = await callZebraRPC('getrawtransaction', [txid, 1]);
-
-          // Analyze transaction type (including Orchard support)
-          const hasShieldedInputs = (tx.vShieldedSpend && tx.vShieldedSpend.length > 0) ||
-                                   (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
-                                   (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
-          const hasShieldedOutputs = (tx.vShieldedOutput && tx.vShieldedOutput.length > 0) ||
-                                     (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
-                                     (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
-          const hasTransparentInputs = tx.vin && tx.vin.length > 0 && !tx.vin[0].coinbase;
-          const hasTransparentOutputs = tx.vout && tx.vout.length > 0;
-
-          // Determine transaction type
-          let txType = 'transparent';
-          if (hasShieldedInputs || hasShieldedOutputs) {
-            if (hasTransparentInputs || hasTransparentOutputs) {
-              txType = 'mixed'; // Shielding or deshielding
-            } else {
-              txType = 'shielded'; // Fully shielded
-            }
-          }
-
-          // Calculate size
-          const size = tx.hex ? tx.hex.length / 2 : 0;
-
-          return {
-            txid: tx.txid,
-            size,
-            type: txType,
-            time: tx.time || Math.floor(Date.now() / 1000),
-            vin: tx.vin?.length || 0,
-            vout: tx.vout?.length || 0,
-            vShieldedSpend: tx.vShieldedSpend?.length || 0,
-            vShieldedOutput: tx.vShieldedOutput?.length || 0,
-            orchardActions: tx.orchard?.actions?.length || 0,
-          };
-        } catch (error) {
-          console.error(`Error fetching tx ${txid}:`, error.message);
-          return null;
-        }
-      })
-    );
-
-    // Filter out failed fetches
-    const validTransactions = transactions.filter((tx) => tx !== null);
-
-    // Calculate stats
-    const shieldedCount = validTransactions.filter(
-      (tx) => tx.type === 'shielded' || tx.type === 'mixed'
-    ).length;
-    const transparentCount = validTransactions.filter((tx) => tx.type === 'transparent').length;
-
-    const stats = {
-      total: txids.length,
-      shielded: shieldedCount,
-      transparent: transparentCount,
-      shieldedPercentage: validTransactions.length > 0
-        ? Math.round((shieldedCount / validTransactions.length) * 100)
-        : 0,
-    };
-
-    res.json({
-      success: true,
-      count: txids.length,
-      showing: validTransactions.length,
-      transactions: validTransactions,
-      stats,
-    });
-  } catch (error) {
-    console.error('Mempool API error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to fetch mempool',
-    });
-  }
-});
-
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
 // ============================================================================
 
 let clients = new Set();
 
-wss.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
+/**
+ * Rate limit WebSocket connections using Redis
+ * Returns true if allowed, false if rate limited
+ */
+async function checkWebSocketRateLimit(ip) {
+  try {
+    if (!redisClient.isOpen) {
+      return true; // Allow if Redis is down
+    }
+
+    const key = `ws:ratelimit:${ip}`;
+    const count = await redisClient.incr(key);
+
+    if (count === 1) {
+      // First connection, set 1-minute TTL
+      await redisClient.expire(key, 60);
+    }
+
+    // Allow max 10 connections per minute per IP
+    return count <= 10;
+  } catch (err) {
+    console.error('Redis rate limit error:', err);
+    return true; // Allow if error
+  }
+}
+
+wss.on('connection', async (ws, req) => {
+  // Get client IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+
+  // Check rate limit
+  const allowed = await checkWebSocketRateLimit(ip);
+  if (!allowed) {
+    ws.close(1008, 'Rate limit exceeded. Max 10 connections per minute.');
+    return;
+  }
+
   clients.add(ws);
 
   ws.on('close', () => {
-    console.log('🔌 WebSocket client disconnected');
     clients.delete(ws);
   });
 
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
+  ws.on('error', () => {
     clients.delete(ws);
   });
 
-  // Send initial connection message
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Connected to Zcash Explorer API',
-  }));
+  // Send initial data immediately
+  if (networkStatsCache) {
+    ws.send(JSON.stringify({
+      type: 'network_stats',
+      data: networkStatsCache,
+    }));
+  }
 });
+
+// Broadcast message to all connected clients (local + Redis Pub/Sub)
+async function broadcastToAll(message) {
+  const messageStr = JSON.stringify(message);
+
+  // Broadcast to local WebSocket clients
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageStr);
+    }
+  });
+
+  // Publish to Redis for multi-server support
+  try {
+    if (redisPub.isOpen) {
+      await redisPub.publish('zcash:broadcast', messageStr);
+    }
+  } catch (err) {
+    console.error('Redis publish error:', err);
+  }
+}
 
 // Broadcast new block to all connected clients
 function broadcastNewBlock(block) {
-  const message = JSON.stringify({
+  broadcastToAll({
     type: 'new_block',
     data: block,
   });
-
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  });
 }
+
+// ============================================================================
+// BACKGROUND JOBS
+// ============================================================================
 
 // Poll for new blocks every 10 seconds
 let lastKnownHeight = 0;
@@ -1105,6 +1616,36 @@ setInterval(async () => {
     console.error('Error polling for new blocks:', error);
   }
 }, 10000);
+
+// Update network stats every 30 seconds and broadcast via WebSocket
+async function updateNetworkStatsBackground() {
+  try {
+    console.log('📊 [BACKGROUND] Updating network stats...');
+
+    // Fetch fresh stats
+    const stats = await fetchNetworkStatsOptimized();
+
+    // Update cache
+    networkStatsCache = stats;
+    networkStatsCacheTime = Date.now();
+
+    // Broadcast to all connected WebSocket clients
+    broadcastToAll({
+      type: 'network_stats',
+      data: stats,
+    });
+
+    console.log(`✅ [BACKGROUND] Network stats updated and broadcasted to ${clients.size} clients`);
+  } catch (error) {
+    console.error('❌ [BACKGROUND] Failed to update network stats:', error);
+  }
+}
+
+// Run immediately on startup
+updateNetworkStatsBackground();
+
+// Then run every 30 seconds
+setInterval(updateNetworkStatsBackground, 30000);
 
 // ============================================================================
 // ERROR HANDLING

@@ -122,7 +122,16 @@ export function ScanMyTransactions() {
 
       // Step 2: Filter compact outputs to find matching TXs (WASM filtering)
       console.log('🔍 [BIRTHDAY SCAN] Filtering compact outputs with WASM...');
-      const matchingTxs = await filterCompactOutputs(compactData.blocks, sanitizedKey);
+      const matchingTxs = await filterCompactOutputs(
+        compactData.blocks,
+        sanitizedKey,
+        (blocksProcessed, totalBlocks, matchesFound) => {
+          // Update progress from 30% to 50% during filtering
+          const filterProgress = Math.round(30 + (blocksProcessed / totalBlocks) * 20);
+          setScanProgress(filterProgress);
+          setCurrentBlock(birthdayHeight + blocksProcessed);
+        }
+      );
       console.log(`✅ [BIRTHDAY SCAN] Found ${matchingTxs.length} matching transactions`);
       setScanProgress(50);
 
