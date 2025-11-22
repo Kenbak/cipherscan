@@ -1,7 +1,28 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+
+// Animated dots component for loading states (pure CSS for performance)
+function AnimatedDots() {
+  return (
+    <span className="inline-block w-6 text-left">
+      <style jsx>{`
+        @keyframes dots {
+          0%, 20% { content: ''; }
+          40% { content: '.'; }
+          60% { content: '..'; }
+          80%, 100% { content: '...'; }
+        }
+        .animated-dots::after {
+          content: '';
+          animation: dots 2s infinite;
+        }
+      `}</style>
+      <span className="animated-dots"></span>
+    </span>
+  );
+}
 
 // Icons
 const Icons = {
@@ -66,6 +87,10 @@ export function ScanMyTransactions() {
   const [currentBlock, setCurrentBlock] = useState(0);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanPhase, setScanPhase] = useState<'fetching' | 'filtering' | 'decrypting' | ''>('');
+  const [cancelRequested, setCancelRequested] = useState(false);
+  const [blocksProcessed, setBlocksProcessed] = useState(0);
+  const [matchesFound, setMatchesFound] = useState(0);
 
   // Ref to scroll to results
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -79,6 +104,10 @@ export function ScanMyTransactions() {
     setScanProgress(0);
     setTotalBlocks(0);
     setCurrentBlock(0);
+    setScanPhase('fetching');
+    setCancelRequested(false);
+    setBlocksProcessed(0);
+    setMatchesFound(0);
 
     const startTime = Date.now();
     const minScanTime = 1500;
@@ -87,8 +116,15 @@ export function ScanMyTransactions() {
       const { filterCompactOutputs, decryptMemo } = await import('@/lib/wasm-loader');
       const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
 
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanError('Scan cancelled by user');
+        return;
+      }
+
       // Get current block height
       console.log('📊 [BIRTHDAY SCAN] Fetching current block height...');
+      setScanPhase('fetching');
       const infoRes = await fetch(`${apiUrl}/api/info`);
       if (!infoRes.ok) {
         throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
@@ -99,6 +135,12 @@ export function ScanMyTransactions() {
       const totalBlocks = currentHeight - birthdayHeight;
       setTotalBlocks(totalBlocks);
       console.log(`📦 [BIRTHDAY SCAN] Scanning ${totalBlocks.toLocaleString()} blocks (${birthdayHeight} → ${currentHeight})`);
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanError('Scan cancelled by user');
+        return;
+      }
 
       // Step 1: Fetch compact blocks from Lightwalletd (FAST!)
       console.log('⚡ [BIRTHDAY SCAN] Fetching compact blocks from Lightwalletd...');
@@ -120,9 +162,18 @@ export function ScanMyTransactions() {
       console.log(`✅ [BIRTHDAY SCAN] Received ${compactData.blocksScanned} compact blocks`);
       setScanProgress(30);
 
-      // Step 2: Filter compact outputs to find matching TXs (WASM filtering)
-      console.log('🔍 [BIRTHDAY SCAN] Filtering compact outputs with WASM...');
-      const matchingTxs = await filterCompactOutputs(
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanError('Scan cancelled by user');
+        return;
+      }
+
+      // Step 2: Filter compact outputs to find matching TXs (WASM BATCH filtering - FAST!)
+      console.log('🚀 [BIRTHDAY SCAN] Filtering compact outputs with WASM BATCH API...');
+      setScanPhase('filtering');
+      setBlocksProcessed(0);
+      const { filterCompactOutputsBatch } = await import('@/lib/wasm-loader');
+      const matchingTxs = await filterCompactOutputsBatch(
         compactData.blocks,
         sanitizedKey,
         (blocksProcessed, totalBlocks, matchesFound) => {
@@ -130,10 +181,20 @@ export function ScanMyTransactions() {
           const filterProgress = Math.round(30 + (blocksProcessed / totalBlocks) * 20);
           setScanProgress(filterProgress);
           setCurrentBlock(birthdayHeight + blocksProcessed);
-        }
+          setBlocksProcessed(blocksProcessed);
+          setMatchesFound(matchesFound);
+        },
+        () => cancelRequested // Pass cancel check function
       );
       console.log(`✅ [BIRTHDAY SCAN] Found ${matchingTxs.length} matching transactions`);
       setScanProgress(50);
+      setMatchesFound(matchingTxs.length);
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanError('Scan cancelled by user');
+        return;
+      }
 
       if (matchingTxs.length === 0) {
         console.log('❌ [BIRTHDAY SCAN] No matching transactions found');
@@ -142,17 +203,25 @@ export function ScanMyTransactions() {
         if (elapsedTime < minScanTime) {
           await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
         }
+        setScanPhase('');
         setScanning(false);
         return;
       }
 
       // Step 3: Fetch raw hex for matching TXs (batch)
       console.log(`📥 [BIRTHDAY SCAN] Fetching raw hex for ${matchingTxs.length} transactions...`);
+      setScanPhase('decrypting');
       const txids = matchingTxs.map(tx => tx.txid);
       const batchSize = 1000;
       const allRawTxs = new Map<string, string>();
 
       for (let i = 0; i < txids.length; i += batchSize) {
+        // Check for cancellation
+        if (cancelRequested) {
+          setScanError('Scan cancelled by user');
+          return;
+        }
+
         const batch = txids.slice(i, i + batchSize);
         console.log(`📦 [BIRTHDAY SCAN] Fetching batch ${Math.floor(i / batchSize) + 1} (${batch.length} TXs)...`);
         const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
@@ -180,6 +249,12 @@ export function ScanMyTransactions() {
       let processed = 0;
 
       for (const matchingTx of matchingTxs) {
+        // Check for cancellation
+        if (cancelRequested) {
+          setScanError('Scan cancelled by user');
+          return;
+        }
+
         try {
           const rawHex = allRawTxs.get(matchingTx.txid);
           if (rawHex) {
@@ -229,6 +304,8 @@ export function ScanMyTransactions() {
         await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
       }
     } finally {
+      setScanPhase('');
+      setCancelRequested(false);
       setScanning(false);
     }
   };
@@ -439,6 +516,15 @@ export function ScanMyTransactions() {
     setScanProgress(0);
     setTotalBlocks(0);
     setCurrentBlock(0);
+    setScanPhase('');
+    setCancelRequested(false);
+    setBlocksProcessed(0);
+    setMatchesFound(0);
+  };
+
+  const cancelScan = () => {
+    setCancelRequested(true);
+    setScanError('Cancelling scan...');
   };
 
   return (
@@ -534,26 +620,80 @@ export function ScanMyTransactions() {
             </button>
           )}
 
-          {/* Progress */}
+          {/* Progress with animated loading messages */}
           {scanning && (
-            <div>
-              <div className="flex justify-between text-xs sm:text-sm mb-2">
-                <span className="text-gray-400">
-                  Checking TX {scanProgress}%
-                </span>
-                <span className="text-cipher-cyan font-bold">
-                  {scanResults.length} found
-                </span>
+            <div className="space-y-4">
+              {/* Phase indicator with animated dots */}
+              <div className="bg-cipher-surface/50 border-2 border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {/* Animated spinner */}
+                    <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+                      <div className="absolute inset-0 border-4 border-cipher-cyan/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <div>
+                      <div className="text-sm sm:text-base font-bold text-white">
+                        {scanPhase === 'fetching' && (
+                          <>Fetching compact blocks<AnimatedDots /></>
+                        )}
+                        {scanPhase === 'filtering' && (
+                          <>
+                            Filtering {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
+                            {totalBlocks > 0 ? `${totalBlocks.toLocaleString()} blocks` : 'blocks'}
+                            <AnimatedDots />
+                          </>
+                        )}
+                        {scanPhase === 'decrypting' && (
+                          <>Decrypting {matchesFound} {matchesFound === 1 ? 'memo' : 'memos'}<AnimatedDots /></>
+                        )}
+                        {!scanPhase && (
+                          <>Scanning<AnimatedDots /></>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 font-mono mt-1">
+                        {scanProgress}% complete
+                        {matchesFound > 0 && scanPhase === 'filtering' && (
+                          <span className="text-cipher-green ml-2">• {matchesFound} found</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Cancel button */}
+                  <button
+                    onClick={cancelScan}
+                    disabled={cancelRequested}
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 hover:text-red-300 font-mono text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Cancel scan"
+                  >
+                    <Icons.X />
+                    <span className="hidden sm:inline">Cancel</span>
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 sm:h-3 bg-cipher-bg rounded-full overflow-hidden mb-3">
+                  <div
+                    className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+
+                {/* Warning message */}
+                <div className="flex items-start gap-2 text-xs text-yellow-400/80 bg-yellow-500/5 border border-yellow-500/20 rounded px-3 py-2">
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold mb-1">Please don't close this page</p>
+                    <p className="text-yellow-400/60 font-mono">
+                      {scanPeriod === 'birthday'
+                        ? 'Scanning large range may take 1-2 minutes. Your viewing key stays in your browser.'
+                        : 'This may take a moment. Your viewing key never leaves your device.'}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="h-2 sm:h-3 bg-cipher-bg rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
-                  style={{ width: `${scanProgress}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2 font-mono">
-                Scanning last {scanPeriod} of Orchard transactions...
-              </p>
             </div>
           )}
 

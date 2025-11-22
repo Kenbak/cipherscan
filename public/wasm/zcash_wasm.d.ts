@@ -7,6 +7,11 @@
 export function decrypt_compact_output(nullifier_hex: string, cmx_hex: string, ephemeral_key_hex: string, ciphertext_hex: string, viewing_key: string): string;
 export function detect_key_type(viewing_key: string): string;
 /**
+ * Batch filter compact outputs (MUCH FASTER!)
+ * Takes JSON array of outputs and returns JSON array of matching indices
+ */
+export function batch_filter_compact_outputs(outputs_json: string, viewing_key: string): string;
+/**
  * Orchard memo decryption - The Official Way™
  */
 export function decrypt_memo(tx_hex: string, viewing_key: string): string;
@@ -17,6 +22,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly batch_filter_compact_outputs: (a: number, b: number, c: number, d: number) => [number, number, number, number];
   readonly decrypt_compact_output: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
   readonly decrypt_memo: (a: number, b: number, c: number, d: number) => [number, number, number, number];
   readonly detect_key_type: (a: number, b: number) => [number, number];

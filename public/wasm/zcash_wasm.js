@@ -148,6 +148,36 @@ export function detect_key_type(viewing_key) {
 }
 
 /**
+ * Batch filter compact outputs (MUCH FASTER!)
+ * Takes JSON array of outputs and returns JSON array of matching indices
+ * @param {string} outputs_json
+ * @param {string} viewing_key
+ * @returns {string}
+ */
+export function batch_filter_compact_outputs(outputs_json, viewing_key) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(outputs_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(viewing_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.batch_filter_compact_outputs(ptr0, len0, ptr1, len1);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * Orchard memo decryption - The Official Way™
  * @param {string} tx_hex
  * @param {string} viewing_key
