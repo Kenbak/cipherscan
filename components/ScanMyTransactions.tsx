@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { useWasmWorker } from '@/hooks/useWasmWorker';
 
 // Animated dots component for loading states (pure CSS for performance)
 function AnimatedDots() {
@@ -92,12 +93,22 @@ export function ScanMyTransactions() {
   const [blocksProcessed, setBlocksProcessed] = useState(0);
   const [matchesFound, setMatchesFound] = useState(0);
 
+  // Web Worker for WASM filtering (runs off main thread - 0% UI freeze!)
+  const wasmWorker = useWasmWorker();
+
+  // AbortController for cancelling fetch requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Ref to scroll to results
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Birthday scan using Lightwalletd (FAST!)
+  // Birthday scan using Lightwalletd + Web Worker (FAST + SMOOTH!)
   const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number) => {
     console.log('🎂 [BIRTHDAY SCAN] Starting scan from block', birthdayHeight);
+
+    // Create AbortController for this scan
+    abortControllerRef.current = new AbortController();
+
     setScanning(true);
     setScanError(null);
     setScanResults([]);
@@ -118,14 +129,16 @@ export function ScanMyTransactions() {
 
       // Check for cancellation
       if (cancelRequested) {
-        setScanError('Scan cancelled by user');
+        setScanResults([]);
         return;
       }
 
       // Get current block height
       console.log('📊 [BIRTHDAY SCAN] Fetching current block height...');
       setScanPhase('fetching');
-      const infoRes = await fetch(`${apiUrl}/api/info`);
+      const infoRes = await fetch(`${apiUrl}/api/info`, {
+        signal: abortControllerRef.current.signal
+      });
       if (!infoRes.ok) {
         throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
       }
@@ -138,7 +151,7 @@ export function ScanMyTransactions() {
 
       // Check for cancellation
       if (cancelRequested) {
-        setScanError('Scan cancelled by user');
+        setScanResults([]);
         return;
       }
 
@@ -152,6 +165,7 @@ export function ScanMyTransactions() {
           startHeight: birthdayHeight,
           endHeight: currentHeight,
         }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!compactRes.ok) {
@@ -164,35 +178,35 @@ export function ScanMyTransactions() {
 
       // Check for cancellation
       if (cancelRequested) {
-        setScanError('Scan cancelled by user');
+        setScanResults([]);
         return;
       }
 
-      // Step 2: Filter compact outputs to find matching TXs (WASM BATCH filtering - FAST!)
-      console.log('🚀 [BIRTHDAY SCAN] Filtering compact outputs with WASM BATCH API...');
+      // Step 2: Filter compact outputs to find matching TXs (Web Worker - 0% UI FREEZE!)
+      console.log('🚀 [BIRTHDAY SCAN] Filtering compact outputs with Web Worker...');
       setScanPhase('filtering');
       setBlocksProcessed(0);
-      const { filterCompactOutputsBatch } = await import('@/lib/wasm-loader');
-      const matchingTxs = await filterCompactOutputsBatch(
+
+      const matchingTxs = await wasmWorker.filterCompactBlocks(
         compactData.blocks,
         sanitizedKey,
-        (blocksProcessed, totalBlocks, matchesFound) => {
+        (progress) => {
           // Update progress from 30% to 50% during filtering
-          const filterProgress = Math.round(30 + (blocksProcessed / totalBlocks) * 20);
+          const filterProgress = Math.round(30 + (progress.blocksProcessed / progress.totalBlocks) * 20);
           setScanProgress(filterProgress);
-          setCurrentBlock(birthdayHeight + blocksProcessed);
-          setBlocksProcessed(blocksProcessed);
-          setMatchesFound(matchesFound);
-        },
-        () => cancelRequested // Pass cancel check function
+          setCurrentBlock(birthdayHeight + progress.blocksProcessed);
+          setBlocksProcessed(progress.blocksProcessed);
+          setMatchesFound(progress.matchesFound);
+        }
       );
+
       console.log(`✅ [BIRTHDAY SCAN] Found ${matchingTxs.length} matching transactions`);
       setScanProgress(50);
       setMatchesFound(matchingTxs.length);
 
       // Check for cancellation
       if (cancelRequested) {
-        setScanError('Scan cancelled by user');
+        setScanResults([]);
         return;
       }
 
@@ -294,10 +308,18 @@ export function ScanMyTransactions() {
         await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
       }
     } catch (err: any) {
-      console.error('❌ [BIRTHDAY SCAN] Fatal error:', err);
-      setScanProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 200));
-      setScanError(err.message || 'Failed to scan from birthday');
+      // Check if it's an abort error (user cancelled)
+      if (err.name === 'AbortError' || err.message.includes('cancelled')) {
+        console.log('✅ [BIRTHDAY SCAN] Scan cancelled by user');
+        setScanResults([]);
+        // Don't show error message for user cancellation
+      } else {
+        // Real error - log and show
+        console.error('❌ [BIRTHDAY SCAN] Fatal error:', err);
+        setScanProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setScanError(err.message || 'Failed to scan from birthday');
+      }
 
       const elapsedTime = Date.now() - startTime;
       if (elapsedTime < minScanTime) {
@@ -307,6 +329,7 @@ export function ScanMyTransactions() {
       setScanPhase('');
       setCancelRequested(false);
       setScanning(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -524,7 +547,12 @@ export function ScanMyTransactions() {
 
   const cancelScan = () => {
     setCancelRequested(true);
-    setScanError('Cancelling scan...');
+    wasmWorker.cancel(); // Cancel the Web Worker
+
+    // Abort any ongoing fetch requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
   };
 
   return (
