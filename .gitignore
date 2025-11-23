@@ -54,6 +54,10 @@ exit.pub
 # Server config backups
 *rpc*password*
 *credentials*
+MAINNET_SETUP/
+*config-dump*
+
+.cursor/
 
 # ========================================
 # 🚫 INTERNAL: Do not commit private files
