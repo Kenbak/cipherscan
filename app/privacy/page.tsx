@@ -7,6 +7,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -198,101 +199,126 @@ export default function PrivacyPage() {
           </p>
         </div>
 
-        {/* Privacy Score - Hero */}
-        <div className="card mb-6 sm:mb-8 bg-gradient-to-br from-purple-900/20 to-cipher-surface border-2 border-purple-500/30">
-          <div className="text-center py-6 sm:py-8">
-            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <Icons.Shield />
-              <h2 className="text-xl sm:text-2xl font-bold text-purple-300">Privacy Score</h2>
-              <Tooltip content="Overall privacy health metric (0-100) based on shielded adoption, fully shielded ratio, and pool size." />
-            </div>
+        {/* Privacy Score + Recent Shielded Activity - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
+          
+          {/* Left Column: Privacy Score + Key Metrics */}
+          <div className="space-y-6">
+            {/* Privacy Score */}
+            <div className="card bg-gradient-to-br from-purple-900/20 to-cipher-surface border-2 border-purple-500/30">
+              <div className="text-center py-6">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Icons.Shield />
+                  <h2 className="text-xl font-bold text-purple-300">Privacy Score</h2>
+                  <Tooltip content="Overall privacy health metric (0-100) based on shielded adoption, fully shielded ratio, and pool size." />
+                </div>
 
-            <div className="text-5xl sm:text-6xl md:text-7xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              {stats.metrics.privacyScore}
-              <span className="text-2xl sm:text-3xl text-gray-500">/100</span>
-            </div>
+                <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  {stats.metrics.privacyScore}
+                  <span className="text-2xl text-gray-500">/100</span>
+                </div>
 
-            {/* Progress Bar */}
-            <div className="max-w-md mx-auto mb-6">
-              <div className="h-4 bg-cipher-bg rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
-                  style={{ width: `${stats.metrics.privacyScore}%` }}
-                />
+                {/* Progress Bar */}
+                <div className="max-w-md mx-auto mb-6">
+                  <div className="h-4 bg-cipher-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
+                      style={{ width: `${stats.metrics.privacyScore}%` }}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-400 max-w-md mx-auto px-4">
+                  Shielded Tx Adoption (40%), Fully Shielded Ratio (40%), Pool Size (20%)
+                </p>
               </div>
             </div>
 
-            <p className="text-sm sm:text-base text-gray-400 max-w-2xl mx-auto px-2">
-              Calculated based on: <strong>Shielded Tx Adoption</strong> (40%),
-              <strong> Fully Shielded Ratio</strong> (40%), and <strong>Shielded Pool Size</strong> (20%).
+            {/* Key Metrics 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Shielded Percentage */}
+              <div className="card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons.Lock />
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Shielded</h3>
+                </div>
+                <div className="text-2xl font-bold text-purple-400">
+                  {stats.metrics.shieldedPercentage.toFixed(1)}%
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {stats.totals.shieldedTx.toLocaleString()} txs
+                </p>
+              </div>
+
+              {/* Pool Size */}
+              <div className="card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons.Shield />
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Pool</h3>
+                </div>
+                <div className="text-2xl font-bold text-cipher-cyan">
+                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{CURRENCY}</p>
+              </div>
+
+              {/* Adoption Trend */}
+              <div className="card">
+                <div className="flex items-center gap-2 mb-2">
+                  {trendIcon}
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Trend</h3>
+                </div>
+                <div className={`text-2xl font-bold capitalize ${trendColor}`}>
+                  {stats.metrics.adoptionTrend}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">7d avg</p>
+              </div>
+
+              {/* Fully Shielded */}
+              <div className="card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons.Eye />
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Fully</h3>
+                </div>
+                <div className="text-2xl font-bold text-cipher-green">
+                  {stats.totals.fullyShieldedTx.toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">100% private</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Recent Shielded Activity */}
+          <div className="card bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold font-mono text-purple-400 flex items-center gap-2">
+                <Icons.Lock />
+                Recent Shielded TXs
+              </h2>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-gray-500 font-mono">LIVE</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Latest shielded transactions. Click to view or decrypt.
             </p>
-          </div>
-        </div>
-
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-
-          {/* Shielded Percentage */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-2">
-              <Icons.Lock />
-              <h3 className="text-sm font-semibold text-gray-400 uppercase">Shielded Txs</h3>
-              <Tooltip content="Transactions that use at least one shielded input or output. Provides partial privacy." />
+            
+            {/* Show only 3-4 TXs */}
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              <RecentShieldedTxs />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-purple-400">
-              {stats.metrics.shieldedPercentage.toFixed(1)}%
+            
+            <div className="mt-4 pt-4 border-t border-purple-500/20">
+              <Link 
+                href="/txs/shielded" 
+                className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
+              >
+                View All Shielded Transactions →
+              </Link>
             </div>
-            <p className="text-sm text-gray-500 mt-2">
-              {stats.totals.shieldedTx.toLocaleString()} of {stats.totals.totalTx.toLocaleString()} total
-            </p>
           </div>
 
-          {/* Pool Size */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-2">
-              <Icons.Shield />
-              <h3 className="text-sm font-semibold text-gray-400 uppercase">Shielded Pool</h3>
-              <Tooltip content="Total ZEC stored in shielded pools (Sapling + Orchard). These funds are completely private and untraceable." />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-cipher-cyan">
-              {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
-            </div>
-            {zecPrice && (
-              <p className="text-sm text-gray-500 mt-2">
-                ${((stats.shieldedPool.currentSize * zecPrice) / 1000000).toFixed(2)}M USD
-              </p>
-            )}
-          </div>
-
-          {/* Adoption Trend */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-2">
-              {trendIcon}
-              <h3 className="text-sm font-semibold text-gray-400 uppercase">Adoption Trend</h3>
-              <Tooltip content="Recent trend in shielded transaction usage. Based on 7-day vs 30-day averages." />
-            </div>
-            <div className={`text-2xl sm:text-3xl font-bold capitalize ${trendColor}`}>
-              {stats.metrics.adoptionTrend}
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              {stats.metrics.avgShieldedPerDay} shielded/day avg
-            </p>
-          </div>
-
-          {/* Fully Shielded */}
-          <div className="card">
-            <div className="flex items-center gap-2 mb-2">
-              <Icons.Eye />
-              <h3 className="text-sm font-semibold text-gray-400 uppercase">Fully Shielded</h3>
-              <Tooltip content="Transactions where ALL inputs and outputs are shielded. Provides maximum privacy - completely untraceable." />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-cipher-green">
-              {((stats.totals.fullyShieldedTx / stats.totals.shieldedTx) * 100).toFixed(1)}%
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              {stats.totals.fullyShieldedTx.toLocaleString()} 100% private
-            </p>
-          </div>
         </div>
 
         {/* Transaction Breakdown */}
