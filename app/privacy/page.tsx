@@ -201,7 +201,7 @@ export default function PrivacyPage() {
 
         {/* Privacy Score + Recent Shielded Activity - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
-          
+
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
             {/* Privacy Score */}
@@ -303,15 +303,15 @@ export default function PrivacyPage() {
             <p className="text-xs text-gray-400 mb-4">
               Latest shielded transactions. Click to view or decrypt.
             </p>
-            
+
             {/* Show only 3-4 TXs */}
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               <RecentShieldedTxs />
             </div>
-            
+
             <div className="mt-4 pt-4 border-t border-purple-500/20">
-              <Link 
-                href="/txs/shielded" 
+              <Link
+                href="/txs/shielded"
                 className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
               >
                 View All Shielded Transactions →
