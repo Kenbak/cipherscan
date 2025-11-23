@@ -441,6 +441,119 @@ app.get('/api/block/:height', async (req, res) => {
   }
 });
 
+// Get shielded transactions with filters (MUST be before /api/tx/:txid)
+app.get('/api/tx/shielded', async (req, res) => {
+  try {
+    // Query parameters
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const poolType = req.query.pool; // 'sapling', 'orchard', or undefined for both
+    const txType = req.query.type; // 'fully-shielded', 'partial', or undefined for all
+    const minActions = parseInt(req.query.min_actions) || 0;
+
+    // Build WHERE clause
+    const conditions = [];
+    const queryParams = [];
+    let paramIndex = 1;
+
+    // Filter by pool type
+    if (poolType === 'sapling') {
+      conditions.push(`(has_sapling = true)`);
+    } else if (poolType === 'orchard') {
+      conditions.push(`(has_orchard = true)`);
+    } else {
+      // Both pools
+      conditions.push(`(has_sapling = true OR has_orchard = true)`);
+    }
+
+    // Filter by transaction type
+    if (txType === 'fully-shielded') {
+      // Fully shielded: no transparent inputs/outputs
+      conditions.push(`(vin_count = 0 AND vout_count = 0)`);
+    } else if (txType === 'partial') {
+      // Partial: has both transparent and shielded
+      conditions.push(`(vin_count > 0 OR vout_count > 0)`);
+    }
+
+    // Filter by minimum actions
+    if (minActions > 0) {
+      conditions.push(`(orchard_actions >= $${paramIndex} OR shielded_spends >= $${paramIndex} OR shielded_outputs >= $${paramIndex})`);
+      queryParams.push(minActions);
+      paramIndex++;
+    }
+
+    // Add limit and offset
+    queryParams.push(limit, offset);
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Query
+    const result = await pool.query(
+      `SELECT
+        t.txid,
+        t.block_height,
+        b.hash as block_hash,
+        b.timestamp as block_time,
+        t.has_sapling,
+        t.has_orchard,
+        t.shielded_spends,
+        t.shielded_outputs,
+        t.orchard_actions,
+        t.vin_count,
+        t.vout_count,
+        t.size
+      FROM transactions t
+      JOIN blocks b ON t.block_height = b.height
+      ${whereClause}
+      ORDER BY t.block_height DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      queryParams
+    );
+
+    // Get total count for pagination
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as total
+      FROM transactions t
+      ${whereClause}`,
+      queryParams.slice(0, -2) // Remove limit/offset for count
+    );
+
+    const total = parseInt(countResult.rows[0]?.total || 0);
+
+    res.json({
+      transactions: result.rows.map(tx => ({
+        txid: tx.txid,
+        blockHeight: parseInt(tx.block_height),
+        blockHash: tx.block_hash,
+        blockTime: parseInt(tx.block_time),
+        hasSapling: tx.has_sapling,
+        hasOrchard: tx.has_orchard,
+        shieldedSpends: parseInt(tx.shielded_spends || 0),
+        shieldedOutputs: parseInt(tx.shielded_outputs || 0),
+        orchardActions: parseInt(tx.orchard_actions || 0),
+        vinCount: parseInt(tx.vin_count || 0),
+        voutCount: parseInt(tx.vout_count || 0),
+        size: parseInt(tx.size || 0),
+        type: (tx.vin_count === 0 && tx.vout_count === 0) ? 'fully-shielded' : 'partial',
+      })),
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+      filters: {
+        pool: poolType || 'all',
+        type: txType || 'all',
+        minActions: minActions || 0,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching shielded transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch shielded transactions' });
+  }
+});
+
 // Get transaction by txid
 app.get('/api/tx/:txid', async (req, res) => {
   try {

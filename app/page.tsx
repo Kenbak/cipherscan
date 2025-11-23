@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
 import { PrivacyWidget } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
+import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { DonateButton } from '@/components/DonateButton';
 import { isMainnet } from '@/lib/config';
 
@@ -17,8 +18,9 @@ interface Block {
 async function getRecentBlocks(): Promise<Block[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/blocks`, {
-      next: { revalidate: 10 }, // Revalidate every 10 seconds
+    const response = await fetch(`${baseUrl}/api/blocks?limit=5`, {
+      next: { revalidate: 0 }, // Always fetch fresh data
+      cache: 'no-store', // Don't cache
     });
 
     if (!response.ok) {
@@ -140,22 +142,40 @@ export default async function Home() {
 
       {/* Recent Activity - Only on Testnet */}
       {!isMainnet && (
-        <div className="mt-12 sm:mt-20 max-w-5xl mx-auto">
+        <div className="mt-12 sm:mt-20 max-w-7xl mx-auto">
           {/* Privacy Widget */}
           <PrivacyWidget />
 
-          {/* Recent Blocks */}
-          <div className="flex items-center justify-between mb-4 sm:mb-6 mt-12 sm:mt-16">
-            <h2 className="text-base sm:text-xl font-bold font-mono text-cipher-cyan">
-              {'>'} RECENT_BLOCKS
-            </h2>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-cipher-green rounded-full animate-pulse"></div>
-              <span className="text-xs sm:text-sm text-gray-400 font-mono">LIVE</span>
+          {/* Recent Blocks & Shielded TXs - Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">
+            {/* Recent Blocks */}
+            <div>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-base sm:text-xl font-bold font-mono text-cipher-cyan">
+                  {'>'} RECENT_BLOCKS
+                </h2>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-cipher-green rounded-full animate-pulse"></div>
+                  <span className="text-xs sm:text-sm text-gray-400 font-mono">LIVE</span>
+                </div>
+              </div>
+              <RecentBlocks initialBlocks={initialBlocks} />
+            </div>
+
+            {/* Recent Shielded TXs */}
+            <div>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-base sm:text-xl font-bold font-mono text-purple-400">
+                  {'>'} SHIELDED_ACTIVITY
+                </h2>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs sm:text-sm text-gray-400 font-mono">LIVE</span>
+                </div>
+              </div>
+              <RecentShieldedTxs />
             </div>
           </div>
-
-          <RecentBlocks initialBlocks={initialBlocks} />
 
           {/* Privacy Note */}
           <div className="text-center mt-12 pt-8 border-t border-cipher-border/30">

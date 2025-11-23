@@ -113,6 +113,52 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     }
   },
   {
+    id: 'tx-shielded',
+    category: 'Transactions',
+    method: 'GET',
+    path: '/api/tx/shielded',
+    description: 'Get shielded transactions with advanced filters (pool type, fully shielded vs partial, min actions)',
+    params: [
+      { name: 'limit', type: 'number', description: 'Number of transactions to return (default: 50, max: 100)' },
+      { name: 'offset', type: 'number', description: 'Number of transactions to skip for pagination (default: 0)' },
+      { name: 'pool', type: 'string', description: 'Filter by pool type: "sapling", "orchard", or omit for all (optional)' },
+      { name: 'type', type: 'string', description: 'Filter by transaction type: "fully-shielded" (no transparent I/O) or "partial" (mixed), or omit for all (optional)' },
+      { name: 'min_actions', type: 'number', description: 'Minimum number of shielded actions/spends/outputs (optional)' }
+    ],
+    example: `curl '${baseUrl}/api/tx/shielded?pool=orchard&type=fully-shielded&limit=10'`,
+    response: {
+      transactions: [
+        {
+          txid: 'abc123...',
+          blockHeight: 3667080,
+          blockHash: '0000000...',
+          blockTime: 1699123456,
+          hasSapling: false,
+          hasOrchard: true,
+          shieldedSpends: 0,
+          shieldedOutputs: 0,
+          orchardActions: 2,
+          vinCount: 0,
+          voutCount: 0,
+          size: 2500,
+          type: 'fully-shielded'
+        }
+      ],
+      pagination: {
+        total: 12564,
+        limit: 10,
+        offset: 0,
+        hasMore: true
+      },
+      filters: {
+        pool: 'orchard',
+        type: 'fully-shielded',
+        minActions: 0
+      }
+    },
+    note: '🔒 This endpoint is useful for finding transactions to decrypt, analyzing shielded adoption trends, or building privacy-focused analytics.'
+  },
+  {
     id: 'address-details',
     category: 'Transactions',
     method: 'GET',

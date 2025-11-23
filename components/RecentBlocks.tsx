@@ -26,8 +26,8 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
       try {
         // For testnet, call Express API directly; for mainnet, use Next.js API
         const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/blocks`
-          : '/api/blocks';
+          ? `${getApiUrl()}/api/blocks?limit=5`
+          : '/api/blocks?limit=5';
         
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -83,8 +83,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
                 </div>
                 <div className="text-xs text-gray-500 font-mono mt-2">
                   <span className="opacity-50">Hash: </span>
-                  <code className="break-all md:inline hidden">{block.hash}</code>
-                  <code className="md:hidden">{block.hash.slice(0, 16)}...{block.hash.slice(-16)}</code>
+                  <code className="break-all">{block.hash.slice(0, 8)}...{block.hash.slice(-8)}</code>
                 </div>
               </div>
               <div className="text-left sm:text-right sm:ml-6">
