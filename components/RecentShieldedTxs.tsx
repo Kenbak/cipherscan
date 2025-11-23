@@ -77,9 +77,9 @@ export function RecentShieldedTxs() {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
-                  <span className="text-lg">🔒</span>
-                  <h3 className=" font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
-                    {tx.txid.slice(0, 16)}...
+                  <span className="text-2xl">🔒</span>
+                  <h3 className="text-lg font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
+                    {tx.txid.slice(0, 12)}...
                   </h3>
                   {tx.type === 'fully-shielded' ? (
                     <span className="badge bg-purple-500/10 text-purple-400 border-purple-500/30">
