@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Icons
 const Icons = {
@@ -31,7 +31,7 @@ const Icons = {
   ),
 };
 
-export function SingleTxDecrypt() {
+export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }) {
   const [txid, setTxid] = useState('');
   const [viewingKey, setViewingKey] = useState('');
   const [memo, setMemo] = useState<string | null>(null);
@@ -39,6 +39,13 @@ export function SingleTxDecrypt() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+
+  // Prefill TXID if provided
+  useEffect(() => {
+    if (prefillTxid) {
+      setTxid(prefillTxid);
+    }
+  }, [prefillTxid]);
 
   const decodeMemo = async () => {
     if (!txid || !viewingKey) {

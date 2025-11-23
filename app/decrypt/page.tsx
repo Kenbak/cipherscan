@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NETWORK_LABEL, isTestnet } from '@/lib/config';
 import { SingleTxDecrypt } from '@/components/SingleTxDecrypt';
 import { ScanMyTransactions } from '@/components/ScanMyTransactions';
@@ -26,6 +26,20 @@ const Icons = {
 
 export default function DecryptPage() {
   const [activeTab, setActiveTab] = useState<'single' | 'scan'>('single');
+
+  // Check for prefill parameter
+  const [prefillTxid, setPrefillTxid] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const prefill = params.get('prefill');
+      if (prefill) {
+        setPrefillTxid(prefill);
+        setActiveTab('single'); // Ensure we're on the Single Message tab
+      }
+    }
+  }, []);
 
   // Block mainnet completely
   if (!isTestnet) {
@@ -126,7 +140,7 @@ export default function DecryptPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'single' && <SingleTxDecrypt />}
+        {activeTab === 'single' && <SingleTxDecrypt prefillTxid={prefillTxid} />}
         {activeTab === 'scan' && <ScanMyTransactions />}
 
         {/* Help Card */}

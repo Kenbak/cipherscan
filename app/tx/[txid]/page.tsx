@@ -464,6 +464,36 @@ export default function TransactionPage() {
             </p>
           </div>
         </div>
+
+        {/* Decrypt This Transaction - Only for shielded TXs */}
+        {(hasOrchard || hasSapling) && (
+          <div className="bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-3 md:p-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-2 md:gap-3">
+                <svg className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <div>
+                  <p className="text-purple-300 text-sm font-semibold mb-1">
+                    Is this your transaction?
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    Use your viewing key to decrypt shielded amounts and memos client-side
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/decrypt?prefill=${data.txid}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                </svg>
+                Decrypt This TX
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Transaction Info Card */}
