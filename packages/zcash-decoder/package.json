@@ -1,0 +1,48 @@
+{
+  "name": "@cipherscan/zcash-decoder",
+  "version": "1.0.0",
+  "description": "Client-side decoder for Zcash shielded transactions and memos",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "wasm",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "zcash",
+    "wasm",
+    "privacy",
+    "blockchain",
+    "shielded",
+    "orchard",
+    "sapling",
+    "memo",
+    "decryption",
+    "viewing-key"
+  ],
+  "author": "CipherScan",
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kenbak/cipherscan.git",
+    "directory": "packages/zcash-decoder"
+  },
+  "bugs": {
+    "url": "https://github.com/Kenbak/cipherscan/issues"
+  },
+  "homepage": "https://github.com/Kenbak/cipherscan/tree/main/packages/zcash-decoder#readme",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {},
+  "publishConfig": {
+    "access": "public"
+  }
+}
+
