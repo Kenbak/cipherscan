@@ -192,7 +192,7 @@ export function ScanMyTransactions() {
           setMatchesFound(progress.matchesFound);
         }
       );
-      
+
       setScanProgress(50);
       setMatchesFound(matchingTxs.length);
 
@@ -647,7 +647,7 @@ export function ScanMyTransactions() {
                     <div>
                       <div className="text-sm sm:text-base font-bold text-white">
                         {scanPhase === 'fetching' && (
-                          <>Fetching compact blocks<AnimatedDots /></>
+                          <>Fetching blocks<AnimatedDots /></>
                         )}
                         {scanPhase === 'filtering' && (
                           <>

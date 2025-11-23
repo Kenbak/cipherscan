@@ -46,13 +46,13 @@ async function loadWasm() {
     // Get the full URL to the WASM module in /public/wasm
     const origin = self.location.origin;
     const wasmJsUrl = `${origin}/wasm/zcash_wasm.js`;
-    
+
     // Use dynamic import with full URL to bypass Next.js bundling
     const wasmInit = await import(/* @vite-ignore */ /* webpackIgnore: true */ wasmJsUrl);
-    
+
     // Initialize the WASM module (it will load the .wasm file automatically)
     await wasmInit.default();
-    
+
     wasmModule = {
       batch_filter_compact_outputs: wasmInit.batch_filter_compact_outputs,
     };
