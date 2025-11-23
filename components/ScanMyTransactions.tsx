@@ -2,6 +2,28 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { useWasmWorker } from '@/hooks/useWasmWorker';
+
+// Animated dots component for loading states (pure CSS for performance)
+function AnimatedDots() {
+  return (
+    <span className="inline-block w-6 text-left">
+      <style jsx>{`
+        @keyframes dots {
+          0%, 20% { content: ''; }
+          40% { content: '.'; }
+          60% { content: '..'; }
+          80%, 100% { content: '...'; }
+        }
+        .animated-dots::after {
+          content: '';
+          animation: dots 2s infinite;
+        }
+      `}</style>
+      <span className="animated-dots"></span>
+    </span>
+  );
+}
 
 // Icons
 const Icons = {
@@ -58,16 +80,242 @@ interface ScanResult {
 
 export function ScanMyTransactions() {
   const [viewingKey, setViewingKey] = useState('');
-  const [scanPeriod, setScanPeriod] = useState<'1h' | '6h' | '24h' | '7d'>('1h');
+  const [scanPeriod, setScanPeriod] = useState<'1h' | '6h' | '24h' | '7d' | 'birthday'>('1h');
+  const [birthdayBlock, setBirthdayBlock] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [totalBlocks, setTotalBlocks] = useState(0);
   const [currentBlock, setCurrentBlock] = useState(0);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanPhase, setScanPhase] = useState<'fetching' | 'filtering' | 'decrypting' | ''>('');
+  const [cancelRequested, setCancelRequested] = useState(false);
+  const [blocksProcessed, setBlocksProcessed] = useState(0);
+  const [matchesFound, setMatchesFound] = useState(0);
+
+  // Web Worker for WASM filtering (runs off main thread - 0% UI freeze!)
+  const wasmWorker = useWasmWorker();
+
+  // AbortController for cancelling fetch requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Ref to scroll to results
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Birthday scan using Lightwalletd + Web Worker (FAST + SMOOTH!)
+  const scanFromBirthday = async (sanitizedKey: string, birthdayHeight: number) => {
+    // Create AbortController for this scan
+    abortControllerRef.current = new AbortController();
+
+    setScanning(true);
+    setScanError(null);
+    setScanResults([]);
+    setScanProgress(0);
+    setTotalBlocks(0);
+    setCurrentBlock(0);
+    setScanPhase('fetching');
+    setCancelRequested(false);
+    setBlocksProcessed(0);
+    setMatchesFound(0);
+
+    const startTime = Date.now();
+    const minScanTime = 1500;
+
+    try {
+      const { filterCompactOutputs, decryptMemo } = await import('@/lib/wasm-loader');
+      const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanResults([]);
+        return;
+      }
+
+      // Get current block height
+      setScanPhase('fetching');
+      const infoRes = await fetch(`${apiUrl}/api/info`, {
+        signal: abortControllerRef.current.signal
+      });
+      if (!infoRes.ok) {
+        throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
+      }
+      const infoData = await infoRes.json();
+      const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
+
+      const totalBlocks = currentHeight - birthdayHeight;
+      setTotalBlocks(totalBlocks);
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanResults([]);
+        return;
+      }
+
+      // Step 1: Fetch compact blocks from Lightwalletd
+      setScanProgress(10);
+      const compactRes = await fetch(`${apiUrl}/api/lightwalletd/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          startHeight: birthdayHeight,
+          endHeight: currentHeight,
+        }),
+        signal: abortControllerRef.current.signal
+      });
+
+      if (!compactRes.ok) {
+        throw new Error(`Failed to fetch compact blocks: ${compactRes.status}`);
+      }
+
+      const compactData = await compactRes.json();
+      setScanProgress(30);
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanResults([]);
+        return;
+      }
+
+      // Step 2: Filter compact outputs to find matching TXs (Web Worker - 0% UI FREEZE!)
+      setScanPhase('filtering');
+      setBlocksProcessed(0);
+
+      const matchingTxs = await wasmWorker.filterCompactBlocks(
+        compactData.blocks,
+        sanitizedKey,
+        (progress) => {
+          // Update progress from 30% to 50% during filtering
+          const filterProgress = Math.round(30 + (progress.blocksProcessed / progress.totalBlocks) * 20);
+          setScanProgress(filterProgress);
+          setCurrentBlock(birthdayHeight + progress.blocksProcessed);
+          setBlocksProcessed(progress.blocksProcessed);
+          setMatchesFound(progress.matchesFound);
+        }
+      );
+
+      setScanProgress(50);
+      setMatchesFound(matchingTxs.length);
+
+      // Check for cancellation
+      if (cancelRequested) {
+        setScanResults([]);
+        return;
+      }
+
+      if (matchingTxs.length === 0) {
+        setScanError(`Scanned ${totalBlocks.toLocaleString()} blocks but found no transactions matching your viewing key.`);
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < minScanTime) {
+          await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+        }
+        setScanPhase('');
+        setScanning(false);
+        return;
+      }
+
+      // Step 3: Fetch raw hex for matching TXs (batch)
+      setScanPhase('decrypting');
+      const txids = matchingTxs.map(tx => tx.txid);
+      const batchSize = 1000;
+      const allRawTxs = new Map<string, string>();
+
+      for (let i = 0; i < txids.length; i += batchSize) {
+        // Check for cancellation
+        if (cancelRequested) {
+          setScanError('Scan cancelled by user');
+          return;
+        }
+
+        const batch = txids.slice(i, i + batchSize);
+        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txids: batch }),
+        });
+
+        if (!batchRes.ok) {
+          throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
+        }
+
+        const batchData = await batchRes.json();
+        batchData.transactions.forEach((tx: any) => {
+          allRawTxs.set(tx.txid, tx.hex);
+        });
+
+        setScanProgress(50 + Math.round((i / txids.length) * 30));
+      }
+
+      // Step 4: Decrypt memos with WASM
+      const foundMessages: ScanResult[] = [];
+      let processed = 0;
+
+      for (const matchingTx of matchingTxs) {
+        // Check for cancellation
+        if (cancelRequested) {
+          setScanError('Scan cancelled by user');
+          return;
+        }
+
+        try {
+          const rawHex = allRawTxs.get(matchingTx.txid);
+          if (rawHex) {
+            const decrypted = await decryptMemo(rawHex, sanitizedKey);
+            foundMessages.push({
+              txid: matchingTx.txid,
+              height: matchingTx.height,
+              timestamp: matchingTx.timestamp,
+              memo: decrypted.memo,
+              amount: decrypted.amount,
+            });
+          }
+        } catch (err) {
+          // Failed to decrypt this TX (empty memo or change output)
+        }
+
+        processed++;
+        setScanProgress(80 + Math.round((processed / matchingTxs.length) * 20));
+      }
+
+      setScanProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (foundMessages.length === 0) {
+        setScanError(`Found ${matchingTxs.length} matching transactions but none had readable memos.`);
+      } else {
+        setScanResults(foundMessages);
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
+    } catch (err: any) {
+      // Check if it's an abort error (user cancelled)
+      if (err.name === 'AbortError' || err.message.includes('cancelled')) {
+        setScanResults([]);
+        // Silent cancellation - no error message
+      } else {
+        // Real error - log and show
+        console.error('Scan error:', err);
+        setScanProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setScanError(err.message || 'Failed to scan from birthday');
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < minScanTime) {
+        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
+      }
+    } finally {
+      setScanPhase('');
+      setCancelRequested(false);
+      setScanning(false);
+      abortControllerRef.current = null;
+    }
+  };
 
   const scanMyTransactions = async () => {
     if (!viewingKey) {
@@ -80,6 +328,17 @@ export function ScanMyTransactions() {
     if (!sanitizedKey.startsWith('uviewtest') && !sanitizedKey.startsWith('uview')) {
       setScanError('Invalid viewing key format. Must start with "uviewtest" or "uview".');
       return;
+    }
+
+    // Validate birthday block if birthday mode
+    if (scanPeriod === 'birthday') {
+      const birthday = parseInt(birthdayBlock);
+      if (!birthdayBlock || isNaN(birthday) || birthday < 0) {
+        setScanError('Please enter a valid birthday block number.');
+        return;
+      }
+      // Use birthday scan method
+      return scanFromBirthday(sanitizedKey, birthday);
     }
 
     setScanning(true);
@@ -264,6 +523,20 @@ export function ScanMyTransactions() {
     setScanProgress(0);
     setTotalBlocks(0);
     setCurrentBlock(0);
+    setScanPhase('');
+    setCancelRequested(false);
+    setBlocksProcessed(0);
+    setMatchesFound(0);
+  };
+
+  const cancelScan = () => {
+    setCancelRequested(true);
+    wasmWorker.cancel(); // Cancel the Web Worker
+
+    // Abort any ongoing fetch requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
   };
 
   return (
@@ -308,7 +581,7 @@ export function ScanMyTransactions() {
             </label>
             <select
               value={scanPeriod}
-              onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d')}
+              onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d' | 'birthday')}
               disabled={scanning}
               className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             >
@@ -316,11 +589,34 @@ export function ScanMyTransactions() {
               <option value="6h">Last 6 hours (~288 blocks)</option>
               <option value="24h">Last 24 hours (~1,152 blocks)</option>
               <option value="7d">Last 7 days (~8,064 blocks)</option>
+              <option value="birthday">Since wallet birthday 🎂</option>
             </select>
             <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
-              How far back to scan for your transactions
+              {scanPeriod === 'birthday'
+                ? 'Scan from wallet creation (may take 1-2 minutes)'
+                : 'How far back to scan for your transactions'}
             </p>
           </div>
+
+          {/* Birthday Block Input (only show if birthday is selected) */}
+          {scanPeriod === 'birthday' && (
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+                Wallet Birthday Block <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g., 3121131"
+                value={birthdayBlock}
+                onChange={(e) => setBirthdayBlock(e.target.value)}
+                disabled={scanning}
+                className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              />
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+                Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
+              </p>
+            </div>
+          )}
 
           {/* Scan Button */}
           {!scanning && scanResults.length === 0 && (
@@ -336,26 +632,80 @@ export function ScanMyTransactions() {
             </button>
           )}
 
-          {/* Progress */}
+          {/* Progress with animated loading messages */}
           {scanning && (
-            <div>
-              <div className="flex justify-between text-xs sm:text-sm mb-2">
-                <span className="text-gray-400">
-                  Checking TX {scanProgress}%
-                </span>
-                <span className="text-cipher-cyan font-bold">
-                  {scanResults.length} found
-                </span>
+            <div className="space-y-4">
+              {/* Phase indicator with animated dots */}
+              <div className="bg-cipher-surface/50 border-2 border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    {/* Animated spinner */}
+                    <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+                      <div className="absolute inset-0 border-4 border-cipher-cyan/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <div>
+                      <div className="text-sm sm:text-base font-bold text-white">
+                        {scanPhase === 'fetching' && (
+                          <>Fetching blocks<AnimatedDots /></>
+                        )}
+                        {scanPhase === 'filtering' && (
+                          <>
+                            Filtering {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
+                            {totalBlocks > 0 ? `${totalBlocks.toLocaleString()} blocks` : 'blocks'}
+                            <AnimatedDots />
+                          </>
+                        )}
+                        {scanPhase === 'decrypting' && (
+                          <>Decrypting {matchesFound} {matchesFound === 1 ? 'memo' : 'memos'}<AnimatedDots /></>
+                        )}
+                        {!scanPhase && (
+                          <>Scanning<AnimatedDots /></>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 font-mono mt-1">
+                        {scanProgress}% complete
+                        {matchesFound > 0 && scanPhase === 'filtering' && (
+                          <span className="text-cipher-green ml-2">• {matchesFound} found</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Cancel button */}
+                  <button
+                    onClick={cancelScan}
+                    disabled={cancelRequested}
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 hover:text-red-300 font-mono text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Cancel scan"
+                  >
+                    <Icons.X />
+                    <span className="hidden sm:inline">Cancel</span>
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 sm:h-3 bg-cipher-bg rounded-full overflow-hidden mb-3">
+                  <div
+                    className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+
+                {/* Warning message */}
+                <div className="flex items-start gap-2 text-xs text-yellow-400/80 bg-yellow-500/5 border border-yellow-500/20 rounded px-3 py-2">
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold mb-1">Please don't close this page</p>
+                    <p className="text-yellow-400/60 font-mono">
+                      {scanPeriod === 'birthday'
+                        ? 'Scanning large range may take 1-2 minutes. Your viewing key stays in your browser.'
+                        : 'This may take a moment. Your viewing key never leaves your device.'}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="h-2 sm:h-3 bg-cipher-bg rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
-                  style={{ width: `${scanProgress}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2 font-mono">
-                Scanning last {scanPeriod} of Orchard transactions...
-              </p>
             </div>
           )}
 

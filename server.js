@@ -568,6 +568,7 @@ app.get('/api/tx/:txid/raw', async (req, res) => {
 });
 
 // Batch get raw transactions (for wallet scanning)
+// Batch get raw transactions (for wallet scanning)
 app.post('/api/tx/raw/batch', async (req, res) => {
   try {
     const { txids } = req.body;
@@ -585,15 +586,51 @@ app.post('/api/tx/raw/batch', async (req, res) => {
     }
 
     console.log(`🔍 [BATCH RAW] Fetching ${txids.length} raw transactions`);
+    console.log(`🔍 [BATCH RAW] First 3 TXIDs:`, txids.slice(0, 3));
 
-    // Fetch all raw TXs in parallel (FAST!)
+    // Try Lightwalletd first (has full TX index), fallback to Zebra RPC
     const results = await Promise.all(
       txids.map(async (txid) => {
         try {
+          // Try Lightwalletd GetTransaction first
+          if (CompactTxStreamer) {
+            try {
+              const client = new CompactTxStreamer(
+                '127.0.0.1:9067',
+                grpc.credentials.createInsecure()
+              );
+
+              const rawTx = await new Promise((resolve, reject) => {
+                client.GetTransaction(
+                  { hash: Buffer.from(txid, 'hex') },
+                  (error, response) => {
+                    client.close();
+                    if (error) {
+                      reject(error);
+                    } else {
+                      resolve(response);
+                    }
+                  }
+                );
+              });
+
+              if (rawTx && rawTx.data) {
+                const hexData = Buffer.from(rawTx.data).toString('hex');
+                console.log(`✅ [BATCH RAW] Found in Lightwalletd: ${txid.slice(0, 8)}`);
+                return { txid, hex: hexData, success: true, source: 'lightwalletd' };
+              }
+            } catch (lwdError) {
+              // Lightwalletd failed, try Zebra RPC
+              console.log(`⚠️  [BATCH RAW] Lightwalletd failed for ${txid.slice(0, 8)}, trying Zebra...`);
+            }
+          }
+
+          // Fallback to Zebra RPC
           const rawHex = await callZebraRPC('getrawtransaction', [txid, 0]);
-          return { txid, hex: rawHex, success: true };
+          console.log(`✅ [BATCH RAW] Found in Zebra RPC: ${txid.slice(0, 8)}`);
+          return { txid, hex: rawHex, success: true, source: 'rpc' };
         } catch (error) {
-          console.error(`Error fetching raw TX ${txid}:`, error.message);
+          console.error(`❌ [BATCH RAW] Error fetching ${txid.slice(0, 8)}:`, error.message);
           return { txid, error: error.message, success: false };
         }
       })
@@ -605,7 +642,7 @@ app.post('/api/tx/raw/batch', async (req, res) => {
     console.log(`✅ [BATCH RAW] Success: ${successful.length}, Failed: ${failed.length}`);
 
     res.json({
-      transactions: successful,
+      transactions: successful.map(r => ({ txid: r.txid, hex: r.hex })),
       failed: failed.length > 0 ? failed : undefined,
       total: txids.length,
       successful: successful.length,
