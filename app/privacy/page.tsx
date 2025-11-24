@@ -240,7 +240,7 @@ export default function PrivacyPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Lock />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Shielded</h3>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Shielded Tx %</h3>
                 </div>
                 <div className="text-2xl font-bold text-purple-400">
                   {stats.metrics.shieldedPercentage.toFixed(1)}%
@@ -254,7 +254,7 @@ export default function PrivacyPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Shield />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Pool</h3>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Pool Size</h3>
                 </div>
                 <div className="text-2xl font-bold text-cipher-cyan">
                   {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M
@@ -266,7 +266,7 @@ export default function PrivacyPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   {trendIcon}
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Trend</h3>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Adoption Trend</h3>
                 </div>
                 <div className={`text-2xl font-bold capitalize ${trendColor}`}>
                   {stats.metrics.adoptionTrend}
@@ -278,7 +278,7 @@ export default function PrivacyPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Eye />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Fully</h3>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Fully Shielded</h3>
                 </div>
                 <div className="text-2xl font-bold text-cipher-green">
                   {stats.totals.fullyShieldedTx.toLocaleString()}
