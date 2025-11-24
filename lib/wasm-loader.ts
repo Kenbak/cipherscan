@@ -1,6 +1,8 @@
 // WASM Loader for Zcash memo decryption
 // This wrapper handles dynamic loading of the WASM module
 
+import { getApiUrl } from './api-config';
+
 let wasmModule: any = null;
 let wasmInitialized = false;
 
@@ -87,7 +89,7 @@ export async function decryptMemo(txHex: string, viewingKey: string): Promise<De
  */
 export async function decryptMemoFromTxid(txid: string, viewingKey: string): Promise<DecryptedOutput> {
   // Use the correct API based on network
-  const apiBaseUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+  const apiBaseUrl = getApiUrl();
   const apiUrl = `${apiBaseUrl}/api/tx/${txid}/raw`;
 
   try {

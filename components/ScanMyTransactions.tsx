@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useWasmWorker } from '@/hooks/useWasmWorker';
+import { getApiUrl } from '@/lib/api-config';
 
 // Animated dots component for loading states (pure CSS for performance)
 function AnimatedDots() {
@@ -123,7 +124,7 @@ export function ScanMyTransactions() {
 
     try {
       const { filterCompactOutputs, decryptMemo } = await import('@/lib/wasm-loader');
-      const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+      const apiUrl = getApiUrl();
 
       // Check for cancellation
       if (cancelRequested) {
@@ -355,7 +356,7 @@ export function ScanMyTransactions() {
     try {
       const { decryptMemo } = await import('@/lib/wasm-loader');
 
-      const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+      const apiUrl = getApiUrl();
 
       // Get current block height
       const infoRes = await fetch(`${apiUrl}/api/info`);

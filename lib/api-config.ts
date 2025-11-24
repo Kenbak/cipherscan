@@ -22,11 +22,11 @@ function detectNetwork(): 'mainnet' | 'testnet' {
 
   // Client-side: detect from hostname
   const hostname = window.location.hostname;
-  
+
   if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) {
     return 'mainnet';
   }
-  
+
   return 'testnet'; // Default to testnet for localhost and testnet subdomain
 }
 
@@ -34,8 +34,8 @@ export const NETWORK = detectNetwork();
 
 export const API_CONFIG = {
   // PostgreSQL API URL (auto-detect based on network)
-  POSTGRES_API_URL: NETWORK === 'mainnet' 
-    ? 'https://api.mainnet.cipherscan.app' 
+  POSTGRES_API_URL: NETWORK === 'mainnet'
+    ? 'https://api.mainnet.cipherscan.app'
     : 'https://api.testnet.cipherscan.app',
 
   // Direct RPC for fallback - server-side only

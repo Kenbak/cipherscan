@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { getApiUrl } from '@/lib/api-config';
 
 // Icons
 const Icons = {
@@ -120,7 +121,7 @@ export default function NetworkPage() {
 
   const fetchData = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app';
+      const apiUrl = getApiUrl();
 
       const [statsRes, healthRes] = await Promise.all([
         fetch(`${apiUrl}/api/network/stats`),

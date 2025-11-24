@@ -4,12 +4,11 @@ import Link from 'next/link';
 import ApiSidebar from './components/ApiSidebar';
 import ApiEndpoint from './components/ApiEndpoint';
 import { getEndpoints, getEndpointsByCategory } from './endpoints';
+import { getApiUrl } from '@/lib/api-config';
 
 export default function DocsPage() {
-  // Use the PostgreSQL API for testnet (fast, indexed)
-  const baseUrl = typeof window !== 'undefined'
-    ? (window.location.hostname.includes('testnet') ? 'https://api.testnet.cipherscan.app' : window.location.origin)
-    : 'https://api.testnet.cipherscan.app';
+  // Use the appropriate API URL based on network
+  const baseUrl = getApiUrl();
 
   const categories = getEndpointsByCategory(baseUrl);
   const endpoints = getEndpoints(baseUrl);
