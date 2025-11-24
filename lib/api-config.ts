@@ -2,19 +2,41 @@
  * API Configuration
  *
  * Determines which backend to use based on network:
- * - Testnet: PostgreSQL API (fast, indexed)
- * - Mainnet: Direct RPC (for now)
+ * - Mainnet: PostgreSQL API (fast, indexed) on api.mainnet.cipherscan.app
+ * - Testnet: PostgreSQL API (fast, indexed) on api.testnet.cipherscan.app
+ *
+ * Network is auto-detected from the domain:
+ * - cipherscan.app → mainnet
+ * - testnet.cipherscan.app → testnet
+ * - localhost → testnet (default)
  */
 
-// Client-side safe: uses NEXT_PUBLIC_ prefix
-export const NETWORK = (typeof window !== 'undefined'
-  ? (window as any).__NEXT_DATA__?.props?.pageProps?.network
-  : process.env.NEXT_PUBLIC_NETWORK) || 'testnet' as 'mainnet' | 'testnet';
+/**
+ * Detect network from domain (client-side safe)
+ */
+function detectNetwork(): 'mainnet' | 'testnet' {
+  // Server-side: check env var
+  if (typeof window === 'undefined') {
+    return (process.env.NEXT_PUBLIC_NETWORK as 'mainnet' | 'testnet') || 'testnet';
+  }
+
+  // Client-side: detect from hostname
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) {
+    return 'mainnet';
+  }
+  
+  return 'testnet'; // Default to testnet for localhost and testnet subdomain
+}
+
+export const NETWORK = detectNetwork();
 
 export const API_CONFIG = {
   // PostgreSQL API URL (auto-detect based on network)
-  POSTGRES_API_URL: process.env.NEXT_PUBLIC_POSTGRES_API_URL ||
-    (NETWORK === 'mainnet' ? 'https://api.mainnet.cipherscan.app' : 'https://api.testnet.cipherscan.app'),
+  POSTGRES_API_URL: NETWORK === 'mainnet' 
+    ? 'https://api.mainnet.cipherscan.app' 
+    : 'https://api.testnet.cipherscan.app',
 
   // Direct RPC for fallback - server-side only
   RPC_URL: process.env.ZCASH_RPC_URL || 'http://localhost:18232',
