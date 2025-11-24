@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
+import { DonateButton } from '@/components/DonateButton';
 import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, MAINNET_URL, TESTNET_URL } from '@/lib/config';
 
 interface PriceData {
@@ -183,12 +184,22 @@ export function NavBar() {
                 MAINNET
               </a>
             </div>
+
+            {/* Donate Button (Desktop) - at the end */}
+            <div className="hidden md:block">
+              <DonateButton compact />
+            </div>
           </div>
         </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-cipher-border py-4 space-y-2">
+            {/* Donate Button (Mobile) */}
+            <div className="px-4 pb-2">
+              <DonateButton />
+            </div>
+
             {/* Tools Links */}
             <Link
               href="/network"

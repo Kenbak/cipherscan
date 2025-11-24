@@ -6,7 +6,11 @@ import Image from 'next/image';
 
 const DONATION_ADDRESS = 'u19l33nnr9qnhekptmjacyj95a565tcns09xvyxmt777xnk2q6c6s0jrthgme6dkeevc24zue9yqlmspdla5fw5mjws9j7fq5lwcra6yurct42fsxy09agzanh296p2wcq597udtdgj79wc8mnm5eefuwrs8495g42queg9xmhagmp8tj0';
 
-export function DonateButton() {
+interface DonateButtonProps {
+  compact?: boolean;
+}
+
+export function DonateButton({ compact = false }: DonateButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -82,10 +86,27 @@ export function DonateButton() {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="inline-flex items-center space-x-2 px-3 sm:px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-cipher-cyan hover:text-cipher-green transition-all rounded-lg font-mono text-xs sm:text-sm"
+        className={`inline-flex items-center justify-center ${compact ? 'p-2 hover:bg-cipher-bg' : 'space-x-2 px-3 sm:px-4 py-2'} border border-cipher-border hover:border-cipher-cyan text-cipher-cyan hover:text-cipher-green transition-all rounded-lg ${compact ? '' : 'bg-cipher-surface font-mono text-xs sm:text-sm'}`}
+        title={compact ? 'Support CipherScan' : undefined}
+        aria-label={compact ? 'Support CipherScan' : undefined}
       >
-        <span>💚</span>
-        <span>Support Us</span>
+        {/* Gift Icon */}
+        <svg
+          className={compact ? 'w-4 h-4' : 'w-4 h-4 flex-shrink-0'}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          viewBox="0 0 24 24"
+        >
+          <polyline points="20 12 20 22 4 22 4 12"/>
+          <rect x="2" y="7" width="20" height="5"/>
+          <line x1="12" y1="22" x2="12" y2="7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>
+        {!compact && <span>Support Us</span>}
       </button>
 
       {mounted && modalContent && createPortal(
