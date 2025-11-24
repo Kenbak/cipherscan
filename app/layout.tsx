@@ -16,11 +16,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CipherScan - Zcash Blockchain Explorer",
     description: "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
-    url: "https://testnet.cipherscan.app",
+    url: "https://cipherscan.app",
     siteName: "CipherScan",
     images: [
       {
-        url: "https://testnet.cipherscan.app/og-image.png", // Absolute URL
+        url: "https://cipherscan.app/og-image.png", // Absolute URL
         width: 1200,
         height: 630,
         alt: "CipherScan - Zcash Blockchain Explorer",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CipherScan - Zcash Blockchain Explorer",
     description: "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
-    images: ["https://testnet.cipherscan.app/og-image.png"], // Absolute URL
+    images: ["https://cipherscan.app/og-image.png"], // Absolute URL
     creator: "@Kenbak",
   },
 

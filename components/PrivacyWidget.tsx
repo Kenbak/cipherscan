@@ -122,7 +122,8 @@ export function PrivacyWidget() {
     fetchPrice();
   }, []);
 
-  if (!stats) {
+  // Loading state or data not available yet
+  if (!stats || !stats.totals || !stats.metrics) {
     return (
       <div className="mb-12 sm:mb-16">
         <div className="flex items-center justify-between mb-4">
@@ -142,11 +143,18 @@ export function PrivacyWidget() {
             </div>
           ))}
         </div>
+        {/* Indexing message for mainnet */}
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-500 font-mono">
+            <span className="inline-block animate-pulse mr-2">⏳</span>
+            Indexing blockchain data...
+          </p>
+        </div>
       </div>
     );
   }
 
-  const totalTxs = stats.totals.totalTx;
+  const totalTxs = stats.totals.totalTx || 0;
 
   return (
     <Link href="/privacy" className="block group">
@@ -166,7 +174,7 @@ export function PrivacyWidget() {
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-400">
-                  {stats.metrics.privacyScore}
+                  {stats.metrics.privacyScore || 0}
                 </span>
                 <span className="text-xs sm:text-sm text-gray-500">/100</span>
               </div>
@@ -185,9 +193,9 @@ export function PrivacyWidget() {
               </div>
               <div className="flex flex-col">
                 <span className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-400">
-                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
+                  {((stats.shieldedPool?.currentSize || 0) / 1000000).toFixed(2)}M {CURRENCY}
                 </span>
-                {priceData && (
+                {priceData && stats.shieldedPool?.currentSize && (
                   <span className="text-xs text-gray-500">
                     ${((stats.shieldedPool.currentSize * priceData.price) / 1000000).toFixed(2)}M USD
                   </span>
@@ -207,7 +215,7 @@ export function PrivacyWidget() {
                 <Tooltip content="Percentage of transactions using at least one shielded input or output. Higher = better privacy adoption." />
               </div>
               <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-cipher-cyan">
-                {stats.metrics.shieldedPercentage.toFixed(1)}%
+                {(stats.metrics.shieldedPercentage || 0).toFixed(1)}%
               </div>
             </div>
           </div>

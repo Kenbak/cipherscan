@@ -81,70 +81,14 @@ export default async function Home() {
           {' '}meets <span className="text-cipher-cyan">transparency</span>.
         </div>
 
-        {/* Search Section - Only on Testnet */}
-        {!isMainnet && <SearchBar />}
+        {/* Search Section */}
+        <SearchBar />
       </div>
 
-      {/* Mainnet Coming Soon */}
-      {isMainnet && (
-        <div className="mt-8 sm:mt-16 max-w-5xl mx-auto animate-fade-in space-y-8">
-          {/* Main Status Card */}
-          <div className="card bg-gradient-to-br from-purple-900/20 via-cipher-surface/50 to-blue-900/20 border-2 border-purple-500/40">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 mb-6 shadow-xl shadow-purple-500/30">
-                <span className="text-5xl">🚧</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 font-mono">
-                Mainnet Coming Soon
-              </h2>
-
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-                We're building the infrastructure to bring you full mainnet support.
-                To complete the upgrade <span className="text-cipher-cyan font-bold">(server scaling, node sync, database optimization)</span>,
-                we need your help.
-              </p>
-
-              <div className="flex items-center justify-center">
-                <DonateButton />
-              </div>
-            </div>
-          </div>
-
-          {/* Testnet Available Card */}
-          <div className="card bg-cipher-cyan/5 border-2 border-cipher-cyan/30">
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 bg-cipher-green rounded-full animate-pulse"></div>
-                <span className="text-sm font-mono text-cipher-green uppercase tracking-wider">Fully Operational</span>
-              </div>
-
-              <h3 className="text-2xl font-bold text-white mb-3 font-mono">
-                Testnet is Live & Ready
-              </h3>
-
-              <p className="text-gray-300 mb-6 max-w-xl mx-auto">
-                Try out all features on our <span className="text-cipher-cyan font-bold">fully functional testnet explorer</span>.
-                Active development, real-time updates, and complete blockchain data.
-              </p>
-
-              <a
-                href="https://testnet.cipherscan.app"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-cipher-cyan hover:bg-cipher-green text-cipher-bg rounded-lg transition-all duration-200 font-bold text-lg shadow-xl shadow-cipher-cyan/30 hover:shadow-cipher-green/50 hover:scale-105"
-              >
-                <span>🚀</span>
-                <span>Explore Testnet Now</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recent Activity - Only on Testnet */}
-      {!isMainnet && (
-        <div className="mt-12 sm:mt-20 max-w-7xl mx-auto">
-          {/* Privacy Widget */}
-          <PrivacyWidget />
+      {/* Recent Activity */}
+      <div className="mt-12 sm:mt-20 max-w-7xl mx-auto">
+        {/* Privacy Widget */}
+        <PrivacyWidget />
 
           {/* Recent Blocks & Shielded TXs - Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">
@@ -177,15 +121,14 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Privacy Note */}
-          <div className="text-center mt-12 pt-8 border-t border-cipher-border/30">
-            <p className="text-sm text-gray-500 font-mono flex items-center justify-center">
-              <span className="mr-2">🛡️</span>
-              Zcash shielded transactions remain private. This explorer shows public data only.
-            </p>
-          </div>
+        {/* Privacy Note */}
+        <div className="text-center mt-12 pt-8 border-t border-cipher-border/30">
+          <p className="text-sm text-gray-500 font-mono flex items-center justify-center">
+            <span className="mr-2">🛡️</span>
+            Zcash shielded transactions remain private. This explorer shows public data only.
+          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

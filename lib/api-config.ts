@@ -12,15 +12,16 @@ export const NETWORK = (typeof window !== 'undefined'
   : process.env.NEXT_PUBLIC_NETWORK) || 'testnet' as 'mainnet' | 'testnet';
 
 export const API_CONFIG = {
-  // PostgreSQL API for testnet (fast, indexed)
-  POSTGRES_API_URL: process.env.NEXT_PUBLIC_POSTGRES_API_URL || 'https://api.testnet.cipherscan.app',
+  // PostgreSQL API URL (auto-detect based on network)
+  POSTGRES_API_URL: process.env.NEXT_PUBLIC_POSTGRES_API_URL ||
+    (NETWORK === 'mainnet' ? 'https://api.mainnet.cipherscan.app' : 'https://api.testnet.cipherscan.app'),
 
-  // Direct RPC for mainnet (or fallback) - server-side only
+  // Direct RPC for fallback - server-side only
   RPC_URL: process.env.ZCASH_RPC_URL || 'http://localhost:18232',
   RPC_COOKIE: process.env.ZCASH_RPC_COOKIE,
 
-  // Use PostgreSQL API for testnet, RPC for mainnet
-  USE_POSTGRES_API: NETWORK === 'testnet',
+  // Use PostgreSQL API for both mainnet and testnet
+  USE_POSTGRES_API: true,
 };
 
 /**
@@ -36,12 +37,12 @@ export function getApiUrl(): string {
  * Check if we should use PostgreSQL API (server-side for API routes)
  */
 export function usePostgresApi(): boolean {
-  return process.env.NEXT_PUBLIC_NETWORK === 'testnet' && !!process.env.NEXT_PUBLIC_POSTGRES_API_URL;
+  return true; // Always use PostgreSQL API for both mainnet and testnet
 }
 
 /**
  * Check if we should use PostgreSQL API (client-side safe)
  */
 export function usePostgresApiClient(): boolean {
-  return NETWORK === 'testnet';
+  return true; // Always use PostgreSQL API for both mainnet and testnet
 }

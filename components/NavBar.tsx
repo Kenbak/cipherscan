@@ -91,9 +91,8 @@ export function NavBar() {
               </svg>
             </button>
 
-            {/* Tools Dropdown (Desktop) - Only on Testnet */}
-            {!isMainnet && (
-              <div className="hidden md:block relative">
+            {/* Tools Dropdown (Desktop) */}
+            <div className="hidden md:block relative">
                 <button
                   onClick={() => setToolsOpen(!toolsOpen)}
                   onBlur={() => setTimeout(() => setToolsOpen(false), 200)}
@@ -146,8 +145,7 @@ export function NavBar() {
                     </Link>
                   </div>
                 )}
-              </div>
-            )}
+            </div>
 
             {/* Price Display */}
             {priceData && (
@@ -191,23 +189,21 @@ export function NavBar() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-cipher-border py-4 space-y-2">
-            {/* Tools Links - Only on Testnet */}
-            {!isMainnet && (
-              <>
-                <Link
-                  href="/network"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
-                >
-                  Network Stats
-                </Link>
-                <Link
-                  href="/privacy"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
-                >
-                  Privacy Dashboard
-                </Link>
+            {/* Tools Links */}
+            <Link
+              href="/network"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+            >
+              Network Stats
+            </Link>
+            <Link
+              href="/privacy"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+            >
+              Privacy Dashboard
+            </Link>
             <Link
               href="/mempool"
               onClick={() => setMobileMenuOpen(false)}
@@ -222,15 +218,13 @@ export function NavBar() {
             >
               Decrypt Memo
             </Link>
-                <Link
-                  href="/docs"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
-                >
-                  API Docs
-                </Link>
-              </>
-            )}
+            <Link
+              href="/docs"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+            >
+              API Docs
+            </Link>
 
             {/* Network Switcher */}
             <div className="px-4 pt-4 border-t border-cipher-border">
