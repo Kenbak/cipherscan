@@ -139,6 +139,12 @@ export function NavBar() {
                     </Link>
                     <div className="border-t border-cipher-border my-2"></div>
                     <Link
+                      href="/learn"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
+                    >
+                      <span>Learn Zcash</span>
+                    </Link>
+                    <Link
                       href="/docs"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
                     >
@@ -228,6 +234,13 @@ export function NavBar() {
               className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
             >
               Decrypt Memo
+            </Link>
+            <Link
+              href="/learn"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+            >
+              Learn Zcash
             </Link>
             <Link
               href="/docs"
