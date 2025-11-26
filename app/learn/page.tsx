@@ -91,6 +91,11 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
     </svg>
   ),
+  Book: () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    </svg>
+  ),
 };
 
 export default function LearnPage() {
@@ -519,6 +524,14 @@ export default function LearnPage() {
                       >
                         librustzcash
                       </a>
+                      <a
+                        href="https://crates.io/teams/github:zcash:crate-publishers"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                      >
+                        Zcash Crates (Rust)
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -528,6 +541,37 @@ export default function LearnPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Privacy Concepts */}
+            <div className="card">
+              <div className="flex items-center gap-2 mb-3">
+                <Icons.Shield />
+                <h3 className="font-bold text-white">Privacy Concepts</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icons.Database />
+                    <div className="font-bold text-cipher-cyan">Shielded Pools</div>
+                  </div>
+                  <div className="text-gray-400">Orchard and Sapling use zk-SNARKs to hide transaction data</div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icons.Lock />
+                    <div className="font-bold text-cipher-cyan">Zero-Knowledge Proofs</div>
+                  </div>
+                  <div className="text-gray-400">Prove validity without revealing information</div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icons.Chat />
+                    <div className="font-bold text-cipher-cyan">Encrypted Memos</div>
+                  </div>
+                  <div className="text-gray-400">Up to 512 bytes of private data per transaction</div>
+                </div>
+              </div>
+            </div>
+
             {/* CipherScan Tools */}
             <div className="card border-cipher-cyan/30">
               <div className="flex items-center gap-2 mb-3">
@@ -563,10 +607,17 @@ export default function LearnPage() {
                   <Icons.Activity />
                   <span>Mempool Viewer</span>
                 </Link>
+                <Link
+                  href="/docs"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                >
+                  <Icons.Code />
+                  <span>API Documentation</span>
+                </Link>
               </div>
             </div>
 
-            {/* Quick Links */}
+            {/* Community */}
             <div className="card">
               <div className="flex items-center gap-2 mb-3">
                 <Icons.Users />
@@ -601,6 +652,15 @@ export default function LearnPage() {
                   <span>Developer Discord</span>
                 </a>
                 <a
+                  href="https://www.scifi.money/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                >
+                  <Icons.Book />
+                  <span>SciFi Money (Guides)</span>
+                </a>
+                <a
                   href="https://z.cash/"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -609,37 +669,6 @@ export default function LearnPage() {
                   <Icons.Globe />
                   <span>Z.cash (Official)</span>
                 </a>
-              </div>
-            </div>
-
-            {/* Key Concepts */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-3">
-                <Icons.Shield />
-                <h3 className="font-bold text-white">Privacy Concepts</h3>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icons.Database />
-                    <div className="font-bold text-cipher-cyan">Shielded Pools</div>
-                  </div>
-                  <div className="text-gray-400">Orchard and Sapling use zk-SNARKs to hide transaction data</div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icons.Lock />
-                    <div className="font-bold text-cipher-cyan">Zero-Knowledge Proofs</div>
-                  </div>
-                  <div className="text-gray-400">Prove validity without revealing information</div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icons.Chat />
-                    <div className="font-bold text-cipher-cyan">Encrypted Memos</div>
-                  </div>
-                  <div className="text-gray-400">Up to 512 bytes of private data per transaction</div>
-                </div>
               </div>
             </div>
           </div>
