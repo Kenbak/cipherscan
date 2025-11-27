@@ -15,6 +15,9 @@ const config = {
     database: process.env.DB_NAME || 'zcash_explorer_testnet',
     user: process.env.DB_USER || 'zcash_user',
     password: process.env.DB_PASSWORD,
+    max: 50, // Increase pool size for parallel processing
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -31,6 +34,18 @@ const redis = Redis.createClient({
   },
 });
 redis.connect().catch(console.error);
+
+// Transaction cache to avoid repeated RPC calls
+const txCache = new Map();
+const CACHE_SIZE = 50000; // Larger cache for better hit rate
+
+function cacheTx(txid, tx) {
+  if (txCache.size >= CACHE_SIZE) {
+    const firstKey = txCache.keys().next().value;
+    txCache.delete(firstKey);
+  }
+  txCache.set(txid, tx);
+}
 
 // Calculate privacy score (0-100) based on shielded percentage and pool size
 function calculatePrivacyScore(shieldedPercentage, poolSizeZatoshis) {
@@ -91,8 +106,6 @@ async function zebradRPC(method, params = []) {
 }
 
 async function indexBlock(height) {
-  console.log(`📦 Indexing block ${height}...`);
-
   const blockHash = await zebradRPC('getblockhash', [height]);
   const block = await zebradRPC('getblock', [blockHash, 1]);
 
@@ -125,20 +138,29 @@ async function indexBlock(height) {
   ]);
 
   if (block.tx && block.tx.length > 0) {
-    for (let i = 0; i < block.tx.length; i++) {
-      await indexTransaction(block.tx[i], height, block.time, i);
+    // Process transactions in parallel batches
+    const TX_BATCH_SIZE = 20; // Process more transactions in parallel
+    for (let i = 0; i < block.tx.length; i += TX_BATCH_SIZE) {
+      const txBatch = block.tx.slice(i, i + TX_BATCH_SIZE);
+      await Promise.allSettled(txBatch.map((txid, idx) =>
+        indexTransaction(txid, height, block.time, i + idx)
+      ));
     }
   }
 
+  // Redis after indexing
   await redis.setEx(`block:${height}`, 3600, JSON.stringify(block));
   await redis.setEx(`block:hash:${blockHash}`, 3600, JSON.stringify(block));
-
-  console.log(`✅ Block ${height} indexed (${block.tx ? block.tx.length : 0} txs)`);
 }
 
 async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
   try {
-    const tx = await zebradRPC('getrawtransaction', [txid, 1]);
+    // Use cache if available
+    let tx = txCache.get(txid);
+    if (!tx) {
+      tx = await zebradRPC('getrawtransaction', [txid, 1]);
+      cacheTx(txid, tx);
+    }
 
     const hasSapling = (tx.vShieldedSpend?.length > 0 || tx.vShieldedOutput?.length > 0);
     const hasOrchard = (tx.orchard?.actions?.length > 0);
@@ -190,7 +212,13 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
 
         try {
           if (input.txid && input.vout !== undefined) {
-            const prevTx = await zebradRPC('getrawtransaction', [input.txid, 1]);
+            // Check cache first
+            let prevTx = txCache.get(input.txid);
+            if (!prevTx) {
+              prevTx = await zebradRPC('getrawtransaction', [input.txid, 1]);
+              cacheTx(input.txid, prevTx);
+            }
+
             const prevOut = prevTx.vout[input.vout];
 
             if (prevOut) {
@@ -308,16 +336,31 @@ async function syncToTip() {
   console.log(`Last indexed: ${lastHeight}`);
   console.log(`Blocks to sync: ${chainHeight - lastHeight}\n`);
 
-  for (let height = lastHeight + 1; height <= chainHeight; height++) {
-    await indexBlock(height);
+  // Process blocks in parallel batches
+  const BATCH_SIZE = 30; // Process 30 blocks in parallel (conservative for server resources)
+  const startTime = Date.now();
 
-    if (height % 100 === 0) {
-      const progress = ((height / chainHeight) * 100).toFixed(2);
-      console.log(`📊 Progress: ${progress}% (${height}/${chainHeight})`);
+  for (let height = lastHeight + 1; height <= chainHeight; height += BATCH_SIZE) {
+    const batchEnd = Math.min(height + BATCH_SIZE - 1, chainHeight);
+    const batchPromises = [];
+
+    for (let h = height; h <= batchEnd; h++) {
+      batchPromises.push(indexBlock(h));
     }
+
+    await Promise.all(batchPromises);
+
+    const progress = ((batchEnd / chainHeight) * 100).toFixed(2);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+    const blocksPerSec = ((batchEnd - lastHeight) / (Date.now() - startTime) * 1000).toFixed(2);
+    const remaining = chainHeight - batchEnd;
+    const eta = (remaining / blocksPerSec).toFixed(0);
+
+    console.log(`📊 Progress: ${progress}% (${batchEnd}/${chainHeight}) | ${blocksPerSec} blocks/sec | ETA: ${eta}s`);
   }
 
-  console.log('\n✅ Sync complete!\n');
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`\n✅ Sync complete in ${totalTime}s!\n`);
 }
 
 async function initializePrivacyTrends() {
