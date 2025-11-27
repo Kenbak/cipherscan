@@ -117,12 +117,12 @@ export default function AddressPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // For testnet, call Express API directly; for mainnet, use Next.js API
         const apiUrl = usePostgresApiClient()
           ? `${getApiUrl()}/api/address/${address}`
           : `/api/address/${address}`;
-        
+
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
@@ -145,7 +145,7 @@ export default function AddressPage() {
             isCoinbase: tx.inputValue === 0 && tx.outputValue > 0,
             isShielded: false,
           }));
-          
+
           setData({
             address: apiData.address,
             balance: apiData.balance / 100000000, // satoshis to ZEC
@@ -250,11 +250,6 @@ export default function AddressPage() {
         </div>
 
         <div className="card py-12">
-          <div className="text-center mb-6">
-            <div className="text-6xl mb-4">🛡️</div>
-            <h2 className="text-2xl font-bold text-purple-400 mb-4">Shielded Address</h2>
-          </div>
-
           <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-6 max-w-2xl mx-auto">
             <p className="text-sm text-gray-300 mb-4">
               <strong className="text-purple-400">This is a shielded address.</strong> Balance and transaction history are private by design.
@@ -277,10 +272,57 @@ export default function AddressPage() {
               </ul>
             </div>
 
-            <div className="mt-6 p-4 bg-cipher-cyan/10 rounded border border-cipher-cyan/30">
-              <p className="text-xs text-cipher-cyan">
-                💡 <strong>Note:</strong> {data.note}
+            {/* Decrypt Tools Section */}
+            <div className="mt-8 pt-6 border-t border-cipher-border">
+              <h3 className="text-lg font-bold text-white mb-3">
+                🔐 Want to View Your Transactions?
+              </h3>
+              <p className="text-sm text-gray-400 mb-6">
+                Use your <strong className="text-cipher-cyan">Unified Full Viewing Key (UFVK)</strong> to decrypt transactions sent to this address.
+                All decryption happens locally in your browser - your keys never leave your device.
               </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <Link
+                  href="/decrypt"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-cipher-cyan text-cipher-bg font-bold rounded-lg hover:bg-cipher-green transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span>Decrypt Single Transaction</span>
+                </Link>
+
+                <Link
+                  href="/decrypt?tab=scan"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-cipher-border text-white rounded-lg hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span>Scan Transaction History</span>
+                </Link>
+              </div>
+
+              <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <h4 className="text-sm font-semibold text-white">How to Find Your Viewing Key</h4>
+                </div>
+                <div className="space-y-2 text-sm text-gray-300 ml-6">
+                  <p>
+                    <strong className="text-cipher-cyan">Zashi:</strong> Settings → Backup → Export Viewing Key
+                  </p>
+                  <p>
+                    <strong className="text-cipher-cyan">Ywallet:</strong> Accounts → Select Account → Export Viewing Key
+                  </p>
+                  <p>
+                    <strong className="text-cipher-cyan">Zingo-CLI:</strong> <code className="text-xs bg-cipher-surface px-2 py-1 rounded font-mono text-cipher-green">exportufvk</code>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
