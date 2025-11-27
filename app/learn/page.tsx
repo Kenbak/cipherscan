@@ -211,8 +211,8 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'mainnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -221,8 +221,8 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'testnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -247,8 +247,8 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'mainnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -257,8 +257,8 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'testnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -286,8 +286,8 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'mainnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -296,8 +296,8 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'testnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -330,7 +330,7 @@ export default function LearnPage() {
                 <div className="space-y-4">
                   <div className="card">
                     <p className="text-sm text-gray-300 mb-4">
-                      A <strong className="text-white">viewing key</strong> (UFVK - Unified Full Viewing Key) allows 
+                      A <strong className="text-white">viewing key</strong> (UFVK - Unified Full Viewing Key) allows
                       read-only access to your shielded transactions without spending power.
                     </p>
 
@@ -374,8 +374,8 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'mainnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -384,8 +384,8 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'testnet'
-                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
