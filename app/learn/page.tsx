@@ -99,8 +99,11 @@ const Icons = {
 };
 
 export default function LearnPage() {
-  const [selectedNetwork, setSelectedNetwork] = useState<'testnet' | 'mainnet'>('testnet');
   const [openSection, setOpenSection] = useState<string | null>('addresses');
+  const [unifiedNetwork, setUnifiedNetwork] = useState<'mainnet' | 'testnet'>('mainnet');
+  const [saplingNetwork, setSaplingNetwork] = useState<'mainnet' | 'testnet'>('mainnet');
+  const [transparentNetwork, setTransparentNetwork] = useState<'mainnet' | 'testnet'>('mainnet');
+  const [viewingKeyNetwork, setViewingKeyNetwork] = useState<'mainnet' | 'testnet'>('mainnet');
 
   const addressExamples = {
     testnet: {
@@ -113,6 +116,11 @@ export default function LearnPage() {
       sapling: 'zs1a7l33nnr9qnhekptmjacyj95a565tcns09xvyxmt777xnk2q6c6s0jrthgme6dkeevc24zue9yq...',
       transparent: 't1a7l33nnr9qnhekptmjacyj95a565tcns09',
     },
+  };
+
+  const viewingKeyExamples = {
+    mainnet: 'uview1qvqqqqqhqy0j7rp...',
+    testnet: 'uviewtest1qvqqqqqhqy0j7rp...',
   };
 
   const toggleSection = (section: string) => {
@@ -186,30 +194,6 @@ export default function LearnPage() {
 
               {openSection === 'addresses' && (
                 <div className="space-y-4">
-                  {/* Network Tabs */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedNetwork('testnet')}
-                      className={`flex-1 px-4 py-2 rounded font-mono text-sm transition-all ${
-                        selectedNetwork === 'testnet'
-                          ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                          : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
-                      }`}
-                    >
-                      Testnet
-                    </button>
-                    <button
-                      onClick={() => setSelectedNetwork('mainnet')}
-                      className={`flex-1 px-4 py-2 rounded font-mono text-sm transition-all ${
-                        selectedNetwork === 'mainnet'
-                          ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                          : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
-                      }`}
-                    >
-                      Mainnet
-                    </button>
-                  </div>
-
                   {/* Unified */}
                   <div className="card">
                     <div className="flex items-start justify-between mb-2">
@@ -222,8 +206,30 @@ export default function LearnPage() {
                     <p className="text-sm text-gray-400 mb-3">
                       Modern standard containing Orchard, Sapling, and Transparent receivers in one address.
                     </p>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setUnifiedNetwork('mainnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          unifiedNetwork === 'mainnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Mainnet
+                      </button>
+                      <button
+                        onClick={() => setUnifiedNetwork('testnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          unifiedNetwork === 'testnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Testnet
+                      </button>
+                    </div>
                     <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
-                      {addressExamples[selectedNetwork].unified}
+                      {addressExamples[unifiedNetwork].unified}
                     </code>
                   </div>
 
@@ -236,8 +242,30 @@ export default function LearnPage() {
                     <p className="text-sm text-gray-400 mb-3">
                       Legacy shielded address. Fully private with encrypted memos up to 512 bytes.
                     </p>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setSaplingNetwork('mainnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          saplingNetwork === 'mainnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Mainnet
+                      </button>
+                      <button
+                        onClick={() => setSaplingNetwork('testnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          saplingNetwork === 'testnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Testnet
+                      </button>
+                    </div>
                     <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
-                      {addressExamples[selectedNetwork].sapling}
+                      {addressExamples[saplingNetwork].sapling}
                     </code>
                   </div>
 
@@ -253,8 +281,30 @@ export default function LearnPage() {
                     <p className="text-sm text-gray-400 mb-3">
                       Public like Bitcoin. Use only for exchanges, then shield immediately.
                     </p>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setTransparentNetwork('mainnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          transparentNetwork === 'mainnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Mainnet
+                      </button>
+                      <button
+                        onClick={() => setTransparentNetwork('testnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          transparentNetwork === 'testnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Testnet
+                      </button>
+                    </div>
                     <code className="text-xs text-gray-400 break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
-                      {addressExamples[selectedNetwork].transparent}
+                      {addressExamples[transparentNetwork].transparent}
                     </code>
                   </div>
                 </div>
@@ -277,42 +327,74 @@ export default function LearnPage() {
               </button>
 
               {openSection === 'viewingkeys' && (
-                <div className="card">
-                  <p className="text-sm text-gray-300 mb-4">
-                    A <strong className="text-white">viewing key</strong> (UFVK - Unified Full Viewing Key) allows
-                    read-only access to your shielded transactions without spending power.
-                  </p>
+                <div className="space-y-4">
+                  <div className="card">
+                    <p className="text-sm text-gray-300 mb-4">
+                      A <strong className="text-white">viewing key</strong> (UFVK - Unified Full Viewing Key) allows 
+                      read-only access to your shielded transactions without spending power.
+                    </p>
 
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-cipher-cyan mt-0.5">—</span>
-                      <span className="text-gray-400">Auditing: Share with accountants for transaction history</span>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-cipher-cyan mt-0.5">—</span>
+                        <span className="text-gray-400">Auditing: Share with accountants for transaction history</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-cipher-cyan mt-0.5">—</span>
+                        <span className="text-gray-400">Transparency: Organizations can prove their transactions</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-cipher-cyan mt-0.5">—</span>
+                        <span className="text-gray-400">Block Explorer: View your transactions on CipherScan</span>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-cipher-cyan mt-0.5">—</span>
-                      <span className="text-gray-400">Transparency: Organizations can prove their transactions</span>
+
+                    <div className="bg-cipher-bg border border-cipher-border rounded p-4 mb-4">
+                      <h4 className="text-sm font-bold text-cipher-cyan mb-2">How to Find Your Viewing Key:</h4>
+                      <div className="space-y-2 text-sm text-gray-300">
+                        <p><strong className="text-white">Zashi:</strong> Settings → Backup → Export Viewing Key</p>
+                        <p><strong className="text-white">Ywallet:</strong> Accounts → Select Account → Export Viewing Key</p>
+                        <p><strong className="text-white">Zingo-CLI:</strong> <code className="text-xs bg-cipher-surface px-2 py-1 rounded font-mono">exportufvk</code></p>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <span className="text-cipher-cyan mt-0.5">—</span>
-                      <span className="text-gray-400">Block Explorer: View your transactions on CipherScan</span>
-                    </div>
+
+                    <Link
+                      href="/decrypt"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-cyan/10 border border-cipher-cyan hover:bg-cipher-cyan/20 text-cipher-cyan rounded transition-all text-sm"
+                    >
+                      Use CipherScan Decrypt Tool →
+                    </Link>
                   </div>
 
-                  <div className="bg-cipher-bg border border-cipher-border rounded p-4 mb-4">
-                    <h4 className="text-sm font-bold text-cipher-cyan mb-2">How to Find Your Viewing Key:</h4>
-                    <div className="space-y-2 text-sm text-gray-300">
-                      <p><strong className="text-white">Zashi:</strong> Settings → Backup → Export Viewing Key</p>
-                      <p><strong className="text-white">Ywallet:</strong> Accounts → Select Account → Export Viewing Key</p>
-                      <p><strong className="text-white">Zingo-CLI:</strong> <code className="text-xs bg-cipher-surface px-2 py-1 rounded font-mono">exportufvk</code></p>
+                  {/* Viewing Key Example */}
+                  <div className="card border-cipher-cyan/30">
+                    <h4 className="text-sm font-bold text-cipher-cyan mb-3">Example Viewing Key:</h4>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        onClick={() => setViewingKeyNetwork('mainnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          viewingKeyNetwork === 'mainnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Mainnet
+                      </button>
+                      <button
+                        onClick={() => setViewingKeyNetwork('testnet')}
+                        className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
+                          viewingKeyNetwork === 'testnet'
+                            ? 'bg-cipher-cyan text-cipher-bg font-bold'
+                            : 'bg-cipher-surface text-gray-400 hover:text-white border border-cipher-border'
+                        }`}
+                      >
+                        Testnet
+                      </button>
                     </div>
+                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
+                      {viewingKeyExamples[viewingKeyNetwork]}
+                    </code>
                   </div>
-
-                  <Link
-                    href="/decrypt"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-cyan/10 border border-cipher-cyan hover:bg-cipher-cyan/20 text-cipher-cyan rounded transition-all text-sm"
-                  >
-                    Use CipherScan Decrypt Tool →
-                  </Link>
                 </div>
               )}
             </section>
@@ -523,6 +605,14 @@ export default function LearnPage() {
                         className="text-gray-400 hover:text-cipher-cyan transition-colors"
                       >
                         librustzcash
+                      </a>
+                      <a
+                        href="https://github.com/ChainSafe/WebZjs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                      >
+                        WebZjs (Browser)
                       </a>
                       <a
                         href="https://crates.io/teams/github:zcash:crate-publishers"
