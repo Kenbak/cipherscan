@@ -197,9 +197,19 @@ export default function TransactionPage() {
           };
 
           // Calculate fee
-          transformedData.fee = transformedData.totalInput > 0
-            ? transformedData.totalInput - transformedData.totalOutput
-            : 0;
+          // For shielded txs: fee = valueBalance (amount leaving shielded pool)
+          // For transparent txs: fee = inputs - outputs
+          if (txData.fee && txData.fee > 0) {
+            // Use API-provided fee (from shielded value balances)
+            transformedData.fee = txData.fee;
+          } else if (transformedData.totalInput > 0) {
+            // Calculate from transparent inputs/outputs
+            transformedData.fee = transformedData.totalInput - transformedData.totalOutput;
+          } else {
+            // Fallback: calculate from value balances
+            const shieldedFee = (transformedData.valueBalanceSapling || 0) + (transformedData.valueBalanceOrchard || 0);
+            transformedData.fee = shieldedFee > 0 ? shieldedFee : 0;
+          }
 
           setData(transformedData);
         } else {
@@ -559,10 +569,13 @@ export default function TransactionPage() {
             icon={Icons.Currency}
             label="Transaction Fee"
             value={
-              (txType === 'ORCHARD' || txType === 'SHIELDED') ? (
-                <span className="font-semibold text-purple-400 flex items-center gap-2">
-                  <Icons.Shield />
-                  (hidden)
+              data.fee > 0 ? (
+                <span className="font-semibold">
+                  {data.fee.toFixed(8)} {CURRENCY}
+                </span>
+              ) : (txType === 'ORCHARD' || txType === 'SHIELDED') ? (
+                <span className="font-semibold text-gray-500 flex items-center gap-2">
+                  0.00000000 {CURRENCY}
                 </span>
               ) : (
                 <span className="font-semibold">
@@ -570,8 +583,8 @@ export default function TransactionPage() {
                 </span>
               )
             }
-            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED')
-              ? "Transaction fee is hidden for fully shielded transactions"
+            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED') && data.fee > 0
+              ? "Fee paid from shielded pool (always public in Zcash)"
               : "Fee paid to the miner for processing this transaction"
             }
           />

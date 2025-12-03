@@ -2,13 +2,13 @@
 
 /**
  * Migrate Value Balances
- * 
+ *
  * Updates old transactions to populate value_balance_sapling and value_balance_orchard
  * from Zebra RPC data. Run once to backfill historical data.
- * 
+ *
  * Usage:
  *   node scripts/migrate-value-balances.js
- * 
+ *
  * Environment:
  *   ZEBRA_RPC_URL, DB_HOST, DB_NAME, DB_USER, DB_PASSWORD
  */
@@ -38,7 +38,7 @@ const pool = new Pool(config.db);
 
 async function zebradRPC(method, params = []) {
   let auth = '';
-  
+
   try {
     const cookie = fs.readFileSync(config.zebra.cookieFile, 'utf8').trim();
     auth = 'Basic ' + Buffer.from(cookie).toString('base64');
@@ -68,7 +68,7 @@ async function zebradRPC(method, params = []) {
 async function migrateTransaction(txid) {
   try {
     const tx = await zebradRPC('getrawtransaction', [txid, 1]);
-    
+
     // Calculate value balances in zatoshis
     const valueBalanceSapling = Math.round((tx.valueBalance || 0) * 100000000);
     const valueBalanceOrchard = tx.orchard?.valueBalanceZat || Math.round((tx.orchard?.valueBalance || 0) * 100000000);
@@ -98,7 +98,7 @@ async function migrate() {
   // Test connections
   await pool.query('SELECT 1');
   console.log('✅ Database connected');
-  
+
   await zebradRPC('getblockcount');
   console.log('✅ Zebra connected');
   console.log('');
@@ -110,10 +110,10 @@ async function migrate() {
     AND value_balance_orchard = 0
     AND value_balance_sapling = 0
   `);
-  
+
   const totalToMigrate = parseInt(countResult.rows[0].count);
   console.log(`📊 Transactions to migrate: ${totalToMigrate.toLocaleString()}`);
-  
+
   if (totalToMigrate === 0) {
     console.log('✅ Nothing to migrate!');
     process.exit(0);
@@ -175,4 +175,3 @@ migrate().catch(err => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });
-
