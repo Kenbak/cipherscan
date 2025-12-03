@@ -201,14 +201,19 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
     const shieldedOutputs = tx.vShieldedOutput?.length || 0;
     const orchardActions = tx.orchard?.actions?.length || 0;
 
+    // Calculate value balances (in zatoshis)
+    const valueBalanceSapling = Math.round((tx.valueBalance || 0) * 100000000);
+    const valueBalanceOrchard = tx.orchard?.valueBalanceZat || Math.round((tx.orchard?.valueBalance || 0) * 100000000);
+    const totalValueBalance = valueBalanceSapling + valueBalanceOrchard;
+
     await db.query(`
       INSERT INTO transactions (
         txid, block_height, block_time, version, locktime, size,
-        vin_count, vout_count, value_balance,
+        vin_count, vout_count, value_balance, value_balance_sapling, value_balance_orchard,
         has_sapling, has_orchard, has_sprout,
         shielded_spends, shielded_outputs, orchard_actions,
         tx_index, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
       ON CONFLICT (txid) DO NOTHING
     `, [
       txid,
@@ -219,7 +224,9 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
       tx.size,
       tx.vin ? tx.vin.length : 0,
       tx.vout ? tx.vout.length : 0,
-      Math.round((tx.valueBalance || 0) * 100000000), // Convert ZEC to zatoshis
+      totalValueBalance, // Total (Sapling + Orchard)
+      valueBalanceSapling, // Sapling only
+      valueBalanceOrchard, // Orchard only
       hasSapling,
       hasOrchard,
       hasSprout,

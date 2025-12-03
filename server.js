@@ -379,6 +379,8 @@ app.get('/api/block/:height', async (req, res) => {
         vin_count,
         vout_count,
         value_balance,
+        value_balance_sapling,
+        value_balance_orchard,
         has_sapling,
         has_orchard,
         has_sprout,
@@ -585,6 +587,8 @@ app.get('/api/tx/:txid', async (req, res) => {
         vin_count,
         vout_count,
         value_balance,
+        value_balance_sapling,
+        value_balance_orchard,
         has_sapling,
         has_orchard,
         has_sprout,
@@ -641,6 +645,15 @@ app.get('/api/tx/:txid', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || tx.block_height;
     const confirmations = currentHeight - tx.block_height + 1;
 
+    // Calculate fee from value balances (positive valueBalance = fee leaving shielded pool)
+    const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
+    const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
+    const totalValueBalance = (tx.value_balance || 0) / 100000000;
+    
+    // For shielded txs, fee = sum of positive value balances
+    // For transparent txs, fee = sum(inputs) - sum(outputs) (calculated client-side)
+    const shieldedFee = valueBalanceSapling + valueBalanceOrchard;
+
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
@@ -650,7 +663,10 @@ app.get('/api/tx/:txid', async (req, res) => {
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,
-      valueBalance: (tx.value_balance || 0) / 100000000, // Convert zatoshis to ZEC
+      valueBalance: totalValueBalance,
+      valueBalanceSapling,
+      valueBalanceOrchard,
+      fee: shieldedFee > 0 ? shieldedFee : null, // Only show if we can calculate it
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
       hasSprout: tx.has_sprout,
