@@ -34,6 +34,7 @@ interface RecentSwap {
 
 interface CrossChainStats {
   totalVolume24h: number;
+  volumeChange24h: number;
   volumeChange7d: number;
   shieldedRate: number;
   totalSwaps24h: number;
@@ -50,18 +51,28 @@ const Icons = {
     </svg>
   ),
   ArrowIn: () => (
-    <svg className="w-5 h-5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
     </svg>
   ),
   ArrowOut: () => (
-    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
     </svg>
   ),
   Shield: () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+  Warning: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  ),
+  Pending: () => (
+    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
   ),
   Live: () => (
@@ -164,6 +175,7 @@ function TokenWithChain({ symbol }: { symbol: string }) {
 // Mock data for design work - grouped by chain
 const mockStats: CrossChainStats = {
   totalVolume24h: 2_450_000,
+  volumeChange24h: 8.3,
   volumeChange7d: 12.5,
   shieldedRate: 67,
   totalSwaps24h: 1_234,
@@ -277,6 +289,7 @@ export default function FlowsPage() {
         // Transform API response to our format (grouped by chain)
         const transformedStats: CrossChainStats = {
           totalVolume24h: data.totalVolume24h || 0,
+          volumeChange24h: data.volumeChange24h || 0,
           volumeChange7d: data.volumeChange7d || 0,
           shieldedRate: 0, // TODO: Calculate from Zcash chain data
           totalSwaps24h: data.totalSwaps24h || 0,
@@ -452,8 +465,13 @@ export default function FlowsPage() {
               <span className="text-xs text-gray-400 uppercase">24H Volume</span>
               <Tooltip content="Total USD value of ZEC swapped in the last 24 hours via NEAR Intents" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white">
-              {formatUSD(stats.totalVolume24h)}
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-bold text-white">
+                {formatUSD(stats.totalVolume24h)}
+              </span>
+              <span className={`text-sm font-medium ${stats.volumeChange24h >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
+                {stats.volumeChange24h >= 0 ? '↑' : '↓'} {Math.abs(stats.volumeChange24h)}%
+              </span>
             </div>
           </div>
 
@@ -461,6 +479,7 @@ export default function FlowsPage() {
           <div className="card bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs text-gray-400 uppercase">7D Trend</span>
+              <Tooltip content="Change in total ZEC swap volume compared to the previous 7-day period" />
             </div>
             <div className={`text-2xl sm:text-3xl font-bold ${stats.volumeChange7d >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
               {stats.volumeChange7d >= 0 ? '↑' : '↓'} {Math.abs(stats.volumeChange7d)}%
@@ -500,17 +519,39 @@ export default function FlowsPage() {
               </h2>
               <span className="text-sm text-gray-400">{formatUSD(totalInflows)}</span>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {stats.inflows.map((chainGroup) => (
-                <div key={chainGroup.chain}>
-                  {/* Chain header */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
-                      <CryptoIcon symbol={chainGroup.chain} size={24} />
-                  </div>
-                  <div className="flex-1">
+                <div key={chainGroup.chain} className="group relative">
+                  {/* Chain row */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
+                      <CryptoIcon symbol={chainGroup.chain} size={20} />
+                    </div>
+                    <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                          {/* Token breakdown indicator */}
+                          {chainGroup.tokens.length > 1 && (
+                            <span className="relative cursor-help">
+                              <span className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                                ({chainGroup.tokens.length} tokens)
+                              </span>
+                              {/* Tooltip */}
+                              <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
+                                {chainGroup.tokens.map((token) => (
+                                  <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
+                                    <span className="flex items-center gap-1 text-gray-300">
+                                      <CryptoIcon symbol={token.symbol} size={12} />
+                                      {token.symbol}
+                                    </span>
+                                    <span className="text-white">{formatUSD(token.volume24h)}</span>
+                                  </div>
+                                ))}
+                              </span>
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
                           <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
@@ -518,32 +559,18 @@ export default function FlowsPage() {
                           </span>
                         </div>
                       </div>
+                      {/* Progress bar */}
+                      <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${(chainGroup.totalVolume24h / totalInflows) * 100}%`,
+                            backgroundColor: chainGroup.color
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                  {/* Progress bar */}
-                  <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                        width: `${(chainGroup.totalVolume24h / totalInflows) * 100}%`,
-                        backgroundColor: chainGroup.color
-                        }}
-                      />
-                  </div>
-                  {/* Token breakdown (only if multiple tokens) */}
-                  {chainGroup.tokens.length > 1 && (
-                    <div className="ml-11 mt-2 space-y-1">
-                      {chainGroup.tokens.map((token) => (
-                        <div key={token.symbol} className="flex items-center justify-between text-xs text-gray-400">
-                          <span className="flex items-center gap-1.5">
-                            <CryptoIcon symbol={token.symbol} size={14} />
-                            {token.symbol}
-                  </span>
-                          <span>{formatUSD(token.volume24h)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -558,18 +585,40 @@ export default function FlowsPage() {
               </h2>
               <span className="text-sm text-gray-400">{formatUSD(totalOutflows)}</span>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {stats.outflows.length > 0 ? (
                 stats.outflows.map((chainGroup) => (
-                  <div key={chainGroup.chain}>
-                    {/* Chain header */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
-                        <CryptoIcon symbol={chainGroup.chain} size={24} />
-                    </div>
-                    <div className="flex-1">
+                  <div key={chainGroup.chain} className="group relative">
+                    {/* Chain row */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
+                        <CryptoIcon symbol={chainGroup.chain} size={20} />
+                      </div>
+                      <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                            {/* Token breakdown indicator */}
+                            {chainGroup.tokens.length > 1 && (
+                              <span className="relative cursor-help">
+                                <span className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                                  ({chainGroup.tokens.length} tokens)
+                                </span>
+                                {/* Tooltip */}
+                                <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
+                                  {chainGroup.tokens.map((token) => (
+                                    <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
+                                      <span className="flex items-center gap-1 text-gray-300">
+                                        <CryptoIcon symbol={token.symbol} size={12} />
+                                        {token.symbol}
+                                      </span>
+                                      <span className="text-white">{formatUSD(token.volume24h)}</span>
+                                    </div>
+                                  ))}
+                                </span>
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
                             <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
@@ -577,32 +626,18 @@ export default function FlowsPage() {
                             </span>
                           </div>
                         </div>
+                        {/* Progress bar */}
+                        <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${(chainGroup.totalVolume24h / totalOutflows) * 100}%`,
+                              backgroundColor: chainGroup.color
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                    {/* Progress bar */}
-                    <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                          width: `${(chainGroup.totalVolume24h / totalOutflows) * 100}%`,
-                          backgroundColor: chainGroup.color
-                          }}
-                        />
-                    </div>
-                    {/* Token breakdown (only if multiple tokens) */}
-                    {chainGroup.tokens.length > 1 && (
-                      <div className="ml-11 mt-2 space-y-1">
-                        {chainGroup.tokens.map((token) => (
-                          <div key={token.symbol} className="flex items-center justify-between text-xs text-gray-400">
-                            <span className="flex items-center gap-1.5">
-                              <CryptoIcon symbol={token.symbol} size={14} />
-                              {token.symbol}
-                    </span>
-                            <span>{formatUSD(token.volume24h)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))
               ) : (
@@ -621,25 +656,15 @@ export default function FlowsPage() {
             <Icons.Live />
           </div>
 
-          {/* Table Header - Hidden on mobile */}
-          <div className="hidden sm:grid sm:grid-cols-[60px_80px_1fr_40px_1fr_100px] gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase border-b border-cipher-border mb-2">
-            <span>Time</span>
-            <span>Type</span>
-            <span>From</span>
-            <span></span>
-            <span>To</span>
-            <span>Status</span>
-          </div>
-
           <div className="space-y-2">
             {stats.recentSwaps.map((swap) => {
               const sourceChain = chainNames[swap.fromChain] || swap.fromChain.toUpperCase();
               const isInflow = swap.direction === 'in';
 
               return (
-                <div
-                  key={swap.id}
-                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_40px_1fr_100px] gap-2 sm:gap-2 items-center p-3 sm:py-3 sm:px-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
+              <div
+                key={swap.id}
+                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_1fr_1fr_110px] gap-2 items-center p-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
                 >
                   {/* Time */}
                   <span className="text-xs text-gray-500 font-mono hidden sm:block">
@@ -649,12 +674,12 @@ export default function FlowsPage() {
                   {/* Direction Tag */}
                   <div className="flex items-center gap-2 sm:block">
                     {isInflow ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cipher-green/20 text-cipher-green text-xs font-bold rounded border border-cipher-green/30">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-cipher-green/20 text-cipher-green text-[10px] font-bold rounded border border-cipher-green/30">
                         <Icons.ArrowIn />
                         <span className="hidden sm:inline">IN</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded border border-red-500/30">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded border border-red-500/30">
                         <Icons.ArrowOut />
                         <span className="hidden sm:inline">OUT</span>
                       </span>
@@ -701,21 +726,22 @@ export default function FlowsPage() {
                 </div>
 
                   {/* Status */}
-                  <div>
-                  {swap.shielded === true && (
+                  <div className="flex justify-end">
+                    {swap.shielded === true && (
                       <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded border border-purple-500/30">
-                      <Icons.Shield />
-                      Shielded
-                    </span>
-                  )}
-                  {swap.shielded === false && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded border border-yellow-500/30">
-                        ⚠️ Transparent
+                        <Icons.Shield />
+                        Shielded
                       </span>
-                  )}
-                  {swap.shielded === null && (
+                    )}
+                    {swap.shielded === false && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded border border-yellow-500/30">
+                        <Icons.Warning />
+                        Transparent
+                      </span>
+                    )}
+                    {swap.shielded === null && (
                       <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded border border-gray-500/30">
-                        <span className="animate-spin">⏳</span>
+                        <Icons.Pending />
                         Pending
                       </span>
                     )}
