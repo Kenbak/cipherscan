@@ -112,7 +112,7 @@ export function NavBar() {
 
               {/* Dropdown Menu */}
                 {toolsOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-cipher-surface border border-cipher-border rounded-lg shadow-xl py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-48 card-solid !p-2 z-50">
                     <Link
                       href="/network"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"

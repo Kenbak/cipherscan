@@ -44,9 +44,42 @@
 @layer components {
   /* Unified card system - consistent padding and spacing */
   .card {
-    @apply bg-cipher-surface rounded-lg shadow-xl border border-cipher-border;
+    @apply bg-cipher-surface/30 rounded-lg shadow-xl border border-cipher-border;
     @apply p-6; /* Standard padding everywhere */
     @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Card variants */
+  .card-glass {
+    @apply rounded-lg shadow-xl border border-cipher-border;
+    @apply p-6;
+    @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    @apply bg-cipher-surface/20;
+    backdrop-filter: blur(12px);
+  }
+
+  .card-solid {
+    @apply rounded-lg shadow-xl border border-cipher-border;
+    @apply p-6;
+    @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    @apply bg-cipher-surface;
+    backdrop-filter: blur(10px);
+  }
+
+  .card-highlight {
+    @apply rounded-lg shadow-xl border border-cipher-cyan/30;
+    @apply p-6;
+    @apply hover:border-cipher-cyan/50 transition-all duration-300;
+    @apply bg-gradient-to-br from-cipher-surface to-cipher-bg;
+    backdrop-filter: blur(10px);
+  }
+
+  .card-dark {
+    @apply rounded-lg shadow-xl border border-cipher-border/50;
+    @apply p-6;
+    @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    @apply bg-cipher-bg;
     backdrop-filter: blur(10px);
   }
 

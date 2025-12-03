@@ -27,7 +27,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
 
   const modalContent = showModal ? (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4" onClick={() => setShowModal(false)}>
-      <div className="bg-cipher-surface border border-cipher-border rounded-lg max-w-2xl w-full p-4 sm:p-8 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="card max-w-2xl w-full !p-4 sm:!p-8 animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold font-mono text-cipher-cyan mb-1 sm:mb-2 flex items-center gap-2">

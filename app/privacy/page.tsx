@@ -731,7 +731,7 @@ export default function PrivacyPage() {
         )}
 
         {/* Info Footer */}
-        <div className="card bg-cipher-surface/50 border-cipher-border/50">
+        <div className="card-glass border-cipher-border/50">
           <h3 className="text-lg font-bold mb-3">About Privacy Metrics</h3>
           <div className="space-y-2 text-sm text-gray-400">
             <p>

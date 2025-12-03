@@ -148,7 +148,7 @@ export default function DecryptPage() {
         {activeTab === 'scan' && <ScanMyTransactions />}
 
         {/* Help Card */}
-        <div className="card bg-cipher-surface/30 mt-6 sm:mt-8">
+        <div className="card-glass mt-6 sm:mt-8">
           <div className="flex items-start gap-3 sm:gap-4">
             <div className="flex-shrink-0">
               <Icons.Info />

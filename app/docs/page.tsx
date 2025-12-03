@@ -140,7 +140,7 @@ print(f"Pending transactions: {mempool.json()['count']}")`}
         </div>
 
         {/* Support */}
-        <div className="mt-12 card bg-cipher-surface/50">
+        <div className="mt-12 card-glass">
           <h2 className="text-xl font-bold mb-4">Need Help?</h2>
           <p className="text-gray-400 mb-4">
             If you have questions or need support, feel free to reach out:

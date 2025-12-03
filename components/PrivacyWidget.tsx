@@ -137,7 +137,7 @@ export function PrivacyWidget() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-cipher-surface border border-cipher-border rounded-lg p-4 animate-pulse">
+            <div key={i} className="card !p-4 animate-pulse">
               <div className="h-6 bg-cipher-border rounded mb-2"></div>
               <div className="h-8 bg-cipher-border rounded"></div>
             </div>
@@ -158,7 +158,7 @@ export function PrivacyWidget() {
 
   return (
     <Link href="/privacy" className="block group">
-      <div className="bg-cipher-surface border border-cipher-border hover:border-purple-500/50 rounded-lg p-4 sm:p-6 transition-all">
+      <div className="card hover:border-purple-500/50 !p-4 sm:!p-6">
         {/* Grid layout like Etherscan - 2 cols on mobile, 4 on desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
 

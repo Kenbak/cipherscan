@@ -28,7 +28,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
         const apiUrl = usePostgresApiClient()
           ? `${getApiUrl()}/api/blocks?limit=5`
           : '/api/blocks?limit=5';
-        
+
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (data.blocks) {
