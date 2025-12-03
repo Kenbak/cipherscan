@@ -622,25 +622,24 @@ export default function FlowsPage() {
           </div>
 
           {/* Table Header - Hidden on mobile */}
-          <div className="hidden sm:grid sm:grid-cols-[60px_80px_1fr_40px_1fr_100px_70px] gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase border-b border-cipher-border mb-2">
+          <div className="hidden sm:grid sm:grid-cols-[60px_80px_1fr_40px_1fr_100px] gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase border-b border-cipher-border mb-2">
             <span>Time</span>
             <span>Type</span>
             <span>From</span>
             <span></span>
             <span>To</span>
             <span>Status</span>
-            <span></span>
           </div>
 
           <div className="space-y-2">
             {stats.recentSwaps.map((swap) => {
               const sourceChain = chainNames[swap.fromChain] || swap.fromChain.toUpperCase();
               const isInflow = swap.direction === 'in';
-              
+
               return (
-              <div
-                key={swap.id}
-                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_40px_1fr_100px_70px] gap-2 sm:gap-2 items-center p-3 sm:py-3 sm:px-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
+                <div
+                  key={swap.id}
+                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_40px_1fr_100px] gap-2 sm:gap-2 items-center p-3 sm:py-3 sm:px-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
                 >
                   {/* Time */}
                   <span className="text-xs text-gray-500 font-mono hidden sm:block">
@@ -681,9 +680,9 @@ export default function FlowsPage() {
                     </div>
                   </div>
 
-                  {/* Bridge Icon */}
+                  {/* Arrow */}
                   <div className="hidden sm:flex justify-center">
-                    <span className="text-gray-500 text-lg">🌉</span>
+                    <span className="text-gray-500 text-lg">→</span>
                   </div>
 
                   {/* Destination */}
@@ -722,12 +721,6 @@ export default function FlowsPage() {
                     )}
                   </div>
 
-                  {/* Action hint */}
-                  <div className="hidden sm:flex justify-end">
-                    <span className="text-gray-600 group-hover:text-cipher-cyan transition-colors text-sm">
-                      →
-                    </span>
-                  </div>
                 </div>
               );
             })}
