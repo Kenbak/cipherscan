@@ -118,7 +118,13 @@ export default function BlockPage() {
         if (usePostgresApiClient()) {
           // Express API returns snake_case and values in satoshis, convert to camelCase and ZEC
           const transformedTransactions = (blockData.transactions || []).map((tx: any) => {
-            const isCoinbase = (tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid);
+            // Check if it's a shielded transaction (has sapling/orchard activity)
+            const hasShieldedActivity = tx.has_sapling || tx.has_orchard || 
+              (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0);
+            
+            // Coinbase = no transparent inputs AND no shielded activity
+            const isCoinbase = !hasShieldedActivity && 
+              ((tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid));
 
             // Transform inputs
             const transformedInputs = isCoinbase
@@ -147,6 +153,11 @@ export default function BlockPage() {
               outputs: transformedOutputs,
               vin: transformedInputs,
               vout: transformedOutputs,
+              // Pass shielded info for type detection
+              hasShieldedActivity,
+              vShieldedSpend: tx.shielded_spends > 0 ? Array(tx.shielded_spends).fill({}) : [],
+              vShieldedOutput: tx.shielded_outputs > 0 ? Array(tx.shielded_outputs).fill({}) : [],
+              orchard: tx.orchard_actions > 0 ? { actions: Array(tx.orchard_actions).fill({}) } : null,
             };
           });
 
