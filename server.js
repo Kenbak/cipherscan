@@ -1591,14 +1591,14 @@ const { getNearIntentsClient, CHAIN_CONFIG } = require('./lib/near-intents');
 
 /**
  * GET /api/crosschain/stats
- * 
+ *
  * Get cross-chain ZEC swap statistics via NEAR Intents
  * Returns inflows, outflows, recent swaps, and volume metrics
  */
 app.get('/api/crosschain/stats', async (req, res) => {
   try {
     const client = getNearIntentsClient();
-    
+
     // Check if API key is configured
     if (!client.hasApiKey()) {
       return res.status(503).json({
@@ -1610,9 +1610,9 @@ app.get('/api/crosschain/stats', async (req, res) => {
     }
 
     console.log('🌉 [CROSSCHAIN] Fetching cross-chain stats...');
-    
+
     const stats = await client.getCrossChainStats();
-    
+
     res.json({
       success: true,
       ...stats,
@@ -1629,13 +1629,13 @@ app.get('/api/crosschain/stats', async (req, res) => {
 
 /**
  * GET /api/crosschain/inflows
- * 
+ *
  * Get recent ZEC inflows (other chains → ZEC)
  */
 app.get('/api/crosschain/inflows', async (req, res) => {
   try {
     const client = getNearIntentsClient();
-    
+
     if (!client.hasApiKey()) {
       return res.status(503).json({
         success: false,
@@ -1645,9 +1645,9 @@ app.get('/api/crosschain/inflows', async (req, res) => {
 
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const page = parseInt(req.query.page) || 1;
-    
+
     const data = await client.getZecInflows({ limit, page });
-    
+
     res.json({
       success: true,
       ...data,
@@ -1663,13 +1663,13 @@ app.get('/api/crosschain/inflows', async (req, res) => {
 
 /**
  * GET /api/crosschain/outflows
- * 
+ *
  * Get recent ZEC outflows (ZEC → other chains)
  */
 app.get('/api/crosschain/outflows', async (req, res) => {
   try {
     const client = getNearIntentsClient();
-    
+
     if (!client.hasApiKey()) {
       return res.status(503).json({
         success: false,
@@ -1679,9 +1679,9 @@ app.get('/api/crosschain/outflows', async (req, res) => {
 
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const page = parseInt(req.query.page) || 1;
-    
+
     const data = await client.getZecOutflows({ limit, page });
-    
+
     res.json({
       success: true,
       ...data,
@@ -1697,17 +1697,17 @@ app.get('/api/crosschain/outflows', async (req, res) => {
 
 /**
  * GET /api/crosschain/status
- * 
+ *
  * Check if NEAR Intents integration is configured
  */
 app.get('/api/crosschain/status', async (req, res) => {
   const client = getNearIntentsClient();
-  
+
   res.json({
     success: true,
     configured: client.hasApiKey(),
-    message: client.hasApiKey() 
-      ? 'NEAR Intents API configured' 
+    message: client.hasApiKey()
+      ? 'NEAR Intents API configured'
       : 'NEAR Intents API key not set. Cross-chain features disabled.',
     docsUrl: 'https://docs.near-intents.org/near-intents/integration/distribution-channels/intents-explorer-api',
   });

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
-import { CURRENCY } from '@/lib/config';
+import { CURRENCY, isMainnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
 // Types
@@ -109,7 +109,7 @@ export default function CrossChainPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const apiUrl = usePostgresApiClient()
           ? `${getApiUrl()}/api/crosschain/stats`
           : '/api/crosschain/stats';
@@ -170,11 +170,45 @@ export default function CrossChainPage() {
     };
 
     fetchStats();
-    
+
     // Refresh every 60 seconds (NEAR Intents rate limit is 1 req/5s, we cache for 60s)
     const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Testnet: Cross-chain not available
+  if (!isMainnet) {
+    return (
+      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="card bg-gradient-to-br from-gray-800/50 to-cipher-surface border-gray-500/30 text-center py-12">
+            <div className="text-6xl mb-4">🔗</div>
+            <h1 className="text-2xl font-bold font-mono text-gray-400 mb-4">
+              Cross-Chain Available on Mainnet Only
+            </h1>
+            <p className="text-gray-500 max-w-lg mx-auto mb-6">
+              NEAR Intents cross-chain swaps are only available for ZEC mainnet. 
+              Testnet ZEC (TAZ) is not supported for cross-chain operations.
+            </p>
+            <div className="flex justify-center gap-4">
+              <a 
+                href="https://cipherscan.app/crosschain" 
+                className="px-4 py-2 bg-cipher-green/20 border border-cipher-green text-cipher-green rounded-lg hover:bg-cipher-green/30 transition-colors font-mono text-sm"
+              >
+                View on Mainnet →
+              </a>
+              <Link 
+                href="/"
+                className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
+              >
+                Back to Explorer
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {
@@ -204,15 +238,15 @@ export default function CrossChainPage() {
               {error || 'NEAR Intents API integration is being configured. This feature will show real-time ZEC swaps across Bitcoin, Ethereum, Solana, and more.'}
             </p>
             <div className="flex justify-center gap-4">
-              <a 
-                href="https://near.org/intents" 
-                target="_blank" 
+              <a
+                href="https://near.org/intents"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 bg-cipher-cyan/20 border border-cipher-cyan text-cipher-cyan rounded-lg hover:bg-cipher-cyan/30 transition-colors font-mono text-sm"
               >
                 Learn about NEAR Intents
               </a>
-              <Link 
+              <Link
                 href="/"
                 className="px-4 py-2 bg-cipher-surface border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
               >
