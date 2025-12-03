@@ -88,9 +88,11 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string;
 
 // Crypto icon component using CDN
 function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
-  const config = chainConfig[symbol.toLowerCase()];
-  const iconId = config?.iconId || symbol.toLowerCase();
-
+  // Extract base token from "USDC (ETH)" → "usdc"
+  const baseSymbol = symbol.split(' ')[0].toLowerCase();
+  const config = chainConfig[baseSymbol] || chainConfig[symbol.toLowerCase()];
+  const iconId = config?.iconId || baseSymbol;
+  
   return (
     <img
       src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`}
@@ -118,20 +120,22 @@ const mockStats: CrossChainStats = {
     { chain: 'btc', symbol: 'BTC', volume24h: 890_000, volumeChange: 15, color: '#F7931A' },
     { chain: 'eth', symbol: 'ETH', volume24h: 650_000, volumeChange: -3, color: '#627EEA' },
     { chain: 'sol', symbol: 'SOL', volume24h: 340_000, volumeChange: 8, color: '#14F195' },
-    { chain: 'usdc', symbol: 'USDC', volume24h: 280_000, volumeChange: 22, color: '#2775CA' },
+    { chain: 'usdc-eth', symbol: 'USDC (ETH)', volume24h: 280_000, volumeChange: 22, color: '#2775CA' },
+    { chain: 'usdc-sol', symbol: 'USDC (SOL)', volume24h: 120_000, volumeChange: 18, color: '#2775CA' },
     { chain: 'near', symbol: 'NEAR', volume24h: 180_000, volumeChange: 45, color: '#00C08B' },
   ],
   outflows: [
     { chain: 'eth', symbol: 'ETH', volume24h: 120_000, volumeChange: -5, color: '#627EEA' },
     { chain: 'sol', symbol: 'SOL', volume24h: 80_000, volumeChange: 12, color: '#14F195' },
-    { chain: 'usdc', symbol: 'USDC', volume24h: 45_000, volumeChange: -8, color: '#2775CA' },
+    { chain: 'usdc-eth', symbol: 'USDC (ETH)', volume24h: 45_000, volumeChange: -8, color: '#2775CA' },
   ],
   recentSwaps: [
     { id: '1', timestamp: Date.now() - 2000, fromChain: 'btc', fromAmount: 0.5, fromSymbol: 'BTC', toAmount: 142, direction: 'in', shielded: true },
     { id: '2', timestamp: Date.now() - 15000, fromChain: 'eth', fromAmount: 1.2, fromSymbol: 'ETH', toAmount: 89, direction: 'in', shielded: false },
-    { id: '3', timestamp: Date.now() - 34000, fromChain: 'usdc', fromAmount: 500, fromSymbol: 'USDC', toAmount: 12, direction: 'in', shielded: true },
+    { id: '3', timestamp: Date.now() - 34000, fromChain: 'usdc-eth', fromAmount: 500, fromSymbol: 'USDC (ETH)', toAmount: 12, direction: 'in', shielded: true },
     { id: '4', timestamp: Date.now() - 60000, fromChain: 'sol', fromAmount: 45, fromSymbol: 'SOL', toAmount: 320, direction: 'in', shielded: null },
     { id: '5', timestamp: Date.now() - 120000, fromChain: 'eth', fromAmount: 50, fromSymbol: 'ZEC', toAmount: 0.8, direction: 'out', shielded: true },
+    { id: '6', timestamp: Date.now() - 180000, fromChain: 'usdc-sol', fromAmount: 1000, fromSymbol: 'USDC (SOL)', toAmount: 24, direction: 'in', shielded: true },
   ],
 };
 
