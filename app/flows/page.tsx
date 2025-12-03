@@ -110,6 +110,36 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   );
 }
 
+// Token display with optional chain tag for multi-chain tokens (e.g., USDC on ETH vs SOL)
+function TokenWithChain({ symbol }: { symbol: string }) {
+  // Parse "USDC (ETH)" → { token: "USDC", chain: "ETH" }
+  const match = symbol.match(/^(\w+)\s*\((\w+)\)$/);
+  
+  if (match) {
+    const [, token, chain] = match;
+    const chainLower = chain.toLowerCase();
+    const chainConf = chainConfig[chainLower];
+    
+    return (
+      <span className="flex items-center gap-1">
+        <span>{token}</span>
+        <span 
+          className="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase"
+          style={{ 
+            backgroundColor: `${chainConf?.color || '#666'}20`,
+            color: chainConf?.color || '#888'
+          }}
+        >
+          {chain}
+        </span>
+      </span>
+    );
+  }
+  
+  // No chain specified, just return the symbol
+  return <span>{symbol}</span>;
+}
+
 // Mock data for design work
 const mockStats: CrossChainStats = {
   totalVolume24h: 2_450_000,
@@ -369,7 +399,7 @@ export default function FlowsPage() {
               <span className="text-xs text-gray-400 uppercase">24H Volume</span>
               <Tooltip content="Total USD value of ZEC swapped in the last 24 hours via NEAR Intents" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-cipher-cyan">
+            <div className="text-2xl sm:text-3xl font-bold text-white">
               {formatUSD(stats.totalVolume24h)}
             </div>
           </div>
@@ -425,7 +455,7 @@ export default function FlowsPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-mono">{chain.symbol}</span>
+                      <span className="text-sm font-mono"><TokenWithChain symbol={chain.symbol} /></span>
                       <span className="text-sm text-gray-400">{formatUSD(chain.volume24h)}</span>
                     </div>
                     <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
@@ -464,7 +494,7 @@ export default function FlowsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-mono">{chain.symbol}</span>
+                        <span className="text-sm font-mono"><TokenWithChain symbol={chain.symbol} /></span>
                         <span className="text-sm text-gray-400">{formatUSD(chain.volume24h)}</span>
                       </div>
                       <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
@@ -519,24 +549,26 @@ export default function FlowsPage() {
                     <div className="flex items-center gap-2 text-sm">
                       <span className="flex items-center gap-1.5 text-gray-300">
                         <CryptoIcon symbol={swap.fromSymbol} size={16} />
-                        <span className="font-mono">{swap.fromAmount} {swap.fromSymbol}</span>
+                        <span className="font-mono">{swap.fromAmount}</span>
+                        <TokenWithChain symbol={swap.fromSymbol} />
                       </span>
                       <span className="text-gray-500">→</span>
-                      <span className="flex items-center gap-1.5 text-yellow-400">
+                      <span className="flex items-center gap-1.5 text-white">
                         <CryptoIcon symbol="ZEC" size={16} />
                         <span className="font-mono">{swap.toAmount} ZEC</span>
                       </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="flex items-center gap-1.5 text-yellow-400">
+                      <span className="flex items-center gap-1.5 text-white">
                         <CryptoIcon symbol="ZEC" size={16} />
                         <span className="font-mono">{swap.fromAmount} ZEC</span>
                       </span>
                       <span className="text-gray-500">→</span>
                       <span className="flex items-center gap-1.5 text-gray-300">
                         <CryptoIcon symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} size={16} />
-                        <span className="font-mono">{swap.toAmount} {chainConfig[swap.fromChain]?.symbol}</span>
+                        <span className="font-mono">{swap.toAmount}</span>
+                        <TokenWithChain symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} />
                       </span>
                     </div>
                   )}
