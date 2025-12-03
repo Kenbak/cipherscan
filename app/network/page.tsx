@@ -89,6 +89,19 @@ interface NetworkStats {
     sizeGB: number;
     tx24h: number;
   };
+  supply?: {
+    chainSupply: number;
+    transparent: number;
+    sprout: number;
+    sapling: number;
+    orchard: number;
+    lockbox: number;
+    totalShielded: number;
+    shieldedPercentage: number;
+    sizeOnDisk: number;
+    activeUpgrade: string | null;
+    chain: string;
+  };
   cached?: boolean;
   cacheAge?: number;
 }
@@ -243,6 +256,119 @@ export default function NetworkPage() {
             </div>
           </div>
         )}
+
+      {/* Supply Distribution */}
+      {stats.supply && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Supply Overview */}
+          <div className="card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                <Icons.Shield />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Supply Distribution</h2>
+                <p className="text-xs text-gray-400">
+                  {stats.supply.chain === 'main' ? 'Mainnet' : 'Testnet'} • {stats.supply.activeUpgrade || 'Unknown'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Shielded vs Transparent Bar */}
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-purple-400">🛡️ Shielded</span>
+                  <span className="text-purple-400 font-bold">{stats.supply.shieldedPercentage.toFixed(1)}%</span>
+                </div>
+                <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 to-purple-400"
+                    style={{ width: `${stats.supply.shieldedPercentage}%` }}
+                  />
+                  <div
+                    className="h-full bg-gray-600"
+                    style={{ width: `${100 - stats.supply.shieldedPercentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>{(stats.supply.totalShielded / 1000000).toFixed(2)}M ZEC shielded</span>
+                  <span>{(stats.supply.transparent / 1000000).toFixed(2)}M ZEC transparent</span>
+                </div>
+              </div>
+
+              {/* Pool Breakdown */}
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                  <div className="text-green-400 text-lg font-bold font-mono">
+                    {(stats.supply.orchard / 1000000).toFixed(2)}M
+                  </div>
+                  <div className="text-xs text-gray-400">Orchard</div>
+                </div>
+                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                  <div className="text-cyan-400 text-lg font-bold font-mono">
+                    {(stats.supply.sapling / 1000000).toFixed(2)}M
+                  </div>
+                  <div className="text-xs text-gray-400">Sapling</div>
+                </div>
+                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                  <div className="text-amber-400 text-lg font-bold font-mono">
+                    {(stats.supply.sprout / 1000).toFixed(1)}K
+                  </div>
+                  <div className="text-xs text-gray-400">Sprout</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Chain Stats */}
+          <div className="card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                <Icons.Database />
+              </div>
+              <h2 className="text-lg font-bold">Chain Statistics</h2>
+            </div>
+
+            <div className="space-y-4">
+              {/* Chain Supply */}
+              <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
+                <span className="text-gray-400">Total Supply</span>
+                <span className="font-mono font-bold text-white">
+                  {(stats.supply.chainSupply / 1000000).toFixed(2)}M ZEC
+                </span>
+              </div>
+
+              {/* Lockbox */}
+              <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">🔐 Lockbox</span>
+                  <span className="text-xs text-gray-500">(Dev Fund)</span>
+                </div>
+                <span className="font-mono font-bold text-amber-400">
+                  {stats.supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC
+                </span>
+              </div>
+
+              {/* Size on Disk */}
+              <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
+                <span className="text-gray-400">Size on Disk</span>
+                <span className="font-mono font-bold text-white">
+                  {(stats.supply.sizeOnDisk / (1024 * 1024 * 1024)).toFixed(1)} GB
+                </span>
+              </div>
+
+              {/* Active Upgrade */}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-gray-400">Network Upgrade</span>
+                <span className="font-mono font-bold text-green-400">
+                  {stats.supply.activeUpgrade || 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Key Metrics - Hero Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">

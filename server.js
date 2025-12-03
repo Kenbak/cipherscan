@@ -1243,11 +1243,49 @@ async function fetchNetworkStatsOptimized() {
     // Get network info (Zebra 3.0+ has more detailed info)
     const networkInfo = await callZebraRPC('getnetworkinfo').catch(() => null);
     const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+    const blockchainInfo = await callZebraRPC('getblockchaininfo').catch(() => null);
 
     // Extract peer count and network details
     const peerCount = networkInfo?.connections || (Array.isArray(peerInfo) ? peerInfo.length : 0);
     const protocolVersion = networkInfo?.protocolversion || null;
     const subversion = networkInfo?.subversion || null;
+
+    // Extract supply and pool data from getblockchaininfo
+    let supplyData = null;
+    if (blockchainInfo) {
+      const chainSupplyZat = blockchainInfo.chainSupply?.chainValueZat || 0;
+      const valuePools = blockchainInfo.valuePools || [];
+      
+      const transparent = valuePools.find(p => p.id === 'transparent')?.chainValueZat || 0;
+      const sprout = valuePools.find(p => p.id === 'sprout')?.chainValueZat || 0;
+      const sapling = valuePools.find(p => p.id === 'sapling')?.chainValueZat || 0;
+      const orchard = valuePools.find(p => p.id === 'orchard')?.chainValueZat || 0;
+      const lockbox = valuePools.find(p => p.id === 'lockbox')?.chainValueZat || 0;
+      
+      const totalShielded = sprout + sapling + orchard;
+      const shieldedPercentage = chainSupplyZat > 0 ? (totalShielded / chainSupplyZat) * 100 : 0;
+      
+      // Get active upgrade
+      const upgrades = blockchainInfo.upgrades || {};
+      const activeUpgrades = Object.values(upgrades).filter((u) => u.status === 'active');
+      const latestUpgrade = activeUpgrades.length > 0 
+        ? activeUpgrades.reduce((latest, u) => u.activationheight > latest.activationheight ? u : latest)
+        : null;
+
+      supplyData = {
+        chainSupply: chainSupplyZat / 100000000,
+        transparent: transparent / 100000000,
+        sprout: sprout / 100000000,
+        sapling: sapling / 100000000,
+        orchard: orchard / 100000000,
+        lockbox: lockbox / 100000000,
+        totalShielded: totalShielded / 100000000,
+        shieldedPercentage: shieldedPercentage,
+        sizeOnDisk: blockchainInfo.size_on_disk || 0,
+        activeUpgrade: latestUpgrade?.name || null,
+        chain: blockchainInfo.chain || 'unknown',
+      };
+    }
 
     // Calculate hashrate
     const blocks24h = parseInt(blocks_24h || 0);
@@ -1286,6 +1324,7 @@ async function fetchNetworkStatsOptimized() {
         sizeGB: parseFloat(blockchainSizeGB),
         tx24h,
       },
+      supply: supplyData,
       timestamp: Date.now(),
     };
   } catch (error) {
