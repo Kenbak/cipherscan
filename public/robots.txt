@@ -4,7 +4,8 @@
 User-agent: *
 Allow: /
 
-# Sitemap
+# Sitemaps for both mainnet and testnet
+Sitemap: https://cipherscan.app/sitemap.xml
 Sitemap: https://testnet.cipherscan.app/sitemap.xml
 
 # Crawl-delay for politeness (optional)
