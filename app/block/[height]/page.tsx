@@ -119,11 +119,11 @@ export default function BlockPage() {
           // Express API returns snake_case and values in satoshis, convert to camelCase and ZEC
           const transformedTransactions = (blockData.transactions || []).map((tx: any) => {
             // Check if it's a shielded transaction (has sapling/orchard activity)
-            const hasShieldedActivity = tx.has_sapling || tx.has_orchard || 
+            const hasShieldedActivity = tx.has_sapling || tx.has_orchard ||
               (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0);
-            
+
             // Coinbase = no transparent inputs AND no shielded activity
-            const isCoinbase = !hasShieldedActivity && 
+            const isCoinbase = !hasShieldedActivity &&
               ((tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid));
 
             // Transform inputs
@@ -502,12 +502,17 @@ export default function BlockPage() {
             {/* Transaction Rows */}
             <div className="space-y-2 min-w-[900px]">
               {data.transactions.map((tx, index) => {
+                // Detect coinbase first (takes priority in display)
+                const isCoinbase = tx.vin?.[0]?.coinbase;
+                
                 // Detect shielded transactions (Sapling, Orchard, or Sprout)
-                const isShielded =
+                const isShielded = !isCoinbase && (
+                  tx.hasShieldedActivity || // From transformation (uses has_sapling, has_orchard)
+                  tx.has_sapling || tx.has_orchard || tx.has_sprout || // Direct from API
                   (tx.vShieldedSpend?.length > 0 || tx.vShieldedOutput?.length > 0) || // Sapling
                   (tx.orchard?.actions?.length > 0) || // Orchard
-                  (tx.vJoinSplit?.length > 0); // Sprout (legacy)
-                const isCoinbase = tx.vin?.[0]?.coinbase;
+                  (tx.vJoinSplit?.length > 0) // Sprout (legacy)
+                );
                 const totalOutput = tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0) || 0;
 
                 // Get first input and output addresses
