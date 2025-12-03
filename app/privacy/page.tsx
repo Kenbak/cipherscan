@@ -607,7 +607,7 @@ export default function PrivacyPage() {
 
             {activeTab === 'activity' && (
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={[...stats.trends.daily].reverse().slice(-14)}>
+                <BarChart data={[...stats.trends.daily].reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis
                     dataKey="date"

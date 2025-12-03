@@ -2,10 +2,10 @@
 
 /**
  * Recalculate Privacy Scores
- * 
+ *
  * Updates all entries in privacy_trends_daily with the new privacy score formula.
  * Uses current pool size and fully_shielded data from privacy_stats.
- * 
+ *
  * Usage:
  *   node scripts/recalculate-privacy-scores.js
  */
@@ -39,14 +39,14 @@ function calculatePrivacyScore(params) {
   } = params;
 
   // Factor 1: Supply Shielded Score (0-40 points)
-  const supplyShieldedPercent = chainSupplyZat > 0 
-    ? (totalShieldedZat / chainSupplyZat) * 100 
+  const supplyShieldedPercent = chainSupplyZat > 0
+    ? (totalShieldedZat / chainSupplyZat) * 100
     : 0;
   const supplyScore = Math.min(supplyShieldedPercent * 1.33, 40);
 
   // Factor 2: Fully Shielded Score (0-30 points)
-  const fullyShieldedPercent = shieldedTx > 0 
-    ? (fullyShieldedTx / shieldedTx) * 100 
+  const fullyShieldedPercent = shieldedTx > 0
+    ? (fullyShieldedTx / shieldedTx) * 100
     : 0;
   const fullyShieldedScore = Math.min(fullyShieldedPercent * 3, 30);
 
@@ -64,14 +64,14 @@ async function recalculate() {
 
   // Get current privacy stats (for pool size, chain supply, etc.)
   const statsResult = await pool.query(`
-    SELECT 
+    SELECT
       shielded_pool_size,
       chain_supply,
       shielded_tx,
       fully_shielded_tx,
       shielded_percentage as all_time_shielded_percent
-    FROM privacy_stats 
-    ORDER BY updated_at DESC 
+    FROM privacy_stats
+    ORDER BY updated_at DESC
     LIMIT 1
   `);
 
@@ -112,7 +112,7 @@ async function recalculate() {
 
     // Also update pool_size to current value (better than wrong historical value)
     await pool.query(`
-      UPDATE privacy_trends_daily 
+      UPDATE privacy_trends_daily
       SET privacy_score = $2, pool_size = $3
       WHERE id = $1
     `, [row.id, newScore, stats.shielded_pool_size]);
@@ -146,4 +146,3 @@ recalculate().catch(err => {
   console.error('❌ Error:', err);
   process.exit(1);
 });
-
