@@ -681,8 +681,8 @@ export default function FlowsPage() {
                   </div>
 
                   {/* Arrow */}
-                  <div className="hidden sm:flex justify-center items-center h-full">
-                    <span className="text-gray-500 text-xl">→</span>
+                  <div className="hidden sm:block text-center">
+                    <span className="text-gray-400 text-xl leading-none">→</span>
                   </div>
 
                   {/* Destination */}
