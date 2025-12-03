@@ -81,7 +81,35 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string 
   xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple' },
 };
 
-// API will be called from useEffect - no mock data needed
+// Mock data for design work
+const mockStats: CrossChainStats = {
+  totalVolume24h: 2_450_000,
+  volumeChange7d: 12.5,
+  shieldedRate: 67,
+  totalSwaps24h: 1_234,
+  inflows: [
+    { chain: 'btc', symbol: 'BTC', volume24h: 890_000, volumeChange: 15, color: '#F7931A' },
+    { chain: 'eth', symbol: 'ETH', volume24h: 650_000, volumeChange: -3, color: '#627EEA' },
+    { chain: 'sol', symbol: 'SOL', volume24h: 340_000, volumeChange: 8, color: '#14F195' },
+    { chain: 'usdc', symbol: 'USDC', volume24h: 280_000, volumeChange: 22, color: '#2775CA' },
+    { chain: 'near', symbol: 'NEAR', volume24h: 180_000, volumeChange: 45, color: '#00C08B' },
+  ],
+  outflows: [
+    { chain: 'eth', symbol: 'ETH', volume24h: 120_000, volumeChange: -5, color: '#627EEA' },
+    { chain: 'sol', symbol: 'SOL', volume24h: 80_000, volumeChange: 12, color: '#14F195' },
+    { chain: 'usdc', symbol: 'USDC', volume24h: 45_000, volumeChange: -8, color: '#2775CA' },
+  ],
+  recentSwaps: [
+    { id: '1', timestamp: Date.now() - 2000, fromChain: 'btc', fromAmount: 0.5, fromSymbol: 'BTC', toAmount: 142, direction: 'in', shielded: true },
+    { id: '2', timestamp: Date.now() - 15000, fromChain: 'eth', fromAmount: 1.2, fromSymbol: 'ETH', toAmount: 89, direction: 'in', shielded: false },
+    { id: '3', timestamp: Date.now() - 34000, fromChain: 'usdc', fromAmount: 500, fromSymbol: 'USDC', toAmount: 12, direction: 'in', shielded: true },
+    { id: '4', timestamp: Date.now() - 60000, fromChain: 'sol', fromAmount: 45, fromSymbol: 'SOL', toAmount: 320, direction: 'in', shielded: null },
+    { id: '5', timestamp: Date.now() - 120000, fromChain: 'eth', fromAmount: 50, fromSymbol: 'ZEC', toAmount: 0.8, direction: 'out', shielded: true },
+  ],
+};
+
+// Set to true to use mock data for design, false to use real API
+const USE_MOCK_DATA = true;
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
@@ -97,14 +125,21 @@ function formatRelativeTime(timestamp: number): string {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export default function CrossChainPage() {
-  const [stats, setStats] = useState<CrossChainStats | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function FlowsPage() {
+  const [stats, setStats] = useState<CrossChainStats | null>(USE_MOCK_DATA ? mockStats : null);
+  const [loading, setLoading] = useState(!USE_MOCK_DATA);
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
 
-  // Fetch cross-chain stats from API
+  // Fetch cross-chain stats from API (or use mock data)
   useEffect(() => {
+    // Use mock data for design work
+    if (USE_MOCK_DATA) {
+      setStats(mockStats);
+      setLoading(false);
+      return;
+    }
+
     const fetchStats = async () => {
       try {
         setLoading(true);
