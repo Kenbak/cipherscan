@@ -191,8 +191,8 @@ export default function CrossChainPage() {
               Testnet ZEC (TAZ) is not supported for cross-chain operations.
             </p>
             <div className="flex justify-center gap-4">
-              <a 
-                href="https://cipherscan.app/flows" 
+              <a
+                href="https://cipherscan.app/flows"
                 className="px-4 py-2 bg-cipher-green/20 border border-cipher-green text-cipher-green rounded-lg hover:bg-cipher-green/30 transition-colors font-mono text-sm"
               >
                 View on Mainnet →
