@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import Image from "next/image";
 import { NavBar } from "@/components/NavBar";
 import { DonateButton } from "@/components/DonateButton";
+import { SyncBanner } from "@/components/SyncBanner";
+import { isMainnet } from "@/lib/config";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -79,6 +81,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <NavBar />
+        {isMainnet && <SyncBanner />}
         <main className="min-h-screen">{children}</main>
 
         <footer className="bg-cipher-surface/50 border-t border-cipher-border mt-12 sm:mt-20">
