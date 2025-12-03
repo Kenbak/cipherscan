@@ -33,6 +33,7 @@ interface Transaction {
   isCoinbase?: boolean;
   isShielded?: boolean;
   isDeshielding?: boolean;
+  isShielding?: boolean;
 }
 
 // Icon components (same as block/tx pages)
@@ -144,10 +145,12 @@ export default function AddressPage() {
             from: tx.netChange > 0 ? null : apiData.address,
             to: tx.netChange > 0 ? apiData.address : null,
             // Coinbase = first TX of block (tx_index 0) with no transparent inputs
-            // Deshielding = shielded TX with no transparent inputs but has orchard/sapling activity
+            // Deshielding = receiving from shielded (no transparent inputs, has shielded activity)
+            // Shielding = sending to shielded (has transparent inputs, shielded activity, sending)
             isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !tx.hasOrchard && !tx.hasSapling,
             isShielded: tx.hasOrchard || tx.hasSapling,
             isDeshielding: tx.inputValue === 0 && tx.outputValue > 0 && (tx.hasOrchard || tx.hasSapling),
+            isShielding: tx.inputValue > 0 && (tx.hasOrchard || tx.hasSapling) && tx.netChange < 0,
           }));
 
           setData({
@@ -652,6 +655,20 @@ export default function AddressPage() {
                               {address.slice(0, 6)}...{address.slice(-4)}
                             </span>
                           </>
+                        ) : tx.isShielding ? (
+                          <>
+                            {/* Shielding: From transparent (visible), To shielded */}
+                            <span className="truncate" title={address}>
+                              {address.slice(0, 6)}...{address.slice(-4)}
+                            </span>
+                            <span className="text-gray-600">→</span>
+                            <span className="text-purple-400 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                              Shielded
+                            </span>
+                          </>
                         ) : tx.isShielded ? (
                           <>
                             <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] rounded font-mono flex items-center gap-1">
@@ -710,7 +727,7 @@ export default function AddressPage() {
 
                     {/* Amount Column */}
                     <div className="col-span-2 text-right">
-                      {(tx.isShielded && !tx.isDeshielding) || tx.amount === 0 ? (
+                      {(tx.isShielded && !tx.isDeshielding && !tx.isShielding) || tx.amount === 0 ? (
                         <span className="text-xs text-purple-400 font-mono flex items-center justify-end gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
