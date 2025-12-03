@@ -110,6 +110,20 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   );
 }
 
+// Chain name mapping for full names
+const chainNames: Record<string, string> = {
+  eth: 'Ethereum',
+  sol: 'Solana',
+  btc: 'Bitcoin',
+  near: 'NEAR',
+  arb: 'Arbitrum',
+  base: 'Base',
+  pol: 'Polygon',
+  avax: 'Avalanche',
+  doge: 'Dogecoin',
+  xrp: 'Ripple',
+};
+
 // Token display with optional chain tag for multi-chain tokens (e.g., USDC on ETH vs SOL)
 function TokenWithChain({ symbol }: { symbol: string }) {
   // Parse "USDC (ETH)" → { token: "USDC", chain: "ETH" }
@@ -119,18 +133,19 @@ function TokenWithChain({ symbol }: { symbol: string }) {
     const [, token, chain] = match;
     const chainLower = chain.toLowerCase();
     const chainConf = chainConfig[chainLower];
+    const chainFullName = chainNames[chainLower] || chain;
     
     return (
       <span className="flex items-center gap-1">
         <span>{token}</span>
         <span 
-          className="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase"
+          className="px-1.5 py-0.5 text-[9px] font-bold rounded"
           style={{ 
             backgroundColor: `${chainConf?.color || '#666'}20`,
             color: chainConf?.color || '#888'
           }}
         >
-          {chain}
+          {chainFullName}
         </span>
       </span>
     );
