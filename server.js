@@ -1002,9 +1002,20 @@ app.get('/api/address/:address', async (req, res) => {
 
     const summary = summaryResult.rows[0];
 
-    // Get recent transactions
+    // Get recent transactions (optimized query for addresses with many txs)
+    // Step 1: Find the most recent txids efficiently
     const txResult = await pool.query(
-      `SELECT DISTINCT
+      `WITH recent_txids AS (
+        SELECT DISTINCT txid
+        FROM (
+          SELECT txid FROM transaction_outputs 
+          WHERE address = $1
+          UNION ALL
+          SELECT txid FROM transaction_inputs 
+          WHERE address = $1
+        ) all_txids
+      )
+      SELECT 
         t.txid,
         t.block_height,
         t.block_time,
@@ -1012,20 +1023,22 @@ app.get('/api/address/:address', async (req, res) => {
         t.tx_index,
         t.has_sapling,
         t.has_orchard,
-        COALESCE(
-          (SELECT SUM(value) FROM transaction_inputs WHERE txid = t.txid AND address = $1),
-          0
-        ) as input_value,
-        COALESCE(
-          (SELECT SUM(value) FROM transaction_outputs WHERE txid = t.txid AND address = $1),
-          0
-        ) as output_value
+        COALESCE(ti.input_value, 0) as input_value,
+        COALESCE(tov.output_value, 0) as output_value
       FROM transactions t
-      WHERE t.txid IN (
-        SELECT txid FROM transaction_inputs WHERE address = $1
-        UNION
-        SELECT txid FROM transaction_outputs WHERE address = $1
-      )
+      JOIN recent_txids rt ON t.txid = rt.txid
+      LEFT JOIN (
+        SELECT txid, SUM(value) as input_value 
+        FROM transaction_inputs 
+        WHERE address = $1 
+        GROUP BY txid
+      ) ti ON t.txid = ti.txid
+      LEFT JOIN (
+        SELECT txid, SUM(value) as output_value 
+        FROM transaction_outputs 
+        WHERE address = $1 
+        GROUP BY txid
+      ) tov ON t.txid = tov.txid
       ORDER BY t.block_height DESC, t.tx_index DESC
       LIMIT $2 OFFSET $3`,
       [address, limit, offset]
