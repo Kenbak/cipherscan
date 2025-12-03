@@ -181,7 +181,7 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('addresses')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
                 <div className="flex items-center gap-3">
                   <Icons.Key />
@@ -211,8 +211,8 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'mainnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -221,8 +221,8 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'testnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -247,8 +247,8 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'mainnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -257,8 +257,8 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'testnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -286,8 +286,8 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'mainnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -296,8 +296,8 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'testnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -315,7 +315,7 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('viewingkeys')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
                 <div className="flex items-center gap-3">
                   <Icons.Eye />
@@ -374,8 +374,8 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'mainnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -384,8 +384,8 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'testnet'
-                            ? 'bg-cipher-surface border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
+                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
                         }`}
                       >
                         Testnet
@@ -403,7 +403,7 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('wallets')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
                 <div className="flex items-center gap-3">
                   <Icons.Wallet />
@@ -427,7 +427,7 @@ export default function LearnPage() {
                         href="https://apps.apple.com/app/zashi-zcash-wallet/id1672822094"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         iOS Mainnet
                       </a>
@@ -435,7 +435,7 @@ export default function LearnPage() {
                         href="https://testflight.apple.com/join/wFtmW9uS"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         iOS Testnet
                       </a>
@@ -443,7 +443,7 @@ export default function LearnPage() {
                         href="https://play.google.com/store/apps/details?id=co.electriccoin.zcash"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         Android Mainnet
                       </a>
@@ -451,7 +451,7 @@ export default function LearnPage() {
                         href="https://appdistribution.firebase.dev/i/b26c9d40883899e3"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         Android Testnet
                       </a>
@@ -497,7 +497,7 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('dev')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
                 <div className="flex items-center gap-3">
                   <Icons.Code />
@@ -671,35 +671,35 @@ export default function LearnPage() {
               <div className="space-y-2">
                 <Link
                   href="/decrypt"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Lock />
                   <span>Decrypt Shielded Memos</span>
                 </Link>
                 <Link
                   href="/network"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Globe />
                   <span>Network Statistics</span>
                 </Link>
                 <Link
                   href="/privacy"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Shield />
                   <span>Privacy Dashboard</span>
                 </Link>
                 <Link
                   href="/mempool"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Activity />
                   <span>Mempool Viewer</span>
                 </Link>
                 <Link
                   href="/docs"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Code />
                   <span>API Documentation</span>
