@@ -161,6 +161,23 @@ export default function BlockPage() {
             };
           });
 
+          // Calculate total fees including shielded fees
+          // value_balance for shielded txs represents the fee (positive = ZEC leaving shielded pool = fee)
+          const shieldedFees = (blockData.transactions || []).reduce((sum: number, tx: any) => {
+            // Skip coinbase transactions (they don't pay fees)
+            const isCoinbaseTx = tx.tx_index === 0;
+            if (isCoinbaseTx) return sum;
+            
+            // Sum up shielded fees (value_balance_sapling + value_balance_orchard)
+            const saplingFee = parseInt(tx.value_balance_sapling || 0);
+            const orchardFee = parseInt(tx.value_balance_orchard || 0);
+            return sum + saplingFee + orchardFee;
+          }, 0);
+          
+          const storedFees = parseFloat(blockData.total_fees || blockData.totalFees || 0);
+          // Use the higher of stored fees or calculated shielded fees (in case stored is 0)
+          const totalFeesZatoshi = storedFees > 0 ? storedFees : shieldedFees;
+
           const transformedData = {
             height: parseInt(blockData.height),
             hash: blockData.hash,
@@ -178,7 +195,7 @@ export default function BlockPage() {
             bits: blockData.bits,
             nonce: blockData.nonce,
             solution: blockData.solution,
-            totalFees: parseFloat(blockData.total_fees || blockData.totalFees || 0) / 100000000, // satoshis to ZEC
+            totalFees: totalFeesZatoshi / 100000000, // zatoshis to ZEC
             minerAddress: blockData.miner_address || blockData.minerAddress,
           };
           setData(transformedData);
@@ -504,7 +521,7 @@ export default function BlockPage() {
               {data.transactions.map((tx, index) => {
                 // Detect coinbase first (takes priority in display)
                 const isCoinbase = tx.vin?.[0]?.coinbase;
-                
+
                 // Detect shielded transactions (Sapling, Orchard, or Sprout)
                 const isShielded = !isCoinbase && (
                   tx.hasShieldedActivity || // From transformation (uses has_sapling, has_orchard)
@@ -593,16 +610,32 @@ export default function BlockPage() {
 
                       {/* Inputs Column */}
                       <div className="col-span-1 text-center">
-                        <span className="text-xs text-gray-400 font-mono">
-                          {inputCount}
-                        </span>
+                        {isShielded && inputCount === 0 ? (
+                          <span className="text-purple-400" title="Shielded inputs">
+                            <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-mono">
+                            {inputCount}
+                          </span>
+                        )}
                       </div>
 
                       {/* Outputs Column */}
                       <div className="col-span-1 text-center">
-                        <span className="text-xs text-gray-400 font-mono">
-                          {outputCount}
-                        </span>
+                        {isShielded && outputCount === 0 ? (
+                          <span className="text-purple-400" title="Shielded outputs">
+                            <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-mono">
+                            {outputCount}
+                          </span>
+                        )}
                       </div>
 
                       {/* Size Column */}
@@ -614,11 +647,17 @@ export default function BlockPage() {
 
                       {/* Amount Column */}
                       <div className="col-span-1 text-right">
-                        {totalOutput > 0 && (
+                        {totalOutput > 0 ? (
                           <div className="text-xs font-mono text-white font-semibold">
                             {totalOutput.toFixed(4)}
                           </div>
-                        )}
+                        ) : isShielded ? (
+                          <span className="text-purple-400 flex items-center justify-end gap-1" title="Amount hidden (shielded)">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </Link>
