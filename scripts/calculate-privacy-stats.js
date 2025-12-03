@@ -194,7 +194,7 @@ async function calculatePrivacyStats() {
     const latestBlock = parseInt(txCounts.latest_block);
 
     const shieldedPercentage = totalTx > 0 ? (shieldedTx / totalTx) * 100 : 0;
-    const privacyScore = Math.round(shieldedPercentage * 0.8); // 80% weight on shielded adoption
+    // Note: Privacy score is calculated by the indexer in privacy_trends_daily
 
     // 6️⃣ Calculate average shielded per day (last 30 days)
     console.log('📈 Calculating daily averages...');
@@ -282,7 +282,7 @@ async function calculatePrivacyStats() {
       0, // total_shielded (not calculated yet)
       0, // total_unshielded (not calculated yet)
       shieldedPercentage,
-      privacyScore,
+      0, // privacy_score - calculated by indexer in privacy_trends_daily
       avgShieldedPerDay,
       adoptionTrend,
       latestBlock,
@@ -299,7 +299,6 @@ async function calculatePrivacyStats() {
     console.log(`   Transparent Txs: ${transparentTx.toLocaleString()}`);
     console.log(`   Mixed Txs: ${mixedTx.toLocaleString()}`);
     console.log(`   Fully Shielded Txs: ${fullyShieldedTx.toLocaleString()}`);
-    console.log(`   Privacy Score: ${privacyScore}/100`);
     console.log('');
     console.log('💰 Pool Sizes (from Zebra RPC):');
     console.log(`   Sprout: ${(sproutPool / 100000000).toLocaleString()} ZEC`);

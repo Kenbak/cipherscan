@@ -1255,20 +1255,20 @@ async function fetchNetworkStatsOptimized() {
     if (blockchainInfo) {
       const chainSupplyZat = blockchainInfo.chainSupply?.chainValueZat || 0;
       const valuePools = blockchainInfo.valuePools || [];
-      
+
       const transparent = valuePools.find(p => p.id === 'transparent')?.chainValueZat || 0;
       const sprout = valuePools.find(p => p.id === 'sprout')?.chainValueZat || 0;
       const sapling = valuePools.find(p => p.id === 'sapling')?.chainValueZat || 0;
       const orchard = valuePools.find(p => p.id === 'orchard')?.chainValueZat || 0;
       const lockbox = valuePools.find(p => p.id === 'lockbox')?.chainValueZat || 0;
-      
+
       const totalShielded = sprout + sapling + orchard;
       const shieldedPercentage = chainSupplyZat > 0 ? (totalShielded / chainSupplyZat) * 100 : 0;
-      
+
       // Get active upgrade
       const upgrades = blockchainInfo.upgrades || {};
       const activeUpgrades = Object.values(upgrades).filter((u) => u.status === 'active');
-      const latestUpgrade = activeUpgrades.length > 0 
+      const latestUpgrade = activeUpgrades.length > 0
         ? activeUpgrades.reduce((latest, u) => u.activationheight > latest.activationheight ? u : latest)
         : null;
 
