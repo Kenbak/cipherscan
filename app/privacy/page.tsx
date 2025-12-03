@@ -242,7 +242,7 @@ export default function PrivacyPage() {
             {/* Key Metrics 2x2 Grid */}
             <div className="grid grid-cols-2 gap-4">
               {/* Shielded Percentage */}
-              <div className="card">
+              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Lock />
                   <h3 className="text-xs font-semibold text-gray-400 uppercase">Shielded Tx %</h3>
@@ -256,7 +256,7 @@ export default function PrivacyPage() {
               </div>
 
               {/* Supply Shielded % */}
-              <div className="card">
+              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Shield />
                   <h3 className="text-xs font-semibold text-gray-400 uppercase">Supply Shielded</h3>
@@ -272,7 +272,7 @@ export default function PrivacyPage() {
               </div>
 
               {/* Adoption Trend */}
-              <div className="card">
+              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   {trendIcon}
                   <h3 className="text-xs font-semibold text-gray-400 uppercase">Adoption Trend</h3>
@@ -284,7 +284,7 @@ export default function PrivacyPage() {
               </div>
 
               {/* Fully Shielded */}
-              <div className="card">
+              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Eye />
                   <h3 className="text-xs font-semibold text-gray-400 uppercase">Fully Shielded</h3>
@@ -299,7 +299,7 @@ export default function PrivacyPage() {
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
-          <div className="card bg-gradient-to-br from-purple-500/5 to-purple-600/5 border-purple-500/20">
+          <div className="card bg-gradient-to-br from-purple-900/5 to-cipher-surface border-2 border-purple-500/30">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold font-mono text-purple-400 flex items-center gap-2">
                 <Icons.Lock />
@@ -316,7 +316,7 @@ export default function PrivacyPage() {
 
             {/* Show only 3-4 TXs */}
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              <RecentShieldedTxs />
+              <RecentShieldedTxs nested />
             </div>
 
             <div className="mt-4 pt-4 border-t border-purple-500/20">

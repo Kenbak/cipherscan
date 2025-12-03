@@ -17,7 +17,11 @@ interface ShieldedTx {
   type: 'fully-shielded' | 'partial';
 }
 
-export function RecentShieldedTxs() {
+interface RecentShieldedTxsProps {
+  nested?: boolean; // When inside another card, use transparent bg
+}
+
+export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
   const [txs, setTxs] = useState<ShieldedTx[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +75,7 @@ export function RecentShieldedTxs() {
       {txs.map((tx, index) => (
         <Link href={`/tx/${tx.txid}`} key={tx.txid}>
           <div
-            className="card hover:border-purple-500 transition-all cursor-pointer group animate-slide-up"
+            className={`card ${nested ? '!bg-transparent border-purple-500/20 hover:border-purple-500/50' : 'hover:border-purple-500'} transition-all cursor-pointer group animate-slide-up`}
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
