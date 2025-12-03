@@ -49,7 +49,7 @@ function cacheTx(txid, tx) {
 
 /**
  * Calculate privacy score (0-100) based on multiple factors
- * 
+ *
  * @param {object} params
  * @param {number} params.dailyShieldedPercent - % of today's txs that are shielded
  * @param {number} params.allTimeShieldedPercent - % of all txs that are shielded
@@ -71,16 +71,16 @@ function calculatePrivacyScore(params) {
   // Factor 1: Supply Shielded Score (0-40 points)
   // How much of the total ZEC supply is in shielded pools?
   // 30% shielded = 40 pts (max)
-  const supplyShieldedPercent = chainSupplyZat > 0 
-    ? (totalShieldedZat / chainSupplyZat) * 100 
+  const supplyShieldedPercent = chainSupplyZat > 0
+    ? (totalShieldedZat / chainSupplyZat) * 100
     : 0;
   const supplyScore = Math.min(supplyShieldedPercent * 1.33, 40);
 
   // Factor 2: Fully Shielded Score (0-30 points)
   // What % of shielded txs are fully shielded (z-to-z)?
   // 10% fully shielded = 30 pts (max)
-  const fullyShieldedPercent = shieldedTx > 0 
-    ? (fullyShieldedTx / shieldedTx) * 100 
+  const fullyShieldedPercent = shieldedTx > 0
+    ? (fullyShieldedTx / shieldedTx) * 100
     : 0;
   const fullyShieldedScore = Math.min(fullyShieldedPercent * 3, 30);
 
@@ -91,7 +91,7 @@ function calculatePrivacyScore(params) {
   const adoptionScore = Math.min(combinedAdoption * 3, 30);
 
   const totalScore = Math.round(supplyScore + fullyShieldedScore + adoptionScore);
-  
+
   // Debug log (can be removed later)
   // console.log(`Privacy Score: supply=${supplyScore.toFixed(1)} fully=${fullyShieldedScore.toFixed(1)} adoption=${adoptionScore.toFixed(1)} = ${totalScore}`);
 
@@ -219,7 +219,7 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
       tx.size,
       tx.vin ? tx.vin.length : 0,
       tx.vout ? tx.vout.length : 0,
-      tx.valueBalance || 0,
+      Math.round((tx.valueBalance || 0) * 100000000), // Convert ZEC to zatoshis
       hasSapling,
       hasOrchard,
       hasSprout,
@@ -454,14 +454,14 @@ async function initializePrivacyTrends() {
 
       // Get current pool size and other stats from privacy_stats
       const privacyStatsResult = await db.query(`
-        SELECT 
+        SELECT
           shielded_pool_size,
           chain_supply,
           shielded_tx,
           fully_shielded_tx,
           shielded_percentage as all_time_shielded_percent
-        FROM privacy_stats 
-        ORDER BY updated_at DESC 
+        FROM privacy_stats
+        ORDER BY updated_at DESC
         LIMIT 1
       `);
       const privacyStats = privacyStatsResult.rows[0] || {};
@@ -530,14 +530,14 @@ async function updatePrivacyTrendsDaily() {
 
     // Get current pool size and other stats from privacy_stats
     const privacyStatsResult = await db.query(`
-      SELECT 
+      SELECT
         shielded_pool_size,
         chain_supply,
         shielded_tx,
         fully_shielded_tx,
         shielded_percentage as all_time_shielded_percent
-      FROM privacy_stats 
-      ORDER BY updated_at DESC 
+      FROM privacy_stats
+      ORDER BY updated_at DESC
       LIMIT 1
     `);
     const privacyStats = privacyStatsResult.rows[0] || {};
