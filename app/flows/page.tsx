@@ -621,68 +621,116 @@ export default function FlowsPage() {
             <Icons.Live />
           </div>
 
+          {/* Table Header - Hidden on mobile */}
+          <div className="hidden sm:grid sm:grid-cols-[60px_80px_1fr_40px_1fr_100px_70px] gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase border-b border-cipher-border mb-2">
+            <span>Time</span>
+            <span>Type</span>
+            <span>From</span>
+            <span></span>
+            <span>To</span>
+            <span>Status</span>
+            <span></span>
+          </div>
+
           <div className="space-y-2">
-            {stats.recentSwaps.map((swap) => (
+            {stats.recentSwaps.map((swap) => {
+              const sourceChain = chainNames[swap.fromChain] || swap.fromChain.toUpperCase();
+              const isInflow = swap.direction === 'in';
+              
+              return (
               <div
                 key={swap.id}
-                className="flex items-center justify-between p-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-16">{formatRelativeTime(swap.timestamp)}</span>
+                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_40px_1fr_100px_70px] gap-2 sm:gap-2 items-center p-3 sm:py-3 sm:px-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
+                >
+                  {/* Time */}
+                  <span className="text-xs text-gray-500 font-mono hidden sm:block">
+                    {formatRelativeTime(swap.timestamp)}
+                  </span>
 
-                  {/* IN/OUT Tag */}
-                  {swap.direction === 'in' ? (
-                    <span className="px-2 py-0.5 bg-cipher-green/20 text-cipher-green text-[10px] font-bold rounded">IN</span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded">OUT</span>
-                  )}
-
-                  {/* Swap details */}
-                  {swap.direction === 'in' ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="flex items-center gap-1.5 text-gray-300">
-                        <CryptoIcon symbol={swap.fromSymbol} size={16} />
-                        <span className="font-mono">{swap.fromAmount}</span>
-                        <TokenWithChain symbol={swap.fromSymbol} />
+                  {/* Direction Tag */}
+                  <div className="flex items-center gap-2 sm:block">
+                    {isInflow ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cipher-green/20 text-cipher-green text-xs font-bold rounded border border-cipher-green/30">
+                        <Icons.ArrowIn />
+                        <span className="hidden sm:inline">IN</span>
                       </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="flex items-center gap-1.5 text-white">
-                        <CryptoIcon symbol="ZEC" size={16} />
-                        <span className="font-mono">{swap.toAmount} ZEC</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded border border-red-500/30">
+                        <Icons.ArrowOut />
+                        <span className="hidden sm:inline">OUT</span>
+                      </span>
+                    )}
+                    {/* Mobile: show time next to direction */}
+                    <span className="text-xs text-gray-500 font-mono sm:hidden">
+                      {formatRelativeTime(swap.timestamp)}
+                    </span>
+                  </div>
+
+                  {/* Source */}
+                    <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50">
+                      <CryptoIcon symbol={isInflow ? swap.fromSymbol : 'ZEC'} size={24} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-mono text-white font-semibold">
+                        {isInflow ? swap.fromAmount : swap.fromAmount} {isInflow ? swap.fromSymbol : 'ZEC'}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        {isInflow ? sourceChain : 'Zcash'}
                       </span>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="flex items-center gap-1.5 text-white">
-                        <CryptoIcon symbol="ZEC" size={16} />
-                        <span className="font-mono">{swap.fromAmount} ZEC</span>
+                  </div>
+
+                  {/* Bridge Icon */}
+                  <div className="hidden sm:flex justify-center">
+                    <span className="text-gray-500 text-lg">🌉</span>
+                  </div>
+
+                  {/* Destination */}
+                    <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50">
+                      <CryptoIcon symbol={isInflow ? 'ZEC' : (chainConfig[swap.fromChain]?.symbol || swap.fromChain)} size={24} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-mono text-white font-semibold">
+                        {swap.toAmount} {isInflow ? 'ZEC' : (chainConfig[swap.fromChain]?.symbol || swap.fromChain)}
                       </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="flex items-center gap-1.5 text-gray-300">
-                        <CryptoIcon symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} size={16} />
-                        <span className="font-mono">{swap.toAmount}</span>
-                        <TokenWithChain symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} />
+                      <span className="text-[10px] text-gray-500">
+                        {isInflow ? 'Zcash' : sourceChain}
                       </span>
                     </div>
-                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                  {/* Status */}
+                  <div>
                   {swap.shielded === true && (
-                    <span className="flex items-center gap-1 text-xs text-purple-400">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded border border-purple-500/30">
                       <Icons.Shield />
                       Shielded
                     </span>
                   )}
                   {swap.shielded === false && (
-                    <span className="text-xs text-yellow-400">⚠️ Transparent</span>
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded border border-yellow-500/30">
+                        ⚠️ Transparent
+                      </span>
                   )}
                   {swap.shielded === null && (
-                    <span className="text-xs text-gray-500">Pending...</span>
-                  )}
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded border border-gray-500/30">
+                        <span className="animate-spin">⏳</span>
+                        Pending
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action hint */}
+                  <div className="hidden sm:flex justify-end">
+                    <span className="text-gray-600 group-hover:text-cipher-cyan transition-colors text-sm">
+                      →
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-4 pt-4 border-t border-cipher-border text-center">
