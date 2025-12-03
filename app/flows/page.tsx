@@ -92,7 +92,7 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   const baseSymbol = symbol.split(' ')[0].toLowerCase();
   const config = chainConfig[baseSymbol] || chainConfig[symbol.toLowerCase()];
   const iconId = config?.iconId || baseSymbol;
-  
+
   return (
     <img
       src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`}
