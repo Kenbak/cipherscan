@@ -90,7 +90,7 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string;
 function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
   const config = chainConfig[symbol.toLowerCase()];
   const iconId = config?.iconId || symbol.toLowerCase();
-  
+
   return (
     <img
       src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`}
@@ -503,34 +503,36 @@ export default function FlowsPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-500 w-16">{formatRelativeTime(swap.timestamp)}</span>
 
+                  {/* IN/OUT Tag */}
                   {swap.direction === 'in' ? (
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono"
-                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}15`, color: chainConfig[swap.fromChain]?.color }}
-                      >
-                        <CryptoIcon symbol={swap.fromSymbol} size={14} />
-                        {swap.fromAmount} {swap.fromSymbol}
+                    <span className="px-2 py-0.5 bg-cipher-green/20 text-cipher-green text-[10px] font-bold rounded">IN</span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded">OUT</span>
+                  )}
+
+                  {/* Swap details */}
+                  {swap.direction === 'in' ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="flex items-center gap-1.5 text-gray-300">
+                        <CryptoIcon symbol={swap.fromSymbol} size={16} />
+                        <span className="font-mono">{swap.fromAmount} {swap.fromSymbol}</span>
                       </span>
                       <span className="text-gray-500">→</span>
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
-                        <CryptoIcon symbol="ZEC" size={14} />
-                        {swap.toAmount} ZEC
+                      <span className="flex items-center gap-1.5 text-yellow-400">
+                        <CryptoIcon symbol="ZEC" size={16} />
+                        <span className="font-mono">{swap.toAmount} ZEC</span>
                       </span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
-                        <CryptoIcon symbol="ZEC" size={14} />
-                        {swap.fromAmount} ZEC
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="flex items-center gap-1.5 text-yellow-400">
+                        <CryptoIcon symbol="ZEC" size={16} />
+                        <span className="font-mono">{swap.fromAmount} ZEC</span>
                       </span>
                       <span className="text-gray-500">→</span>
-                      <span
-                        className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono"
-                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}15`, color: chainConfig[swap.fromChain]?.color }}
-                      >
-                        <CryptoIcon symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} size={14} />
-                        {swap.toAmount} {chainConfig[swap.fromChain]?.symbol}
+                      <span className="flex items-center gap-1.5 text-gray-300">
+                        <CryptoIcon symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} size={16} />
+                        <span className="font-mono">{swap.toAmount} {chainConfig[swap.fromChain]?.symbol}</span>
                       </span>
                     </div>
                   )}
