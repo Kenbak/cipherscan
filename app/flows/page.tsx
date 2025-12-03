@@ -7,12 +7,18 @@ import { CURRENCY, isMainnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
 // Types
-interface ChainVolume {
-  chain: string;
+interface TokenVolume {
   symbol: string;
   volume24h: number;
-  volumeChange: number;
+}
+
+interface ChainGroup {
+  chain: string;
+  chainName: string;
   color: string;
+  totalVolume24h: number;
+  volumeChange: number;
+  tokens: TokenVolume[];
 }
 
 interface RecentSwap {
@@ -31,8 +37,8 @@ interface CrossChainStats {
   volumeChange7d: number;
   shieldedRate: number;
   totalSwaps24h: number;
-  inflows: ChainVolume[];
-  outflows: ChainVolume[];
+  inflows: ChainGroup[];
+  outflows: ChainGroup[];
   recentSwaps: RecentSwap[];
 }
 
@@ -128,19 +134,19 @@ const chainNames: Record<string, string> = {
 function TokenWithChain({ symbol }: { symbol: string }) {
   // Parse "USDC (ETH)" → { token: "USDC", chain: "ETH" }
   const match = symbol.match(/^(\w+)\s*\((\w+)\)$/);
-  
+
   if (match) {
     const [, token, chain] = match;
     const chainLower = chain.toLowerCase();
     const chainConf = chainConfig[chainLower];
     const chainFullName = chainNames[chainLower] || chain;
-    
+
     return (
       <span className="flex items-center gap-1">
         <span>{token}</span>
-        <span 
+        <span
           className="px-1.5 py-0.5 text-[9px] font-bold rounded"
-          style={{ 
+          style={{
             backgroundColor: `${chainConf?.color || '#666'}20`,
             color: chainConf?.color || '#888'
           }}
@@ -150,37 +156,67 @@ function TokenWithChain({ symbol }: { symbol: string }) {
       </span>
     );
   }
-  
+
   // No chain specified, just return the symbol
   return <span>{symbol}</span>;
 }
 
-// Mock data for design work
+// Mock data for design work - grouped by chain
 const mockStats: CrossChainStats = {
   totalVolume24h: 2_450_000,
   volumeChange7d: 12.5,
   shieldedRate: 67,
   totalSwaps24h: 1_234,
   inflows: [
-    { chain: 'btc', symbol: 'BTC', volume24h: 890_000, volumeChange: 15, color: '#F7931A' },
-    { chain: 'eth', symbol: 'ETH', volume24h: 650_000, volumeChange: -3, color: '#627EEA' },
-    { chain: 'sol', symbol: 'SOL', volume24h: 340_000, volumeChange: 8, color: '#14F195' },
-    { chain: 'usdc-eth', symbol: 'USDC (ETH)', volume24h: 280_000, volumeChange: 22, color: '#2775CA' },
-    { chain: 'usdc-sol', symbol: 'USDC (SOL)', volume24h: 120_000, volumeChange: 18, color: '#2775CA' },
-    { chain: 'near', symbol: 'NEAR', volume24h: 180_000, volumeChange: 45, color: '#00C08B' },
+    { 
+      chain: 'btc', chainName: 'Bitcoin', color: '#F7931A',
+      totalVolume24h: 890_000, volumeChange: 15,
+      tokens: [{ symbol: 'BTC', volume24h: 890_000 }]
+    },
+    { 
+      chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
+      totalVolume24h: 930_000, volumeChange: 5,
+      tokens: [
+        { symbol: 'ETH', volume24h: 650_000 },
+        { symbol: 'USDC', volume24h: 280_000 }
+      ]
+    },
+    { 
+      chain: 'sol', chainName: 'Solana', color: '#14F195',
+      totalVolume24h: 460_000, volumeChange: 12,
+      tokens: [
+        { symbol: 'SOL', volume24h: 340_000 },
+        { symbol: 'USDC', volume24h: 120_000 }
+      ]
+    },
+    { 
+      chain: 'near', chainName: 'NEAR', color: '#00C08B',
+      totalVolume24h: 180_000, volumeChange: 45,
+      tokens: [{ symbol: 'NEAR', volume24h: 180_000 }]
+    },
   ],
   outflows: [
-    { chain: 'eth', symbol: 'ETH', volume24h: 120_000, volumeChange: -5, color: '#627EEA' },
-    { chain: 'sol', symbol: 'SOL', volume24h: 80_000, volumeChange: 12, color: '#14F195' },
-    { chain: 'usdc-eth', symbol: 'USDC (ETH)', volume24h: 45_000, volumeChange: -8, color: '#2775CA' },
+    { 
+      chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
+      totalVolume24h: 165_000, volumeChange: -5,
+      tokens: [
+        { symbol: 'ETH', volume24h: 120_000 },
+        { symbol: 'USDC', volume24h: 45_000 }
+      ]
+    },
+    { 
+      chain: 'sol', chainName: 'Solana', color: '#14F195',
+      totalVolume24h: 80_000, volumeChange: 12,
+      tokens: [{ symbol: 'SOL', volume24h: 80_000 }]
+    },
   ],
   recentSwaps: [
     { id: '1', timestamp: Date.now() - 2000, fromChain: 'btc', fromAmount: 0.5, fromSymbol: 'BTC', toAmount: 142, direction: 'in', shielded: true },
     { id: '2', timestamp: Date.now() - 15000, fromChain: 'eth', fromAmount: 1.2, fromSymbol: 'ETH', toAmount: 89, direction: 'in', shielded: false },
-    { id: '3', timestamp: Date.now() - 34000, fromChain: 'usdc-eth', fromAmount: 500, fromSymbol: 'USDC (ETH)', toAmount: 12, direction: 'in', shielded: true },
+    { id: '3', timestamp: Date.now() - 34000, fromChain: 'eth', fromAmount: 500, fromSymbol: 'USDC', toAmount: 12, direction: 'in', shielded: true },
     { id: '4', timestamp: Date.now() - 60000, fromChain: 'sol', fromAmount: 45, fromSymbol: 'SOL', toAmount: 320, direction: 'in', shielded: null },
     { id: '5', timestamp: Date.now() - 120000, fromChain: 'eth', fromAmount: 50, fromSymbol: 'ZEC', toAmount: 0.8, direction: 'out', shielded: true },
-    { id: '6', timestamp: Date.now() - 180000, fromChain: 'usdc-sol', fromAmount: 1000, fromSymbol: 'USDC (SOL)', toAmount: 24, direction: 'in', shielded: true },
+    { id: '6', timestamp: Date.now() - 180000, fromChain: 'sol', fromAmount: 1000, fromSymbol: 'USDC', toAmount: 24, direction: 'in', shielded: true },
   ],
 };
 
@@ -238,7 +274,7 @@ export default function FlowsPage() {
           return;
         }
 
-        // Transform API response to our format
+        // Transform API response to our format (grouped by chain)
         const transformedStats: CrossChainStats = {
           totalVolume24h: data.totalVolume24h || 0,
           volumeChange7d: data.volumeChange7d || 0,
@@ -246,17 +282,19 @@ export default function FlowsPage() {
           totalSwaps24h: data.totalSwaps24h || 0,
           inflows: (data.inflows || []).map((c: any) => ({
             chain: c.chain,
-            symbol: c.symbol,
-            volume24h: c.volumeUsd,
-            volumeChange: 0, // Would need historical data
-            color: c.color,
+            chainName: chainNames[c.chain] || c.chain,
+            color: chainConfig[c.chain]?.color || '#666',
+            totalVolume24h: c.totalVolumeUsd || c.volumeUsd || 0,
+            volumeChange: c.volumeChange || 0,
+            tokens: c.tokens || [{ symbol: c.symbol, volume24h: c.volumeUsd || 0 }],
           })),
           outflows: (data.outflows || []).map((c: any) => ({
             chain: c.chain,
-            symbol: c.symbol,
-            volume24h: c.volumeUsd,
-            volumeChange: 0,
-            color: c.color,
+            chainName: chainNames[c.chain] || c.chain,
+            color: chainConfig[c.chain]?.color || '#666',
+            totalVolume24h: c.totalVolumeUsd || c.volumeUsd || 0,
+            volumeChange: c.volumeChange || 0,
+            tokens: c.tokens || [{ symbol: c.symbol, volume24h: c.volumeUsd || 0 }],
           })),
           recentSwaps: (data.recentSwaps || []).map((swap: any) => ({
             id: swap.id,
@@ -462,30 +500,50 @@ export default function FlowsPage() {
               </h2>
               <span className="text-sm text-gray-400">{formatUSD(totalInflows)}</span>
             </div>
-            <div className="space-y-3">
-              {stats.inflows.map((chain) => (
-                <div key={chain.chain} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chain.color}15` }}>
-                    <CryptoIcon symbol={chain.symbol} size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-mono"><TokenWithChain symbol={chain.symbol} /></span>
-                      <span className="text-sm text-gray-400">{formatUSD(chain.volume24h)}</span>
+            <div className="space-y-4">
+              {stats.inflows.map((chainGroup) => (
+                <div key={chainGroup.chain}>
+                  {/* Chain header */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
+                      <CryptoIcon symbol={chainGroup.chain} size={24} />
                     </div>
-                    <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${(chain.volume24h / totalInflows) * 100}%`,
-                          backgroundColor: chain.color
-                        }}
-                      />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
+                          <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
+                            {chainGroup.volumeChange >= 0 ? '+' : ''}{chainGroup.volumeChange}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <span className={`text-xs ${chain.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-                    {chain.volumeChange >= 0 ? '+' : ''}{chain.volumeChange}%
-                  </span>
+                  {/* Progress bar */}
+                  <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(chainGroup.totalVolume24h / totalInflows) * 100}%`,
+                        backgroundColor: chainGroup.color
+                      }}
+                    />
+                  </div>
+                  {/* Token breakdown (only if multiple tokens) */}
+                  {chainGroup.tokens.length > 1 && (
+                    <div className="ml-11 mt-2 space-y-1">
+                      {chainGroup.tokens.map((token) => (
+                        <div key={token.symbol} className="flex items-center justify-between text-xs text-gray-400">
+                          <span className="flex items-center gap-1.5">
+                            <CryptoIcon symbol={token.symbol} size={14} />
+                            {token.symbol}
+                          </span>
+                          <span>{formatUSD(token.volume24h)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -500,31 +558,51 @@ export default function FlowsPage() {
               </h2>
               <span className="text-sm text-gray-400">{formatUSD(totalOutflows)}</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {stats.outflows.length > 0 ? (
-                stats.outflows.map((chain) => (
-                  <div key={chain.chain} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chain.color}15` }}>
-                      <CryptoIcon symbol={chain.symbol} size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-mono"><TokenWithChain symbol={chain.symbol} /></span>
-                        <span className="text-sm text-gray-400">{formatUSD(chain.volume24h)}</span>
+                stats.outflows.map((chainGroup) => (
+                  <div key={chainGroup.chain}>
+                    {/* Chain header */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
+                        <CryptoIcon symbol={chainGroup.chain} size={24} />
                       </div>
-                      <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(chain.volume24h / totalOutflows) * 100}%`,
-                            backgroundColor: chain.color
-                          }}
-                        />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
+                            <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
+                              {chainGroup.volumeChange >= 0 ? '+' : ''}{chainGroup.volumeChange}%
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <span className={`text-xs ${chain.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-                      {chain.volumeChange >= 0 ? '+' : ''}{chain.volumeChange}%
-                    </span>
+                    {/* Progress bar */}
+                    <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(chainGroup.totalVolume24h / totalOutflows) * 100}%`,
+                          backgroundColor: chainGroup.color
+                        }}
+                      />
+                    </div>
+                    {/* Token breakdown (only if multiple tokens) */}
+                    {chainGroup.tokens.length > 1 && (
+                      <div className="ml-11 mt-2 space-y-1">
+                        {chainGroup.tokens.map((token) => (
+                          <div key={token.symbol} className="flex items-center justify-between text-xs text-gray-400">
+                            <span className="flex items-center gap-1.5">
+                              <CryptoIcon symbol={token.symbol} size={14} />
+                              {token.symbol}
+                            </span>
+                            <span>{formatUSD(token.volume24h)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
