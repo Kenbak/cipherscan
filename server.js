@@ -1010,6 +1010,8 @@ app.get('/api/address/:address', async (req, res) => {
         t.block_time,
         t.size,
         t.tx_index,
+        t.has_sapling,
+        t.has_orchard,
         COALESCE(
           (SELECT SUM(value) FROM transaction_inputs WHERE txid = t.txid AND address = $1),
           0
@@ -1034,6 +1036,9 @@ app.get('/api/address/:address', async (req, res) => {
       blockHeight: tx.block_height,
       blockTime: tx.block_time,
       size: tx.size,
+      txIndex: tx.tx_index,
+      hasSapling: tx.has_sapling,
+      hasOrchard: tx.has_orchard,
       inputValue: parseFloat(tx.input_value),
       outputValue: parseFloat(tx.output_value),
       netChange: parseFloat(tx.output_value) - parseFloat(tx.input_value),

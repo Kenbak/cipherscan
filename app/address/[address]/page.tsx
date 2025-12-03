@@ -32,6 +32,7 @@ interface Transaction {
   to?: string | null;
   isCoinbase?: boolean;
   isShielded?: boolean;
+  isDeshielding?: boolean;
 }
 
 // Icon components (same as block/tx pages)
@@ -142,8 +143,11 @@ export default function AddressPage() {
             blockHeight: tx.blockHeight,
             from: tx.netChange > 0 ? null : apiData.address,
             to: tx.netChange > 0 ? apiData.address : null,
-            isCoinbase: tx.inputValue === 0 && tx.outputValue > 0,
-            isShielded: false,
+            // Coinbase = first TX of block (tx_index 0) with no transparent inputs
+            // Deshielding = shielded TX with no transparent inputs but has orchard/sapling activity
+            isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !tx.hasOrchard && !tx.hasSapling,
+            isShielded: tx.hasOrchard || tx.hasSapling,
+            isDeshielding: tx.inputValue === 0 && tx.outputValue > 0 && (tx.hasOrchard || tx.hasSapling),
           }));
 
           setData({

@@ -167,13 +167,13 @@ export default function BlockPage() {
             // Skip coinbase transactions (they don't pay fees)
             const isCoinbaseTx = tx.tx_index === 0;
             if (isCoinbaseTx) return sum;
-            
+
             // Sum up shielded fees (value_balance_sapling + value_balance_orchard)
             const saplingFee = parseInt(tx.value_balance_sapling || 0);
             const orchardFee = parseInt(tx.value_balance_orchard || 0);
             return sum + saplingFee + orchardFee;
           }, 0);
-          
+
           const storedFees = parseFloat(blockData.total_fees || blockData.totalFees || 0);
           // Use the higher of stored fees or calculated shielded fees (in case stored is 0)
           const totalFeesZatoshi = storedFees > 0 ? storedFees : shieldedFees;
