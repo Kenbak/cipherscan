@@ -649,7 +649,7 @@ app.get('/api/tx/:txid', async (req, res) => {
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
-    
+
     // For shielded txs, fee = sum of positive value balances
     // For transparent txs, fee = sum(inputs) - sum(outputs) (calculated client-side)
     const shieldedFee = valueBalanceSapling + valueBalanceOrchard;
