@@ -146,7 +146,7 @@ export default function PrivacyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+      <div className="min-h-screen text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <div className="text-2xl">Loading privacy statistics...</div>
         </div>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+      <div className="min-h-screen text-white py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="card text-center">
             <div className="text-5xl mb-4">🛡️</div>
@@ -184,7 +184,7 @@ export default function PrivacyPage() {
     <Icons.Chart />;
 
   return (
-    <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+    <div className="min-h-screen text-white py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}

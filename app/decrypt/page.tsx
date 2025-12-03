@@ -48,7 +48,7 @@ export default function DecryptPage() {
   // Block mainnet completely
   if (!isTestnet) {
     return (
-      <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+      <div className="min-h-screen text-white py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="card bg-orange-900/20 border-orange-500/30">
             <div className="flex items-start gap-4">
@@ -85,7 +85,7 @@ export default function DecryptPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+    <div className="min-h-screen text-white py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header - Full Width */}

@@ -14,7 +14,7 @@ export default function DocsPage() {
   const endpoints = getEndpoints(baseUrl);
 
   return (
-    <div className="min-h-screen bg-cipher-bg text-white flex">
+    <div className="min-h-screen text-white flex">
       {/* Sidebar */}
       <ApiSidebar
         categories={categories.map(cat => ({

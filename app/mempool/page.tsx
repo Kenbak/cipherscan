@@ -101,7 +101,7 @@ export default function MempoolPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+      <div className="min-h-screen text-white py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
@@ -114,7 +114,7 @@ export default function MempoolPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+      <div className="min-h-screen text-white py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="card bg-red-900/20 border-red-500/30">
             <h2 className="text-xl font-bold text-red-300 mb-2">Error</h2>
@@ -126,7 +126,7 @@ export default function MempoolPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cipher-bg text-white py-12 px-4">
+    <div className="min-h-screen text-white py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}

@@ -128,7 +128,7 @@ export default function LearnPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cipher-bg text-white">
+    <div className="min-h-screen text-white">
       {/* Hero Section */}
       <div className="border-b border-cipher-border bg-gradient-to-b from-cipher-surface/50 to-cipher-bg">
         <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20">
