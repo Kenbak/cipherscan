@@ -47,24 +47,55 @@ function cacheTx(txid, tx) {
   txCache.set(txid, tx);
 }
 
-// Calculate privacy score (0-100) based on shielded percentage and pool size
-function calculatePrivacyScore(shieldedPercentage, poolSizeZatoshis) {
-  // Convert zatoshis to ZEC
-  const poolSizeZEC = poolSizeZatoshis / 100000000;
+/**
+ * Calculate privacy score (0-100) based on multiple factors
+ * 
+ * @param {object} params
+ * @param {number} params.dailyShieldedPercent - % of today's txs that are shielded
+ * @param {number} params.allTimeShieldedPercent - % of all txs that are shielded
+ * @param {number} params.totalShieldedZat - Total ZEC in shielded pools (zatoshis)
+ * @param {number} params.chainSupplyZat - Total chain supply (zatoshis)
+ * @param {number} params.fullyShieldedTx - Count of fully shielded txs
+ * @param {number} params.shieldedTx - Count of all shielded txs
+ */
+function calculatePrivacyScore(params) {
+  const {
+    dailyShieldedPercent = 0,
+    allTimeShieldedPercent = 0,
+    totalShieldedZat = 0,
+    chainSupplyZat = 0,
+    fullyShieldedTx = 0,
+    shieldedTx = 0,
+  } = params;
 
-  // Factor 1: Shielded adoption percentage (0-40 points)
-  const adoptionScore = Math.min(shieldedPercentage * 4, 40);
+  // Factor 1: Supply Shielded Score (0-40 points)
+  // How much of the total ZEC supply is in shielded pools?
+  // 30% shielded = 40 pts (max)
+  const supplyShieldedPercent = chainSupplyZat > 0 
+    ? (totalShieldedZat / chainSupplyZat) * 100 
+    : 0;
+  const supplyScore = Math.min(supplyShieldedPercent * 1.33, 40);
 
-  // Factor 2: Pool size relative to total supply (0-30 points)
-  // Assuming ~21M total ZEC supply, higher pool = better privacy
-  const poolRatio = (poolSizeZEC / 21000000) * 100;
-  const poolScore = Math.min(poolRatio * 3, 30);
+  // Factor 2: Fully Shielded Score (0-30 points)
+  // What % of shielded txs are fully shielded (z-to-z)?
+  // 10% fully shielded = 30 pts (max)
+  const fullyShieldedPercent = shieldedTx > 0 
+    ? (fullyShieldedTx / shieldedTx) * 100 
+    : 0;
+  const fullyShieldedScore = Math.min(fullyShieldedPercent * 3, 30);
 
-  // Factor 3: Bonus for high adoption (0-30 points)
-  // If shielded % > 5%, give bonus points
-  const bonusScore = shieldedPercentage > 5 ? Math.min((shieldedPercentage - 5) * 3, 30) : 0;
+  // Factor 3: Adoption Score (0-30 points)
+  // Weighted mix of daily (60%) and all-time (40%) shielded %
+  // 10% combined = 30 pts (max)
+  const combinedAdoption = (dailyShieldedPercent * 0.6) + (allTimeShieldedPercent * 0.4);
+  const adoptionScore = Math.min(combinedAdoption * 3, 30);
 
-  return Math.round(adoptionScore + poolScore + bonusScore);
+  const totalScore = Math.round(supplyScore + fullyShieldedScore + adoptionScore);
+  
+  // Debug log (can be removed later)
+  // console.log(`Privacy Score: supply=${supplyScore.toFixed(1)} fully=${fullyShieldedScore.toFixed(1)} adoption=${adoptionScore.toFixed(1)} = ${totalScore}`);
+
+  return Math.min(totalScore, 100);
 }
 
 async function zebradRPC(method, params = []) {
@@ -421,13 +452,34 @@ async function initializePrivacyTrends() {
       const totalCount = shieldedCount + transparentCount;
       const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
 
-      const poolSizeResult = await db.query(`
-        SELECT shielded_pool_size FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+      // Get current pool size and other stats from privacy_stats
+      const privacyStatsResult = await db.query(`
+        SELECT 
+          shielded_pool_size,
+          chain_supply,
+          shielded_tx,
+          fully_shielded_tx,
+          shielded_percentage as all_time_shielded_percent
+        FROM privacy_stats 
+        ORDER BY updated_at DESC 
+        LIMIT 1
       `);
-      const poolSize = poolSizeResult.rows[0]?.shielded_pool_size || 0;
+      const privacyStats = privacyStatsResult.rows[0] || {};
+      const poolSize = parseInt(privacyStats.shielded_pool_size || 0);
+      const chainSupply = parseInt(privacyStats.chain_supply || 0);
+      const allTimeShieldedTx = parseInt(privacyStats.shielded_tx || 0);
+      const fullyShieldedTx = parseInt(privacyStats.fully_shielded_tx || 0);
+      const allTimeShieldedPercent = parseFloat(privacyStats.all_time_shielded_percent || 0);
 
       // Calculate privacy score for this day
-      const privacyScore = calculatePrivacyScore(shieldedPercentage, poolSize);
+      const privacyScore = calculatePrivacyScore({
+        dailyShieldedPercent: shieldedPercentage,
+        allTimeShieldedPercent: allTimeShieldedPercent,
+        totalShieldedZat: poolSize,
+        chainSupplyZat: chainSupply,
+        fullyShieldedTx: fullyShieldedTx,
+        shieldedTx: allTimeShieldedTx,
+      });
 
       await db.query(`
         INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
@@ -476,14 +528,34 @@ async function updatePrivacyTrendsDaily() {
     const totalCount = shieldedCount + transparentCount;
     const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
 
-    // Get current pool size
-    const poolSizeResult = await db.query(`
-      SELECT shielded_pool_size FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+    // Get current pool size and other stats from privacy_stats
+    const privacyStatsResult = await db.query(`
+      SELECT 
+        shielded_pool_size,
+        chain_supply,
+        shielded_tx,
+        fully_shielded_tx,
+        shielded_percentage as all_time_shielded_percent
+      FROM privacy_stats 
+      ORDER BY updated_at DESC 
+      LIMIT 1
     `);
-    const poolSize = poolSizeResult.rows[0]?.shielded_pool_size || 0;
+    const privacyStats = privacyStatsResult.rows[0] || {};
+    const poolSize = parseInt(privacyStats.shielded_pool_size || 0);
+    const chainSupply = parseInt(privacyStats.chain_supply || 0);
+    const allTimeShieldedTx = parseInt(privacyStats.shielded_tx || 0);
+    const fullyShieldedTx = parseInt(privacyStats.fully_shielded_tx || 0);
+    const allTimeShieldedPercent = parseFloat(privacyStats.all_time_shielded_percent || 0);
 
-    // Calculate privacy score
-    const privacyScore = calculatePrivacyScore(shieldedPercentage, poolSize);
+    // Calculate privacy score with new formula
+    const privacyScore = calculatePrivacyScore({
+      dailyShieldedPercent: shieldedPercentage,
+      allTimeShieldedPercent: allTimeShieldedPercent,
+      totalShieldedZat: poolSize,
+      chainSupplyZat: chainSupply,
+      fullyShieldedTx: fullyShieldedTx,
+      shieldedTx: allTimeShieldedTx,
+    });
 
     // Insert or update today's data
     if (existingResult.rows.length > 0) {
