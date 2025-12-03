@@ -168,12 +168,12 @@ const mockStats: CrossChainStats = {
   shieldedRate: 67,
   totalSwaps24h: 1_234,
   inflows: [
-    { 
+    {
       chain: 'btc', chainName: 'Bitcoin', color: '#F7931A',
       totalVolume24h: 890_000, volumeChange: 15,
       tokens: [{ symbol: 'BTC', volume24h: 890_000 }]
     },
-    { 
+    {
       chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
       totalVolume24h: 930_000, volumeChange: 5,
       tokens: [
@@ -181,7 +181,7 @@ const mockStats: CrossChainStats = {
         { symbol: 'USDC', volume24h: 280_000 }
       ]
     },
-    { 
+    {
       chain: 'sol', chainName: 'Solana', color: '#14F195',
       totalVolume24h: 460_000, volumeChange: 12,
       tokens: [
@@ -189,14 +189,14 @@ const mockStats: CrossChainStats = {
         { symbol: 'USDC', volume24h: 120_000 }
       ]
     },
-    { 
+    {
       chain: 'near', chainName: 'NEAR', color: '#00C08B',
       totalVolume24h: 180_000, volumeChange: 45,
       tokens: [{ symbol: 'NEAR', volume24h: 180_000 }]
     },
   ],
   outflows: [
-    { 
+    {
       chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
       totalVolume24h: 165_000, volumeChange: -5,
       tokens: [
@@ -204,7 +204,7 @@ const mockStats: CrossChainStats = {
         { symbol: 'USDC', volume24h: 45_000 }
       ]
     },
-    { 
+    {
       chain: 'sol', chainName: 'Solana', color: '#14F195',
       totalVolume24h: 80_000, volumeChange: 12,
       tokens: [{ symbol: 'SOL', volume24h: 80_000 }]
@@ -421,8 +421,8 @@ export default function FlowsPage() {
     );
   }
 
-  const totalInflows = stats.inflows.reduce((sum, c) => sum + c.volume24h, 0);
-  const totalOutflows = stats.outflows.reduce((sum, c) => sum + c.volume24h, 0);
+  const totalInflows = stats.inflows.reduce((sum, c) => sum + c.totalVolume24h, 0);
+  const totalOutflows = stats.outflows.reduce((sum, c) => sum + c.totalVolume24h, 0);
 
   return (
     <div className="min-h-screen text-white py-8 sm:py-12 px-4">
@@ -507,8 +507,8 @@ export default function FlowsPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
                       <CryptoIcon symbol={chainGroup.chain} size={24} />
-                    </div>
-                    <div className="flex-1">
+                  </div>
+                  <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
                         <div className="flex items-center gap-2">
@@ -522,13 +522,13 @@ export default function FlowsPage() {
                   </div>
                   {/* Progress bar */}
                   <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
                         width: `${(chainGroup.totalVolume24h / totalInflows) * 100}%`,
                         backgroundColor: chainGroup.color
-                      }}
-                    />
+                        }}
+                      />
                   </div>
                   {/* Token breakdown (only if multiple tokens) */}
                   {chainGroup.tokens.length > 1 && (
@@ -538,7 +538,7 @@ export default function FlowsPage() {
                           <span className="flex items-center gap-1.5">
                             <CryptoIcon symbol={token.symbol} size={14} />
                             {token.symbol}
-                          </span>
+                  </span>
                           <span>{formatUSD(token.volume24h)}</span>
                         </div>
                       ))}
@@ -566,8 +566,8 @@ export default function FlowsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
                         <CryptoIcon symbol={chainGroup.chain} size={24} />
-                      </div>
-                      <div className="flex-1">
+                    </div>
+                    <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
                           <div className="flex items-center gap-2">
@@ -581,13 +581,13 @@ export default function FlowsPage() {
                     </div>
                     {/* Progress bar */}
                     <div className="h-2 bg-cipher-bg rounded-full overflow-hidden mb-1 ml-11">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
                           width: `${(chainGroup.totalVolume24h / totalOutflows) * 100}%`,
                           backgroundColor: chainGroup.color
-                        }}
-                      />
+                          }}
+                        />
                     </div>
                     {/* Token breakdown (only if multiple tokens) */}
                     {chainGroup.tokens.length > 1 && (
@@ -597,7 +597,7 @@ export default function FlowsPage() {
                             <span className="flex items-center gap-1.5">
                               <CryptoIcon symbol={token.symbol} size={14} />
                               {token.symbol}
-                            </span>
+                    </span>
                             <span>{formatUSD(token.volume24h)}</span>
                           </div>
                         ))}
