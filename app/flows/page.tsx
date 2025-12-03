@@ -70,16 +70,43 @@ const Icons = {
 };
 
 // Chain colors and symbols
-const chainConfig: Record<string, { color: string; symbol: string; name: string }> = {
-  btc: { color: '#F7931A', symbol: 'BTC', name: 'Bitcoin' },
-  eth: { color: '#627EEA', symbol: 'ETH', name: 'Ethereum' },
-  sol: { color: '#14F195', symbol: 'SOL', name: 'Solana' },
-  near: { color: '#00C08B', symbol: 'NEAR', name: 'NEAR' },
-  usdc: { color: '#2775CA', symbol: 'USDC', name: 'USDC' },
-  usdt: { color: '#26A17B', symbol: 'USDT', name: 'Tether' },
-  doge: { color: '#C2A633', symbol: 'DOGE', name: 'Dogecoin' },
-  xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple' },
+const chainConfig: Record<string, { color: string; symbol: string; name: string; iconId?: string }> = {
+  btc: { color: '#F7931A', symbol: 'BTC', name: 'Bitcoin', iconId: 'btc' },
+  eth: { color: '#627EEA', symbol: 'ETH', name: 'Ethereum', iconId: 'eth' },
+  sol: { color: '#14F195', symbol: 'SOL', name: 'Solana', iconId: 'sol' },
+  near: { color: '#00C08B', symbol: 'NEAR', name: 'NEAR', iconId: 'near' },
+  usdc: { color: '#2775CA', symbol: 'USDC', name: 'USDC', iconId: 'usdc' },
+  usdt: { color: '#26A17B', symbol: 'USDT', name: 'Tether', iconId: 'usdt' },
+  doge: { color: '#C2A633', symbol: 'DOGE', name: 'Dogecoin', iconId: 'doge' },
+  xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple', iconId: 'xrp' },
+  zec: { color: '#F4B728', symbol: 'ZEC', name: 'Zcash', iconId: 'zec' },
+  base: { color: '#0052FF', symbol: 'BASE', name: 'Base', iconId: 'eth' }, // Base uses ETH icon
+  arb: { color: '#28A0F0', symbol: 'ARB', name: 'Arbitrum', iconId: 'eth' },
+  pol: { color: '#8247E5', symbol: 'POL', name: 'Polygon', iconId: 'matic' },
+  avax: { color: '#E84142', symbol: 'AVAX', name: 'Avalanche', iconId: 'avax' },
 };
+
+// Crypto icon component using CDN
+function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
+  const config = chainConfig[symbol.toLowerCase()];
+  const iconId = config?.iconId || symbol.toLowerCase();
+  
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`}
+      alt={symbol}
+      width={size}
+      height={size}
+      className={`rounded-full ${className}`}
+      onError={(e) => {
+        // Fallback to colored circle with initials
+        const target = e.target as HTMLImageElement;
+        target.style.display = 'none';
+        target.parentElement?.classList.add('fallback-icon');
+      }}
+    />
+  );
+}
 
 // Mock data for design work
 const mockStats: CrossChainStats = {
@@ -389,11 +416,8 @@ export default function FlowsPage() {
             <div className="space-y-3">
               {stats.inflows.map((chain) => (
                 <div key={chain.chain} className="flex items-center gap-3">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: `${chain.color}20`, color: chain.color }}
-                  >
-                    {chain.symbol.slice(0, 2)}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chain.color}15` }}>
+                    <CryptoIcon symbol={chain.symbol} size={24} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
@@ -431,11 +455,8 @@ export default function FlowsPage() {
               {stats.outflows.length > 0 ? (
                 stats.outflows.map((chain) => (
                   <div key={chain.chain} className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{ backgroundColor: `${chain.color}20`, color: chain.color }}
-                    >
-                      {chain.symbol.slice(0, 2)}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chain.color}15` }}>
+                      <CryptoIcon symbol={chain.symbol} size={24} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -485,26 +506,30 @@ export default function FlowsPage() {
                   {swap.direction === 'in' ? (
                     <div className="flex items-center gap-2">
                       <span
-                        className="px-2 py-0.5 rounded text-xs font-mono"
-                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}20`, color: chainConfig[swap.fromChain]?.color }}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono"
+                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}15`, color: chainConfig[swap.fromChain]?.color }}
                       >
+                        <CryptoIcon symbol={swap.fromSymbol} size={14} />
                         {swap.fromAmount} {swap.fromSymbol}
                       </span>
                       <span className="text-gray-500">→</span>
-                      <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
+                        <CryptoIcon symbol="ZEC" size={14} />
                         {swap.toAmount} ZEC
                       </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs font-mono">
+                        <CryptoIcon symbol="ZEC" size={14} />
                         {swap.fromAmount} ZEC
                       </span>
                       <span className="text-gray-500">→</span>
                       <span
-                        className="px-2 py-0.5 rounded text-xs font-mono"
-                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}20`, color: chainConfig[swap.fromChain]?.color }}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono"
+                        style={{ backgroundColor: `${chainConfig[swap.fromChain]?.color}15`, color: chainConfig[swap.fromChain]?.color }}
                       >
+                        <CryptoIcon symbol={chainConfig[swap.fromChain]?.symbol || swap.fromChain} size={14} />
                         {swap.toAmount} {chainConfig[swap.fromChain]?.symbol}
                       </span>
                     </div>
