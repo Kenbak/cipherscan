@@ -70,6 +70,11 @@ interface PrivacyStats {
   };
   shieldedPool: {
     currentSize: number;
+    sprout?: number;
+    sapling?: number;
+    orchard?: number;
+    transparent?: number;
+    chainSupply?: number;
   };
   metrics: {
     shieldedPercentage: number;
@@ -250,16 +255,20 @@ export default function PrivacyPage() {
                 </p>
               </div>
 
-              {/* Pool Size */}
+              {/* Supply Shielded % */}
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <Icons.Shield />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Pool Size</h3>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Supply Shielded</h3>
                 </div>
                 <div className="text-2xl font-bold text-cipher-cyan">
-                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M
+                  {stats.shieldedPool.chainSupply
+                    ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
+                    : '—'}%
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{CURRENCY}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '—'}M
+                </p>
               </div>
 
               {/* Adoption Trend */}
@@ -286,6 +295,7 @@ export default function PrivacyPage() {
                 <p className="text-xs text-gray-500 mt-1">100% private</p>
               </div>
             </div>
+
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
@@ -321,52 +331,131 @@ export default function PrivacyPage() {
 
         </div>
 
-        {/* Transaction Breakdown */}
-        <div className="card mb-8">
-          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-            <Icons.Chart />
-            Transaction Types
-          </h2>
+        {/* Transaction Types + Pool Breakdown - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Transaction Types */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Icons.Chart />
+              Transaction Types
+            </h2>
 
-          <div className="space-y-4">
-            {/* Shielded */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-purple-400 font-mono flex items-center gap-2">
-                  <Icons.Lock />
-                  Shielded ({stats.totals.shieldedTx.toLocaleString()})
-                </span>
-                <span className="text-purple-400 font-bold">
-                  {stats.metrics.shieldedPercentage.toFixed(1)}%
-                </span>
+            <div className="space-y-4">
+              {/* Shielded */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-purple-400 font-mono flex items-center gap-2">
+                    <Icons.Lock />
+                    Shielded ({stats.totals.shieldedTx.toLocaleString()})
+                  </span>
+                  <span className="text-purple-400 font-bold">
+                    {stats.metrics.shieldedPercentage.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500"
+                    style={{ width: `${stats.metrics.shieldedPercentage}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500"
-                  style={{ width: `${stats.metrics.shieldedPercentage}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Transparent */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-400 font-mono flex items-center gap-2">
-                  <Icons.Eye />
-                  Transparent ({stats.totals.transparentTx.toLocaleString()})
-                </span>
-                <span className="text-gray-400 font-bold">
-                  {(100 - stats.metrics.shieldedPercentage).toFixed(1)}%
-                </span>
-              </div>
-              <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gray-600"
-                  style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
-                />
+              {/* Transparent */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-400 font-mono flex items-center gap-2">
+                    <Icons.Eye />
+                    Transparent ({stats.totals.transparentTx.toLocaleString()})
+                  </span>
+                  <span className="text-gray-400 font-bold">
+                    {(100 - stats.metrics.shieldedPercentage).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gray-600"
+                    style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Shielded Pool Breakdown */}
+          {stats.shieldedPool.sapling !== undefined && (
+            <div className="card">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <Icons.Shield />
+                Shielded Pool Breakdown
+              </h2>
+
+              <div className="space-y-4">
+                {/* Sapling */}
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-cyan-400 font-mono">Sapling</span>
+                    <span className="text-gray-400">
+                      {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
+                      <span className="text-cyan-400 font-bold ml-2">
+                        ({((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-500"
+                      style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Sprout */}
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-amber-400 font-mono">Sprout</span>
+                    <span className="text-gray-400">
+                      {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
+                      <span className="text-amber-400 font-bold ml-2">
+                        ({((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-500"
+                      style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Orchard */}
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-green-400 font-mono">Orchard</span>
+                    <span className="text-gray-400">
+                      {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
+                      <span className="text-green-400 font-bold ml-2">
+                        ({((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-cipher-border flex justify-between">
+                <span className="text-gray-400 font-mono">Total Shielded</span>
+                <span className="text-cipher-cyan font-bold">
+                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Charts Section with Tabs */}

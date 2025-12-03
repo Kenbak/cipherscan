@@ -6,15 +6,64 @@
  * This script calculates comprehensive privacy statistics from the PostgreSQL database
  * and stores them in the privacy_stats table.
  *
+ * Now uses Zebra RPC to get real shielded pool sizes from getblockchaininfo!
+ *
  * Usage:
  *   node scripts/calculate-privacy-stats.js
  *
  * Environment variables:
  *   PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
+ *   ZEBRA_RPC_URL, ZEBRA_RPC_COOKIE_FILE
  */
 
 require('dotenv').config();
 const { Pool } = require('pg');
+const fs = require('fs');
+
+// Zebra RPC configuration
+const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
+const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
+
+/**
+ * Call Zebra RPC with cookie authentication
+ */
+async function callZebraRPC(method, params = []) {
+  let auth = '';
+
+  try {
+    const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
+    auth = 'Basic ' + Buffer.from(cookie).toString('base64');
+  } catch (err) {
+    console.warn('⚠️  Could not read Zebra cookie file:', err.message);
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  if (auth) {
+    headers['Authorization'] = auth;
+  }
+
+  const response = await fetch(ZEBRA_RPC_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'privacy-stats',
+      method,
+      params,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(`Zebra RPC error: ${data.error.message}`);
+  }
+
+  return data.result;
+}
 
 // Database connection
 const pool = new Pool({
@@ -84,17 +133,58 @@ async function calculatePrivacyStats() {
     console.log(`   ✓ Mixed (partial privacy): ${mixedTx}`);
     console.log(`   ✓ Fully shielded (max privacy): ${fullyShieldedTx}`);
 
-    // 4️⃣ Calculate shielded pool size (sum of all unspent shielded outputs)
-    console.log('💰 Calculating shielded pool size...');
-    const poolSizeResult = await pool.query(`
-      SELECT
-        COALESCE(SUM(value), 0) as total_unspent_shielded
-      FROM transaction_outputs
-      WHERE spent = false
-        AND address IS NULL
-    `);
-    const shieldedPoolSize = parseInt(poolSizeResult.rows[0].total_unspent_shielded) || 0;
-    console.log(`   ✓ Shielded pool: ${(shieldedPoolSize / 100000000).toFixed(2)} ZEC`);
+    // 4️⃣ Get REAL shielded pool size from Zebra RPC (getblockchaininfo)
+    console.log('💰 Fetching shielded pool size from Zebra RPC...');
+    let shieldedPoolSize = 0;
+    let sproutPool = 0;
+    let saplingPool = 0;
+    let orchardPool = 0;
+    let transparentPool = 0;
+    let chainSupply = 0;
+
+    try {
+      const blockchainInfo = await callZebraRPC('getblockchaininfo');
+
+      if (blockchainInfo && blockchainInfo.valuePools) {
+        for (const pool of blockchainInfo.valuePools) {
+          const valueZat = parseInt(pool.chainValueZat) || 0;
+          switch (pool.id) {
+            case 'transparent':
+              transparentPool = valueZat;
+              break;
+            case 'sprout':
+              sproutPool = valueZat;
+              break;
+            case 'sapling':
+              saplingPool = valueZat;
+              break;
+            case 'orchard':
+              orchardPool = valueZat;
+              break;
+          }
+        }
+
+        // Total shielded = sprout + sapling + orchard
+        shieldedPoolSize = sproutPool + saplingPool + orchardPool;
+
+        // Chain supply from chainSupply field
+        if (blockchainInfo.chainSupply) {
+          chainSupply = parseInt(blockchainInfo.chainSupply.chainValueZat) || 0;
+        }
+
+        console.log(`   ✓ Transparent pool: ${(transparentPool / 100000000).toFixed(2)} ZEC`);
+        console.log(`   ✓ Sprout pool: ${(sproutPool / 100000000).toFixed(2)} ZEC`);
+        console.log(`   ✓ Sapling pool: ${(saplingPool / 100000000).toFixed(2)} ZEC`);
+        console.log(`   ✓ Orchard pool: ${(orchardPool / 100000000).toFixed(2)} ZEC`);
+        console.log(`   ✓ Total shielded: ${(shieldedPoolSize / 100000000).toFixed(2)} ZEC`);
+        console.log(`   ✓ Chain supply: ${(chainSupply / 100000000).toFixed(2)} ZEC`);
+      } else {
+        console.warn('⚠️  Could not get valuePools from Zebra, using 0');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching pool size from Zebra:', err.message);
+      console.warn('⚠️  Using 0 for shielded pool size');
+    }
 
     // 5️⃣ Calculate metrics
     const totalTx = parseInt(txCounts.total_transactions);
@@ -160,6 +250,11 @@ async function calculatePrivacyStats() {
         mixed_tx,
         fully_shielded_tx,
         shielded_pool_size,
+        sprout_pool_size,
+        sapling_pool_size,
+        orchard_pool_size,
+        transparent_pool_size,
+        chain_supply,
         total_shielded,
         total_unshielded,
         shielded_percentage,
@@ -169,7 +264,7 @@ async function calculatePrivacyStats() {
         last_block_scanned,
         calculation_duration_ms,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW())
     `, [
       totalBlocks,
       totalTx,
@@ -179,6 +274,11 @@ async function calculatePrivacyStats() {
       mixedTx,
       fullyShieldedTx,
       shieldedPoolSize,
+      sproutPool,
+      saplingPool,
+      orchardPool,
+      transparentPool,
+      chainSupply,
       0, // total_shielded (not calculated yet)
       0, // total_unshielded (not calculated yet)
       shieldedPercentage,
@@ -195,12 +295,20 @@ async function calculatePrivacyStats() {
     console.log('📊 Summary:');
     console.log(`   Total Blocks: ${totalBlocks.toLocaleString()}`);
     console.log(`   Total Transactions: ${totalTx.toLocaleString()}`);
-    console.log(`   Shielded: ${shieldedTx.toLocaleString()} (${shieldedPercentage.toFixed(2)}%)`);
-    console.log(`   Transparent: ${transparentTx.toLocaleString()}`);
-    console.log(`   Mixed: ${mixedTx.toLocaleString()}`);
-    console.log(`   Fully Shielded: ${fullyShieldedTx.toLocaleString()}`);
+    console.log(`   Shielded Txs: ${shieldedTx.toLocaleString()} (${shieldedPercentage.toFixed(2)}%)`);
+    console.log(`   Transparent Txs: ${transparentTx.toLocaleString()}`);
+    console.log(`   Mixed Txs: ${mixedTx.toLocaleString()}`);
+    console.log(`   Fully Shielded Txs: ${fullyShieldedTx.toLocaleString()}`);
     console.log(`   Privacy Score: ${privacyScore}/100`);
-    console.log(`   Shielded Pool: ${(shieldedPoolSize / 100000000).toFixed(2)} ZEC`);
+    console.log('');
+    console.log('💰 Pool Sizes (from Zebra RPC):');
+    console.log(`   Sprout: ${(sproutPool / 100000000).toLocaleString()} ZEC`);
+    console.log(`   Sapling: ${(saplingPool / 100000000).toLocaleString()} ZEC`);
+    console.log(`   Orchard: ${(orchardPool / 100000000).toLocaleString()} ZEC`);
+    console.log(`   Total Shielded: ${(shieldedPoolSize / 100000000).toLocaleString()} ZEC`);
+    console.log(`   Transparent: ${(transparentPool / 100000000).toLocaleString()} ZEC`);
+    console.log(`   Chain Supply: ${(chainSupply / 100000000).toLocaleString()} ZEC`);
+    console.log('');
     console.log(`   Adoption Trend: ${adoptionTrend}`);
     console.log(`   Calculation time: ${calculationDuration}ms`);
     console.log('');

@@ -843,6 +843,11 @@ app.get('/api/privacy-stats', async (req, res) => {
         mixed_tx,
         fully_shielded_tx,
         shielded_pool_size,
+        sprout_pool_size,
+        sapling_pool_size,
+        orchard_pool_size,
+        transparent_pool_size,
+        chain_supply,
         shielded_percentage,
         privacy_score,
         avg_shielded_per_day,
@@ -892,6 +897,11 @@ app.get('/api/privacy-stats', async (req, res) => {
       },
       shieldedPool: {
         currentSize: parseInt(stats.shielded_pool_size) / 100000000, // Convert to ZEC
+        sprout: parseInt(stats.sprout_pool_size || 0) / 100000000,
+        sapling: parseInt(stats.sapling_pool_size || 0) / 100000000,
+        orchard: parseInt(stats.orchard_pool_size || 0) / 100000000,
+        transparent: parseInt(stats.transparent_pool_size || 0) / 100000000,
+        chainSupply: parseInt(stats.chain_supply || 0) / 100000000,
       },
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
