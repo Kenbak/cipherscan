@@ -34,9 +34,13 @@ export default function DecryptPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const prefill = params.get('prefill');
+      const tab = params.get('tab');
+
       if (prefill) {
         setPrefillTxid(prefill);
         setActiveTab('single'); // Ensure we're on the Single Message tab
+      } else if (tab === 'scan') {
+        setActiveTab('scan'); // Open Inbox tab directly
       }
     }
   }, []);

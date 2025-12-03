@@ -30,8 +30,23 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
       <div className="bg-cipher-surface border border-cipher-border rounded-lg max-w-2xl w-full p-4 sm:p-8 animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold font-mono text-cipher-cyan mb-1 sm:mb-2">
-              💚 Support CipherScan
+            <h2 className="text-xl sm:text-2xl font-bold font-mono text-cipher-cyan mb-1 sm:mb-2 flex items-center gap-2">
+              <svg
+                className="w-6 h-6 sm:w-7 sm:h-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                viewBox="0 0 24 24"
+              >
+                <path d="M17 8h1a4 4 0 1 1 0 8h-1"/>
+                <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+                <line x1="6" y1="2" x2="6" y2="4"/>
+                <line x1="10" y1="2" x2="10" y2="4"/>
+                <line x1="14" y1="2" x2="14" y2="4"/>
+              </svg>
+              Support CipherScan
             </h2>
             <p className="text-xs sm:text-sm text-gray-400 font-mono">
               Help us keep this explorer free and open-source
@@ -71,7 +86,21 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
 
         <div className="bg-cipher-green/5 border border-cipher-green/30 rounded-lg p-3 sm:p-4">
           <p className="text-xs text-gray-400 font-mono flex items-start">
-            <span className="mr-2 flex-shrink-0">💚</span>
+            <svg
+              className="w-5 h-5 mr-2 flex-shrink-0 text-cipher-cyan"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              viewBox="0 0 24 24"
+            >
+              <path d="M17 8h1a4 4 0 1 1 0 8h-1"/>
+              <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+              <line x1="6" y1="2" x2="6" y2="4"/>
+              <line x1="10" y1="2" x2="10" y2="4"/>
+              <line x1="14" y1="2" x2="14" y2="4"/>
+            </svg>
             <span>
               Your donation is <strong className="text-cipher-green">private and encrypted</strong>.
               Thank you for supporting open-source blockchain tools! 🙏
@@ -90,7 +119,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
         title={compact ? 'Support CipherScan' : undefined}
         aria-label={compact ? 'Support CipherScan' : undefined}
       >
-        {/* Gift Icon */}
+        {/* Coffee Icon */}
         <svg
           className={compact ? 'w-4 h-4' : 'w-4 h-4 flex-shrink-0'}
           fill="none"
@@ -100,11 +129,11 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
           strokeLinejoin="round"
           viewBox="0 0 24 24"
         >
-          <polyline points="20 12 20 22 4 22 4 12"/>
-          <rect x="2" y="7" width="20" height="5"/>
-          <line x1="12" y1="22" x2="12" y2="7"/>
-          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+          <path d="M17 8h1a4 4 0 1 1 0 8h-1"/>
+          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+          <line x1="6" y1="2" x2="6" y2="4"/>
+          <line x1="10" y1="2" x2="10" y2="4"/>
+          <line x1="14" y1="2" x2="14" y2="4"/>
         </svg>
         {!compact && <span>Support Us</span>}
       </button>

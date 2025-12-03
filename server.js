@@ -219,6 +219,16 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow Chrome extensions (chrome-extension://...)
+    if (origin.startsWith('chrome-extension://')) {
+      return callback(null, true);
+    }
+
+    // Allow browser extensions (moz-extension:// for Firefox, safari-web-extension:// for Safari)
+    if (origin.startsWith('moz-extension://') || origin.startsWith('safari-web-extension://')) {
+      return callback(null, true);
+    }
+
     // Check if origin is in whitelist
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
