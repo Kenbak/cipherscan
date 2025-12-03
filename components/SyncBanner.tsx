@@ -76,7 +76,16 @@ export function SyncBanner() {
             </span>
             <span className="text-amber-200/60 hidden sm:inline">—</span>
             <span className="text-amber-200/70 hidden sm:inline text-xs">
-              Some features may be incomplete
+              Some features may be incomplete.{' '}
+              <a
+                href="https://testnet.cipherscan.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:text-amber-300 underline underline-offset-2"
+              >
+                Try testnet
+              </a>
+              {' '}for the full experience.
             </span>
           </div>
 
