@@ -187,17 +187,17 @@ export default function CrossChainPage() {
               Cross-Chain Available on Mainnet Only
             </h1>
             <p className="text-gray-500 max-w-lg mx-auto mb-6">
-              NEAR Intents cross-chain swaps are only available for ZEC mainnet. 
+              NEAR Intents cross-chain swaps are only available for ZEC mainnet.
               Testnet ZEC (TAZ) is not supported for cross-chain operations.
             </p>
             <div className="flex justify-center gap-4">
-              <a 
-                href="https://cipherscan.app/crosschain" 
+              <a
+                href="https://cipherscan.app/crosschain"
                 className="px-4 py-2 bg-cipher-green/20 border border-cipher-green text-cipher-green rounded-lg hover:bg-cipher-green/30 transition-colors font-mono text-sm"
               >
                 View on Mainnet →
               </a>
-              <Link 
+              <Link
                 href="/"
                 className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
               >
