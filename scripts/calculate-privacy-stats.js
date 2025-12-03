@@ -213,11 +213,11 @@ async function calculatePrivacyStats() {
     const trendResult = await pool.query(`
       SELECT
         COUNT(*) FILTER (
-          WHERE has_sapling OR has_orchard
+          WHERE (has_sapling OR has_orchard)
           AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')
         ) as recent_shielded,
         COUNT(*) FILTER (
-          WHERE has_sapling OR has_orchard
+          WHERE (has_sapling OR has_orchard)
           AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days')
           AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')
         ) as previous_shielded
