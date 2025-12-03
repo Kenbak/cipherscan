@@ -1008,14 +1008,14 @@ app.get('/api/address/:address', async (req, res) => {
       `WITH recent_txids AS (
         SELECT DISTINCT txid
         FROM (
-          SELECT txid FROM transaction_outputs 
+          SELECT txid FROM transaction_outputs
           WHERE address = $1
           UNION ALL
-          SELECT txid FROM transaction_inputs 
+          SELECT txid FROM transaction_inputs
           WHERE address = $1
         ) all_txids
       )
-      SELECT 
+      SELECT
         t.txid,
         t.block_height,
         t.block_time,
@@ -1028,15 +1028,15 @@ app.get('/api/address/:address', async (req, res) => {
       FROM transactions t
       JOIN recent_txids rt ON t.txid = rt.txid
       LEFT JOIN (
-        SELECT txid, SUM(value) as input_value 
-        FROM transaction_inputs 
-        WHERE address = $1 
+        SELECT txid, SUM(value) as input_value
+        FROM transaction_inputs
+        WHERE address = $1
         GROUP BY txid
       ) ti ON t.txid = ti.txid
       LEFT JOIN (
-        SELECT txid, SUM(value) as output_value 
-        FROM transaction_outputs 
-        WHERE address = $1 
+        SELECT txid, SUM(value) as output_value
+        FROM transaction_outputs
+        WHERE address = $1
         GROUP BY txid
       ) tov ON t.txid = tov.txid
       ORDER BY t.block_height DESC, t.tx_index DESC
