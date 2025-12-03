@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
+import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
 // Types
 interface ChainVolume {
@@ -80,32 +81,7 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string 
   xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple' },
 };
 
-// Mock data for now - will be replaced with NEAR Intents API
-const mockStats: CrossChainStats = {
-  totalVolume24h: 2_450_000,
-  volumeChange7d: 12.5,
-  shieldedRate: 67,
-  totalSwaps24h: 1_234,
-  inflows: [
-    { chain: 'btc', symbol: 'BTC', volume24h: 890_000, volumeChange: 15, color: '#F7931A' },
-    { chain: 'eth', symbol: 'ETH', volume24h: 650_000, volumeChange: -3, color: '#627EEA' },
-    { chain: 'sol', symbol: 'SOL', volume24h: 340_000, volumeChange: 8, color: '#14F195' },
-    { chain: 'usdc', symbol: 'USDC', volume24h: 280_000, volumeChange: 22, color: '#2775CA' },
-    { chain: 'near', symbol: 'NEAR', volume24h: 180_000, volumeChange: 45, color: '#00C08B' },
-  ],
-  outflows: [
-    { chain: 'eth', symbol: 'ETH', volume24h: 120_000, volumeChange: -5, color: '#627EEA' },
-    { chain: 'sol', symbol: 'SOL', volume24h: 80_000, volumeChange: 12, color: '#14F195' },
-    { chain: 'usdc', symbol: 'USDC', volume24h: 45_000, volumeChange: -8, color: '#2775CA' },
-  ],
-  recentSwaps: [
-    { id: '1', timestamp: Date.now() - 2000, fromChain: 'btc', fromAmount: 0.5, fromSymbol: 'BTC', toAmount: 142, direction: 'in', shielded: true },
-    { id: '2', timestamp: Date.now() - 15000, fromChain: 'eth', fromAmount: 1.2, fromSymbol: 'ETH', toAmount: 89, direction: 'in', shielded: false },
-    { id: '3', timestamp: Date.now() - 34000, fromChain: 'usdc', fromAmount: 500, fromSymbol: 'USDC', toAmount: 12, direction: 'in', shielded: true },
-    { id: '4', timestamp: Date.now() - 60000, fromChain: 'sol', fromAmount: 45, fromSymbol: 'SOL', toAmount: 320, direction: 'in', shielded: null },
-    { id: '5', timestamp: Date.now() - 120000, fromChain: 'eth', fromAmount: 50, fromSymbol: 'ZEC', toAmount: 0.8, direction: 'out', shielded: true },
-  ],
-};
+// API will be called from useEffect - no mock data needed
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
@@ -122,25 +98,145 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export default function CrossChainPage() {
-  const [stats, setStats] = useState<CrossChainStats>(mockStats);
-  const [loading, setLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
+  const [stats, setStats] = useState<CrossChainStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [apiConfigured, setApiConfigured] = useState(true);
 
-  // TODO: Replace with real NEAR Intents API polling
+  // Fetch cross-chain stats from API
   useEffect(() => {
-    // Simulate live updates
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        recentSwaps: prev.recentSwaps.map(swap => ({
-          ...swap,
-          timestamp: swap.timestamp, // In real impl, would fetch new swaps
-        })),
-      }));
-    }, 5000);
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/crosschain/stats`
+          : '/api/crosschain/stats';
 
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (!data.success) {
+          if (response.status === 503) {
+            setApiConfigured(false);
+            setError(data.message || 'NEAR Intents API not configured');
+          } else {
+            setError(data.error || 'Failed to fetch data');
+          }
+          return;
+        }
+
+        // Transform API response to our format
+        const transformedStats: CrossChainStats = {
+          totalVolume24h: data.totalVolume24h || 0,
+          volumeChange7d: data.volumeChange7d || 0,
+          shieldedRate: 0, // TODO: Calculate from Zcash chain data
+          totalSwaps24h: data.totalSwaps24h || 0,
+          inflows: (data.inflows || []).map((c: any) => ({
+            chain: c.chain,
+            symbol: c.symbol,
+            volume24h: c.volumeUsd,
+            volumeChange: 0, // Would need historical data
+            color: c.color,
+          })),
+          outflows: (data.outflows || []).map((c: any) => ({
+            chain: c.chain,
+            symbol: c.symbol,
+            volume24h: c.volumeUsd,
+            volumeChange: 0,
+            color: c.color,
+          })),
+          recentSwaps: (data.recentSwaps || []).map((swap: any) => ({
+            id: swap.id,
+            timestamp: swap.timestamp,
+            fromChain: swap.fromChain,
+            fromAmount: swap.fromAmount,
+            fromSymbol: swap.fromSymbol,
+            toAmount: swap.toAmount,
+            direction: swap.direction,
+            shielded: swap.shielded,
+          })),
+        };
+
+        setStats(transformedStats);
+        setApiConfigured(true);
+      } catch (err) {
+        console.error('Error fetching cross-chain stats:', err);
+        setError('Failed to connect to API');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+    
+    // Refresh every 60 seconds (NEAR Intents rate limit is 1 req/5s, we cache for 60s)
+    const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
+            <p className="text-gray-400 ml-4 font-mono text-lg">Loading cross-chain data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // API not configured state
+  if (!apiConfigured || error) {
+    return (
+      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="card bg-gradient-to-br from-yellow-900/20 to-cipher-surface border-yellow-500/30 text-center py-12">
+            <div className="text-6xl mb-4">🔗</div>
+            <h1 className="text-2xl font-bold font-mono text-yellow-400 mb-4">
+              Cross-Chain Integration Coming Soon
+            </h1>
+            <p className="text-gray-400 max-w-lg mx-auto mb-6">
+              {error || 'NEAR Intents API integration is being configured. This feature will show real-time ZEC swaps across Bitcoin, Ethereum, Solana, and more.'}
+            </p>
+            <div className="flex justify-center gap-4">
+              <a 
+                href="https://near.org/intents" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-cipher-cyan/20 border border-cipher-cyan text-cipher-cyan rounded-lg hover:bg-cipher-cyan/30 transition-colors font-mono text-sm"
+              >
+                Learn about NEAR Intents
+              </a>
+              <Link 
+                href="/"
+                className="px-4 py-2 bg-cipher-surface border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
+              >
+                Back to Explorer
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!stats) {
+    return (
+      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="card text-center py-12">
+            <p className="text-gray-400">No cross-chain data available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const totalInflows = stats.inflows.reduce((sum, c) => sum + c.volume24h, 0);
   const totalOutflows = stats.outflows.reduce((sum, c) => sum + c.volume24h, 0);
