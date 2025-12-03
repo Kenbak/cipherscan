@@ -1587,7 +1587,7 @@ app.get('/api/network/peers', async (req, res) => {
 // CROSS-CHAIN / NEAR INTENTS API
 // ============================================================================
 
-const { getNearIntentsClient, CHAIN_CONFIG } = require('./lib/near-intents');
+const { getNearIntentsClient, CHAIN_CONFIG } = require('./near-intents');
 
 /**
  * GET /api/crosschain/stats

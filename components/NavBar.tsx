@@ -133,10 +133,10 @@ export function NavBar() {
                     </Link>
 {isMainnet && (
                     <Link
-                      href="/crosschain"
+                      href="/flows"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
                     >
-                      <span>🌉 Cross-Chain</span>
+                      <span>ZEC Flows</span>
                     </Link>
                     )}
                     <Link
@@ -238,11 +238,11 @@ export function NavBar() {
             </Link>
 {isMainnet && (
             <Link
-              href="/crosschain"
+              href="/flows"
               onClick={() => setMobileMenuOpen(false)}
               className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
             >
-              🌉 Cross-Chain
+              ZEC Flows
             </Link>
             )}
             <Link
