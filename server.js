@@ -650,7 +650,7 @@ app.get('/api/tx/:txid', async (req, res) => {
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,
-      valueBalance: tx.value_balance,
+      valueBalance: (tx.value_balance || 0) / 100000000, // Convert zatoshis to ZEC
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
       hasSprout: tx.has_sprout,
