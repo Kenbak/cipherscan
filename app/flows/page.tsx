@@ -465,7 +465,7 @@ export default function FlowsPage() {
               <div>
                 <p className="text-yellow-400 font-medium">Demo Data</p>
                 <p className="text-gray-400 text-sm">
-                  This page displays mock data for demonstration purposes. 
+                  This page displays mock data for demonstration purposes.
                   Real-time NEAR Intents API integration coming soon.
                 </p>
               </div>

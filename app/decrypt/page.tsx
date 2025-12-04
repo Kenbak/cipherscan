@@ -66,14 +66,19 @@ export default function DecryptPage() {
                 </p>
                 <ul className="list-disc list-inside text-sm text-gray-400 space-y-2">
                   <li>
+                    • <a href="https://ywallet.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                      YWallet
+                    </a> - Mobile & Desktop wallet
+                  </li>
+                  <li>
+                    • <a href="https://zkool.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                      Zkool
+                    </a> - Mobile wallet
+                  </li>
+                  <li>
                     • <a href="https://github.com/zingolabs/zingolib" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                       Zingo CLI
                     </a> - Command-line wallet
-                  </li>
-                  <li>
-                    • <a href="https://www.zecwallet.co/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                      Zecwallet Lite
-                    </a> - Desktop wallet
                   </li>
                 </ul>
               </div>
@@ -162,14 +167,19 @@ export default function DecryptPage() {
               <p className="text-sm text-gray-400 mb-3 sm:mb-4">You can get a viewing key from:</p>
               <ul className="list-none space-y-2 sm:space-y-3 text-sm text-gray-400">
                 <li>
-                  • <a href="https://github.com/zingolabs/zingolib" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                    Zingo CLI
-                  </a> - Command-line wallet for testnet
+                  • <a href="https://ywallet.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                    YWallet
+                  </a> - Mobile & Desktop wallet
                 </li>
                 <li>
-                  • <a href="https://www.zecwallet.co/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                    Zecwallet Lite
-                  </a> - Desktop wallet
+                  • <a href="https://zkool.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                    Zkool
+                  </a> - Mobile wallet
+                </li>
+                <li>
+                  • <a href="https://github.com/zingolabs/zingolib" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                    Zingo CLI
+                  </a> - Command-line wallet
                 </li>
               </ul>
             </div>
