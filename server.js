@@ -645,14 +645,24 @@ app.get('/api/tx/:txid', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || tx.block_height;
     const confirmations = currentHeight - tx.block_height + 1;
 
-    // Calculate fee from value balances (positive valueBalance = fee leaving shielded pool)
+    // Calculate fee from value balances
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
 
-    // For shielded txs, fee = sum of positive value balances
-    // For transparent txs, fee = sum(inputs) - sum(outputs) (calculated client-side)
-    const shieldedFee = valueBalanceSapling + valueBalanceOrchard;
+    // Calculate fee using the general formula:
+    // fee = transparentInputs - transparentOutputs + valueBalance
+    //
+    // This works for all tx types:
+    // - Deshielding (z→t): inputs=0, outputs=31.5, valueBalance=31.50001 → fee=0.00001
+    // - Shielding (t→z): inputs=10, outputs=0, valueBalance=-9.9999 → fee=0.0001
+    // - Transparent (t→t): inputs=10, outputs=9.9999, valueBalance=0 → fee=0.0001
+    // - Shielded (z→z): inputs=0, outputs=0, valueBalance=0.0001 → fee=0.0001
+    const transparentInputSum = inputsResult.rows.reduce((sum, inp) => sum + (parseFloat(inp.value) / 100000000), 0);
+    const transparentOutputSum = outputsResult.rows.reduce((sum, out) => sum + (parseFloat(out.value) / 100000000), 0);
+    const totalShieldedValueBalance = valueBalanceSapling + valueBalanceOrchard;
+
+    const calculatedFee = transparentInputSum - transparentOutputSum + totalShieldedValueBalance;
 
     res.json({
       txid: tx.txid,
@@ -666,7 +676,7 @@ app.get('/api/tx/:txid', async (req, res) => {
       valueBalance: totalValueBalance,
       valueBalanceSapling,
       valueBalanceOrchard,
-      fee: shieldedFee > 0 ? shieldedFee : null, // Only show if we can calculate it
+      fee: calculatedFee > 0 ? calculatedFee : null,
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
       hasSprout: tx.has_sprout,
