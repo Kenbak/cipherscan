@@ -5,6 +5,15 @@ import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl } from '@/lib/api-config';
 
+// Format hashrate with appropriate unit (H/s, KH/s, MH/s, GH/s, TH/s)
+function formatHashrate(hashrate: number): string {
+  if (hashrate >= 1e12) return `${(hashrate / 1e12).toFixed(2)} TH/s`;
+  if (hashrate >= 1e9) return `${(hashrate / 1e9).toFixed(2)} GH/s`;
+  if (hashrate >= 1e6) return `${(hashrate / 1e6).toFixed(2)} MH/s`;
+  if (hashrate >= 1e3) return `${(hashrate / 1e3).toFixed(2)} KH/s`;
+  return `${hashrate.toFixed(2)} H/s`;
+}
+
 // Icons
 const Icons = {
   Mining: () => (
@@ -489,10 +498,7 @@ export default function NetworkPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
         <MiniStatCard
           label="Hashrate"
-          value={stats.mining.networkHashrateRaw < 1000
-            ? `${stats.mining.networkHashrateRaw.toFixed(2)} H/s`
-            : stats.mining.networkHashrate
-          }
+          value={formatHashrate(stats.mining.networkHashrateRaw)}
           icon={<Icons.Zap />}
         />
         <MiniStatCard
