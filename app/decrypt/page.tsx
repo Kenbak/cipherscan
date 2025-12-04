@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { NETWORK_LABEL, isTestnet } from '@/lib/config';
+import { NETWORK_LABEL } from '@/lib/config';
 import { SingleTxDecrypt } from '@/components/SingleTxDecrypt';
 import { ScanMyTransactions } from '@/components/ScanMyTransactions';
 
@@ -44,50 +44,6 @@ export default function DecryptPage() {
       }
     }
   }, []);
-
-  // Block mainnet completely
-  if (!isTestnet) {
-    return (
-      <div className="min-h-screen text-white py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="card bg-orange-900/20 border-orange-500/30">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <Icons.Info />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-orange-300 text-lg mb-2">Mainnet Not Supported</h3>
-                <p className="text-gray-300 mb-4">
-                  Memo decryption is currently only available on <strong>Testnet</strong>.
-                  Please switch to testnet to use this feature.
-                </p>
-                <p className="text-sm text-gray-400 mb-4">
-                  To get a testnet viewing key, you can use:
-                </p>
-                <ul className="list-disc list-inside text-sm text-gray-400 space-y-2">
-                  <li>
-                    • <a href="https://ywallet.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                      YWallet
-                    </a> - Mobile & Desktop wallet
-                  </li>
-                  <li>
-                    • <a href="https://github.com/hhanh00/zkool2" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                      Zkool
-                    </a> - Multi-platform wallet (successor to YWallet)
-                  </li>
-                  <li>
-                    • <a href="https://github.com/zingolabs/zingolib" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
-                      Zingo CLI
-                    </a> - Command-line wallet
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen text-white py-12 px-4">
