@@ -454,8 +454,24 @@ export default function FlowsPage() {
               </a>
             </p>
           </div>
-          <Icons.Live />
+          {!USE_MOCK_DATA && <Icons.Live />}
         </div>
+
+        {/* Mock Data Notice */}
+        {USE_MOCK_DATA && (
+          <div className="mb-6 p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10">
+            <div className="flex items-center gap-3">
+              <span className="text-yellow-400 text-xl">⚠️</span>
+              <div>
+                <p className="text-yellow-400 font-medium">Demo Data</p>
+                <p className="text-gray-400 text-sm">
+                  This page displays mock data for demonstration purposes. 
+                  Real-time NEAR Intents API integration coming soon.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
