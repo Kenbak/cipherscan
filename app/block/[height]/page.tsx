@@ -161,22 +161,33 @@ export default function BlockPage() {
             };
           });
 
-          // Calculate total fees including shielded fees
-          // value_balance for shielded txs represents the fee (positive = ZEC leaving shielded pool = fee)
-          const shieldedFees = (blockData.transactions || []).reduce((sum: number, tx: any) => {
+          // Calculate total fees for all transactions in the block
+          // Formula: fee = transparentInputs - transparentOutputs + valueBalance
+          // This works for all tx types (shielding, deshielding, transparent, z-to-z)
+          const calculatedFees = (blockData.transactions || []).reduce((sum: number, tx: any) => {
             // Skip coinbase transactions (they don't pay fees)
             const isCoinbaseTx = tx.tx_index === 0;
             if (isCoinbaseTx) return sum;
 
-            // Sum up shielded fees (value_balance_sapling + value_balance_orchard)
-            const saplingFee = parseInt(tx.value_balance_sapling || 0);
-            const orchardFee = parseInt(tx.value_balance_orchard || 0);
-            return sum + saplingFee + orchardFee;
+            // Calculate transparent inputs sum
+            const transparentInputs = (tx.inputs || []).reduce((inputSum: number, input: any) => {
+              return inputSum + parseInt(input.value || 0);
+            }, 0);
+
+            // Calculate transparent outputs sum
+            const transparentOutputs = (tx.outputs || []).reduce((outputSum: number, output: any) => {
+              return outputSum + parseInt(output.value || 0);
+            }, 0);
+
+            // Get shielded value balance (positive = leaving shielded pool, negative = entering)
+            const valueBalance = parseInt(tx.value_balance_sapling || 0) + parseInt(tx.value_balance_orchard || 0);
+
+            // Fee = what comes in (inputs + shielded leaving) - what goes out (outputs)
+            const txFee = transparentInputs - transparentOutputs + valueBalance;
+            return sum + (txFee > 0 ? txFee : 0);
           }, 0);
 
-          const storedFees = parseFloat(blockData.total_fees || blockData.totalFees || 0);
-          // Use the higher of stored fees or calculated shielded fees (in case stored is 0)
-          const totalFeesZatoshi = storedFees > 0 ? storedFees : shieldedFees;
+          const totalFeesZatoshi = calculatedFees;
 
           const transformedData = {
             height: parseInt(blockData.height),
