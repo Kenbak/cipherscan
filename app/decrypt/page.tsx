@@ -71,9 +71,9 @@ export default function DecryptPage() {
                     </a> - Mobile & Desktop wallet
                   </li>
                   <li>
-                    • <a href="https://zkool.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                    • <a href="https://github.com/hhanh00/zkool2" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                       Zkool
-                    </a> - Mobile wallet
+                    </a> - Multi-platform wallet (successor to YWallet)
                   </li>
                   <li>
                     • <a href="https://github.com/zingolabs/zingolib" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
@@ -172,7 +172,7 @@ export default function DecryptPage() {
                   </a> - Mobile & Desktop wallet
                 </li>
                 <li>
-                  • <a href="https://zkool.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+                  • <a href="https://github.com/hhanh00/zkool2" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                     Zkool
                   </a> - Mobile wallet
                 </li>
