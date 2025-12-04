@@ -11,7 +11,7 @@
   "dependencies": {
     "@mayaprotocol/zcash-js": "^1.0.7",
     "@types/pg": "^8.15.6",
-    "next": "^15.1.6",
+    "next": "^15.5.7",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "react": "^19.0.0",

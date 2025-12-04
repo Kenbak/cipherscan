@@ -645,14 +645,24 @@ app.get('/api/tx/:txid', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || tx.block_height;
     const confirmations = currentHeight - tx.block_height + 1;
 
-    // Calculate fee from value balances (positive valueBalance = fee leaving shielded pool)
+    // Calculate fee from value balances
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
 
-    // For shielded txs, fee = sum of positive value balances
-    // For transparent txs, fee = sum(inputs) - sum(outputs) (calculated client-side)
-    const shieldedFee = valueBalanceSapling + valueBalanceOrchard;
+    // Calculate fee using the general formula:
+    // fee = transparentInputs - transparentOutputs + valueBalance
+    //
+    // This works for all tx types:
+    // - Deshielding (z→t): inputs=0, outputs=31.5, valueBalance=31.50001 → fee=0.00001
+    // - Shielding (t→z): inputs=10, outputs=0, valueBalance=-9.9999 → fee=0.0001
+    // - Transparent (t→t): inputs=10, outputs=9.9999, valueBalance=0 → fee=0.0001
+    // - Shielded (z→z): inputs=0, outputs=0, valueBalance=0.0001 → fee=0.0001
+    const transparentInputSum = inputsResult.rows.reduce((sum, inp) => sum + (parseFloat(inp.value) / 100000000), 0);
+    const transparentOutputSum = outputsResult.rows.reduce((sum, out) => sum + (parseFloat(out.value) / 100000000), 0);
+    const totalShieldedValueBalance = valueBalanceSapling + valueBalanceOrchard;
+
+    const calculatedFee = transparentInputSum - transparentOutputSum + totalShieldedValueBalance;
 
     res.json({
       txid: tx.txid,
@@ -666,7 +676,7 @@ app.get('/api/tx/:txid', async (req, res) => {
       valueBalance: totalValueBalance,
       valueBalanceSapling,
       valueBalanceOrchard,
-      fee: shieldedFee > 0 ? shieldedFee : null, // Only show if we can calculate it
+      fee: calculatedFee > 0 ? calculatedFee : null,
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
       hasSprout: tx.has_sprout,
@@ -1581,6 +1591,136 @@ app.get('/api/network/peers', async (req, res) => {
       error: error.message || 'Failed to fetch peer information',
     });
   }
+});
+
+// ============================================================================
+// CROSS-CHAIN / NEAR INTENTS API
+// ============================================================================
+
+const { getNearIntentsClient, CHAIN_CONFIG } = require('./near-intents');
+
+/**
+ * GET /api/crosschain/stats
+ *
+ * Get cross-chain ZEC swap statistics via NEAR Intents
+ * Returns inflows, outflows, recent swaps, and volume metrics
+ */
+app.get('/api/crosschain/stats', async (req, res) => {
+  try {
+    const client = getNearIntentsClient();
+
+    // Check if API key is configured
+    if (!client.hasApiKey()) {
+      return res.status(503).json({
+        success: false,
+        error: 'NEAR Intents API key not configured',
+        message: 'Set NEAR_INTENTS_API_KEY environment variable',
+        docsUrl: 'https://docs.near-intents.org/near-intents/integration/distribution-channels/intents-explorer-api',
+      });
+    }
+
+    console.log('🌉 [CROSSCHAIN] Fetching cross-chain stats...');
+
+    const stats = await client.getCrossChainStats();
+
+    res.json({
+      success: true,
+      ...stats,
+      chainConfig: CHAIN_CONFIG,
+    });
+  } catch (error) {
+    console.error('❌ [CROSSCHAIN] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch cross-chain stats',
+    });
+  }
+});
+
+/**
+ * GET /api/crosschain/inflows
+ *
+ * Get recent ZEC inflows (other chains → ZEC)
+ */
+app.get('/api/crosschain/inflows', async (req, res) => {
+  try {
+    const client = getNearIntentsClient();
+
+    if (!client.hasApiKey()) {
+      return res.status(503).json({
+        success: false,
+        error: 'NEAR Intents API key not configured',
+      });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const page = parseInt(req.query.page) || 1;
+
+    const data = await client.getZecInflows({ limit, page });
+
+    res.json({
+      success: true,
+      ...data,
+    });
+  } catch (error) {
+    console.error('❌ [CROSSCHAIN] Inflows error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/crosschain/outflows
+ *
+ * Get recent ZEC outflows (ZEC → other chains)
+ */
+app.get('/api/crosschain/outflows', async (req, res) => {
+  try {
+    const client = getNearIntentsClient();
+
+    if (!client.hasApiKey()) {
+      return res.status(503).json({
+        success: false,
+        error: 'NEAR Intents API key not configured',
+      });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const page = parseInt(req.query.page) || 1;
+
+    const data = await client.getZecOutflows({ limit, page });
+
+    res.json({
+      success: true,
+      ...data,
+    });
+  } catch (error) {
+    console.error('❌ [CROSSCHAIN] Outflows error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/crosschain/status
+ *
+ * Check if NEAR Intents integration is configured
+ */
+app.get('/api/crosschain/status', async (req, res) => {
+  const client = getNearIntentsClient();
+
+  res.json({
+    success: true,
+    configured: client.hasApiKey(),
+    message: client.hasApiKey()
+      ? 'NEAR Intents API configured'
+      : 'NEAR Intents API key not set. Cross-chain features disabled.',
+    docsUrl: 'https://docs.near-intents.org/near-intents/integration/distribution-channels/intents-explorer-api',
+  });
 });
 
 // ============================================================================

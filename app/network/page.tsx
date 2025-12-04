@@ -120,6 +120,25 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
+  const [zecPrice, setZecPrice] = useState<number | null>(null);
+
+  // Fetch ZEC price from CoinGecko
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd'
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setZecPrice(data.zcash.usd);
+        }
+      } catch (error) {
+        console.error('Error fetching ZEC price:', error);
+      }
+    };
+    fetchPrice();
+  }, []);
 
   // WebSocket connection for real-time updates
   const { isConnected, lastMessage } = useWebSocket({
@@ -266,56 +285,96 @@ export default function NetworkPage() {
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
                 <Icons.Shield />
               </div>
-              <div>
-                <h2 className="text-lg font-bold">Supply Distribution</h2>
-                <p className="text-xs text-gray-400">
-                  {stats.supply.chain === 'main' ? 'Mainnet' : 'Testnet'} • {stats.supply.activeUpgrade || 'Unknown'}
-                </p>
-              </div>
+              <h2 className="text-lg font-bold">Supply Distribution</h2>
             </div>
 
-            <div className="space-y-3">
-              {/* Shielded vs Transparent Bar */}
+            <div className="space-y-4">
+              {/* Shielded vs Transparent Summary */}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400 font-medium">
+                  🛡️ Shielded <span className="text-[10px] text-gray-500">(Orchard + Sapling + Sprout)</span>
+                </span>
+                <span className="text-white font-bold">{stats.supply.shieldedPercentage.toFixed(1)}%</span>
+              </div>
+
+              {/* Multi-pool Progress Bar */}
               <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-purple-400">🛡️ Shielded</span>
-                  <span className="text-purple-400 font-bold">{stats.supply.shieldedPercentage.toFixed(1)}%</span>
-                </div>
-                <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex">
+                <div className="h-5 bg-gray-700 rounded-full overflow-hidden flex">
+                  {/* Orchard */}
                   <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-purple-400"
-                    style={{ width: `${stats.supply.shieldedPercentage}%` }}
+                    className="h-full bg-green-500 relative group"
+                    style={{ width: `${(stats.supply.orchard / stats.supply.chainSupply) * 100}%` }}
+                    title={`Orchard: ${(stats.supply.orchard / 1000000).toFixed(2)}M ZEC`}
                   />
+                  {/* Sapling */}
                   <div
-                    className="h-full bg-gray-600"
-                    style={{ width: `${100 - stats.supply.shieldedPercentage}%` }}
+                    className="h-full bg-cyan-500 relative group"
+                    style={{ width: `${(stats.supply.sapling / stats.supply.chainSupply) * 100}%` }}
+                    title={`Sapling: ${(stats.supply.sapling / 1000000).toFixed(2)}M ZEC`}
+                  />
+                  {/* Sprout */}
+                  <div
+                    className="h-full bg-amber-500 relative group"
+                    style={{ width: `${(stats.supply.sprout / stats.supply.chainSupply) * 100}%` }}
+                    title={`Sprout: ${(stats.supply.sprout / 1000).toFixed(1)}K ZEC`}
+                  />
+                  {/* Transparent */}
+                  <div
+                    className="h-full bg-gray-500"
+                    style={{ width: `${(stats.supply.transparent / stats.supply.chainSupply) * 100}%` }}
+                    title={`Transparent: ${(stats.supply.transparent / 1000000).toFixed(2)}M ZEC`}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{(stats.supply.totalShielded / 1000000).toFixed(2)}M ZEC shielded</span>
-                  <span>{(stats.supply.transparent / 1000000).toFixed(2)}M ZEC transparent</span>
+                {/* Legend under bar */}
+                <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
+                  <span>{(stats.supply.totalShielded / 1000000).toFixed(2)}M shielded</span>
+                  <span>{(stats.supply.transparent / 1000000).toFixed(2)}M transparent</span>
                 </div>
               </div>
 
-              {/* Pool Breakdown */}
-              <div className="grid grid-cols-3 gap-2 mt-4">
+              {/* Pool Breakdown Cards */}
+              <div className="grid grid-cols-3 gap-2">
                 <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
                   <div className="text-green-400 text-lg font-bold font-mono">
                     {(stats.supply.orchard / 1000000).toFixed(2)}M
                   </div>
-                  <div className="text-xs text-gray-400">Orchard</div>
+                  {zecPrice && (
+                    <div className="text-[10px] text-gray-500 font-mono">
+                      ${((stats.supply.orchard / 1000000) * zecPrice).toFixed(1)}M
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                    Orchard
+                  </div>
                 </div>
                 <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
                   <div className="text-cyan-400 text-lg font-bold font-mono">
                     {(stats.supply.sapling / 1000000).toFixed(2)}M
                   </div>
-                  <div className="text-xs text-gray-400">Sapling</div>
+                  {zecPrice && (
+                    <div className="text-[10px] text-gray-500 font-mono">
+                      ${((stats.supply.sapling / 1000000) * zecPrice).toFixed(1)}M
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    Sapling
+                  </div>
                 </div>
                 <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
                   <div className="text-amber-400 text-lg font-bold font-mono">
                     {(stats.supply.sprout / 1000).toFixed(1)}K
                   </div>
-                  <div className="text-xs text-gray-400">Sprout</div>
+                  {zecPrice && (
+                    <div className="text-[10px] text-gray-500 font-mono">
+                      ${((stats.supply.sprout / 1000) * zecPrice).toFixed(0)}K
+                    </div>
+                  )}
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    Sprout
+                  </div>
                 </div>
               </div>
             </div>
@@ -345,17 +404,16 @@ export default function NetworkPage() {
                   <span className="text-gray-400">🔐 Lockbox</span>
                   <span className="text-xs text-gray-500">(Dev Fund)</span>
                 </div>
-                <span className="font-mono font-bold text-amber-400">
-                  {stats.supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC
-                </span>
-              </div>
-
-              {/* Size on Disk */}
-              <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
-                <span className="text-gray-400">Size on Disk</span>
-                <span className="font-mono font-bold text-white">
-                  {(stats.supply.sizeOnDisk / (1024 * 1024 * 1024)).toFixed(1)} GB
-                </span>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-amber-400">
+                    {stats.supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
+                  </span>
+                  {zecPrice && (
+                    <div className="text-[10px] text-gray-500 font-mono">
+                      ${((stats.supply.lockbox * zecPrice) / 1000000).toFixed(1)}M
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Active Upgrade */}
@@ -421,7 +479,13 @@ export default function NetworkPage() {
         </div>
       </div>
 
-      {/* Mining & Blockchain Stats */}
+      {/* Mining & Performance */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+          <Icons.Zap />
+          Mining & Performance
+        </h3>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
         <MiniStatCard
           label="Hashrate"
@@ -441,6 +505,7 @@ export default function NetworkPage() {
           value={`${stats.mining.avgBlockTime}s`}
           subtitle="Target: 75s"
           icon={<Icons.Clock />}
+          status={stats.mining.avgBlockTime <= 90 ? 'good' : stats.mining.avgBlockTime <= 120 ? 'warning' : 'bad'}
         />
         <MiniStatCard
           label="Blocks (24h)"
@@ -460,7 +525,13 @@ export default function NetworkPage() {
         />
       </div>
 
-      {/* Additional Info */}
+      {/* Blockchain Info */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+          <Icons.Database />
+          Blockchain
+        </h3>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <MiniStatCard
           label="Blockchain Size"
@@ -494,9 +565,18 @@ interface MiniStatCardProps {
   value: string;
   subtitle?: string;
   highlight?: boolean;
+  status?: 'good' | 'warning' | 'bad';
 }
 
-function MiniStatCard({ icon, label, value, subtitle, highlight }: MiniStatCardProps) {
+function MiniStatCard({ icon, label, value, subtitle, highlight, status }: MiniStatCardProps) {
+  const statusColors = {
+    good: 'text-cipher-green',
+    warning: 'text-yellow-400',
+    bad: 'text-red-400',
+  };
+
+  const valueColor = status ? statusColors[status] : highlight ? 'text-green-400' : 'text-white';
+
   return (
     <div className={`p-4 rounded-lg border transition-all ${
       highlight
@@ -511,11 +591,11 @@ function MiniStatCard({ icon, label, value, subtitle, highlight }: MiniStatCardP
         </div>
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</span>
       </div>
-      <div className={`text-xl sm:text-2xl font-bold font-mono ${highlight ? 'text-green-400' : 'text-white'}`}>
+      <div className={`text-xl sm:text-2xl font-bold font-mono ${valueColor}`}>
         {value}
       </div>
       {subtitle && (
-        <p className="text-xs text-gray-500 mt-1">
+        <p className={`text-xs mt-1 ${status ? 'text-gray-400' : 'text-gray-500'}`}>
           {subtitle}
         </p>
       )}

@@ -196,19 +196,15 @@ export default function TransactionPage() {
             bindingSigSapling: txData.bindingSigSapling,
           };
 
-          // Calculate fee
-          // For shielded txs: fee = valueBalance (amount leaving shielded pool)
-          // For transparent txs: fee = inputs - outputs
+          // Calculate fee using: fee = inputs - outputs + valueBalance
           if (txData.fee && txData.fee > 0) {
-            // Use API-provided fee (from shielded value balances)
+            // Use API-provided fee
             transformedData.fee = txData.fee;
-          } else if (transformedData.totalInput > 0) {
-            // Calculate from transparent inputs/outputs
-            transformedData.fee = transformedData.totalInput - transformedData.totalOutput;
           } else {
-            // Fallback: calculate from value balances
-            const shieldedFee = (transformedData.valueBalanceSapling || 0) + (transformedData.valueBalanceOrchard || 0);
-            transformedData.fee = shieldedFee > 0 ? shieldedFee : 0;
+            // Fallback: calculate fee = transparentInputs - transparentOutputs + valueBalance
+            const shieldedValueBalance = (transformedData.valueBalanceSapling || 0) + (transformedData.valueBalanceOrchard || 0);
+            const calculatedFee = transformedData.totalInput - transformedData.totalOutput + shieldedValueBalance;
+            transformedData.fee = calculatedFee > 0 ? calculatedFee : 0;
           }
 
           setData(transformedData);

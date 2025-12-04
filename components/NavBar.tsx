@@ -131,6 +131,14 @@ export function NavBar() {
                     >
                       <span>Mempool Viewer</span>
                     </Link>
+{isMainnet && (
+                    <Link
+                      href="/flows"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
+                    >
+                      <span>ZEC Flows</span>
+                    </Link>
+                    )}
                     <Link
                       href="/decrypt"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors"
@@ -228,6 +236,15 @@ export function NavBar() {
             >
               Mempool Viewer
             </Link>
+{isMainnet && (
+            <Link
+              href="/flows"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono text-gray-300 hover:bg-cipher-bg hover:text-cipher-cyan transition-colors rounded"
+            >
+              ZEC Flows
+            </Link>
+            )}
             <Link
               href="/decrypt"
               onClick={() => setMobileMenuOpen(false)}
