@@ -203,7 +203,7 @@ export default function NetworkPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan mb-4"></div>
-            <p className="text-gray-400 font-mono">Loading network stats...</p>
+            <p className="text-secondary font-mono">Loading network stats...</p>
           </div>
         </div>
       </div>
@@ -229,17 +229,17 @@ export default function NetworkPage() {
   }
 
   return (
-    <div className="min-h-screen text-white py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 sm:mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-3 mb-4 text-primary">
             <Icons.Network />
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-mono">
               Network Statistics
             </h1>
           </div>
-          <p className="text-gray-400 text-base sm:text-lg max-w-3xl mx-auto px-2">
+          <p className="text-secondary text-base sm:text-lg max-w-3xl mx-auto px-2">
             Real-time Zcash testnet metrics. Mining stats, network health, and blockchain data.
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -251,8 +251,8 @@ export default function NetworkPage() {
         {health && (
           <div className={`card mb-6 sm:mb-8 border-2 ${
             health.zebra.healthy && health.zebra.ready
-              ? 'bg-gradient-to-br from-green-900/20 to-cipher-surface border-cipher-green/30'
-              : 'bg-gradient-to-br from-orange-900/20 to-cipher-surface border-cipher-orange/30'
+              ? 'gradient-card-health-good'
+              : 'gradient-card-health-warning'
           }`}>
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -263,7 +263,7 @@ export default function NetworkPage() {
                 <Icons.Check />
               </div>
               <div className="flex-1">
-                <p className="text-sm sm:text-base font-semibold">
+                <p className="text-sm sm:text-base font-semibold text-primary">
                   Node Status: <span className={health.zebra.healthy ? 'text-cipher-green' : 'text-red-400'}>
                     {health.zebra.healthy ? 'Healthy' : 'Unhealthy'}
                   </span>
@@ -272,12 +272,12 @@ export default function NetworkPage() {
                     {health.zebra.ready ? 'Ready' : 'Syncing'}
                   </span>
                 </p>
-                <p className="text-xs text-gray-400 font-mono">
+                <p className="text-xs text-muted font-mono">
                   Zebra {stats.network.subversion} • Protocol {stats.network.protocolVersion}
                 </p>
               </div>
               {stats.cached && (
-                <span className="text-xs text-gray-500 font-mono">
+                <span className="text-xs text-muted font-mono">
                   Cached {stats.cacheAge}s ago
                 </span>
               )}
@@ -294,21 +294,21 @@ export default function NetworkPage() {
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
                 <Icons.Shield />
               </div>
-              <h2 className="text-lg font-bold">Supply Distribution</h2>
+              <h2 className="text-lg font-bold text-primary">Supply Distribution</h2>
             </div>
 
             <div className="space-y-4">
               {/* Shielded vs Transparent Summary */}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400 font-medium">
-                  🛡️ Shielded <span className="text-[10px] text-gray-500">(Orchard + Sapling + Sprout)</span>
+                <span className="text-secondary font-medium">
+                  🛡️ Shielded <span className="text-[10px] text-muted">(Orchard + Sapling + Sprout)</span>
                 </span>
-                <span className="text-white font-bold">{stats.supply.shieldedPercentage.toFixed(1)}%</span>
+                <span className="text-primary font-bold">{stats.supply.shieldedPercentage.toFixed(1)}%</span>
               </div>
 
               {/* Multi-pool Progress Bar */}
               <div>
-                <div className="h-5 bg-gray-700 rounded-full overflow-hidden flex">
+                <div className="h-5 progress-bar-bg rounded-full overflow-hidden flex">
                   {/* Orchard */}
                   <div
                     className="h-full bg-green-500 relative group"
@@ -335,7 +335,7 @@ export default function NetworkPage() {
                   />
                 </div>
                 {/* Legend under bar */}
-                <div className="flex justify-between text-[10px] text-gray-500 mt-1.5">
+                <div className="flex justify-between text-[10px] text-muted mt-1.5">
                   <span>{(stats.supply.totalShielded / 1000000).toFixed(2)}M shielded</span>
                   <span>{(stats.supply.transparent / 1000000).toFixed(2)}M transparent</span>
                 </div>
@@ -343,44 +343,44 @@ export default function NetworkPage() {
 
               {/* Pool Breakdown Cards */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                <div className="pool-card rounded-lg p-3 text-center">
                   <div className="text-green-400 text-lg font-bold font-mono">
                     {(stats.supply.orchard / 1000000).toFixed(2)}M
                   </div>
                   {zecPrice && (
-                    <div className="text-[10px] text-gray-500 font-mono">
+                    <div className="text-[10px] text-muted font-mono">
                       ${((stats.supply.orchard / 1000000) * zecPrice).toFixed(1)}M
                     </div>
                   )}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-secondary mt-1">
                     <span className="w-2 h-2 rounded-full bg-green-400"></span>
                     Orchard
                   </div>
                 </div>
-                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                <div className="pool-card rounded-lg p-3 text-center">
                   <div className="text-cyan-400 text-lg font-bold font-mono">
                     {(stats.supply.sapling / 1000000).toFixed(2)}M
                   </div>
                   {zecPrice && (
-                    <div className="text-[10px] text-gray-500 font-mono">
+                    <div className="text-[10px] text-muted font-mono">
                       ${((stats.supply.sapling / 1000000) * zecPrice).toFixed(1)}M
                     </div>
                   )}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-secondary mt-1">
                     <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
                     Sapling
                   </div>
                 </div>
-                <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
+                <div className="pool-card rounded-lg p-3 text-center">
                   <div className="text-amber-400 text-lg font-bold font-mono">
                     {(stats.supply.sprout / 1000).toFixed(1)}K
                   </div>
                   {zecPrice && (
-                    <div className="text-[10px] text-gray-500 font-mono">
+                    <div className="text-[10px] text-muted font-mono">
                       ${((stats.supply.sprout / 1000) * zecPrice).toFixed(0)}K
                     </div>
                   )}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-secondary mt-1">
                     <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                     Sprout
                   </div>
@@ -395,14 +395,14 @@ export default function NetworkPage() {
               <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
                 <Icons.Database />
               </div>
-              <h2 className="text-lg font-bold">Chain Statistics</h2>
+              <h2 className="text-lg font-bold text-primary">Chain Statistics</h2>
             </div>
 
             <div className="space-y-4">
               {/* Chain Supply */}
               <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
-                <span className="text-gray-400">Total Supply</span>
-                <span className="font-mono font-bold text-white">
+                <span className="text-secondary">Total Supply</span>
+                <span className="font-mono font-bold text-primary">
                   {(stats.supply.chainSupply / 1000000).toFixed(2)}M ZEC
                 </span>
               </div>
@@ -410,15 +410,15 @@ export default function NetworkPage() {
               {/* Lockbox */}
               <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400">🔐 Lockbox</span>
-                  <span className="text-xs text-gray-500">(Dev Fund)</span>
+                  <span className="text-secondary">🔐 Lockbox</span>
+                  <span className="text-xs text-muted">(Dev Fund)</span>
                 </div>
                 <div className="text-right">
                   <span className="font-mono font-bold text-amber-400">
                     {stats.supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
                   </span>
                   {zecPrice && (
-                    <div className="text-[10px] text-gray-500 font-mono">
+                    <div className="text-[10px] text-muted font-mono">
                       ${((stats.supply.lockbox * zecPrice) / 1000000).toFixed(1)}M
                     </div>
                   )}
@@ -427,7 +427,7 @@ export default function NetworkPage() {
 
               {/* Active Upgrade */}
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-400">Network Upgrade</span>
+                <span className="text-secondary">Network Upgrade</span>
                 <span className="font-mono font-bold text-green-400">
                   {stats.supply.activeUpgrade || 'Unknown'}
                 </span>
@@ -440,49 +440,49 @@ export default function NetworkPage() {
       {/* Key Metrics - Hero Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
         {/* Current Height - Big */}
-        <div className="card bg-gradient-to-br from-cyan-900/20 to-cipher-surface border-cyan-500/30">
+        <div className="card gradient-card-cyan">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
               <Icons.Cube />
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Current Height</span>
+            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Current Height</span>
           </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-white mb-1">
+          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-1">
             {(stats.network.height / 1000000).toFixed(2)}M
           </div>
-          <div className="text-sm text-gray-400 font-mono">
+          <div className="text-sm text-secondary font-mono">
             {stats.network.height.toLocaleString()} blocks
           </div>
         </div>
 
         {/* Transactions 24h - Big */}
-        <div className="card bg-gradient-to-br from-cyan-900/20 to-cipher-surface border-cyan-500/30">
+        <div className="card gradient-card-cyan">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
               <Icons.Activity />
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Transactions (24h)</span>
+            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Transactions (24h)</span>
           </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-white mb-1">
+          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-1">
             {(stats.blockchain.tx24h / 1000).toFixed(1)}K
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-secondary">
             {stats.blockchain.tx24h.toLocaleString()} transactions
           </div>
         </div>
 
         {/* Connected Peers - Big */}
-        <div className="card bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30">
+        <div className="card gradient-card-green">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400">
               <Icons.Users />
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-gray-400">Connected Peers</span>
+            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Connected Peers</span>
           </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-white mb-1">
+          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-green mb-1">
             {stats.network.peers}
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-secondary">
             Direct connections
           </div>
         </div>
@@ -490,7 +490,7 @@ export default function NetworkPage() {
 
       {/* Mining & Performance */}
       <div className="mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted flex items-center gap-2">
           <Icons.Zap />
           Mining & Performance
         </h3>
@@ -533,7 +533,7 @@ export default function NetworkPage() {
 
       {/* Blockchain Info */}
       <div className="mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted flex items-center gap-2">
           <Icons.Database />
           Blockchain
         </h3>
@@ -581,13 +581,13 @@ function MiniStatCard({ icon, label, value, subtitle, highlight, status }: MiniS
     bad: 'text-red-400',
   };
 
-  const valueColor = status ? statusColors[status] : highlight ? 'text-green-400' : 'text-white';
+  const valueColor = status ? statusColors[status] : highlight ? 'text-green-400' : 'text-primary';
 
   return (
     <div className={`p-4 rounded-lg border transition-all ${
       highlight
-        ? 'bg-green-900/10 border-green-500/30 hover:border-green-500/50'
-        : 'bg-cipher-surface/50 border-cipher-border hover:border-cipher-cyan/30'
+        ? 'stat-card-highlight'
+        : 'stat-card'
     }`}>
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -595,13 +595,13 @@ function MiniStatCard({ icon, label, value, subtitle, highlight, status }: MiniS
         }`}>
           {icon}
         </div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-secondary">{label}</span>
       </div>
       <div className={`text-xl sm:text-2xl font-bold font-mono ${valueColor}`}>
         {value}
       </div>
       {subtitle && (
-        <p className={`text-xs mt-1 ${status ? 'text-gray-400' : 'text-gray-500'}`}>
+        <p className={`text-xs mt-1 ${status ? 'text-secondary' : 'text-muted'}`}>
           {subtitle}
         </p>
       )}

@@ -441,6 +441,79 @@
   .light .hero-subtitle {
     @apply text-gray-700;
   }
+
+  /* ===== NETWORK PAGE ===== */
+  /* Gradient cards for network stats */
+  .gradient-card-cyan {
+    @apply bg-gradient-to-br from-cyan-900/20 to-cipher-surface border-cyan-500/30;
+  }
+  .light .gradient-card-cyan {
+    @apply from-cyan-50 to-white border-cyan-200;
+  }
+
+  .gradient-card-green {
+    @apply bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30;
+  }
+  .light .gradient-card-green {
+    @apply from-green-50 to-white border-green-200;
+  }
+
+  .gradient-card-health-good {
+    @apply bg-gradient-to-br from-green-900/20 to-cipher-surface border-cipher-green/30;
+  }
+  .light .gradient-card-health-good {
+    @apply from-green-50 to-white border-green-300;
+  }
+
+  .gradient-card-health-warning {
+    @apply bg-gradient-to-br from-orange-900/20 to-cipher-surface border-cipher-orange/30;
+  }
+  .light .gradient-card-health-warning {
+    @apply from-orange-50 to-white border-orange-300;
+  }
+
+  /* Mini stat cards */
+  .stat-card {
+    @apply bg-cipher-surface/50 border-cipher-border;
+  }
+  .stat-card:hover {
+    @apply border-cipher-cyan/30;
+  }
+  .light .stat-card {
+    @apply bg-white border-gray-200;
+  }
+  .light .stat-card:hover {
+    @apply border-cyan-300;
+  }
+
+  .stat-card-highlight {
+    @apply bg-green-900/10 border-green-500/30;
+  }
+  .stat-card-highlight:hover {
+    @apply border-green-500/50;
+  }
+  .light .stat-card-highlight {
+    @apply bg-green-50 border-green-200;
+  }
+  .light .stat-card-highlight:hover {
+    @apply border-green-400;
+  }
+
+  /* Pool breakdown cards */
+  .pool-card {
+    @apply bg-cipher-bg/50;
+  }
+  .light .pool-card {
+    @apply bg-gray-100;
+  }
+
+  /* Progress bar background */
+  .progress-bar-bg {
+    @apply bg-gray-700;
+  }
+  .light .progress-bar-bg {
+    @apply bg-gray-300;
+  }
 }
 
 @layer utilities {
