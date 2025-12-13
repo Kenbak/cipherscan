@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY, isMainnet } from '@/lib/config';
@@ -25,11 +25,15 @@ interface RecentSwap {
   id: string;
   timestamp: number;
   fromChain: string;
+  toChain: string;
   fromAmount: number;
   fromSymbol: string;
   toAmount: number;
+  toSymbol: string;
   direction: 'in' | 'out'; // in = →ZEC, out = ZEC→
   shielded: boolean | null; // null = unknown yet
+  status: string; // SUCCESS, PROCESSING, FAILED, etc.
+  amountUsd?: number;
 }
 
 interface CrossChainStats {
@@ -103,6 +107,11 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string;
   avax: { color: '#E84142', symbol: 'AVAX', name: 'Avalanche', iconId: 'avax' },
 };
 
+// Custom icon URLs for chains not in the standard CDN
+const customIcons: Record<string, string> = {
+  near: 'https://cryptologos.cc/logos/near-protocol-near-logo.svg',
+};
+
 // Crypto icon component using CDN
 function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
   // Extract base token from "USDC (ETH)" → "usdc"
@@ -110,9 +119,13 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   const config = chainConfig[baseSymbol] || chainConfig[symbol.toLowerCase()];
   const iconId = config?.iconId || baseSymbol;
 
+  // Use custom icon if available, otherwise CDN
+  const iconUrl = customIcons[iconId]
+    || `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`;
+
   return (
     <img
-      src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`}
+      src={iconUrl}
       alt={symbol}
       width={size}
       height={size}
@@ -172,68 +185,6 @@ function TokenWithChain({ symbol }: { symbol: string }) {
   return <span>{symbol}</span>;
 }
 
-// Mock data for design work - grouped by chain
-const mockStats: CrossChainStats = {
-  totalVolume24h: 2_450_000,
-  volumeChange24h: 8.3,
-  volumeChange7d: 12.5,
-  shieldedRate: 67,
-  totalSwaps24h: 1_234,
-  inflows: [
-    {
-      chain: 'btc', chainName: 'Bitcoin', color: '#F7931A',
-      totalVolume24h: 890_000, volumeChange: 15,
-      tokens: [{ symbol: 'BTC', volume24h: 890_000 }]
-    },
-    {
-      chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
-      totalVolume24h: 930_000, volumeChange: 5,
-      tokens: [
-        { symbol: 'ETH', volume24h: 650_000 },
-        { symbol: 'USDC', volume24h: 280_000 }
-      ]
-    },
-    {
-      chain: 'sol', chainName: 'Solana', color: '#14F195',
-      totalVolume24h: 460_000, volumeChange: 12,
-      tokens: [
-        { symbol: 'SOL', volume24h: 340_000 },
-        { symbol: 'USDC', volume24h: 120_000 }
-      ]
-    },
-    {
-      chain: 'near', chainName: 'NEAR', color: '#00C08B',
-      totalVolume24h: 180_000, volumeChange: 45,
-      tokens: [{ symbol: 'NEAR', volume24h: 180_000 }]
-    },
-  ],
-  outflows: [
-    {
-      chain: 'eth', chainName: 'Ethereum', color: '#627EEA',
-      totalVolume24h: 165_000, volumeChange: -5,
-      tokens: [
-        { symbol: 'ETH', volume24h: 120_000 },
-        { symbol: 'USDC', volume24h: 45_000 }
-      ]
-    },
-    {
-      chain: 'sol', chainName: 'Solana', color: '#14F195',
-      totalVolume24h: 80_000, volumeChange: 12,
-      tokens: [{ symbol: 'SOL', volume24h: 80_000 }]
-    },
-  ],
-  recentSwaps: [
-    { id: '1', timestamp: Date.now() - 2000, fromChain: 'btc', fromAmount: 0.5, fromSymbol: 'BTC', toAmount: 142, direction: 'in', shielded: true },
-    { id: '2', timestamp: Date.now() - 15000, fromChain: 'eth', fromAmount: 1.2, fromSymbol: 'ETH', toAmount: 89, direction: 'in', shielded: false },
-    { id: '3', timestamp: Date.now() - 34000, fromChain: 'eth', fromAmount: 500, fromSymbol: 'USDC', toAmount: 12, direction: 'in', shielded: true },
-    { id: '4', timestamp: Date.now() - 60000, fromChain: 'sol', fromAmount: 45, fromSymbol: 'SOL', toAmount: 320, direction: 'in', shielded: null },
-    { id: '5', timestamp: Date.now() - 120000, fromChain: 'eth', fromAmount: 50, fromSymbol: 'ZEC', toAmount: 0.8, direction: 'out', shielded: true },
-    { id: '6', timestamp: Date.now() - 180000, fromChain: 'sol', fromAmount: 1000, fromSymbol: 'USDC', toAmount: 24, direction: 'in', shielded: true },
-  ],
-};
-
-// Set to true to use mock data for design, false to use real API
-const USE_MOCK_DATA = true;
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
@@ -250,23 +201,20 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export default function FlowsPage() {
-  const [stats, setStats] = useState<CrossChainStats | null>(USE_MOCK_DATA ? mockStats : null);
-  const [loading, setLoading] = useState(!USE_MOCK_DATA);
+  const [stats, setStats] = useState<CrossChainStats | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
+  const hasFetchedOnce = useRef(false);
 
-  // Fetch cross-chain stats from API (or use mock data)
+  // Fetch cross-chain stats from API
   useEffect(() => {
-    // Use mock data for design work
-    if (USE_MOCK_DATA) {
-      setStats(mockStats);
-      setLoading(false);
-      return;
-    }
-
     const fetchStats = async () => {
       try {
-        setLoading(true);
+        // Only show loading spinner on initial load, not on refreshes
+        if (!hasFetchedOnce.current) {
+          setLoading(true);
+        }
         setError(null);
 
         const apiUrl = usePostgresApiClient()
@@ -315,14 +263,19 @@ export default function FlowsPage() {
             fromChain: swap.fromChain,
             fromAmount: swap.fromAmount,
             fromSymbol: swap.fromSymbol,
+            toChain: swap.toChain,
+            toSymbol: swap.toSymbol,
             toAmount: swap.toAmount,
+            amountUsd: swap.amountUsd,
             direction: swap.direction,
+            status: swap.status,
             shielded: swap.shielded,
           })),
         };
 
         setStats(transformedStats);
         setApiConfigured(true);
+        hasFetchedOnce.current = true;
       } catch (err) {
         console.error('Error fetching cross-chain stats:', err);
         setError('Failed to connect to API');
@@ -454,24 +407,8 @@ export default function FlowsPage() {
               </a>
             </p>
           </div>
-          {!USE_MOCK_DATA && <Icons.Live />}
+          <Icons.Live />
         </div>
-
-        {/* Mock Data Notice */}
-        {USE_MOCK_DATA && (
-          <div className="mb-6 p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10">
-            <div className="flex items-center gap-3">
-              <span className="text-yellow-400 text-xl">⚠️</span>
-              <div>
-                <p className="text-yellow-400 font-medium">Demo Data</p>
-                <p className="text-gray-400 text-sm">
-                  This page displays mock data for demonstration purposes.
-                  Real-time NEAR Intents API integration coming soon.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -481,35 +418,8 @@ export default function FlowsPage() {
               <span className="text-xs text-gray-400 uppercase">24H Volume</span>
               <Tooltip content="Total USD value of ZEC swapped in the last 24 hours via NEAR Intents" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-bold text-white">
-                {formatUSD(stats.totalVolume24h)}
-              </span>
-              <span className={`text-sm font-medium ${stats.volumeChange24h >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-                {stats.volumeChange24h >= 0 ? '↑' : '↓'} {Math.abs(stats.volumeChange24h)}%
-              </span>
-            </div>
-          </div>
-
-          {/* 7D Trend */}
-          <div className="card bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400 uppercase">7D Trend</span>
-              <Tooltip content="Change in total ZEC swap volume compared to the previous 7-day period" />
-            </div>
-            <div className={`text-2xl sm:text-3xl font-bold ${stats.volumeChange7d >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-              {stats.volumeChange7d >= 0 ? '↑' : '↓'} {Math.abs(stats.volumeChange7d)}%
-            </div>
-          </div>
-
-          {/* Shielded Rate */}
-          <div className="card bg-gradient-to-br from-purple-900/20 to-cipher-surface border-purple-500/30">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400 uppercase">Shielded Rate</span>
-              <Tooltip content="Percentage of incoming ZEC that was subsequently shielded" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-purple-400">
-              {stats.shieldedRate}%
+            <div className="text-2xl sm:text-3xl font-bold text-white">
+              {formatUSD(stats.totalVolume24h)}
             </div>
           </div>
 
@@ -568,12 +478,7 @@ export default function FlowsPage() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
-                          <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-                            {chainGroup.volumeChange >= 0 ? '+' : ''}{chainGroup.volumeChange}%
-                          </span>
-                        </div>
+                        <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
                       </div>
                       {/* Progress bar */}
                       <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
@@ -635,12 +540,7 @@ export default function FlowsPage() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
-                            <span className={`text-xs ${chainGroup.volumeChange >= 0 ? 'text-cipher-green' : 'text-red-400'}`}>
-                              {chainGroup.volumeChange >= 0 ? '+' : ''}{chainGroup.volumeChange}%
-                            </span>
-                          </div>
+                          <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
                         </div>
                         {/* Progress bar */}
                         <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
@@ -741,24 +641,29 @@ export default function FlowsPage() {
                     </div>
                 </div>
 
-                  {/* Status */}
+                  {/* Status - based on NEAR tx status */}
                   <div className="flex justify-end">
-                    {swap.shielded === true && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded border border-purple-500/30">
+                    {swap.status === 'SUCCESS' && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded border border-green-500/30">
                         <Icons.Shield />
-                        Shielded
+                        Complete
                       </span>
                     )}
-                    {swap.shielded === false && (
+                    {swap.status === 'PROCESSING' && (
                       <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded border border-yellow-500/30">
-                        <Icons.Warning />
-                        Transparent
+                        <Icons.Pending />
+                        Processing
                       </span>
                     )}
-                    {swap.shielded === null && (
+                    {swap.status === 'FAILED' && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-red-500/20 text-red-400 text-xs font-medium rounded border border-red-500/30">
+                        <Icons.Warning />
+                        Failed
+                      </span>
+                    )}
+                    {!['SUCCESS', 'PROCESSING', 'FAILED'].includes(swap.status) && (
                       <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded border border-gray-500/30">
-                        <Icons.Pending />
-                        Pending
+                        {swap.status || 'Unknown'}
                       </span>
                     )}
                   </div>
@@ -784,8 +689,7 @@ export default function FlowsPage() {
           <p className="text-sm text-gray-400">
             <span className="text-cyan-400 font-bold">🔗 About Cross-Chain Swaps:</span>{' '}
             NEAR Intents enables trustless ZEC swaps with BTC, ETH, SOL, and 15+ other chains.
-            The "Shielded Rate" shows what percentage of incoming ZEC was subsequently moved to shielded pools,
-            indicating privacy-conscious usage.
+            Track real-time inflows and outflows to see how ZEC is being used across the multichain ecosystem.
           </p>
         </div>
       </div>

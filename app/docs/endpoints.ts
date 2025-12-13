@@ -262,6 +262,61 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       }
     }
   },
+  {
+    id: 'shielded-count',
+    category: 'Privacy & Analytics',
+    method: 'GET',
+    path: '/api/stats/shielded-count',
+    description: 'Get total count of shielded transactions since a specific date',
+    params: [
+      { name: 'since', type: 'string', description: 'Start date in ISO format (required, e.g., "2024-01-01")' },
+      { name: 'detailed', type: 'boolean', description: 'If "true", returns breakdown by pool (Sapling/Orchard) and fully vs partially shielded (optional)' }
+    ],
+    example: `curl '${baseUrl}/api/stats/shielded-count?since=2024-01-01&detailed=true'`,
+    response: {
+      success: true,
+      since: '2024-01-01',
+      queriedAt: '2024-12-10T18:30:00.000Z',
+      totalShielded: 611973,
+      breakdown: {
+        saplingOnly: 245000,
+        orchardOnly: 312000,
+        bothPools: 54973
+      },
+      fullyShielded: 489000,
+      partiallyShielded: 122973,
+      timeRange: {
+        firstTx: '2024-01-01T00:05:23.000Z',
+        lastTx: '2024-12-10T18:25:00.000Z'
+      }
+    },
+    note: '📊 Use this endpoint to query historical shielded transaction counts. Without "detailed=true", returns only the total count (faster).'
+  },
+  {
+    id: 'shielded-daily',
+    category: 'Privacy & Analytics',
+    method: 'GET',
+    path: '/api/stats/shielded-daily',
+    description: 'Get daily shielded transaction counts for a date range',
+    params: [
+      { name: 'since', type: 'string', description: 'Start date in ISO format (required, e.g., "2024-01-01")' },
+      { name: 'until', type: 'string', description: 'End date in ISO format (optional, defaults to now)' }
+    ],
+    example: `curl '${baseUrl}/api/stats/shielded-daily?since=2024-11-01&until=2024-11-30'`,
+    response: {
+      success: true,
+      since: '2024-11-01',
+      until: '2024-11-30',
+      totalDays: 30,
+      totalShielded: 45230,
+      daily: [
+        { date: '2024-11-01', count: 1523 },
+        { date: '2024-11-02', count: 1456 },
+        { date: '2024-11-03', count: 1612 }
+      ]
+    },
+    note: '📈 Useful for building charts and analyzing shielded adoption trends over time.'
+  },
 
   // ============================================================================
   // NETWORK

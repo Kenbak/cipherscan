@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
-import { CURRENCY } from '@/lib/config';
+import { CURRENCY, isTestnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -193,7 +193,7 @@ export default function PrivacyPage() {
             🛡️ Zcash Privacy Metrics
           </h1>
           <p className="text-gray-400 text-base sm:text-lg max-w-3xl mx-auto px-2">
-            Live privacy statistics for the Zcash testnet blockchain.
+            Live privacy statistics for the Zcash {isTestnet ? 'testnet' : 'mainnet'} blockchain.
             Track shielded adoption, privacy score, and transparency trends.
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -558,9 +558,20 @@ export default function PrivacyPage() {
               </ResponsiveContainer>
             )}
 
-            {activeTab === 'pool' && (
+            {activeTab === 'pool' && (() => {
+              const poolData = [...stats.trends.daily].reverse();
+              const poolValues = poolData.map(d => d.poolSize);
+              const minPool = Math.min(...poolValues);
+              const maxPool = Math.max(...poolValues);
+              // Add 5% padding above and below, and round to nice numbers
+              const range = maxPool - minPool;
+              const padding = Math.max(range * 0.1, maxPool * 0.001); // At least 0.1% padding
+              const yMin = Math.floor((minPool - padding) / 10000) * 10000;
+              const yMax = Math.ceil((maxPool + padding) / 10000) * 10000;
+
+              return (
               <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={[...stats.trends.daily].reverse()}>
+                <AreaChart data={poolData}>
                   <defs>
                     <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
@@ -580,7 +591,8 @@ export default function PrivacyPage() {
                   <YAxis
                     stroke="#9CA3AF"
                     tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                    tickFormatter={(value) => `${(value / 1000000).toFixed(2)}M`}
+                    domain={[yMin, yMax]}
                     label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
                   />
                   <RechartsTooltip
@@ -591,7 +603,7 @@ export default function PrivacyPage() {
                       color: '#fff'
                     }}
                     labelFormatter={(label) => formatDate(label)}
-                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(2)}M ZEC`, 'Pool Size']}
+                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(4)}M ZEC`, 'Pool Size']}
                   />
                   <Area
                     type="monotone"
@@ -603,7 +615,8 @@ export default function PrivacyPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            )}
+              );
+            })()}
 
             {activeTab === 'activity' && (
               <ResponsiveContainer width="100%" height={350}>

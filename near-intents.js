@@ -34,6 +34,13 @@ const CHAIN_CONFIG = {
   pol: { color: '#8247E5', symbol: 'POL', name: 'Polygon' },
   bsc: { color: '#F3BA2F', symbol: 'BNB', name: 'BNB Chain' },
   avax: { color: '#E84142', symbol: 'AVAX', name: 'Avalanche' },
+  tron: { color: '#FF0013', symbol: 'TRX', name: 'Tron' },
+  usdc: { color: '#2775CA', symbol: 'USDC', name: 'USDC' },
+  usdt: { color: '#26A17B', symbol: 'USDT', name: 'Tether' },
+  op: { color: '#FF0420', symbol: 'OP', name: 'Optimism' },
+  ftm: { color: '#1969FF', symbol: 'FTM', name: 'Fantom' },
+  sui: { color: '#6FBCF0', symbol: 'SUI', name: 'Sui' },
+  apt: { color: '#000000', symbol: 'APT', name: 'Aptos' },
 };
 
 /**
@@ -163,16 +170,20 @@ class NearIntentsClient {
 
     console.log('🔄 [NEAR-INTENTS] Fetching fresh cross-chain stats...');
 
-    // Calculate timestamps for 24h and 7d
+    // Calculate timestamps for 24h
     const now24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-    const now7d = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Fetch inflows and outflows in parallel
-    const [inflows24h, outflows24h, inflows7d] = await Promise.all([
-      this.getZecInflows({ startTimestamp: now24h, limit: 1000 }),
-      this.getZecOutflows({ startTimestamp: now24h, limit: 1000 }),
-      this.getZecInflows({ startTimestamp: now7d, limit: 1 }), // Just to get total count
-    ]);
+    // Helper to wait (NEAR rate limit: 1 request per 5 seconds)
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Fetch inflows and outflows SEQUENTIALLY (rate limit: 1 req/5sec)
+    console.log('🔗 [NEAR-INTENTS] Fetching inflows...');
+    const inflows24h = await this.getZecInflows({ startTimestamp: now24h, limit: 1000 });
+
+    await delay(5500); // Wait 5.5 seconds for rate limit
+
+    console.log('🔗 [NEAR-INTENTS] Fetching outflows...');
+    const outflows24h = await this.getZecOutflows({ startTimestamp: now24h, limit: 1000 });
 
     // Aggregate by source/destination chain
     const inflowsByChain = this.aggregateByChain(inflows24h.transactions, 'from');
@@ -183,8 +194,9 @@ class NearIntentsClient {
     const totalOutflow24h = Object.values(outflowsByChain).reduce((sum, c) => sum + c.volumeUsd, 0);
     const totalVolume24h = totalInflow24h + totalOutflow24h;
 
-    // Calculate 7d trend (simplified - compare totals)
-    const volumeChange7d = 0; // Would need historical data to calculate properly
+    // Calculate 7d trend (would need historical data to calculate properly)
+    // For now, just show 0 - we removed the 3rd API call to avoid rate limiting
+    const volumeChange7d = 0;
 
     // Format recent swaps
     const recentSwaps = this.formatRecentSwaps([
@@ -259,13 +271,31 @@ class NearIntentsClient {
   parseChainFromAsset(asset) {
     if (!asset) return 'unknown';
 
-    // Handle ZEC
-    if (asset.includes('zec') || asset.includes('zcash')) return 'zec';
+    const assetLower = asset.toLowerCase();
 
-    // Handle chain prefixes
-    const chainPrefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax'];
+    // Handle ZEC
+    if (assetLower.includes('zec') || assetLower.includes('zcash')) return 'zec';
+
+    // Handle known chain prefixes
+    const chainPrefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax', 'tron', 'trx', 'bnb', 'usdc', 'usdt'];
     for (const prefix of chainPrefixes) {
-      if (asset.toLowerCase().includes(prefix)) return prefix;
+      if (assetLower.includes(prefix)) {
+        // Map aliases
+        if (prefix === 'trx') return 'tron';
+        if (prefix === 'bnb') return 'bsc';
+        return prefix;
+      }
+    }
+
+    // Try to extract chain from asset format: "nep141:CHAIN-address.omft.near" or "nep141:CHAIN.omft.near"
+    const match = asset.match(/nep141:([a-zA-Z]+)[-.]/) || asset.match(/nep245:.*:.*_([a-zA-Z]+)/i);
+    if (match && match[1]) {
+      const extracted = match[1].toLowerCase();
+      // Only accept 2-6 character chains that look like real blockchain names
+      // Reject random strings like "qistmoqjdqptebapjgx"
+      if (extracted.length >= 2 && extracted.length <= 6 && !/^\d+$/.test(extracted)) {
+        return extracted;
+      }
     }
 
     return 'other';

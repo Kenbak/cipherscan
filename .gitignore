@@ -79,3 +79,6 @@ app/test-wasm/
 # 🔧 SERVER SETUP: Internal deployment files
 # ========================================
 MAINNET_SETUP/
+
+# Local Netlify folder
+.netlify
