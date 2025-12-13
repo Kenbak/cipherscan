@@ -514,6 +514,43 @@
   .light .progress-bar-bg {
     @apply bg-gray-300;
   }
+
+  /* ===== PRIVACY PAGE ===== */
+  .gradient-card-purple {
+    @apply bg-gradient-to-br from-purple-900/20 to-cipher-surface border-purple-500/30;
+  }
+  .light .gradient-card-purple {
+    @apply from-purple-50 to-white border-purple-200;
+  }
+
+  .gradient-card-purple-subtle {
+    @apply bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20;
+  }
+  .light .gradient-card-purple-subtle {
+    @apply from-purple-50/50 to-white border-purple-200;
+  }
+
+  /* Progress bar for privacy page */
+  .privacy-progress-bg {
+    @apply bg-cipher-bg;
+  }
+  .light .privacy-progress-bg {
+    @apply bg-gray-200;
+  }
+
+  /* Chart tabs */
+  .chart-tab {
+    @apply text-gray-400;
+  }
+  .chart-tab:hover {
+    @apply text-gray-300;
+  }
+  .light .chart-tab {
+    @apply text-gray-500;
+  }
+  .light .chart-tab:hover {
+    @apply text-gray-700;
+  }
 }
 
 @layer utilities {

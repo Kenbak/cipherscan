@@ -24,13 +24,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Check localStorage first, then system preference
-    const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored) {
-      setThemeState(stored);
-    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-      setThemeState('light');
-    }
+    // Read the theme that was set by the inline script
+    const currentTheme = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+    setThemeState(currentTheme);
   }, []);
 
   useEffect(() => {
