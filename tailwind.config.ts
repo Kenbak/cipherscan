@@ -6,28 +6,36 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         cipher: {
-          // Backgrounds
-          bg: '#0A0E27',         // Deep dark blue-black
-          surface: '#141827',    // Card background
-          border: '#1E293B',     // Subtle borders
+          // Dark theme backgrounds (default)
+          bg: '#0A0E27',
+          surface: '#141827',
+          border: '#1E293B',
+
+          // Light theme backgrounds
+          'bg-light': '#F8FAFC',
+          'surface-light': '#FFFFFF',
+          'border-light': '#E2E8F0',
 
           // Brand Identity - CYAN is our signature
-          cyan: '#00D4FF',       // PRIMARY - Logo, titles, links, interactive
+          cyan: '#00D4FF',       // PRIMARY - Logo, titles, links, interactive (dark mode)
+          'cyan-dark': '#0891B2', // CYAN for light mode - more visible on light backgrounds
 
           // Functional colors
           green: '#00FF41',      // SUCCESS - Confirmations, positive actions
+          'green-dark': '#059669', // Green for light mode
           purple: '#A855F7',     // SHIELDED - Privacy, encryption, shielded transactions
           orange: '#FF6B35',     // WARNING - Only for alerts and negative values
 
-          // Grayscale for everything else
+          // Dark theme text
           text: {
-            primary: '#E5E7EB',    // Light gray for main text
-            secondary: '#9CA3AF',  // Medium gray for secondary text
-            muted: '#6B7280',      // Dark gray for labels
+            primary: '#E5E7EB',
+            secondary: '#9CA3AF',
+            muted: '#6B7280',
           },
         },
       },

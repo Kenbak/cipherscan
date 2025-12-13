@@ -62,7 +62,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search address, tx hash, block number..."
-            className="w-full pl-8 pr-3 py-2 text-sm font-mono bg-cipher-surface/30 border border-cipher-border rounded-lg focus:border-cipher-cyan focus:outline-none transition-all text-gray-200 placeholder-gray-500"
+            className="w-full pl-8 pr-3 py-2 text-sm search-input"
           />
         </div>
       </form>
@@ -85,11 +85,11 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Search address, tx, block number..."
-            className="w-full pl-8 sm:pl-10 pr-24 sm:pr-32 py-3 sm:py-5 text-sm sm:text-base font-mono bg-cipher-surface/30 border-2 border-cipher-border rounded-lg focus:border-cipher-cyan focus:outline-none transition-all text-gray-200 placeholder-gray-600"
+            className="w-full pl-8 sm:pl-10 pr-24 sm:pr-32 py-3 sm:py-5 text-sm sm:text-base search-input border-2"
           />
           <button
             type="submit"
-            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-cipher-cyan hover:bg-cipher-green text-cipher-bg px-3 sm:px-6 py-2 sm:py-2.5 rounded-md font-mono font-semibold transition-all shadow-lg shadow-cipher-cyan/30 hover:shadow-cipher-green/30 text-xs sm:text-sm"
+            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-cipher-cyan hover:bg-cipher-green text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-md font-mono font-semibold transition-all shadow-lg shadow-cipher-cyan/30 hover:shadow-cipher-green/30 text-xs sm:text-sm"
           >
             SEARCH
           </button>
@@ -100,7 +100,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <button
           type="button"
           onClick={() => setQuery('354939')}
-          className="font-mono text-cipher-cyan hover:text-cipher-green transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 bg-cipher-surface/30 rounded border border-cipher-border hover:border-cipher-cyan"
+          className="text-cipher-cyan hover:text-cipher-green example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
         >
           Block #354939
         </button>
@@ -108,7 +108,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <button
           type="button"
           onClick={() => setQuery('t1abc...')}
-          className="font-mono text-gray-400 hover:text-cipher-cyan transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 bg-cipher-surface/30 rounded border border-cipher-border hover:border-cipher-cyan"
+          className="text-gray-400 hover:text-cipher-cyan example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
         >
           t-address
         </button>
@@ -116,7 +116,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <button
           type="button"
           onClick={() => setQuery('zs1...')}
-          className="font-mono text-cipher-green hover:text-cipher-cyan transition-colors px-1.5 sm:px-2 py-0.5 sm:py-1 bg-cipher-surface/30 rounded border border-cipher-border hover:border-cipher-cyan"
+          className="text-cipher-green hover:text-cipher-cyan example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
         >
           z-address 🛡️
         </button>

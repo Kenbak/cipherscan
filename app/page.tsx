@@ -44,10 +44,10 @@ export default async function Home() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
       {/* Hero Section */}
       <div className="text-center mb-12 sm:mb-16 animate-fade-in">
-        <p className="text-lg sm:text-2xl text-gray-500 font-mono mb-4 sm:mb-6">
+        <p className="text-lg sm:text-2xl text-gray-500 dark:text-gray-500 font-mono mb-4 sm:mb-6 hero-title">
           Zcash Blockchain Explorer
         </p>
-        <div className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-12 px-4">
+        <div className="text-base sm:text-xl text-gray-300 dark:text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-12 px-4 hero-subtitle">
           Decode the blockchain.{' '}
           <span className="relative inline-block group/privacy">
             <span className="text-cipher-cyan cursor-help transition-all duration-300 group-hover/privacy:text-white group-hover/privacy:drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] underline decoration-cipher-cyan/30 decoration-dotted underline-offset-4 group-hover/privacy:decoration-cipher-cyan">

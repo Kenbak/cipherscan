@@ -115,7 +115,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className={`inline-flex items-center justify-center ${compact ? 'p-2 hover:bg-cipher-bg' : 'space-x-2 px-3 sm:px-4 py-2'} border border-cipher-border hover:border-cipher-cyan text-cipher-cyan hover:text-cipher-green transition-all rounded-lg ${compact ? '' : 'bg-cipher-surface/30 font-mono text-xs sm:text-sm'}`}
+        className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition-all rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
         title={compact ? 'Support CipherScan' : undefined}
         aria-label={compact ? 'Support CipherScan' : undefined}
       >

@@ -230,7 +230,7 @@ export function PrivacyWidget() {
                 <div className="text-xs text-gray-500">TOTAL TXS</div>
                 <Tooltip content="Total number of transactions on the Zcash testnet blockchain (shielded + transparent)." />
               </div>
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
                 {formatLargeNumber(totalTxs)}
               </div>
             </div>
