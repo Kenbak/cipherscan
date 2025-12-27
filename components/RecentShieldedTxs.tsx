@@ -56,7 +56,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
       <div className="card">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400"></div>
-          <p className="text-gray-400 ml-4 font-mono text-lg">Loading shielded data...</p>
+          <p className="text-secondary ml-4 font-mono text-lg">Loading shielded data...</p>
         </div>
       </div>
     );
@@ -95,7 +95,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 font-mono mt-2">
+                <div className="text-xs text-muted font-mono mt-2">
                   <span className="opacity-50">Block: </span>
                   <code className="break-all">#{tx.blockHeight.toLocaleString()}</code>
                   {tx.hasOrchard && (
@@ -111,10 +111,10 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                 </div>
               </div>
               <div className="text-left sm:text-right sm:ml-6">
-                <div className="text-sm text-gray-400 font-mono">
+                <div className="text-sm text-secondary font-mono">
                   {formatRelativeTime(tx.blockTime)}
                 </div>
-                <div className="text-xs text-gray-500 mt-1 suppress-hydration-warning">
+                <div className="text-xs text-muted mt-1 suppress-hydration-warning">
                   {new Date(tx.blockTime * 1000).toLocaleString('en-US', {
                     year: 'numeric',
                     month: '2-digit',

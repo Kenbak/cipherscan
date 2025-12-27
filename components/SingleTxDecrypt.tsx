@@ -130,14 +130,14 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
             </svg>
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-bold">Decrypt Single Message</h2>
-            <p className="text-xs sm:text-sm text-gray-400 font-mono">Enter TX ID and viewing key</p>
+            <h2 className="text-lg sm:text-xl font-bold text-primary">Decrypt Single Message</h2>
+            <p className="text-xs sm:text-sm text-muted font-mono">Enter TX ID and viewing key</p>
           </div>
         </div>
         <div className="space-y-4 sm:space-y-6">
           {/* Transaction ID */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
               Transaction ID
             </label>
             <input
@@ -146,13 +146,13 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               value={txid}
               onChange={(e) => setTxid(e.target.value)}
               disabled={loading}
-              className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             />
           </div>
 
           {/* Viewing Key */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
               Unified Full Viewing Key
             </label>
             <input
@@ -161,9 +161,9 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               value={viewingKey}
               onChange={(e) => setViewingKey(e.target.value)}
               disabled={loading}
-              className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             />
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+            <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
               Starts with <code className="text-cipher-cyan">uviewtest</code> (testnet)
             </p>
           </div>
@@ -196,7 +196,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
           {(memo || error) && (
             <button
               onClick={reset}
-              className="w-full bg-cipher-surface hover:bg-cipher-border text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors border-2 border-cipher-border text-sm sm:text-base"
+              className="w-full card-bg hover:bg-cipher-border text-primary font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors border-2 border-cipher-border text-sm sm:text-base"
             >
               <span className="flex items-center justify-center gap-2">
                 <Icons.Refresh />
@@ -210,12 +210,12 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
       {/* RIGHT: Terminal Output */}
       <div className="flex flex-col">
         {!loading && !memo && !error && (
-          <div className="card flex items-center justify-center bg-cipher-surface/30 lg:min-h-full">
+          <div className="card flex items-center justify-center lg:min-h-full">
             <div className="text-center px-4 sm:px-6 py-16 sm:py-20">
-              <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="flex justify-center mb-3 sm:mb-4 text-muted">
                 <Icons.Terminal />
               </div>
-              <p className="text-gray-500 font-mono text-xs sm:text-sm">
+              <p className="text-muted font-mono text-xs sm:text-sm">
                 Enter a transaction ID and viewing key to decrypt the memo...
               </p>
             </div>
@@ -223,8 +223,8 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
         )}
 
         {loading && (
-          <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full">
-            <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
+          <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full terminal-container">
+            <div className="terminal-header border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
               <Icons.Terminal />
               <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">DECRYPTING.log</span>
               <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
@@ -234,7 +234,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               </div>
             </div>
 
-            <div className="bg-black/80 p-3 sm:p-4 md:p-6 font-mono flex-1">
+            <div className="terminal-body p-3 sm:p-4 md:p-6 font-mono flex-1">
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex items-start gap-2 sm:gap-3">
                   <span className="text-cipher-cyan">$</span>
@@ -279,8 +279,8 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
         )}
 
         {memo && (
-          <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full">
-            <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
+          <div className="border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl flex flex-col lg:h-full terminal-container">
+            <div className="terminal-header border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
               <Icons.Check />
               <span className="font-mono text-xs sm:text-sm text-cipher-green truncate">DECRYPTED_MEMO.txt</span>
               <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
@@ -290,7 +290,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               </div>
             </div>
 
-            <div className="bg-black/80 p-3 sm:p-4 md:p-6 font-mono flex-1 overflow-x-hidden">
+            <div className="terminal-body p-3 sm:p-4 md:p-6 font-mono flex-1 overflow-x-hidden">
               <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
                 <span className="text-cipher-cyan text-sm sm:text-base">$</span>
                 <span className="text-gray-400 text-xs sm:text-sm break-all">cat DECRYPTED_MEMO.txt</span>

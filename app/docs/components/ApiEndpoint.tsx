@@ -31,25 +31,25 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       </div>
 
       {/* Description */}
-      <p className="text-gray-300 mb-4">{endpoint.description}</p>
+      <p className="text-secondary mb-4">{endpoint.description}</p>
 
       {/* Note */}
       {endpoint.note && (
-        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4 text-sm text-yellow-200">
-          {endpoint.note}
+        <div className="warning-box rounded-lg p-3 mb-4 text-sm">
+          <span className="warning-text">{endpoint.note}</span>
         </div>
       )}
 
       {/* Parameters */}
       {endpoint.params.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase">Parameters</h4>
+          <h4 className="text-sm font-bold text-muted mb-2 uppercase">Parameters</h4>
           <div className="space-y-2">
             {endpoint.params.map((param, i) => (
               <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
                 <code className="text-cipher-cyan font-mono">{param.name}</code>
-                <span className="text-gray-500">({param.type})</span>
-                <span className="text-gray-400">- {param.description}</span>
+                <span className="text-muted">({param.type})</span>
+                <span className="text-secondary">- {param.description}</span>
               </div>
             ))}
           </div>
@@ -59,7 +59,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       {/* Example */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-bold text-gray-400 uppercase">Example Request</h4>
+          <h4 className="text-sm font-bold text-muted uppercase">Example Request</h4>
           <button
             onClick={() => copyToClipboard(endpoint.example, endpoint.id)}
             className="text-xs text-cipher-cyan hover:text-cipher-green transition-colors flex items-center gap-1"
@@ -76,8 +76,8 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
             )}
           </button>
         </div>
-        <div className="bg-cipher-bg border border-cipher-border rounded-lg p-3 overflow-x-auto">
-          <code className="text-xs sm:text-sm text-gray-300 font-mono whitespace-pre">
+        <div className="docs-code-block border border-cipher-border rounded-lg p-3 overflow-x-auto">
+          <code className="text-xs sm:text-sm text-secondary font-mono whitespace-pre">
             {endpoint.example}
           </code>
         </div>
@@ -85,9 +85,9 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
 
       {/* Response */}
       <div>
-        <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase">Example Response</h4>
-        <div className="bg-cipher-bg border border-cipher-border rounded-lg p-3 overflow-x-auto">
-          <pre className="text-xs sm:text-sm text-gray-300 font-mono">
+        <h4 className="text-sm font-bold text-muted mb-2 uppercase">Example Response</h4>
+        <div className="docs-code-block border border-cipher-border rounded-lg p-3 overflow-x-auto">
+          <pre className="text-xs sm:text-sm text-secondary font-mono">
             {JSON.stringify(endpoint.response, null, 2)}
           </pre>
         </div>

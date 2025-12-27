@@ -234,7 +234,7 @@ export default function BlockPage() {
         <div className="card">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-gray-400 ml-4 font-mono text-lg">Loading block...</p>
+            <p className="text-secondary ml-4 font-mono text-lg">Loading block...</p>
           </div>
         </div>
       </div>
@@ -247,13 +247,13 @@ export default function BlockPage() {
         <div className="card text-center py-16">
           <div className="text-6xl mb-6">❌</div>
           <h2 className="text-3xl font-bold font-mono text-cipher-cyan mb-4">BLOCK_NOT_FOUND</h2>
-          <p className="text-gray-400">This block doesn't exist or hasn't been mined yet.</p>
+          <p className="text-secondary">This block doesn't exist or hasn't been mined yet.</p>
         </div>
       </div>
     );
   }
 
-  const InfoRow = ({ icon: Icon, label, value, tooltip, valueClass = "text-gray-200", clickable = false, onClick }: {
+  const InfoRow = ({ icon: Icon, label, value, tooltip, valueClass = "text-primary", clickable = false, onClick }: {
     icon: React.ComponentType;
     label: string;
     value: React.ReactNode;
@@ -262,8 +262,8 @@ export default function BlockPage() {
     clickable?: boolean;
     onClick?: () => void;
   }) => (
-    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b border-gray-800 last:border-0 gap-2 sm:gap-0">
-      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-gray-400">
+    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b block-info-border last:border-0 gap-2 sm:gap-0">
+      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
         <span className="mr-2"><Icon /></span>
         <span className="text-xs sm:text-sm">{label}</span>
         {tooltip && (
@@ -285,9 +285,9 @@ export default function BlockPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-fade-in">
       {/* Header with Inline Navigation */}
       <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="flex items-center space-x-2 mb-2 text-secondary">
           <Icons.Cube />
-          <h1 className="text-base md:text-lg font-semibold text-gray-400">Block</h1>
+          <h1 className="text-base md:text-lg font-semibold">Block</h1>
         </div>
         <div className="flex items-center space-x-3">
           <Link
@@ -295,7 +295,7 @@ export default function BlockPage() {
             className={`p-1.5 rounded transition-colors ${
               data.previousBlockHash
                 ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                : 'text-gray-700 cursor-not-allowed'
+                : 'text-muted cursor-not-allowed'
             }`}
             title="Previous Block"
           >
@@ -304,7 +304,7 @@ export default function BlockPage() {
             </svg>
           </Link>
 
-          <span className="text-2xl md:text-3xl font-bold font-mono text-white">
+          <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
             #{data.height.toLocaleString()}
           </span>
 
@@ -313,7 +313,7 @@ export default function BlockPage() {
             className={`p-1.5 rounded transition-colors ${
               data.nextBlockHash
                 ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                : 'text-gray-700 cursor-not-allowed'
+                : 'text-muted cursor-not-allowed'
             }`}
             title="Next Block"
           >
@@ -333,7 +333,7 @@ export default function BlockPage() {
             value={
               <span>
                 {formatRelativeTime(data.timestamp)}
-                <span className="text-gray-500 ml-2">({formatDate(data.timestamp)})</span>
+                <span className="text-muted ml-2">({formatDate(data.timestamp)})</span>
               </span>
             }
             tooltip="The date and time this block was mined"
@@ -403,15 +403,15 @@ export default function BlockPage() {
           )}
 
           {/* Block Hash - Full Width */}
-          <div className="pt-4 border-t border-gray-800 mt-4">
-            <div className="flex items-center mb-2">
+          <div className="pt-4 border-t block-info-border mt-4">
+            <div className="flex items-center mb-2 text-secondary">
               <span className="mr-2"><Icons.Hash /></span>
-              <span className="text-sm text-gray-400">Block Hash</span>
+              <span className="text-sm">Block Hash</span>
               <span className="ml-2">
                 <Tooltip content="Unique cryptographic identifier for this block" />
               </span>
             </div>
-            <div className="bg-cipher-bg p-3 rounded-lg border border-cipher-border">
+            <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
               <code className="text-xs text-cipher-cyan break-all">{data.hash}</code>
             </div>
           </div>
@@ -430,7 +430,7 @@ export default function BlockPage() {
 
         {/* Additional Details (Collapsible) */}
         {showMoreDetails && (
-          <div className="mt-4 pt-4 border-t border-gray-800 space-y-0">
+          <div className="mt-4 pt-4 border-t block-info-border space-y-0">
             <InfoRow
               icon={Icons.Code}
               label="Difficulty"
@@ -467,15 +467,15 @@ export default function BlockPage() {
 
             {data.merkleRoot && (
               <div className="pt-3">
-                <div className="flex items-center mb-2">
+                <div className="flex items-center mb-2 text-secondary">
                   <span className="mr-2"><Icons.Key /></span>
-                  <span className="text-sm text-gray-400">Merkle Root</span>
+                  <span className="text-sm">Merkle Root</span>
                   <span className="ml-2">
                     <Tooltip content="Cryptographic hash that proves all transparent transactions in this block are valid and unmodified. Calculated from the transaction tree." />
                   </span>
                 </div>
-                <div className="bg-cipher-bg p-3 rounded-lg border border-cipher-border">
-                  <code className="text-xs text-gray-400 break-all">{data.merkleRoot}</code>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-muted break-all">{data.merkleRoot}</code>
                 </div>
               </div>
             )}
@@ -484,12 +484,12 @@ export default function BlockPage() {
               <div className="pt-3">
                 <div className="flex items-center mb-2">
                   <span className="mr-2 text-purple-400"><Icons.Shield /></span>
-                  <span className="text-sm text-gray-400">Final Sapling Root</span>
+                  <span className="text-sm text-secondary">Final Sapling Root</span>
                   <span className="ml-2">
                     <Tooltip content="Root hash of the Sapling note commitment tree after processing this block. This proves the existence of all shielded (private) transactions without revealing their details." />
                   </span>
                 </div>
-                <div className="bg-cipher-bg p-3 rounded-lg border border-cipher-border">
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
                   <code className="text-xs text-purple-400/60 break-all">{data.finalSaplingRoot}</code>
                 </div>
               </div>
@@ -500,7 +500,7 @@ export default function BlockPage() {
 
       {/* Transactions Section */}
       <div className="card" ref={txSectionRef}>
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 pb-3 border-b border-gray-800 flex items-center">
+        <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4 pb-3 border-b block-info-border flex items-center">
           Transactions
           <span className="ml-2 px-2 py-0.5 bg-cipher-cyan/10 text-cipher-cyan text-xs rounded font-normal">
             {data.transactionCount}
@@ -510,12 +510,12 @@ export default function BlockPage() {
         {!data.transactions || data.transactions.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-5xl mb-4">📭</div>
-            <p className="text-gray-400">No transaction details available</p>
+            <p className="text-secondary">No transaction details available</p>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6">
             {/* Table Header */}
-            <div className="min-w-[900px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800">
+            <div className="min-w-[900px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
               <div className="col-span-1">#</div>
               <div className="col-span-1">Type</div>
               <div className="col-span-2">Hash</div>
@@ -553,10 +553,10 @@ export default function BlockPage() {
 
                 return (
                   <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
-                    <div className="grid grid-cols-12 gap-3 items-center bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                    <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
                       {/* # Column */}
                       <div className="col-span-1">
-                        <span className="text-xs font-mono text-gray-500">#{index + 1}</span>
+                        <span className="text-xs font-mono text-muted">#{index + 1}</span>
                       </div>
 
                       {/* Type Column */}
@@ -570,13 +570,13 @@ export default function BlockPage() {
                             SHIELDED
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-600 font-mono">Regular</span>
+                          <span className="text-xs text-muted font-mono">Regular</span>
                         )}
                       </div>
 
                       {/* Hash Column */}
                       <div className="col-span-2">
-                        <code className="text-xs text-gray-400 group-hover:text-cipher-cyan transition-colors font-mono" title={tx.txid}>
+                        <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" title={tx.txid}>
                           {tx.txid.slice(0, 8)}...{tx.txid.slice(-6)}
                         </code>
                       </div>
@@ -584,9 +584,9 @@ export default function BlockPage() {
                       {/* From Column */}
                       <div className="col-span-2">
                         {isCoinbase ? (
-                          <span className="text-xs text-gray-500 font-mono">Block Reward</span>
+                          <span className="text-xs text-muted font-mono">Block Reward</span>
                         ) : fromAddress ? (
-                          <span className="text-xs text-gray-400 font-mono truncate block" title={fromAddress}>
+                          <span className="text-xs text-secondary font-mono truncate block" title={fromAddress}>
                             {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
@@ -597,14 +597,14 @@ export default function BlockPage() {
                             Shielded
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-600 font-mono">—</span>
+                          <span className="text-xs text-muted font-mono">—</span>
                         )}
                       </div>
 
                       {/* To Column */}
                       <div className="col-span-2">
                         {toAddress ? (
-                          <span className="text-xs text-gray-400 font-mono truncate block" title={toAddress}>
+                          <span className="text-xs text-secondary font-mono truncate block" title={toAddress}>
                             {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
@@ -615,7 +615,7 @@ export default function BlockPage() {
                             Shielded
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-600 font-mono">—</span>
+                          <span className="text-xs text-muted font-mono">—</span>
                         )}
                       </div>
 
@@ -628,7 +628,7 @@ export default function BlockPage() {
                             </svg>
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400 font-mono">
+                          <span className="text-xs text-secondary font-mono">
                             {inputCount}
                           </span>
                         )}
@@ -643,7 +643,7 @@ export default function BlockPage() {
                             </svg>
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400 font-mono">
+                          <span className="text-xs text-secondary font-mono">
                             {outputCount}
                           </span>
                         )}
@@ -651,7 +651,7 @@ export default function BlockPage() {
 
                       {/* Size Column */}
                       <div className="col-span-1 text-center">
-                        <span className="text-xs text-gray-400 font-mono">
+                        <span className="text-xs text-secondary font-mono">
                           {txSize > 0 ? (txSize / 1024).toFixed(1) : '-'}
                         </span>
                       </div>
@@ -659,7 +659,7 @@ export default function BlockPage() {
                       {/* Amount Column */}
                       <div className="col-span-1 text-right">
                         {totalOutput > 0 ? (
-                          <div className="text-xs font-mono text-white font-semibold">
+                          <div className="text-xs font-mono text-primary font-semibold">
                             {totalOutput.toFixed(4)}
                           </div>
                         ) : isShielded ? (

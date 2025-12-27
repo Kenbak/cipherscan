@@ -49,19 +49,19 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
       <aside
         className={`
           fixed lg:sticky top-0 left-0 h-screen
-          w-72 bg-cipher-surface border-r border-cipher-border
+          w-72 docs-sidebar border-r border-cipher-border
           overflow-y-auto z-40
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         <div className="p-6">
-          <h2 className="text-lg font-bold text-white mb-6 font-mono">API Endpoints</h2>
+          <h2 className="text-lg font-bold text-primary mb-6 font-mono">API Endpoints</h2>
 
           <nav className="space-y-6">
             {categories.map((category) => (
               <div key={category.name}>
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                <h3 className="text-sm font-bold text-muted uppercase mb-2 tracking-wide">
                   {category.name}
                 </h3>
                 <ul className="space-y-1">
@@ -69,7 +69,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
                     <li key={endpoint.id}>
                       <button
                         onClick={() => scrollToEndpoint(endpoint.id)}
-                        className="w-full text-left px-3 py-2 rounded text-sm hover:bg-cipher-bg transition-colors group"
+                        className="w-full text-left px-3 py-2 rounded text-sm docs-sidebar-item transition-colors group"
                       >
                         <div className="flex items-center gap-2">
                           <span className={`
@@ -81,7 +81,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
                           `}>
                             {endpoint.method}
                           </span>
-                          <span className="text-gray-300 group-hover:text-white transition-colors font-mono text-xs truncate">
+                          <span className="text-secondary group-hover:text-primary transition-colors font-mono text-xs truncate">
                             {endpoint.path}
                           </span>
                         </div>

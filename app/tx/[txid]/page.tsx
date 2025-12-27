@@ -118,7 +118,7 @@ export default function TransactionPage() {
         e.stopPropagation();
         copyToClipboard(text, label);
       }}
-      className="ml-2 p-1 text-gray-500 hover:text-cipher-cyan transition-colors"
+      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
       title="Copy to clipboard"
     >
       {copiedText === label ? (
@@ -260,7 +260,7 @@ export default function TransactionPage() {
         <div className="card">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-gray-400 ml-4 font-mono text-lg">Loading transaction...</p>
+            <p className="text-secondary ml-4 font-mono text-lg">Loading transaction...</p>
           </div>
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function TransactionPage() {
         <div className="card text-center py-16">
           <div className="text-6xl mb-6">❌</div>
           <h2 className="text-3xl font-bold font-mono text-cipher-cyan mb-4">TX_NOT_FOUND</h2>
-          <p className="text-gray-400 mb-8">This transaction doesn't exist or hasn't been confirmed yet.</p>
+          <p className="text-secondary mb-8">This transaction doesn't exist or hasn't been confirmed yet.</p>
         </div>
       </div>
     );
@@ -335,7 +335,7 @@ export default function TransactionPage() {
 
       return (
         <>
-          <span className="text-yellow-400 font-semibold">Mixed transaction</span>:{' '}
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">Mixed transaction</span>:{' '}
           {transparentIns > 0 && `${transparentIns} transparent`}
           {transparentIns > 0 && shieldedIns > 0 && ' + '}
           {shieldedIns > 0 && `${shieldedIns} shielded`}
@@ -386,12 +386,12 @@ export default function TransactionPage() {
             {(primaryAddr || toAddr).slice(0, 8)}...{(primaryAddr || toAddr).slice(-6)}
           </Link>
           {otherRecipients > 0 && (
-            <span className="text-gray-500">
+            <span className="text-muted">
               {' '}+ {otherRecipients} other recipient{otherRecipients > 1 ? 's' : ''}
             </span>
           )}
           {changeOutputs.length > 0 && (
-            <span className="text-gray-600 text-xs">
+            <span className="text-muted text-xs">
               {' '}({changeOutputs.length} change output{changeOutputs.length > 1 ? 's' : ''})
             </span>
           )}
@@ -408,7 +408,7 @@ export default function TransactionPage() {
     label,
     value,
     tooltip,
-    valueClass,
+    valueClass = "text-primary",
   }: {
     icon: React.ComponentType;
     label: string;
@@ -416,8 +416,8 @@ export default function TransactionPage() {
     tooltip?: string;
     valueClass?: string;
   }) => (
-    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b border-gray-800 last:border-0 gap-2 sm:gap-0">
-      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-gray-400">
+    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b block-info-border last:border-0 gap-2 sm:gap-0">
+      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
         <span className="mr-2">
           <Icon />
         </span>
@@ -437,7 +437,7 @@ export default function TransactionPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Transaction Details</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-primary">Transaction Details</h1>
           {/* Type Badge */}
           {txType === 'COINBASE' && (
             <span className="px-2 md:px-3 py-1 bg-cipher-green/10 text-cipher-green text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
@@ -452,7 +452,7 @@ export default function TransactionPage() {
             </span>
           )}
           {txType === 'MIXED' && (
-            <span className="px-2 md:px-3 py-1 bg-yellow-500/10 text-yellow-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
+            <span className="px-2 md:px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
               <Icons.Shield />
               MIXED
             </span>
@@ -460,12 +460,12 @@ export default function TransactionPage() {
         </div>
 
         {/* Transaction Summary */}
-        <div className="bg-cipher-bg/30 border border-cipher-border/50 rounded-lg p-3 md:p-4 mt-4">
+        <div className="tx-summary-box border border-cipher-border/50 rounded-lg p-3 md:p-4 mt-4">
           <div className="flex items-start gap-2 md:gap-3">
             <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-gray-300 text-xs md:text-sm leading-relaxed">
+            <p className="text-secondary text-xs md:text-sm leading-relaxed">
               {generateTxSummary()}
             </p>
           </div>
@@ -473,17 +473,17 @@ export default function TransactionPage() {
 
         {/* Decrypt This Transaction - Only for shielded TXs */}
         {(hasOrchard || hasSapling) && (
-          <div className="bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-3 md:p-4 mt-4">
+          <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mt-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-start gap-2 md:gap-3">
                 <svg className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
                 <div>
-                  <p className="text-purple-300 text-sm font-semibold mb-1">
+                  <p className="text-purple-600 dark:text-purple-300 text-sm font-semibold mb-1">
                     Is this your transaction?
                   </p>
-                  <p className="text-gray-400 text-xs">
+                  <p className="text-secondary text-xs">
                     Use your viewing key to decrypt shielded amounts and memos client-side
                   </p>
                 </div>
@@ -506,17 +506,17 @@ export default function TransactionPage() {
       <div className="card mb-8">
         <div className="space-y-0">
           {/* Transaction Hash */}
-          <div className="pb-3 border-b border-gray-800">
-            <div className="flex items-center mb-2">
+          <div className="pb-3 border-b block-info-border">
+            <div className="flex items-center mb-2 text-secondary">
               <span className="mr-2">
                 <Icons.Hash />
               </span>
-              <span className="text-sm text-gray-400">Transaction Hash</span>
+              <span className="text-sm">Transaction Hash</span>
               <span className="ml-2">
                 <Tooltip content="Unique identifier for this transaction" />
               </span>
             </div>
-            <div className="bg-cipher-bg px-3 py-2 rounded border border-cipher-border w-fit flex items-center">
+            <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit flex items-center">
               <code className="text-xs text-cipher-cyan break-all block">{data.txid}</code>
               <CopyButton text={data.txid} label="txhash" />
             </div>
@@ -544,7 +544,7 @@ export default function TransactionPage() {
                 <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">
                   #{data.blockHeight.toLocaleString()}
                 </Link>
-                <span className="text-gray-600">
+                <span className="text-muted">
                   ({data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''})
                 </span>
               </div>
@@ -566,15 +566,15 @@ export default function TransactionPage() {
             label="Transaction Fee"
             value={
               data.fee > 0 ? (
-                <span className="font-semibold">
+                <span className="font-semibold text-primary">
                   {data.fee.toFixed(8)} {CURRENCY}
                 </span>
               ) : (txType === 'ORCHARD' || txType === 'SHIELDED') ? (
-                <span className="font-semibold text-gray-500 flex items-center gap-2">
+                <span className="font-semibold text-muted flex items-center gap-2">
                   0.00000000 {CURRENCY}
                 </span>
               ) : (
-                <span className="font-semibold">
+                <span className="font-semibold text-primary">
                   {data.fee.toFixed(8)} {CURRENCY}
                 </span>
               )
@@ -596,7 +596,7 @@ export default function TransactionPage() {
                   (amount hidden)
                 </span>
               ) : (
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-primary">
                   {data.totalOutput.toFixed(8)} {CURRENCY}
                 </span>
               )
@@ -626,7 +626,7 @@ export default function TransactionPage() {
 
         {/* Additional Details (Collapsible) */}
         {showMoreDetails && (
-          <div className="mt-4 pt-4 border-t border-gray-800 space-y-0">
+          <div className="mt-4 pt-4 border-t block-info-border space-y-0">
             <InfoRow
               icon={Icons.Database}
               label="Size"
@@ -698,36 +698,36 @@ export default function TransactionPage() {
             )}
 
             {data.bindingSigSapling && (
-              <div className="pt-3 border-t border-gray-800 mt-3">
+              <div className="pt-3 border-t block-info-border mt-3">
                 <div className="flex items-center mb-2">
                   <span className="mr-2 text-purple-400">
                     <Icons.Shield />
                   </span>
-                  <span className="text-sm text-gray-400">Sapling Binding Signature</span>
+                  <span className="text-sm text-secondary">Sapling Binding Signature</span>
                   <span className="ml-2">
                     <Tooltip content="Cryptographic proof that the transaction is balanced and all shielded values are valid. This signature binds all Sapling components together." />
                   </span>
                 </div>
-                <div className="bg-cipher-bg px-3 py-2 rounded border border-cipher-border">
+                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
                   <code className="text-xs text-purple-400/60 break-all block">{data.bindingSigSapling}</code>
                 </div>
               </div>
             )}
 
             {/* Block Hash */}
-            <div className="pt-3 border-t border-gray-800 mt-3">
-              <div className="flex items-center mb-2">
+            <div className="pt-3 border-t block-info-border mt-3">
+              <div className="flex items-center mb-2 text-secondary">
                 <span className="mr-2">
                   <Icons.Hash />
                 </span>
-                <span className="text-sm text-gray-400">Block Hash</span>
+                <span className="text-sm">Block Hash</span>
                 <span className="ml-2">
                   <Tooltip content="Hash of the block containing this transaction" />
                 </span>
               </div>
               <Link href={`/block/${data.blockHeight}`}>
-                <div className="bg-cipher-bg px-3 py-2 rounded border border-cipher-border w-fit hover:border-cipher-cyan transition-colors">
-                  <code className="text-xs text-gray-400 hover:text-cipher-cyan break-all block">{data.blockHash}</code>
+                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit hover:border-cipher-cyan transition-colors">
+                  <code className="text-xs text-secondary hover:text-cipher-cyan break-all block">{data.blockHash}</code>
                 </div>
               </Link>
             </div>
@@ -740,7 +740,7 @@ export default function TransactionPage() {
         {/* Inputs Card */}
         <div className="card py-3 md:py-4">
           <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-semibold text-primary flex items-center gap-2">
               <Icons.ArrowLeft />
               Inputs ({data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)})
             </h3>
@@ -759,7 +759,7 @@ export default function TransactionPage() {
                 <Icons.Shield />
                 (amount hidden)
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted">
                 {(data.orchardActions || 0) > 0
                   ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
                   : `Shielded input${data.shieldedSpends > 1 ? 's' : ''}`
@@ -768,8 +768,8 @@ export default function TransactionPage() {
             </>
           ) : (
             <>
-              <div className="text-xl md:text-2xl font-bold font-mono text-white mb-1">{data.totalInput.toFixed(8)}</div>
-              <div className="text-xs md:text-sm text-gray-500 font-mono">{CURRENCY}</div>
+              <div className="text-xl md:text-2xl font-bold font-mono text-primary mb-1">{data.totalInput.toFixed(8)}</div>
+              <div className="text-xs md:text-sm text-muted font-mono">{CURRENCY}</div>
               {data.shieldedSpends > 0 && (
                 <div className="text-xs text-purple-400 mt-1">+ {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''} (hidden)</div>
               )}
@@ -780,7 +780,7 @@ export default function TransactionPage() {
         {/* Outputs Card */}
         <div className="card py-3 md:py-4">
           <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className="text-base md:text-lg font-semibold text-primary flex items-center gap-2">
               <Icons.ArrowRight />
               Outputs ({data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)})
             </h3>
@@ -799,7 +799,7 @@ export default function TransactionPage() {
                 <Icons.Shield />
                 (amount hidden)
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted">
                 {(data.orchardActions || 0) > 0
                   ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
                   : `Shielded output${data.shieldedOutputs > 1 ? 's' : ''}`
@@ -808,8 +808,8 @@ export default function TransactionPage() {
             </>
           ) : (
             <>
-              <div className="text-xl md:text-2xl font-bold font-mono text-white mb-1">{data.totalOutput.toFixed(8)}</div>
-              <div className="text-xs md:text-sm text-gray-500 font-mono">{CURRENCY}</div>
+              <div className="text-xl md:text-2xl font-bold font-mono text-primary mb-1">{data.totalOutput.toFixed(8)}</div>
+              <div className="text-xs md:text-sm text-muted font-mono">{CURRENCY}</div>
               {data.shieldedOutputs > 0 && (
                 <div className="text-xs text-purple-400 mt-1">+ {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''} (hidden)</div>
               )}
@@ -821,7 +821,7 @@ export default function TransactionPage() {
       {/* Detailed Inputs */}
       {showInputs && (
         <div className="card mb-6 md:mb-8">
-          <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4 flex items-center gap-2">
+          <h3 className="text-lg md:text-xl font-semibold text-primary mb-3 md:mb-4 flex items-center gap-2">
             <Icons.ArrowLeft />
             Input Details
             <Tooltip content="Sources of funds for this transaction. Each input references a previous transaction output." />
@@ -829,13 +829,13 @@ export default function TransactionPage() {
 
           {/* Privacy Notice for Shielded */}
           {data.shieldedSpends > 0 && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
+            <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
               <Icons.Shield />
               <div>
-                <p className="text-xs md:text-sm text-purple-300 font-semibold mb-1">
+                <p className="text-xs md:text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">
                   Privacy Protection Active
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-secondary">
                   This transaction includes {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''}.
                   Addresses and amounts are encrypted using zero-knowledge proofs.
                 </p>
@@ -847,11 +847,11 @@ export default function TransactionPage() {
             {data.inputs.map((input, index) => (
               <div
                 key={index}
-                className="bg-cipher-bg/50 p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                className="block-tx-row p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 md:mb-3 gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 font-mono">INPUT #{index}</span>
+                    <span className="text-xs text-muted font-mono">INPUT #{index}</span>
                     {input.coinbase ? (
                       <span className="px-1.5 md:px-2 py-0.5 bg-cipher-green/10 text-cipher-green text-[10px] md:text-xs rounded font-mono">
                         COINBASE
@@ -863,19 +863,19 @@ export default function TransactionPage() {
                     )}
                   </div>
                   {!input.coinbase && (
-                    <span className="text-xs md:text-sm font-mono text-white font-semibold">
+                    <span className="text-xs md:text-sm font-mono text-primary font-semibold">
                       {input.value?.toFixed(8)} {CURRENCY}
                     </span>
                   )}
                 </div>
                 {input.address ? (
                   <div>
-                    <label className="text-xs font-mono text-gray-500 uppercase tracking-wider block mb-1">
+                    <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
                       From
                     </label>
                     <div className="flex items-center">
                       <Link href={`/address/${input.address}`}>
-                        <code className="text-xs text-gray-400 hover:text-cipher-cyan break-all block transition-colors">
+                        <code className="text-xs text-secondary hover:text-cipher-cyan break-all block transition-colors">
                           {input.address}
                         </code>
                       </Link>
@@ -883,12 +883,12 @@ export default function TransactionPage() {
                     </div>
                   </div>
                 ) : input.coinbase ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-secondary">
                     <Icons.Currency />
-                    <span className="text-xs text-gray-400 font-mono">Block Reward (newly minted coins)</span>
+                    <span className="text-xs font-mono">Block Reward (newly minted coins)</span>
                   </div>
                 ) : (
-                  <span className="text-xs text-gray-500 font-mono italic">Shielded Input</span>
+                  <span className="text-xs text-muted font-mono italic">Shielded Input</span>
                 )}
               </div>
             ))}
@@ -898,7 +898,7 @@ export default function TransactionPage() {
               Array.from({ length: data.shieldedSpends }).map((_, index) => (
                 <div
                   key={`shielded-${index}`}
-                  className="relative bg-gradient-to-r from-purple-500/5 to-purple-600/5 p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
                 >
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
@@ -910,7 +910,7 @@ export default function TransactionPage() {
                   <div className="relative">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 font-mono">INPUT #{data.inputs.length + index}</span>
+                        <span className="text-xs text-muted font-mono">INPUT #{data.inputs.length + index}</span>
                         <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded font-mono flex items-center gap-1">
                           <Icons.Shield />
                           SHIELDED
@@ -926,17 +926,17 @@ export default function TransactionPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-600">Address:</span>
+                        <span className="text-muted">Address:</span>
                         <span className="text-purple-400/60 font-mono">████████████████████████████████████</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-600">Amount:</span>
+                        <span className="text-muted">Amount:</span>
                         <span className="text-purple-400/60 font-mono">█████████</span>
                       </div>
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-purple-500/10">
-                      <p className="text-xs text-gray-500 font-mono italic flex items-center gap-1">
+                      <p className="text-xs text-muted font-mono italic flex items-center gap-1">
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
@@ -953,7 +953,7 @@ export default function TransactionPage() {
       {/* Detailed Outputs */}
       {showOutputs && (
         <div className="card">
-          <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4 flex items-center gap-2">
+          <h3 className="text-lg md:text-xl font-semibold text-primary mb-3 md:mb-4 flex items-center gap-2">
             <Icons.ArrowRight />
             Output Details
             <Tooltip content="Destinations where funds are sent. Each output creates new spendable coins at specified addresses." />
@@ -961,13 +961,13 @@ export default function TransactionPage() {
 
           {/* Privacy Notice for Shielded */}
           {data.shieldedOutputs > 0 && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
+            <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
               <Icons.Shield />
               <div>
-                <p className="text-xs md:text-sm text-purple-300 font-semibold mb-1">
+                <p className="text-xs md:text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">
                   Privacy Protection Active
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-secondary">
                   This transaction includes {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''}.
                   Addresses and amounts are encrypted using zero-knowledge proofs.
                 </p>
@@ -979,27 +979,27 @@ export default function TransactionPage() {
             {data.outputs.map((output, index) => (
               <div
                 key={index}
-                className="bg-cipher-bg/50 p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                className="block-tx-row p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 md:mb-3 gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 font-mono">OUTPUT #{index}</span>
+                    <span className="text-xs text-muted font-mono">OUTPUT #{index}</span>
                     <span className="px-1.5 md:px-2 py-0.5 bg-cipher-cyan/10 text-cipher-cyan text-[10px] md:text-xs rounded font-mono">
                       TRANSPARENT
                     </span>
                   </div>
-                  <span className="text-xs md:text-sm font-mono text-white font-semibold">
+                  <span className="text-xs md:text-sm font-mono text-primary font-semibold">
                     {output.value?.toFixed(8)} {CURRENCY}
                   </span>
                 </div>
                 {output.scriptPubKey?.addresses?.[0] ? (
                   <div>
-                    <label className="text-xs font-mono text-gray-500 uppercase tracking-wider block mb-1">
+                    <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
                       To
                     </label>
                     <div className="flex items-center">
                       <Link href={`/address/${output.scriptPubKey.addresses[0]}`}>
-                        <code className="text-xs text-gray-400 hover:text-cipher-cyan break-all block transition-colors">
+                        <code className="text-xs text-secondary hover:text-cipher-cyan break-all block transition-colors">
                           {output.scriptPubKey.addresses[0]}
                         </code>
                       </Link>
@@ -1007,7 +1007,7 @@ export default function TransactionPage() {
                     </div>
                   </div>
                 ) : (
-                  <code className="text-xs text-gray-600 break-all block">
+                  <code className="text-xs text-muted break-all block">
                     {output.scriptPubKey?.hex || 'No address'}
                   </code>
                 )}
@@ -1019,7 +1019,7 @@ export default function TransactionPage() {
               Array.from({ length: data.shieldedOutputs }).map((_, index) => (
                 <div
                   key={`shielded-${index}`}
-                  className="relative bg-gradient-to-r from-purple-500/5 to-purple-600/5 p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
                 >
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
@@ -1031,7 +1031,7 @@ export default function TransactionPage() {
                   <div className="relative">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 font-mono">OUTPUT #{data.outputs.length + index}</span>
+                        <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length + index}</span>
                         <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded font-mono flex items-center gap-1">
                           <Icons.Shield />
                           SHIELDED
@@ -1047,7 +1047,7 @@ export default function TransactionPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-600">To:</span>
+                        <span className="text-muted">To:</span>
                         <span className="text-purple-400 font-mono flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -1056,13 +1056,13 @@ export default function TransactionPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-gray-600">Amount:</span>
+                        <span className="text-muted">Amount:</span>
                         <span className="text-purple-400/60 font-mono italic">(amount hidden)</span>
                       </div>
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-purple-500/10">
-                      <p className="text-xs text-gray-500 font-mono italic flex items-center gap-1">
+                      <p className="text-xs text-muted font-mono italic flex items-center gap-1">
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>

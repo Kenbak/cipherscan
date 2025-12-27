@@ -26,8 +26,8 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
   };
 
   const modalContent = showModal ? (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4" onClick={() => setShowModal(false)}>
-      <div className="card-solid max-w-2xl w-full !p-4 sm:!p-8 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 modal-backdrop backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4" onClick={() => setShowModal(false)}>
+      <div className="modal-content max-w-2xl w-full !p-4 sm:!p-8 animate-fade-in rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold font-mono text-cipher-cyan mb-1 sm:mb-2 flex items-center gap-2">
@@ -48,29 +48,29 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
               </svg>
               Support CipherScan
             </h2>
-            <p className="text-xs sm:text-sm text-gray-400 font-mono">
+            <p className="text-xs sm:text-sm text-secondary font-mono">
               Help us keep this explorer free and open-source
             </p>
           </div>
           <button
             onClick={() => setShowModal(false)}
-            className="text-gray-400 hover:text-white text-2xl flex-shrink-0 ml-2"
+            className="text-secondary hover:text-primary text-2xl flex-shrink-0 ml-2"
           >
             ×
           </button>
         </div>
 
-        <div className="bg-cipher-bg rounded-lg p-3 sm:p-6 border border-cipher-border mb-4 sm:mb-6">
+        <div className="modal-inner-card rounded-lg p-3 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="badge badge-success text-[10px] sm:text-xs px-1.5 sm:px-2">🛡️ SHIELDED</span>
             <span className="badge badge-info text-[10px] sm:text-xs px-1.5 sm:px-2">UNIFIED ADDRESS</span>
           </div>
 
-          <label className="text-xs font-mono text-gray-500 uppercase tracking-wider block mb-2">
+          <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-2">
             Donation Address (Zcash)
           </label>
 
-          <div className="bg-cipher-surface/30 p-3 sm:p-4 rounded border border-cipher-border mb-3 sm:mb-4 max-h-32 sm:max-h-none overflow-y-auto">
+          <div className="modal-code-block p-3 sm:p-4 rounded mb-3 sm:mb-4 max-h-32 sm:max-h-none overflow-y-auto">
             <code className="text-[10px] sm:text-xs text-cipher-cyan break-all font-mono">
               {DONATION_ADDRESS}
             </code>
@@ -78,14 +78,14 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
 
           <button
             onClick={copyAddress}
-            className="w-full py-2 sm:py-2.5 bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-mono font-bold rounded transition-colors text-sm"
+            className="w-full py-2 sm:py-2.5 bg-cipher-cyan hover:bg-cipher-green text-white font-mono font-bold rounded transition-colors text-sm"
           >
             {copied ? '✓ Copied!' : '📋 Copy Address'}
           </button>
         </div>
 
-        <div className="bg-cipher-green/5 border border-cipher-green/30 rounded-lg p-3 sm:p-4">
-          <p className="text-xs text-gray-400 font-mono flex items-start">
+        <div className="gradient-card-cyan-subtle rounded-lg p-3 sm:p-4">
+          <p className="text-xs text-secondary font-mono flex items-start">
             <svg
               className="w-5 h-5 mr-2 flex-shrink-0 text-cipher-cyan"
               fill="none"
@@ -115,7 +115,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className={`inline-flex items-center justify-center ${compact ? 'p-2 hover:bg-cipher-bg' : 'space-x-2 px-3 sm:px-4 py-2'} border border-cipher-border hover:border-cipher-cyan text-cipher-cyan hover:text-cipher-green transition-all rounded-lg ${compact ? '' : 'bg-cipher-surface/30 font-mono text-xs sm:text-sm'}`}
+        className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition-all rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
         title={compact ? 'Support CipherScan' : undefined}
         aria-label={compact ? 'Support CipherScan' : undefined}
       >

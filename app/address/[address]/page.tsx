@@ -100,7 +100,7 @@ export default function AddressPage() {
         e.stopPropagation();
         copyToClipboard(text, label);
       }}
-      className="ml-2 p-1 text-gray-500 hover:text-cipher-cyan transition-colors"
+      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
       title="Copy to clipboard"
     >
       {copiedText === label ? (
@@ -224,7 +224,7 @@ export default function AddressPage() {
         <div className="card">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-gray-400 ml-4 font-mono text-lg">Loading address data...</p>
+            <p className="text-secondary ml-4 font-mono text-lg">Loading address data...</p>
           </div>
         </div>
       </div>
@@ -249,29 +249,29 @@ export default function AddressPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Address Details</h1>
+          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
           <div className="flex items-center">
-            <code className="text-sm text-gray-400 break-all">{address}</code>
+            <code className="text-sm text-secondary break-all">{address}</code>
             <CopyButton text={address} label="address" />
           </div>
         </div>
 
         <div className="card py-12">
-          <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-6 max-w-2xl mx-auto">
-            <p className="text-sm text-gray-300 mb-4">
-              <strong className="text-purple-400">This is a shielded address.</strong> Balance and transaction history are private by design.
+          <div className="gradient-card-purple-subtle rounded-lg p-6 max-w-2xl mx-auto">
+            <p className="text-sm text-secondary mb-4">
+              <strong className="text-purple-600 dark:text-purple-400">This is a shielded address.</strong> Balance and transaction history are private by design.
             </p>
 
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-muted mb-4">
               Zcash shielded addresses use zero-knowledge proofs to encrypt transaction data on the blockchain.
               This means that while transactions are verified, the sender, receiver, and amount remain private.
             </p>
 
-            <div className="bg-cipher-bg/50 rounded p-4 mt-4">
-              <p className="text-xs text-gray-500 mb-2">
+            <div className="block-hash-bg rounded p-4 mt-4">
+              <p className="text-xs text-muted mb-2">
                 <strong>Privacy Features:</strong>
               </p>
-              <ul className="text-xs text-gray-500 space-y-1">
+              <ul className="text-xs text-muted space-y-1">
                 <li>✓ Balance is encrypted</li>
                 <li>✓ Transaction amounts are hidden</li>
                 <li>✓ Sender and receiver are private</li>
@@ -281,10 +281,10 @@ export default function AddressPage() {
 
             {/* Decrypt Tools Section */}
             <div className="mt-8 pt-6 border-t border-cipher-border">
-              <h3 className="text-lg font-bold text-white mb-3">
+              <h3 className="text-lg font-bold text-primary mb-3">
                 🔐 Want to View Your Transactions?
               </h3>
-              <p className="text-sm text-gray-400 mb-6">
+              <p className="text-sm text-secondary mb-6">
                 Use your <strong className="text-cipher-cyan">Unified Full Viewing Key (UFVK)</strong> to decrypt transactions sent to this address.
                 All decryption happens locally in your browser - your keys never leave your device.
               </p>
@@ -302,7 +302,7 @@ export default function AddressPage() {
 
                 <Link
                   href="/decrypt?tab=scan"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-cipher-border text-white rounded-lg hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-cipher-border text-primary rounded-lg hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -311,14 +311,14 @@ export default function AddressPage() {
                 </Link>
               </div>
 
-              <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-4">
+              <div className="block-hash-bg border border-cipher-border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
-                  <h4 className="text-sm font-semibold text-white">How to Find Your Viewing Key</h4>
+                  <h4 className="text-sm font-semibold text-primary">How to Find Your Viewing Key</h4>
                 </div>
-                <div className="space-y-2 text-sm text-gray-300 ml-6">
+                <div className="space-y-2 text-sm text-secondary ml-6">
                   <p>
                     <strong className="text-cipher-cyan">Zashi:</strong> Settings → Backup → Export Viewing Key
                   </p>
@@ -326,7 +326,7 @@ export default function AddressPage() {
                     <strong className="text-cipher-cyan">Ywallet:</strong> Accounts → Select Account → Export Viewing Key
                   </p>
                   <p>
-                    <strong className="text-cipher-cyan">Zingo-CLI:</strong> <code className="text-xs bg-cipher-surface px-2 py-1 rounded font-mono text-cipher-green">exportufvk</code>
+                    <strong className="text-cipher-cyan">Zingo-CLI:</strong> <code className="text-xs learn-code-inline px-2 py-1 rounded font-mono text-cipher-green">exportufvk</code>
                   </p>
                 </div>
               </div>
@@ -341,9 +341,9 @@ export default function AddressPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Address Details</h1>
+          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
           <div className="flex items-center">
-            <code className="text-sm text-gray-400 break-all">{address}</code>
+            <code className="text-sm text-secondary break-all">{address}</code>
             <CopyButton text={address} label="address" />
           </div>
         </div>
@@ -351,24 +351,24 @@ export default function AddressPage() {
         <div className="card py-12">
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-yellow-400 mb-4">Limited Data Available</h2>
+            <h2 className="text-2xl font-bold text-amber-600 dark:text-yellow-400 mb-4">Limited Data Available</h2>
           </div>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6 max-w-2xl mx-auto">
-            <p className="text-sm text-gray-300 mb-4">
-              <strong className="text-yellow-400">This address is valid, but we cannot display its transaction history.</strong>
+          <div className="gradient-card-warning rounded-lg p-6 max-w-2xl mx-auto">
+            <p className="text-sm text-secondary mb-4">
+              <strong className="text-amber-600 dark:text-yellow-400">This address is valid, but we cannot display its transaction history.</strong>
             </p>
 
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-muted mb-4">
               The explorer node doesn't have address indexing enabled. This means we can only display
               transaction data if you provide the specific transaction ID.
             </p>
 
-            <div className="bg-cipher-bg/50 rounded p-4 mt-4">
-              <p className="text-xs text-gray-500 mb-2">
+            <div className="block-hash-bg rounded p-4 mt-4">
+              <p className="text-xs text-muted mb-2">
                 <strong>Technical details:</strong>
               </p>
-              <ul className="text-xs text-gray-500 space-y-1">
+              <ul className="text-xs text-muted space-y-1">
                 <li>• RPC methods <code className="text-cipher-cyan">getaddressbalance</code> and <code className="text-cipher-cyan">getaddresstxids</code> are not available</li>
                 <li>• These require <code className="text-cipher-cyan">addressindex=1</code> in node configuration</li>
                 <li>• Zebrad may not support these methods yet</li>
@@ -424,9 +424,9 @@ export default function AddressPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-2">
-          <h1 className="text-3xl font-bold text-white">Address Details</h1>
+          <h1 className="text-3xl font-bold text-primary">Address Details</h1>
           {/* Type Badge */}
-          <span className={`px-3 py-1 bg-${typeInfo.color}-500/10 text-${typeInfo.color}-400 text-sm rounded font-mono flex items-center gap-2`}>
+          <span className={`px-3 py-1 bg-${typeInfo.color}-500/10 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400 text-sm rounded font-mono flex items-center gap-2`}>
             <Icons.Shield />
           {typeInfo.label}
         </span>
@@ -434,7 +434,7 @@ export default function AddressPage() {
 
         {/* Address with copy button */}
         <div className="flex items-center mt-4">
-          <code className="text-sm text-gray-400 break-all">{address}</code>
+          <code className="text-sm text-secondary break-all">{address}</code>
           <CopyButton text={address} label="address" />
             </div>
           </div>
@@ -443,44 +443,44 @@ export default function AddressPage() {
       <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Balance */}
         <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 text-secondary">
             <Icons.Wallet />
-            <span className="text-xs md:text-sm text-gray-400 uppercase tracking-wide">{CURRENCY} Balance</span>
+            <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Balance</span>
             <Tooltip content="Current balance of this address" />
           </div>
-          <div className="text-xl md:text-2xl font-bold font-mono text-white">
+          <div className="text-xl md:text-2xl font-bold font-mono text-primary">
             {data.balance.toFixed(8)}
               </div>
             </div>
 
         {/* Value (USD) */}
         <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 mb-2 text-secondary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-xs md:text-sm text-gray-400 uppercase tracking-wide">{CURRENCY} Value</span>
+            <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Value</span>
             <Tooltip content="Estimated value in US Dollars" />
               </div>
           {priceData ? (
-            <div className="text-xl md:text-2xl font-bold font-mono text-white">
-              ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs md:text-sm text-gray-500">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
+            <div className="text-xl md:text-2xl font-bold font-mono text-primary">
+              ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs md:text-sm text-muted">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
             </div>
           ) : (
-            <div className="text-sm text-gray-500">Loading price...</div>
+            <div className="text-sm text-muted">Loading price...</div>
           )}
         </div>
 
         {/* Address Type */}
         <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 text-secondary">
             <Icons.Shield />
-            <span className="text-xs md:text-sm text-gray-400 uppercase tracking-wide">Address Type</span>
+            <span className="text-xs md:text-sm uppercase tracking-wide">Address Type</span>
           </div>
-          <div className="text-base md:text-lg font-semibold text-white mb-1">
+          <div className="text-base md:text-lg font-semibold text-primary mb-1">
             {typeInfo.label}
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted">
             {typeInfo.description}
           </div>
         </div>
@@ -490,9 +490,9 @@ export default function AddressPage() {
       <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Total Transactions */}
         <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 text-secondary">
             <Icons.List />
-            <span className="text-xs md:text-sm text-gray-400">Total Transactions</span>
+            <span className="text-xs md:text-sm">Total Transactions</span>
             <Tooltip content="Total number of transactions involving this address" />
           </div>
           <button
@@ -500,7 +500,7 @@ export default function AddressPage() {
               const txSection = document.getElementById('transactions-section');
               txSection?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="text-xl md:text-2xl font-bold font-mono text-white hover:text-cipher-cyan transition-colors text-left"
+            className="text-xl md:text-2xl font-bold font-mono text-primary hover:text-cipher-cyan transition-colors text-left"
           >
             {totalTxCount}
           </button>
@@ -509,77 +509,77 @@ export default function AddressPage() {
         {/* First Transaction */}
         {firstTx ? (
           <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm text-gray-400">First Transaction</span>
+              <span className="text-xs md:text-sm">First Transaction</span>
               <Tooltip content="The first transaction involving this address" />
             </div>
             <Link href={`/tx/${firstTx.txid}`} className="group block">
-              <code className="text-xs text-gray-400 group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
+              <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
                 {firstTx.txid.slice(0, 10)}...{firstTx.txid.slice(-8)}
               </code>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted">
                 {formatTimestamp(firstTx.timestamp)}
               </div>
             </Link>
           </div>
         ) : (
           <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm text-gray-400">First Transaction</span>
+              <span className="text-xs md:text-sm">First Transaction</span>
             </div>
-            <div className="text-sm text-gray-500">No transactions yet</div>
+            <div className="text-sm text-muted">No transactions yet</div>
           </div>
         )}
 
         {/* Latest Transaction */}
         {latestTx ? (
           <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm text-gray-400">Latest Transaction</span>
+              <span className="text-xs md:text-sm">Latest Transaction</span>
               <Tooltip content="The most recent transaction involving this address" />
             </div>
             <Link href={`/tx/${latestTx.txid}`} className="group block">
-              <code className="text-xs text-gray-400 group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
+              <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
                 {latestTx.txid.slice(0, 10)}...{latestTx.txid.slice(-8)}
               </code>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted">
                 {formatTimestamp(latestTx.timestamp)}
               </div>
             </Link>
           </div>
         ) : (
           <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm text-gray-400">Latest Transaction</span>
+              <span className="text-xs md:text-sm">Latest Transaction</span>
             </div>
-            <div className="text-sm text-gray-500">No transactions yet</div>
+            <div className="text-sm text-muted">No transactions yet</div>
           </div>
         )}
       </div>
 
       {/* Transactions List */}
       <div id="transactions-section" className="card">
-        <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-primary mb-6 flex items-center gap-2">
           <Icons.List />
           Transactions
-          <span className="text-sm text-gray-500 font-normal">
+          <span className="text-sm text-muted font-normal">
             (Latest {Math.min(sortedTxs.length, displayLimit)} of {totalTxCount})
           </span>
         </h2>
 
         {data.transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400">No transactions found for this address</p>
+            <p className="text-secondary">No transactions found for this address</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto -mx-6 px-6">
               {/* Table Header */}
-              <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800">
+              <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
                 <div className="col-span-1">Type</div>
                 <div className="col-span-3">Transaction Hash</div>
                 <div className="col-span-1">Block</div>
@@ -592,7 +592,7 @@ export default function AddressPage() {
               <div className="space-y-2 min-w-[800px]">
               {sortedTxs.slice(0, displayLimit).map((tx, index) => (
                 <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
-                  <div className="grid grid-cols-12 gap-3 items-center bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                  <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
                     {/* Type Column */}
                     <div className="col-span-1">
                       {tx.type === 'received' ? (
@@ -601,7 +601,7 @@ export default function AddressPage() {
                           IN
                         </span>
                       ) : (
-                        <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs rounded font-mono flex items-center gap-1 w-fit">
+                        <span className="px-2 py-1 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded font-mono flex items-center gap-1 w-fit">
                           <Icons.ArrowUp />
                           OUT
                         </span>
@@ -610,7 +610,7 @@ export default function AddressPage() {
 
                     {/* Hash Column */}
                     <div className="col-span-3 flex items-center">
-                      <code className="text-xs text-gray-400 group-hover:text-cipher-cyan transition-colors font-mono">
+                      <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono">
                         {tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}
                       </code>
                       <CopyButton text={tx.txid} label={`tx-${index}`} />
@@ -627,20 +627,20 @@ export default function AddressPage() {
                           #{tx.blockHeight}
                         </Link>
                       ) : (
-                        <span className="text-xs text-gray-600">-</span>
+                        <span className="text-xs text-muted">-</span>
                       )}
                     </div>
 
                     {/* Age Column */}
                     <div className="col-span-2">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-secondary">
                         {formatTimestamp(tx.timestamp)}
                       </span>
                     </div>
 
                     {/* From → To Column */}
                     <div className="col-span-3">
-                      <div className="flex items-center gap-1 text-xs text-gray-400 font-mono">
+                      <div className="flex items-center gap-1 text-xs text-secondary font-mono">
                         {tx.isDeshielding ? (
                           <>
                             {/* Deshielding: From shielded, To transparent (visible) */}
@@ -650,7 +650,7 @@ export default function AddressPage() {
                               </svg>
                               Shielded
                             </span>
-                            <span className="text-gray-600">→</span>
+                            <span className="text-muted">→</span>
                             <span className="truncate" title={address}>
                               {address.slice(0, 6)}...{address.slice(-4)}
                             </span>
@@ -661,7 +661,7 @@ export default function AddressPage() {
                             <span className="truncate" title={address}>
                               {address.slice(0, 6)}...{address.slice(-4)}
                             </span>
-                            <span className="text-gray-600">→</span>
+                            <span className="text-muted">→</span>
                             <span className="text-purple-400 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -677,12 +677,12 @@ export default function AddressPage() {
                               </svg>
                               SHIELDED
                             </span>
-                            <span className="text-gray-600 text-[10px]">Private Transaction</span>
+                            <span className="text-muted text-[10px]">Private Transaction</span>
                           </>
                         ) : tx.isCoinbase ? (
                           <>
-                            <span className="text-gray-500 italic">Block Reward</span>
-                            <span className="text-gray-600">→</span>
+                            <span className="text-muted italic">Block Reward</span>
+                            <span className="text-muted">→</span>
                             {tx.to ? (
                               <span className="truncate" title={tx.to}>
                                 {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
@@ -707,7 +707,7 @@ export default function AddressPage() {
                                 Shielded
                               </span>
                             )}
-                            <span className="text-gray-600">→</span>
+                            <span className="text-muted">→</span>
                             {tx.to ? (
                               <span className="truncate" title={tx.to}>
                                 {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
@@ -736,7 +736,7 @@ export default function AddressPage() {
                         </span>
                       ) : (
                         <span className={`text-sm font-mono font-semibold ${
-                          tx.type === 'received' ? 'text-cipher-green' : 'text-red-400'
+                          tx.type === 'received' ? 'text-cipher-green' : 'text-red-500 dark:text-red-400'
                         }`}>
                           {tx.type === 'received' ? '+' : '-'}{Math.abs(tx.amount).toFixed(4)}
                         </span>
@@ -750,8 +750,8 @@ export default function AddressPage() {
 
           {/* View All Button - Outside scrollable area */}
           {totalTxCount > displayLimit && (
-            <div className="mt-6 text-center p-4 bg-cipher-bg/30 rounded-lg border border-cipher-border">
-              <p className="text-sm text-gray-400 mb-3">
+            <div className="mt-6 text-center p-4 tx-summary-box rounded-lg border border-cipher-border">
+              <p className="text-sm text-secondary mb-3">
                 Showing latest {displayLimit} of {totalTxCount} transactions
               </p>
               <button

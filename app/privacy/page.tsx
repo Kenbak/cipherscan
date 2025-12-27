@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
-import { CURRENCY } from '@/lib/config';
+import { CURRENCY, isTestnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -100,6 +101,16 @@ export default function PrivacyPage() {
   const [error, setError] = useState<string | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'adoption' | 'pool' | 'activity' | 'score'>('adoption');
+  const { theme } = useTheme();
+
+  // Chart colors based on theme
+  const chartColors = {
+    grid: theme === 'light' ? '#E5E7EB' : '#374151',
+    axis: theme === 'light' ? '#6B7280' : '#9CA3AF',
+    tooltipBg: theme === 'light' ? '#FFFFFF' : '#1F2937',
+    tooltipBorder: theme === 'light' ? '#E5E7EB' : '#374151',
+    tooltipText: theme === 'light' ? '#111827' : '#fff',
+  };
 
   // WebSocket connection for real-time privacy stats updates
   const { isConnected } = useWebSocket({
@@ -146,9 +157,9 @@ export default function PrivacyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-white py-12 px-4">
+      <div className="min-h-screen py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="text-2xl">Loading privacy statistics...</div>
+          <div className="text-2xl text-primary">Loading privacy statistics...</div>
         </div>
       </div>
     );
@@ -156,12 +167,12 @@ export default function PrivacyPage() {
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen text-white py-12 px-4">
+      <div className="min-h-screen py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="card text-center">
             <div className="text-5xl mb-4">🛡️</div>
-            <h1 className="text-2xl font-bold mb-4">Privacy Stats Unavailable</h1>
-            <p className="text-gray-400 mb-6">
+            <h1 className="text-2xl font-bold mb-4 text-primary">Privacy Stats Unavailable</h1>
+            <p className="text-secondary mb-6">
               {error || 'Privacy statistics are being calculated. Check back soon!'}
             </p>
             <Link href="/" className="text-cipher-cyan hover:underline">
@@ -176,7 +187,7 @@ export default function PrivacyPage() {
   const trendColor =
     stats.metrics.adoptionTrend === 'growing' ? 'text-cipher-green' :
     stats.metrics.adoptionTrend === 'declining' ? 'text-red-400' :
-    'text-gray-400';
+    'text-secondary';
 
   const trendIcon =
     stats.metrics.adoptionTrend === 'growing' ? <Icons.TrendUp /> :
@@ -184,22 +195,22 @@ export default function PrivacyPage() {
     <Icons.Chart />;
 
   return (
-    <div className="min-h-screen text-white py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
         <div className="mb-8 sm:mb-12 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 font-mono">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 font-mono text-primary">
             🛡️ Zcash Privacy Metrics
           </h1>
-          <p className="text-gray-400 text-base sm:text-lg max-w-3xl mx-auto px-2">
-            Live privacy statistics for the Zcash testnet blockchain.
+          <p className="text-secondary text-base sm:text-lg max-w-3xl mx-auto px-2">
+            Live privacy statistics for the Zcash {isTestnet ? 'testnet' : 'mainnet'} blockchain.
             Track shielded adoption, privacy score, and transparency trends.
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
 
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">
+          <p className="text-xs sm:text-sm text-muted mt-2">
             Last updated: {new Date(stats.lastUpdated).toLocaleString()}
           </p>
         </div>
@@ -210,22 +221,22 @@ export default function PrivacyPage() {
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
             {/* Privacy Score */}
-            <div className="card bg-gradient-to-br from-purple-900/20 to-cipher-surface border-2 border-purple-500/30">
+            <div className="card gradient-card-purple border-2">
               <div className="text-center py-6">
-                <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="flex items-center justify-center gap-2 mb-4 text-purple-400">
                   <Icons.Shield />
-                  <h2 className="text-xl font-bold text-purple-300">Privacy Score</h2>
+                  <h2 className="text-xl font-bold text-purple-400">Privacy Score</h2>
                   <Tooltip content="Overall privacy health metric (0-100) based on shielded adoption, fully shielded ratio, and pool size." />
                 </div>
 
                 <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   {stats.metrics.privacyScore}
-                  <span className="text-2xl text-gray-500">/100</span>
+                  <span className="text-2xl text-muted">/100</span>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="max-w-md mx-auto mb-6">
-                  <div className="h-4 bg-cipher-bg rounded-full overflow-hidden">
+                  <div className="h-4 privacy-progress-bg rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
                       style={{ width: `${stats.metrics.privacyScore}%` }}
@@ -233,7 +244,7 @@ export default function PrivacyPage() {
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-400 max-w-md mx-auto px-4">
+                <p className="text-sm text-secondary max-w-md mx-auto px-4">
                   Shielded Tx Adoption (40%), Fully Shielded Ratio (40%), Pool Size (20%)
                 </p>
               </div>
@@ -242,64 +253,64 @@ export default function PrivacyPage() {
             {/* Key Metrics 2x2 Grid */}
             <div className="grid grid-cols-2 gap-4">
               {/* Shielded Percentage */}
-              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="card gradient-card-purple-subtle">
+                <div className="flex items-center gap-2 mb-2 text-purple-400">
                   <Icons.Lock />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Shielded Tx %</h3>
+                  <h3 className="text-xs font-semibold text-secondary uppercase">Shielded Tx %</h3>
                 </div>
                 <div className="text-2xl font-bold text-purple-400">
                   {stats.metrics.shieldedPercentage.toFixed(1)}%
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {stats.totals.shieldedTx.toLocaleString()} txs
                 </p>
               </div>
 
               {/* Supply Shielded % */}
-              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="card gradient-card-purple-subtle">
+                <div className="flex items-center gap-2 mb-2 text-cipher-cyan">
                   <Icons.Shield />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Supply Shielded</h3>
+                  <h3 className="text-xs font-semibold text-secondary uppercase">Supply Shielded</h3>
                 </div>
                 <div className="text-2xl font-bold text-cipher-cyan">
                   {stats.shieldedPool.chainSupply
                     ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
                     : '—'}%
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '—'}M
                 </p>
               </div>
 
               {/* Adoption Trend */}
-              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
+              <div className="card gradient-card-purple-subtle">
                 <div className="flex items-center gap-2 mb-2">
                   {trendIcon}
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Adoption Trend</h3>
+                  <h3 className="text-xs font-semibold text-secondary uppercase">Adoption Trend</h3>
                 </div>
                 <div className={`text-2xl font-bold capitalize ${trendColor}`}>
                   {stats.metrics.adoptionTrend}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">7d avg</p>
+                <p className="text-xs text-muted mt-1">7d avg</p>
               </div>
 
               {/* Fully Shielded */}
-              <div className="card bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="card gradient-card-purple-subtle">
+                <div className="flex items-center gap-2 mb-2 text-cipher-green">
                   <Icons.Eye />
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase">Fully Shielded</h3>
+                  <h3 className="text-xs font-semibold text-secondary uppercase">Fully Shielded</h3>
                 </div>
                 <div className="text-2xl font-bold text-cipher-green">
                   {stats.totals.fullyShieldedTx.toLocaleString()}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">100% private</p>
+                <p className="text-xs text-muted mt-1">100% private</p>
               </div>
             </div>
 
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
-          <div className="card bg-gradient-to-br from-purple-900/5 to-cipher-surface border-2 border-purple-500/30">
+          <div className="card gradient-card-purple border-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold font-mono text-purple-400 flex items-center gap-2">
                 <Icons.Lock />
@@ -307,10 +318,10 @@ export default function PrivacyPage() {
               </h2>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-gray-500 font-mono">LIVE</span>
+                <span className="text-xs text-muted font-mono">LIVE</span>
               </div>
             </div>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-secondary mb-4">
               Latest shielded transactions. Click to view or decrypt.
             </p>
 
@@ -335,7 +346,7 @@ export default function PrivacyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Transaction Types */}
           <div className="card">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary">
               <Icons.Chart />
               Transaction Types
             </h2>
@@ -352,7 +363,7 @@ export default function PrivacyPage() {
                     {stats.metrics.shieldedPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                   <div
                     className="h-full bg-purple-500"
                     style={{ width: `${stats.metrics.shieldedPercentage}%` }}
@@ -363,17 +374,17 @@ export default function PrivacyPage() {
               {/* Transparent */}
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 font-mono flex items-center gap-2">
+                  <span className="text-secondary font-mono flex items-center gap-2">
                     <Icons.Eye />
                     Transparent ({stats.totals.transparentTx.toLocaleString()})
                   </span>
-                  <span className="text-gray-400 font-bold">
+                  <span className="text-secondary font-bold">
                     {(100 - stats.metrics.shieldedPercentage).toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gray-600"
+                    className="h-full bg-gray-500"
                     style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
                   />
                 </div>
@@ -384,7 +395,7 @@ export default function PrivacyPage() {
           {/* Shielded Pool Breakdown */}
           {stats.shieldedPool.sapling !== undefined && (
             <div className="card">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary">
                 <Icons.Shield />
                 Shielded Pool Breakdown
               </h2>
@@ -394,14 +405,14 @@ export default function PrivacyPage() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-cyan-400 font-mono">Sapling</span>
-                    <span className="text-gray-400">
+                    <span className="text-secondary">
                       {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
                       <span className="text-cyan-400 font-bold ml-2">
                         ({((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
                       </span>
                     </span>
                   </div>
-                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
                       className="h-full bg-cyan-500"
                       style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
@@ -413,14 +424,14 @@ export default function PrivacyPage() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-amber-400 font-mono">Sprout</span>
-                    <span className="text-gray-400">
+                    <span className="text-secondary">
                       {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
                       <span className="text-amber-400 font-bold ml-2">
                         ({((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
                       </span>
                     </span>
                   </div>
-                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
                       className="h-full bg-amber-500"
                       style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
@@ -432,14 +443,14 @@ export default function PrivacyPage() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-green-400 font-mono">Orchard</span>
-                    <span className="text-gray-400">
+                    <span className="text-secondary">
                       {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
                       <span className="text-green-400 font-bold ml-2">
                         ({((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
                       </span>
                     </span>
                   </div>
-                  <div className="h-3 bg-cipher-bg rounded-full overflow-hidden">
+                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500"
                       style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
@@ -449,7 +460,7 @@ export default function PrivacyPage() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-cipher-border flex justify-between">
-                <span className="text-gray-400 font-mono">Total Shielded</span>
+                <span className="text-secondary font-mono">Total Shielded</span>
                 <span className="text-cipher-cyan font-bold">
                   {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
                 </span>
@@ -468,7 +479,7 @@ export default function PrivacyPage() {
                 className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'adoption'
                     ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'chart-tab'
                 }`}
               >
                 <div className="w-4 h-4">
@@ -481,7 +492,7 @@ export default function PrivacyPage() {
                 className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'pool'
                     ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'chart-tab'
                 }`}
               >
                 <div className="w-4 h-4">
@@ -494,7 +505,7 @@ export default function PrivacyPage() {
                 className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'activity'
                     ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'chart-tab'
                 }`}
               >
                 <div className="w-4 h-4">
@@ -507,7 +518,7 @@ export default function PrivacyPage() {
                 className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'score'
                     ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'text-gray-400 hover:text-gray-300'
+                    : 'chart-tab'
                 }`}
               >
                 <div className="w-4 h-4">
@@ -521,27 +532,27 @@ export default function PrivacyPage() {
             {activeTab === 'adoption' && (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={[...stats.trends.daily].reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis
                     dataKey="date"
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 11 }}
                     tickFormatter={formatDate}
                     angle={-45}
                     textAnchor="end"
                     height={60}
                   />
                   <YAxis
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
+                    label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                   />
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: '#1F2937',
-                      border: '1px solid #374151',
+                      backgroundColor: chartColors.tooltipBg,
+                      border: `1px solid ${chartColors.tooltipBorder}`,
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: chartColors.tooltipText
                     }}
                     labelFormatter={(label) => formatDate(label)}
                     formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Shielded']}
@@ -558,40 +569,52 @@ export default function PrivacyPage() {
               </ResponsiveContainer>
             )}
 
-            {activeTab === 'pool' && (
+            {activeTab === 'pool' && (() => {
+              const poolData = [...stats.trends.daily].reverse();
+              const poolValues = poolData.map(d => d.poolSize);
+              const minPool = Math.min(...poolValues);
+              const maxPool = Math.max(...poolValues);
+              // Add 5% padding above and below, and round to nice numbers
+              const range = maxPool - minPool;
+              const padding = Math.max(range * 0.1, maxPool * 0.001); // At least 0.1% padding
+              const yMin = Math.floor((minPool - padding) / 10000) * 10000;
+              const yMax = Math.ceil((maxPool + padding) / 10000) * 10000;
+
+              return (
               <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={[...stats.trends.daily].reverse()}>
+                <AreaChart data={poolData}>
                   <defs>
                     <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis
                     dataKey="date"
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 11 }}
                     tickFormatter={formatDate}
                     angle={-45}
                     textAnchor="end"
                     height={60}
                   />
                   <YAxis
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
-                    label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
+                    tickFormatter={(value) => `${(value / 1000000).toFixed(2)}M`}
+                    domain={[yMin, yMax]}
+                    label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                   />
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: '#1F2937',
-                      border: '1px solid #374151',
+                      backgroundColor: chartColors.tooltipBg,
+                      border: `1px solid ${chartColors.tooltipBorder}`,
                       borderRadius: '8px',
-                      color: '#fff'
+                      color: chartColors.tooltipText
                     }}
                     labelFormatter={(label) => formatDate(label)}
-                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(2)}M ZEC`, 'Pool Size']}
+                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(4)}M ZEC`, 'Pool Size']}
                   />
                   <Area
                     type="monotone"
@@ -603,36 +626,37 @@ export default function PrivacyPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            )}
+              );
+            })()}
 
             {activeTab === 'activity' && (
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={[...stats.trends.daily].reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis
                     dataKey="date"
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 11 }}
                     tickFormatter={formatDate}
                     angle={-45}
                     textAnchor="end"
                     height={60}
                   />
                   <YAxis
-                    stroke="#9CA3AF"
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
+                    label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                   />
                   <RechartsTooltip
                     cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
                     contentStyle={{
-                      backgroundColor: '#1F2937',
-                      border: '1px solid #4B5563',
+                      backgroundColor: chartColors.tooltipBg,
+                      border: `1px solid ${chartColors.tooltipBorder}`,
                       borderRadius: '8px',
                       padding: '12px'
                     }}
-                    labelStyle={{ color: '#E5E7EB', fontWeight: 'bold', marginBottom: '8px' }}
-                    itemStyle={{ color: '#D1D5DB' }}
+                    labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
+                    itemStyle={{ color: chartColors.axis }}
                     labelFormatter={(label) => formatDate(label)}
                     formatter={(value: any, name: string) => {
                       const color = name === 'shielded' ? '#A78BFA' : '#9CA3AF';
@@ -647,7 +671,7 @@ export default function PrivacyPage() {
                     }}
                   />
                   <Legend
-                    wrapperStyle={{ color: '#9CA3AF' }}
+                    wrapperStyle={{ color: chartColors.axis }}
                     formatter={(value) => value === 'shielded' ? '🛡️ Shielded' : '👁️ Transparent'}
                   />
                   <Bar
@@ -670,7 +694,7 @@ export default function PrivacyPage() {
 
             {activeTab === 'score' && (
               <div>
-                <div className="mb-4 text-sm text-gray-400">
+                <div className="mb-4 text-sm text-secondary">
                   Privacy Score combines shielded adoption rate, pool growth, and transaction privacy to measure overall network privacy health (0-100).
                 </div>
                 <ResponsiveContainer width="100%" height={350}>
@@ -681,28 +705,28 @@ export default function PrivacyPage() {
                         <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                     <XAxis
                       dataKey="date"
-                      stroke="#9CA3AF"
-                      tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 11 }}
                       tickFormatter={formatDate}
                       angle={-45}
                       textAnchor="end"
                       height={60}
                     />
                     <YAxis
-                      stroke="#9CA3AF"
-                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 12 }}
                       domain={[0, 100]}
-                      label={{ value: 'Privacy Score', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+                      label={{ value: 'Privacy Score', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                     />
                     <RechartsTooltip
                       contentStyle={{
-                        backgroundColor: '#1F2937',
-                        border: '1px solid #374151',
+                        backgroundColor: chartColors.tooltipBg,
+                        border: `1px solid ${chartColors.tooltipBorder}`,
                         borderRadius: '8px',
-                        color: '#fff',
+                        color: chartColors.tooltipText,
                         padding: '12px'
                       }}
                       labelFormatter={(label) => formatDate(label)}
@@ -732,21 +756,21 @@ export default function PrivacyPage() {
 
         {/* Info Footer */}
         <div className="card-glass border-cipher-border/50">
-          <h3 className="text-lg font-bold mb-3">About Privacy Metrics</h3>
-          <div className="space-y-2 text-sm text-gray-400">
+          <h3 className="text-lg font-bold mb-3 text-primary">About Privacy Metrics</h3>
+          <div className="space-y-2 text-sm text-secondary">
             <p>
-              <strong className="text-white">Privacy Score:</strong> A composite metric (0-100) based on transaction privacy adoption,
+              <strong className="text-primary">Privacy Score:</strong> A composite metric (0-100) based on transaction privacy adoption,
               fully shielded usage, and shielded pool size.
             </p>
             <p>
-              <strong className="text-white">Shielded Pool:</strong> Total amount of {CURRENCY} currently in shielded addresses,
+              <strong className="text-primary">Shielded Pool:</strong> Total amount of {CURRENCY} currently in shielded addresses,
               providing a larger anonymity set.
             </p>
             <p>
-              <strong className="text-white">Adoption Trend:</strong> Compares the last 7 days to the previous 7 days.
+              <strong className="text-primary">Adoption Trend:</strong> Compares the last 7 days to the previous 7 days.
               Growing if +10%, declining if -10%, otherwise stable.
             </p>
-            <p className="text-xs text-gray-500 mt-4">
+            <p className="text-xs text-muted mt-4">
               Stats calculated from {stats.totals.blocks.toLocaleString()} blocks. Updates automatically every 10 blocks.
             </p>
           </div>

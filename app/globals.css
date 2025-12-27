@@ -29,11 +29,20 @@
  */
 
 @layer base {
+  /* Dark mode (default) */
   body {
-    @apply bg-cipher-bg text-gray-100 font-sans;
+    @apply bg-cipher-bg text-gray-100 font-sans transition-colors duration-200;
     background-image:
       radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
       radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+  }
+
+  /* Light mode */
+  .light body {
+    @apply bg-cipher-bg-light text-gray-900;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
   }
 
   code {
@@ -43,84 +52,124 @@
 
 @layer components {
   /* Unified card system - consistent padding and spacing */
+  /* Dark mode (default) */
   .card {
-    @apply bg-cipher-surface/30 rounded-lg shadow-xl border border-cipher-border;
-    @apply p-6; /* Standard padding everywhere */
-    @apply hover:border-cipher-cyan/30 transition-all duration-300;
+    @apply rounded-lg shadow-xl border border-cipher-border p-6 transition-all duration-300;
+    background-color: rgba(20, 24, 39, 0.3);
     backdrop-filter: blur(10px);
+  }
+  .card:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .light .card {
+    @apply border-cipher-border-light shadow-md;
+    background-color: rgba(255, 255, 255, 0.8);
+  }
+  .light .card:hover {
+    border-color: rgba(0, 212, 255, 0.5);
   }
 
   /* Card variants */
   .card-glass {
-    @apply rounded-lg shadow-xl border border-cipher-border;
-    @apply p-6;
-    @apply hover:border-cipher-cyan/30 transition-all duration-300;
-    @apply bg-cipher-surface/20;
+    @apply rounded-lg shadow-xl border border-cipher-border p-6 transition-all duration-300;
+    background-color: rgba(20, 24, 39, 0.2);
     backdrop-filter: blur(12px);
+  }
+  .card-glass:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .light .card-glass {
+    @apply border-cipher-border-light shadow-md;
+    background-color: rgba(255, 255, 255, 0.6);
   }
 
   .card-solid {
-    @apply rounded-lg shadow-xl border border-cipher-border;
-    @apply p-6;
-    @apply hover:border-cipher-cyan/30 transition-all duration-300;
-    @apply bg-cipher-surface;
+    @apply rounded-lg shadow-xl border border-cipher-border p-6 bg-cipher-surface transition-all duration-300;
     backdrop-filter: blur(10px);
+  }
+  .card-solid:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .light .card-solid {
+    @apply border-cipher-border-light bg-cipher-surface-light shadow-md;
   }
 
   .card-highlight {
-    @apply rounded-lg shadow-xl border border-cipher-cyan/30;
-    @apply p-6;
-    @apply hover:border-cipher-cyan/50 transition-all duration-300;
-    @apply bg-gradient-to-br from-cipher-surface to-cipher-bg;
+    @apply rounded-lg shadow-xl p-6 bg-gradient-to-br from-cipher-surface to-cipher-bg transition-all duration-300;
+    border: 1px solid rgba(0, 212, 255, 0.3);
     backdrop-filter: blur(10px);
+  }
+  .card-highlight:hover {
+    border-color: rgba(0, 212, 255, 0.5);
+  }
+  .light .card-highlight {
+    @apply from-cipher-surface-light to-cipher-bg-light shadow-md;
   }
 
   .card-dark {
-    @apply rounded-lg shadow-xl border border-cipher-border/50;
-    @apply p-6;
-    @apply hover:border-cipher-cyan/30 transition-all duration-300;
-    @apply bg-cipher-bg;
+    @apply rounded-lg shadow-xl p-6 bg-cipher-bg transition-all duration-300;
+    border: 1px solid rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(10px);
+  }
+  .card-dark:hover {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .light .card-dark {
+    @apply bg-gray-50 border-cipher-border-light shadow-md;
   }
 
   /* Card sections with consistent spacing */
   .card-section {
-    @apply mb-6; /* Standard spacing between sections */
+    @apply mb-6;
   }
-
   .card-section:last-child {
     @apply mb-0;
   }
 
-  /* Unified badge system - same size, padding, and style everywhere */
+  /* Unified badge system */
   .badge {
-    @apply inline-flex items-center justify-center;
-    @apply px-3 py-1.5;
-    @apply rounded-md;
-    @apply text-xs font-mono font-semibold uppercase tracking-wider;
-    @apply border;
-    @apply transition-all duration-200;
+    @apply inline-flex items-center justify-center px-3 py-1.5 rounded-md;
+    @apply text-xs font-mono font-semibold uppercase tracking-wider border transition-all duration-200;
   }
 
   .badge-success {
-    @apply bg-cipher-green/10 text-cipher-green border-cipher-green/30;
-    @apply hover:bg-cipher-green/20;
+    @apply text-cipher-green;
+    background-color: rgba(0, 255, 65, 0.1);
+    border-color: rgba(0, 255, 65, 0.3);
+  }
+  .badge-success:hover {
+    background-color: rgba(0, 255, 65, 0.2);
   }
 
   .badge-info {
-    @apply bg-cipher-cyan/10 text-cipher-cyan border-cipher-cyan/30;
-    @apply hover:bg-cipher-cyan/20;
+    @apply text-cipher-cyan;
+    background-color: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .badge-info:hover {
+    background-color: rgba(0, 212, 255, 0.2);
   }
 
   .badge-warning {
-    @apply bg-cipher-orange/10 text-cipher-orange border-cipher-orange/30;
-    @apply hover:bg-cipher-orange/20;
+    @apply text-cipher-orange;
+    background-color: rgba(255, 107, 53, 0.1);
+    border-color: rgba(255, 107, 53, 0.3);
+  }
+  .badge-warning:hover {
+    background-color: rgba(255, 107, 53, 0.2);
   }
 
   .btn-primary {
-    @apply bg-cipher-cyan text-cipher-bg font-semibold px-6 py-3 rounded-lg;
-    @apply hover:bg-cipher-cyan/90 transition-all duration-200;
-    @apply shadow-lg shadow-cipher-cyan/20 hover:shadow-cipher-cyan/40;
+    @apply bg-cipher-cyan font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+    @apply text-cipher-bg;
+    box-shadow: 0 10px 15px -3px rgba(0, 212, 255, 0.2);
+  }
+  .btn-primary:hover {
+    @apply bg-opacity-90;
+    box-shadow: 0 10px 15px -3px rgba(0, 212, 255, 0.4);
+  }
+  .light .btn-primary {
+    @apply text-white;
   }
 
   .glow-text {
@@ -128,17 +177,720 @@
   }
 
   .terminal-border {
-    @apply border border-cipher-cyan/30 relative;
+    @apply relative;
+    border: 1px solid rgba(0, 212, 255, 0.3);
   }
-
   .terminal-border::before {
     content: '';
     @apply absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cipher-cyan;
   }
-
   .terminal-border::after {
     content: '';
     @apply absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-cipher-cyan;
+  }
+
+  /* ===== NAVBAR ===== */
+  .navbar-container {
+    @apply bg-cipher-surface border-cipher-border transition-colors duration-200;
+  }
+  .light .navbar-container {
+    @apply bg-white/90 border-gray-200;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer-container {
+    @apply bg-cipher-surface border-cipher-border transition-colors duration-200;
+  }
+  .light .footer-container {
+    @apply bg-cipher-surface-light border-cipher-border-light;
+  }
+
+  .footer-text-secondary {
+    @apply text-gray-400;
+  }
+  .light .footer-text-secondary {
+    @apply text-gray-600;
+  }
+
+  .footer-text-muted {
+    @apply text-gray-500;
+  }
+  .light .footer-text-muted {
+    @apply text-gray-500;
+  }
+
+  .footer-link {
+    @apply text-gray-400 hover:text-cipher-cyan transition-colors;
+  }
+  .light .footer-link {
+    @apply text-gray-500 hover:text-cipher-cyan;
+  }
+
+  .footer-border {
+    border-color: rgba(30, 41, 59, 0.3);
+  }
+  .light .footer-border {
+    border-color: rgba(203, 213, 225, 0.5);
+  }
+
+  /* ===== THEME TOGGLE ===== */
+  .theme-toggle-btn {
+    @apply bg-cipher-surface border border-cipher-border;
+  }
+  .light .theme-toggle-btn {
+    @apply bg-gray-100 border-gray-300;
+  }
+
+  /* ===== NAVBAR ELEMENTS ===== */
+  /* Price display */
+  .price-value {
+    @apply text-white;
+  }
+  .light .price-value {
+    @apply text-gray-900;
+  }
+
+  .price-label {
+    @apply text-gray-500;
+  }
+  .light .price-label {
+    @apply text-gray-500;
+  }
+
+  /* Network switcher container */
+  .network-switcher {
+    @apply bg-cipher-surface border-cipher-border;
+  }
+  .light .network-switcher {
+    @apply bg-gray-100 border-gray-300;
+  }
+
+  /* Network switcher inactive link */
+  .network-link {
+    @apply text-gray-400;
+  }
+  .network-link:hover {
+    color: #00D4FF;
+  }
+  .light .network-link {
+    @apply text-gray-500;
+  }
+  .light .network-link:hover {
+    color: #0891b2;
+  }
+
+  /* Network switcher inactive (mobile) */
+  .network-switcher-inactive {
+    @apply bg-cipher-surface text-gray-400 border border-cipher-border;
+  }
+  .network-switcher-inactive:hover {
+    color: #00D4FF;
+  }
+  .light .network-switcher-inactive {
+    @apply bg-white text-gray-500 border-cipher-border-light;
+  }
+  .light .network-switcher-inactive:hover {
+    color: #0891b2;
+  }
+
+  /* Navbar border */
+  .navbar-border {
+    @apply border-cipher-border;
+  }
+  .light .navbar-border {
+    @apply border-cipher-border-light;
+  }
+
+  /* Tools button */
+  .tools-btn {
+    @apply text-gray-400;
+  }
+  .tools-btn:hover {
+    @apply bg-cipher-surface;
+    color: #00D4FF;
+  }
+  .light .tools-btn {
+    @apply text-gray-600;
+  }
+  .light .tools-btn:hover {
+    @apply bg-gray-100;
+    color: #0891b2;
+  }
+
+  /* Mobile menu */
+  .mobile-menu-item {
+    @apply text-gray-300;
+  }
+  .mobile-menu-item:hover {
+    @apply bg-cipher-bg;
+    color: #00D4FF;
+  }
+  .light .mobile-menu-item {
+    @apply text-gray-700;
+  }
+  .light .mobile-menu-item:hover {
+    @apply bg-gray-100;
+    color: #0891b2;
+  }
+
+  /* ===== LIGHT MODE CYAN ===== */
+  /* Cyan color that's darker/more visible on light backgrounds */
+  /* Note: Use .light .text-cipher-cyan override in components that need it */
+
+  /* Primary text for light mode */
+  .text-primary {
+    @apply text-gray-100;
+  }
+  .light .text-primary {
+    @apply text-gray-900;
+  }
+
+  .text-secondary {
+    @apply text-gray-400;
+  }
+  .light .text-secondary {
+    @apply text-gray-600;
+  }
+
+  .text-muted {
+    @apply text-gray-500;
+  }
+  .light .text-muted {
+    @apply text-gray-500;
+  }
+
+  /* ===== DONATE BUTTON ===== */
+  .donate-btn {
+    @apply border border-cipher-border;
+    color: #00D4FF;
+    background-color: rgba(20, 24, 39, 0.3);
+  }
+  .donate-btn:hover {
+    @apply border-cipher-cyan;
+    color: #00FF41;
+    background-color: rgba(20, 24, 39, 0.5);
+  }
+  .light .donate-btn {
+    @apply border-gray-300 bg-gray-100;
+    color: #0891b2;
+  }
+  .light .donate-btn:hover {
+    border-color: #0891b2;
+    background-color: #e0f2fe;
+  }
+
+  /* ===== SEARCH BAR ===== */
+  .search-input {
+    @apply font-mono border rounded-lg transition-all;
+    @apply bg-cipher-surface border-cipher-border text-gray-200 placeholder-gray-500;
+  }
+  .search-input:focus {
+    @apply border-cipher-cyan outline-none;
+  }
+  .light .search-input {
+    @apply bg-white border-cipher-border-light text-gray-900 placeholder-gray-400;
+  }
+  .light .search-input:focus {
+    @apply border-cipher-cyan;
+  }
+
+  /* ===== DROPDOWN MENU ===== */
+  .dropdown-menu {
+    @apply bg-cipher-surface border-cipher-border;
+  }
+  .light .dropdown-menu {
+    @apply bg-white border-cipher-border-light shadow-lg;
+  }
+
+  .dropdown-item {
+    @apply text-gray-300;
+  }
+  .dropdown-item:hover {
+    @apply bg-cipher-bg text-cipher-cyan;
+  }
+  .light .dropdown-item {
+    @apply text-gray-700;
+  }
+  .light .dropdown-item:hover {
+    @apply bg-gray-100 text-cipher-cyan;
+  }
+
+  /* ===== EXAMPLE BUTTONS ===== */
+  .example-btn {
+    @apply font-mono transition-colors px-2 py-1 rounded border;
+    @apply bg-cipher-surface border-cipher-border;
+  }
+  .example-btn:hover {
+    @apply border-cipher-cyan;
+  }
+  .light .example-btn {
+    @apply bg-white border-cipher-border-light;
+  }
+
+  /* ===== HERO SECTION ===== */
+  .hero-title {
+    @apply text-gray-500;
+  }
+  .light .hero-title {
+    @apply text-gray-500;
+  }
+
+  .hero-subtitle {
+    @apply text-gray-300;
+  }
+  .light .hero-subtitle {
+    @apply text-gray-700;
+  }
+
+  /* ===== NETWORK PAGE ===== */
+  /* Gradient cards for network stats */
+  .gradient-card-cyan {
+    @apply bg-gradient-to-br from-cyan-900/20 to-cipher-surface border-cyan-500/30;
+  }
+  .light .gradient-card-cyan {
+    @apply from-cyan-50 to-white border-cyan-200;
+  }
+
+  .gradient-card-green {
+    @apply bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30;
+  }
+  .light .gradient-card-green {
+    @apply from-green-50 to-white border-green-200;
+  }
+
+  .gradient-card-health-good {
+    @apply bg-gradient-to-br from-green-900/20 to-cipher-surface border-cipher-green/30;
+  }
+  .light .gradient-card-health-good {
+    @apply from-green-50 to-white border-green-300;
+  }
+
+  .gradient-card-health-warning {
+    @apply bg-gradient-to-br from-orange-900/20 to-cipher-surface border-cipher-orange/30;
+  }
+  .light .gradient-card-health-warning {
+    @apply from-orange-50 to-white border-orange-300;
+  }
+
+  /* Mini stat cards */
+  .stat-card {
+    @apply bg-cipher-surface/50 border-cipher-border;
+  }
+  .stat-card:hover {
+    @apply border-cipher-cyan/30;
+  }
+  .light .stat-card {
+    @apply bg-white border-gray-200;
+  }
+  .light .stat-card:hover {
+    @apply border-cyan-300;
+  }
+
+  .stat-card-highlight {
+    @apply bg-green-900/10 border-green-500/30;
+  }
+  .stat-card-highlight:hover {
+    @apply border-green-500/50;
+  }
+  .light .stat-card-highlight {
+    @apply bg-green-50 border-green-200;
+  }
+  .light .stat-card-highlight:hover {
+    @apply border-green-400;
+  }
+
+  /* Pool breakdown cards */
+  .pool-card {
+    @apply bg-cipher-bg/50;
+  }
+  .light .pool-card {
+    @apply bg-gray-100;
+  }
+
+  /* Progress bar background */
+  .progress-bar-bg {
+    @apply bg-gray-700;
+  }
+  .light .progress-bar-bg {
+    @apply bg-gray-300;
+  }
+
+  /* Swap row background (flows page) */
+  .swap-row-bg {
+    @apply bg-cipher-bg/50;
+  }
+  .light .swap-row-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Warning gradient card (flows page - API not configured) */
+  .gradient-card-warning {
+    @apply bg-gradient-to-br from-yellow-900/20 to-cipher-surface border-yellow-500/30;
+  }
+  .light .gradient-card-warning {
+    @apply from-yellow-50 to-white border-yellow-300;
+  }
+
+  /* Error gradient card */
+  .gradient-card-error {
+    @apply bg-gradient-to-br from-red-900/20 to-cipher-surface border border-red-500/30;
+  }
+  .light .gradient-card-error {
+    @apply from-red-50 to-white border-red-300;
+  }
+
+  /* Skeleton loading background */
+  .skeleton-bg {
+    @apply bg-cipher-border;
+  }
+  .light .skeleton-bg {
+    @apply bg-gray-200;
+  }
+
+  /* Tooltip styles */
+  .tooltip-content {
+    @apply bg-gray-900 text-white rounded-lg shadow-2xl border border-gray-700;
+  }
+  .light .tooltip-content {
+    @apply bg-white text-gray-900 border-gray-200 shadow-lg;
+  }
+  .tooltip-arrow {
+    @apply border-4 border-transparent border-t-gray-900;
+  }
+  .light .tooltip-arrow {
+    @apply border-t-white;
+  }
+
+  /* Hero tooltip (Privacy quote on homepage) */
+  .hero-tooltip {
+    @apply bg-black/95;
+  }
+  .light .hero-tooltip {
+    @apply bg-white/95 shadow-lg;
+  }
+  .hero-tooltip-text {
+    @apply text-white/90;
+  }
+  .light .hero-tooltip-text {
+    @apply text-gray-800;
+  }
+  .hero-tooltip-arrow {
+    @apply w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-cipher-cyan/50;
+  }
+  .light .hero-tooltip-arrow {
+    @apply border-t-gray-300;
+  }
+
+  /* Modal styles */
+  .modal-backdrop {
+    @apply bg-black/80;
+  }
+  .light .modal-backdrop {
+    @apply bg-black/50;
+  }
+  .modal-content {
+    @apply bg-cipher-surface border border-cipher-border;
+  }
+  .light .modal-content {
+    @apply bg-white border-gray-200 shadow-2xl;
+  }
+  .modal-inner-card {
+    @apply bg-cipher-bg border border-cipher-border;
+  }
+  .light .modal-inner-card {
+    @apply bg-gray-50 border-gray-200;
+  }
+  .modal-code-block {
+    @apply bg-cipher-surface/30 border border-cipher-border;
+  }
+  .light .modal-code-block {
+    @apply bg-gray-100 border-gray-200;
+  }
+
+  /* Cyan gradient card (for info boxes) */
+  .gradient-card-cyan-subtle {
+    @apply bg-cipher-green/5 border border-cipher-green/30;
+  }
+  .light .gradient-card-cyan-subtle {
+    @apply bg-emerald-50 border-emerald-200;
+  }
+
+  /* 404 page styles */
+  .not-found-hint-box {
+    @apply bg-cipher-bg/50 border border-cipher-border;
+  }
+  .light .not-found-hint-box {
+    @apply bg-gray-100 border-gray-200;
+  }
+  .not-found-secondary-btn {
+    @apply border-2 border-cipher-border text-secondary hover:border-cipher-cyan hover:text-cipher-cyan;
+  }
+  .light .not-found-secondary-btn {
+    @apply border-gray-300 hover:border-cipher-cyan;
+  }
+  .not-found-border {
+    @apply border-cipher-border;
+  }
+  .light .not-found-border {
+    @apply border-gray-200;
+  }
+
+  /* Generic card background */
+  .card-bg {
+    @apply bg-cipher-surface;
+  }
+  .light .card-bg {
+    @apply bg-gray-100;
+  }
+
+  /* ===== PRIVACY PAGE ===== */
+  .gradient-card-purple {
+    @apply bg-gradient-to-br from-purple-900/20 to-cipher-surface border-purple-500/30;
+  }
+  .light .gradient-card-purple {
+    @apply from-purple-50 to-white border-purple-200;
+  }
+
+  .gradient-card-purple-subtle {
+    @apply bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20;
+  }
+  .light .gradient-card-purple-subtle {
+    @apply from-purple-50/50 to-white border-purple-200;
+  }
+
+  /* Progress bar for privacy page */
+  .privacy-progress-bg {
+    @apply bg-cipher-bg;
+  }
+  .light .privacy-progress-bg {
+    @apply bg-gray-200;
+  }
+
+  /* Chart tabs */
+  .chart-tab {
+    @apply text-gray-400;
+  }
+  .chart-tab:hover {
+    @apply text-gray-300;
+  }
+  .light .chart-tab {
+    @apply text-gray-500;
+  }
+  .light .chart-tab:hover {
+    @apply text-gray-700;
+  }
+
+  /* ===== DECRYPT PAGE ===== */
+  /* Tabs background */
+  .decrypt-tabs-bg {
+    @apply bg-cipher-surface;
+  }
+  .light .decrypt-tabs-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Input fields */
+  .decrypt-input {
+    @apply bg-cipher-bg;
+  }
+  .light .decrypt-input {
+    @apply bg-white;
+  }
+
+  /* Success gradient card */
+  .gradient-card-success {
+    @apply bg-green-900/20 border-green-500/30;
+  }
+  .light .gradient-card-success {
+    @apply bg-green-50 border-green-300;
+  }
+
+  /* Terminal (always dark - it's a terminal!) */
+  .terminal-container {
+    @apply bg-gray-900;
+  }
+  .terminal-header {
+    @apply bg-gray-800;
+  }
+  .terminal-body {
+    @apply bg-black/80;
+  }
+
+  /* Scan progress background */
+  .scan-progress-bg {
+    @apply bg-cipher-surface/50;
+  }
+  .light .scan-progress-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Warning box (decrypt page) */
+  .warning-box {
+    @apply text-yellow-400 bg-yellow-500/10 border border-yellow-500/30;
+  }
+  .light .warning-box {
+    @apply text-amber-700 bg-amber-50 border-amber-300;
+  }
+  .warning-title {
+    @apply text-yellow-300;
+  }
+  .light .warning-title {
+    @apply text-amber-800;
+  }
+  .warning-text {
+    @apply text-yellow-400/70;
+  }
+  .light .warning-text {
+    @apply text-amber-600;
+  }
+
+  /* ===== LEARN PAGE ===== */
+  /* Hero section */
+  .learn-hero {
+    @apply bg-gradient-to-b from-cipher-surface/50 to-cipher-bg;
+  }
+  .light .learn-hero {
+    @apply from-gray-100 to-white;
+  }
+
+  /* Toggle buttons (accordion headers, network toggles) */
+  .learn-toggle {
+    @apply bg-cipher-surface/30;
+  }
+  .light .learn-toggle {
+    @apply bg-gray-100;
+  }
+  .learn-toggle-active {
+    @apply bg-cipher-surface/30;
+  }
+  .light .learn-toggle-active {
+    @apply bg-cyan-50;
+  }
+
+  /* Code blocks */
+  .learn-code-block {
+    @apply bg-cipher-bg;
+  }
+  .light .learn-code-block {
+    @apply bg-gray-100;
+  }
+  .learn-code-inline {
+    @apply bg-cipher-surface;
+  }
+  .light .learn-code-inline {
+    @apply bg-gray-200;
+  }
+
+  /* ===== DOCS PAGE ===== */
+  /* Sidebar */
+  .docs-sidebar {
+    @apply bg-cipher-surface;
+  }
+  .light .docs-sidebar {
+    @apply bg-gray-100;
+  }
+  .docs-sidebar-item:hover {
+    @apply bg-cipher-bg;
+  }
+  .light .docs-sidebar-item:hover {
+    @apply bg-gray-200;
+  }
+
+  /* Category header (sticky) */
+  .docs-category-header {
+    @apply bg-cipher-bg/95;
+  }
+  .light .docs-category-header {
+    @apply bg-white/95;
+  }
+
+  /* Code blocks */
+  .docs-code-block {
+    @apply bg-cipher-bg;
+  }
+  .light .docs-code-block {
+    @apply bg-gray-100;
+  }
+
+  /* ===== BLOCK PAGE ===== */
+  .block-info-border {
+    @apply border-gray-800;
+  }
+  .light .block-info-border {
+    @apply border-gray-200;
+  }
+
+  .block-hash-bg {
+    @apply bg-cipher-bg;
+  }
+  .light .block-hash-bg {
+    @apply bg-gray-100;
+  }
+
+  .block-tx-row {
+    @apply bg-cipher-bg/50;
+  }
+  .light .block-tx-row {
+    @apply bg-gray-50;
+  }
+
+  /* ===== TX PAGE ===== */
+  .tx-summary-box {
+    @apply bg-cipher-bg/30;
+  }
+  .light .tx-summary-box {
+    @apply bg-gray-100;
+  }
+
+  .shielded-input-row {
+    @apply bg-gradient-to-r from-purple-500/5 to-purple-600/5;
+  }
+  .light .shielded-input-row {
+    @apply from-purple-50 to-purple-100/50;
+  }
+
+  /* Inbox (decrypt page - results) */
+  .inbox-container {
+    @apply bg-gray-900;
+  }
+  .light .inbox-container {
+    @apply bg-white;
+  }
+  .inbox-header {
+    @apply bg-gray-800;
+  }
+  .light .inbox-header {
+    @apply bg-gray-100;
+  }
+  .inbox-body {
+    @apply bg-gray-900;
+  }
+  .light .inbox-body {
+    @apply bg-gray-50;
+  }
+  .inbox-footer {
+    @apply bg-gray-800;
+  }
+  .light .inbox-footer {
+    @apply bg-gray-100;
+  }
+  .inbox-message {
+    @apply bg-gray-800/50;
+  }
+  .light .inbox-message {
+    @apply bg-white;
+  }
+  .inbox-message-header {
+    @apply bg-gradient-to-r from-gray-800/80 to-gray-800/60;
+  }
+  .light .inbox-message-header {
+    @apply from-gray-100 to-gray-50;
+  }
+  .inbox-message-body {
+    @apply bg-white/[0.02];
+  }
+  .light .inbox-message-body {
+    @apply bg-gray-50;
   }
 }
 

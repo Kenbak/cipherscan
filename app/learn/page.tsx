@@ -128,15 +128,15 @@ export default function LearnPage() {
   };
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="border-b border-cipher-border bg-gradient-to-b from-cipher-surface/50 to-cipher-bg">
+      <div className="border-b border-cipher-border learn-hero">
         <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20">
           <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl font-bold font-mono text-white mb-4">
+            <h1 className="text-4xl sm:text-5xl font-bold font-mono text-primary mb-4">
               Learn Zcash
             </h1>
-            <p className="text-lg text-gray-400 mb-8">
+            <p className="text-lg text-secondary mb-8">
               Privacy-preserving cryptocurrency. Built on zero-knowledge proofs.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -153,7 +153,7 @@ export default function LearnPage() {
                 href="https://testnet.zecfaucet.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-cipher-border hover:border-cipher-cyan text-white rounded transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-cipher-border hover:border-cipher-cyan text-primary rounded transition-all"
               >
                 <Icons.Gift />
                 <span>Get Testnet ZEC</span>
@@ -162,7 +162,7 @@ export default function LearnPage() {
                 href="https://discord.gg/THspb5PM"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-cipher-border hover:border-cipher-cyan text-white rounded transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-cipher-border hover:border-cipher-cyan text-primary rounded transition-all"
               >
                 <Icons.Chat />
                 <span>Join Discord</span>
@@ -181,13 +181,13 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('addresses')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 learn-toggle border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 text-primary">
                   <Icons.Key />
-                  <h2 className="text-xl font-bold font-mono text-white">Address Types</h2>
+                  <h2 className="text-xl font-bold font-mono text-primary">Address Types</h2>
                 </div>
-                <div className={`transform transition-transform ${openSection === 'addresses' ? 'rotate-180' : ''}`}>
+                <div className={`transform transition-transform text-secondary ${openSection === 'addresses' ? 'rotate-180' : ''}`}>
                   <Icons.ChevronDown />
                 </div>
               </button>
@@ -197,13 +197,13 @@ export default function LearnPage() {
                   {/* Unified */}
                   <div className="card">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-cipher-cyan">
                         <Icons.Target />
                         <h3 className="font-bold text-cipher-cyan">Unified Address (u...)</h3>
                       </div>
                       <span className="text-xs px-2 py-1 bg-cipher-green/20 text-cipher-green rounded">RECOMMENDED</span>
                     </div>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-secondary mb-3">
                       Modern standard containing Orchard, Sapling, and Transparent receivers in one address.
                     </p>
                     <div className="flex gap-2 mb-2">
@@ -211,8 +211,8 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'mainnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -221,25 +221,25 @@ export default function LearnPage() {
                         onClick={() => setUnifiedNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           unifiedNetwork === 'testnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Testnet
                       </button>
                     </div>
-                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
+                    <code className="text-xs text-cipher-cyan break-all font-mono block learn-code-block p-3 rounded border border-cipher-border">
                       {addressExamples[unifiedNetwork].unified}
                     </code>
                   </div>
 
                   {/* Sapling */}
                   <div className="card">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 text-cipher-cyan mb-2">
                       <Icons.Lock />
                       <h3 className="font-bold text-cipher-cyan">Sapling Address (zs...)</h3>
                     </div>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-secondary mb-3">
                       Legacy shielded address. Fully private with encrypted memos up to 512 bytes.
                     </p>
                     <div className="flex gap-2 mb-2">
@@ -247,8 +247,8 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'mainnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -257,14 +257,14 @@ export default function LearnPage() {
                         onClick={() => setSaplingNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           saplingNetwork === 'testnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Testnet
                       </button>
                     </div>
-                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
+                    <code className="text-xs text-cipher-cyan break-all font-mono block learn-code-block p-3 rounded border border-cipher-border">
                       {addressExamples[saplingNetwork].sapling}
                     </code>
                   </div>
@@ -272,13 +272,13 @@ export default function LearnPage() {
                   {/* Transparent */}
                   <div className="card border-cipher-border">
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-secondary">
                         <Icons.EyeOff />
-                        <h3 className="font-bold text-white">Transparent Address (t...)</h3>
+                        <h3 className="font-bold text-primary">Transparent Address (t...)</h3>
                       </div>
                       <span className="text-xs px-2 py-1 bg-cipher-orange/20 text-cipher-orange rounded">NOT PRIVATE</span>
                     </div>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-secondary mb-3">
                       Public like Bitcoin. Use only for exchanges, then shield immediately.
                     </p>
                     <div className="flex gap-2 mb-2">
@@ -286,8 +286,8 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'mainnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -296,14 +296,14 @@ export default function LearnPage() {
                         onClick={() => setTransparentNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           transparentNetwork === 'testnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Testnet
                       </button>
                     </div>
-                    <code className="text-xs text-gray-400 break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
+                    <code className="text-xs text-muted break-all font-mono block learn-code-block p-3 rounded border border-cipher-border">
                       {addressExamples[transparentNetwork].transparent}
                     </code>
                   </div>
@@ -315,13 +315,13 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('viewingkeys')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 learn-toggle border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 text-primary">
                   <Icons.Eye />
-                  <h2 className="text-xl font-bold font-mono text-white">Viewing Keys</h2>
+                  <h2 className="text-xl font-bold font-mono text-primary">Viewing Keys</h2>
                 </div>
-                <div className={`transform transition-transform ${openSection === 'viewingkeys' ? 'rotate-180' : ''}`}>
+                <div className={`transform transition-transform text-secondary ${openSection === 'viewingkeys' ? 'rotate-180' : ''}`}>
                   <Icons.ChevronDown />
                 </div>
               </button>
@@ -329,32 +329,32 @@ export default function LearnPage() {
               {openSection === 'viewingkeys' && (
                 <div className="space-y-4">
                   <div className="card">
-                    <p className="text-sm text-gray-300 mb-4">
-                      A <strong className="text-white">viewing key</strong> (UFVK - Unified Full Viewing Key) allows
+                    <p className="text-sm text-secondary mb-4">
+                      A <strong className="text-primary">viewing key</strong> (UFVK - Unified Full Viewing Key) allows
                       read-only access to your shielded transactions without spending power.
                     </p>
 
                     <div className="space-y-3 mb-4">
                       <div className="flex items-start gap-2 text-sm">
                         <span className="text-cipher-cyan mt-0.5">—</span>
-                        <span className="text-gray-400">Auditing: Share with accountants for transaction history</span>
+                        <span className="text-secondary">Auditing: Share with accountants for transaction history</span>
                       </div>
                       <div className="flex items-start gap-2 text-sm">
                         <span className="text-cipher-cyan mt-0.5">—</span>
-                        <span className="text-gray-400">Transparency: Organizations can prove their transactions</span>
+                        <span className="text-secondary">Transparency: Organizations can prove their transactions</span>
                       </div>
                       <div className="flex items-start gap-2 text-sm">
                         <span className="text-cipher-cyan mt-0.5">—</span>
-                        <span className="text-gray-400">Block Explorer: View your transactions on CipherScan</span>
+                        <span className="text-secondary">Block Explorer: View your transactions on CipherScan</span>
                       </div>
                     </div>
 
-                    <div className="bg-cipher-bg border border-cipher-border rounded p-4 mb-4">
+                    <div className="learn-code-block border border-cipher-border rounded p-4 mb-4">
                       <h4 className="text-sm font-bold text-cipher-cyan mb-2">How to Find Your Viewing Key:</h4>
-                      <div className="space-y-2 text-sm text-gray-300">
-                        <p><strong className="text-white">Zashi:</strong> Settings → Backup → Export Viewing Key</p>
-                        <p><strong className="text-white">Ywallet:</strong> Accounts → Select Account → Export Viewing Key</p>
-                        <p><strong className="text-white">Zingo-CLI:</strong> <code className="text-xs bg-cipher-surface px-2 py-1 rounded font-mono">exportufvk</code></p>
+                      <div className="space-y-2 text-sm text-secondary">
+                        <p><strong className="text-primary">Zashi:</strong> Settings → Backup → Export Viewing Key</p>
+                        <p><strong className="text-primary">Ywallet:</strong> Accounts → Select Account → Export Viewing Key</p>
+                        <p><strong className="text-primary">Zingo-CLI:</strong> <code className="text-xs learn-code-inline px-2 py-1 rounded font-mono">exportufvk</code></p>
                       </div>
                     </div>
 
@@ -374,8 +374,8 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('mainnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'mainnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Mainnet
@@ -384,14 +384,14 @@ export default function LearnPage() {
                         onClick={() => setViewingKeyNetwork('testnet')}
                         className={`flex-1 px-3 py-1.5 rounded text-xs font-mono transition-all ${
                           viewingKeyNetwork === 'testnet'
-                            ? 'bg-cipher-surface/30 border border-cipher-cyan text-cipher-cyan'
-                            : 'bg-cipher-surface/30 text-gray-400 hover:text-gray-300 border border-cipher-border'
+                            ? 'learn-toggle-active border border-cipher-cyan text-cipher-cyan'
+                            : 'learn-toggle text-secondary hover:text-primary border border-cipher-border'
                         }`}
                       >
                         Testnet
                       </button>
                     </div>
-                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg p-3 rounded border border-cipher-border">
+                    <code className="text-xs text-cipher-cyan break-all font-mono block learn-code-block p-3 rounded border border-cipher-border">
                       {viewingKeyExamples[viewingKeyNetwork]}
                     </code>
                   </div>
@@ -403,13 +403,13 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('wallets')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 learn-toggle border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 text-primary">
                   <Icons.Wallet />
-                  <h2 className="text-xl font-bold font-mono text-white">Wallets</h2>
+                  <h2 className="text-xl font-bold font-mono text-primary">Wallets</h2>
                 </div>
-                <div className={`transform transition-transform ${openSection === 'wallets' ? 'rotate-180' : ''}`}>
+                <div className={`transform transition-transform text-secondary ${openSection === 'wallets' ? 'rotate-180' : ''}`}>
                   <Icons.ChevronDown />
                 </div>
               </button>
@@ -419,7 +419,7 @@ export default function LearnPage() {
                   {/* Zashi */}
                   <div className="card">
                     <h3 className="font-bold text-cipher-cyan mb-2">Zashi</h3>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-secondary mb-3">
                       Official ECC wallet. Modern UI, full Orchard support, automatic shielding.
                     </p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -427,7 +427,7 @@ export default function LearnPage() {
                         href="https://apps.apple.com/app/zashi-zcash-wallet/id1672822094"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         iOS Mainnet
                       </a>
@@ -435,7 +435,7 @@ export default function LearnPage() {
                         href="https://testflight.apple.com/join/wFtmW9uS"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         iOS Testnet
                       </a>
@@ -443,7 +443,7 @@ export default function LearnPage() {
                         href="https://play.google.com/store/apps/details?id=co.electriccoin.zcash"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         Android Mainnet
                       </a>
@@ -451,7 +451,7 @@ export default function LearnPage() {
                         href="https://appdistribution.firebase.dev/i/b26c9d40883899e3"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-center"
+                        className="px-3 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-center"
                       >
                         Android Testnet
                       </a>
@@ -461,7 +461,7 @@ export default function LearnPage() {
                   {/* Ywallet */}
                   <div className="card">
                     <h3 className="font-bold text-cipher-cyan mb-2">Ywallet</h3>
-                    <p className="text-sm text-gray-400 mb-2">
+                    <p className="text-sm text-secondary mb-2">
                       Advanced wallet with multi-sig, viewing key export, and detailed transaction history.
                     </p>
                     <a
@@ -477,7 +477,7 @@ export default function LearnPage() {
                   {/* Zingo */}
                   <div className="card">
                     <h3 className="font-bold text-cipher-cyan mb-2">Zingo Wallet</h3>
-                    <p className="text-sm text-gray-400 mb-2">
+                    <p className="text-sm text-secondary mb-2">
                       Mobile, desktop, and CLI versions. Perfect for developers.
                     </p>
                     <a
@@ -497,13 +497,13 @@ export default function LearnPage() {
             <section>
               <button
                 onClick={() => toggleSection('dev')}
-                className="w-full flex items-center justify-between p-4 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
+                className="w-full flex items-center justify-between p-4 learn-toggle border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all mb-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 text-primary">
                   <Icons.Code />
-                  <h2 className="text-xl font-bold font-mono text-white">Developer Resources</h2>
+                  <h2 className="text-xl font-bold font-mono text-primary">Developer Resources</h2>
                 </div>
-                <div className={`transform transition-transform ${openSection === 'dev' ? 'rotate-180' : ''}`}>
+                <div className={`transform transition-transform text-secondary ${openSection === 'dev' ? 'rotate-180' : ''}`}>
                   <Icons.ChevronDown />
                 </div>
               </button>
@@ -516,29 +516,29 @@ export default function LearnPage() {
 
                     <div className="space-y-3">
                       <div>
-                        <div className="text-xs text-gray-500 font-mono mb-1">Mainnet Lightwalletd gRPC</div>
-                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg p-2 rounded border border-cipher-border">
+                        <div className="text-xs text-muted font-mono mb-1">Mainnet Lightwalletd gRPC</div>
+                        <code className="text-xs text-cipher-cyan font-mono block learn-code-block p-2 rounded border border-cipher-border">
                           lightwalletd.mainnet.cipherscan.app:443
                         </code>
                       </div>
 
                       <div>
-                        <div className="text-xs text-gray-500 font-mono mb-1">Mainnet REST API</div>
-                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg p-2 rounded border border-cipher-border">
+                        <div className="text-xs text-muted font-mono mb-1">Mainnet REST API</div>
+                        <code className="text-xs text-cipher-cyan font-mono block learn-code-block p-2 rounded border border-cipher-border">
                           https://api.mainnet.cipherscan.app/api/*
                         </code>
                       </div>
 
                       <div>
-                        <div className="text-xs text-gray-500 font-mono mb-1">Testnet Lightwalletd gRPC</div>
-                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg p-2 rounded border border-cipher-border">
+                        <div className="text-xs text-muted font-mono mb-1">Testnet Lightwalletd gRPC</div>
+                        <code className="text-xs text-cipher-cyan font-mono block learn-code-block p-2 rounded border border-cipher-border">
                           lightwalletd.testnet.cipherscan.app:443
                         </code>
                       </div>
 
                       <div>
-                        <div className="text-xs text-gray-500 font-mono mb-1">Testnet REST API</div>
-                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg p-2 rounded border border-cipher-border">
+                        <div className="text-xs text-muted font-mono mb-1">Testnet REST API</div>
+                        <code className="text-xs text-cipher-cyan font-mono block learn-code-block p-2 rounded border border-cipher-border">
                           https://api.testnet.cipherscan.app/api/*
                         </code>
                       </div>
@@ -556,13 +556,13 @@ export default function LearnPage() {
 
                   {/* External Resources */}
                   <div className="card">
-                    <h3 className="font-bold text-white mb-3">Documentation & Tools</h3>
+                    <h3 className="font-bold text-primary mb-3">Documentation & Tools</h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <a
                         href="https://zcash.readthedocs.io/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         Protocol Docs
                       </a>
@@ -570,7 +570,7 @@ export default function LearnPage() {
                         href="https://zips.z.cash/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         ZIPs
                       </a>
@@ -578,7 +578,7 @@ export default function LearnPage() {
                         href="https://github.com/zcash/lightwalletd"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         Lightwalletd
                       </a>
@@ -586,7 +586,7 @@ export default function LearnPage() {
                         href="https://github.com/ZcashFoundation/zebra"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         Zebra
                       </a>
@@ -594,7 +594,7 @@ export default function LearnPage() {
                         href="https://github.com/zingolabs/zingolib"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         Zingolib
                       </a>
@@ -602,7 +602,7 @@ export default function LearnPage() {
                         href="https://github.com/zcash/librustzcash"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         librustzcash
                       </a>
@@ -610,7 +610,7 @@ export default function LearnPage() {
                         href="https://github.com/ChainSafe/WebZjs"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         WebZjs (Browser)
                       </a>
@@ -618,7 +618,7 @@ export default function LearnPage() {
                         href="https://crates.io/teams/github:zcash:crate-publishers"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cipher-cyan transition-colors"
+                        className="text-secondary hover:text-cipher-cyan transition-colors"
                       >
                         Zcash Crates (Rust)
                       </a>
@@ -633,73 +633,73 @@ export default function LearnPage() {
           <div className="space-y-6">
             {/* Privacy Concepts */}
             <div className="card">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 text-primary">
                 <Icons.Shield />
-                <h3 className="font-bold text-white">Privacy Concepts</h3>
+                <h3 className="font-bold text-primary">Privacy Concepts</h3>
               </div>
               <div className="space-y-3 text-sm">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 text-cipher-cyan">
                     <Icons.Database />
                     <div className="font-bold text-cipher-cyan">Shielded Pools</div>
                   </div>
-                  <div className="text-gray-400">Orchard and Sapling use zk-SNARKs to hide transaction data</div>
+                  <div className="text-secondary">Orchard and Sapling use zk-SNARKs to hide transaction data</div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 text-cipher-cyan">
                     <Icons.Lock />
                     <div className="font-bold text-cipher-cyan">Zero-Knowledge Proofs</div>
                   </div>
-                  <div className="text-gray-400">Prove validity without revealing information</div>
+                  <div className="text-secondary">Prove validity without revealing information</div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 text-cipher-cyan">
                     <Icons.Chat />
                     <div className="font-bold text-cipher-cyan">Encrypted Memos</div>
                   </div>
-                  <div className="text-gray-400">Up to 512 bytes of private data per transaction</div>
+                  <div className="text-secondary">Up to 512 bytes of private data per transaction</div>
                 </div>
               </div>
             </div>
 
             {/* CipherScan Tools */}
             <div className="card border-cipher-cyan/30">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 text-cipher-cyan">
                 <Icons.Search />
                 <h3 className="font-bold text-cipher-cyan">CipherScan Tools</h3>
               </div>
               <div className="space-y-2">
                 <Link
                   href="/decrypt"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Lock />
                   <span>Decrypt Shielded Memos</span>
                 </Link>
                 <Link
                   href="/network"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Globe />
                   <span>Network Statistics</span>
                 </Link>
                 <Link
                   href="/privacy"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Shield />
                   <span>Privacy Dashboard</span>
                 </Link>
                 <Link
                   href="/mempool"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Activity />
                   <span>Mempool Viewer</span>
                 </Link>
                 <Link
                   href="/docs"
-                  className="flex items-center gap-2 px-4 py-2 bg-cipher-surface/30 border border-cipher-border hover:border-cipher-cyan text-gray-300 hover:text-cipher-cyan rounded transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2 learn-toggle border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded transition-all text-sm"
                 >
                   <Icons.Code />
                   <span>API Documentation</span>
@@ -709,16 +709,16 @@ export default function LearnPage() {
 
             {/* Community */}
             <div className="card">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 text-primary">
                 <Icons.Users />
-                <h3 className="font-bold text-white">Community</h3>
+                <h3 className="font-bold text-primary">Community</h3>
               </div>
               <div className="space-y-2 text-sm">
                 <a
                   href="https://testnet.zecfaucet.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                  className="flex items-center gap-2 text-secondary hover:text-cipher-cyan transition-colors"
                 >
                   <Icons.Gift />
                   <span>Testnet Faucet</span>
@@ -727,7 +727,7 @@ export default function LearnPage() {
                   href="https://forum.zcashcommunity.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                  className="flex items-center gap-2 text-secondary hover:text-cipher-cyan transition-colors"
                 >
                   <Icons.Users />
                   <span>Community Forum</span>
@@ -736,7 +736,7 @@ export default function LearnPage() {
                   href="https://discord.gg/THspb5PM"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                  className="flex items-center gap-2 text-secondary hover:text-cipher-cyan transition-colors"
                 >
                   <Icons.Chat />
                   <span>Developer Discord</span>
@@ -745,7 +745,7 @@ export default function LearnPage() {
                   href="https://www.scifi.money/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                  className="flex items-center gap-2 text-secondary hover:text-cipher-cyan transition-colors"
                 >
                   <Icons.Book />
                   <span>SciFi Money (Guides)</span>
@@ -754,7 +754,7 @@ export default function LearnPage() {
                   href="https://z.cash/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-400 hover:text-cipher-cyan transition-colors"
+                  className="flex items-center gap-2 text-secondary hover:text-cipher-cyan transition-colors"
                 >
                   <Icons.Globe />
                   <span>Z.cash (Official)</span>
