@@ -91,25 +91,39 @@ const Icons = {
 };
 
 // Chain colors and symbols
-const chainConfig: Record<string, { color: string; symbol: string; name: string; iconId?: string }> = {
+const chainConfig: Record<string, { color: string; symbol: string; name: string; iconId?: string; needsWhiteBg?: boolean }> = {
   btc: { color: '#F7931A', symbol: 'BTC', name: 'Bitcoin', iconId: 'btc' },
   eth: { color: '#627EEA', symbol: 'ETH', name: 'Ethereum', iconId: 'eth' },
   sol: { color: '#14F195', symbol: 'SOL', name: 'Solana', iconId: 'sol' },
-  near: { color: '#00C08B', symbol: 'NEAR', name: 'NEAR', iconId: 'near' },
+  near: { color: '#00C08B', symbol: 'NEAR', name: 'NEAR', iconId: 'near', needsWhiteBg: true },
   usdc: { color: '#2775CA', symbol: 'USDC', name: 'USDC', iconId: 'usdc' },
   usdt: { color: '#26A17B', symbol: 'USDT', name: 'Tether', iconId: 'usdt' },
   doge: { color: '#C2A633', symbol: 'DOGE', name: 'Dogecoin', iconId: 'doge' },
-  xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple', iconId: 'xrp' },
+  xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple', iconId: 'xrp', needsWhiteBg: true },
   zec: { color: '#F4B728', symbol: 'ZEC', name: 'Zcash', iconId: 'zec' },
-  base: { color: '#0052FF', symbol: 'BASE', name: 'Base', iconId: 'eth' }, // Base uses ETH icon
-  arb: { color: '#28A0F0', symbol: 'ARB', name: 'Arbitrum', iconId: 'eth' },
+  base: { color: '#0052FF', symbol: 'BASE', name: 'Base', iconId: 'base' },
+  arb: { color: '#28A0F0', symbol: 'ARB', name: 'Arbitrum', iconId: 'arb' },
   pol: { color: '#8247E5', symbol: 'POL', name: 'Polygon', iconId: 'matic' },
   avax: { color: '#E84142', symbol: 'AVAX', name: 'Avalanche', iconId: 'avax' },
+  trx: { color: '#FF0013', symbol: 'TRX', name: 'Tron', iconId: 'trx' },
+  apt: { color: '#000000', symbol: 'APT', name: 'Aptos', iconId: 'apt', needsWhiteBg: true },
+  sui: { color: '#6FBCF0', symbol: 'SUI', name: 'Sui', iconId: 'sui' },
+  ton: { color: '#0098EA', symbol: 'TON', name: 'TON', iconId: 'ton' },
+  bnb: { color: '#F3BA2F', symbol: 'BNB', name: 'BNB Chain', iconId: 'bnb' },
+  op: { color: '#FF0420', symbol: 'OP', name: 'Optimism', iconId: 'op' },
+  other: { color: '#6B7280', symbol: '?', name: 'Other', iconId: 'other' },
+  unknown: { color: '#6B7280', symbol: '?', name: 'Unknown', iconId: 'other' },
 };
 
 // Custom icon URLs for chains not in the standard CDN
 const customIcons: Record<string, string> = {
   near: 'https://cryptologos.cc/logos/near-protocol-near-logo.svg',
+  apt: 'https://cryptologos.cc/logos/aptos-apt-logo.svg',
+  sui: 'https://cryptologos.cc/logos/sui-sui-logo.svg',
+  ton: 'https://cryptologos.cc/logos/toncoin-ton-logo.svg',
+  base: 'https://raw.githubusercontent.com/base-org/brand-kit/main/logo/symbol/Base_Symbol_Blue.svg',
+  arb: 'https://cryptologos.cc/logos/arbitrum-arb-logo.svg',
+  op: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.svg',
 };
 
 // Crypto icon component using CDN
@@ -118,6 +132,24 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   const baseSymbol = symbol.split(' ')[0].toLowerCase();
   const config = chainConfig[baseSymbol] || chainConfig[symbol.toLowerCase()];
   const iconId = config?.iconId || baseSymbol;
+  const needsWhiteBg = config?.needsWhiteBg || false;
+
+  // For "other" or "unknown", show a generic icon
+  if (iconId === 'other' || !config) {
+    return (
+      <div
+        className={`rounded-full flex items-center justify-center text-white font-bold ${className}`}
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: config?.color || '#6B7280',
+          fontSize: size * 0.4,
+        }}
+      >
+        {symbol.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
 
   // Use custom icon if available, otherwise CDN
   const iconUrl = customIcons[iconId]
@@ -129,7 +161,7 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
       alt={symbol}
       width={size}
       height={size}
-      className={`rounded-full ${className}`}
+      className={`rounded-full ${needsWhiteBg ? 'bg-white p-0.5' : ''} ${className}`}
       onError={(e) => {
         // Fallback to colored circle with initials
         const target = e.target as HTMLImageElement;
@@ -150,6 +182,14 @@ const chainNames: Record<string, string> = {
   base: 'Base',
   pol: 'Polygon',
   avax: 'Avalanche',
+  trx: 'Tron',
+  apt: 'Aptos',
+  sui: 'Sui',
+  ton: 'TON',
+  bnb: 'BNB Chain',
+  op: 'Optimism',
+  other: 'Other',
+  unknown: 'Unknown',
   doge: 'Dogecoin',
   xrp: 'Ripple',
 };
@@ -413,12 +453,12 @@ export default function FlowsPage() {
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* 24h Volume */}
-          <div className="card stat-card bg-gradient-to-br from-cyan-900/20 to-cipher-surface dark:from-cyan-900/20 dark:to-cipher-surface border-cyan-500/30">
+          <div className="card stat-card gradient-card-cyan">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs text-secondary uppercase">24H Volume</span>
               <Tooltip content="Total USD value of ZEC swapped in the last 24 hours via NEAR Intents" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-primary">
+            <div className="text-2xl sm:text-3xl font-bold text-cipher-cyan">
               {formatUSD(stats.totalVolume24h)}
             </div>
           </div>
@@ -607,7 +647,7 @@ export default function FlowsPage() {
 
                   {/* Source */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50 dark:bg-cipher-surface/50">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden icon-circle-bg">
                       <CryptoIcon symbol={swap.fromSymbol} size={24} />
                     </div>
                     <div className="flex flex-col">
@@ -627,7 +667,7 @@ export default function FlowsPage() {
 
                   {/* Destination */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50 dark:bg-cipher-surface/50">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden icon-circle-bg">
                       <CryptoIcon symbol={swap.toSymbol} size={24} />
                     </div>
                     <div className="flex flex-col">

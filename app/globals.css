@@ -451,6 +451,14 @@
     @apply from-cyan-50 to-white border-cyan-200;
   }
 
+  /* Icon circle background (for crypto icons) */
+  .icon-circle-bg {
+    @apply bg-cipher-surface/50;
+  }
+  .light .icon-circle-bg {
+    @apply bg-gray-100;
+  }
+
   .gradient-card-green {
     @apply bg-gradient-to-br from-green-900/20 to-cipher-surface border-green-500/30;
   }
