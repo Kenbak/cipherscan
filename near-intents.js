@@ -232,9 +232,10 @@ class NearIntentsClient {
     const byChain = {};
 
     transactions.forEach(tx => {
-      // Parse chain from asset (e.g., "nep141:eth-0x..." → "eth")
+      // Parse chain from asset (e.g., "nep141:eth-0x..." → { chain: "eth", token: "USDT" })
       const asset = direction === 'from' ? tx.originAsset : tx.destinationAsset;
-      let chainId = this.parseChainFromAsset(asset);
+      const parsed = this.parseChainFromAsset(asset);
+      const chainId = parsed.chain;
 
       // Skip ZEC (we're aggregating other chains)
       if (chainId === 'zec') return;
@@ -269,36 +270,86 @@ class NearIntentsClient {
    * e.g., "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near" → "eth"
    */
   parseChainFromAsset(asset) {
-    if (!asset) return 'unknown';
+    if (!asset) return { chain: 'unknown', token: 'UNKNOWN' };
 
     const assetLower = asset.toLowerCase();
 
     // Handle ZEC
-    if (assetLower.includes('zec') || assetLower.includes('zcash')) return 'zec';
+    if (assetLower.includes('zec') || assetLower.includes('zcash')) {
+      return { chain: 'zec', token: 'ZEC' };
+    }
 
-    // Handle known chain prefixes
-    const chainPrefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax', 'tron', 'trx', 'bnb', 'usdc', 'usdt'];
-    for (const prefix of chainPrefixes) {
-      if (assetLower.includes(prefix)) {
-        // Map aliases
-        if (prefix === 'trx') return 'tron';
-        if (prefix === 'bnb') return 'bsc';
-        return prefix;
+    // Known token contract addresses
+    const knownTokens = {
+      // Ethereum tokens
+      '0xdac17f958d2ee523a2206206994597c13d831ec7': { token: 'USDT', chain: 'eth' },
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { token: 'USDC', chain: 'eth' },
+      '0x6b175474e89094c44da98b954eedeac495271d0f': { token: 'DAI', chain: 'eth' },
+      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': { token: 'WBTC', chain: 'eth' },
+      // Solana tokens
+      'c800a4bd850783ccb82c2b2c7e84175443606352': { token: 'USDT', chain: 'sol' },  // USDT on Solana
+      'epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwytdt1v': { token: 'USDC', chain: 'sol' },
+      'es9vmfrzacermjfrf4h2fyd4kconky11mcce8benwnyb': { token: 'USDT', chain: 'sol' },
+    };
+
+    // Check for known token addresses
+    for (const [address, info] of Object.entries(knownTokens)) {
+      if (assetLower.includes(address)) {
+        return info;
       }
     }
 
-    // Try to extract chain from asset format: "nep141:CHAIN-address.omft.near" or "nep141:CHAIN.omft.near"
-    const match = asset.match(/nep141:([a-zA-Z]+)[-.]/) || asset.match(/nep245:.*:.*_([a-zA-Z]+)/i);
+    // Handle USDT on NEAR (native)
+    if (assetLower.includes('usdt.tether-token.near')) {
+      return { chain: 'near', token: 'USDT' };
+    }
+
+    // Handle USDC variants
+    if (assetLower.includes('usdc')) {
+      // Try to detect chain from prefix
+      if (assetLower.includes('sol-')) return { chain: 'sol', token: 'USDC' };
+      if (assetLower.includes('eth-')) return { chain: 'eth', token: 'USDC' };
+      if (assetLower.includes('base-')) return { chain: 'base', token: 'USDC' };
+      if (assetLower.includes('arb-')) return { chain: 'arb', token: 'USDC' };
+      return { chain: 'near', token: 'USDC' };
+    }
+
+    // Handle native chain tokens
+    const chainPrefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax', 'tron', 'trx', 'bnb'];
+    for (const prefix of chainPrefixes) {
+      // Check for "nep141:CHAIN." or "nep141:CHAIN-" format (native tokens)
+      const nativePattern = new RegExp(`nep141:${prefix}[\\.\\-]`);
+      if (nativePattern.test(assetLower) && !assetLower.includes('0x')) {
+        // Map aliases
+        const chain = prefix === 'trx' ? 'tron' : prefix === 'bnb' ? 'bsc' : prefix;
+        const symbol = CHAIN_CONFIG[chain]?.symbol || chain.toUpperCase();
+        return { chain, token: symbol };
+      }
+    }
+
+    // Try to extract chain from asset format: "nep141:CHAIN-address.omft.near"
+    const match = asset.match(/nep141:([a-zA-Z]+)-/);
     if (match && match[1]) {
       const extracted = match[1].toLowerCase();
-      // Only accept 2-6 character chains that look like real blockchain names
-      // Reject random strings like "qistmoqjdqptebapjgx"
       if (extracted.length >= 2 && extracted.length <= 6 && !/^\d+$/.test(extracted)) {
-        return extracted;
+        const chain = extracted === 'trx' ? 'tron' : extracted === 'bnb' ? 'bsc' : extracted;
+        // If it has 0x address, it's likely a token on that chain
+        if (assetLower.includes('0x')) {
+          return { chain, token: chain.toUpperCase() + ' Token' };
+        }
+        const symbol = CHAIN_CONFIG[chain]?.symbol || chain.toUpperCase();
+        return { chain, token: symbol };
       }
     }
 
-    return 'other';
+    return { chain: 'other', token: 'OTHER' };
+  }
+
+  /**
+   * Legacy method for backward compatibility - returns just the chain
+   */
+  parseChainId(asset) {
+    return this.parseChainFromAsset(asset).chain;
   }
 
   /**
@@ -306,19 +357,21 @@ class NearIntentsClient {
    */
   formatRecentSwaps(transactions) {
     return transactions.map(tx => {
-      const fromChain = this.parseChainFromAsset(tx.originAsset);
-      const toChain = this.parseChainFromAsset(tx.destinationAsset);
-      const isInflow = toChain === 'zec';
+      const fromParsed = this.parseChainFromAsset(tx.originAsset);
+      const toParsed = this.parseChainFromAsset(tx.destinationAsset);
+      const isInflow = toParsed.chain === 'zec';
 
+      // For inflows: OTHER_TOKEN → ZEC
+      // For outflows: ZEC → OTHER_TOKEN
       return {
         id: tx.depositAddress || tx.intentHashes,
         timestamp: new Date(tx.createdAt).getTime(),
-        fromChain: isInflow ? fromChain : 'zec',
-        toChain: isInflow ? 'zec' : toChain,
+        fromChain: isInflow ? fromParsed.chain : 'zec',
+        toChain: isInflow ? 'zec' : toParsed.chain,
         fromAmount: parseFloat(tx.amountInFormatted) || 0,
-        fromSymbol: isInflow ? (CHAIN_CONFIG[fromChain]?.symbol || fromChain.toUpperCase()) : 'ZEC',
+        fromSymbol: isInflow ? fromParsed.token : 'ZEC',
         toAmount: parseFloat(tx.amountOutFormatted) || 0,
-        toSymbol: isInflow ? 'ZEC' : (CHAIN_CONFIG[toChain]?.symbol || toChain.toUpperCase()),
+        toSymbol: isInflow ? 'ZEC' : toParsed.token,
         amountUsd: parseFloat(tx.amountInUsd) || 0,
         direction: isInflow ? 'in' : 'out',
         status: tx.status,
