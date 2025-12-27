@@ -615,6 +615,26 @@
     @apply bg-emerald-50 border-emerald-200;
   }
 
+  /* 404 page styles */
+  .not-found-hint-box {
+    @apply bg-cipher-bg/50 border border-cipher-border;
+  }
+  .light .not-found-hint-box {
+    @apply bg-gray-100 border-gray-200;
+  }
+  .not-found-secondary-btn {
+    @apply border-2 border-cipher-border text-secondary hover:border-cipher-cyan hover:text-cipher-cyan;
+  }
+  .light .not-found-secondary-btn {
+    @apply border-gray-300 hover:border-cipher-cyan;
+  }
+  .not-found-border {
+    @apply border-cipher-border;
+  }
+  .light .not-found-border {
+    @apply border-gray-200;
+  }
+
   /* Generic card background */
   .card-bg {
     @apply bg-cipher-surface;
