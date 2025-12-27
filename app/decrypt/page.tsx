@@ -46,31 +46,31 @@ export default function DecryptPage() {
   }, []);
 
   return (
-    <div className="min-h-screen text-white py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header - Full Width */}
         <div className="mb-6 sm:mb-8 text-center px-2">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
             <Icons.Lock />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono text-primary">
               Decrypt Shielded Memo
             </h1>
           </div>
-          <p className="text-gray-400 text-sm sm:text-base md:text-lg">
+          <p className="text-secondary text-sm sm:text-base md:text-lg">
             Decode encrypted memos from shielded Zcash transactions.
           </p>
         </div>
 
         {/* Tabs */}
         <div className="flex justify-center mb-6 sm:mb-8">
-          <div className="inline-flex bg-cipher-surface border-2 border-cipher-border rounded-lg p-1">
+          <div className="inline-flex decrypt-tabs-bg border-2 border-cipher-border rounded-lg p-1">
             <button
               onClick={() => setActiveTab('single')}
               className={`px-4 sm:px-6 py-2 rounded-md font-mono text-sm sm:text-base transition-all ${
                 activeTab === 'single'
                   ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-secondary hover:text-primary'
               }`}
             >
               Single Message
@@ -80,7 +80,7 @@ export default function DecryptPage() {
               className={`px-4 sm:px-6 py-2 rounded-md font-mono text-sm sm:text-base transition-all ${
                 activeTab === 'scan'
                   ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-secondary hover:text-primary'
               }`}
             >
               Inbox
@@ -89,15 +89,15 @@ export default function DecryptPage() {
         </div>
 
         {/* Privacy Notice - Full Width */}
-        <div className="card mb-6 sm:mb-8 bg-green-900/20 border-green-500/30">
+        <div className="card mb-6 sm:mb-8 gradient-card-success">
           <div className="flex items-start gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 text-green-600 dark:text-green-400">
               <Icons.Shield />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-green-300 text-base sm:text-lg mb-2">100% Client-Side Decryption</h3>
-              <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
-                Your viewing key <strong>never leaves your browser</strong>. All decryption happens locally
+              <h3 className="font-bold text-green-600 dark:text-green-300 text-base sm:text-lg mb-2">100% Client-Side Decryption</h3>
+              <p className="text-secondary text-sm sm:text-base leading-relaxed">
+                Your viewing key <strong className="text-primary">never leaves your browser</strong>. All decryption happens locally
                 using WebAssembly. Nothing is stored on our servers. Zero-knowledge, cypherpunk approved.
               </p>
             </div>
@@ -109,19 +109,19 @@ export default function DecryptPage() {
         {activeTab === 'scan' && <ScanMyTransactions />}
 
         {/* Help Card */}
-        <div className="card-glass mt-6 sm:mt-8">
+        <div className="card mt-6 sm:mt-8">
           <div className="flex items-start gap-3 sm:gap-4">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 text-cipher-cyan">
               <Icons.Info />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-cipher-cyan text-base sm:text-lg mb-2">How to Get a Viewing Key</h3>
-              <p className="text-gray-300 text-sm sm:text-base mb-3 sm:mb-4 leading-relaxed">
-                To decrypt memos, you need a <strong>Unified Full Viewing Key (UFVK)</strong>.
+              <p className="text-secondary text-sm sm:text-base mb-3 sm:mb-4 leading-relaxed">
+                To decrypt memos, you need a <strong className="text-primary">Unified Full Viewing Key (UFVK)</strong>.
                 This key allows you to view transaction details without exposing your spending keys.
               </p>
-              <p className="text-sm text-gray-400 mb-3 sm:mb-4">You can get a viewing key from:</p>
-              <ul className="list-none space-y-2 sm:space-y-3 text-sm text-gray-400">
+              <p className="text-sm text-muted mb-3 sm:mb-4">You can get a viewing key from:</p>
+              <ul className="list-none space-y-2 sm:space-y-3 text-sm text-muted">
                 <li>
                   • <a href="https://ywallet.app/" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                     YWallet

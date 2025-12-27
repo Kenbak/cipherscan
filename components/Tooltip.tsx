@@ -55,7 +55,7 @@ export function Tooltip({ content, children }: TooltipProps) {
         onMouseLeave={() => !isMobile && setShow(false)}
         onFocus={() => !isMobile && setShow(true)}
         onBlur={() => !isMobile && setShow(false)}
-        className="text-gray-500 hover:text-cipher-cyan transition-colors cursor-help"
+        className="text-muted hover:text-cipher-cyan transition-colors cursor-help"
         aria-label="More information"
       >
         {children || (
@@ -65,10 +65,10 @@ export function Tooltip({ content, children }: TooltipProps) {
         )}
       </button>
       {show && (
-        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs leading-relaxed text-white bg-gray-900 rounded-lg shadow-2xl border border-gray-700 w-56 max-w-xs">
+        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs">
           {content}
           <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-            <div className="border-4 border-transparent border-t-gray-900"></div>
+            <div className="tooltip-arrow"></div>
           </div>
         </div>
       )}

@@ -56,7 +56,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
       <div className="card">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-          <p className="text-gray-400 ml-4 font-mono text-lg">Syncing blockchain data...</p>
+          <p className="text-secondary ml-4 font-mono text-lg">Syncing blockchain data...</p>
         </div>
       </div>
     );
@@ -81,16 +81,16 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
                     {block.transactions} TX
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 font-mono mt-2">
+                <div className="text-xs text-muted font-mono mt-2">
                   <span className="opacity-50">Hash: </span>
                   <code className="break-all">{block.hash.slice(0, 8)}...{block.hash.slice(-8)}</code>
                 </div>
               </div>
               <div className="text-left sm:text-right sm:ml-6">
-                <div className="text-sm text-gray-400 font-mono">
+                <div className="text-sm text-secondary font-mono">
                   {formatRelativeTime(block.timestamp)}
                 </div>
-                <div className="text-xs text-gray-500 mt-1 suppress-hydration-warning">
+                <div className="text-xs text-muted mt-1 suppress-hydration-warning">
                   {new Date(block.timestamp * 1000).toLocaleString('en-US', {
                     year: 'numeric',
                     month: '2-digit',

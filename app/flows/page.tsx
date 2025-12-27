@@ -85,7 +85,7 @@ const Icons = {
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
         <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
       </span>
-      <span className="text-xs font-mono text-gray-400">LIVE</span>
+      <span className="text-xs font-mono text-secondary">LIVE</span>
     </span>
   ),
 };
@@ -294,14 +294,14 @@ export default function FlowsPage() {
   // Testnet: Cross-chain not available
   if (!isMainnet) {
     return (
-      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+      <div className="min-h-screen py-8 sm:py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="card bg-gradient-to-br from-gray-800/50 to-cipher-surface border-gray-500/30 text-center py-12">
+          <div className="card text-center py-12">
             <div className="text-6xl mb-4">🔗</div>
-            <h1 className="text-2xl font-bold font-mono text-gray-400 mb-4">
+            <h1 className="text-2xl font-bold font-mono text-secondary mb-4">
               Cross-Chain Available on Mainnet Only
             </h1>
-            <p className="text-gray-500 max-w-lg mx-auto mb-6">
+            <p className="text-muted max-w-lg mx-auto mb-6">
               NEAR Intents cross-chain swaps are only available for ZEC mainnet.
               Testnet ZEC (TAZ) is not supported for cross-chain operations.
             </p>
@@ -314,7 +314,7 @@ export default function FlowsPage() {
               </a>
               <Link
                 href="/"
-                className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
+                className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-secondary rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
               >
                 Back to Explorer
               </Link>
@@ -328,11 +328,11 @@ export default function FlowsPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+      <div className="min-h-screen py-8 sm:py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-gray-400 ml-4 font-mono text-lg">Loading cross-chain data...</p>
+            <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
           </div>
         </div>
       </div>
@@ -342,17 +342,17 @@ export default function FlowsPage() {
   // API not configured state
   if (!apiConfigured || error) {
     return (
-      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+      <div className="min-h-screen py-8 sm:py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="card bg-gradient-to-br from-yellow-900/20 to-cipher-surface border-yellow-500/30 text-center py-12">
+          <div className="card gradient-card-warning text-center py-12">
             <div className="text-6xl mb-4">🔗</div>
-            <h1 className="text-2xl font-bold font-mono text-yellow-400 mb-4">
+            <h1 className="text-2xl font-bold font-mono text-yellow-600 dark:text-yellow-400 mb-4">
               Cross-Chain Integration Coming Soon
             </h1>
-            <p className="text-gray-400 max-w-lg mx-auto mb-6">
+            <p className="text-secondary max-w-lg mx-auto mb-6">
               {error || 'NEAR Intents API integration is being configured. This feature will show real-time ZEC swaps across Bitcoin, Ethereum, Solana, and more.'}
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               <a
                 href="https://near.org/intents"
                 target="_blank"
@@ -363,7 +363,7 @@ export default function FlowsPage() {
               </a>
               <Link
                 href="/"
-                className="px-4 py-2 bg-cipher-surface border border-cipher-border text-gray-300 rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
+                className="px-4 py-2 card-bg border border-cipher-border text-secondary rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm"
               >
                 Back to Explorer
               </Link>
@@ -377,10 +377,10 @@ export default function FlowsPage() {
   // No data state
   if (!stats) {
     return (
-      <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+      <div className="min-h-screen py-8 sm:py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="card text-center py-12">
-            <p className="text-gray-400">No cross-chain data available</p>
+            <p className="text-secondary">No cross-chain data available</p>
           </div>
         </div>
       </div>
@@ -391,7 +391,7 @@ export default function FlowsPage() {
   const totalOutflows = stats.outflows.reduce((sum, c) => sum + c.totalVolume24h, 0);
 
   return (
-    <div className="min-h-screen text-white py-8 sm:py-12 px-4">
+    <div className="min-h-screen py-8 sm:py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -400,7 +400,7 @@ export default function FlowsPage() {
               <Icons.Bridge />
               ZEC Flows
             </h1>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-secondary mt-2">
               Real-time tracking of ZEC swaps via{' '}
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
                 NEAR Intents
@@ -413,22 +413,22 @@ export default function FlowsPage() {
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* 24h Volume */}
-          <div className="card bg-gradient-to-br from-cyan-900/20 to-cipher-surface border-cyan-500/30">
+          <div className="card stat-card bg-gradient-to-br from-cyan-900/20 to-cipher-surface dark:from-cyan-900/20 dark:to-cipher-surface border-cyan-500/30">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400 uppercase">24H Volume</span>
+              <span className="text-xs text-secondary uppercase">24H Volume</span>
               <Tooltip content="Total USD value of ZEC swapped in the last 24 hours via NEAR Intents" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">
               {formatUSD(stats.totalVolume24h)}
             </div>
           </div>
 
           {/* Total Swaps */}
-          <div className="card">
+          <div className="card stat-card">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400 uppercase">24H Swaps</span>
+              <span className="text-xs text-secondary uppercase">24H Swaps</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">
               {stats.totalSwaps24h.toLocaleString()}
             </div>
           </div>
@@ -443,7 +443,7 @@ export default function FlowsPage() {
                 <Icons.ArrowIn />
                 Inflows → ZEC
               </h2>
-              <span className="text-sm text-gray-400">{formatUSD(totalInflows)}</span>
+              <span className="text-sm text-secondary">{formatUSD(totalInflows)}</span>
             </div>
             <div className="space-y-3">
               {stats.inflows.map((chainGroup) => (
@@ -456,32 +456,32 @@ export default function FlowsPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                          <span className="text-sm font-mono font-semibold text-primary">{chainGroup.chainName}</span>
                           {/* Token breakdown indicator */}
                           {chainGroup.tokens.length > 1 && (
                             <span className="relative cursor-help">
-                              <span className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                              <span className="text-[10px] text-muted hover:text-secondary transition-colors">
                                 ({chainGroup.tokens.length} tokens)
                               </span>
                               {/* Tooltip */}
-                              <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
+                              <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg dark:bg-cipher-bg bg-white border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
                                 {chainGroup.tokens.map((token) => (
                                   <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
-                                    <span className="flex items-center gap-1 text-gray-300">
+                                    <span className="flex items-center gap-1 text-secondary">
                                       <CryptoIcon symbol={token.symbol} size={12} />
                                       {token.symbol}
                                     </span>
-                                    <span className="text-white">{formatUSD(token.volume24h)}</span>
+                                    <span className="text-primary">{formatUSD(token.volume24h)}</span>
                                   </div>
                                 ))}
                               </span>
                             </span>
                           )}
                         </div>
-                        <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
+                        <span className="text-sm text-primary">{formatUSD(chainGroup.totalVolume24h)}</span>
                       </div>
                       {/* Progress bar */}
-                      <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
+                      <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -504,7 +504,7 @@ export default function FlowsPage() {
                 <Icons.ArrowOut />
                 Outflows ZEC →
               </h2>
-              <span className="text-sm text-gray-400">{formatUSD(totalOutflows)}</span>
+              <span className="text-sm text-secondary">{formatUSD(totalOutflows)}</span>
             </div>
             <div className="space-y-3">
               {stats.outflows.length > 0 ? (
@@ -518,32 +518,32 @@ export default function FlowsPage() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-mono font-semibold">{chainGroup.chainName}</span>
+                            <span className="text-sm font-mono font-semibold text-primary">{chainGroup.chainName}</span>
                             {/* Token breakdown indicator */}
                             {chainGroup.tokens.length > 1 && (
                               <span className="relative cursor-help">
-                                <span className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                                <span className="text-[10px] text-muted hover:text-secondary transition-colors">
                                   ({chainGroup.tokens.length} tokens)
                                 </span>
                                 {/* Tooltip */}
-                                <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
+                                <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-white dark:bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
                                   {chainGroup.tokens.map((token) => (
                                     <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
-                                      <span className="flex items-center gap-1 text-gray-300">
+                                      <span className="flex items-center gap-1 text-secondary">
                                         <CryptoIcon symbol={token.symbol} size={12} />
                                         {token.symbol}
                                       </span>
-                                      <span className="text-white">{formatUSD(token.volume24h)}</span>
+                                      <span className="text-primary">{formatUSD(token.volume24h)}</span>
                                     </div>
                                   ))}
                                 </span>
                               </span>
                             )}
                           </div>
-                          <span className="text-sm text-white">{formatUSD(chainGroup.totalVolume24h)}</span>
+                          <span className="text-sm text-primary">{formatUSD(chainGroup.totalVolume24h)}</span>
                         </div>
                         {/* Progress bar */}
-                        <div className="h-1.5 bg-cipher-bg rounded-full overflow-hidden mt-1">
+                        <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -557,7 +557,7 @@ export default function FlowsPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500 text-sm">No outflows in selected period</p>
+                <p className="text-muted text-sm">No outflows in selected period</p>
               )}
             </div>
           </div>
@@ -566,7 +566,7 @@ export default function FlowsPage() {
         {/* Recent Swaps */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold font-mono text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold font-mono text-primary flex items-center gap-2">
               Recent Swaps
             </h2>
             <Icons.Live />
@@ -574,16 +574,15 @@ export default function FlowsPage() {
 
           <div className="space-y-2">
             {stats.recentSwaps.map((swap) => {
-              const sourceChain = chainNames[swap.fromChain] || swap.fromChain.toUpperCase();
               const isInflow = swap.direction === 'in';
 
               return (
               <div
                 key={swap.id}
-                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_1fr_1fr_110px] gap-2 items-center p-3 bg-cipher-bg/50 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 hover:bg-cipher-bg/70 transition-all cursor-pointer"
+                  className="group grid grid-cols-1 sm:grid-cols-[60px_80px_1fr_1fr_1fr_110px] gap-2 items-center p-3 swap-row-bg rounded-lg border border-cipher-border hover:border-cipher-cyan/30 transition-all cursor-pointer"
                 >
                   {/* Time */}
-                  <span className="text-xs text-gray-500 font-mono hidden sm:block">
+                  <span className="text-xs text-muted font-mono hidden sm:block">
                     {formatRelativeTime(swap.timestamp)}
                   </span>
 
@@ -601,42 +600,42 @@ export default function FlowsPage() {
                       </span>
                     )}
                     {/* Mobile: show time next to direction */}
-                    <span className="text-xs text-gray-500 font-mono sm:hidden">
+                    <span className="text-xs text-muted font-mono sm:hidden">
                       {formatRelativeTime(swap.timestamp)}
                     </span>
                   </div>
 
                   {/* Source */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50">
-                      <CryptoIcon symbol={isInflow ? swap.fromSymbol : 'ZEC'} size={24} />
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50 dark:bg-cipher-surface/50">
+                      <CryptoIcon symbol={swap.fromSymbol} size={24} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-mono text-white font-semibold">
-                        {isInflow ? swap.fromAmount : swap.fromAmount} {isInflow ? swap.fromSymbol : 'ZEC'}
+                      <span className="text-sm font-mono text-primary font-semibold">
+                        {swap.fromAmount} {swap.fromSymbol}
                       </span>
-                      <span className="text-[10px] text-gray-500">
-                        {isInflow ? sourceChain : 'Zcash'}
+                      <span className="text-[10px] text-muted">
+                        {isInflow ? (chainNames[swap.fromChain] || swap.fromChain.toUpperCase()) : 'Zcash'}
                       </span>
                     </div>
                   </div>
 
                   {/* Arrow */}
                   <div className="hidden sm:block text-center">
-                    <span className="text-gray-400 text-xl leading-none">→</span>
+                    <span className="text-secondary text-xl leading-none">→</span>
                   </div>
 
                   {/* Destination */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50">
-                      <CryptoIcon symbol={isInflow ? 'ZEC' : (chainConfig[swap.fromChain]?.symbol || swap.fromChain)} size={24} />
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-cipher-surface/50 dark:bg-cipher-surface/50">
+                      <CryptoIcon symbol={swap.toSymbol} size={24} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-mono text-white font-semibold">
-                        {swap.toAmount} {isInflow ? 'ZEC' : (chainConfig[swap.fromChain]?.symbol || swap.fromChain)}
+                      <span className="text-sm font-mono text-primary font-semibold">
+                        {swap.toAmount} {swap.toSymbol}
                       </span>
-                      <span className="text-[10px] text-gray-500">
-                        {isInflow ? 'Zcash' : sourceChain}
+                      <span className="text-[10px] text-muted">
+                        {isInflow ? 'Zcash' : (chainNames[swap.toChain] || swap.toChain.toUpperCase())}
                       </span>
                     </div>
                 </div>
@@ -674,7 +673,7 @@ export default function FlowsPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-cipher-border text-center">
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-muted font-mono">
               Powered by{' '}
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
                 NEAR Intents
@@ -686,7 +685,7 @@ export default function FlowsPage() {
 
         {/* Info Banner */}
         <div className="mt-8 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-secondary">
             <span className="text-cyan-400 font-bold">🔗 About Cross-Chain Swaps:</span>{' '}
             NEAR Intents enables trustless ZEC swaps with BTC, ETH, SOL, and 15+ other chains.
             Track real-time inflows and outflows to see how ZEC is being used across the multichain ecosystem.

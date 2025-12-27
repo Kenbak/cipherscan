@@ -55,7 +55,7 @@ export default async function Home() {
             </span>
             {/* Cypherpunk Tooltip - Minimal & Compact */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/privacy:opacity-100 group-hover/privacy:visible transition-all duration-300 z-[100] pointer-events-none w-[240px] sm:w-[280px]">
-              <div className="bg-black/95 backdrop-blur-sm border border-cipher-cyan/50 rounded-md p-3 shadow-xl shadow-cipher-cyan/10 relative">
+              <div className="hero-tooltip backdrop-blur-sm border border-cipher-cyan/50 rounded-md p-3 shadow-xl shadow-cipher-cyan/10 relative">
                 {/* Subtle scan line effect */}
                 <div className="absolute inset-0 overflow-hidden rounded-md opacity-10">
                   <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-cipher-cyan to-transparent animate-scan"></div>
@@ -63,7 +63,7 @@ export default async function Home() {
 
                 {/* Content - Compact */}
                 <div className="relative text-center">
-                  <div className="text-white/90 font-mono text-[10px] sm:text-xs leading-relaxed mb-2">
+                  <div className="hero-tooltip-text font-mono text-[10px] sm:text-xs leading-relaxed mb-2">
                     "Privacy is the power to selectively reveal oneself to the world."
                   </div>
                   <div className="text-cipher-cyan/60 font-mono text-[9px] sm:text-[10px] italic">
@@ -73,7 +73,7 @@ export default async function Home() {
 
                 {/* Arrow */}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px]">
-                  <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-cipher-cyan/50"></div>
+                  <div className="hero-tooltip-arrow"></div>
                 </div>
               </div>
             </div>

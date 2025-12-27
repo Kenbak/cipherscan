@@ -127,7 +127,7 @@ export function PrivacyWidget() {
     return (
       <div className="mb-12 sm:mb-16">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs text-gray-500 font-mono">ZCASH PRIVACY METRICS</span>
+          <span className="text-xs text-muted font-mono">ZCASH PRIVACY METRICS</span>
           <Link
             href="/privacy"
             className="text-xs text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
@@ -138,14 +138,14 @@ export function PrivacyWidget() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card !p-4 animate-pulse">
-              <div className="h-6 bg-cipher-border rounded mb-2"></div>
-              <div className="h-8 bg-cipher-border rounded"></div>
+              <div className="h-6 skeleton-bg rounded mb-2"></div>
+              <div className="h-8 skeleton-bg rounded"></div>
             </div>
           ))}
         </div>
         {/* Indexing message for mainnet */}
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-500 font-mono">
+          <p className="text-sm text-muted font-mono">
             <span className="inline-block animate-pulse mr-2">⏳</span>
             Indexing blockchain data...
           </p>
@@ -169,14 +169,14 @@ export function PrivacyWidget() {
             </div>
             <div className="flex-1 w-full">
               <div className="flex items-center gap-1 mb-1">
-                <div className="text-xs text-gray-500">PRIVACY SCORE</div>
+                <div className="text-xs text-muted">PRIVACY SCORE</div>
                 <Tooltip content="Overall privacy health of the blockchain (0-100). Based on shielded adoption, pool size, and usage trends." />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-400">
                   {stats.metrics.privacyScore || 0}
                 </span>
-                <span className="text-xs sm:text-sm text-gray-500">/100</span>
+                <span className="text-xs sm:text-sm text-muted">/100</span>
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export function PrivacyWidget() {
             </div>
             <div className="flex-1 w-full">
               <div className="flex items-center gap-1 mb-1">
-                <div className="text-xs text-gray-500">SHIELDED POOL</div>
+                <div className="text-xs text-muted">SHIELDED POOL</div>
                 <Tooltip content="Total ZEC stored in shielded pools (Sapling + Orchard). These funds are completely private." />
               </div>
               <div className="flex flex-col">
@@ -196,7 +196,7 @@ export function PrivacyWidget() {
                   {((stats.shieldedPool?.currentSize || 0) / 1000000).toFixed(2)}M {CURRENCY}
                 </span>
                 {priceData && stats.shieldedPool?.currentSize && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted">
                     ${((stats.shieldedPool.currentSize * priceData.price) / 1000000).toFixed(2)}M USD
                   </span>
                 )}
@@ -211,7 +211,7 @@ export function PrivacyWidget() {
             </div>
             <div className="flex-1 w-full">
               <div className="flex items-center gap-1 mb-1">
-                <div className="text-xs text-gray-500">SHIELDED TXS</div>
+                <div className="text-xs text-muted">SHIELDED TXS</div>
                 <Tooltip content="Percentage of transactions using at least one shielded input or output. Higher = better privacy adoption." />
               </div>
               <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-cipher-cyan">
@@ -222,12 +222,12 @@ export function PrivacyWidget() {
 
           {/* Total Transactions */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 lg:gap-4 lg:border-l lg:border-cipher-border lg:pl-6">
-            <div className="text-gray-400 hidden sm:block">
+            <div className="text-secondary hidden sm:block">
               <PrivacyIcons.Database />
             </div>
             <div className="flex-1 w-full">
               <div className="flex items-center gap-1 mb-1">
-                <div className="text-xs text-gray-500">TOTAL TXS</div>
+                <div className="text-xs text-muted">TOTAL TXS</div>
                 <Tooltip content="Total number of transactions on the Zcash testnet blockchain (shielded + transparent)." />
               </div>
               <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
@@ -240,7 +240,7 @@ export function PrivacyWidget() {
 
         {/* View Dashboard link */}
         <div className="mt-4 pt-4 border-t border-cipher-border flex items-center justify-between">
-          <span className="text-xs text-gray-500 font-mono">ZCASH PRIVACY METRICS</span>
+          <span className="text-xs text-muted font-mono">ZCASH PRIVACY METRICS</span>
           <div className="flex items-center gap-2 text-purple-400 group-hover:text-purple-300 transition-colors">
             <span className="text-sm font-mono">View Dashboard</span>
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

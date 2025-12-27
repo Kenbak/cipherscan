@@ -101,11 +101,11 @@ export default function MempoolPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-white py-12 px-4">
+      <div className="min-h-screen py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="mt-4 text-gray-400">Loading mempool...</p>
+            <p className="mt-4 text-secondary">Loading mempool...</p>
           </div>
         </div>
       </div>
@@ -114,11 +114,11 @@ export default function MempoolPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen text-white py-12 px-4">
+      <div className="min-h-screen py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="card bg-red-900/20 border-red-500/30">
-            <h2 className="text-xl font-bold text-red-300 mb-2">Error</h2>
-            <p className="text-gray-400">{error}</p>
+          <div className="card gradient-card-error">
+            <h2 className="text-xl font-bold text-red-600 dark:text-red-300 mb-2">Error</h2>
+            <p className="text-secondary">{error}</p>
           </div>
         </div>
       </div>
@@ -126,17 +126,17 @@ export default function MempoolPage() {
   }
 
   return (
-    <div className="min-h-screen text-white py-12 px-4">
+    <div className="min-h-screen py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 font-mono">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 font-mono text-primary">
                 💧 Mempool Viewer
               </h1>
-              <p className="text-sm sm:text-base text-gray-400">
+              <p className="text-sm sm:text-base text-secondary">
                 Live view of pending transactions waiting to be mined
               </p>
             </div>
@@ -147,7 +147,7 @@ export default function MempoolPage() {
               className={`px-3 sm:px-4 py-2 rounded-lg font-mono text-xs sm:text-sm transition-colors flex-shrink-0 ${
                 autoRefresh
                   ? 'bg-cipher-green text-cipher-bg'
-                  : 'bg-gray-700 text-gray-300'
+                  : 'bg-gray-700 text-gray-300 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
               {autoRefresh ? '🔄 Auto-refresh ON' : '⏸️ Auto-refresh OFF'}
@@ -156,7 +156,7 @@ export default function MempoolPage() {
 
           {/* Live indicator */}
           {autoRefresh && (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-secondary">
               <div className="w-2 h-2 bg-cipher-green rounded-full animate-pulse"></div>
               <span>Live • Updates every 10 seconds</span>
             </div>
@@ -166,26 +166,26 @@ export default function MempoolPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {/* Total Transactions */}
-          <div className="card">
-            <div className="text-xs sm:text-sm text-gray-400 mb-1">Total Transactions</div>
-            <div className="text-2xl sm:text-3xl font-bold text-white">{data?.count || 0}</div>
+          <div className="card stat-card">
+            <div className="text-xs sm:text-sm text-secondary mb-1">Total Transactions</div>
+            <div className="text-2xl sm:text-3xl font-bold text-primary">{data?.count || 0}</div>
           </div>
 
           {/* Shielded */}
-          <div className="card">
-            <div className="text-xs sm:text-sm text-gray-400 mb-1">Shielded</div>
+          <div className="card stat-card">
+            <div className="text-xs sm:text-sm text-secondary mb-1">Shielded</div>
             <div className="text-2xl sm:text-3xl font-bold text-purple-400">{data?.stats.shielded || 0}</div>
           </div>
 
           {/* Transparent */}
-          <div className="card">
-            <div className="text-xs sm:text-sm text-gray-400 mb-1">Transparent</div>
-            <div className="text-2xl sm:text-3xl font-bold text-gray-400">{data?.stats.transparent || 0}</div>
+          <div className="card stat-card">
+            <div className="text-xs sm:text-sm text-secondary mb-1">Transparent</div>
+            <div className="text-2xl sm:text-3xl font-bold text-muted">{data?.stats.transparent || 0}</div>
           </div>
 
           {/* Privacy Score */}
-          <div className="card">
-            <div className="text-xs sm:text-sm text-gray-400 mb-1">Privacy Score</div>
+          <div className="card stat-card">
+            <div className="text-xs sm:text-sm text-secondary mb-1">Privacy Score</div>
             <div className="text-2xl sm:text-3xl font-bold text-cipher-cyan">
               {data?.stats.shieldedPercentage.toFixed(0) || 0}%
             </div>
@@ -196,8 +196,8 @@ export default function MempoolPage() {
         {data && data.count === 0 && (
           <div className="card text-center py-12">
             <div className="text-6xl mb-4">💤</div>
-            <h3 className="text-xl font-bold text-gray-300 mb-2">Mempool is Empty</h3>
-            <p className="text-gray-400">
+            <h3 className="text-xl font-bold text-secondary mb-2">Mempool is Empty</h3>
+            <p className="text-muted">
               No pending transactions at the moment. All transactions have been mined!
             </p>
           </div>
@@ -207,18 +207,18 @@ export default function MempoolPage() {
         {data && data.count > 0 && (
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-primary">
                 Pending Transactions ({data.showing} of {data.count})
               </h2>
               {data.count > data.showing && (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-secondary">
                   Showing first {data.showing} transactions
                 </span>
               )}
             </div>
 
             {/* Mobile: Scroll indicator */}
-            <div className="md:hidden mb-4 text-sm text-gray-400 flex items-center gap-2">
+            <div className="md:hidden mb-4 text-sm text-muted flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
@@ -230,12 +230,12 @@ export default function MempoolPage() {
               <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-cipher-border">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Transaction Hash</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Inputs</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Outputs</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Size</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Time</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Type</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Transaction Hash</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Inputs</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Outputs</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Size</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-secondary">Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -266,7 +266,7 @@ export default function MempoolPage() {
                         ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
                           <span className="text-purple-400">{tx.vShieldedSpend} 🛡️ Sapling</span>
                         ) : (
-                          <span className="text-gray-400">{tx.vin} 👁️</span>
+                          <span className="text-muted">{tx.vin} 👁️</span>
                         )}
                       </td>
 
@@ -277,17 +277,17 @@ export default function MempoolPage() {
                         ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
                           <span className="text-purple-400">{tx.vShieldedOutput} 🛡️ Sapling</span>
                         ) : (
-                          <span className="text-gray-400">{tx.vout} 👁️</span>
+                          <span className="text-muted">{tx.vout} 👁️</span>
                         )}
                       </td>
 
                       {/* Size */}
-                      <td className="py-3 px-4 font-mono text-sm text-gray-400">
+                      <td className="py-3 px-4 font-mono text-sm text-muted">
                         {(tx.size / 1024).toFixed(2)} KB
                       </td>
 
                       {/* Time */}
-                      <td className="py-3 px-4 text-sm text-gray-400">
+                      <td className="py-3 px-4 text-sm text-muted">
                         {formatRelativeTime(tx.time)}
                       </td>
                     </tr>
@@ -299,20 +299,20 @@ export default function MempoolPage() {
         )}
 
         {/* Info Card */}
-        <div className="card mt-8 bg-cipher-surface/50">
+        <div className="card mt-8">
           <h3 className="font-bold text-cipher-cyan mb-3">About the Mempool</h3>
-          <div className="space-y-2 text-sm text-gray-400">
+          <div className="space-y-2 text-sm text-secondary">
             <p>
-              <strong className="text-white">Mempool</strong> = Memory Pool of unconfirmed transactions waiting to be included in the next block.
+              <strong className="text-primary">Mempool</strong> = Memory Pool of unconfirmed transactions waiting to be included in the next block.
             </p>
             <p>
-              <strong className="text-white">Shielded transactions</strong> use zero-knowledge proofs to hide sender, receiver, and amount.
+              <strong className="text-primary">Shielded transactions</strong> use zero-knowledge proofs to hide sender, receiver, and amount.
             </p>
             <p>
-              <strong className="text-white">Mixed transactions</strong> are shielding (transparent → shielded) or deshielding (shielded → transparent).
+              <strong className="text-primary">Mixed transactions</strong> are shielding (transparent → shielded) or deshielding (shielded → transparent).
             </p>
             <p>
-              <strong className="text-white">Privacy Score</strong> = Percentage of transactions using shielded pools (higher = better privacy).
+              <strong className="text-primary">Privacy Score</strong> = Percentage of transactions using shielded pools (higher = better privacy).
             </p>
           </div>
         </div>

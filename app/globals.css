@@ -515,6 +515,114 @@
     @apply bg-gray-300;
   }
 
+  /* Swap row background (flows page) */
+  .swap-row-bg {
+    @apply bg-cipher-bg/50;
+  }
+  .light .swap-row-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Warning gradient card (flows page - API not configured) */
+  .gradient-card-warning {
+    @apply bg-gradient-to-br from-yellow-900/20 to-cipher-surface border-yellow-500/30;
+  }
+  .light .gradient-card-warning {
+    @apply from-yellow-50 to-white border-yellow-300;
+  }
+
+  /* Error gradient card */
+  .gradient-card-error {
+    @apply bg-gradient-to-br from-red-900/20 to-cipher-surface border border-red-500/30;
+  }
+  .light .gradient-card-error {
+    @apply from-red-50 to-white border-red-300;
+  }
+
+  /* Skeleton loading background */
+  .skeleton-bg {
+    @apply bg-cipher-border;
+  }
+  .light .skeleton-bg {
+    @apply bg-gray-200;
+  }
+
+  /* Tooltip styles */
+  .tooltip-content {
+    @apply bg-gray-900 text-white rounded-lg shadow-2xl border border-gray-700;
+  }
+  .light .tooltip-content {
+    @apply bg-white text-gray-900 border-gray-200 shadow-lg;
+  }
+  .tooltip-arrow {
+    @apply border-4 border-transparent border-t-gray-900;
+  }
+  .light .tooltip-arrow {
+    @apply border-t-white;
+  }
+
+  /* Hero tooltip (Privacy quote on homepage) */
+  .hero-tooltip {
+    @apply bg-black/95;
+  }
+  .light .hero-tooltip {
+    @apply bg-white/95 shadow-lg;
+  }
+  .hero-tooltip-text {
+    @apply text-white/90;
+  }
+  .light .hero-tooltip-text {
+    @apply text-gray-800;
+  }
+  .hero-tooltip-arrow {
+    @apply w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-cipher-cyan/50;
+  }
+  .light .hero-tooltip-arrow {
+    @apply border-t-gray-300;
+  }
+
+  /* Modal styles */
+  .modal-backdrop {
+    @apply bg-black/80;
+  }
+  .light .modal-backdrop {
+    @apply bg-black/50;
+  }
+  .modal-content {
+    @apply bg-cipher-surface border border-cipher-border;
+  }
+  .light .modal-content {
+    @apply bg-white border-gray-200 shadow-2xl;
+  }
+  .modal-inner-card {
+    @apply bg-cipher-bg border border-cipher-border;
+  }
+  .light .modal-inner-card {
+    @apply bg-gray-50 border-gray-200;
+  }
+  .modal-code-block {
+    @apply bg-cipher-surface/30 border border-cipher-border;
+  }
+  .light .modal-code-block {
+    @apply bg-gray-100 border-gray-200;
+  }
+
+  /* Cyan gradient card (for info boxes) */
+  .gradient-card-cyan-subtle {
+    @apply bg-cipher-green/5 border border-cipher-green/30;
+  }
+  .light .gradient-card-cyan-subtle {
+    @apply bg-emerald-50 border-emerald-200;
+  }
+
+  /* Generic card background */
+  .card-bg {
+    @apply bg-cipher-surface;
+  }
+  .light .card-bg {
+    @apply bg-gray-100;
+  }
+
   /* ===== PRIVACY PAGE ===== */
   .gradient-card-purple {
     @apply bg-gradient-to-br from-purple-900/20 to-cipher-surface border-purple-500/30;
@@ -550,6 +658,219 @@
   }
   .light .chart-tab:hover {
     @apply text-gray-700;
+  }
+
+  /* ===== DECRYPT PAGE ===== */
+  /* Tabs background */
+  .decrypt-tabs-bg {
+    @apply bg-cipher-surface;
+  }
+  .light .decrypt-tabs-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Input fields */
+  .decrypt-input {
+    @apply bg-cipher-bg;
+  }
+  .light .decrypt-input {
+    @apply bg-white;
+  }
+
+  /* Success gradient card */
+  .gradient-card-success {
+    @apply bg-green-900/20 border-green-500/30;
+  }
+  .light .gradient-card-success {
+    @apply bg-green-50 border-green-300;
+  }
+
+  /* Terminal (always dark - it's a terminal!) */
+  .terminal-container {
+    @apply bg-gray-900;
+  }
+  .terminal-header {
+    @apply bg-gray-800;
+  }
+  .terminal-body {
+    @apply bg-black/80;
+  }
+
+  /* Scan progress background */
+  .scan-progress-bg {
+    @apply bg-cipher-surface/50;
+  }
+  .light .scan-progress-bg {
+    @apply bg-gray-100;
+  }
+
+  /* Warning box (decrypt page) */
+  .warning-box {
+    @apply text-yellow-400 bg-yellow-500/10 border border-yellow-500/30;
+  }
+  .light .warning-box {
+    @apply text-amber-700 bg-amber-50 border-amber-300;
+  }
+  .warning-title {
+    @apply text-yellow-300;
+  }
+  .light .warning-title {
+    @apply text-amber-800;
+  }
+  .warning-text {
+    @apply text-yellow-400/70;
+  }
+  .light .warning-text {
+    @apply text-amber-600;
+  }
+
+  /* ===== LEARN PAGE ===== */
+  /* Hero section */
+  .learn-hero {
+    @apply bg-gradient-to-b from-cipher-surface/50 to-cipher-bg;
+  }
+  .light .learn-hero {
+    @apply from-gray-100 to-white;
+  }
+
+  /* Toggle buttons (accordion headers, network toggles) */
+  .learn-toggle {
+    @apply bg-cipher-surface/30;
+  }
+  .light .learn-toggle {
+    @apply bg-gray-100;
+  }
+  .learn-toggle-active {
+    @apply bg-cipher-surface/30;
+  }
+  .light .learn-toggle-active {
+    @apply bg-cyan-50;
+  }
+
+  /* Code blocks */
+  .learn-code-block {
+    @apply bg-cipher-bg;
+  }
+  .light .learn-code-block {
+    @apply bg-gray-100;
+  }
+  .learn-code-inline {
+    @apply bg-cipher-surface;
+  }
+  .light .learn-code-inline {
+    @apply bg-gray-200;
+  }
+
+  /* ===== DOCS PAGE ===== */
+  /* Sidebar */
+  .docs-sidebar {
+    @apply bg-cipher-surface;
+  }
+  .light .docs-sidebar {
+    @apply bg-gray-100;
+  }
+  .docs-sidebar-item:hover {
+    @apply bg-cipher-bg;
+  }
+  .light .docs-sidebar-item:hover {
+    @apply bg-gray-200;
+  }
+
+  /* Category header (sticky) */
+  .docs-category-header {
+    @apply bg-cipher-bg/95;
+  }
+  .light .docs-category-header {
+    @apply bg-white/95;
+  }
+
+  /* Code blocks */
+  .docs-code-block {
+    @apply bg-cipher-bg;
+  }
+  .light .docs-code-block {
+    @apply bg-gray-100;
+  }
+
+  /* ===== BLOCK PAGE ===== */
+  .block-info-border {
+    @apply border-gray-800;
+  }
+  .light .block-info-border {
+    @apply border-gray-200;
+  }
+
+  .block-hash-bg {
+    @apply bg-cipher-bg;
+  }
+  .light .block-hash-bg {
+    @apply bg-gray-100;
+  }
+
+  .block-tx-row {
+    @apply bg-cipher-bg/50;
+  }
+  .light .block-tx-row {
+    @apply bg-gray-50;
+  }
+
+  /* ===== TX PAGE ===== */
+  .tx-summary-box {
+    @apply bg-cipher-bg/30;
+  }
+  .light .tx-summary-box {
+    @apply bg-gray-100;
+  }
+
+  .shielded-input-row {
+    @apply bg-gradient-to-r from-purple-500/5 to-purple-600/5;
+  }
+  .light .shielded-input-row {
+    @apply from-purple-50 to-purple-100/50;
+  }
+
+  /* Inbox (decrypt page - results) */
+  .inbox-container {
+    @apply bg-gray-900;
+  }
+  .light .inbox-container {
+    @apply bg-white;
+  }
+  .inbox-header {
+    @apply bg-gray-800;
+  }
+  .light .inbox-header {
+    @apply bg-gray-100;
+  }
+  .inbox-body {
+    @apply bg-gray-900;
+  }
+  .light .inbox-body {
+    @apply bg-gray-50;
+  }
+  .inbox-footer {
+    @apply bg-gray-800;
+  }
+  .light .inbox-footer {
+    @apply bg-gray-100;
+  }
+  .inbox-message {
+    @apply bg-gray-800/50;
+  }
+  .light .inbox-message {
+    @apply bg-white;
+  }
+  .inbox-message-header {
+    @apply bg-gradient-to-r from-gray-800/80 to-gray-800/60;
+  }
+  .light .inbox-message-header {
+    @apply from-gray-100 to-gray-50;
+  }
+  .inbox-message-body {
+    @apply bg-white/[0.02];
+  }
+  .light .inbox-message-body {
+    @apply bg-gray-50;
   }
 }
 

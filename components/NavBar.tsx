@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useTheme } from '@/contexts/ThemeContext';
 import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, MAINNET_URL, TESTNET_URL } from '@/lib/config';
 
 interface PriceData {
@@ -20,6 +21,7 @@ export function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+  const { theme } = useTheme();
 
   useEffect(() => {
     const fetchPrice = async () => {
@@ -55,7 +57,7 @@ export function NavBar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
             <Image
-              src="/logo.png"
+              src={theme === 'light' ? '/logo_light.png' : '/logo.png'}
               alt="CipherScan Logo"
               width={32}
               height={32}

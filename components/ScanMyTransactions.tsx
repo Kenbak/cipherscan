@@ -551,15 +551,15 @@ export function ScanMyTransactions() {
             </svg>
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-bold">Encrypted Inbox Scanner</h2>
-            <p className="text-xs sm:text-sm text-gray-400 font-mono">Decrypt your shielded messages</p>
+            <h2 className="text-lg sm:text-xl font-bold text-primary">Encrypted Inbox Scanner</h2>
+            <p className="text-xs sm:text-sm text-muted font-mono">Decrypt your shielded messages</p>
           </div>
         </div>
 
         <div className="space-y-4 sm:space-y-6">
           {/* Viewing Key */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
               Unified Full Viewing Key
             </label>
             <input
@@ -568,23 +568,23 @@ export function ScanMyTransactions() {
               value={viewingKey}
               onChange={(e) => setViewingKey(e.target.value)}
               disabled={scanning}
-              className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             />
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+            <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
               Your viewing key never leaves your browser
             </p>
           </div>
 
           {/* Scan Period */}
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
               Scan Period <span className="text-red-400">*</span>
             </label>
             <select
               value={scanPeriod}
               onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d' | 'birthday')}
               disabled={scanning}
-              className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
             >
               <option value="1h">Last 1 hour (~48 blocks)</option>
               <option value="6h">Last 6 hours (~288 blocks)</option>
@@ -592,7 +592,7 @@ export function ScanMyTransactions() {
               <option value="7d">Last 7 days (~8,064 blocks)</option>
               <option value="birthday">Since wallet birthday 🎂</option>
             </select>
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+            <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
               {scanPeriod === 'birthday'
                 ? 'Scan from wallet creation (may take 1-2 minutes)'
                 : 'How far back to scan for your transactions'}
@@ -602,7 +602,7 @@ export function ScanMyTransactions() {
           {/* Birthday Block Input (only show if birthday is selected) */}
           {scanPeriod === 'birthday' && (
             <div>
-              <label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3 uppercase tracking-wider">
+              <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                 Wallet Birthday Block <span className="text-red-400">*</span>
               </label>
               <input
@@ -611,9 +611,9 @@ export function ScanMyTransactions() {
                 value={birthdayBlock}
                 onChange={(e) => setBirthdayBlock(e.target.value)}
                 disabled={scanning}
-                className="w-full bg-cipher-bg border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+                className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
               />
-              <p className="text-[10px] sm:text-xs text-gray-500 mt-2 font-mono">
+              <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
                 Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
               </p>
             </div>
@@ -637,7 +637,7 @@ export function ScanMyTransactions() {
           {scanning && (
             <div className="space-y-4">
               {/* Phase indicator with animated dots */}
-              <div className="bg-cipher-surface/50 border-2 border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
+              <div className="scan-progress-bg border-2 border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {/* Animated spinner */}
@@ -646,7 +646,7 @@ export function ScanMyTransactions() {
                       <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
                     </div>
                     <div>
-                      <div className="text-sm sm:text-base font-bold text-white">
+                      <div className="text-sm sm:text-base font-bold text-primary">
                         {scanPhase === 'fetching' && (
                           <>Fetching blocks<AnimatedDots /></>
                         )}
@@ -664,7 +664,7 @@ export function ScanMyTransactions() {
                           <>Scanning<AnimatedDots /></>
                         )}
                       </div>
-                      <div className="text-xs text-gray-400 font-mono mt-1">
+                      <div className="text-xs text-muted font-mono mt-1">
                         {scanProgress}% complete
                         {matchesFound > 0 && scanPhase === 'filtering' && (
                           <span className="text-cipher-green ml-2">• {matchesFound} found</span>
@@ -685,7 +685,7 @@ export function ScanMyTransactions() {
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 sm:h-3 bg-cipher-bg rounded-full overflow-hidden mb-3">
+                <div className="h-2 sm:h-3 progress-bar-bg rounded-full overflow-hidden mb-3">
                   <div
                     className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
                     style={{ width: `${scanProgress}%` }}
@@ -693,13 +693,13 @@ export function ScanMyTransactions() {
                 </div>
 
                 {/* Warning message */}
-                <div className="flex items-start gap-2 text-xs text-yellow-400/80 bg-yellow-500/5 border border-yellow-500/20 rounded px-3 py-2">
+                <div className="flex items-start gap-2 text-xs warning-box rounded px-3 py-2">
                   <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <div>
-                    <p className="font-bold mb-1">Please don't close this page</p>
-                    <p className="text-yellow-400/60 font-mono">
+                    <p className="font-bold mb-1 warning-title">Please don't close this page</p>
+                    <p className="warning-text font-mono">
                       {scanPeriod === 'birthday'
                         ? 'Scanning large range may take 1-2 minutes. Your viewing key stays in your browser.'
                         : 'This may take a moment. Your viewing key never leaves your device.'}
@@ -712,14 +712,14 @@ export function ScanMyTransactions() {
 
           {/* Error */}
           {scanError && (
-            <div className="bg-red-900/10 border border-red-500/30 rounded-lg p-4 sm:p-6">
+            <div className="bg-red-900/10 dark:bg-red-900/10 bg-red-50 border border-red-500/30 rounded-lg p-4 sm:p-6">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
                   <Icons.X />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-red-300 text-sm sm:text-base mb-2">No Messages Found</h3>
-                  <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+                  <h3 className="font-bold text-red-600 dark:text-red-300 text-sm sm:text-base mb-2">No Messages Found</h3>
+                  <p className="text-secondary text-xs sm:text-sm leading-relaxed">
                     {scanError}
                   </p>
                   <button
@@ -738,15 +738,15 @@ export function ScanMyTransactions() {
 
       {/* Results - Encrypted Mail Client */}
       {scanResults.length > 0 && (
-        <div ref={resultsRef} className="scroll-mt-8 border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl">
+        <div ref={resultsRef} className="scroll-mt-8 border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl inbox-container">
           {/* Terminal-Style Header */}
-          <div className="bg-cipher-surface border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="inbox-header border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">~/encrypted_inbox</span>
-              <span className="hidden sm:inline text-xs text-gray-500 font-mono">
+              <span className="hidden sm:inline text-xs text-muted font-mono">
                 [{scanResults.length} msg{scanResults.length > 1 ? 's' : ''}]
               </span>
             </div>
@@ -770,19 +770,19 @@ export function ScanMyTransactions() {
           </div>
 
           {/* Messages List */}
-          <div className="bg-black/80 p-4 space-y-3">
+          <div className="inbox-body p-4 space-y-3">
             {[...scanResults].reverse().map((result, idx) => (
               <div
                 key={idx}
-                className="bg-cipher-surface/50 border-2 border-cipher-cyan/30 rounded overflow-hidden hover:border-cipher-cyan/60 transition-colors duration-200 animate-fade-in"
+                className="inbox-message border-2 border-cipher-cyan/30 rounded overflow-hidden hover:border-cipher-cyan/60 transition-colors duration-200 animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 {/* Message Header - Old School Email Style (Single Line) */}
-                <div className="bg-gradient-to-r from-cipher-surface/80 to-cipher-surface/60 px-4 py-3 border-b-2 border-cipher-border">
+                <div className="inbox-message-header px-4 py-3 border-b-2 border-cipher-border">
                   <div className="flex items-center gap-3 text-xs flex-wrap">
                     {/* From */}
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500 font-bold uppercase tracking-wider">From:</span>
+                      <span className="text-muted font-bold uppercase tracking-wider">From:</span>
                       <div className="flex items-center gap-1.5 px-2 py-0.5 bg-cipher-purple/20 border border-cipher-purple/40 rounded">
                         <svg className="w-2.5 h-2.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -794,24 +794,24 @@ export function ScanMyTransactions() {
                     </div>
 
                     {/* Separator */}
-                    <span className="text-gray-600">•</span>
+                    <span className="text-muted">•</span>
 
                     {/* Amount */}
                     {result.amount > 0 && (
                       <>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-gray-500 font-bold uppercase tracking-wider">Amount:</span>
+                          <span className="text-muted font-bold uppercase tracking-wider">Amount:</span>
                           <span className="text-cipher-green font-mono font-semibold">
                             +{result.amount.toString().replace(/\.?0+$/, '')} ZEC
                           </span>
                         </div>
-                        <span className="text-gray-600">•</span>
+                        <span className="text-muted">•</span>
                       </>
                     )}
 
                     {/* Transaction */}
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-gray-500 font-bold uppercase tracking-wider whitespace-nowrap">TX:</span>
+                      <span className="text-muted font-bold uppercase tracking-wider whitespace-nowrap">TX:</span>
                       <Link
                         href={`/tx/${result.txid}`}
                         className="font-mono text-cipher-cyan hover:text-cipher-green hover:underline truncate transition-colors"
@@ -821,21 +821,21 @@ export function ScanMyTransactions() {
                     </div>
 
                     {/* Separator */}
-                    <span className="text-gray-600 hidden sm:inline">•</span>
+                    <span className="text-muted hidden sm:inline">•</span>
 
                     {/* Block */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-gray-500 font-bold uppercase tracking-wider">Block:</span>
-                      <span className="text-gray-400 font-mono">
+                      <span className="text-muted font-bold uppercase tracking-wider">Block:</span>
+                      <span className="text-secondary font-mono">
                         #{result.height.toLocaleString()}
                       </span>
                     </div>
 
                     {/* Separator */}
-                    <span className="text-gray-600 hidden sm:inline">•</span>
+                    <span className="text-muted hidden sm:inline">•</span>
 
                     {/* Time */}
-                    <div className="text-white font-semibold ml-auto">
+                    <div className="text-primary font-semibold ml-auto">
                       {formatTime(result.timestamp)}
                     </div>
                   </div>
@@ -843,11 +843,11 @@ export function ScanMyTransactions() {
 
                 {/* Message Body - Email Content Area */}
                 {result.memo && (
-                  <div className="p-5 bg-white/[0.02]">
-                    <div className="text-sm text-gray-400 uppercase tracking-wider mb-3 font-bold">
+                  <div className="p-5 inbox-message-body">
+                    <div className="text-sm text-muted uppercase tracking-wider mb-3 font-bold">
                       Message:
                     </div>
-                    <p className="text-base text-white leading-relaxed break-words pl-4 border-l-2 border-cipher-purple/30">
+                    <p className="text-base text-primary leading-relaxed break-words pl-4 border-l-2 border-cipher-purple/30">
                       {result.memo}
                     </p>
                   </div>
@@ -857,8 +857,8 @@ export function ScanMyTransactions() {
           </div>
 
           {/* Terminal Footer */}
-          <div className="bg-black/80 px-4 py-3 border-t-2 border-cipher-cyan">
-            <div className="flex items-center justify-between text-xs text-gray-400 font-mono">
+          <div className="inbox-footer px-4 py-3 border-t-2 border-cipher-cyan">
+            <div className="flex items-center justify-between text-xs text-muted font-mono">
               <span>
                 ✓ {scanResults.length} message{scanResults.length > 1 ? 's' : ''} decrypted
               </span>

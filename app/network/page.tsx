@@ -215,7 +215,7 @@ export default function NetworkPage() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="card">
           <div className="text-center py-12">
-            <p className="text-red-400 mb-4">❌ {error || 'Failed to load network data'}</p>
+            <p className="text-red-600 dark:text-red-400 mb-4">❌ {error || 'Failed to load network data'}</p>
             <button
               onClick={fetchData}
               className="btn-primary"
