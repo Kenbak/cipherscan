@@ -14,6 +14,8 @@ interface ShieldedTx {
   shieldedSpends: number;
   shieldedOutputs: number;
   orchardActions: number;
+  vinCount: number;
+  voutCount: number;
   type: 'fully-shielded' | 'partial';
 }
 
@@ -87,7 +89,15 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                   </h3>
                   {tx.type === 'fully-shielded' ? (
                     <span className="badge bg-purple-500/10 text-purple-400 border-purple-500/30">
-                      FULLY SHIELDED
+                      SHIELDED
+                    </span>
+                  ) : tx.vinCount > 0 && tx.voutCount === 0 ? (
+                    <span className="badge bg-green-500/10 text-green-400 border-green-500/30">
+                      ↓ SHIELDING
+                    </span>
+                  ) : tx.vinCount === 0 && tx.voutCount > 0 ? (
+                    <span className="badge bg-purple-500/10 text-purple-400 border-purple-500/30">
+                      ↑ UNSHIELDING
                     </span>
                   ) : (
                     <span className="badge bg-yellow-500/10 text-yellow-400 border-yellow-500/30">

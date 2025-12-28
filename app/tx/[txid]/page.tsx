@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { LinkabilityAlert } from '@/components/LinkabilityAlert';
+import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
 
 interface TransactionData {
   txid: string;
@@ -283,11 +283,30 @@ export default function TransactionPage() {
   const isCoinbase = data.inputs.length > 0 && data.inputs[0].coinbase;
   const hasOrchard = (data.orchardActions || 0) > 0;
   const hasSapling = data.hasShieldedData;
-  const hasTransparent = data.inputs.length > 0 || data.outputs.some(o => o.scriptPubKey?.addresses);
+  const hasTransparentInputs = data.inputs.length > 0 && !isCoinbase;
+  const hasTransparentOutputs = data.outputs.some(o => o.scriptPubKey?.addresses);
+  const hasTransparent = hasTransparentInputs || hasTransparentOutputs;
+
+  // For Sapling: shieldedSpends = inputs, shieldedOutputs = outputs
+  const hasSaplingSpends = data.shieldedSpends > 0;
+  const hasSaplingOutputs = data.shieldedOutputs > 0;
+
+  // Determine shielding/unshielding direction using valueBalance
+  // valueBalance > 0 = ZEC coming OUT of shielded pool (unshielding)
+  // valueBalance < 0 = ZEC going INTO shielded pool (shielding)
+  const valueBalance = (data.valueBalanceSapling || 0) + (data.valueBalanceOrchard || 0);
+
+  // Shielding: transparent inputs → shielded (valueBalance < 0)
+  const isShielding = hasTransparentInputs && !hasTransparentOutputs && valueBalance < 0;
+
+  // Unshielding: shielded → transparent outputs (valueBalance > 0)
+  const isUnshielding = !hasTransparentInputs && hasTransparentOutputs && valueBalance > 0;
 
   const txType =
     isCoinbase ? 'COINBASE' :
     hasOrchard && !hasTransparent ? 'ORCHARD' :
+    (hasSapling || hasOrchard) && hasTransparent && isShielding ? 'SHIELDING' :
+    (hasSapling || hasOrchard) && hasTransparent && isUnshielding ? 'UNSHIELDING' :
     (hasSapling || hasOrchard) && hasTransparent ? 'MIXED' :
     hasSapling ? 'SHIELDED' :
     'REGULAR';
@@ -324,6 +343,26 @@ export default function TransactionPage() {
           <span className="text-purple-400 font-semibold">Fully shielded transaction</span> with{' '}
           {data.shieldedSpends} shielded input{data.shieldedSpends !== 1 ? 's' : ''} →{' '}
           {data.shieldedOutputs} shielded output{data.shieldedOutputs !== 1 ? 's' : ''}
+        </>
+      );
+    }
+
+    if (txType === 'SHIELDING') {
+      const amount = Math.abs(valueBalance);
+      return (
+        <>
+          <span className="text-green-600 dark:text-green-400 font-semibold">Shielding transaction</span>:{' '}
+          Moving {amount.toFixed(4)} {CURRENCY} into the shielded pool
+        </>
+      );
+    }
+
+    if (txType === 'UNSHIELDING') {
+      const amount = Math.abs(valueBalance);
+      return (
+        <>
+          <span className="text-purple-600 dark:text-purple-400 font-semibold">Unshielding transaction</span>:{' '}
+          Moving {amount.toFixed(4)} {CURRENCY} out of the shielded pool
         </>
       );
     }
@@ -452,6 +491,18 @@ export default function TransactionPage() {
               SHIELDED
             </span>
           )}
+          {txType === 'SHIELDING' && (
+            <span className="px-2 md:px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
+              <Icons.Shield />
+              ↓ SHIELDING
+            </span>
+          )}
+          {txType === 'UNSHIELDING' && (
+            <span className="px-2 md:px-3 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
+              <Icons.Shield />
+              ↑ UNSHIELDING
+            </span>
+          )}
           {txType === 'MIXED' && (
             <span className="px-2 md:px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
               <Icons.Shield />
@@ -460,50 +511,22 @@ export default function TransactionPage() {
           )}
         </div>
 
-        {/* Transaction Summary */}
-        <div className="tx-summary-box border border-cipher-border/50 rounded-lg p-3 md:p-4 mt-4">
-          <div className="flex items-start gap-2 md:gap-3">
-            <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-secondary text-xs md:text-sm leading-relaxed">
-              {generateTxSummary()}
-            </p>
-          </div>
-        </div>
-
-        {/* Linkability Alert - Privacy Education */}
-        <LinkabilityAlert txid={data.txid} />
-
-        {/* Decrypt This Transaction - Only for shielded TXs */}
-        {(hasOrchard || hasSapling) && (
-          <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-start gap-2 md:gap-3">
-                <svg className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                <div>
-                  <p className="text-purple-600 dark:text-purple-300 text-sm font-semibold mb-1">
-                    Is this your transaction?
-                  </p>
-                  <p className="text-secondary text-xs">
-                    Use your viewing key to decrypt shielded amounts and memos client-side
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={`/decrypt?prefill=${data.txid}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                </svg>
-                Decrypt This TX
-              </Link>
+        {/* Transaction Summary - hide for SHIELDING/UNSHIELDING (Privacy Alert handles it) */}
+        {txType !== 'SHIELDING' && txType !== 'UNSHIELDING' && (
+          <div className="tx-summary-box border border-cipher-border/50 rounded-lg p-3 md:p-4 mt-4">
+            <div className="flex items-start gap-2 md:gap-3">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-secondary text-xs md:text-sm leading-relaxed">
+                {generateTxSummary()}
+              </p>
             </div>
           </div>
         )}
+
+        {/* Privacy Risk Alert - standalone component */}
+        <PrivacyRiskInline txid={data.txid} />
       </div>
 
       {/* Main Transaction Info Card */}
@@ -594,10 +617,35 @@ export default function TransactionPage() {
             icon={Icons.Database}
             label="Value"
             value={
-              (txType === 'ORCHARD' || txType === 'SHIELDED') ? (
-                <span className="font-semibold text-purple-400 flex items-center gap-2">
-                  <Icons.Shield />
-                  (amount hidden)
+              // Show hidden for fully shielded or shielding (output is shielded)
+              (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING' || txType === 'MIXED') && (hasOrchard || hasSapling) ? (
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold text-purple-400 flex items-center gap-2">
+                    <Icons.Shield />
+                    (amount hidden)
+                  </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="text-secondary text-xs flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                      Is this your transaction? Use your viewing key to decrypt.
+                    </span>
+                    <Link
+                      href={`/decrypt?prefill=${data.txid}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors whitespace-nowrap"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                      </svg>
+                      Decrypt
+                    </Link>
+                  </div>
+                </div>
+              ) : txType === 'UNSHIELDING' ? (
+                // For unshielding, show the transparent output value
+                <span className="font-semibold text-primary">
+                  {data.totalOutput.toFixed(8)} {CURRENCY}
                 </span>
               ) : (
                 <span className="font-semibold text-primary">
@@ -605,7 +653,7 @@ export default function TransactionPage() {
                 </span>
               )
             }
-            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED')
+            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING')
               ? "Transaction amount is private and encrypted using zero-knowledge proofs"
               : "Total amount transferred in this transaction"
             }
