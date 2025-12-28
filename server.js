@@ -1599,6 +1599,7 @@ app.get('/api/network/peers', async (req, res) => {
 
 const { getNearIntentsClient, CHAIN_CONFIG } = require('./near-intents');
 const { getShieldedCountSince, getShieldedCountSimple, getShieldedCountDaily } = require('./stats-queries');
+const { findLinkedTransactions } = require('./linkability');
 
 /**
  * GET /api/crosschain/stats
@@ -1804,6 +1805,65 @@ app.get('/api/stats/shielded-daily', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+});
+
+// ============================================================================
+// LINKABILITY DETECTION ENDPOINT (Privacy Education)
+// ============================================================================
+
+/**
+ * GET /api/tx/:txid/linkability
+ *
+ * Detect potentially linked shielding/deshielding transactions.
+ * This is an educational feature to teach users about privacy pitfalls.
+ *
+ * Based on Zooko's idea: "If someone shields 1.23456 ZEC, then deshields
+ * 1.2345 ZEC, they are likely the same person!"
+ *
+ * Query params:
+ * - limit: Max results (default 5, max 20)
+ * - tolerance: Amount tolerance % (default 1.0, max 5.0)
+ *
+ * @see docs/FEATURES_ROADMAP.md for full context
+ */
+app.get('/api/tx/:txid/linkability', async (req, res) => {
+  try {
+    const { txid } = req.params;
+
+    if (!txid || txid.length !== 64) {
+      return res.status(400).json({ error: 'Invalid transaction ID' });
+    }
+
+    // Parse options
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 20);
+    // Tolerance in ZEC (default 0.001 ZEC = 100,000 zatoshis)
+    const toleranceZec = Math.min(Math.max(parseFloat(req.query.tolerance) || 0.001, 0.0001), 0.1);
+    const toleranceZat = Math.round(toleranceZec * 100000000);
+
+    console.log(`🔗 [LINKABILITY] Analyzing ${txid.slice(0, 8)}... (limit=${limit}, tolerance=${toleranceZec} ZEC)`);
+
+    const result = await findLinkedTransactions(pool, txid, { limit, toleranceZat });
+
+    if (result.error) {
+      if (result.code === 'TX_NOT_FOUND') {
+        return res.status(404).json(result);
+      }
+      return res.status(400).json(result);
+    }
+
+    console.log(`✅ [LINKABILITY] Found ${result.totalMatches} potential links, top score: ${result.highestScore}`);
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('❌ [LINKABILITY] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to analyze transaction linkability',
     });
   }
 });

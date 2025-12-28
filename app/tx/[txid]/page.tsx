@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { LinkabilityAlert } from '@/components/LinkabilityAlert';
 
 interface TransactionData {
   txid: string;
@@ -470,6 +471,9 @@ export default function TransactionPage() {
             </p>
           </div>
         </div>
+
+        {/* Linkability Alert - Privacy Education */}
+        <LinkabilityAlert txid={data.txid} />
 
         {/* Decrypt This Transaction - Only for shielded TXs */}
         {(hasOrchard || hasSapling) && (

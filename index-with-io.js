@@ -488,6 +488,66 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
       txIndex,
     ]);
 
+    // ========================================================================
+    // SHIELDED FLOWS: Track shielding/deshielding for round-trip detection
+    // ========================================================================
+    // This feeds the linkability detection feature (Zooko's request)
+    //
+    // valueBalance semantics (from Zcash protocol):
+    // - Positive valueBalance = ZEC LEAVING shielded pool → transparent (DESHIELD)
+    // - Negative valueBalance = ZEC ENTERING shielded pool ← transparent (SHIELD)
+    //
+    // Think of it as: valueBalance = shielded_outputs - shielded_inputs
+    // - If you're shielding: inputs > outputs → negative balance
+    // - If you're deshielding: outputs > inputs → positive balance
+    if (totalValueBalance !== 0) {
+      const flowType = totalValueBalance > 0 ? 'deshield' : 'shield';
+      const amountZat = Math.abs(totalValueBalance);
+
+      // Determine which pool was used
+      let poolType = 'sapling'; // default
+      if (valueBalanceSapling !== 0 && valueBalanceOrchard !== 0) {
+        poolType = 'mixed';
+      } else if (valueBalanceOrchard !== 0) {
+        poolType = 'orchard';
+      } else if (valueBalanceSapling !== 0) {
+        poolType = 'sapling';
+      }
+
+      // Calculate per-pool amounts (absolute values)
+      const amountSaplingZat = flowType === 'shield'
+        ? (valueBalanceSapling > 0 ? valueBalanceSapling : 0)
+        : (valueBalanceSapling < 0 ? Math.abs(valueBalanceSapling) : 0);
+      const amountOrchardZat = flowType === 'shield'
+        ? (valueBalanceOrchard > 0 ? valueBalanceOrchard : 0)
+        : (valueBalanceOrchard < 0 ? Math.abs(valueBalanceOrchard) : 0);
+
+      try {
+        await db.query(`
+          INSERT INTO shielded_flows (
+            txid, block_height, block_time, flow_type, amount_zat,
+            pool, amount_sapling_zat, amount_orchard_zat
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (txid, flow_type) DO NOTHING
+        `, [
+          txid,
+          blockHeight,
+          blockTime,
+          flowType,
+          amountZat,
+          poolType,
+          amountSaplingZat,
+          amountOrchardZat,
+        ]);
+      } catch (flowErr) {
+        // Silently fail if shielded_flows table doesn't exist yet
+        // (happens during initial setup before running create-table script)
+        if (!flowErr.message.includes('relation "shielded_flows" does not exist')) {
+          console.warn(`⚠️  Failed to insert shielded flow for ${txid}:`, flowErr.message);
+        }
+      }
+    }
+
     // Index inputs (vin)
     if (tx.vin && tx.vin.length > 0) {
       for (let i = 0; i < tx.vin.length; i++) {
