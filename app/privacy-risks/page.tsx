@@ -165,24 +165,24 @@ function PrivacyRisksContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-primary">
-            Privacy Risks Detected
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-primary">
+            Privacy Risks
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <span className="text-xs text-gray-500 dark:text-muted font-mono">LIVE</span>
           </div>
         </div>
-        <p className="text-gray-600 dark:text-secondary">
-          Transactions where shielding and unshielding patterns could reveal address ownership.
+        <p className="text-sm sm:text-base text-gray-600 dark:text-secondary">
+          Transactions where shielding patterns could reveal address ownership.
         </p>
       </div>
 
       {/* Educational Section - Combined */}
-      <div className="mb-8 p-5 rounded-xl bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20">
-        <h2 className="text-sm font-semibold text-purple-700 dark:text-purple-400 mb-4 flex items-center gap-2">
+      <div className="mb-6 sm:mb-8 p-4 sm:p-5 rounded-xl bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20">
+        <h2 className="text-xs sm:text-sm font-semibold text-purple-700 dark:text-purple-400 mb-3 sm:mb-4 flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
@@ -190,49 +190,50 @@ function PrivacyRisksContent() {
         </h2>
 
         {/* Tips */}
-        <div className="grid sm:grid-cols-4 gap-4 text-sm mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm mb-4">
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">1. Use common amounts</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Shield popular amounts to blend in with other transactions.
+            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">1. Common amounts</div>
+            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
+              Shield popular amounts to blend in.
             </p>
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">2. ZODL</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Wait in the shielded pool. Time breaks correlation.
+            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">2. ZODL</div>
+            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
+              Wait in the shielded pool.
             </p>
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">3. Vary amounts</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Withdraw a different amount than you deposited.
+            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">3. Vary amounts</div>
+            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
+              Withdraw different amount.
             </p>
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">4. Stay shielded</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Best privacy = never touch transparent addresses.
+            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">4. Stay shielded</div>
+            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
+              Avoid transparent addresses.
             </p>
           </div>
         </div>
 
         {/* Common Amounts */}
         {commonAmounts.length > 0 && (
-          <div className="pt-4 border-t border-purple-200 dark:border-purple-500/20">
-            <div className="text-xs text-gray-600 dark:text-secondary mb-3">
-              <span className="font-medium text-purple-700 dark:text-purple-400">Popular amounts ({periodFilter}):</span> Use these to blend in
+          <div className="pt-3 sm:pt-4 border-t border-purple-200 dark:border-purple-500/20">
+            <div className="text-xs text-gray-600 dark:text-secondary mb-2 sm:mb-3">
+              <span className="font-medium text-purple-700 dark:text-purple-400">Popular amounts ({periodFilter}):</span>
+              <span className="hidden sm:inline"> Use these to blend in</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {commonAmounts.map((amount, i) => (
                 <div
                   key={i}
-                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-cipher-surface border border-purple-200 dark:border-purple-500/20 flex items-center gap-2"
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-white dark:bg-cipher-surface border border-purple-200 dark:border-purple-500/20 flex items-center gap-1 sm:gap-2"
                 >
-                  <span className="font-mono font-medium text-gray-900 dark:text-primary text-sm">
-                    {amount.amountZec.toFixed(2)} ZEC
+                  <span className="font-mono font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">
+                    {amount.amountZec.toFixed(2)}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-muted">
+                  <span className="text-xs text-gray-500 dark:text-muted hidden sm:inline">
                     ({amount.percentage}%)
                   </span>
                 </div>
@@ -246,18 +247,18 @@ function PrivacyRisksContent() {
         </p>
       </div>
 
-      {/* Filters - Simple */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
+      {/* Filters - Mobile Friendly */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4 mb-6">
         {/* Period Filter */}
         <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-cipher-border">
           {(['24h', '7d', '30d'] as PeriodFilter[]).map((period) => (
             <button
               key={period}
               onClick={() => setPeriodFilter(period)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                 periodFilter === period
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                  : 'bg-white dark:bg-transparent text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/50'
+                  ? 'bg-purple-600 dark:bg-purple-500 text-white'
+                  : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
               }`}
             >
               {period}
@@ -271,33 +272,33 @@ function PrivacyRisksContent() {
             <button
               key={level}
               onClick={() => setRiskFilter(level)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                 riskFilter === level
                   ? level === 'HIGH'
                     ? 'bg-red-500 text-white'
                     : level === 'MEDIUM'
                     ? 'bg-amber-500 text-white'
-                    : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                  : 'bg-white dark:bg-transparent text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/50'
+                    : 'bg-purple-600 dark:bg-purple-500 text-white'
+                  : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
               }`}
             >
-              {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High Risk' : 'Medium'}
+              {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Medium'}
             </button>
           ))}
         </div>
 
         {/* Sort Toggle */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 dark:text-muted">Sort:</span>
+          <span className="text-xs sm:text-sm text-gray-500 dark:text-muted">Sort:</span>
           <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-cipher-border">
             {(['recent', 'score'] as SortOption[]).map((option) => (
               <button
                 key={option}
                 onClick={() => setSortBy(option)}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                   sortBy === option
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-white dark:bg-transparent text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/50'
+                    ? 'bg-purple-600 dark:bg-purple-500 text-white'
+                    : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
                 }`}
               >
                 {option === 'recent' ? 'Recent' : 'Score'}
@@ -308,7 +309,7 @@ function PrivacyRisksContent() {
 
         {/* Stats inline */}
         {stats && (
-          <div className="ml-auto text-sm text-gray-500 dark:text-muted">
+          <div className="sm:ml-auto text-xs sm:text-sm text-gray-500 dark:text-muted">
             {stats.total} detected
           </div>
         )}
