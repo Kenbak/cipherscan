@@ -231,7 +231,7 @@ function PrivacyRisksContent() {
                   className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-white dark:bg-cipher-surface border border-purple-200 dark:border-purple-500/20 flex items-center gap-1 sm:gap-2"
                 >
                   <span className="font-mono font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">
-                    {amount.amountZec.toFixed(2)}
+                    {amount.amountZec.toFixed(2)} ZEC
                   </span>
                   <span className="text-xs text-gray-500 dark:text-muted hidden sm:inline">
                     ({amount.percentage}%)
