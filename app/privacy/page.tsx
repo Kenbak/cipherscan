@@ -342,6 +342,35 @@ export default function PrivacyPage() {
 
         </div>
 
+        {/* Privacy Risks Detected - CTA Card */}
+        <div className="mb-6 sm:mb-8">
+          <Link href="/privacy-risks" className="block">
+            <div className="card gradient-card-red border-2 border-red-500/30 hover:border-red-500/50 transition-all group">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-2">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-red-500/20">
+                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-400 group-hover:text-red-300 transition-colors flex items-center gap-2">
+                      Privacy Risks Detected
+                      <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                    </h3>
+                    <p className="text-sm text-secondary">
+                      View transactions with potential linkability issues and learn how to improve your privacy.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-red-400 group-hover:text-red-300 transition-colors">
+                  <span className="text-sm font-mono">View Risks →</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* Transaction Types + Pool Breakdown - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Transaction Types */}
