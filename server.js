@@ -2099,8 +2099,9 @@ app.get('/api/privacy/common-amounts', async (req, res) => {
     const periodSeconds = periodMap[req.query.period] || periodMap['7d'];
     const minTime = Math.floor(Date.now() / 1000) - periodSeconds;
 
-    // Minimum amount to consider (0.001 ZEC)
-    const MIN_AMOUNT_ZAT = 100000;
+    // Minimum amount to consider (0.01 ZEC = 1,000,000 zatoshis)
+    // This filters out dust and 0-value transactions
+    const MIN_AMOUNT_ZAT = 1000000;
 
     // Round amounts to 2 decimal places (in ZEC) for grouping
     // This groups 0.501 and 0.502 together as ~0.50

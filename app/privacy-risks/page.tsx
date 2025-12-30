@@ -135,16 +135,16 @@ function PrivacyRisksContent() {
   const fetchCommonAmounts = async () => {
     try {
       const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=5`
-        : `/api/privacy/common-amounts?period=${periodFilter}&limit=5`;
+        ? `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=8`
+        : `/api/privacy/common-amounts?period=${periodFilter}&limit=8`;
 
       const response = await fetch(apiUrl);
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            // Filter out amounts with < 0.5% usage (not meaningful for blending)
-            const meaningful = data.amounts.filter((a: CommonAmount) => parseFloat(a.percentage) >= 0.5);
-            setCommonAmounts(meaningful.length > 0 ? meaningful : data.amounts.slice(0, 3));
+            // Filter out very low percentages (< 0.3%) but keep variety
+            const meaningful = data.amounts.filter((a: CommonAmount) => parseFloat(a.percentage) >= 0.3);
+            setCommonAmounts(meaningful.length > 0 ? meaningful : data.amounts.slice(0, 5));
           }
         }
     } catch (err) {
@@ -180,65 +180,71 @@ function PrivacyRisksContent() {
         </p>
       </div>
 
-      {/* Educational Section - Top */}
+      {/* Educational Section - Combined */}
       <div className="mb-8 p-5 rounded-xl bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20">
-        <h2 className="text-sm font-semibold text-purple-700 dark:text-purple-400 mb-4">
+        <h2 className="text-sm font-semibold text-purple-700 dark:text-purple-400 mb-4 flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
           How to protect your privacy
         </h2>
-        <div className="grid sm:grid-cols-3 gap-4 text-sm">
+
+        {/* Tips */}
+        <div className="grid sm:grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">ZODL</div>
+            <div className="font-medium text-gray-900 dark:text-primary">1. Use common amounts</div>
             <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Hold your ZEC in the shielded pool longer. Time breaks correlation.
+              Shield popular amounts to blend in with other transactions.
             </p>
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">Vary amounts</div>
+            <div className="font-medium text-gray-900 dark:text-primary">2. ZODL</div>
             <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Don't unshield the exact amount you shielded. Split or combine.
+              Wait in the shielded pool. Time breaks correlation.
             </p>
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-primary">Stay shielded</div>
+            <div className="font-medium text-gray-900 dark:text-primary">3. Vary amounts</div>
             <p className="text-gray-600 dark:text-secondary text-xs mt-1">
-              Use z-addresses exclusively. Never touch transparent addresses.
+              Withdraw a different amount than you deposited.
+            </p>
+          </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-primary">4. Stay shielded</div>
+            <p className="text-gray-600 dark:text-secondary text-xs mt-1">
+              Best privacy = never touch transparent addresses.
             </p>
           </div>
         </div>
+
+        {/* Common Amounts */}
+        {commonAmounts.length > 0 && (
+          <div className="pt-4 border-t border-purple-200 dark:border-purple-500/20">
+            <div className="text-xs text-gray-600 dark:text-secondary mb-3">
+              <span className="font-medium text-purple-700 dark:text-purple-400">Popular amounts ({periodFilter}):</span> Use these to blend in
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {commonAmounts.map((amount, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-1.5 rounded-lg bg-white dark:bg-cipher-surface border border-purple-200 dark:border-purple-500/20 flex items-center gap-2"
+                >
+                  <span className="font-mono font-medium text-gray-900 dark:text-primary text-sm">
+                    {amount.amountZec.toFixed(2)} ZEC
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-muted">
+                    ({amount.percentage}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <p className="text-xs text-gray-500 dark:text-muted mt-4 pt-3 border-t border-purple-200 dark:border-purple-500/20">
           ⚠️ These results are based on heuristics (amount + timing). They indicate <em>potential</em> links, not proof.
         </p>
       </div>
-
-      {/* Common Amounts Section */}
-      {commonAmounts.length > 0 && (
-        <div className="mb-8 p-5 rounded-xl bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20">
-          <h2 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            Blend in with popular amounts ({periodFilter})
-          </h2>
-          <p className="text-xs text-gray-600 dark:text-secondary mb-4">
-            Using common amounts makes linkability analysis harder. The more transactions share your amount, the better you blend in.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {commonAmounts.map((amount, i) => (
-              <div
-                key={i}
-                className="px-3 py-2 rounded-lg bg-white dark:bg-cipher-surface border border-green-200 dark:border-green-500/20 flex items-center gap-2"
-              >
-                <span className="font-mono font-medium text-gray-900 dark:text-primary">
-                  {amount.amountZec.toFixed(2)} ZEC
-                </span>
-                <span className="text-xs text-gray-500 dark:text-muted">
-                  {amount.txCount} txs ({amount.percentage}%)
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Filters - Simple */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
