@@ -21,6 +21,10 @@ const CONFIG = {
   // We use 0.001 ZEC = 100,000 zatoshis to be safe
   AMOUNT_TOLERANCE_ZAT: 100000, // 0.001 ZEC
 
+  // Minimum amount to consider for linkability (filter out dust)
+  // 0.001 ZEC = 100,000 zatoshis
+  MIN_AMOUNT_ZAT: 100000, // 0.001 ZEC
+
   // Maximum time window to search (90 days in seconds)
   MAX_TIME_WINDOW_SECONDS: 90 * 24 * 60 * 60,
 
@@ -76,22 +80,29 @@ function scoreAmountSimilarity(amount1Zat, amount2Zat) {
 
 /**
  * Calculate time proximity score (0-30 points)
- * < 1 hour = 30, < 24h = 25, < 7 days = 15, < 30 days = 10, < 90 days = 5
+ * More aggressive dropoff - only very short gaps are truly suspicious
+ *
+ * < 15 min = 30 (very suspicious - likely same session)
+ * < 1 hour = 25 (suspicious)
+ * < 2 hours = 20 (medium-high)
+ * < 6 hours = 12 (medium - could be coincidence)
+ * < 24 hours = 8 (low-medium)
+ * > 24 hours = 5 or less (likely unrelated)
  */
 function scoreTimeProximity(timeDeltaSeconds) {
+  const minutes = timeDeltaSeconds / 60;
   const hours = timeDeltaSeconds / 3600;
   const days = hours / 24;
 
-  if (hours < 1) return 30;
-  if (hours < 6) return 27;
-  if (hours < 24) return 25;
-  if (days < 3) return 20;
-  if (days < 7) return 15;
-  if (days < 14) return 12;
-  if (days < 30) return 10;
-  if (days < 60) return 7;
-  if (days < 90) return 5;
-  return 3;
+  if (minutes < 15) return 30;    // Very suspicious - same session
+  if (hours < 1) return 25;       // Suspicious
+  if (hours < 2) return 20;       // Medium-high
+  if (hours < 6) return 12;       // Medium
+  if (hours < 24) return 8;       // Low-medium
+  if (days < 3) return 5;         // Low
+  if (days < 7) return 4;         // Very low
+  if (days < 30) return 3;        // Minimal
+  return 2;                       // Almost irrelevant
 }
 
 /**

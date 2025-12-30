@@ -67,6 +67,13 @@ function PrivacyRisksLoading() {
   );
 }
 
+interface CommonAmount {
+  amountZec: number;
+  txCount: number;
+  percentage: string;
+  blendingScore: number;
+}
+
 function PrivacyRisksContent() {
   const searchParams = useSearchParams();
   const initialPeriod = (searchParams.get('period') as PeriodFilter) || '7d';
@@ -83,6 +90,9 @@ function PrivacyRisksContent() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Common amounts
+  const [commonAmounts, setCommonAmounts] = useState<CommonAmount[]>([]);
 
   const fetchRisks = async (newOffset: number = 0, append: boolean = false) => {
     if (append) {
@@ -122,9 +132,30 @@ function PrivacyRisksContent() {
     }
   };
 
+  const fetchCommonAmounts = async () => {
+    try {
+      const apiUrl = usePostgresApiClient()
+        ? `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=5`
+        : `/api/privacy/common-amounts?period=${periodFilter}&limit=5`;
+
+      const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Filter out amounts with < 0.5% usage (not meaningful for blending)
+            const meaningful = data.amounts.filter((a: CommonAmount) => parseFloat(a.percentage) >= 0.5);
+            setCommonAmounts(meaningful.length > 0 ? meaningful : data.amounts.slice(0, 3));
+          }
+        }
+    } catch (err) {
+      console.error('Error fetching common amounts:', err);
+    }
+  };
+
   useEffect(() => {
     setOffset(0);
     fetchRisks(0, false);
+    fetchCommonAmounts();
   }, [riskFilter, periodFilter, sortBy]);
 
   const loadMore = () => {
@@ -178,6 +209,36 @@ function PrivacyRisksContent() {
           ⚠️ These results are based on heuristics (amount + timing). They indicate <em>potential</em> links, not proof.
         </p>
       </div>
+
+      {/* Common Amounts Section */}
+      {commonAmounts.length > 0 && (
+        <div className="mb-8 p-5 rounded-xl bg-green-50 dark:bg-green-500/5 border border-green-200 dark:border-green-500/20">
+          <h2 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Blend in with popular amounts ({periodFilter})
+          </h2>
+          <p className="text-xs text-gray-600 dark:text-secondary mb-4">
+            Using common amounts makes linkability analysis harder. The more transactions share your amount, the better you blend in.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {commonAmounts.map((amount, i) => (
+              <div
+                key={i}
+                className="px-3 py-2 rounded-lg bg-white dark:bg-cipher-surface border border-green-200 dark:border-green-500/20 flex items-center gap-2"
+              >
+                <span className="font-mono font-medium text-gray-900 dark:text-primary">
+                  {amount.amountZec.toFixed(2)} ZEC
+                </span>
+                <span className="text-xs text-gray-500 dark:text-muted">
+                  {amount.txCount} txs ({amount.percentage}%)
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters - Simple */}
       <div className="flex flex-wrap items-center gap-4 mb-6">

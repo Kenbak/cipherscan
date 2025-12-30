@@ -1907,6 +1907,9 @@ app.get('/api/privacy/risks', async (req, res) => {
     // Import scoring functions and address helper
     const { scoreAmountSimilarity, scoreTimeProximity, scoreAmountRarity, getWarningLevel, formatTimeDelta, getTransparentAddresses } = require('./linkability');
 
+    // Minimum amount to consider (filter out dust - 0.001 ZEC = 100,000 zatoshis)
+    const MIN_AMOUNT_ZAT = 100000;
+
     // Query: Find shield -> deshield pairs with similar amounts
     const pairsResult = await pool.query(`
       WITH recent_shields AS (
@@ -1914,12 +1917,14 @@ app.get('/api/privacy/risks', async (req, res) => {
         FROM shielded_flows
         WHERE flow_type = 'shield'
           AND block_time > $1
+          AND amount_zat >= $2
       ),
       recent_deshields AS (
         SELECT txid, block_height, block_time, amount_zat, pool, transparent_addresses
         FROM shielded_flows
         WHERE flow_type = 'deshield'
           AND block_time > $1
+          AND amount_zat >= $2
       )
       SELECT
         s.txid as shield_txid,
@@ -1942,7 +1947,7 @@ app.get('/api/privacy/risks', async (req, res) => {
         AND ABS(d.amount_zat - s.amount_zat) < 100000
       ORDER BY d.block_time DESC
       LIMIT 5000
-    `, [minTime]);
+    `, [minTime, MIN_AMOUNT_ZAT]);
 
     // Count occurrences for rarity scoring (simplified - count all in period)
     const rarityResult = await pool.query(`
@@ -2067,6 +2072,82 @@ app.get('/api/privacy/risks', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch privacy risks',
+    });
+  }
+});
+
+/**
+ * GET /api/privacy/common-amounts
+ *
+ * Get the most common shielding amounts (for privacy education).
+ * Users can "blend in" by using popular amounts.
+ *
+ * Query params:
+ *   - period: 24h, 7d, 30d (default 7d)
+ *   - limit: number of amounts to return (default 10, max 50)
+ */
+app.get('/api/privacy/common-amounts', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
+
+    // Parse period
+    const periodMap = {
+      '24h': 24 * 3600,
+      '7d': 7 * 24 * 3600,
+      '30d': 30 * 24 * 3600,
+    };
+    const periodSeconds = periodMap[req.query.period] || periodMap['7d'];
+    const minTime = Math.floor(Date.now() / 1000) - periodSeconds;
+
+    // Minimum amount to consider (0.001 ZEC)
+    const MIN_AMOUNT_ZAT = 100000;
+
+    // Round amounts to 2 decimal places (in ZEC) for grouping
+    // This groups 0.501 and 0.502 together as ~0.50
+    const result = await pool.query(`
+      SELECT
+        ROUND(amount_zat / 100000000.0, 2) as amount_zec,
+        COUNT(*) as tx_count,
+        COUNT(DISTINCT txid) as unique_txs
+      FROM shielded_flows
+      WHERE block_time > $1
+        AND amount_zat >= $2
+      GROUP BY ROUND(amount_zat / 100000000.0, 2)
+      ORDER BY tx_count DESC
+      LIMIT $3
+    `, [minTime, MIN_AMOUNT_ZAT, limit]);
+
+    // Get total transactions in period for percentage calculation
+    const totalResult = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM shielded_flows
+      WHERE block_time > $1
+        AND amount_zat >= $2
+    `, [minTime, MIN_AMOUNT_ZAT]);
+
+    const totalTxs = parseInt(totalResult.rows[0]?.total) || 1;
+
+    const commonAmounts = result.rows.map(row => ({
+      amountZec: parseFloat(row.amount_zec),
+      txCount: parseInt(row.tx_count),
+      percentage: ((parseInt(row.tx_count) / totalTxs) * 100).toFixed(1),
+      blendingScore: Math.min(100, Math.round((parseInt(row.tx_count) / totalTxs) * 1000)), // Higher = better for privacy
+    }));
+
+    console.log(`✅ [COMMON AMOUNTS] Returning ${commonAmounts.length} amounts for period ${req.query.period || '7d'}`);
+
+    res.json({
+      success: true,
+      period: req.query.period || '7d',
+      totalTransactions: totalTxs,
+      amounts: commonAmounts,
+      tip: 'Using common amounts helps you blend in with other transactions, making linkability analysis harder.',
+    });
+  } catch (error) {
+    console.error('❌ [COMMON AMOUNTS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch common amounts',
     });
   }
 });
