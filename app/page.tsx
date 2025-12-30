@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
-import { PrivacyWidget } from '@/components/PrivacyWidget';
+import { PrivacyWidget, PrivacyRisksWidget } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { DonateButton } from '@/components/DonateButton';
@@ -89,6 +89,11 @@ export default async function Home() {
       <div className="mt-12 sm:mt-20 max-w-7xl mx-auto">
         {/* Privacy Widget */}
         <PrivacyWidget />
+
+        {/* Privacy Risks Widget */}
+        <div className="mt-4">
+          <PrivacyRisksWidget />
+        </div>
 
           {/* Recent Blocks & Shielded TXs - Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">

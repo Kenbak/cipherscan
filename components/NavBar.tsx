@@ -129,6 +129,12 @@ export function NavBar() {
                       <span>Privacy Dashboard</span>
                     </Link>
                     <Link
+                      href="/privacy-risks"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-mono dropdown-item rounded transition-colors"
+                    >
+                      <span>Privacy Risks</span>
+                    </Link>
+                    <Link
                       href="/mempool"
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono dropdown-item rounded transition-colors"
                     >
@@ -237,6 +243,13 @@ export function NavBar() {
               className="block px-4 py-2 text-sm font-mono mobile-menu-item transition-colors rounded"
             >
               Privacy Dashboard
+            </Link>
+            <Link
+              href="/privacy-risks"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-4 py-2 text-sm font-mono mobile-menu-item transition-colors rounded"
+            >
+              Privacy Risks
             </Link>
             <Link
               href="/mempool"

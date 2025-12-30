@@ -77,6 +77,12 @@ function formatLargeNumber(num: number): string {
   return num.toString();
 }
 
+interface RiskStats {
+  total: number;
+  highRisk: number;
+  mediumRisk: number;
+}
+
 export function PrivacyWidget() {
   const [stats, setStats] = useState<PrivacyStats | null>(null);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
@@ -238,7 +244,7 @@ export function PrivacyWidget() {
 
         </div>
 
-        {/* View Dashboard link */}
+        {/* Footer - View Dashboard link */}
         <div className="mt-4 pt-4 border-t border-cipher-border flex items-center justify-between">
           <span className="text-xs text-muted font-mono">ZCASH PRIVACY METRICS</span>
           <div className="flex items-center gap-2 text-purple-400 group-hover:text-purple-300 transition-colors">
@@ -246,6 +252,73 @@ export function PrivacyWidget() {
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// Separate compact widget for Privacy Risks
+export function PrivacyRisksWidget() {
+  const [riskStats, setRiskStats] = useState<RiskStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRiskStats = async () => {
+      try {
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/privacy/risks?limit=1&period=24h`
+          : '/api/privacy/risks?limit=1&period=24h';
+
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.stats) {
+            setRiskStats({
+              total: data.stats.total,
+              highRisk: data.stats.highRisk,
+              mediumRisk: data.stats.mediumRisk,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching risk stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRiskStats();
+  }, []);
+
+  // Don't show if no risks or still loading
+  if (loading || !riskStats || riskStats.total === 0) {
+    return null;
+  }
+
+  const hasHighRisk = riskStats.highRisk > 0;
+  const numberColor = hasHighRisk ? 'text-red-400' : 'text-purple-400';
+  const accentColor = hasHighRisk ? 'text-red-400' : 'text-purple-400';
+
+  return (
+    <Link href="/privacy-risks?period=24h" className="block group">
+      <div className="card hover:border-purple-500/50 !p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${hasHighRisk ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
+              <svg className={`w-5 h-5 ${accentColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-lg font-bold ${numberColor}`}>{riskStats.total}</span>
+              <span className="text-sm text-primary">Privacy Risk{riskStats.total > 1 ? 's' : ''} detected</span>
+              <span className="text-xs text-muted">in the last 24h</span>
+            </div>
+          </div>
+          <div className={`flex items-center gap-2 ${accentColor} group-hover:opacity-80 transition-opacity`}>
+            <span className="text-sm font-mono">View →</span>
           </div>
         </div>
       </div>

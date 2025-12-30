@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
@@ -42,6 +43,9 @@ type PeriodFilter = '24h' | '7d' | '30d' | '90d';
 type SortOption = 'recent' | 'score';
 
 export default function PrivacyRisksPage() {
+  const searchParams = useSearchParams();
+  const initialPeriod = (searchParams.get('period') as PeriodFilter) || '7d';
+
   const [transactions, setTransactions] = useState<RiskyTransaction[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +53,7 @@ export default function PrivacyRisksPage() {
 
   // Filters
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('ALL');
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('7d');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(initialPeriod);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
