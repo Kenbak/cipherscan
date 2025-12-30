@@ -303,22 +303,22 @@ export function PrivacyRisksWidget() {
 
   return (
     <Link href="/privacy-risks?period=24h" className="block group">
-      <div className="card hover:border-purple-500/50 !p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${hasHighRisk ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
-              <svg className={`w-5 h-5 ${accentColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="card hover:border-purple-500/50 !p-3 sm:!p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${hasHighRisk ? 'bg-red-500/10' : 'bg-purple-500/10'}`}>
+              <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${accentColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-lg font-bold ${numberColor}`}>{riskStats.total}</span>
-              <span className="text-sm text-primary">Privacy Risk{riskStats.total > 1 ? 's' : ''} detected</span>
-              <span className="text-xs text-muted">in the last 24h</span>
+            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap min-w-0">
+              <span className={`text-base sm:text-lg font-bold ${numberColor}`}>{riskStats.total}</span>
+              <span className="text-xs sm:text-sm text-primary">Privacy Risk{riskStats.total > 1 ? 's' : ''}</span>
+              <span className="text-xs text-muted hidden sm:inline">in the last 24h</span>
             </div>
           </div>
-          <div className={`flex items-center gap-2 ${accentColor} group-hover:opacity-80 transition-opacity`}>
-            <span className="text-sm font-mono">View →</span>
+          <div className={`flex items-center shrink-0 ${accentColor} group-hover:opacity-80 transition-opacity`}>
+            <span className="text-xs sm:text-sm font-mono">View →</span>
           </div>
         </div>
       </div>
