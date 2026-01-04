@@ -13,6 +13,7 @@ const { Pool } = require('pg');
 const WebSocket = require('ws');
 const http = require('http');
 const redis = require('redis');
+const fs = require('fs');
 
 // Initialize Express
 const app = express();
@@ -109,11 +110,24 @@ const https = require('https');
 
 /**
  * Call Zebra RPC
+ * Reads cookie authentication from file (like the indexer does)
  */
 async function callZebraRPC(method, params = []) {
-  const rpcUrl = process.env.ZCASH_RPC_URL || 'http://127.0.0.1:18232';
-  const rpcUser = process.env.ZCASH_RPC_USER || '__cookie__';
-  const rpcPassword = process.env.ZCASH_RPC_PASSWORD || '';
+  const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
+  const cookieFile = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
+
+  // Read cookie from file (format: __cookie__:password)
+  let auth = '';
+  try {
+    const cookie = fs.readFileSync(cookieFile, 'utf8').trim();
+    auth = Buffer.from(cookie).toString('base64');
+  } catch (err) {
+    console.warn('⚠️  Could not read Zebra cookie file:', err.message);
+    // Fallback to env vars if cookie file not found
+    const rpcUser = process.env.ZCASH_RPC_USER || '__cookie__';
+    const rpcPassword = process.env.ZCASH_RPC_PASSWORD || '';
+    auth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
+  }
 
   const requestBody = JSON.stringify({
     jsonrpc: '1.0',
@@ -121,8 +135,6 @@ async function callZebraRPC(method, params = []) {
     method,
     params,
   });
-
-  const auth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
   const url = new URL(rpcUrl);
 
   return new Promise((resolve, reject) => {
