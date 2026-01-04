@@ -25,7 +25,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       .replace(/on\w+=/gi, ''); // Remove event handlers
 
     // Validate length (prevent extremely long inputs)
-    if (trimmedQuery.length > 200) {
+    // Unified addresses can be 300+ characters, so we allow up to 500
+    if (trimmedQuery.length > 500) {
       console.warn('Query too long, truncating');
       return;
     }

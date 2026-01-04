@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-// SyncBanner removed - mainnet is now synced
-import { isMainnet } from "@/lib/config";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });

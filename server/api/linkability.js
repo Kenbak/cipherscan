@@ -284,36 +284,30 @@ async function findLinkedTransactions(pool, txid, options = {}) {
     `, [searchFlowType, minAmount, maxAmount, blockTime, maxTime, txid]);
   }
 
-  // 5. Count occurrences of similar amounts (for rarity score)
+  // 5. Count occurrences of EXACT amount (for rarity score)
+  // Use exact match to be consistent with /api/privacy/risks
   const rarityResult = await pool.query(`
     SELECT COUNT(*) as count
     FROM shielded_flows
-    WHERE amount_zat BETWEEN $1 AND $2
-      AND block_time > $3
-      AND block_time < $4
-  `, [minAmount, maxAmount, minTime, maxTime]);
+    WHERE amount_zat = $1
+      AND block_time > $2
+  `, [amountZat, minTime]);
 
   const amountOccurrences = parseInt(rarityResult.rows[0].count) || 1;
 
-  // 6. Score each match (without addresses first for performance)
+  // 6. Score each match using the unified scoring function
   const scoredMatches = matchResult.rows.map(match => {
     const matchAmountZat = parseInt(match.amount_zat);
     const matchBlockTime = parseInt(match.block_time);
     const timeDelta = matchBlockTime - blockTime; // Negative if before
 
-    // Calculate component scores
-    const amountScore = scoreAmountSimilarity(amountZat, matchAmountZat);
-    const timeScore = scoreTimeProximity(Math.abs(timeDelta));
-    const rarityScore = scoreAmountRarity(amountOccurrences);
-
-    // Base score
-    let totalScore = amountScore + timeScore + rarityScore;
-
-    // Apply rarity/time bonus or malus
-    totalScore = applyRarityTimeBonus(totalScore, rarityScore, timeScore, amountOccurrences);
-
-    // Ensure score is within 0-100
-    totalScore = Math.min(Math.max(totalScore, 0), 100);
+    // Use unified scoring function (single source of truth)
+    const { score, warningLevel, breakdown } = calculateLinkabilityScore(
+      amountZat,
+      matchAmountZat,
+      timeDelta,
+      amountOccurrences
+    );
 
     return {
       txid: match.txid,
@@ -325,13 +319,9 @@ async function findLinkedTransactions(pool, txid, options = {}) {
       pool: match.pool,
       timeDelta: formatTimeDelta(timeDelta),
       timeDeltaSeconds: timeDelta,
-      linkabilityScore: totalScore,
-      warningLevel: getWarningLevel(totalScore),
-      scoreBreakdown: {
-        amountSimilarity: amountScore,
-        timeProximity: timeScore,
-        amountRarity: rarityScore,
-      },
+      linkabilityScore: score,
+      warningLevel,
+      scoreBreakdown: breakdown,
     };
   });
 
@@ -437,17 +427,62 @@ async function findLinkedTransactions(pool, txid, options = {}) {
 }
 
 // ============================================================================
+// ============================================================================
+// UNIFIED SCORING FUNCTION
+// ============================================================================
+
+/**
+ * Calculate the complete linkability score for a shield/deshield pair.
+ * This is the single source of truth for scoring - use this everywhere!
+ *
+ * Score = amountSimilarity (0-40) + timeProximity (0-30) + amountRarity (0-30) + bonus/malus = max 100
+ *
+ * @param {number} shieldAmountZat - Shield amount in zatoshis
+ * @param {number} deshieldAmountZat - Deshield amount in zatoshis
+ * @param {number} timeDeltaSeconds - Time between shield and deshield (absolute value)
+ * @param {number} amountOccurrences - How many times this amount appears in the dataset (optional, defaults to 1 = rare)
+ * @returns {object} - { score, warningLevel, breakdown: { amountSimilarity, timeProximity, amountRarity } }
+ */
+function calculateLinkabilityScore(shieldAmountZat, deshieldAmountZat, timeDeltaSeconds, amountOccurrences = 1) {
+  // Calculate component scores
+  const amountScore = scoreAmountSimilarity(shieldAmountZat, deshieldAmountZat);
+  const timeScore = scoreTimeProximity(Math.abs(timeDeltaSeconds));
+  const rarityScore = scoreAmountRarity(amountOccurrences);
+
+  // Base score
+  let totalScore = amountScore + timeScore + rarityScore;
+
+  // Apply rarity/time bonus or malus
+  totalScore = applyRarityTimeBonus(totalScore, rarityScore, timeScore, amountOccurrences);
+
+  // Ensure score is within 0-100
+  totalScore = Math.min(Math.max(totalScore, 0), 100);
+
+  return {
+    score: totalScore,
+    warningLevel: getWarningLevel(totalScore),
+    breakdown: {
+      amountSimilarity: amountScore,
+      timeProximity: timeScore,
+      amountRarity: rarityScore,
+    },
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 module.exports = {
   findLinkedTransactions,
   getTransparentAddresses,
+  calculateLinkabilityScore,
   CONFIG,
-  // Export individual functions for testing
+  // Export individual functions for testing/backwards compatibility
   scoreAmountSimilarity,
   scoreTimeProximity,
   scoreAmountRarity,
+  applyRarityTimeBonus,
   getWarningLevel,
   formatTimeDelta,
 };

@@ -1,29 +1,118 @@
-# CipherScan
+<p align="center">
+  <img src="public/logo.png" alt="CipherScan Logo" width="120" />
+</p>
 
-**⚡ Zcash Blockchain Explorer**
+<h1 align="center">CipherScan</h1>
 
-**Simple. Clear. Built for everyone.**
+<p align="center">
+  <strong>⚡ The Privacy-First Zcash Blockchain Explorer</strong>
+</p>
 
-A blockchain explorer for Zcash that explains everything in plain language. Privacy meets transparency. No jargon. No confusion.
+<p align="center">
+  <a href="https://cipherscan.app">Mainnet</a> •
+  <a href="https://testnet.cipherscan.app">Testnet</a> •
+  <a href="https://cipherscan.app/docs">API Docs</a> •
+  <a href="https://cipherscan.app/learn">Learn Zcash</a>
+</p>
 
-## 🎯 Mission
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Rust-WASM-orange?logo=rust" alt="Rust WASM" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License MIT" />
+</p>
 
-Make the Zcash blockchain accessible to **everyone**, not just developers.
+---
+
+## 📖 Table of Contents
+
+- [About](#-about)
+- [Features](#-features)
+- [Live Demo](#-live-demo)
+- [Quick Start](#-quick-start)
+- [Tech Stack](#️-tech-stack)
+- [Public Infrastructure](#-public-infrastructure)
+- [API Documentation](#-api-documentation)
+- [Configuration](#️-configuration)
+- [Contributing](#-contributing)
+- [Support the Project](#-support-the-project)
+- [License](#-license)
+
+---
+
+## 🎯 About
+
+CipherScan is a blockchain explorer for Zcash that makes privacy technology accessible to everyone. No jargon, no confusion — just clear, simple explanations of what's happening on-chain.
+
+**Mission:** Make the Zcash blockchain accessible to everyone, not just developers.
+
+---
 
 ## ✨ Features
 
-- 🔍 **Search** addresses, transactions, and blocks
-- 💰 **View balances** and transaction history
-- 🛡️ **Privacy Dashboard** - Real-time shielded adoption metrics
-- 🔓 **Decrypt Memos** - Client-side Orchard memo decryption (WASM)
-- 📊 **Mempool Viewer** - Real-time pending transactions
-- 📡 **Live Updates** - WebSocket for real-time block updates
-- 📚 **Educational** - Privacy-preserving blockchain explorer
-- 🔐 **100% Private** - Viewing keys never leave your browser
+### 🔍 Core Explorer
+| Feature | Description |
+|---------|-------------|
+| **Search** | Find addresses, transactions, and blocks instantly |
+| **Balances** | View transaction history and balances |
+| **Block Explorer** | Navigate blocks with full transaction details |
+| **Mempool Viewer** | Real-time pending transactions |
+| **Live Updates** | WebSocket for real-time block notifications |
+
+### 🛡️ Privacy Tools
+| Feature | Description |
+|---------|-------------|
+| **Privacy Dashboard** | Real-time shielded adoption metrics |
+| **Decrypt Memos** | Client-side Orchard memo decryption (WASM) |
+| **Privacy Risks** | Round-trip transaction linkability detection |
+| **100% Private** | Viewing keys never leave your browser |
+
+### 🔗 Cross-Chain
+| Feature | Description |
+|---------|-------------|
+| **ZEC Flows** | Real-time cross-chain swaps via NEAR Intents |
+| **Inflows/Outflows** | Track ZEC moving to/from BTC, ETH, SOL + 15 chains |
+
+### 📚 Education & UX
+| Feature | Description |
+|---------|-------------|
+| **Learn Zcash** | Comprehensive guide to addresses, viewing keys, wallets |
+| **Address Labels** | Tag addresses with custom labels (localStorage) |
+| **Light/Dark Mode** | Theme toggle with system preference support |
+| **Mobile Responsive** | Full mobile support |
+
+### 🔧 Developer Tools
+| Feature | Description |
+|---------|-------------|
+| **API Documentation** | Interactive REST API docs at `/docs` |
+| **Public Infrastructure** | Free Lightwalletd gRPC + REST API |
+
+---
+
+## 🌐 Live Demo
+
+| Network | URL |
+|---------|-----|
+| **Mainnet** | [cipherscan.app](https://cipherscan.app) |
+| **Testnet** | [testnet.cipherscan.app](https://testnet.cipherscan.app) |
+
+---
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- PostgreSQL (optional, for full indexer)
+
+### Installation
+
 ```bash
+# Clone the repository
+git clone https://github.com/Kenbak/cipherscan.git
+cd cipherscan
+
 # Install dependencies
 npm install
 
@@ -33,89 +122,170 @@ npm run dev
 # Open http://localhost:3000
 ```
 
+### Production Build
+
+```bash
+npm run build
+npm start
+```
+
+---
+
 ## 🏗️ Tech Stack
 
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **PostgreSQL** - Fast indexed blockchain data
-- **Express.js** - API server with WebSocket support
-- **Rust + WASM** - Client-side Orchard memo decryption
-- **Zebra** - Zcash node (testnet/mainnet)
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Next.js 15, React 19, TypeScript |
+| **Styling** | Tailwind CSS |
+| **Database** | PostgreSQL |
+| **API Server** | Express.js + WebSocket |
+| **Cryptography** | Rust + WebAssembly |
+| **Zcash Node** | Zebra |
 
-## ⚙️ Configuration (Optional)
+---
 
-The app works out of the box with public endpoints. To use your own Zcash node:
+## 🔌 Public Infrastructure
 
-Create a `.env.local` file:
+CipherScan provides **free public infrastructure** for Zcash developers:
+
+### Mainnet
+
+| Service | Endpoint |
+|---------|----------|
+| **Lightwalletd gRPC** | `lightwalletd.mainnet.cipherscan.app:443` |
+| **REST API** | `https://api.mainnet.cipherscan.app/api/*` |
+
+### Testnet
+
+| Service | Endpoint |
+|---------|----------|
+| **Lightwalletd gRPC** | `lightwalletd.testnet.cipherscan.app:443` |
+| **REST API** | `https://api.testnet.cipherscan.app/api/*` |
+
+---
+
+## 📖 API Documentation
+
+Full interactive documentation available at [cipherscan.app/docs](https://cipherscan.app/docs)
+
+### Quick Examples
+
+```javascript
+// Fetch block data
+const block = await fetch('https://api.mainnet.cipherscan.app/api/block/2500000');
+const data = await block.json();
+
+// Fetch privacy stats
+const stats = await fetch('https://api.mainnet.cipherscan.app/api/privacy-stats');
+const privacy = await stats.json();
+```
+
+```python
+import requests
+
+# Fetch mempool
+response = requests.get('https://api.mainnet.cipherscan.app/api/mempool')
+print(f"Pending transactions: {response.json()['count']}")
+```
+
+**Rate Limit:** 100 requests/minute per IP
+
+---
+
+## ⚙️ Configuration
+
+The app works out of the box with public endpoints. For custom Zcash node:
+
 ```bash
+# .env.local
 ZCASH_RPC_URL=http://localhost:8232
 ZCASH_RPC_USER=your_username
 ZCASH_RPC_PASSWORD=your_password
 ```
 
+---
+
 ## 📋 Roadmap
 
-### ✅ Completed
-- [x] Connect to Zcash RPC server
-- [x] Fetch real blockchain data
-- [x] Display recent blocks
-- [x] Show transaction details
-- [x] Address lookup (transparent & shielded)
-- [x] Block explorer with navigation
-- [x] Transaction viewer with shielded data detection
-- [x] PostgreSQL indexer for fast queries
-- [x] Privacy analytics dashboard
-- [x] Mempool viewer
-- [x] WebSocket real-time updates
-- [x] Client-side Orchard memo decryption (WASM)
-- [x] Mobile responsive design
+See [GitHub Issues](https://github.com/Kenbak/cipherscan/issues) for upcoming features and improvements.
 
-### 🚧 In Progress
-- [ ] Scan all transactions for a viewing key
-- [ ] Mainnet deployment
-- [ ] Performance optimizations (caching, CDN)
-
-### 🔮 Future
-- [ ] Sapling memo decryption
-- [ ] Batch transaction scanning
-- [ ] Export transaction history to CSV
-- [ ] Advanced search filters
-- [ ] Dark mode toggle
-
-## 🌐 Live
-
-- **Testnet**: [testnet.cipherscan.app](https://testnet.cipherscan.app)
-- **Mainnet**: Coming soon
-
-## 🔐 Privacy Features
-
-CipherScan is built with **privacy-first** principles:
-
-### Client-Side Memo Decryption
-Decrypt your shielded memos **entirely in your browser** using WebAssembly:
-
-1. **100% Private** - Your viewing key never leaves your browser
-2. **Orchard Support** - Decrypt Orchard shielded transactions
-3. **Zero-Knowledge** - No server-side key processing
-4. **Open Source** - Verifiable privacy guarantees
-
-Try it: [testnet.cipherscan.app/decrypt](https://testnet.cipherscan.app/decrypt)
-
-### No Tracking
-- ❌ **No Google Analytics** - We don't track your activity
-- ❌ **No IP Logging** - Aligned with Zcash privacy values
-- ❌ **No Cookies** - No unnecessary data collection
-- ✅ **Open Source** - Verify our privacy claims yourself
-
-## 🤝 Contributing
-
-Built for the Zcash community. Contributions welcome!
-
-## 📄 License
-
-MIT
+**Coming soon:** Sapling memo decryption, batch transaction scanning, CSV export.
 
 ---
 
-**Built with ⚡ for the Zcash community**
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style
+- Write meaningful commit messages
+- Add tests for new features when applicable
+- Update documentation as needed
+
+---
+
+## ☕ Support the Project
+
+CipherScan is free, open-source, and community-driven. If you find it useful, consider supporting development:
+
+### Zcash Donation Address (Shielded)
+
+```
+u1fh3kwyl9hq9q907rx9j8mdy2r7gz4xh0y4yt63dxykk2856gr0238vxsegemyfu8s5a77ycq72tcnzkxa75ykjtcn6wp2w9rtuu3ssdzpe2fyghl8wlk3vh6f67304xe4lrxtvywtudy5t434zc07u6mh27ekufx7ssr55l8875z7f4k76c3tk23s3jzf8rxdlkequlta8lwsv09gxm
+```
+
+> 🛡️ This is a **Unified Address** — your donation is private and encrypted.
+
+Your support helps us:
+- Keep the infrastructure running 24/7
+- Add new features and improvements
+- Maintain free public APIs for developers
+
+---
+
+## 🔐 Privacy Principles
+
+CipherScan is built with **privacy-first** principles:
+
+| Principle | Implementation |
+|-----------|----------------|
+| **No Tracking** | No Google Analytics or third-party trackers |
+| **No IP Logging** | Aligned with Zcash privacy values |
+| **No Cookies** | No unnecessary data collection |
+| **Client-Side Decryption** | Viewing keys never leave your browser |
+| **Open Source** | Verify our privacy claims yourself |
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Zcash Foundation](https://zfnd.org/) — Zebra node
+- [Electric Coin Company](https://electriccoin.co/) — librustzcash
+- [NEAR Protocol](https://near.org/) — Cross-chain intents
+- [Zingo Labs](https://github.com/zingolabs) — zingolib inspiration
+
+---
+
+<p align="center">
+  <strong>Built with ⚡ for the Zcash community</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Kenbak/cipherscan">GitHub</a> •
+  <a href="https://discord.gg/THspb5PM">Discord</a> •
+  <a href="https://forum.zcashcommunity.com/">Forum</a>
+</p>

@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
+import { AddressLabel } from '@/components/AddressLabel';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
@@ -433,11 +434,16 @@ export default function AddressPage() {
       </div>
 
         {/* Address with copy button */}
-        <div className="flex items-center mt-4">
+        <div className="flex flex-wrap items-center gap-2 mt-4">
           <code className="text-sm text-secondary break-all">{address}</code>
           <CopyButton text={address} label="address" />
-            </div>
-          </div>
+        </div>
+        
+        {/* Address Label */}
+        <div className="mt-3">
+          <AddressLabel address={address} />
+        </div>
+      </div>
 
       {/* Overview Cards - Row 1 */}
       <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">

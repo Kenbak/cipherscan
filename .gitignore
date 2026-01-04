@@ -88,3 +88,6 @@ GRANT_DRAFT_DO_NOT_COMMIT.md
 FORUM_POST_DO_NOT_COMMIT.md
 ENDPOINTS_TO_ADD.md
 GrantExample*.md
+
+# Private documentation (local only)
+/docs/*.md

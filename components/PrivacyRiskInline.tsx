@@ -67,9 +67,58 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     fetchLinkability();
   }, [txid]);
 
-  // Don't show anything while loading or if no risk
-  if (loading || !data || !data.hasShieldedActivity || data.warningLevel === 'LOW' || data.linkedTransactions.length === 0) {
+  // Don't show anything while loading or if no shielded activity
+  if (loading || !data || !data.hasShieldedActivity) {
     return null;
+  }
+
+  // If no linked transactions found, show a positive "private" message
+  if (data.linkedTransactions.length === 0 || data.warningLevel === 'LOW') {
+    const amountZec = (data.amount || 0).toFixed(4);
+    const flowVerb = data.flowType === 'shield' ? 'shields' : 'unshields';
+    const address = data.transparentAddresses?.[0];
+    const truncatedAddr = address ? truncateAddress(address) : null;
+
+    return (
+      <div className="mt-4 rounded-xl overflow-hidden border border-green-300 dark:border-green-500/30 bg-green-50 dark:bg-green-500/5">
+        {/* Header */}
+        <div className="px-4 py-3 flex items-center justify-between bg-green-100 dark:bg-green-500/10">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-lg bg-green-200 dark:bg-green-500/20">
+              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-semibold text-green-700 dark:text-green-400">
+              No Round-Trip Detected
+            </h3>
+          </div>
+          <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-200 dark:bg-green-500/20 text-green-700 dark:text-green-400">
+            Private
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 py-4 space-y-2">
+          <p className="text-sm text-gray-700 dark:text-secondary">
+            This transaction {flowVerb}{' '}
+            <span className="text-gray-900 dark:text-primary font-medium">{amountZec} ZEC</span>
+            {truncatedAddr && (
+              <>
+                {data.flowType === 'shield' ? ' from ' : ' to '}
+                <Link href={`/address/${address}`} className="text-gray-900 dark:text-primary font-mono hover:underline">
+                  {truncatedAddr}
+                </Link>
+              </>
+            )}.
+            No matching {data.flowType === 'shield' ? 'unshield' : 'shield'} with a similar amount was found.
+          </p>
+          <p className="text-xs text-gray-500 dark:text-muted italic">
+            This doesn&apos;t guarantee privacy, but no obvious round-trip pattern was detected.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const topMatch = data.linkedTransactions[0];

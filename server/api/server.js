@@ -1904,8 +1904,8 @@ app.get('/api/privacy/risks', async (req, res) => {
 
     console.log(`🔗 [PRIVACY RISKS] Fetching risks (limit=${limit}, minScore=${minScore}, period=${req.query.period || '7d'})`);
 
-    // Import scoring functions and address helper
-    const { scoreAmountSimilarity, scoreTimeProximity, scoreAmountRarity, getWarningLevel, formatTimeDelta, getTransparentAddresses } = require('./linkability');
+    // Import unified scoring function and helpers
+    const { calculateLinkabilityScore, formatTimeDelta, getTransparentAddresses } = require('./linkability');
 
     // Minimum amount to consider (filter out dust - 0.001 ZEC = 100,000 zatoshis)
     const MIN_AMOUNT_ZAT = 100000;
@@ -1949,7 +1949,7 @@ app.get('/api/privacy/risks', async (req, res) => {
       LIMIT 5000
     `, [minTime, MIN_AMOUNT_ZAT]);
 
-    // Count occurrences for rarity scoring (simplified - count all in period)
+    // Count occurrences for rarity scoring (based on user's period filter)
     const rarityResult = await pool.query(`
       SELECT amount_zat, COUNT(*) as count
       FROM shielded_flows
@@ -1962,21 +1962,20 @@ app.get('/api/privacy/risks', async (req, res) => {
       rarityCounts.set(parseInt(r.amount_zat), parseInt(r.count));
     });
 
-    // Score each pair
+    // Score each pair using the unified scoring function
     const scoredPairs = pairsResult.rows.map(row => {
       const shieldAmount = parseInt(row.shield_amount);
       const deshieldAmount = parseInt(row.deshield_amount);
       const timeDelta = parseInt(row.time_delta_seconds);
-
-      const amountScore = scoreAmountSimilarity(shieldAmount, deshieldAmount);
-      const timeScore = scoreTimeProximity(timeDelta);
       const occurrences = rarityCounts.get(shieldAmount) || 1;
-      const rarityScore = scoreAmountRarity(occurrences);
 
-      let totalScore = amountScore + timeScore + rarityScore;
-      totalScore = Math.min(Math.max(totalScore, 0), 100);
-
-      const warningLevel = getWarningLevel(totalScore);
+      // Use unified scoring function (single source of truth)
+      const { score, warningLevel, breakdown } = calculateLinkabilityScore(
+        shieldAmount,
+        deshieldAmount,
+        timeDelta,
+        occurrences
+      );
 
       return {
         shieldTxid: row.shield_txid,
@@ -1993,13 +1992,9 @@ app.get('/api/privacy/risks', async (req, res) => {
         deshieldAddresses: row.deshield_addresses || [],
         timeDelta: formatTimeDelta(timeDelta),
         timeDeltaSeconds: timeDelta,
-        score: totalScore,
+        score,
         warningLevel,
-        scoreBreakdown: {
-          amountSimilarity: amountScore,
-          timeProximity: timeScore,
-          amountRarity: rarityScore,
-        },
+        scoreBreakdown: breakdown,
       };
     });
 
