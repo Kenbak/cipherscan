@@ -1268,13 +1268,7 @@ wss.on('connection', async (ws, req) => {
     clients.delete(ws);
   });
 
-  // Send initial data immediately
-  if (networkStatsCache) {
-    ws.send(JSON.stringify({
-      type: 'network_stats',
-      data: networkStatsCache,
-    }));
-  }
+  // Client can call /api/network/stats to get initial data
 });
 
 // Broadcast message to all connected clients (local + Redis Pub/Sub)
