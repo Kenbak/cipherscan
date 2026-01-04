@@ -1338,35 +1338,8 @@ setInterval(async () => {
   }
 }, 10000);
 
-// Update network stats every 30 seconds and broadcast via WebSocket
-async function updateNetworkStatsBackground() {
-  try {
-    console.log('📊 [BACKGROUND] Updating network stats...');
-
-    // Fetch fresh stats
-    const stats = await fetchNetworkStatsOptimized();
-
-    // Update cache
-    networkStatsCache = stats;
-    networkStatsCacheTime = Date.now();
-
-    // Broadcast to all connected WebSocket clients
-    broadcastToAll({
-      type: 'network_stats',
-      data: stats,
-    });
-
-    console.log(`✅ [BACKGROUND] Network stats updated and broadcasted to ${clients.size} clients`);
-  } catch (error) {
-    console.error('❌ [BACKGROUND] Failed to update network stats:', error);
-  }
-}
-
-// Run immediately on startup
-updateNetworkStatsBackground();
-
-// Then run every 30 seconds
-setInterval(updateNetworkStatsBackground, 30000);
+// Network stats background update moved to routes/network.js
+// The module handles caching internally
 
 // ============================================================================
 // ERROR HANDLING
