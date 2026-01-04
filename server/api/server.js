@@ -25,6 +25,7 @@ const blocksRouter = require('./routes/blocks');
 const transactionsRouter = require('./routes/transactions');
 const networkRouter = require('./routes/network');
 const crosschainRouter = require('./routes/crosschain');
+const statsRouter = require('./routes/stats');
 
 // Import linkability functions (needed by transactionsRouter)
 const { findLinkedTransactions } = require('./linkability');
@@ -308,6 +309,9 @@ app.use(networkRouter);
 
 // Cross-chain routes: /api/crosschain/*
 app.use(crosschainRouter);
+
+// Stats routes: /api/stats/*
+app.use(statsRouter);
 
 // ============================================================================
 // API ROUTES (Legacy - to be refactored)
@@ -602,92 +606,6 @@ app.get('/api/address/:address', async (req, res) => {
 
 // Memo decryption endpoint removed - now handled client-side with WASM
 // See app/decrypt/page.tsx for the client-side implementation
-
-// ============================================================================
-// SHIELDED STATS ENDPOINTS
-// ============================================================================
-
-const { getShieldedCountSince, getShieldedCountSimple, getShieldedCountDaily } = require('./stats-queries');
-
-/**
- * GET /api/stats/shielded-count
- *
- * Get the count of shielded transactions since a specific date.
- *
- * Query params:
- * - since: Required. ISO date string (e.g., "2024-01-01")
- * - detailed: Optional. If "true", returns full breakdown (slower)
- *
- * Example: /api/stats/shielded-count?since=2024-01-01
- * Example: /api/stats/shielded-count?since=2024-01-01&detailed=true
- */
-app.get('/api/stats/shielded-count', async (req, res) => {
-  try {
-    const { since, detailed } = req.query;
-
-    if (!since) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required parameter: since (e.g., ?since=2024-01-01)',
-      });
-    }
-
-    let result;
-    if (detailed === 'true') {
-      result = await getShieldedCountSince(pool, since);
-    } else {
-      result = await getShieldedCountSimple(pool, since);
-    }
-
-    res.json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    console.error('❌ [STATS] Shielded count error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-/**
- * GET /api/stats/shielded-daily
- *
- * Get daily shielded transaction counts for a date range.
- *
- * Query params:
- * - since: Required. Start date (ISO format)
- * - until: Optional. End date (defaults to now)
- *
- * Example: /api/stats/shielded-daily?since=2024-01-01&until=2024-01-31
- */
-app.get('/api/stats/shielded-daily', async (req, res) => {
-  try {
-    const { since, until } = req.query;
-
-    if (!since) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required parameter: since (e.g., ?since=2024-01-01)',
-      });
-    }
-
-    const result = await getShieldedCountDaily(pool, since, until);
-
-    res.json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    console.error('❌ [STATS] Shielded daily error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
 
 // ============================================================================
 // LINKABILITY DETECTION ENDPOINT (Privacy Education)
