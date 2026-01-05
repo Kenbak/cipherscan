@@ -156,4 +156,3 @@ router.get('/api/address/:address', async (req, res) => {
 });
 
 module.exports = router;
-

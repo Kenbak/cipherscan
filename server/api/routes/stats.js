@@ -1,6 +1,6 @@
 /**
  * Stats Routes
- * 
+ *
  * Handles statistics endpoints:
  * - GET /api/privacy-stats - Privacy statistics from pre-calculated table
  * - GET /api/stats/shielded-count - Shielded transaction count since date

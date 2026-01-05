@@ -411,4 +411,3 @@ router.get('/api/network/peers', async (req, res) => {
 });
 
 module.exports = router;
-

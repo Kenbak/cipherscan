@@ -394,6 +394,41 @@
     @apply border-cipher-cyan;
   }
 
+  /* Search suggestions dropdown */
+  .suggestions-dropdown {
+    @apply bg-cipher-surface border-cipher-border;
+  }
+  .light .suggestions-dropdown {
+    @apply bg-white border-gray-200 shadow-lg;
+  }
+
+  .suggestion-item {
+    @apply text-gray-300;
+  }
+  .suggestion-item:hover {
+    @apply bg-cipher-bg;
+  }
+  .light .suggestion-item {
+    @apply text-gray-700;
+  }
+  .light .suggestion-item:hover {
+    @apply bg-gray-100;
+  }
+
+  .suggestion-item-active {
+    @apply bg-cipher-bg text-cipher-cyan;
+  }
+  .light .suggestion-item-active {
+    @apply bg-cyan-50 text-cyan-700;
+  }
+
+  .suggestion-label {
+    @apply text-gray-200;
+  }
+  .light .suggestion-label {
+    @apply text-gray-900;
+  }
+
   /* ===== DROPDOWN MENU ===== */
   .dropdown-menu {
     @apply bg-cipher-surface border-cipher-border;

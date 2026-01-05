@@ -1,6 +1,6 @@
 /**
  * Privacy Routes
- * 
+ *
  * Handles privacy analysis and risk detection endpoints:
  * - GET /api/privacy/risks - Linkable transaction pairs
  * - GET /api/privacy/common-amounts - Common shielding amounts
@@ -298,4 +298,3 @@ router.get('/api/privacy/common-amounts', async (req, res) => {
 });
 
 module.exports = router;
-

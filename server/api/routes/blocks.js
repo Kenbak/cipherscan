@@ -211,4 +211,3 @@ router.get('/api/block/:height', async (req, res) => {
 });
 
 module.exports = router;
-

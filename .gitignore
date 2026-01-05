@@ -91,4 +91,5 @@ GrantExample*.md
 
 # Private documentation (local only)
 /docs/*.md
+/docs/CMO/
 server/DEPLOYMENT.md

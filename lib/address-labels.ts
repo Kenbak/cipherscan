@@ -99,3 +99,61 @@ export function getAllCustomLabels(): Array<{ address: string; label: string }> 
   const labels = getCustomLabels();
   return Object.entries(labels).map(([address, label]) => ({ address, label }));
 }
+
+/**
+ * Search for an address by its label (case-insensitive, partial match)
+ * Returns the first matching address or null
+ */
+export function findAddressByLabel(searchQuery: string): string | null {
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+
+  if (!normalizedQuery) return null;
+
+  // Search in known addresses first
+  for (const [address, info] of Object.entries(KNOWN_ADDRESSES)) {
+    if (info.label.toLowerCase().includes(normalizedQuery)) {
+      return address;
+    }
+    if (info.description?.toLowerCase().includes(normalizedQuery)) {
+      return address;
+    }
+  }
+
+  // Search in custom labels
+  const customLabels = getCustomLabels();
+  for (const [address, label] of Object.entries(customLabels)) {
+    if (label.toLowerCase().includes(normalizedQuery)) {
+      return address;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get all addresses matching a label search (for autocomplete)
+ */
+export function searchAddressesByLabel(searchQuery: string): Array<{ address: string; label: string; isKnown: boolean }> {
+  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const results: Array<{ address: string; label: string; isKnown: boolean }> = [];
+
+  if (!normalizedQuery) return results;
+
+  // Search in known addresses
+  for (const [address, info] of Object.entries(KNOWN_ADDRESSES)) {
+    if (info.label.toLowerCase().includes(normalizedQuery) ||
+        info.description?.toLowerCase().includes(normalizedQuery)) {
+      results.push({ address, label: info.label, isKnown: true });
+    }
+  }
+
+  // Search in custom labels
+  const customLabels = getCustomLabels();
+  for (const [address, label] of Object.entries(customLabels)) {
+    if (label.toLowerCase().includes(normalizedQuery)) {
+      results.push({ address, label, isKnown: false });
+    }
+  }
+
+  return results;
+}

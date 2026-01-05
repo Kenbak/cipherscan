@@ -535,4 +535,3 @@ router.get('/api/mempool', async (req, res) => {
 });
 
 module.exports = router;
-
