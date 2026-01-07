@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { AddressLabel } from '@/components/AddressLabel';
+import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
@@ -424,21 +425,58 @@ export default function AddressPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-2">
-          <h1 className="text-3xl font-bold text-primary">Address Details</h1>
-          {/* Type Badge */}
-          <span className={`px-3 py-1 bg-${typeInfo.color}-500/10 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400 text-sm rounded font-mono flex items-center gap-2`}>
-            <Icons.Shield />
-          {typeInfo.label}
-        </span>
-      </div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-primary">Address Details</h1>
+            {/* Type Badge */}
+            <span className={`px-3 py-1 bg-${typeInfo.color}-500/10 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400 text-sm rounded font-mono flex items-center gap-2`}>
+              <Icons.Shield />
+              {typeInfo.label}
+            </span>
+          </div>
+
+          {/* Export Button - Right aligned */}
+          <ExportButton
+            data={{
+              address: data.address,
+              balance: data.balance,
+              type: data.type,
+              transactionCount: data.transactionCount,
+              transactions: data.transactions.map((tx: Transaction) => ({
+                txid: tx.txid,
+                blockHeight: tx.blockHeight,
+                timestamp: tx.timestamp,
+                type: tx.type,
+                amount: tx.amount,
+                from: tx.from || null,
+                to: tx.to || null,
+                isCoinbase: tx.isCoinbase || false,
+                isShielded: tx.isShielded || false,
+                isShielding: tx.isShielding || false,
+                isDeshielding: tx.isDeshielding || false
+              }))
+            }}
+            csvData={data.transactions}
+            filename={`address-${address.slice(0, 12)}`}
+            type="both"
+            label="Export"
+            csvHeaders={['TXID', 'Block', 'Timestamp', 'Type', 'Amount (ZEC)']}
+            csvMapper={(tx: Transaction) => [
+              tx.txid,
+              String(tx.blockHeight || ''),
+              new Date(tx.timestamp * 1000).toISOString(),
+              tx.type,
+              tx.amount.toFixed(8)
+            ]}
+          />
+        </div>
 
         {/* Address with copy button */}
         <div className="flex flex-wrap items-center gap-2 mt-4">
           <code className="text-sm text-secondary break-all">{address}</code>
           <CopyButton text={address} label="address" />
         </div>
-        
+
         {/* Address Label */}
         <div className="mt-3">
           <AddressLabel address={address} />

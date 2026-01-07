@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
+import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
@@ -476,8 +477,9 @@ export default function TransactionPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-primary">Transaction Details</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-primary">Transaction Details</h1>
           {/* Type Badge */}
           {txType === 'COINBASE' && (
             <span className="px-2 md:px-3 py-1 bg-cipher-green/10 text-cipher-green text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
@@ -509,6 +511,46 @@ export default function TransactionPage() {
               MIXED
             </span>
           )}
+          </div>
+
+          {/* Export Button - Right aligned */}
+          <ExportButton
+            data={{
+              txid: data.txid,
+              blockHeight: data.blockHeight,
+              blockHash: data.blockHash,
+              timestamp: data.timestamp,
+              confirmations: data.confirmations,
+              fee: data.fee,
+              size: data.size,
+              version: data.version,
+              locktime: data.locktime,
+              totalInput: data.totalInput,
+              totalOutput: data.totalOutput,
+              shieldedSpends: data.shieldedSpends,
+              shieldedOutputs: data.shieldedOutputs,
+              orchardActions: data.orchardActions,
+              valueBalanceSapling: data.valueBalanceSapling,
+              valueBalanceOrchard: data.valueBalanceOrchard,
+              bindingSigSapling: data.bindingSigSapling,
+              inputs: data.inputs.map((i: any) => ({
+                address: i.address || 'shielded',
+                value: i.value,
+                coinbase: i.coinbase || false,
+                prevTxid: i.txid,
+                prevVout: i.vout
+              })),
+              outputs: data.outputs.map((o: any) => ({
+                address: o.scriptPubKey?.addresses?.[0] || 'shielded',
+                value: o.value,
+                index: o.n,
+                spent: o.spent || false
+              }))
+            }}
+            filename={`tx-${data.txid.slice(0, 16)}`}
+            type="json"
+            label="Export"
+          />
         </div>
 
         {/* Transaction Summary - hide for SHIELDING/UNSHIELDING (Privacy Alert handles it) */}

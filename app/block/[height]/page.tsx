@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
+import { ExportButton } from '@/components/ExportButton';
 import { formatRelativeTime, formatDate } from '@/lib/utils';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -289,38 +290,82 @@ export default function BlockPage() {
           <Icons.Cube />
           <h1 className="text-base md:text-lg font-semibold">Block</h1>
         </div>
-        <div className="flex items-center space-x-3">
-          <Link
-            href={`/block/${data.height - 1}`}
-            className={`p-1.5 rounded transition-colors ${
-              data.previousBlockHash
-                ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                : 'text-muted cursor-not-allowed'
-            }`}
-            title="Previous Block"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Link
+              href={`/block/${data.height - 1}`}
+              className={`p-1.5 rounded transition-colors ${
+                data.previousBlockHash
+                  ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
+                  : 'text-muted cursor-not-allowed'
+              }`}
+              title="Previous Block"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
 
-          <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
-            #{data.height.toLocaleString()}
-          </span>
+            <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
+              #{data.height.toLocaleString()}
+            </span>
 
-          <Link
-            href={`/block/${data.height + 1}`}
-            className={`p-1.5 rounded transition-colors ${
-              data.nextBlockHash
-                ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                : 'text-muted cursor-not-allowed'
-            }`}
-            title="Next Block"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+            <Link
+              href={`/block/${data.height + 1}`}
+              className={`p-1.5 rounded transition-colors ${
+                data.nextBlockHash
+                  ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
+                  : 'text-muted cursor-not-allowed'
+              }`}
+              title="Next Block"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Export Button - Right aligned */}
+          <ExportButton
+            data={{
+              height: data.height,
+              hash: data.hash,
+              timestamp: data.timestamp,
+              transactionCount: data.transactionCount,
+              size: data.size,
+              difficulty: data.difficulty,
+              confirmations: data.confirmations,
+              previousBlockHash: data.previousBlockHash,
+              nextBlockHash: data.nextBlockHash,
+              version: data.version,
+              merkleRoot: data.merkleRoot,
+              finalSaplingRoot: data.finalSaplingRoot,
+              bits: data.bits,
+              nonce: data.nonce,
+              solution: data.solution,
+              totalFees: data.totalFees,
+              minerAddress: data.minerAddress,
+              transactions: data.transactions?.map((tx: any) => ({
+                txid: tx.txid,
+                type: tx.vin?.[0]?.coinbase ? 'coinbase' : tx.hasShieldedActivity ? 'shielded' : 'regular',
+                inputs: tx.vin?.length || 0,
+                outputs: tx.vout?.length || 0,
+                amount: tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0) || 0
+              }))
+            }}
+            csvData={data.transactions}
+            filename={`block-${data.height}`}
+            type="both"
+            label="Export"
+            csvHeaders={['TXID', 'Type', 'Inputs', 'Outputs', 'Amount (ZEC)']}
+            csvMapper={(tx: any) => [
+              tx.txid,
+              tx.vin?.[0]?.coinbase ? 'Coinbase' : tx.hasShieldedActivity ? 'Shielded' : 'Regular',
+              String(tx.vin?.length || 0),
+              String(tx.vout?.length || 0),
+              tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0).toFixed(8) || '0'
+            ]}
+          />
         </div>
       </div>
 
