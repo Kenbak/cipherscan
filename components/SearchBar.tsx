@@ -12,7 +12,7 @@ interface SearchBarProps {
 interface LabelSuggestion {
   address: string;
   label: string;
-  isKnown: boolean;
+  isOfficial: boolean;
 }
 
 export function SearchBar({ compact = false }: SearchBarProps) {
@@ -142,11 +142,11 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             }`}
           >
             <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-              suggestion.isKnown
+              suggestion.isOfficial
                 ? 'bg-cipher-cyan/20 text-cipher-cyan'
                 : 'bg-cipher-purple/20 text-cipher-purple'
             }`}>
-              {suggestion.isKnown ? '🏛️' : '👤'}
+              {suggestion.isOfficial ? '🏛️' : '👤'}
             </span>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate suggestion-label">{suggestion.label}</div>
