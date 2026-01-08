@@ -61,6 +61,8 @@ export function NavBar() {
               alt="CipherScan Logo"
               width={32}
               height={32}
+              quality={100}
+              unoptimized
               className="transition-transform group-hover:scale-110 sm:w-10 sm:h-10"
             />
             <div>

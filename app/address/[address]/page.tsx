@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { AddressLabel } from '@/components/AddressLabel';
+import { AddressDisplay } from '@/components/AddressWithLabel';
 import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -695,16 +696,12 @@ export default function AddressPage() {
                               Shielded
                             </span>
                             <span className="text-muted">→</span>
-                            <span className="truncate" title={address}>
-                              {address.slice(0, 6)}...{address.slice(-4)}
-                            </span>
+                            <AddressDisplay address={address} className="text-xs truncate" />
                           </>
                         ) : tx.isShielding ? (
                           <>
                             {/* Shielding: From transparent (visible), To shielded */}
-                            <span className="truncate" title={address}>
-                              {address.slice(0, 6)}...{address.slice(-4)}
-                            </span>
+                            <AddressDisplay address={address} className="text-xs truncate" />
                             <span className="text-muted">→</span>
                             <span className="text-purple-400 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -727,22 +724,12 @@ export default function AddressPage() {
                           <>
                             <span className="text-muted italic">Block Reward</span>
                             <span className="text-muted">→</span>
-                            {tx.to ? (
-                              <span className="truncate" title={tx.to}>
-                                {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-                              </span>
-                            ) : (
-                              <span className="truncate" title={address}>
-                                {address.slice(0, 6)}...{address.slice(-4)}
-                              </span>
-                            )}
+                            <AddressDisplay address={tx.to || address} className="text-xs truncate" />
                           </>
                         ) : (
                           <>
                             {tx.from ? (
-                              <span className="truncate" title={tx.from}>
-                                {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-                              </span>
+                              <AddressDisplay address={tx.from} className="text-xs truncate" />
                             ) : (
                               <span className="text-purple-400 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,9 +740,7 @@ export default function AddressPage() {
                             )}
                             <span className="text-muted">→</span>
                             {tx.to ? (
-                              <span className="truncate" title={tx.to}>
-                                {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-                              </span>
+                              <AddressDisplay address={tx.to} className="text-xs truncate" />
                             ) : (
                               <span className="text-purple-400 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

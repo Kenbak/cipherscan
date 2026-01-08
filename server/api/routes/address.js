@@ -2,6 +2,8 @@
  * Address Routes
  *
  * Handles address-related endpoints:
+ * - GET /api/labels - Get all official address labels
+ * - GET /api/label/:address - Get label for a specific address
  * - GET /api/address/:address - Get address details and transactions
  */
 
@@ -15,6 +17,69 @@ let pool;
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   next();
+});
+
+/**
+ * GET /api/labels
+ * Get all official address labels from the database
+ */
+router.get('/api/labels', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT address, label, category, description, verified, logo_url
+       FROM address_labels
+       ORDER BY category, label`
+    );
+
+    res.json({
+      labels: result.rows.map(row => ({
+        address: row.address,
+        label: row.label,
+        category: row.category,
+        description: row.description,
+        verified: row.verified,
+        logoUrl: row.logo_url,
+      })),
+      count: result.rows.length,
+    });
+  } catch (error) {
+    console.error('Error fetching labels:', error);
+    res.status(500).json({ error: 'Failed to fetch labels', labels: [] });
+  }
+});
+
+/**
+ * GET /api/label/:address
+ * Get label for a specific address
+ */
+router.get('/api/label/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+
+    const result = await pool.query(
+      `SELECT address, label, category, description, verified, logo_url
+       FROM address_labels
+       WHERE address = $1`,
+      [address]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ label: null });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      address: row.address,
+      label: row.label,
+      category: row.category,
+      description: row.description,
+      verified: row.verified,
+      logoUrl: row.logo_url,
+    });
+  } catch (error) {
+    console.error('Error fetching label:', error);
+    res.status(500).json({ error: 'Failed to fetch label', label: null });
+  }
 });
 
 /**

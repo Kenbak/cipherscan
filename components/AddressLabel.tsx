@@ -10,7 +10,7 @@ interface AddressLabelProps {
 }
 
 export function AddressLabel({ address, showEditButton = true, className = '' }: AddressLabelProps) {
-  const [labelInfo, setLabelInfo] = useState<{ label: string; isKnown: boolean; description?: string; type?: string } | null>(null);
+  const [labelInfo, setLabelInfo] = useState<{ label: string; isOfficial: boolean; description?: string; category?: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
 
@@ -82,11 +82,13 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
 
   // Display mode with label
   if (labelInfo) {
-    const bgColor = labelInfo.isKnown
-      ? labelInfo.type === 'foundation'
+    const bgColor = labelInfo.isOfficial
+      ? labelInfo.category === 'foundation'
         ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-        : labelInfo.type === 'exchange'
+        : labelInfo.category === 'exchange'
         ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+        : labelInfo.category === 'mining'
+        ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
         : 'bg-cipher-cyan/20 border-cipher-cyan/50 text-cipher-cyan'
       : 'bg-gray-500/20 border-gray-500/50 text-gray-300';
 
@@ -96,14 +98,14 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
           className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono rounded border ${bgColor}`}
           title={labelInfo.description}
         >
-          {labelInfo.isKnown && (
+          {labelInfo.isOfficial && (
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           )}
           {labelInfo.label}
         </span>
-        {showEditButton && !labelInfo.isKnown && (
+        {showEditButton && !labelInfo.isOfficial && (
           <button
             onClick={handleRemove}
             className="text-gray-500 hover:text-red-400 transition-colors"

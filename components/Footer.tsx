@@ -21,6 +21,8 @@ export function Footer() {
                 alt="CipherScan Logo"
                 width={28}
                 height={28}
+                quality={100}
+                unoptimized
                 className="sm:w-8 sm:h-8"
               />
               <span className="font-mono text-base sm:text-xl font-bold text-cipher-cyan">CIPHERSCAN</span>

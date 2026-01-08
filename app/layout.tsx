@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export const metadata: Metadata = {
 function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <MaintenanceBanner />
       <NavBar />
       <main className="min-h-screen">{children}</main>
       <Footer />

@@ -8,6 +8,7 @@ import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
+import { AddressWithLabel } from '@/components/AddressWithLabel';
 
 interface TransactionData {
   txid: string;
@@ -320,9 +321,7 @@ export default function TransactionPage() {
         return (
           <>
             New coins minted via <span className="text-cipher-green font-semibold">block reward</span> to{' '}
-            <Link href={`/address/${recipient}`} className="text-cipher-cyan hover:underline font-mono">
-              {recipient.slice(0, 8)}...{recipient.slice(-6)}
-            </Link>
+            <AddressWithLabel address={recipient} />
           </>
         );
       }
@@ -417,15 +416,11 @@ export default function TransactionPage() {
 
       return (
         <>
-          <Link href={`/address/${fromAddr}`} className="text-cipher-cyan hover:underline font-mono">
-            {fromAddr.slice(0, 8)}...{fromAddr.slice(-6)}
-          </Link>
+          <AddressWithLabel address={fromAddr} />
           {' sent '}
           <span className="text-white font-semibold">{primaryAmount.toFixed(4)} {CURRENCY}</span>
           {' to '}
-          <Link href={`/address/${primaryAddr || toAddr}`} className="text-cipher-cyan hover:underline font-mono">
-            {(primaryAddr || toAddr).slice(0, 8)}...{(primaryAddr || toAddr).slice(-6)}
-          </Link>
+          <AddressWithLabel address={primaryAddr || toAddr} />
           {otherRecipients > 0 && (
             <span className="text-muted">
               {' '}+ {otherRecipients} other recipient{otherRecipients > 1 ? 's' : ''}

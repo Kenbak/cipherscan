@@ -1,26 +1,59 @@
 /**
  * Address Labels System
  *
- * Known addresses are hardcoded (official Zcash addresses)
+ * Official labels are fetched from the database via API
  * Custom labels are stored in localStorage (user's browser)
  */
 
-// Known addresses with official labels
-export const KNOWN_ADDRESSES: Record<string, { label: string; description?: string; type?: 'foundation' | 'exchange' | 'mining' | 'other' }> = {
-  // Zcash Foundation / Lockbox
-  't3ev37Q2uL1sfTsiJQJiWJoFzQpDhmnUwYo': {
-    label: 'Coinholder Fund Lockbox',
-    description: 'Zcash Community Grants funding lockbox',
-    type: 'foundation',
-  },
+// Cache for official labels from API
+let officialLabelsCache: Record<string, { label: string; description?: string; category?: string }> = {};
+let labelsCacheExpiry = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  // Add more known addresses here as needed
-  // Examples:
-  // 't3XyYW8yBFRuMnfvm5KLGFbEVz25kckZXym': {
-  //   label: 'Zcash Foundation',
-  //   type: 'foundation',
-  // },
-};
+/**
+ * Fetch official labels from the API
+ */
+export async function fetchOfficialLabels(): Promise<Record<string, { label: string; description?: string; category?: string }>> {
+  // Return cache if still valid
+  if (Date.now() < labelsCacheExpiry && Object.keys(officialLabelsCache).length > 0) {
+    return officialLabelsCache;
+  }
+
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.mainnet.cipherscan.app';
+    const response = await fetch(`${apiUrl}/api/labels`);
+
+    if (!response.ok) {
+      console.warn('Failed to fetch official labels');
+      return officialLabelsCache;
+    }
+
+    const data = await response.json();
+
+    // Convert array to Record
+    officialLabelsCache = {};
+    for (const item of data.labels || []) {
+      officialLabelsCache[item.address] = {
+        label: item.label,
+        description: item.description,
+        category: item.category,
+      };
+    }
+
+    labelsCacheExpiry = Date.now() + CACHE_DURATION;
+    return officialLabelsCache;
+  } catch (error) {
+    console.warn('Error fetching official labels:', error);
+    return officialLabelsCache;
+  }
+}
+
+/**
+ * Get cached official labels (synchronous, returns what's in cache)
+ */
+export function getOfficialLabels(): Record<string, { label: string; description?: string; category?: string }> {
+  return officialLabelsCache;
+}
 
 // localStorage key for custom labels
 const CUSTOM_LABELS_KEY = 'zcash-explorer-address-labels';
@@ -65,17 +98,17 @@ export function removeCustomLabel(address: string): void {
 }
 
 /**
- * Get label for an address (checks known first, then custom)
+ * Get label for an address (checks official first, then custom)
  */
-export function getAddressLabel(address: string): { label: string; isKnown: boolean; description?: string; type?: string } | null {
-  // Check known addresses first
-  const known = KNOWN_ADDRESSES[address];
-  if (known) {
+export function getAddressLabel(address: string): { label: string; isOfficial: boolean; description?: string; category?: string } | null {
+  // Check official labels first (from cache)
+  const official = officialLabelsCache[address];
+  if (official) {
     return {
-      label: known.label,
-      isKnown: true,
-      description: known.description,
-      type: known.type,
+      label: official.label,
+      isOfficial: true,
+      description: official.description,
+      category: official.category,
     };
   }
 
@@ -85,7 +118,7 @@ export function getAddressLabel(address: string): { label: string; isKnown: bool
   if (customLabel) {
     return {
       label: customLabel,
-      isKnown: false,
+      isOfficial: false,
     };
   }
 
@@ -109,8 +142,8 @@ export function findAddressByLabel(searchQuery: string): string | null {
 
   if (!normalizedQuery) return null;
 
-  // Search in known addresses first
-  for (const [address, info] of Object.entries(KNOWN_ADDRESSES)) {
+  // Search in official labels first
+  for (const [address, info] of Object.entries(officialLabelsCache)) {
     if (info.label.toLowerCase().includes(normalizedQuery)) {
       return address;
     }
@@ -133,17 +166,17 @@ export function findAddressByLabel(searchQuery: string): string | null {
 /**
  * Get all addresses matching a label search (for autocomplete)
  */
-export function searchAddressesByLabel(searchQuery: string): Array<{ address: string; label: string; isKnown: boolean }> {
+export function searchAddressesByLabel(searchQuery: string): Array<{ address: string; label: string; isOfficial: boolean }> {
   const normalizedQuery = searchQuery.toLowerCase().trim();
-  const results: Array<{ address: string; label: string; isKnown: boolean }> = [];
+  const results: Array<{ address: string; label: string; isOfficial: boolean }> = [];
 
   if (!normalizedQuery) return results;
 
-  // Search in known addresses
-  for (const [address, info] of Object.entries(KNOWN_ADDRESSES)) {
+  // Search in official labels
+  for (const [address, info] of Object.entries(officialLabelsCache)) {
     if (info.label.toLowerCase().includes(normalizedQuery) ||
         info.description?.toLowerCase().includes(normalizedQuery)) {
-      results.push({ address, label: info.label, isKnown: true });
+      results.push({ address, label: info.label, isOfficial: true });
     }
   }
 
@@ -151,7 +184,7 @@ export function searchAddressesByLabel(searchQuery: string): Array<{ address: st
   const customLabels = getCustomLabels();
   for (const [address, label] of Object.entries(customLabels)) {
     if (label.toLowerCase().includes(normalizedQuery)) {
-      results.push({ address, label, isKnown: false });
+      results.push({ address, label, isOfficial: false });
     }
   }
 

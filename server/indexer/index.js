@@ -587,7 +587,7 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
             txid, vout_index, prev_txid, prev_vout,
             script_sig, sequence, address, value
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          ON CONFLICT DO NOTHING
+          ON CONFLICT (txid, vout_index) DO NOTHING
         `, [
           txid,
           i,
@@ -616,7 +616,7 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
           INSERT INTO transaction_outputs (
             txid, vout_index, value, script_pubkey, address, spent
           ) VALUES ($1, $2, $3, $4, $5, false)
-          ON CONFLICT DO NOTHING
+          ON CONFLICT (txid, vout_index) DO NOTHING
         `, [
           txid,
           i,
