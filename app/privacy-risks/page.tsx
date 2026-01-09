@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -54,15 +56,12 @@ export default function PrivacyRisksPage() {
 function PrivacyRisksLoading() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-700 rounded w-1/3 mb-4"></div>
-        <div className="h-4 bg-gray-700 rounded w-2/3 mb-8"></div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 bg-gray-700 rounded"></div>
-          ))}
-        </div>
-      </div>
+      <Card>
+        <CardBody className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-red-400 border-t-transparent"></div>
+          <p className="text-secondary ml-4 font-mono">Scanning for privacy risks...</p>
+        </CardBody>
+      </Card>
     </div>
   );
 }
@@ -165,87 +164,95 @@ function PrivacyRisksContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-primary">
-            Privacy Risks
-          </h1>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-500 dark:text-muted font-mono">LIVE</span>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+                Privacy Risks
+              </h1>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <Badge color="orange">LIVE</Badge>
+              </div>
+            </div>
+            <p className="text-sm text-secondary mt-1">
+              Transactions where shielding patterns could reveal address ownership.
+            </p>
           </div>
         </div>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-secondary">
-          Transactions where shielding patterns could reveal address ownership.
-        </p>
       </div>
 
       {/* Educational Section - Combined */}
-      <div className="mb-6 sm:mb-8 p-4 sm:p-5 rounded-xl bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20">
-        <h2 className="text-xs sm:text-sm font-semibold text-purple-700 dark:text-purple-400 mb-3 sm:mb-4 flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          How to protect your privacy
-        </h2>
+      <Card className="mb-8 border-purple-500/20">
+        <CardBody>
+          <h2 className="text-sm font-semibold text-purple-400 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            How to protect your privacy
+          </h2>
 
-        {/* Tips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm mb-4">
-          <div>
-            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">1. Common amounts</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
-              Shield popular amounts to blend in.
-            </p>
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">2. ZODL</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
-              Wait in the shielded pool.
-            </p>
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">3. Vary amounts</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
-              Withdraw different amount.
-            </p>
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">4. Stay shielded</div>
-            <p className="text-gray-600 dark:text-secondary text-xs mt-1 hidden sm:block">
-              Avoid transparent addresses.
-            </p>
-          </div>
-        </div>
-
-        {/* Common Amounts */}
-        {commonAmounts.length > 0 && (
-          <div className="pt-3 sm:pt-4 border-t border-purple-200 dark:border-purple-500/20">
-            <div className="text-xs text-gray-600 dark:text-secondary mb-2 sm:mb-3">
-              <span className="font-medium text-purple-700 dark:text-purple-400">Popular amounts ({periodFilter}):</span>
-              <span className="hidden sm:inline"> Use these to blend in</span>
+          {/* Tips */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
+            <div className="p-3 rounded-lg bg-cipher-surface">
+              <div className="font-medium text-primary text-sm mb-1">1. Common amounts</div>
+              <p className="text-muted text-xs hidden sm:block">
+                Shield popular amounts to blend in.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {commonAmounts.map((amount, i) => (
-                <div
-                  key={i}
-                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-white dark:bg-cipher-surface border border-purple-200 dark:border-purple-500/20 flex items-center gap-1 sm:gap-2"
-                >
-                  <span className="font-mono font-medium text-gray-900 dark:text-primary text-xs sm:text-sm">
-                    {amount.amountZec.toFixed(2)} ZEC
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-muted hidden sm:inline">
-                    ({amount.percentage}%)
-                  </span>
-                </div>
-              ))}
+            <div className="p-3 rounded-lg bg-cipher-surface">
+              <div className="font-medium text-primary text-sm mb-1">2. ZODL</div>
+              <p className="text-muted text-xs hidden sm:block">
+                Wait in the shielded pool.
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-cipher-surface">
+              <div className="font-medium text-primary text-sm mb-1">3. Vary amounts</div>
+              <p className="text-muted text-xs hidden sm:block">
+                Withdraw different amount.
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-cipher-surface">
+              <div className="font-medium text-primary text-sm mb-1">4. Stay shielded</div>
+              <p className="text-muted text-xs hidden sm:block">
+                Avoid transparent addresses.
+              </p>
             </div>
           </div>
-        )}
 
-        <p className="text-xs text-gray-500 dark:text-muted mt-4 pt-3 border-t border-purple-200 dark:border-purple-500/20">
-          ⚠️ These results are based on heuristics (amount + timing). They indicate <em>potential</em> links, not proof.
-        </p>
-      </div>
+          {/* Common Amounts */}
+          {commonAmounts.length > 0 && (
+            <div className="pt-4 border-t border-cipher-border">
+              <div className="text-xs text-secondary mb-3 flex items-center gap-2">
+                <span className="font-medium text-purple-400">Popular amounts ({periodFilter}):</span>
+                <span className="hidden sm:inline text-muted">Use these to blend in</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {commonAmounts.map((amount, i) => (
+                  <Badge key={i} color="purple" className="text-sm py-1.5 px-3">
+                    <span className="font-mono font-medium">
+                      {amount.amountZec.toFixed(2)} ZEC
+                    </span>
+                    <span className="text-purple-300 ml-2 hidden sm:inline">
+                      ({amount.percentage}%)
+                    </span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-muted mt-5 pt-4 border-t border-cipher-border">
+            ⚠️ These results are based on heuristics (amount + timing). They indicate <em>potential</em> links, not proof.
+          </p>
+        </CardBody>
+      </Card>
 
       {/* Filters - Mobile Friendly */}
       <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-6">
@@ -318,20 +325,26 @@ function PrivacyRisksContent() {
       {/* Transaction Feed */}
       <div className="space-y-4 mb-12">
         {loading ? (
-          <div className="py-16 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-4"></div>
-            <p className="text-gray-500 dark:text-muted">Loading...</p>
-          </div>
+          <Card>
+            <CardBody className="py-16 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-400 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-muted">Loading...</p>
+            </CardBody>
+          </Card>
         ) : error ? (
-          <div className="py-16 text-center">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
-          </div>
+          <Card>
+            <CardBody className="py-16 text-center">
+              <p className="text-red-400">{error}</p>
+            </CardBody>
+          </Card>
         ) : transactions.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="text-4xl mb-4">🛡️</div>
-            <p className="text-gray-600 dark:text-secondary">No risky transactions detected.</p>
-            <p className="text-sm text-gray-500 dark:text-muted mt-2">Try a longer time period.</p>
-          </div>
+          <Card>
+            <CardBody className="py-16 text-center">
+              <div className="text-5xl mb-4">🛡️</div>
+              <p className="text-secondary text-lg">No risky transactions detected.</p>
+              <p className="text-sm text-muted mt-2">Try a longer time period.</p>
+            </CardBody>
+          </Card>
         ) : (
           <>
             {transactions.map((tx, index) => (
@@ -344,7 +357,7 @@ function PrivacyRisksContent() {
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-gray-100 dark:bg-cipher-surface hover:bg-gray-200 dark:hover:bg-cipher-surface/80 text-gray-700 dark:text-secondary rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-6 py-3 bg-cipher-surface hover:bg-cipher-hover text-secondary rounded-xl font-medium transition-colors disabled:opacity-50 border border-cipher-border"
                 >
                   {loadingMore ? 'Loading...' : 'Load More'}
                 </button>
@@ -353,7 +366,7 @@ function PrivacyRisksContent() {
 
             {/* Showing count */}
             {stats && (
-              <p className="text-center text-sm text-gray-500 dark:text-muted pt-2">
+              <p className="text-center text-sm text-muted pt-2">
                 Showing {transactions.length} of {stats.total}
               </p>
             )}
@@ -362,10 +375,10 @@ function PrivacyRisksContent() {
       </div>
 
       {/* Back Link */}
-      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-cipher-border">
+      <div className="mt-6 pt-6 border-t border-cipher-border">
         <Link
           href="/privacy"
-          className="text-gray-500 dark:text-muted hover:text-gray-700 dark:hover:text-secondary text-sm"
+          className="text-muted hover:text-cipher-cyan text-sm font-mono transition-colors"
         >
           ← Back to Privacy Metrics
         </Link>

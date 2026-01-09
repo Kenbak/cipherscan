@@ -9,6 +9,8 @@ import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Cartesia
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -158,8 +160,13 @@ export default function PrivacyPage() {
   if (loading) {
     return (
       <div className="min-h-screen py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="text-2xl text-primary">Loading privacy statistics...</div>
+        <div className="max-w-7xl mx-auto">
+          <Card>
+            <CardBody className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-400 border-t-transparent"></div>
+              <p className="text-secondary ml-4 font-mono">Loading privacy statistics...</p>
+            </CardBody>
+          </Card>
         </div>
       </div>
     );
@@ -169,16 +176,18 @@ export default function PrivacyPage() {
     return (
       <div className="min-h-screen py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="card text-center">
-            <div className="text-5xl mb-4">🛡️</div>
-            <h1 className="text-2xl font-bold mb-4 text-primary">Privacy Stats Unavailable</h1>
-            <p className="text-secondary mb-6">
-              {error || 'Privacy statistics are being calculated. Check back soon!'}
-            </p>
-            <Link href="/" className="text-cipher-cyan hover:underline">
-              ← Back to Explorer
-            </Link>
-          </div>
+          <Card className="text-center">
+            <CardBody className="py-16">
+              <div className="text-6xl mb-6">🛡️</div>
+              <h1 className="text-2xl font-bold mb-4 text-primary">Privacy Stats Unavailable</h1>
+              <p className="text-secondary mb-6">
+                {error || 'Privacy statistics are being calculated. Check back soon!'}
+              </p>
+              <Link href="/" className="text-cipher-cyan hover:underline font-mono">
+                ← Back to Explorer
+              </Link>
+            </CardBody>
+          </Card>
         </div>
       </div>
     );
@@ -216,22 +225,24 @@ export default function PrivacyPage() {
         </div>
 
         {/* Privacy Score + Recent Shielded Activity - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
             {/* Privacy Score */}
-            <div className="card gradient-card-purple border-2">
-              <div className="text-center py-6">
-                <div className="flex items-center justify-center gap-2 mb-4 text-purple-400">
-                  <Icons.Shield />
+            <Card variant="featured" className="border-purple-500/30">
+              <CardBody className="text-center py-8">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                    <Icons.Shield />
+                  </div>
                   <h2 className="text-xl font-bold text-purple-400">Privacy Score</h2>
                   <Tooltip content="Overall privacy health metric (0-100) based on shielded adoption, fully shielded ratio, and pool size." />
                 </div>
 
-                <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <div className="text-7xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   {stats.metrics.privacyScore}
-                  <span className="text-2xl text-muted">/100</span>
+                  <span className="text-3xl text-muted">/100</span>
                 </div>
 
                 {/* Progress Bar */}
@@ -244,128 +255,153 @@ export default function PrivacyPage() {
                   </div>
                 </div>
 
-                <p className="text-sm text-secondary max-w-md mx-auto px-4">
+                <p className="text-sm text-muted max-w-md mx-auto">
                   Shielded Tx Adoption (40%), Fully Shielded Ratio (40%), Pool Size (20%)
                 </p>
-              </div>
-            </div>
+              </CardBody>
+            </Card>
 
             {/* Key Metrics 2x2 Grid */}
             <div className="grid grid-cols-2 gap-4">
               {/* Shielded Percentage */}
-              <div className="card gradient-card-purple-subtle">
-                <div className="flex items-center gap-2 mb-2 text-purple-400">
-                  <Icons.Lock />
-                  <h3 className="text-xs font-semibold text-secondary uppercase">Shielded Tx %</h3>
-                </div>
-                <div className="text-2xl font-bold text-purple-400">
-                  {stats.metrics.shieldedPercentage.toFixed(1)}%
-                </div>
-                <p className="text-xs text-muted mt-1">
-                  {stats.totals.shieldedTx.toLocaleString()} txs
-                </p>
-              </div>
+              <Card variant="compact">
+                <CardBody>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                      <Icons.Lock />
+                    </div>
+                    <h3 className="text-xs font-semibold text-secondary uppercase">Shielded Tx %</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {stats.metrics.shieldedPercentage.toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    {stats.totals.shieldedTx.toLocaleString()} txs
+                  </p>
+                </CardBody>
+              </Card>
 
               {/* Supply Shielded % */}
-              <div className="card gradient-card-purple-subtle">
-                <div className="flex items-center gap-2 mb-2 text-cipher-cyan">
-                  <Icons.Shield />
-                  <h3 className="text-xs font-semibold text-secondary uppercase">Supply Shielded</h3>
-                </div>
-                <div className="text-2xl font-bold text-cipher-cyan">
-                  {stats.shieldedPool.chainSupply
-                    ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
-                    : '—'}%
-                </div>
-                <p className="text-xs text-muted mt-1">
-                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '—'}M
-                </p>
-              </div>
+              <Card variant="compact">
+                <CardBody>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-cipher-cyan/10 flex items-center justify-center text-cipher-cyan">
+                      <Icons.Shield />
+                    </div>
+                    <h3 className="text-xs font-semibold text-secondary uppercase">Supply Shielded</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-cipher-cyan">
+                    {stats.shieldedPool.chainSupply
+                      ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
+                      : '—'}%
+                  </div>
+                  <p className="text-xs text-muted mt-1">
+                    {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '—'}M
+                  </p>
+                </CardBody>
+              </Card>
 
               {/* Adoption Trend */}
-              <div className="card gradient-card-purple-subtle">
-                <div className="flex items-center gap-2 mb-2">
-                  {trendIcon}
-                  <h3 className="text-xs font-semibold text-secondary uppercase">Adoption Trend</h3>
-                </div>
-                <div className={`text-2xl font-bold capitalize ${trendColor}`}>
-                  {stats.metrics.adoptionTrend}
-                </div>
-                <p className="text-xs text-muted mt-1">7d avg</p>
-              </div>
+              <Card variant="compact">
+                <CardBody>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      stats.metrics.adoptionTrend === 'growing' ? 'bg-cipher-green/10 text-cipher-green' :
+                      stats.metrics.adoptionTrend === 'declining' ? 'bg-red-500/10 text-red-400' :
+                      'bg-cipher-surface text-secondary'
+                    }`}>
+                      {trendIcon}
+                    </div>
+                    <h3 className="text-xs font-semibold text-secondary uppercase">Adoption Trend</h3>
+                  </div>
+                  <div className={`text-2xl font-bold capitalize ${trendColor}`}>
+                    {stats.metrics.adoptionTrend}
+                  </div>
+                  <p className="text-xs text-muted mt-1">7d avg</p>
+                </CardBody>
+              </Card>
 
               {/* Fully Shielded */}
-              <div className="card gradient-card-purple-subtle">
-                <div className="flex items-center gap-2 mb-2 text-cipher-green">
-                  <Icons.Eye />
-                  <h3 className="text-xs font-semibold text-secondary uppercase">Fully Shielded</h3>
-                </div>
-                <div className="text-2xl font-bold text-cipher-green">
-                  {stats.totals.fullyShieldedTx.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted mt-1">100% private</p>
-              </div>
+              <Card variant="compact">
+                <CardBody>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-cipher-green/10 flex items-center justify-center text-cipher-green">
+                      <Icons.Eye />
+                    </div>
+                    <h3 className="text-xs font-semibold text-secondary uppercase">Fully Shielded</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-cipher-green">
+                    {stats.totals.fullyShieldedTx.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted mt-1">100% private</p>
+                </CardBody>
+              </Card>
             </div>
 
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
-          <div className="card gradient-card-purple border-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold font-mono text-purple-400 flex items-center gap-2">
-                <Icons.Lock />
-                Recent Shielded TXs
-              </h2>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-muted font-mono">LIVE</span>
+          <Card variant="featured" className="border-purple-500/30">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                  <Icons.Lock />
+                </div>
+                <h2 className="text-xl font-bold font-mono text-purple-400">Recent Shielded TXs</h2>
               </div>
-            </div>
-            <p className="text-xs text-secondary mb-4">
-              Latest shielded transactions. Click to view or decrypt.
-            </p>
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <Badge color="purple">LIVE</Badge>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <p className="text-xs text-secondary mb-4">
+                Latest shielded transactions. Click to view or decrypt.
+              </p>
 
-            {/* Show only 3-4 TXs */}
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              <RecentShieldedTxs nested />
-            </div>
+              {/* Show only 3-4 TXs */}
+              <div className="space-y-3 max-h-[350px] overflow-y-auto">
+                <RecentShieldedTxs nested />
+              </div>
 
-            <div className="mt-4 pt-4 border-t border-purple-500/20">
-              <Link
-                href="/txs/shielded"
-                className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
-              >
-                View All Shielded Transactions →
-              </Link>
-            </div>
-          </div>
+              <div className="mt-4 pt-4 border-t border-purple-500/20">
+                <Link
+                  href="/txs/shielded"
+                  className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
+                >
+                  View All Shielded Transactions →
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
 
         </div>
 
         {/* Transaction Types + Pool Breakdown - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Transaction Types */}
-          <div className="card">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary">
-              <Icons.Chart />
-              Transaction Types
-            </h2>
-
-            <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cipher-surface flex items-center justify-center text-secondary">
+                  <Icons.Chart />
+                </div>
+                <h2 className="text-lg font-bold text-primary">Transaction Types</h2>
+              </div>
+            </CardHeader>
+            <CardBody className="space-y-5">
               {/* Shielded */}
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-purple-400 font-mono flex items-center gap-2">
+                  <span className="text-purple-400 font-mono flex items-center gap-2 text-sm">
                     <Icons.Lock />
                     Shielded ({stats.totals.shieldedTx.toLocaleString()})
                   </span>
-                  <span className="text-purple-400 font-bold">
-                    {stats.metrics.shieldedPercentage.toFixed(1)}%
-                  </span>
+                  <Badge color="purple">{stats.metrics.shieldedPercentage.toFixed(1)}%</Badge>
                 </div>
                 <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-purple-500"
+                    className="h-full bg-purple-500 transition-all duration-700"
                     style={{ width: `${stats.metrics.shieldedPercentage}%` }}
                   />
                 </div>
@@ -374,47 +410,50 @@ export default function PrivacyPage() {
               {/* Transparent */}
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-secondary font-mono flex items-center gap-2">
+                  <span className="text-secondary font-mono flex items-center gap-2 text-sm">
                     <Icons.Eye />
                     Transparent ({stats.totals.transparentTx.toLocaleString()})
                   </span>
-                  <span className="text-secondary font-bold">
-                    {(100 - stats.metrics.shieldedPercentage).toFixed(1)}%
-                  </span>
+                  <Badge color="muted">{(100 - stats.metrics.shieldedPercentage).toFixed(1)}%</Badge>
                 </div>
                 <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gray-500"
+                    className="h-full bg-gray-500 transition-all duration-700"
                     style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
                   />
                 </div>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
           {/* Shielded Pool Breakdown */}
           {stats.shieldedPool.sapling !== undefined && (
-            <div className="card">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary">
-                <Icons.Shield />
-                Shielded Pool Breakdown
-              </h2>
-
-              <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                    <Icons.Shield />
+                  </div>
+                  <h2 className="text-lg font-bold text-primary">Shielded Pool Breakdown</h2>
+                </div>
+              </CardHeader>
+              <CardBody className="space-y-4">
                 {/* Sapling */}
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-cyan-400 font-mono">Sapling</span>
-                    <span className="text-secondary">
-                      {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
-                      <span className="text-cyan-400 font-bold ml-2">
-                        ({((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                  <div className="flex justify-between mb-2 items-center">
+                    <span className="text-cyan-400 font-mono text-sm">Sapling</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-secondary text-sm">
+                        {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
                       </span>
-                    </span>
+                      <Badge color="cyan">
+                        {((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
                   </div>
                   <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-cyan-500"
+                      className="h-full bg-cyan-500 transition-all duration-700"
                       style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
                     />
                   </div>
@@ -422,18 +461,20 @@ export default function PrivacyPage() {
 
                 {/* Sprout */}
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-amber-400 font-mono">Sprout</span>
-                    <span className="text-secondary">
-                      {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
-                      <span className="text-amber-400 font-bold ml-2">
-                        ({((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                  <div className="flex justify-between mb-2 items-center">
+                    <span className="text-amber-400 font-mono text-sm">Sprout</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-secondary text-sm">
+                        {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
                       </span>
-                    </span>
+                      <Badge color="orange">
+                        {((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
                   </div>
                   <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-amber-500"
+                      className="h-full bg-amber-500 transition-all duration-700"
                       style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
                     />
                   </div>
@@ -441,39 +482,42 @@ export default function PrivacyPage() {
 
                 {/* Orchard */}
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-green-400 font-mono">Orchard</span>
-                    <span className="text-secondary">
-                      {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
-                      <span className="text-green-400 font-bold ml-2">
-                        ({((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%)
+                  <div className="flex justify-between mb-2 items-center">
+                    <span className="text-green-400 font-mono text-sm">Orchard</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-secondary text-sm">
+                        {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
                       </span>
-                    </span>
+                      <Badge color="green">
+                        {((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
                   </div>
                   <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-green-500"
+                      className="h-full bg-green-500 transition-all duration-700"
                       style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-4 border-t border-cipher-border flex justify-between">
-                <span className="text-secondary font-mono">Total Shielded</span>
-                <span className="text-cipher-cyan font-bold">
-                  {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
-                </span>
-              </div>
-            </div>
+                <div className="pt-4 border-t border-cipher-border flex justify-between items-center">
+                  <span className="text-secondary font-mono text-sm">Total Shielded</span>
+                  <span className="text-cipher-cyan font-bold font-mono">
+                    {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
           )}
         </div>
 
         {/* Charts Section with Tabs */}
         {stats.trends.daily.length > 0 && (
-          <div className="card mb-6 sm:mb-8">
+          <Card className="mb-8">
+            <CardBody>
             {/* Tabs */}
-            <div className="flex gap-2 mb-6 border-b border-cipher-border overflow-x-auto">
+            <div className="flex gap-1 mb-6 border-b border-cipher-border overflow-x-auto pb-px">
               <button
                 onClick={() => setActiveTab('adoption')}
                 className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
@@ -751,30 +795,33 @@ export default function PrivacyPage() {
                 </ResponsiveContainer>
               </div>
             )}
-          </div>
+            </CardBody>
+          </Card>
         )}
 
         {/* Info Footer */}
-        <div className="card-glass border-cipher-border/50">
-          <h3 className="text-lg font-bold mb-3 text-primary">About Privacy Metrics</h3>
-          <div className="space-y-2 text-sm text-secondary">
-            <p>
-              <strong className="text-primary">Privacy Score:</strong> A composite metric (0-100) based on transaction privacy adoption,
-              fully shielded usage, and shielded pool size.
-            </p>
-            <p>
-              <strong className="text-primary">Shielded Pool:</strong> Total amount of {CURRENCY} currently in shielded addresses,
-              providing a larger anonymity set.
-            </p>
-            <p>
-              <strong className="text-primary">Adoption Trend:</strong> Compares the last 7 days to the previous 7 days.
-              Growing if +10%, declining if -10%, otherwise stable.
-            </p>
-            <p className="text-xs text-muted mt-4">
-              Stats calculated from {stats.totals.blocks.toLocaleString()} blocks. Updates automatically every 10 blocks.
-            </p>
-          </div>
-        </div>
+        <Card variant="glass">
+          <CardBody>
+            <h3 className="text-lg font-bold mb-4 text-primary">About Privacy Metrics</h3>
+            <div className="space-y-3 text-sm text-secondary">
+              <p>
+                <strong className="text-primary">Privacy Score:</strong> A composite metric (0-100) based on transaction privacy adoption,
+                fully shielded usage, and shielded pool size.
+              </p>
+              <p>
+                <strong className="text-primary">Shielded Pool:</strong> Total amount of {CURRENCY} currently in shielded addresses,
+                providing a larger anonymity set.
+              </p>
+              <p>
+                <strong className="text-primary">Adoption Trend:</strong> Compares the last 7 days to the previous 7 days.
+                Growing if +10%, declining if -10%, otherwise stable.
+              </p>
+              <p className="text-xs text-muted mt-4 pt-4 border-t border-cipher-border">
+                Stats calculated from {stats.totals.blocks.toLocaleString()} blocks. Updates automatically every 10 blocks.
+              </p>
+            </div>
+          </CardBody>
+        </Card>
 
       </div>
     </div>

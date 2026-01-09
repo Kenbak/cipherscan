@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl } from '@/lib/api-config';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 // Format hashrate with appropriate unit (H/s, KH/s, MH/s, GH/s, TH/s)
 function formatHashrate(hashrate: number): string {
@@ -200,12 +202,12 @@ export default function NetworkPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan mb-4"></div>
-            <p className="text-secondary font-mono">Loading network stats...</p>
-          </div>
-        </div>
+        <Card>
+          <CardBody className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
+            <p className="text-secondary ml-4 font-mono">Loading network stats...</p>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -213,17 +215,19 @@ export default function NetworkPage() {
   if (error || !stats) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="card">
-          <div className="text-center py-12">
-            <p className="text-red-600 dark:text-red-400 mb-4">❌ {error || 'Failed to load network data'}</p>
+        <Card className="text-center">
+          <CardBody className="py-16">
+            <div className="text-5xl mb-6">⚠️</div>
+            <h2 className="text-xl font-bold text-primary mb-3">Network Data Unavailable</h2>
+            <p className="text-secondary mb-6">{error || 'Failed to load network data'}</p>
             <button
               onClick={fetchData}
-              className="btn-primary"
+              className="px-6 py-2 bg-cipher-cyan text-cipher-bg font-semibold rounded-lg hover:bg-cipher-green transition-colors"
             >
               Retry
             </button>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -249,13 +253,13 @@ export default function NetworkPage() {
 
         {/* Health Status Banner */}
         {health && (
-          <div className={`card mb-6 sm:mb-8 border-2 ${
+          <Card className={`mb-8 ${
             health.zebra.healthy && health.zebra.ready
-              ? 'gradient-card-health-good'
-              : 'gradient-card-health-warning'
+              ? 'border-cipher-green/30'
+              : 'border-cipher-orange/30'
           }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            <CardBody className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                 health.zebra.healthy && health.zebra.ready
                   ? 'bg-cipher-green/10 text-cipher-green'
                   : 'bg-cipher-orange/10 text-cipher-orange'
@@ -263,41 +267,40 @@ export default function NetworkPage() {
                 <Icons.Check />
               </div>
               <div className="flex-1">
-                <p className="text-sm sm:text-base font-semibold text-primary">
-                  Node Status: <span className={health.zebra.healthy ? 'text-cipher-green' : 'text-red-400'}>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-sm font-semibold text-primary">Node Status</span>
+                  <Badge color={health.zebra.healthy ? 'green' : 'orange'}>
                     {health.zebra.healthy ? 'Healthy' : 'Unhealthy'}
-                  </span>
-                  {' • '}
-                  Sync: <span className={health.zebra.ready ? 'text-cipher-green' : 'text-cipher-orange'}>
-                    {health.zebra.ready ? 'Ready' : 'Syncing'}
-                  </span>
-                </p>
+                  </Badge>
+                  <Badge color={health.zebra.ready ? 'green' : 'orange'}>
+                    {health.zebra.ready ? 'Synced' : 'Syncing'}
+                  </Badge>
+                </div>
                 <p className="text-xs text-muted font-mono">
                   Zebra {stats.network.subversion} • Protocol {stats.network.protocolVersion}
                 </p>
               </div>
               {stats.cached && (
-                <span className="text-xs text-muted font-mono">
-                  Cached {stats.cacheAge}s ago
-                </span>
+                <Badge color="muted">Cached {stats.cacheAge}s ago</Badge>
               )}
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         )}
 
       {/* Supply Distribution */}
       {stats.supply && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Supply Overview */}
-          <div className="card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
-                <Icons.Shield />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                  <Icons.Shield />
+                </div>
+                <h2 className="text-lg font-bold text-primary">Supply Distribution</h2>
               </div>
-              <h2 className="text-lg font-bold text-primary">Supply Distribution</h2>
-            </div>
-
-            <div className="space-y-4">
+            </CardHeader>
+            <CardBody className="space-y-4">
               {/* Shielded vs Transparent Summary */}
               <div className="flex justify-between text-sm">
                 <span className="text-secondary font-medium">
@@ -386,19 +389,20 @@ export default function NetworkPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
           {/* Chain Stats */}
-          <div className="card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                <Icons.Database />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                  <Icons.Database />
+                </div>
+                <h2 className="text-lg font-bold text-primary">Chain Statistics</h2>
               </div>
-              <h2 className="text-lg font-bold text-primary">Chain Statistics</h2>
-            </div>
-
-            <div className="space-y-4">
+            </CardHeader>
+            <CardBody className="space-y-4">
               {/* Chain Supply */}
               <div className="flex justify-between items-center py-2 border-b border-cipher-border/30">
                 <span className="text-secondary">Total Supply</span>
@@ -428,64 +432,68 @@ export default function NetworkPage() {
               {/* Active Upgrade */}
               <div className="flex justify-between items-center py-2">
                 <span className="text-secondary">Network Upgrade</span>
-                <span className="font-mono font-bold text-green-400">
-                  {stats.supply.activeUpgrade || 'Unknown'}
-                </span>
+                <Badge color="green">{stats.supply.activeUpgrade || 'Unknown'}</Badge>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
 
       {/* Key Metrics - Hero Style */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Current Height - Big */}
-        <div className="card gradient-card-cyan">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-              <Icons.Cube />
+        <Card variant="featured" className="border-cipher-cyan/20">
+          <CardBody>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-cipher-cyan/10 flex items-center justify-center text-cipher-cyan">
+                <Icons.Cube />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Current Height</span>
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Current Height</span>
-          </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-1">
-            {(stats.network.height / 1000000).toFixed(2)}M
-          </div>
-          <div className="text-sm text-secondary font-mono">
-            {stats.network.height.toLocaleString()} blocks
-          </div>
-        </div>
+            <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-2">
+              {(stats.network.height / 1000000).toFixed(2)}M
+            </div>
+            <div className="text-sm text-muted font-mono">
+              {stats.network.height.toLocaleString()} blocks
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Transactions 24h - Big */}
-        <div className="card gradient-card-cyan">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-              <Icons.Activity />
+        <Card variant="featured" className="border-cipher-cyan/20">
+          <CardBody>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-cipher-cyan/10 flex items-center justify-center text-cipher-cyan">
+                <Icons.Activity />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Transactions (24h)</span>
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Transactions (24h)</span>
-          </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-1">
-            {(stats.blockchain.tx24h / 1000).toFixed(1)}K
-          </div>
-          <div className="text-sm text-secondary">
-            {stats.blockchain.tx24h.toLocaleString()} transactions
-          </div>
-        </div>
+            <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-cyan mb-2">
+              {(stats.blockchain.tx24h / 1000).toFixed(1)}K
+            </div>
+            <div className="text-sm text-muted">
+              {stats.blockchain.tx24h.toLocaleString()} transactions
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Connected Peers - Big */}
-        <div className="card gradient-card-green">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400">
-              <Icons.Users />
+        <Card variant="featured" className="border-cipher-green/20">
+          <CardBody>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-cipher-green/10 flex items-center justify-center text-cipher-green">
+                <Icons.Users />
+              </div>
+              <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Connected Peers</span>
             </div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Connected Peers</span>
-          </div>
-          <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-green mb-1">
-            {stats.network.peers}
-          </div>
-          <div className="text-sm text-secondary">
-            Direct connections
-          </div>
-        </div>
+            <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-green mb-2">
+              {stats.network.peers}
+            </div>
+            <div className="text-sm text-muted">
+              Direct connections
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Mining & Performance */}
@@ -564,7 +572,7 @@ export default function NetworkPage() {
   );
 }
 
-// Mini Stat Card Component (compact, no heavy borders)
+// Mini Stat Card Component (compact, uses Card component)
 interface MiniStatCardProps {
   icon: React.ReactNode;
   label: string;
@@ -577,34 +585,29 @@ interface MiniStatCardProps {
 function MiniStatCard({ icon, label, value, subtitle, highlight, status }: MiniStatCardProps) {
   const statusColors = {
     good: 'text-cipher-green',
-    warning: 'text-yellow-400',
+    warning: 'text-amber-400',
     bad: 'text-red-400',
   };
 
-  const valueColor = status ? statusColors[status] : highlight ? 'text-green-400' : 'text-primary';
+  const valueColor = status ? statusColors[status] : highlight ? 'text-cipher-green' : 'text-primary';
+  const iconBg = highlight ? 'bg-cipher-green/10 text-cipher-green' : 'bg-cipher-cyan/10 text-cipher-cyan';
 
   return (
-    <div className={`p-4 rounded-lg border transition-all ${
-      highlight
-        ? 'stat-card-highlight'
-        : 'stat-card'
-    }`}>
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-          highlight ? 'bg-green-500/10 text-green-400' : 'bg-cyan-500/10 text-cyan-400'
-        }`}>
-          {icon}
+    <Card variant="compact" className={highlight ? 'border-cipher-green/20' : ''}>
+      <CardBody>
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
+            {icon}
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-secondary">{label}</span>
         </div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-secondary">{label}</span>
-      </div>
-      <div className={`text-xl sm:text-2xl font-bold font-mono ${valueColor}`}>
-        {value}
-      </div>
-      {subtitle && (
-        <p className={`text-xs mt-1 ${status ? 'text-secondary' : 'text-muted'}`}>
-          {subtitle}
-        </p>
-      )}
-    </div>
+        <div className={`text-xl sm:text-2xl font-bold font-mono ${valueColor}`}>
+          {value}
+        </div>
+        {subtitle && (
+          <p className="text-xs mt-1 text-muted">{subtitle}</p>
+        )}
+      </CardBody>
+    </Card>
   );
 }
