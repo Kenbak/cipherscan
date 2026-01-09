@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: "CipherScan",
     images: [
       {
-        url: "https://cipherscan.app/og-image.png",
+        url: "https://cipherscan.app/og-image.png?v=2",
         width: 1200,
         height: 630,
         alt: "CipherScan - Zcash Blockchain Explorer",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CipherScan - Zcash Blockchain Explorer",
     description: "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
-    images: ["https://cipherscan.app/og-image.png"],
+    images: ["https://cipherscan.app/og-image.png?v=2"],
     creator: "@Kenbak",
   },
 
