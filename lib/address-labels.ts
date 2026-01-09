@@ -166,9 +166,9 @@ export function findAddressByLabel(searchQuery: string): string | null {
 /**
  * Get all addresses matching a label search (for autocomplete)
  */
-export function searchAddressesByLabel(searchQuery: string): Array<{ address: string; label: string; isOfficial: boolean }> {
+export function searchAddressesByLabel(searchQuery: string): Array<{ address: string; label: string; isOfficial: boolean; category?: string }> {
   const normalizedQuery = searchQuery.toLowerCase().trim();
-  const results: Array<{ address: string; label: string; isOfficial: boolean }> = [];
+  const results: Array<{ address: string; label: string; isOfficial: boolean; category?: string }> = [];
 
   if (!normalizedQuery) return results;
 
@@ -176,7 +176,7 @@ export function searchAddressesByLabel(searchQuery: string): Array<{ address: st
   for (const [address, info] of Object.entries(officialLabelsCache)) {
     if (info.label.toLowerCase().includes(normalizedQuery) ||
         info.description?.toLowerCase().includes(normalizedQuery)) {
-      results.push({ address, label: info.label, isOfficial: true });
+      results.push({ address, label: info.label, isOfficial: true, category: info.category });
     }
   }
 
@@ -184,7 +184,7 @@ export function searchAddressesByLabel(searchQuery: string): Array<{ address: st
   const customLabels = getCustomLabels();
   for (const [address, label] of Object.entries(customLabels)) {
     if (label.toLowerCase().includes(normalizedQuery)) {
-      results.push({ address, label, isOfficial: false });
+      results.push({ address, label, isOfficial: false, category: 'Custom' });
     }
   }
 

@@ -13,7 +13,19 @@ interface LabelSuggestion {
   address: string;
   label: string;
   isOfficial: boolean;
+  category?: string;
 }
+
+// Category styling config
+const categoryConfig: Record<string, { icon: string; color: string; bg: string }> = {
+  'Exchange': { icon: 'exchange', color: 'text-cipher-cyan', bg: 'bg-cipher-cyan/10' },
+  'Mining Pool': { icon: 'mining', color: 'text-amber-400', bg: 'bg-amber-400/10' },
+  'Foundation': { icon: 'foundation', color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  'Donation': { icon: 'heart', color: 'text-pink-400', bg: 'bg-pink-400/10' },
+  'Service': { icon: 'service', color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
+  'Faucet': { icon: 'faucet', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  'Custom': { icon: 'user', color: 'text-gray-400', bg: 'bg-gray-400/10' },
+};
 
 export function SearchBar({ compact = false }: SearchBarProps) {
   const [query, setQuery] = useState('');
@@ -118,60 +130,102 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const SuggestionsDropdown = () => {
     if (!showSuggestions || suggestions.length === 0) return null;
 
+    const getCategoryIcon = (category: string) => {
+      switch (category) {
+        case 'Exchange':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          );
+        case 'Mining Pool':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          );
+        case 'Foundation':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          );
+        case 'Donation':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          );
+        case 'Service':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+          );
+        case 'Faucet':
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          );
+        default: // Custom or unknown
+          return (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          );
+      }
+    };
+
+    const getCategoryStyle = (category: string) => {
+      return categoryConfig[category] || categoryConfig['Custom'];
+    };
+
     return (
       <div
         ref={suggestionsRef}
         className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-xl z-[100] overflow-hidden"
       >
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={suggestion.address}
-            type="button"
-            onClick={() => selectSuggestion(suggestion)}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-all duration-150 ${
-              index === selectedIndex ? 'suggestion-item-active' : 'suggestion-item'
-            }`}
-          >
-            {/* Icon */}
-            <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              suggestion.isOfficial
-                ? 'bg-cipher-cyan/10'
-                : 'bg-purple-500/10'
-            }`}>
-              {suggestion.isOfficial ? (
-                <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              )}
-            </span>
-            
-            {/* Label & Address */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm truncate suggestion-label">{suggestion.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase ${
-                  suggestion.isOfficial
-                    ? 'bg-cipher-cyan/15 text-cipher-cyan'
-                    : 'bg-purple-500/15 text-purple-400'
-                }`}>
-                  {suggestion.isOfficial ? 'Official' : 'Custom'}
+        {suggestions.map((suggestion, index) => {
+          const category = suggestion.category || 'Custom';
+          const style = getCategoryStyle(category);
+          
+          return (
+            <button
+              key={suggestion.address}
+              type="button"
+              onClick={() => selectSuggestion(suggestion)}
+              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-all duration-150 ${
+                index === selectedIndex ? 'suggestion-item-active' : 'suggestion-item'
+              }`}
+            >
+              {/* Icon */}
+              <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${style.bg}`}>
+                <span className={style.color}>
+                  {getCategoryIcon(category)}
                 </span>
+              </span>
+              
+              {/* Label & Address */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm truncate suggestion-label">{suggestion.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase ${style.bg} ${style.color}`}>
+                    {category}
+                  </span>
+                </div>
+                <div className="text-xs text-muted font-mono truncate mt-0.5">
+                  {suggestion.address.slice(0, 16)}...{suggestion.address.slice(-8)}
+                </div>
               </div>
-              <div className="text-xs text-muted font-mono truncate mt-0.5">
-                {suggestion.address.slice(0, 16)}...{suggestion.address.slice(-8)}
-              </div>
-            </div>
-            
-            {/* Arrow */}
-            <svg className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        ))}
+              
+              {/* Arrow */}
+              <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          );
+        })}
       </div>
     );
   };
