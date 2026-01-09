@@ -224,11 +224,13 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           <button
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2
-              bg-cipher-cyan hover:bg-cipher-green text-white
+              inline-flex items-center justify-center
               px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg
               font-mono font-bold text-xs sm:text-sm
-              transition-colors duration-200
-              shadow-lg shadow-cipher-cyan/25 hover:shadow-cipher-green/30"
+              bg-gradient-to-b from-cipher-cyan to-[#00B8E0]
+              text-[#08090F]
+              hover:from-[#00E0FF] hover:to-cipher-cyan
+              transition-colors duration-150"
           >
             SEARCH
           </button>

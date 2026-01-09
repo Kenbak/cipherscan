@@ -7,6 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -255,72 +256,68 @@ function PrivacyRisksContent() {
       </Card>
 
       {/* Filters - Mobile Friendly */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-6">
-        {/* Period Filter */}
-        <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-cipher-border">
-          {(['24h', '7d', '30d'] as PeriodFilter[]).map((period) => (
-            <button
-              key={period}
-              onClick={() => setPeriodFilter(period)}
-              className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                periodFilter === period
-                  ? 'bg-purple-600 dark:bg-purple-500 text-white'
-                  : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-        </div>
+      <Card variant="compact" className="mb-6">
+        <CardBody>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            {/* Period Filter */}
+            <div className="filter-group">
+              {(['24h', '7d', '30d'] as PeriodFilter[]).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setPeriodFilter(period)}
+                  className={`filter-btn ${periodFilter === period ? 'filter-btn-active' : ''}`}
+                >
+                  {period}
+                </button>
+              ))}
+            </div>
 
-        {/* Risk Level Filter */}
-        <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-cipher-border">
-          {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
-            <button
-              key={level}
-              onClick={() => setRiskFilter(level)}
-              className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                riskFilter === level
-                  ? level === 'HIGH'
-                    ? 'bg-red-500 text-white'
-                    : level === 'MEDIUM'
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-purple-600 dark:bg-purple-500 text-white'
-                  : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
-              }`}
-            >
-              {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
-            </button>
-          ))}
-        </div>
+            {/* Risk Level Filter */}
+            <div className="filter-group">
+              {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setRiskFilter(level)}
+                  className={`filter-btn ${
+                    riskFilter === level
+                      ? level === 'HIGH'
+                        ? 'filter-btn-danger'
+                        : level === 'MEDIUM'
+                        ? 'filter-btn-warning'
+                        : 'filter-btn-active'
+                      : ''
+                  }`}
+                >
+                  {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
+                </button>
+              ))}
+            </div>
 
-        {/* Sort Toggle */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm text-gray-500 dark:text-muted">Sort:</span>
-          <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-cipher-border">
-            {(['recent', 'score'] as SortOption[]).map((option) => (
-              <button
-                key={option}
-                onClick={() => setSortBy(option)}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                  sortBy === option
-                    ? 'bg-purple-600 dark:bg-purple-500 text-white'
-                    : 'bg-white dark:bg-cipher-surface text-gray-600 dark:text-secondary hover:bg-gray-50 dark:hover:bg-cipher-surface/80'
-                }`}
-              >
-                {option === 'recent' ? 'Recent' : 'Score'}
-              </button>
-            ))}
+            {/* Sort Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted">Sort:</span>
+              <div className="filter-group">
+                {(['recent', 'score'] as SortOption[]).map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setSortBy(option)}
+                    className={`filter-btn ${sortBy === option ? 'filter-btn-active' : ''}`}
+                  >
+                    {option === 'recent' ? 'Recent' : 'Score'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats inline */}
+            {stats && (
+              <Badge color="muted" className="ml-auto">
+                {stats.total} detected
+              </Badge>
+            )}
           </div>
-        </div>
-
-        {/* Stats inline */}
-        {stats && (
-          <div className="sm:ml-auto text-xs sm:text-sm text-gray-500 dark:text-muted">
-            {stats.total} detected
-          </div>
-        )}
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Transaction Feed */}
       <div className="space-y-4 mb-12">
@@ -340,9 +337,13 @@ function PrivacyRisksContent() {
         ) : transactions.length === 0 ? (
           <Card>
             <CardBody className="py-16 text-center">
-              <div className="text-5xl mb-4">🛡️</div>
-              <p className="text-secondary text-lg">No risky transactions detected.</p>
-              <p className="text-sm text-muted mt-2">Try a longer time period.</p>
+              <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <p className="text-primary text-lg font-medium">No risky transactions detected</p>
+              <p className="text-sm text-secondary mt-2">Try a longer time period.</p>
             </CardBody>
           </Card>
         ) : (
@@ -354,13 +355,14 @@ function PrivacyRisksContent() {
             {/* Load More */}
             {hasMore && (
               <div className="text-center pt-4">
-                <button
+                <Button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-cipher-surface hover:bg-cipher-hover text-secondary rounded-xl font-medium transition-colors disabled:opacity-50 border border-cipher-border"
+                  variant="secondary"
+                  size="lg"
                 >
                   {loadingMore ? 'Loading...' : 'Load More'}
-                </button>
+                </Button>
               </div>
             )}
 
@@ -375,12 +377,15 @@ function PrivacyRisksContent() {
       </div>
 
       {/* Back Link */}
-      <div className="mt-6 pt-6 border-t border-cipher-border">
+      <div className="mt-8 pt-6 border-t border-cipher-border">
         <Link
           href="/privacy"
-          className="text-muted hover:text-cipher-cyan text-sm font-mono transition-colors"
+          className="inline-flex items-center gap-2 text-secondary hover:text-cipher-cyan text-sm font-mono transition-colors"
         >
-          ← Back to Privacy Metrics
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Privacy Dashboard
         </Link>
       </div>
     </div>

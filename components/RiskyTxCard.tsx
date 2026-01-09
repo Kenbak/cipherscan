@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
+import { Badge } from '@/components/ui/Badge';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -57,22 +58,25 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
   return (
     <div className="card rounded-xl overflow-hidden">
       {/* Header */}
-      <div className={`px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between border-b ${
+      <div className={`px-4 py-3 flex items-center justify-between border-b ${
         isHigh
           ? 'border-red-500/20 bg-red-500/5'
           : 'border-amber-500/20 bg-amber-500/5'
       }`}>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className={`text-xs sm:text-sm font-semibold ${isHigh ? 'text-red-500' : 'text-amber-500'}`}>
-            {isHigh ? '⚠️ High Risk' : '⚡ Medium Risk'}
-          </span>
-          <span className={`px-1.5 sm:px-2 py-0.5 rounded text-xs font-mono ${
-            isHigh
-              ? 'bg-red-500/20 text-red-500'
-              : 'bg-amber-500/20 text-amber-500'
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            isHigh ? 'bg-red-500/10' : 'bg-amber-500/10'
           }`}>
-            {tx.score}/100
+            <svg className={`w-4 h-4 ${isHigh ? 'text-red-500' : 'text-amber-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <span className={`text-sm font-semibold ${isHigh ? 'text-red-500' : 'text-amber-500'}`}>
+            {isHigh ? 'High Risk' : 'Medium Risk'}
           </span>
+          <Badge color={isHigh ? 'orange' : 'muted'} className="font-mono">
+            {tx.score}/100
+          </Badge>
         </div>
         <span className="text-xs text-secondary">
           {formatRelativeTime(tx.deshieldTime)}
@@ -80,68 +84,87 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       </div>
 
       {/* Content */}
-      <div className="px-3 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4">
+      <div className="px-4 py-4 space-y-4">
         {/* Flow visualization with amounts */}
-        <div className="space-y-2 sm:space-y-3">
+        <div className="space-y-3">
           {/* Shield */}
-          <div className="flex items-start sm:items-center gap-2 sm:gap-3">
-            <span className="w-16 sm:w-24 text-xs text-green-500 font-medium shrink-0">↓ SHIELD</span>
+          <div className="flex items-center gap-3">
+            <Badge color="green" className="w-20 justify-center">
+              ↓ SHIELD
+            </Badge>
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
               <div className="truncate">
                 {shieldAddress ? (
-                  <Link href={`/address/${shieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:underline">
+                  <Link href={`/address/${shieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateAddress(shieldAddress)}
                   </Link>
                 ) : (
-                  <Link href={`/tx/${tx.shieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:underline">
+                  <Link href={`/tx/${tx.shieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateTxid(tx.shieldTxid)}
                   </Link>
                 )}
               </div>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-primary shrink-0">{tx.shieldAmount.toFixed(4)} ZEC</span>
+              <span className="font-mono text-sm font-semibold text-primary shrink-0">{tx.shieldAmount.toFixed(4)} ZEC</span>
             </div>
           </div>
 
           {/* Time arrow */}
-          <div className="flex items-center gap-2 sm:gap-3 text-muted">
-            <span className="w-16 sm:w-24 shrink-0"></span>
-            <span className="text-xs">↓ {timeDeltaDisplay}</span>
+          <div className="flex items-center gap-3 text-muted pl-1">
+            <div className="w-20 flex justify-center">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </div>
+            <span className="text-xs font-mono">{timeDeltaDisplay}</span>
           </div>
 
           {/* Unshield */}
-          <div className="flex items-start sm:items-center gap-2 sm:gap-3">
-            <span className="w-16 sm:w-24 text-xs text-purple-500 font-medium shrink-0">↑ UNSHIELD</span>
+          <div className="flex items-center gap-3">
+            <Badge color="purple" className="w-20 justify-center">
+              ↑ UNSHIELD
+            </Badge>
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
               <div className="truncate">
                 {deshieldAddress ? (
-                  <Link href={`/address/${deshieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:underline">
+                  <Link href={`/address/${deshieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateAddress(deshieldAddress)}
                   </Link>
                 ) : (
-                  <Link href={`/tx/${tx.deshieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:underline">
+                  <Link href={`/tx/${tx.deshieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateTxid(tx.deshieldTxid)}
                   </Link>
                 )}
               </div>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-primary shrink-0">{tx.deshieldAmount.toFixed(4)} ZEC</span>
+              <span className="font-mono text-sm font-semibold text-primary shrink-0">{tx.deshieldAmount.toFixed(4)} ZEC</span>
             </div>
           </div>
         </div>
 
         {/* Conclusion - Simple italic text */}
         {hasAddresses && (
-          <p className="text-xs sm:text-sm text-secondary italic border-t border-cipher-border/30 pt-2 sm:pt-3">
-            → An observer could conclude that these addresses belong to the same person.
-          </p>
+          <div className="flex items-start gap-2 pt-3 border-t border-cipher-border/30">
+            <svg className="w-4 h-4 text-muted mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-secondary italic">
+              An observer could conclude that these addresses belong to the same person.
+            </p>
+          </div>
         )}
 
         {/* Transaction Links - Footer */}
-        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs text-muted pt-1 sm:pt-2">
-          <Link href={`/tx/${tx.shieldTxid}`} className="hover:text-secondary font-mono">
-            TX: {truncateTxid(tx.shieldTxid)}
+        <div className="flex flex-wrap gap-4 text-xs text-muted pt-3 border-t border-cipher-border/30">
+          <Link href={`/tx/${tx.shieldTxid}`} className="hover:text-cipher-cyan font-mono transition-colors inline-flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            {truncateTxid(tx.shieldTxid)}
           </Link>
-          <Link href={`/tx/${tx.deshieldTxid}`} className="hover:text-secondary font-mono">
-            TX: {truncateTxid(tx.deshieldTxid)}
+          <Link href={`/tx/${tx.deshieldTxid}`} className="hover:text-cipher-cyan font-mono transition-colors inline-flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            {truncateTxid(tx.deshieldTxid)}
           </Link>
         </div>
       </div>

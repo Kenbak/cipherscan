@@ -35,7 +35,8 @@
   /* Colors - Dark Theme (default) */
   --color-bg: #08090F;
   --color-elevated: #0E1018;
-  --color-surface: #14161F;
+  --color-surface: rgba(20, 22, 31, 0.55);
+  --color-surface-solid: #14161F
   --color-hover: #1A1D28;
   --color-active: #22252F;
   --color-border: rgba(30, 41, 59, 0.6);
@@ -97,6 +98,7 @@
   --color-bg: #FAFBFC;
   --color-elevated: #F5F7FA;
   --color-surface: #FFFFFF;
+  --color-surface-solid: #FFFFFF;
   --color-hover: #F0F2F5;
   --color-active: #E8EAED;
   --color-border: rgba(0, 0, 0, 0.08);
@@ -136,6 +138,17 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Cypherpunk noise texture overlay - subtle organic warmth
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.015;
+    pointer-events: none;
+    z-index: 9999;
+  } */
+
   /* Light mode */
   .light body {
     background-image:
@@ -164,7 +177,9 @@
   /* Card System - Apple-inspired with shadow-based elevation */
   .card {
     background: var(--color-surface);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
     padding: var(--space-6);
     box-shadow:
@@ -448,10 +463,86 @@
     display: inline-block;
   }
 
+  /* ===== FILTER GROUPS ===== */
+  .filter-group {
+    display: flex;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+
+  .filter-btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+  }
+
+  .filter-btn:hover:not(.filter-btn-active):not(.filter-btn-danger):not(.filter-btn-warning) {
+    background: var(--color-hover);
+  }
+
+  .filter-btn-active {
+    background: var(--color-purple);
+    color: white;
+  }
+
+  .filter-btn-danger {
+    background: #EF4444;
+    color: white;
+  }
+
+  .filter-btn-warning {
+    background: #F59E0B;
+    color: white;
+  }
+
+  .light .filter-group {
+    background: #F1F5F9;
+    border-color: #E2E8F0;
+  }
+
+  .light .filter-btn {
+    background: transparent;
+    color: #64748B;
+  }
+
+  .light .filter-btn:hover:not(.filter-btn-active):not(.filter-btn-danger):not(.filter-btn-warning) {
+    background: #E2E8F0;
+  }
+
+  .light .filter-btn-active {
+    background: #7C3AED;
+    color: white;
+  }
+
+  .light .filter-btn-danger {
+    background: #EF4444;
+    color: white;
+  }
+
+  .light .filter-btn-warning {
+    background: #F59E0B;
+    color: white;
+  }
+
+  @media (min-width: 640px) {
+    .filter-btn {
+      padding: var(--space-2) var(--space-4);
+      font-size: 13px;
+    }
+  }
+
   /* ===== NAVBAR ===== */
   .navbar-container {
     @apply transition-colors;
-    background-color: var(--color-surface);
+    background-color: rgba(20, 22, 31, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-color: var(--color-border);
     transition-duration: var(--duration-normal);
   }
@@ -459,6 +550,7 @@
   .light .navbar-container {
     background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-color: var(--color-border);
   }
 
@@ -529,7 +621,7 @@
 
   /* ===== FOOTER ===== */
   .footer-container {
-    background-color: var(--color-surface);
+    background-color: var(--color-surface-solid);
     border-color: var(--color-border);
     transition: all var(--duration-normal);
   }
@@ -773,14 +865,22 @@
 
   /* ===== DROPDOWN MENU ===== */
   .dropdown-menu {
-    background-color: var(--color-surface);
+    background-color: #14161F;
     border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-card-hover);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 10px 15px -3px rgba(0, 0, 0, 0.4),
+      0 20px 25px -5px rgba(0, 0, 0, 0.3);
     border-radius: var(--radius-md);
+    backdrop-filter: none;
   }
 
   .light .dropdown-menu {
     background-color: #FFFFFF;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 20px 25px -5px rgba(0, 0, 0, 0.1);
   }
 
   .dropdown-item {
@@ -1024,19 +1124,32 @@
   }
 
   .modal-content {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background-color: #14161F;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-card-hover);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.3),
+      0 10px 25px -5px rgba(0, 0, 0, 0.5),
+      0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    backdrop-filter: none;
   }
 
   .light .modal-content {
     background-color: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 10px 25px -5px rgba(0, 0, 0, 0.15),
+      0 25px 50px -12px rgba(0, 0, 0, 0.2);
   }
 
   .modal-inner-card {
-    background-color: var(--color-bg);
+    background-color: #08090F;
     border: 1px solid var(--color-border);
+  }
+
+  .light .modal-inner-card {
+    background-color: #F5F7FA;
   }
 
   .light .modal-inner-card {
