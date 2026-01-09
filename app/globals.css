@@ -829,15 +829,18 @@
     background-color: rgba(139, 92, 246, 0.12);
   }
 
-  /* Search suggestions dropdown */
+  /* Search suggestions dropdown - must be opaque */
   .suggestions-dropdown {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-card-hover);
+    background-color: #14161F;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
+    backdrop-filter: none;
   }
 
   .light .suggestions-dropdown {
     background-color: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   }
 
   .suggestion-item {
