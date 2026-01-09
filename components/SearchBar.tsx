@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { detectAddressType } from '@/lib/zcash';
-import { findAddressByLabel, searchAddressesByLabel } from '@/lib/address-labels';
+import { findAddressByLabel, searchAddressesByLabel, fetchOfficialLabels } from '@/lib/address-labels';
 
 interface SearchBarProps {
   compact?: boolean; // Mode compact pour la navbar
@@ -33,8 +33,16 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const [suggestions, setSuggestions] = useState<LabelSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [labelsLoaded, setLabelsLoaded] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Fetch official labels on mount
+  useEffect(() => {
+    fetchOfficialLabels().then(() => {
+      setLabelsLoaded(true);
+    });
+  }, []);
 
   // Search for label suggestions as user types
   useEffect(() => {
@@ -56,7 +64,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [query]);
+  }, [query, labelsLoaded]);
 
   // Handle keyboard navigation in suggestions
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -189,7 +197,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         {suggestions.map((suggestion, index) => {
           const category = suggestion.category || 'Custom';
           const style = getCategoryStyle(category);
-          
+
           return (
             <button
               key={suggestion.address}
@@ -205,7 +213,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
                   {getCategoryIcon(category)}
                 </span>
               </span>
-              
+
               {/* Label & Address */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -218,7 +226,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
                   {suggestion.address.slice(0, 16)}...{suggestion.address.slice(-8)}
                 </div>
               </div>
-              
+
               {/* Arrow */}
               <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
