@@ -121,7 +121,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     return (
       <div
         ref={suggestionsRef}
-        className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-lg shadow-xl border z-50 overflow-hidden animate-scale-in origin-top"
+        className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-xl z-50 overflow-hidden"
       >
         {suggestions.map((suggestion, index) => (
           <button

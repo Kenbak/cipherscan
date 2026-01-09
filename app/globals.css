@@ -829,6 +829,7 @@
     background-color: rgba(139, 92, 246, 0.12);
   }
 
+
   /* Search suggestions dropdown - must be opaque */
   .suggestions-dropdown {
     background-color: #14161F;
@@ -1774,12 +1775,12 @@
 
   /* Warning variant (Medium Risk) */
   .privacy-alert-warning {
-    border-color: rgba(255, 107, 53, 0.3);
-    background-color: rgba(255, 107, 53, 0.05);
+    border-color: rgba(255, 107, 53, 0.925);
+    background-color: rgba(255, 107, 53, 0.1);
   }
 
   .privacy-alert-header-warning {
-    background-color: rgba(255, 107, 53, 0.1);
+    background-color: rgba(255, 107, 53, 0.929);
   }
 
   .privacy-alert-icon-warning {

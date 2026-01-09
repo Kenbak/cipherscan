@@ -128,28 +128,58 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     ?.replace('1 hours', '1 hour')
     ?.replace('1 days', '1 day') || '';
 
-  const alertVariant = isHigh ? 'danger' : 'warning';
+  // Use design system colors (from docs/UI-UX/02-COLOR-SYSTEM.md)
+  // Error: #EF4444, Warning: #FF6B35
 
   return (
-    <div className={`mt-4 privacy-alert privacy-alert-${alertVariant}`}>
+    <div
+      className="mt-4 rounded-xl border overflow-hidden"
+      style={{
+        backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 107, 53, 0.08)',
+        borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 107, 53, 0.2)',
+      }}
+    >
       {/* Header */}
-      <div className={`privacy-alert-header privacy-alert-header-${alertVariant}`}>
+      <div
+        className="px-4 py-3 flex items-center justify-between"
+        style={{
+          backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.12)' : 'rgba(255, 107, 53, 0.12)',
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className={`privacy-alert-icon privacy-alert-icon-${alertVariant}`}>
+          <div
+            className="p-1.5 rounded-md"
+            style={{
+              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 107, 53, 0.15)',
+              color: isHigh ? '#EF4444' : '#FF6B35',
+            }}
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className={`text-sm font-semibold privacy-alert-title-${alertVariant}`}>
+          <h3
+            className="text-sm font-semibold"
+            style={{ color: isHigh ? '#EF4444' : '#FF6B35' }}
+          >
             Privacy Alert
           </h3>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`privacy-alert-badge privacy-alert-badge-${alertVariant}`}>
+          <span
+            className="px-2 py-1 rounded text-xs font-medium"
+            style={{
+              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 107, 53, 0.15)',
+              color: isHigh ? '#EF4444' : '#FF6B35',
+            }}
+          >
             {isHigh ? 'High Risk' : 'Medium Risk'}
           </span>
           <div className="flex items-baseline gap-0.5">
-            <span className={`text-xl font-bold font-mono privacy-alert-score-${alertVariant}`}>
+            <span
+              className="text-xl font-bold font-mono"
+              style={{ color: isHigh ? '#EF4444' : '#FF6B35' }}
+            >
               {data.highestScore}
             </span>
             <span className="text-xs text-muted">/100</span>
@@ -158,7 +188,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
       </div>
 
       {/* Content */}
-      <div className="privacy-alert-content space-y-4">
+      <div className="p-4 space-y-4">
         {/* Transaction info */}
         <div className="space-y-2">
           <p className="text-sm text-secondary">
@@ -208,7 +238,10 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
         </div>
 
         {/* Why is this a risk */}
-        <div className={`pt-3 border-t privacy-alert-divider-${alertVariant}`}>
+        <div
+          className="pt-3 border-t"
+          style={{ borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 107, 53, 0.2)' }}
+        >
           <button
             onClick={() => setShowWhy(!showWhy)}
             className="text-xs text-muted hover:text-secondary flex items-center gap-1.5 transition-colors"
