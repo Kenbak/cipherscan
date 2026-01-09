@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, forwardRef } from 'react';
 
 type CardVariant = 'standard' | 'compact' | 'featured' | 'glass' | 'dark';
 
@@ -25,13 +25,16 @@ interface CardProps {
  * - glass: Floating overlays with blur effect
  * - dark: Darker background for nested cards
  */
-export function Card({
-  children,
-  variant = 'standard',
-  interactive = false,
-  className = '',
-  onClick,
-}: CardProps) {
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  {
+    children,
+    variant = 'standard',
+    interactive = false,
+    className = '',
+    onClick,
+  },
+  ref
+) {
   // Use .card as base, add variant modifiers
   const variantClasses: Record<CardVariant, string> = {
     standard: 'card',
@@ -45,6 +48,7 @@ export function Card({
 
   return (
     <div
+      ref={ref}
       className={`${variantClasses[variant]} ${interactiveClass} ${className}`}
       onClick={interactive ? onClick : undefined}
       role={interactive ? 'button' : undefined}
@@ -53,7 +57,7 @@ export function Card({
       {children}
     </div>
   );
-}
+});
 
 /**
  * CardHeader Component
