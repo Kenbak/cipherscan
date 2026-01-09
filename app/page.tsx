@@ -1,10 +1,7 @@
-import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
 import { PrivacyWidget, PrivacyRisksWidget } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
-import { DonateButton } from '@/components/DonateButton';
-import { isMainnet } from '@/lib/config';
 
 interface Block {
   height: number;
@@ -19,8 +16,8 @@ async function getRecentBlocks(): Promise<Block[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/blocks?limit=5`, {
-      next: { revalidate: 0 }, // Always fetch fresh data
-      cache: 'no-store', // Don't cache
+      next: { revalidate: 0 },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -37,102 +34,114 @@ async function getRecentBlocks(): Promise<Block[]> {
 }
 
 export default async function Home() {
-  // Fetch blocks server-side (no loading state needed!)
   const initialBlocks = await getRecentBlocks();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       {/* Hero Section */}
-      <div className="text-center mb-12 sm:mb-16 animate-fade-in">
-        <p className="text-lg sm:text-2xl text-gray-500 dark:text-gray-500 font-mono mb-4 sm:mb-6 hero-title">
+      <div className="text-center mb-12 sm:mb-16">
+        {/* Tagline - SEO friendly */}
+        <p className="text-xs sm:text-sm text-muted font-mono uppercase tracking-widest mb-4 animate-fade-in">
           Zcash Blockchain Explorer
         </p>
-        <div className="text-base sm:text-xl text-gray-300 dark:text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-12 px-4 hero-subtitle">
-          Decode the blockchain.{' '}
-          <span className="relative inline-block group/privacy">
-            <span className="text-cipher-cyan cursor-help transition-all duration-300 group-hover/privacy:text-white group-hover/privacy:drop-shadow-[0_0_12px_rgba(6,182,212,0.8)] underline decoration-cipher-cyan/30 decoration-dotted underline-offset-4 group-hover/privacy:decoration-cipher-cyan">
+
+        {/* Main Headline - More compact */}
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-8 animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <span className="text-primary">Decode the blockchain.</span>
+          {' '}
+          {/* Privacy with tooltip */}
+          <span className="relative group/privacy inline-block">
+            <span className="text-purple-400 cursor-help transition-all duration-300 group-hover/privacy:text-white group-hover/privacy:drop-shadow-[0_0_20px_rgba(167,139,250,0.6)]">
               Privacy
             </span>
-            {/* Cypherpunk Tooltip - Minimal & Compact */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/privacy:opacity-100 group-hover/privacy:visible transition-all duration-300 z-[100] pointer-events-none w-[240px] sm:w-[280px]">
-              <div className="hero-tooltip backdrop-blur-sm border border-cipher-cyan/50 rounded-md p-3 shadow-xl shadow-cipher-cyan/10 relative">
-                {/* Subtle scan line effect */}
-                <div className="absolute inset-0 overflow-hidden rounded-md opacity-10">
-                  <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-cipher-cyan to-transparent animate-scan"></div>
-                </div>
-
-                {/* Content - Compact */}
-                <div className="relative text-center">
-                  <div className="hero-tooltip-text font-mono text-[10px] sm:text-xs leading-relaxed mb-2">
-                    "Privacy is the power to selectively reveal oneself to the world."
+            {/* Cypherpunk Tooltip */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 invisible group-hover/privacy:opacity-100 group-hover/privacy:visible transition-all duration-300 z-[100] pointer-events-none w-[260px] sm:w-[300px]">
+              <div className="hero-tooltip backdrop-blur-xl border border-purple-500/40 rounded-lg p-4 shadow-2xl shadow-purple-500/20 relative">
+                  {/* Scan line effect */}
+                  <div className="absolute inset-0 overflow-hidden rounded-lg opacity-20">
+                    <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-scan"></div>
                   </div>
-                  <div className="text-cipher-cyan/60 font-mono text-[9px] sm:text-[10px] italic">
-                    — Eric Hughes, 1993
+
+                  <div className="relative text-center">
+                    <div className="hero-tooltip-text font-mono text-xs sm:text-sm leading-relaxed mb-2">
+                      "Privacy is the power to selectively reveal oneself to the world."
+                    </div>
+                    <div className="text-purple-400/60 font-mono text-[10px] sm:text-xs italic">
+                      — Eric Hughes, 1993
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-purple-500/40"></div>
                   </div>
                 </div>
-
-                {/* Arrow */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px]">
-                  <div className="hero-tooltip-arrow"></div>
-                </div>
-              </div>
             </div>
           </span>
-          {' '}meets <span className="text-cipher-cyan">transparency</span>.
-        </div>
+          {' '}
+          <span className="text-primary">meets</span>
+          {' '}
+            <span className="text-cipher-cyan">transparency</span>
+          <span className="text-primary">.</span>
+        </h1>
 
         {/* Search Section */}
-        <SearchBar />
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <SearchBar />
+        </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="mt-12 sm:mt-20 max-w-7xl mx-auto">
+      {/* Main Content */}
+      <div className="space-y-6">
         {/* Privacy Widget */}
-        <PrivacyWidget />
+        <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <PrivacyWidget />
+        </div>
 
         {/* Privacy Risks Widget */}
-        <div className="mt-4">
+        <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
           <PrivacyRisksWidget />
         </div>
 
-          {/* Recent Blocks & Shielded TXs - Side by Side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">
-            {/* Recent Blocks */}
-            <div>
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-base sm:text-xl font-bold font-mono text-cipher-cyan">
-                  {'>'} RECENT_BLOCKS
-                </h2>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-cipher-green rounded-full animate-pulse"></div>
-                  <span className="text-xs sm:text-sm text-gray-400 font-mono">LIVE</span>
-                </div>
+        {/* Recent Blocks & Shielded TXs - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">
+          {/* Recent Blocks */}
+          <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm sm:text-base font-bold font-mono text-cipher-cyan flex items-center gap-2">
+                <span className="text-muted opacity-50">{'>'}</span>
+                RECENT_BLOCKS
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
+                </span>
+                <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
               </div>
-              <RecentBlocks initialBlocks={initialBlocks} />
             </div>
-
-            {/* Recent Shielded TXs */}
-            <div>
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-base sm:text-xl font-bold font-mono text-purple-400">
-                  {'>'} SHIELDED_ACTIVITY
-                </h2>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs sm:text-sm text-gray-400 font-mono">LIVE</span>
-                </div>
-              </div>
-              <RecentShieldedTxs />
-            </div>
+            <RecentBlocks initialBlocks={initialBlocks} />
           </div>
 
-        {/* Privacy Note */}
-        <div className="text-center mt-12 pt-8 border-t border-cipher-border/30">
-          <p className="text-sm text-gray-500 font-mono flex items-center justify-center">
-            <span className="mr-2">🛡️</span>
-            Zcash shielded transactions remain private. This explorer shows public data only.
-          </p>
+          {/* Recent Shielded TXs */}
+          <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm sm:text-base font-bold font-mono text-purple-400 flex items-center gap-2">
+                <span className="text-muted opacity-50">{'>'}</span>
+                SHIELDED_ACTIVITY
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-400"></span>
+                </span>
+                <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
+              </div>
+            </div>
+            <RecentShieldedTxs />
+          </div>
         </div>
+
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { Badge } from '@/components/ui';
 
 interface ShieldedTx {
   txid: string;
@@ -55,7 +56,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
 
   if (loading) {
     return (
-      <div className="card">
+      <div className="card-base card-standard">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400"></div>
           <p className="text-secondary ml-4 font-mono text-lg">Loading shielded data...</p>
@@ -64,48 +65,42 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
     );
   }
 
-  const Icons = {
-    Shield: () => (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
+  // Helper to determine badge
+  const getTxBadge = (tx: ShieldedTx) => {
+    if (tx.type === 'fully-shielded') {
+      return <Badge color="purple">SHIELDED</Badge>;
+    } else if (tx.vinCount > 0 && tx.voutCount === 0) {
+      return <Badge color="green">↓ SHIELDING</Badge>;
+    } else if (tx.vinCount === 0 && tx.voutCount > 0) {
+      return <Badge color="purple">↑ UNSHIELDING</Badge>;
+    } else {
+      return <Badge color="orange">MIXED</Badge>;
+    }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {txs.map((tx, index) => (
         <Link href={`/tx/${tx.txid}`} key={tx.txid}>
           <div
-            className={`card ${nested ? '!bg-transparent border-purple-500/20 hover:border-purple-500/50' : 'hover:border-purple-500'} transition-all cursor-pointer group animate-slide-up`}
-            style={{ animationDelay: `${index * 100}ms` }}
+            className={`card-base card-compact card-interactive group animate-fade-in-up ${
+              nested ? 'bg-transparent' : ''
+            }`}
+            style={{
+              animationDelay: `${index * 50}ms`,
+              borderColor: nested ? 'rgba(168, 85, 247, 0.2)' : undefined
+            }}
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-3">
-                  <span className="text-2xl">🔒</span>
-                  <h3 className="text-lg font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
+                <div className="flex items-center space-x-3 mb-2">
+                  <span className="text-xl">🔒</span>
+                  <h3 className="text-base sm:text-lg font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
                     {tx.txid.slice(0, 12)}...
                   </h3>
-                  {tx.type === 'fully-shielded' ? (
-                    <span className="badge bg-purple-500/10 text-purple-400 border-purple-500/30">
-                      SHIELDED
-                    </span>
-                  ) : tx.vinCount > 0 && tx.voutCount === 0 ? (
-                    <span className="badge bg-green-500/10 text-green-400 border-green-500/30">
-                      ↓ SHIELDING
-                    </span>
-                  ) : tx.vinCount === 0 && tx.voutCount > 0 ? (
-                    <span className="badge bg-purple-500/10 text-purple-400 border-purple-500/30">
-                      ↑ UNSHIELDING
-                    </span>
-                  ) : (
-                    <span className="badge bg-yellow-500/10 text-yellow-400 border-yellow-500/30">
-                      MIXED
-                    </span>
-                  )}
+                  {getTxBadge(tx)}
                 </div>
-                <div className="text-xs text-muted font-mono mt-2">
+                <div className="text-xs text-muted font-mono">
                   <span className="opacity-50">Block: </span>
                   <code className="break-all">#{tx.blockHeight.toLocaleString()}</code>
                   {tx.hasOrchard && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { Badge } from '@/components/ui';
 
 interface Block {
   height: number;
@@ -53,7 +54,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
 
   if (loading) {
     return (
-      <div className="card">
+      <div className="card-base card-standard">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
           <p className="text-secondary ml-4 font-mono text-lg">Syncing blockchain data...</p>
@@ -63,25 +64,25 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {blocks.map((block, index) => (
         <Link href={`/block/${block.height}`} key={block.height}>
           <div
-            className="card hover:border-cipher-cyan transition-all cursor-pointer group animate-slide-up"
-            style={{ animationDelay: `${index * 100}ms` }}
+            className="card-base card-compact card-interactive group animate-fade-in-up"
+            style={{ animationDelay: `${index * 50}ms` }}
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-3">
-                  <span className="text-2xl">📦</span>
-                  <h3 className="text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors">
+                <div className="flex items-center space-x-3 mb-2">
+                  <span className="text-xl">📦</span>
+                  <h3 className="text-base sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors">
                     #{block.height.toLocaleString()}
                   </h3>
-                  <span className="badge badge-info">
+                  <Badge color="cyan">
                     {block.transactions} TX
-                  </span>
+                  </Badge>
                 </div>
-                <div className="text-xs text-muted font-mono mt-2">
+                <div className="text-xs text-muted font-mono">
                   <span className="opacity-50">Hash: </span>
                   <code className="break-all">{block.hash.slice(0, 8)}...{block.hash.slice(-8)}</code>
                 </div>

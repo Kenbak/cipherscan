@@ -27,14 +27,13 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   // Search for label suggestions as user types
   useEffect(() => {
     if (query.length >= 2) {
-      // Only search if query is not a valid address/tx/block
       const addressType = detectAddressType(query);
       const isNumber = !isNaN(Number(query));
       const isHex = /^[a-fA-F0-9]+$/.test(query);
 
       if (addressType === 'invalid' && !isNumber && !isHex) {
         const results = searchAddressesByLabel(query);
-        setSuggestions(results.slice(0, 5)); // Max 5 suggestions
+        setSuggestions(results.slice(0, 5));
         setShowSuggestions(results.length > 0);
         setSelectedIndex(-1);
       } else {
@@ -87,33 +86,25 @@ export function SearchBar({ compact = false }: SearchBarProps) {
 
     if (!query.trim()) return;
 
-    // Sanitize input: remove any HTML/script tags and dangerous characters
     const trimmedQuery = query.trim()
-      .replace(/[<>\"']/g, '') // Remove HTML-related characters
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
-      .replace(/on\w+=/gi, ''); // Remove event handlers
+      .replace(/[<>\"']/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+=/gi, '');
 
-    // Validate length (prevent extremely long inputs)
-    // Unified addresses can be 300+ characters, so we allow up to 500
     if (trimmedQuery.length > 500) {
       console.warn('Query too long, truncating');
       return;
     }
 
-    // Check if it's an address using the proper detection function
     const addressType = detectAddressType(trimmedQuery);
 
     if (addressType !== 'invalid') {
-      // It's a valid address (transparent, shielded, or unified)
       router.push(`/address/${encodeURIComponent(trimmedQuery)}`);
     } else if (!isNaN(Number(trimmedQuery))) {
-      // It's a block number
       router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]+$/.test(trimmedQuery)) {
-      // It's a transaction ID (hex format)
       router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else {
-      // Try to find an address by label (e.g., "Lockbox", "Foundation")
       const addressByLabel = findAddressByLabel(trimmedQuery);
       if (addressByLabel) {
         router.push(`/address/${encodeURIComponent(addressByLabel)}`);
@@ -130,21 +121,21 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     return (
       <div
         ref={suggestionsRef}
-        className="absolute top-full left-0 right-0 mt-1 suggestions-dropdown rounded-lg shadow-xl border z-50 overflow-hidden"
+        className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-lg shadow-xl border z-50 overflow-hidden animate-scale-in origin-top"
       >
         {suggestions.map((suggestion, index) => (
           <button
             key={suggestion.address}
             type="button"
             onClick={() => selectSuggestion(suggestion)}
-            className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-all duration-150 ${
               index === selectedIndex ? 'suggestion-item-active' : 'suggestion-item'
             }`}
           >
-            <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+            <span className={`text-xs px-2 py-1 rounded-md font-mono ${
               suggestion.isOfficial
-                ? 'bg-cipher-cyan/20 text-cipher-cyan'
-                : 'bg-cipher-purple/20 text-cipher-purple'
+                ? 'bg-cipher-cyan/15 text-cipher-cyan border border-cipher-cyan/20'
+                : 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
             }`}>
               {suggestion.isOfficial ? '🏛️' : '👤'}
             </span>
@@ -183,15 +174,25 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     );
   }
 
-  // Full version for homepage
+  // Full version for homepage - Enhanced
   return (
     <form onSubmit={handleSearch} className="max-w-3xl mx-auto px-2 sm:px-0">
-      <div className={`relative transition-all duration-300 ${isFocused ? 'scale-[1.02]' : ''}`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-cipher-cyan/20 to-cipher-purple/20 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <div className="relative">
-          <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-base sm:text-lg">
+      {/* Search Container with Glow Effect */}
+      <div className="relative group">
+        {/* Glow effect on focus */}
+        <div
+          className={`absolute -inset-1 bg-gradient-to-r from-cipher-cyan/30 via-purple-500/20 to-cipher-cyan/30 rounded-xl blur-lg transition-opacity duration-500 ${
+            isFocused ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
+        {/* Search Input Container */}
+        <div className={`relative transition-all duration-300 ${isFocused ? 'scale-[1.01]' : ''}`}>
+          {/* Terminal prompt */}
+          <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-lg sm:text-xl font-bold">
             {'>'}
           </div>
+
           <input
             type="text"
             value={query}
@@ -203,41 +204,63 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             }}
             onBlur={() => setIsFocused(false)}
             placeholder="Search address, tx, block, or label..."
-            className="w-full pl-8 sm:pl-10 pr-24 sm:pr-32 py-3 sm:py-5 text-sm sm:text-base search-input border-2"
+            className={`w-full pl-10 sm:pl-12 pr-28 sm:pr-36 py-4 sm:py-5 text-sm sm:text-base font-mono
+              search-input-hero border-2 rounded-xl text-primary
+              placeholder:text-muted transition-all duration-300
+              ${isFocused
+                ? 'border-cipher-cyan shadow-lg shadow-cipher-cyan/10'
+                : 'border-cipher-border hover:border-cipher-cyan/50'
+              }
+              focus:outline-none`}
           />
+
+          {/* Keyboard shortcut hint */}
+          <div className="hidden sm:flex absolute right-28 sm:right-36 top-1/2 -translate-y-1/2 items-center gap-1 text-muted">
+            <kbd className="kbd-hint">⌘</kbd>
+            <kbd className="kbd-hint">K</kbd>
+          </div>
+
+          {/* Search Button */}
           <button
             type="submit"
-            className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-cipher-cyan hover:bg-cipher-green text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-md font-mono font-semibold transition-all shadow-lg shadow-cipher-cyan/30 hover:shadow-cipher-green/30 text-xs sm:text-sm"
+            className="absolute right-2 top-1/2 -translate-y-1/2
+              bg-cipher-cyan hover:bg-cipher-green text-white
+              px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg
+              font-mono font-bold text-xs sm:text-sm
+              transition-colors duration-200
+              shadow-lg shadow-cipher-cyan/25 hover:shadow-cipher-green/30"
           >
             SEARCH
           </button>
+
           <SuggestionsDropdown />
         </div>
       </div>
-      <div className="mt-2 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-3 justify-center items-center text-[10px] sm:text-xs">
-        <span className="text-gray-500 font-mono uppercase tracking-wider">Examples:</span>
+
+      {/* Example Buttons */}
+      <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center items-center">
+        <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Try:</span>
         <button
           type="button"
           onClick={() => setQuery('354939')}
-          className="text-cipher-cyan hover:text-cipher-green example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
+          className="example-tag example-tag-cyan"
         >
           Block #354939
         </button>
-        <span className="text-gray-600 hidden sm:inline">|</span>
         <button
           type="button"
           onClick={() => setQuery('t1abc...')}
-          className="text-gray-400 hover:text-cipher-cyan example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
+          className="example-tag example-tag-default"
         >
           t-address
         </button>
-        <span className="text-gray-600 hidden sm:inline">|</span>
         <button
           type="button"
           onClick={() => setQuery('zs1...')}
-          className="text-cipher-green hover:text-cipher-cyan example-btn px-1.5 sm:px-2 py-0.5 sm:py-1"
+          className="example-tag example-tag-purple"
         >
-          z-address 🛡️
+          z-address
+          <span>🛡️</span>
         </button>
       </div>
     </form>

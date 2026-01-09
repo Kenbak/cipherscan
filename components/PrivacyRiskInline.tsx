@@ -80,40 +80,40 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     const truncatedAddr = address ? truncateAddress(address) : null;
 
     return (
-      <div className="mt-4 rounded-xl overflow-hidden border border-green-300 dark:border-green-500/30 bg-green-50 dark:bg-green-500/5">
+      <div className="mt-4 privacy-alert privacy-alert-success">
         {/* Header */}
-        <div className="px-4 py-3 flex items-center justify-between bg-green-100 dark:bg-green-500/10">
+        <div className="privacy-alert-header privacy-alert-header-success">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-lg bg-green-200 dark:bg-green-500/20">
-              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="privacy-alert-icon privacy-alert-icon-success">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 className="text-sm font-semibold text-green-700 dark:text-green-400">
+            <h3 className="text-sm font-semibold privacy-alert-title-success">
               No Round-Trip Detected
             </h3>
           </div>
-          <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-200 dark:bg-green-500/20 text-green-700 dark:text-green-400">
+          <span className="privacy-alert-badge privacy-alert-badge-success">
             Private
           </span>
         </div>
 
         {/* Content */}
-        <div className="px-4 py-4 space-y-2">
-          <p className="text-sm text-gray-700 dark:text-secondary">
+        <div className="privacy-alert-content">
+          <p className="text-sm text-secondary">
             This transaction {flowVerb}{' '}
-            <span className="text-gray-900 dark:text-primary font-medium">{amountZec} ZEC</span>
+            <span className="text-primary font-medium">{amountZec} ZEC</span>
             {truncatedAddr && (
               <>
                 {data.flowType === 'shield' ? ' from ' : ' to '}
-                <Link href={`/address/${address}`} className="text-gray-900 dark:text-primary font-mono hover:underline">
+                <Link href={`/address/${address}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
                   {truncatedAddr}
                 </Link>
               </>
             )}.
             No matching {data.flowType === 'shield' ? 'unshield' : 'shield'} with a similar amount was found.
           </p>
-          <p className="text-xs text-gray-500 dark:text-muted italic">
+          <p className="text-xs text-muted italic mt-2">
             This doesn&apos;t guarantee privacy, but no obvious round-trip pattern was detected.
           </p>
         </div>
@@ -134,107 +134,94 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     ?.replace('1 hours', '1 hour')
     ?.replace('1 days', '1 day') || '';
 
+  const alertVariant = isHigh ? 'danger' : 'warning';
+
   return (
-    <div className={`mt-4 rounded-xl overflow-hidden border ${
-      isHigh
-        ? 'border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/5'
-        : 'border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'
-    }`}>
+    <div className={`mt-4 privacy-alert privacy-alert-${alertVariant}`}>
       {/* Header */}
-      <div className={`px-4 py-3 flex items-center justify-between ${
-        isHigh ? 'bg-red-100 dark:bg-red-500/10' : 'bg-amber-100 dark:bg-amber-500/10'
-      }`}>
+      <div className={`privacy-alert-header privacy-alert-header-${alertVariant}`}>
         <div className="flex items-center gap-3">
-          <div className={`p-1.5 rounded-lg ${isHigh ? 'bg-red-200 dark:bg-red-500/20' : 'bg-amber-200 dark:bg-amber-500/20'}`}>
-            <svg
-              className={`w-4 h-4 ${isHigh ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+          <div className={`privacy-alert-icon privacy-alert-icon-${alertVariant}`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className={`text-sm font-semibold ${isHigh ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
+          <h3 className={`text-sm font-semibold privacy-alert-title-${alertVariant}`}>
             Privacy Alert
           </h3>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`px-2 py-1 rounded-md text-xs font-medium ${
-            isHigh
-              ? 'bg-red-200 dark:bg-red-500/20 text-red-700 dark:text-red-400'
-              : 'bg-amber-200 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-          }`}>
+          <span className={`privacy-alert-badge privacy-alert-badge-${alertVariant}`}>
             {isHigh ? 'High Risk' : 'Medium Risk'}
           </span>
           <div className="flex items-baseline gap-0.5">
-            <span className={`text-xl font-bold font-mono ${isHigh ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
+            <span className={`text-xl font-bold font-mono privacy-alert-score-${alertVariant}`}>
               {data.highestScore}
             </span>
-            <span className="text-xs text-gray-500 dark:text-muted">/100</span>
+            <span className="text-xs text-muted">/100</span>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4 py-4 space-y-4">
+      <div className="privacy-alert-content space-y-4">
         {/* Transaction info */}
         <div className="space-y-2">
-          <p className="text-sm text-gray-700 dark:text-secondary">
+          <p className="text-sm text-secondary">
             This transaction {isDeshield ? 'unshields' : 'shields'}{' '}
-            <span className="text-gray-900 dark:text-primary font-medium">{data.amount.toFixed(4)} ZEC</span>
+            <span className="text-primary font-medium">{data.amount.toFixed(4)} ZEC</span>
             {currentAddress && (
               <>
                 {isDeshield ? ' to ' : ' from '}
-                <Link href={`/address/${currentAddress}`} className="text-gray-900 dark:text-primary font-mono hover:underline">
+                <Link href={`/address/${currentAddress}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
                   {truncateAddress(currentAddress)}
                 </Link>
               </>
             )}
           </p>
 
-          <p className="text-sm text-gray-700 dark:text-secondary">
+          <p className="text-sm text-secondary">
             A similar amount was {isDeshield ? 'shielded' : 'unshielded'}
             {linkedAddress && (
               <>
                 {isDeshield ? ' from ' : ' to '}
-                <Link href={`/address/${linkedAddress}`} className="text-gray-900 dark:text-primary font-mono hover:underline">
+                <Link href={`/address/${linkedAddress}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
                   {truncateAddress(linkedAddress)}
                 </Link>
               </>
             )}
-            {timeDelta && <span className="text-gray-500 dark:text-muted"> ({timeDelta})</span>}
+            {timeDelta && <span className="text-muted"> ({timeDelta})</span>}
           </p>
         </div>
 
         {/* Conclusion */}
-        <p className="text-sm text-gray-700 dark:text-secondary italic">
+        <p className="text-sm text-secondary italic">
           → An observer could conclude that{' '}
-          <span className="font-mono text-gray-900 dark:text-primary not-italic">{currentAddress ? truncateAddress(currentAddress) : 'address A'}</span>
+          <span className="font-mono text-primary not-italic">{currentAddress ? truncateAddress(currentAddress) : 'address A'}</span>
           {' '}and{' '}
-          <span className="font-mono text-gray-900 dark:text-primary not-italic">{linkedAddress ? truncateAddress(linkedAddress) : 'address B'}</span>
+          <span className="font-mono text-primary not-italic">{linkedAddress ? truncateAddress(linkedAddress) : 'address B'}</span>
           {' '}belong to the same person.
         </p>
 
         {/* Linked TX */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-muted">
+        <div className="flex items-center gap-2 text-xs text-muted">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
           <span>Linked transaction:</span>
           <Link
             href={`/tx/${topMatch.txid}`}
-            className="font-mono text-gray-900 dark:text-primary hover:underline"
+            className="font-mono text-primary hover:text-cipher-cyan transition-colors"
           >
             {truncateTxid(topMatch.txid)}
           </Link>
         </div>
 
         {/* Why is this a risk */}
-        <div className={`pt-3 border-t ${isHigh ? 'border-red-200 dark:border-red-500/20' : 'border-amber-200 dark:border-amber-500/20'}`}>
+        <div className={`pt-3 border-t privacy-alert-divider-${alertVariant}`}>
           <button
             onClick={() => setShowWhy(!showWhy)}
-            className="text-xs text-gray-500 dark:text-muted hover:text-gray-700 dark:hover:text-secondary flex items-center gap-1.5 transition-colors"
+            className="text-xs text-muted hover:text-secondary flex items-center gap-1.5 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -246,13 +233,13 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
           </button>
 
           {showWhy && (
-            <div className="mt-3 text-xs text-gray-600 dark:text-secondary leading-relaxed">
+            <div className="mt-3 text-xs text-secondary leading-relaxed">
               <p>
                 When you shield and then unshield similar amounts within a short time,
                 an observer can correlate the transactions and link your transparent addresses.
               </p>
-              <p className="mt-2 text-gray-500 dark:text-muted">
-                The only foolproof way to defeat this is to <strong className="text-gray-900 dark:text-primary">ZODL</strong> — hold your ZEC in the shielded pool longer.
+              <p className="mt-2 text-muted">
+                The only foolproof way to defeat this is to <strong className="text-primary">ZODL</strong> — hold your ZEC in the shielded pool longer.
               </p>
             </div>
           )}
