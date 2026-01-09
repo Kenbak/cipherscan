@@ -92,7 +92,7 @@ export default async function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Privacy Widget */}
         <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <PrivacyWidget />
@@ -102,9 +102,10 @@ export default async function Home() {
         <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
           <PrivacyRisksWidget />
         </div>
+      </div>
 
-        {/* Recent Blocks & Shielded TXs - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16">
+      {/* Recent Blocks & Shielded TXs - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16 lg:mt-20">
           {/* Recent Blocks */}
           <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <div className="flex items-center justify-between mb-5">
@@ -141,8 +142,6 @@ export default async function Home() {
             <RecentShieldedTxs />
           </div>
         </div>
-
-      </div>
     </div>
   );
 }
