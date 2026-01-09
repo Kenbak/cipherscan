@@ -184,7 +184,7 @@ export function PrivacyWidget() {
   // Loading state with skeleton
   if (!stats || !stats.totals || !stats.metrics) {
     return (
-      <div className="card-base card-featured">
+      <div className="card card-featured">
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs text-muted font-mono uppercase tracking-wide">ZCASH PRIVACY METRICS</span>
           <span className="text-xs text-cipher-cyan font-mono">View Dashboard →</span>
@@ -215,7 +215,7 @@ export function PrivacyWidget() {
 
   return (
     <Link href="/privacy" className="block group">
-      <div className="card-base card-featured group-hover:border-purple-500/40 transition-all duration-300">
+      <div className="card card-featured card-interactive">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wide">
@@ -307,11 +307,10 @@ export function PrivacyRisksWidget() {
   const hasHighRisk = riskStats.highRisk > 0;
   const accentColor = hasHighRisk ? 'text-red-400' : 'text-purple-400';
   const bgColor = hasHighRisk ? 'bg-red-500/10' : 'bg-purple-500/10';
-  const borderHover = hasHighRisk ? 'group-hover:border-red-500/40' : 'group-hover:border-purple-500/40';
 
   return (
     <Link href="/privacy-risks?period=24h" className="block group">
-      <div className={`card-base card-compact ${borderHover} transition-all duration-300`}>
+      <div className="card card-compact card-interactive">
         <div className="flex items-center justify-between gap-3">
           {/* Left: Icon + Text */}
           <div className="flex items-center gap-3 min-w-0">

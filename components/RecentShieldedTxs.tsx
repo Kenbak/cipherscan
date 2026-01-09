@@ -56,7 +56,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
 
   if (loading) {
     return (
-      <div className="card-base card-standard">
+      <div className="card">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400"></div>
           <p className="text-secondary ml-4 font-mono text-lg">Loading shielded data...</p>
@@ -83,7 +83,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
       {txs.map((tx, index) => (
         <Link href={`/tx/${tx.txid}`} key={tx.txid}>
           <div
-            className={`card-base card-compact card-interactive group animate-fade-in-up ${
+            className={`card card-compact card-interactive group animate-fade-in-up ${
               nested ? 'bg-transparent' : ''
             }`}
             style={{
@@ -94,7 +94,11 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-xl">🔒</span>
+                  <span className="w-6 h-6 flex items-center justify-center rounded-md bg-purple-500/10">
+                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </span>
                   <h3 className="text-base sm:text-lg font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
                     {tx.txid.slice(0, 12)}...
                   </h3>

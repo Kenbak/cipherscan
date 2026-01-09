@@ -44,7 +44,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseClass = 'btn';
-  const variantClass = `btn-${variant}-v2`;
+  const variantClass = `btn-${variant}`;
   const sizeClass = `btn-${size}`;
   const widthClass = fullWidth ? 'btn-full' : '';
   const loadingClass = loading ? 'btn-loading' : '';
@@ -113,7 +113,7 @@ export function IconButton({
 
   return (
     <button
-      className={`btn-icon-only btn-${variant}-v2 ${sizeClasses[size]} ${className}`}
+      className={`btn-icon-only btn-${variant} ${sizeClasses[size]} ${className}`}
       aria-label={label}
       {...props}
     >

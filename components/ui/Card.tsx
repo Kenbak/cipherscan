@@ -32,21 +32,20 @@ export function Card({
   className = '',
   onClick,
 }: CardProps) {
-  const baseClasses = 'card-base';
-
+  // Use .card as base, add variant modifiers
   const variantClasses: Record<CardVariant, string> = {
-    standard: 'card-standard',
-    compact: 'card-compact',
-    featured: 'card-featured',
-    glass: 'card-glass-v2',
-    dark: 'card-dark-v2',
+    standard: 'card',
+    compact: 'card card-compact',
+    featured: 'card card-featured',
+    glass: 'card-glass',
+    dark: 'card-dark',
   };
 
   const interactiveClass = interactive ? 'card-interactive' : '';
 
   return (
     <div
-      className={`${baseClasses} ${variantClasses[variant]} ${interactiveClass} ${className}`}
+      className={`${variantClasses[variant]} ${interactiveClass} ${className}`}
       onClick={interactive ? onClick : undefined}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}

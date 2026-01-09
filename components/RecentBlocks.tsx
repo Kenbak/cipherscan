@@ -54,7 +54,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
 
   if (loading) {
     return (
-      <div className="card-base card-standard">
+      <div className="card">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
           <p className="text-secondary ml-4 font-mono text-lg">Syncing blockchain data...</p>
@@ -68,13 +68,17 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
       {blocks.map((block, index) => (
         <Link href={`/block/${block.height}`} key={block.height}>
           <div
-            className="card-base card-compact card-interactive group animate-fade-in-up"
+            className="card card-compact card-interactive group animate-fade-in-up"
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-xl">📦</span>
+                  <span className="w-6 h-6 flex items-center justify-center rounded-md bg-cipher-cyan/10">
+                    <svg className="w-4 h-4 text-cipher-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </span>
                   <h3 className="text-base sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors">
                     #{block.height.toLocaleString()}
                   </h3>

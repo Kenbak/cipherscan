@@ -30,15 +30,15 @@ export function Badge({
   className = '',
 }: BadgeProps) {
   const colorClasses: Record<BadgeColor, string> = {
-    cyan: 'badge-cyan-v2',
-    purple: 'badge-purple-v2',
-    green: 'badge-green-v2',
-    orange: 'badge-orange-v2',
-    muted: 'badge-muted-v2',
+    cyan: 'badge-cyan',
+    purple: 'badge-purple',
+    green: 'badge-green',
+    orange: 'badge-orange',
+    muted: 'badge-muted',
   };
 
   return (
-    <span className={`badge-v2 ${colorClasses[color]} ${className}`}>
+    <span className={`badge ${colorClasses[color]} ${className}`}>
       {icon && <span className="badge-icon">{icon}</span>}
       <span className="badge-text">{children}</span>
     </span>

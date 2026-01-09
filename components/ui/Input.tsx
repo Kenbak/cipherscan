@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
-            className={`input-v2 ${iconPaddingClass} ${error ? 'input-error' : ''} ${className}`}
+            className={`input-field ${iconPaddingClass} ${error ? 'input-error' : ''} ${className}`}
             {...props}
           />
           {hasIcon && iconPosition === 'right' && (
@@ -67,7 +67,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && <label className="input-label">{label}</label>}
         <textarea
           ref={ref}
-          className={`textarea-v2 ${error ? 'input-error' : ''} ${className}`}
+          className={`textarea-field ${error ? 'input-error' : ''} ${className}`}
           {...props}
         />
         {hint && !error && <span className="input-hint">{hint}</span>}
@@ -106,7 +106,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         <input
           ref={ref}
           type="text"
-          className={`search-input-v2 ${className}`}
+          className={`search-input-field ${className}`}
           value={value}
           {...props}
         />
