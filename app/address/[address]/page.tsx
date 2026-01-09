@@ -141,22 +141,53 @@ export default function AddressPage() {
         // Transform data if coming from Express API
         if (usePostgresApiClient()) {
           // Express API returns values in satoshis
-          const transformedTransactions = (apiData.transactions || []).map((tx: any) => ({
-            txid: tx.txid,
-            timestamp: tx.blockTime,
-            amount: Math.abs(tx.netChange / 100000000), // satoshis to ZEC
-            type: tx.netChange > 0 ? 'received' : 'sent',
-            blockHeight: tx.blockHeight,
-            from: tx.netChange > 0 ? null : apiData.address,
-            to: tx.netChange > 0 ? apiData.address : null,
-            // Coinbase = first TX of block (tx_index 0) with no transparent inputs
-            // Deshielding = receiving from shielded (no transparent inputs, has shielded activity)
-            // Shielding = sending to shielded (has transparent inputs, shielded activity, sending)
-            isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !tx.hasOrchard && !tx.hasSapling,
-            isShielded: tx.hasOrchard || tx.hasSapling,
-            isDeshielding: tx.inputValue === 0 && tx.outputValue > 0 && (tx.hasOrchard || tx.hasSapling),
-            isShielding: tx.inputValue > 0 && (tx.hasOrchard || tx.hasSapling) && tx.netChange < 0,
-          }));
+          const transformedTransactions = (apiData.transactions || []).map((tx: any) => {
+            const hasShieldedActivity = tx.hasOrchard || tx.hasSapling;
+            const isReceiving = tx.netChange > 0;
+            const isSending = tx.netChange < 0;
+
+            // Use counterparty from API (now includes actual addresses!)
+            let from = null;
+            let to = null;
+
+            if (isReceiving) {
+              // We received funds
+              to = apiData.address;
+              // "from" is the counterparty if available, or shielded if has shielded activity
+              if (tx.counterparty) {
+                from = tx.counterparty;
+              } else if (hasShieldedActivity) {
+                from = 'shielded';
+              }
+            } else if (isSending) {
+              // We sent funds
+              from = apiData.address;
+              // "to" is the counterparty if available, or shielded if has shielded activity
+              if (tx.counterparty) {
+                to = tx.counterparty;
+              } else if (hasShieldedActivity) {
+                to = 'shielded';
+              }
+            }
+
+            return {
+              txid: tx.txid,
+              timestamp: tx.blockTime,
+              amount: Math.abs(tx.netChange / 100000000), // satoshis to ZEC
+              type: isReceiving ? 'received' : 'sent',
+              blockHeight: tx.blockHeight,
+              from,
+              to,
+              // Coinbase = first TX of block (tx_index 0) with no transparent inputs
+              isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !hasShieldedActivity && tx.senderCount === 0,
+              // Fully shielded = has shielded activity with no transparent I/O for this address
+              isShielded: hasShieldedActivity && tx.inputValue === 0 && tx.outputValue === 0,
+              // Deshielding = receiving from shielded pool (no counterparty, has shielded activity)
+              isDeshielding: !tx.counterparty && tx.outputValue > 0 && hasShieldedActivity && isReceiving,
+              // Shielding = sending to shielded pool (no counterparty recipient, has shielded activity)
+              isShielding: !tx.counterparty && hasShieldedActivity && isSending,
+            };
+          });
 
           setData({
             address: apiData.address,
@@ -731,26 +762,34 @@ export default function AddressPage() {
                           </>
                         ) : (
                           <>
-                            {tx.from ? (
+                            {/* From address */}
+                            {tx.from === 'shielded' ? (
+                              <span className="text-purple-400 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Shielded
+                              </span>
+                            ) : tx.from ? (
                               <AddressDisplay address={tx.from} className="text-xs truncate" />
                             ) : (
+                              <span className="text-muted">-</span>
+                            )}
+
+                            <span className="text-muted">→</span>
+
+                            {/* To address */}
+                            {tx.to === 'shielded' ? (
                               <span className="text-purple-400 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
                                 Shielded
                               </span>
-                            )}
-                            <span className="text-muted">→</span>
-                            {tx.to ? (
+                            ) : tx.to ? (
                               <AddressDisplay address={tx.to} className="text-xs truncate" />
                             ) : (
-                              <span className="text-purple-400 flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                Shielded
-                              </span>
+                              <span className="text-muted">-</span>
                             )}
                           </>
                         )}

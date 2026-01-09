@@ -143,8 +143,7 @@ router.get('/api/address/:address', async (req, res) => {
 
     const summary = summaryResult.rows[0];
 
-    // Get recent transactions (optimized query for addresses with many txs)
-    // Step 1: Find the most recent txids efficiently
+    // Get recent transactions with counterparty addresses
     const txResult = await pool.query(
       `WITH recent_txids AS (
         SELECT DISTINCT txid
@@ -165,7 +164,17 @@ router.get('/api/address/:address', async (req, res) => {
         t.has_sapling,
         t.has_orchard,
         COALESCE(ti.input_value, 0) as input_value,
-        COALESCE(tov.output_value, 0) as output_value
+        COALESCE(tov.output_value, 0) as output_value,
+        -- Get sender addresses (from inputs, excluding current address)
+        (SELECT ARRAY_AGG(DISTINCT address)
+         FROM transaction_inputs
+         WHERE txid = t.txid AND address IS NOT NULL AND address != $1
+        ) as sender_addresses,
+        -- Get recipient addresses (from outputs, excluding current address)
+        (SELECT ARRAY_AGG(DISTINCT address)
+         FROM transaction_outputs
+         WHERE txid = t.txid AND address IS NOT NULL AND address != $1
+        ) as recipient_addresses
       FROM transactions t
       JOIN recent_txids rt ON t.txid = rt.txid
       LEFT JOIN (
@@ -185,18 +194,36 @@ router.get('/api/address/:address', async (req, res) => {
       [address, limit, offset]
     );
 
-    const transactions = txResult.rows.map(tx => ({
-      txid: tx.txid,
-      blockHeight: tx.block_height,
-      blockTime: tx.block_time,
-      size: tx.size,
-      txIndex: tx.tx_index,
-      hasSapling: tx.has_sapling,
-      hasOrchard: tx.has_orchard,
-      inputValue: parseFloat(tx.input_value),
-      outputValue: parseFloat(tx.output_value),
-      netChange: parseFloat(tx.output_value) - parseFloat(tx.input_value),
-    }));
+    const transactions = txResult.rows.map(tx => {
+      const netChange = parseFloat(tx.output_value) - parseFloat(tx.input_value);
+      const isReceiving = netChange > 0;
+
+      // Determine counterparty address
+      let counterparty = null;
+      if (isReceiving && tx.sender_addresses && tx.sender_addresses.length > 0) {
+        // We received - counterparty is the sender
+        counterparty = tx.sender_addresses[0];
+      } else if (!isReceiving && tx.recipient_addresses && tx.recipient_addresses.length > 0) {
+        // We sent - counterparty is the recipient
+        counterparty = tx.recipient_addresses[0];
+      }
+
+      return {
+        txid: tx.txid,
+        blockHeight: tx.block_height,
+        blockTime: tx.block_time,
+        size: tx.size,
+        txIndex: tx.tx_index,
+        hasSapling: tx.has_sapling,
+        hasOrchard: tx.has_orchard,
+        inputValue: parseFloat(tx.input_value),
+        outputValue: parseFloat(tx.output_value),
+        netChange,
+        counterparty,
+        senderCount: tx.sender_addresses?.length || 0,
+        recipientCount: tx.recipient_addresses?.length || 0,
+      };
+    });
 
     res.json({
       address: summary.address,
