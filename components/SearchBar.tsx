@@ -39,8 +39,12 @@ export function SearchBar({ compact = false }: SearchBarProps) {
 
   // Fetch official labels on mount
   useEffect(() => {
-    fetchOfficialLabels().then(() => {
+    console.log('[SearchBar] Fetching official labels...');
+    fetchOfficialLabels().then((labels) => {
+      console.log('[SearchBar] Labels loaded:', Object.keys(labels).length, 'entries');
       setLabelsLoaded(true);
+    }).catch((err) => {
+      console.error('[SearchBar] Failed to fetch labels:', err);
     });
   }, []);
 
@@ -51,8 +55,11 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       const isNumber = !isNaN(Number(query));
       const isHex = /^[a-fA-F0-9]+$/.test(query);
 
+      console.log('[SearchBar] Query:', query, 'addressType:', addressType, 'isNumber:', isNumber, 'isHex:', isHex, 'labelsLoaded:', labelsLoaded);
+
       if (addressType === 'invalid' && !isNumber && !isHex) {
         const results = searchAddressesByLabel(query);
+        console.log('[SearchBar] Search results:', results.length, results);
         setSuggestions(results.slice(0, 5));
         setShowSuggestions(results.length > 0);
         setSelectedIndex(-1);
