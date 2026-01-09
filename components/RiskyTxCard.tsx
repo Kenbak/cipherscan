@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
+import { AddressDisplay } from '@/components/AddressWithLabel';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -36,11 +37,6 @@ function truncateTxid(txid: string): string {
   return `${txid.slice(0, 8)}...${txid.slice(-6)}`;
 }
 
-function truncateAddress(address: string | null | undefined): string {
-  if (!address) return '';
-  if (address.length <= 14) return address;
-  return `${address.slice(0, 8)}...${address.slice(-6)}`;
-}
 
 export function RiskyTxCard({ tx }: RiskyTxCardProps) {
   const isHigh = tx.warningLevel === 'HIGH';
@@ -95,9 +91,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
               <div className="truncate">
                 {shieldAddress ? (
-                  <Link href={`/address/${shieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
-                    {truncateAddress(shieldAddress)}
-                  </Link>
+                  <AddressDisplay address={shieldAddress} className="text-xs sm:text-sm" />
                 ) : (
                   <Link href={`/tx/${tx.shieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateTxid(tx.shieldTxid)}
@@ -126,9 +120,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
               <div className="truncate">
                 {deshieldAddress ? (
-                  <Link href={`/address/${deshieldAddress}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
-                    {truncateAddress(deshieldAddress)}
-                  </Link>
+                  <AddressDisplay address={deshieldAddress} className="text-xs sm:text-sm" />
                 ) : (
                   <Link href={`/tx/${tx.deshieldTxid}`} className="font-mono text-xs sm:text-sm text-primary hover:text-cipher-cyan transition-colors">
                     {truncateTxid(tx.deshieldTxid)}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { AddressDisplay } from '@/components/AddressWithLabel';
 
 interface LinkedTransaction {
   txid: string;
@@ -33,10 +34,6 @@ function truncateTxid(txid: string): string {
   return `${txid.slice(0, 8)}...${txid.slice(-6)}`;
 }
 
-function truncateAddress(address: string): string {
-  if (address.length <= 14) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
 
 export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
   const [data, setData] = useState<LinkabilityData | null>(null);
@@ -77,7 +74,6 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     const amountZec = (data.amount || 0).toFixed(4);
     const flowVerb = data.flowType === 'shield' ? 'shields' : 'unshields';
     const address = data.transparentAddresses?.[0];
-    const truncatedAddr = address ? truncateAddress(address) : null;
 
     return (
       <div className="mt-4 privacy-alert privacy-alert-success">
@@ -103,12 +99,10 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
           <p className="text-sm text-secondary">
             This transaction {flowVerb}{' '}
             <span className="text-primary font-medium">{amountZec} ZEC</span>
-            {truncatedAddr && (
+            {address && (
               <>
                 {data.flowType === 'shield' ? ' from ' : ' to '}
-                <Link href={`/address/${address}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
-                  {truncatedAddr}
-                </Link>
+                <AddressDisplay address={address} className="text-xs" />
               </>
             )}.
             No matching {data.flowType === 'shield' ? 'unshield' : 'shield'} with a similar amount was found.
@@ -173,9 +167,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
             {currentAddress && (
               <>
                 {isDeshield ? ' to ' : ' from '}
-                <Link href={`/address/${currentAddress}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
-                  {truncateAddress(currentAddress)}
-                </Link>
+                <AddressDisplay address={currentAddress} className="text-xs" />
               </>
             )}
           </p>
@@ -185,9 +177,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
             {linkedAddress && (
               <>
                 {isDeshield ? ' from ' : ' to '}
-                <Link href={`/address/${linkedAddress}`} className="text-primary font-mono hover:text-cipher-cyan transition-colors">
-                  {truncateAddress(linkedAddress)}
-                </Link>
+                <AddressDisplay address={linkedAddress} className="text-xs" />
               </>
             )}
             {timeDelta && <span className="text-muted"> ({timeDelta})</span>}
@@ -197,9 +187,9 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
         {/* Conclusion */}
         <p className="text-sm text-secondary italic">
           → An observer could conclude that{' '}
-          <span className="font-mono text-primary not-italic">{currentAddress ? truncateAddress(currentAddress) : 'address A'}</span>
+          <span className="not-italic">{currentAddress ? <AddressDisplay address={currentAddress} className="text-xs" /> : 'address A'}</span>
           {' '}and{' '}
-          <span className="font-mono text-primary not-italic">{linkedAddress ? truncateAddress(linkedAddress) : 'address B'}</span>
+          <span className="not-italic">{linkedAddress ? <AddressDisplay address={linkedAddress} className="text-xs" /> : 'address B'}</span>
           {' '}belong to the same person.
         </p>
 
