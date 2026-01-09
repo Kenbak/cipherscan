@@ -850,17 +850,22 @@
   }
 
   .suggestion-item:hover {
-    background-color: var(--color-hover);
+    background-color: rgba(0, 212, 255, 0.08);
     color: var(--color-text-primary);
   }
 
+  .light .suggestion-item:hover {
+    background-color: rgba(8, 145, 178, 0.08);
+  }
+
   .suggestion-item-active {
-    background-color: var(--color-hover);
+    background-color: rgba(0, 212, 255, 0.12);
     color: var(--color-cyan);
   }
 
   .light .suggestion-item-active {
-    background-color: #ecfeff;
+    background-color: rgba(8, 145, 178, 0.1);
+    color: var(--color-cyan);
   }
 
   .suggestion-label {

@@ -38,8 +38,8 @@ export default async function Home() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      {/* Hero Section */}
-      <div className="text-center mb-12 sm:mb-16">
+      {/* Hero Section - z-index for dropdown to appear above widgets */}
+      <div className="text-center mb-12 sm:mb-16 relative z-30">
         {/* Tagline - SEO friendly */}
         <p className="text-xs sm:text-sm text-muted font-mono uppercase tracking-widest mb-4 animate-fade-in">
           Zcash Blockchain Explorer
@@ -91,8 +91,8 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="space-y-4">
+      {/* Main Content - lower z-index than hero */}
+      <div className="space-y-4 relative z-10">
         {/* Privacy Widget */}
         <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <PrivacyWidget />
