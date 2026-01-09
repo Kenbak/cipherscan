@@ -9,6 +9,8 @@ import { AddressDisplay } from '@/components/AddressWithLabel';
 import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface PriceData {
   price: number;
@@ -224,12 +226,12 @@ export default function AddressPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="card">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-secondary ml-4 font-mono text-lg">Loading address data...</p>
-          </div>
-        </div>
+        <Card>
+          <CardBody className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
+            <p className="text-secondary ml-4 font-mono">Loading address data...</p>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -259,7 +261,8 @@ export default function AddressPage() {
           </div>
         </div>
 
-        <div className="card py-12">
+        <Card className="py-12">
+          <CardBody>
           <div className="gradient-card-purple-subtle rounded-lg p-6 max-w-2xl mx-auto">
             <p className="text-sm text-secondary mb-4">
               <strong className="text-purple-600 dark:text-purple-400">This is a shielded address.</strong> Balance and transaction history are private by design.
@@ -335,7 +338,8 @@ export default function AddressPage() {
               </div>
             </div>
           </div>
-        </div>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -351,41 +355,43 @@ export default function AddressPage() {
           </div>
         </div>
 
-        <div className="card py-12">
-          <div className="text-center mb-6">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-amber-600 dark:text-yellow-400 mb-4">Limited Data Available</h2>
-          </div>
-
-          <div className="gradient-card-warning rounded-lg p-6 max-w-2xl mx-auto">
-            <p className="text-sm text-secondary mb-4">
-              <strong className="text-amber-600 dark:text-yellow-400">This address is valid, but we cannot display its transaction history.</strong>
-            </p>
-
-            <p className="text-xs text-muted mb-4">
-              The explorer node doesn't have address indexing enabled. This means we can only display
-              transaction data if you provide the specific transaction ID.
-            </p>
-
-            <div className="block-hash-bg rounded p-4 mt-4">
-              <p className="text-xs text-muted mb-2">
-                <strong>Technical details:</strong>
-              </p>
-              <ul className="text-xs text-muted space-y-1">
-                <li>• RPC methods <code className="text-cipher-cyan">getaddressbalance</code> and <code className="text-cipher-cyan">getaddresstxids</code> are not available</li>
-                <li>• These require <code className="text-cipher-cyan">addressindex=1</code> in node configuration</li>
-                <li>• Zebrad may not support these methods yet</li>
-                <li>• Consider using zcashd with address indexing enabled</li>
-              </ul>
+        <Card>
+          <CardBody className="py-12">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-4">⚠️</div>
+              <h2 className="text-xl font-bold text-amber-600 dark:text-yellow-400 mb-4">Limited Data Available</h2>
             </div>
 
-            <div className="mt-6 p-4 bg-cipher-cyan/10 rounded border border-cipher-cyan/30">
-              <p className="text-xs text-cipher-cyan">
-                💡 <strong>Tip:</strong> You can still view individual transactions by searching for their transaction hash (txid).
+            <div className="gradient-card-warning rounded-lg p-6 max-w-2xl mx-auto">
+              <p className="text-sm text-secondary mb-4">
+                <strong className="text-amber-600 dark:text-yellow-400">This address is valid, but we cannot display its transaction history.</strong>
               </p>
+
+              <p className="text-xs text-muted mb-4">
+                The explorer node doesn&apos;t have address indexing enabled. This means we can only display
+                transaction data if you provide the specific transaction ID.
+              </p>
+
+              <div className="block-hash-bg rounded p-4 mt-4">
+                <p className="text-xs text-muted mb-2">
+                  <strong>Technical details:</strong>
+                </p>
+                <ul className="text-xs text-muted space-y-1">
+                  <li>• RPC methods <code className="text-cipher-cyan">getaddressbalance</code> and <code className="text-cipher-cyan">getaddresstxids</code> are not available</li>
+                  <li>• These require <code className="text-cipher-cyan">addressindex=1</code> in node configuration</li>
+                  <li>• Zebrad may not support these methods yet</li>
+                  <li>• Consider using zcashd with address indexing enabled</li>
+                </ul>
+              </div>
+
+              <div className="mt-6 p-4 bg-cipher-cyan/10 rounded border border-cipher-cyan/30">
+                <p className="text-xs text-cipher-cyan">
+                  💡 <strong>Tip:</strong> You can still view individual transactions by searching for their transaction hash (txid).
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -487,134 +493,137 @@ export default function AddressPage() {
       {/* Overview Cards - Row 1 */}
       <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Balance */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2 text-secondary">
-            <Icons.Wallet />
-            <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Balance</span>
-            <Tooltip content="Current balance of this address" />
-          </div>
-          <div className="text-xl md:text-2xl font-bold font-mono text-primary">
-            {data.balance.toFixed(8)}
-              </div>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center gap-2 mb-2 text-secondary">
+              <Icons.Wallet />
+              <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Balance</span>
+              <Tooltip content="Current balance of this address" />
             </div>
+            <div className="text-xl md:text-2xl font-bold font-mono text-primary">
+              {data.balance.toFixed(8)}
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Value (USD) */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2 text-secondary">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Value</span>
-            <Tooltip content="Estimated value in US Dollars" />
-              </div>
-          {priceData ? (
-            <div className="text-xl md:text-2xl font-bold font-mono text-primary">
-              ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs md:text-sm text-muted">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center gap-2 mb-2 text-secondary">
+              <Icons.Currency />
+              <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Value</span>
+              <Tooltip content="Estimated value in US Dollars" />
             </div>
-          ) : (
-            <div className="text-sm text-muted">Loading price...</div>
-          )}
-        </div>
+            {priceData ? (
+              <div className="text-xl md:text-2xl font-bold font-mono text-primary">
+                ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs md:text-sm text-muted">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
+              </div>
+            ) : (
+              <div className="text-sm text-muted">Loading price...</div>
+            )}
+          </CardBody>
+        </Card>
 
         {/* Address Type */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2 text-secondary">
-            <Icons.Shield />
-            <span className="text-xs md:text-sm uppercase tracking-wide">Address Type</span>
-          </div>
-          <div className="text-base md:text-lg font-semibold text-primary mb-1">
-            {typeInfo.label}
-          </div>
-          <div className="text-xs text-muted">
-            {typeInfo.description}
-          </div>
-        </div>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center gap-2 mb-2 text-secondary">
+              <Icons.Shield />
+              <span className="text-xs md:text-sm uppercase tracking-wide">Address Type</span>
+            </div>
+            <div className="text-base md:text-lg font-semibold text-primary mb-1">
+              {typeInfo.label}
+            </div>
+            <div className="text-xs text-muted">
+              {typeInfo.description}
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Overview Cards - Row 2 */}
       <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Total Transactions */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center gap-2 mb-2 text-secondary">
-            <Icons.List />
-            <span className="text-xs md:text-sm">Total Transactions</span>
-            <Tooltip content="Total number of transactions involving this address" />
-          </div>
-          <button
-            onClick={() => {
-              const txSection = document.getElementById('transactions-section');
-              txSection?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="text-xl md:text-2xl font-bold font-mono text-primary hover:text-cipher-cyan transition-colors text-left"
-          >
-            {totalTxCount}
-          </button>
-        </div>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center gap-2 mb-2 text-secondary">
+              <Icons.List />
+              <span className="text-xs md:text-sm">Total Transactions</span>
+              <Tooltip content="Total number of transactions involving this address" />
+            </div>
+            <button
+              onClick={() => {
+                const txSection = document.getElementById('transactions-section');
+                txSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-xl md:text-2xl font-bold font-mono text-primary hover:text-cipher-cyan transition-colors text-left"
+            >
+              {totalTxCount}
+            </button>
+          </CardBody>
+        </Card>
 
         {/* First Transaction */}
-        {firstTx ? (
-          <div className="card py-3 md:py-4">
+        <Card variant="compact">
+          <CardBody>
             <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
               <span className="text-xs md:text-sm">First Transaction</span>
-              <Tooltip content="The first transaction involving this address" />
+              {firstTx && <Tooltip content="The first transaction involving this address" />}
             </div>
-            <Link href={`/tx/${firstTx.txid}`} className="group block">
-              <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
-                {firstTx.txid.slice(0, 10)}...{firstTx.txid.slice(-8)}
-              </code>
-              <div className="text-xs text-muted">
-                {formatTimestamp(firstTx.timestamp)}
-              </div>
-            </Link>
-          </div>
-        ) : (
-          <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Clock />
-              <span className="text-xs md:text-sm">First Transaction</span>
-            </div>
-            <div className="text-sm text-muted">No transactions yet</div>
-          </div>
-        )}
+            {firstTx ? (
+              <Link href={`/tx/${firstTx.txid}`} className="group block">
+                <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
+                  {firstTx.txid.slice(0, 10)}...{firstTx.txid.slice(-8)}
+                </code>
+                <div className="text-xs text-muted">
+                  {formatTimestamp(firstTx.timestamp)}
+                </div>
+              </Link>
+            ) : (
+              <div className="text-sm text-muted">No transactions yet</div>
+            )}
+          </CardBody>
+        </Card>
 
         {/* Latest Transaction */}
-        {latestTx ? (
-          <div className="card py-3 md:py-4">
+        <Card variant="compact">
+          <CardBody>
             <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
               <span className="text-xs md:text-sm">Latest Transaction</span>
-              <Tooltip content="The most recent transaction involving this address" />
+              {latestTx && <Tooltip content="The most recent transaction involving this address" />}
             </div>
-            <Link href={`/tx/${latestTx.txid}`} className="group block">
-              <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
-                {latestTx.txid.slice(0, 10)}...{latestTx.txid.slice(-8)}
-              </code>
-              <div className="text-xs text-muted">
-                {formatTimestamp(latestTx.timestamp)}
-              </div>
-            </Link>
-          </div>
-        ) : (
-          <div className="card py-3 md:py-4">
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Clock />
-              <span className="text-xs md:text-sm">Latest Transaction</span>
-            </div>
-            <div className="text-sm text-muted">No transactions yet</div>
-          </div>
-        )}
+            {latestTx ? (
+              <Link href={`/tx/${latestTx.txid}`} className="group block">
+                <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
+                  {latestTx.txid.slice(0, 10)}...{latestTx.txid.slice(-8)}
+                </code>
+                <div className="text-xs text-muted">
+                  {formatTimestamp(latestTx.timestamp)}
+                </div>
+              </Link>
+            ) : (
+              <div className="text-sm text-muted">No transactions yet</div>
+            )}
+          </CardBody>
+        </Card>
       </div>
 
       {/* Transactions List */}
-      <div id="transactions-section" className="card">
-        <h2 className="text-xl font-semibold text-primary mb-6 flex items-center gap-2">
-          <Icons.List />
-          Transactions
-          <span className="text-sm text-muted font-normal">
-            (Latest {Math.min(sortedTxs.length, displayLimit)} of {totalTxCount})
+      <div id="transactions-section">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Icons.List />
+            <h2 className="text-lg font-semibold text-primary">Transactions</h2>
+            <Badge color="cyan">{totalTxCount}</Badge>
+          </div>
+          <span className="text-sm text-muted font-normal ml-auto">
+            showing {Math.min(sortedTxs.length, displayLimit)}
           </span>
-        </h2>
+        </CardHeader>
+        <CardBody>
 
         {data.transactions.length === 0 ? (
           <div className="text-center py-12">
@@ -641,15 +650,9 @@ export default function AddressPage() {
                     {/* Type Column */}
                     <div className="col-span-1">
                       {tx.type === 'received' ? (
-                        <span className="px-2 py-1 bg-cipher-green/10 text-cipher-green text-xs rounded font-mono flex items-center gap-1 w-fit">
-                          <Icons.ArrowDown />
-                          IN
-                        </span>
+                        <Badge color="green" icon={<Icons.ArrowDown />}>IN</Badge>
                       ) : (
-                        <span className="px-2 py-1 bg-red-500/10 text-red-500 dark:text-red-400 text-xs rounded font-mono flex items-center gap-1 w-fit">
-                          <Icons.ArrowUp />
-                          OUT
-                        </span>
+                        <Badge color="orange" icon={<Icons.ArrowUp />}>OUT</Badge>
                       )}
                     </div>
 
@@ -796,6 +799,8 @@ export default function AddressPage() {
           )}
         </>
         )}
+        </CardBody>
+      </Card>
       </div>
     </div>
   );

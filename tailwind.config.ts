@@ -11,21 +11,20 @@ const config: Config = {
     extend: {
       colors: {
         cipher: {
-          // ===== DARK THEME BACKGROUNDS =====
-          // Layered depth system - darker base for more contrast
-          bg: '#08090F',           // True dark, near OLED black (was #0A0E27)
-          elevated: '#0E1018',     // First elevation level (NEW)
-          surface: '#14161F',      // Cards and containers (was #141827)
-          hover: '#1A1D28',        // Interactive hover states (NEW)
-          active: '#22252F',       // Pressed/active states (NEW)
-          border: '#1E293B',       // Default border
+          // ===== THEME-AWARE BACKGROUNDS (use CSS variables) =====
+          bg: 'var(--color-bg)',
+          elevated: 'var(--color-elevated)',
+          surface: 'var(--color-surface)',
+          hover: 'var(--color-hover)',
+          active: 'var(--color-active)',
+          border: 'var(--color-border)',
 
-          // ===== LIGHT THEME BACKGROUNDS =====
-          'bg-light': '#FAFBFC',       // Warm off-white (was #F8FAFC)
-          'elevated-light': '#F5F7FA', // Subtle elevation (NEW)
-          'surface-light': '#FFFFFF',  // Cards
-          'hover-light': '#F0F2F5',    // Interactive hover (NEW)
-          'border-light': '#E2E8F0',   // Default border
+          // ===== STATIC COLORS (for specific use cases) =====
+          'bg-dark': '#08090F',           // Force dark background
+          'surface-dark': '#14161F',      // Force dark surface
+          'bg-light': '#FAFBFC',          // Force light background
+          'surface-light': '#FFFFFF',     // Force light surface
+          'border-light': '#E2E8F0',      // Force light border
 
           // ===== BRAND IDENTITY - CYAN =====
           cyan: '#00D4FF',         // PRIMARY - Logo, titles, links (dark mode)

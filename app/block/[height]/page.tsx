@@ -8,6 +8,8 @@ import { ExportButton } from '@/components/ExportButton';
 import { formatRelativeTime, formatDate } from '@/lib/utils';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 interface BlockData {
   height: number;
@@ -232,12 +234,12 @@ export default function BlockPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-secondary ml-4 font-mono text-lg">Loading block...</p>
-          </div>
-        </div>
+        <Card>
+          <CardBody className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
+            <p className="text-secondary ml-4 font-mono">Loading block...</p>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -245,11 +247,16 @@ export default function BlockPage() {
   if (!data) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card text-center py-16">
-          <div className="text-6xl mb-6">❌</div>
-          <h2 className="text-3xl font-bold font-mono text-cipher-cyan mb-4">BLOCK_NOT_FOUND</h2>
-          <p className="text-secondary">This block doesn't exist or hasn't been mined yet.</p>
-        </div>
+        <Card className="text-center">
+          <CardBody className="py-16">
+            <div className="text-5xl mb-6">🔍</div>
+            <h2 className="text-2xl font-bold font-mono text-primary mb-3">Block Not Found</h2>
+            <p className="text-secondary mb-6">This block doesn&apos;t exist or hasn&apos;t been mined yet.</p>
+            <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+              ← Back to Explorer
+            </Link>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -370,8 +377,8 @@ export default function BlockPage() {
       </div>
 
       {/* Main Block Info */}
-      <div className="card mb-6">
-        <div className="space-y-0">
+      <Card className="mb-6">
+        <CardBody className="space-y-0">
           <InfoRow
             icon={Icons.Clock}
             label="Timestamp"
@@ -460,18 +467,17 @@ export default function BlockPage() {
               <code className="text-xs text-cipher-cyan break-all">{data.hash}</code>
             </div>
           </div>
-        </div>
 
-        {/* More Details Toggle */}
-        <button
-          onClick={() => setShowMoreDetails(!showMoreDetails)}
-          className="mt-6 text-sm text-cipher-cyan hover:text-cipher-green transition-colors flex items-center font-mono"
-        >
-          <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          {showMoreDetails ? 'Hide' : 'Show'} More Details
-        </button>
+          {/* More Details Toggle */}
+          <button
+            onClick={() => setShowMoreDetails(!showMoreDetails)}
+            className="mt-8 pt-6 border-t block-info-border text-sm text-cipher-cyan hover:text-cipher-green transition-colors flex items-center font-mono w-full"
+          >
+            <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {showMoreDetails ? 'Hide' : 'Show'} More Details
+          </button>
 
         {/* Additional Details (Collapsible) */}
         {showMoreDetails && (
@@ -541,16 +547,20 @@ export default function BlockPage() {
             )}
           </div>
         )}
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Transactions Section */}
-      <div className="card" ref={txSectionRef}>
-        <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4 pb-3 border-b block-info-border flex items-center">
-          Transactions
-          <span className="ml-2 px-2 py-0.5 bg-cipher-cyan/10 text-cipher-cyan text-xs rounded font-normal">
-            {data.transactionCount}
-          </span>
-        </h2>
+      <Card ref={txSectionRef}>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+              Transactions
+            </h2>
+            <Badge color="cyan">{data.transactionCount}</Badge>
+          </div>
+        </CardHeader>
+        <CardBody>
 
         {!data.transactions || data.transactions.length === 0 ? (
           <div className="text-center py-12">
@@ -607,15 +617,11 @@ export default function BlockPage() {
                       {/* Type Column */}
                       <div className="col-span-1">
                         {isCoinbase ? (
-                          <span className="px-1.5 py-0.5 bg-cipher-green/10 text-cipher-green text-[10px] rounded font-mono">
-                            COINBASE
-                          </span>
+                          <Badge color="green">COINBASE</Badge>
                         ) : isShielded ? (
-                          <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] rounded font-mono">
-                            SHIELDED
-                          </span>
+                          <Badge color="purple">SHIELDED</Badge>
                         ) : (
-                          <span className="text-xs text-muted font-mono">Regular</span>
+                          <Badge color="muted">Regular</Badge>
                         )}
                       </div>
 
@@ -722,7 +728,8 @@ export default function BlockPage() {
             </div>
           </div>
         )}
-      </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }

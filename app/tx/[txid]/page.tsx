@@ -9,6 +9,8 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
 import { AddressWithLabel } from '@/components/AddressWithLabel';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge, StatusBadge } from '@/components/ui/Badge';
 
 interface TransactionData {
   txid: string;
@@ -260,12 +262,12 @@ export default function TransactionPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="card">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-            <p className="text-secondary ml-4 font-mono text-lg">Loading transaction...</p>
-          </div>
-        </div>
+        <Card>
+          <CardBody className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
+            <p className="text-secondary ml-4 font-mono">Loading transaction...</p>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -273,11 +275,16 @@ export default function TransactionPage() {
   if (!data) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="card text-center py-16">
-          <div className="text-6xl mb-6">❌</div>
-          <h2 className="text-3xl font-bold font-mono text-cipher-cyan mb-4">TX_NOT_FOUND</h2>
-          <p className="text-secondary mb-8">This transaction doesn't exist or hasn't been confirmed yet.</p>
-        </div>
+        <Card className="text-center">
+          <CardBody className="py-16">
+            <div className="text-5xl mb-6">🔍</div>
+            <h2 className="text-2xl font-bold font-mono text-primary mb-3">Transaction Not Found</h2>
+            <p className="text-secondary mb-6">This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.</p>
+            <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+              ← Back to Explorer
+            </Link>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -477,34 +484,19 @@ export default function TransactionPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-primary">Transaction Details</h1>
           {/* Type Badge */}
           {txType === 'COINBASE' && (
-            <span className="px-2 md:px-3 py-1 bg-cipher-green/10 text-cipher-green text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
-              <Icons.Currency />
-              COINBASE
-            </span>
+            <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>
           )}
           {(txType === 'ORCHARD' || txType === 'SHIELDED') && (
-            <span className="px-2 md:px-3 py-1 bg-purple-500/10 text-purple-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
-              <Icons.Shield />
-              SHIELDED
-            </span>
+            <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
           )}
           {txType === 'SHIELDING' && (
-            <span className="px-2 md:px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
-              <Icons.Shield />
-              ↓ SHIELDING
-            </span>
+            <Badge color="green" icon={<Icons.Shield />}>↓ SHIELDING</Badge>
           )}
           {txType === 'UNSHIELDING' && (
-            <span className="px-2 md:px-3 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
-              <Icons.Shield />
-              ↑ UNSHIELDING
-            </span>
+            <Badge color="purple" icon={<Icons.Shield />}>↑ UNSHIELDING</Badge>
           )}
           {txType === 'MIXED' && (
-            <span className="px-2 md:px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs md:text-sm rounded font-mono flex items-center gap-1 md:gap-2">
-              <Icons.Shield />
-              MIXED
-            </span>
+            <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>
           )}
           </div>
 
@@ -567,8 +559,8 @@ export default function TransactionPage() {
       </div>
 
       {/* Main Transaction Info Card */}
-      <div className="card mb-8">
-        <div className="space-y-0">
+      <Card className="mb-8">
+        <CardBody className="space-y-0">
           {/* Transaction Hash */}
           <div className="pb-3 border-b block-info-border">
             <div className="flex items-center mb-2 text-secondary">
@@ -590,12 +582,7 @@ export default function TransactionPage() {
           <InfoRow
             icon={Icons.CheckCircle}
             label="Status"
-            value={
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-cipher-green/10 text-cipher-green rounded text-xs font-semibold">
-                <Icons.Check />
-                Success
-              </span>
-            }
+            value={<StatusBadge status="confirmed" />}
             tooltip="Transaction has been confirmed and included in the blockchain"
           />
 
@@ -695,9 +682,8 @@ export default function TransactionPage() {
               : "Total amount transferred in this transaction"
             }
           />
-        </div>
 
-        {/* More Details Toggle */}
+          {/* More Details Toggle */}
         <button
           onClick={() => setShowMoreDetails(!showMoreDetails)}
           className="mt-6 text-sm text-cipher-cyan hover:text-cipher-green transition-colors flex items-center font-mono"
@@ -822,141 +808,136 @@ export default function TransactionPage() {
             </div>
           </div>
         )}
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Inputs/Outputs Cards */}
       <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Inputs Card */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-primary flex items-center gap-2">
-              <Icons.ArrowLeft />
-              Inputs ({data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)})
-            </h3>
-            {data.inputs.length > 0 && (
-              <button
-                onClick={() => setShowInputs(!showInputs)}
-                className="text-xs md:text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
-              >
-                {showInputs ? 'Hide' : 'Show'}
-              </button>
-            )}
-          </div>
-          {((data.shieldedSpends > 0 || (data.orchardActions || 0) > 0) && data.totalInput === 0) ? (
-            <>
-              <div className="text-base md:text-lg font-semibold font-mono text-purple-400 mb-1 flex items-center gap-2">
-                <Icons.Shield />
-                (amount hidden)
-              </div>
-              <div className="text-xs text-muted">
-                {(data.orchardActions || 0) > 0
-                  ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
-                  : `Shielded input${data.shieldedSpends > 1 ? 's' : ''}`
-                }
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-xl md:text-2xl font-bold font-mono text-primary mb-1">{data.totalInput.toFixed(8)}</div>
-              <div className="text-xs md:text-sm text-muted font-mono">{CURRENCY}</div>
-              {data.shieldedSpends > 0 && (
-                <div className="text-xs text-purple-400 mt-1">+ {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''} (hidden)</div>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Icons.ArrowLeft />
+                Inputs
+                <Badge color="cyan" className="ml-1">{data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)}</Badge>
+              </h3>
+              {data.inputs.length > 0 && (
+                <button
+                  onClick={() => setShowInputs(!showInputs)}
+                  className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                >
+                  {showInputs ? 'Hide' : 'Show'}
+                </button>
               )}
-            </>
-          )}
-        </div>
+            </div>
+            {((data.shieldedSpends > 0 || (data.orchardActions || 0) > 0) && data.totalInput === 0) ? (
+              <div className="flex items-center gap-2">
+                <Badge color="purple" icon={<Icons.Shield />}>(amount hidden)</Badge>
+                <span className="text-xs text-muted">
+                  {(data.orchardActions || 0) > 0
+                    ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
+                    : `Shielded input${data.shieldedSpends > 1 ? 's' : ''}`
+                  }
+                </span>
+              </div>
+            ) : (
+              <div>
+                <div className="text-2xl font-bold font-mono text-primary">{data.totalInput.toFixed(8)}</div>
+                <div className="text-sm text-muted font-mono">{CURRENCY}</div>
+                {data.shieldedSpends > 0 && (
+                  <Badge color="purple" className="mt-2">+ {data.shieldedSpends} shielded (hidden)</Badge>
+                )}
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
         {/* Outputs Card */}
-        <div className="card py-3 md:py-4">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-primary flex items-center gap-2">
-              <Icons.ArrowRight />
-              Outputs ({data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)})
-            </h3>
-            {data.outputs.length > 0 && (
-              <button
-                onClick={() => setShowOutputs(!showOutputs)}
-                className="text-xs md:text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
-              >
-                {showOutputs ? 'Hide' : 'Show'}
-              </button>
-            )}
-          </div>
-          {((data.shieldedOutputs > 0 || (data.orchardActions || 0) > 0) && data.totalOutput === 0) ? (
-            <>
-              <div className="text-base md:text-lg font-semibold font-mono text-purple-400 mb-1 flex items-center gap-2">
-                <Icons.Shield />
-                (amount hidden)
-              </div>
-              <div className="text-xs text-muted">
-                {(data.orchardActions || 0) > 0
-                  ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
-                  : `Shielded output${data.shieldedOutputs > 1 ? 's' : ''}`
-                }
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-xl md:text-2xl font-bold font-mono text-primary mb-1">{data.totalOutput.toFixed(8)}</div>
-              <div className="text-xs md:text-sm text-muted font-mono">{CURRENCY}</div>
-              {data.shieldedOutputs > 0 && (
-                <div className="text-xs text-purple-400 mt-1">+ {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''} (hidden)</div>
+        <Card variant="compact">
+          <CardBody>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Icons.ArrowRight />
+                Outputs
+                <Badge color="green" className="ml-1">{data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)}</Badge>
+              </h3>
+              {data.outputs.length > 0 && (
+                <button
+                  onClick={() => setShowOutputs(!showOutputs)}
+                  className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                >
+                  {showOutputs ? 'Hide' : 'Show'}
+                </button>
               )}
-            </>
-          )}
-        </div>
+            </div>
+            {((data.shieldedOutputs > 0 || (data.orchardActions || 0) > 0) && data.totalOutput === 0) ? (
+              <div className="flex items-center gap-2">
+                <Badge color="purple" icon={<Icons.Shield />}>(amount hidden)</Badge>
+                <span className="text-xs text-muted">
+                  {(data.orchardActions || 0) > 0
+                    ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
+                    : `Shielded output${data.shieldedOutputs > 1 ? 's' : ''}`
+                  }
+                </span>
+              </div>
+            ) : (
+              <div>
+                <div className="text-2xl font-bold font-mono text-primary">{data.totalOutput.toFixed(8)}</div>
+                <div className="text-sm text-muted font-mono">{CURRENCY}</div>
+                {data.shieldedOutputs > 0 && (
+                  <Badge color="purple" className="mt-2">+ {data.shieldedOutputs} shielded (hidden)</Badge>
+                )}
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
 
       {/* Detailed Inputs */}
       {showInputs && (
-        <div className="card mb-6 md:mb-8">
-          <h3 className="text-lg md:text-xl font-semibold text-primary mb-3 md:mb-4 flex items-center gap-2">
+        <Card className="mb-8">
+          <CardHeader className="flex items-center gap-2">
             <Icons.ArrowLeft />
-            Input Details
+            <h3 className="text-lg font-semibold text-primary">Input Details</h3>
             <Tooltip content="Sources of funds for this transaction. Each input references a previous transaction output." />
-          </h3>
-
-          {/* Privacy Notice for Shielded */}
-          {data.shieldedSpends > 0 && (
-            <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
-              <Icons.Shield />
-              <div>
-                <p className="text-xs md:text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">
-                  Privacy Protection Active
-                </p>
-                <p className="text-xs text-secondary">
-                  This transaction includes {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''}.
-                  Addresses and amounts are encrypted using zero-knowledge proofs.
-                </p>
+          </CardHeader>
+          <CardBody>
+            {/* Privacy Notice for Shielded */}
+            {data.shieldedSpends > 0 && (
+              <div className="privacy-alert privacy-alert-success mb-4">
+                <Icons.Shield />
+                <div>
+                  <p className="text-sm font-semibold mb-1">Privacy Protection Active</p>
+                  <p className="text-xs text-secondary">
+                    This transaction includes {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''}.
+                    Addresses and amounts are encrypted using zero-knowledge proofs.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-2 md:space-y-3">
-            {data.inputs.map((input, index) => (
-              <div
-                key={index}
-                className="block-tx-row p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 md:mb-3 gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted font-mono">INPUT #{index}</span>
-                    {input.coinbase ? (
-                      <span className="px-1.5 md:px-2 py-0.5 bg-cipher-green/10 text-cipher-green text-[10px] md:text-xs rounded font-mono">
-                        COINBASE
-                      </span>
-                    ) : (
-                      <span className="px-1.5 md:px-2 py-0.5 bg-cipher-cyan/10 text-cipher-cyan text-[10px] md:text-xs rounded font-mono">
-                        TRANSPARENT
+            <div className="space-y-3">
+              {data.inputs.map((input, index) => (
+                <div
+                  key={index}
+                  className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted font-mono">INPUT #{index}</span>
+                      {input.coinbase ? (
+                        <Badge color="green">COINBASE</Badge>
+                      ) : (
+                        <Badge color="cyan">TRANSPARENT</Badge>
+                      )}
+                    </div>
+                    {!input.coinbase && (
+                      <span className="text-sm font-mono text-primary font-semibold">
+                        {input.value?.toFixed(8)} {CURRENCY}
                       </span>
                     )}
                   </div>
-                  {!input.coinbase && (
-                    <span className="text-xs md:text-sm font-mono text-primary font-semibold">
-                      {input.value?.toFixed(8)} {CURRENCY}
-                    </span>
-                  )}
-                </div>
                 {input.address ? (
                   <div>
                     <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
@@ -1000,10 +981,7 @@ export default function TransactionPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted font-mono">INPUT #{data.inputs.length + index}</span>
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded font-mono flex items-center gap-1">
-                          <Icons.Shield />
-                          SHIELDED
-                        </span>
+                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
                       </div>
                       <div className="flex items-center gap-1 text-purple-400">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1035,52 +1013,49 @@ export default function TransactionPage() {
                   </div>
                 </div>
               ))}
-          </div>
-        </div>
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {/* Detailed Outputs */}
       {showOutputs && (
-        <div className="card">
-          <h3 className="text-lg md:text-xl font-semibold text-primary mb-3 md:mb-4 flex items-center gap-2">
+        <Card>
+          <CardHeader className="flex items-center gap-2">
             <Icons.ArrowRight />
-            Output Details
+            <h3 className="text-lg font-semibold text-primary">Output Details</h3>
             <Tooltip content="Destinations where funds are sent. Each output creates new spendable coins at specified addresses." />
-          </h3>
-
-          {/* Privacy Notice for Shielded */}
-          {data.shieldedOutputs > 0 && (
-            <div className="gradient-card-purple-subtle rounded-lg p-3 md:p-4 mb-3 md:mb-4 flex items-start gap-2 md:gap-3">
-              <Icons.Shield />
-              <div>
-                <p className="text-xs md:text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">
-                  Privacy Protection Active
-                </p>
-                <p className="text-xs text-secondary">
-                  This transaction includes {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''}.
-                  Addresses and amounts are encrypted using zero-knowledge proofs.
-                </p>
+          </CardHeader>
+          <CardBody>
+            {/* Privacy Notice for Shielded */}
+            {data.shieldedOutputs > 0 && (
+              <div className="privacy-alert privacy-alert-success mb-4">
+                <Icons.Shield />
+                <div>
+                  <p className="text-sm font-semibold mb-1">Privacy Protection Active</p>
+                  <p className="text-xs text-secondary">
+                    This transaction includes {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''}.
+                    Addresses and amounts are encrypted using zero-knowledge proofs.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-2 md:space-y-3">
-            {data.outputs.map((output, index) => (
-              <div
-                key={index}
-                className="block-tx-row p-3 md:p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 md:mb-3 gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted font-mono">OUTPUT #{index}</span>
-                    <span className="px-1.5 md:px-2 py-0.5 bg-cipher-cyan/10 text-cipher-cyan text-[10px] md:text-xs rounded font-mono">
-                      TRANSPARENT
+            <div className="space-y-3">
+              {data.outputs.map((output, index) => (
+                <div
+                  key={index}
+                  className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted font-mono">OUTPUT #{index}</span>
+                      <Badge color="cyan">TRANSPARENT</Badge>
+                    </div>
+                    <span className="text-sm font-mono text-primary font-semibold">
+                      {output.value?.toFixed(8)} {CURRENCY}
                     </span>
                   </div>
-                  <span className="text-xs md:text-sm font-mono text-primary font-semibold">
-                    {output.value?.toFixed(8)} {CURRENCY}
-                  </span>
-                </div>
                 {output.scriptPubKey?.addresses?.[0] ? (
                   <div>
                     <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
@@ -1121,10 +1096,7 @@ export default function TransactionPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length + index}</span>
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded font-mono flex items-center gap-1">
-                          <Icons.Shield />
-                          SHIELDED
-                        </span>
+                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
                       </div>
                       <div className="flex items-center gap-1 text-purple-400">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1161,8 +1133,9 @@ export default function TransactionPage() {
                   </div>
                 </div>
               ))}
-          </div>
-        </div>
+            </div>
+          </CardBody>
+        </Card>
       )}
     </div>
   );
