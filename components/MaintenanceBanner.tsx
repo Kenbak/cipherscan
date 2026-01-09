@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 // Toggle this to show/hide the maintenance banner
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 const MAINTENANCE_MESSAGE = "🔧 Database maintenance in progress. Indexing may be temporarily inaccurate. Back to normal within 24h.";
 
 export function MaintenanceBanner() {
