@@ -77,7 +77,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
 
     // Success color from design system: #00E676
     return (
-      <div 
+      <div
         className="mt-4 rounded-xl border overflow-hidden"
         style={{
           backgroundColor: 'rgba(0, 230, 118, 0.08)',
@@ -85,12 +85,12 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
         }}
       >
         {/* Header */}
-        <div 
+        <div
           className="px-4 py-3 flex items-center justify-between"
           style={{ backgroundColor: 'rgba(0, 230, 118, 0.12)' }}
         >
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="p-1.5 rounded-md"
               style={{ backgroundColor: 'rgba(0, 230, 118, 0.15)', color: '#00E676' }}
             >
@@ -102,7 +102,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
               No Round-Trip Detected
             </h3>
           </div>
-          <span 
+          <span
             className="px-2 py-1 rounded text-xs font-medium"
             style={{ backgroundColor: 'rgba(0, 230, 118, 0.15)', color: '#00E676' }}
           >

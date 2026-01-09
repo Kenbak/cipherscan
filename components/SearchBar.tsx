@@ -121,7 +121,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     return (
       <div
         ref={suggestionsRef}
-        className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-xl z-50 overflow-hidden"
+        className="absolute top-full left-0 right-0 mt-2 suggestions-dropdown rounded-xl z-[100] overflow-hidden"
       >
         {suggestions.map((suggestion, index) => (
           <button
@@ -132,19 +132,44 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               index === selectedIndex ? 'suggestion-item-active' : 'suggestion-item'
             }`}
           >
-            <span className={`text-xs px-2 py-1 rounded-md font-mono ${
+            {/* Icon */}
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               suggestion.isOfficial
-                ? 'bg-cipher-cyan/15 text-cipher-cyan border border-cipher-cyan/20'
-                : 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
+                ? 'bg-cipher-cyan/10'
+                : 'bg-purple-500/10'
             }`}>
-              {suggestion.isOfficial ? '🏛️' : '👤'}
+              {suggestion.isOfficial ? (
+                <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              )}
             </span>
+            
+            {/* Label & Address */}
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm truncate suggestion-label">{suggestion.label}</div>
-              <div className="text-xs text-muted font-mono truncate">
-                {suggestion.address.slice(0, 12)}...{suggestion.address.slice(-8)}
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm truncate suggestion-label">{suggestion.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase ${
+                  suggestion.isOfficial
+                    ? 'bg-cipher-cyan/15 text-cipher-cyan'
+                    : 'bg-purple-500/15 text-purple-400'
+                }`}>
+                  {suggestion.isOfficial ? 'Official' : 'Custom'}
+                </span>
+              </div>
+              <div className="text-xs text-muted font-mono truncate mt-0.5">
+                {suggestion.address.slice(0, 16)}...{suggestion.address.slice(-8)}
               </div>
             </div>
+            
+            {/* Arrow */}
+            <svg className="w-4 h-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         ))}
       </div>
@@ -176,7 +201,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
 
   // Full version for homepage - Enhanced
   return (
-    <form onSubmit={handleSearch} className="max-w-3xl mx-auto px-2 sm:px-0">
+    <form onSubmit={handleSearch} className="max-w-3xl mx-auto px-2 sm:px-0 relative z-20">
       {/* Search Container with Glow Effect */}
       <div className="relative group">
         {/* Glow effect on focus */}
