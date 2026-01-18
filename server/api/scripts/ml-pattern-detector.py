@@ -44,11 +44,11 @@ from sklearn.preprocessing import StandardScaler
 # ============================================================================
 
 DB_CONFIG = {
-    'host': os.environ.get('POSTGRES_HOST', 'localhost'),
-    'port': int(os.environ.get('POSTGRES_PORT', 5432)),
-    'database': os.environ.get('POSTGRES_DATABASE', 'zcash_explorer'),
-    'user': os.environ.get('POSTGRES_USER', 'postgres'),
-    'password': os.environ.get('POSTGRES_PASSWORD', ''),
+    'host': os.environ.get('DB_HOST', os.environ.get('POSTGRES_HOST', 'localhost')),
+    'port': int(os.environ.get('DB_PORT', os.environ.get('POSTGRES_PORT', 5432))),
+    'database': os.environ.get('DB_NAME', os.environ.get('POSTGRES_DATABASE', 'zcash_explorer')),
+    'user': os.environ.get('DB_USER', os.environ.get('POSTGRES_USER', 'postgres')),
+    'password': os.environ.get('DB_PASSWORD', os.environ.get('POSTGRES_PASSWORD', '')),
 }
 
 # ============================================================================
