@@ -393,8 +393,8 @@ function PrivacyRisksContent() {
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {/* Period Filter - Different options per tab */}
             <div className="filter-group">
-              {(activeTab === 'roundtrip' 
-                ? ['24h', '7d', '30d'] 
+              {(activeTab === 'roundtrip'
+                ? ['24h', '7d', '30d']
                 : ['7d', '30d', '90d']
               ).map((period) => (
                 <button

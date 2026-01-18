@@ -40,16 +40,28 @@ const config = {
 
 const pool = new Pool(config.db);
 
-// Transaction cache
+// Transaction cache - SMALLER to avoid OOM
 const txCache = new Map();
-const CACHE_SIZE = 10000;
+const CACHE_SIZE = 2000; // Reduced from 10000
 
 function cacheTx(txid, tx) {
   if (txCache.size >= CACHE_SIZE) {
-    const firstKey = txCache.keys().next().value;
-    txCache.delete(firstKey);
+    // Clear half the cache when full (more aggressive cleanup)
+    const keysToDelete = Array.from(txCache.keys()).slice(0, CACHE_SIZE / 2);
+    keysToDelete.forEach(k => txCache.delete(k));
   }
-  txCache.set(txid, tx);
+  // Only cache essential fields to save memory
+  txCache.set(txid, {
+    vout: tx.vout?.map(v => ({
+      value: v.value,
+      scriptPubKey: v.scriptPubKey ? { addresses: v.scriptPubKey.addresses } : null
+    })),
+    vin: tx.vin?.map(v => ({
+      txid: v.txid,
+      vout: v.vout,
+      coinbase: v.coinbase
+    }))
+  });
 }
 
 // ============================================================================
@@ -230,7 +242,12 @@ async function backfillAddresses(options = {}) {
     const rate = processed / elapsed;
     const eta = (totalToProcess - processed) / rate;
 
-    console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors}`);
+    console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors} | cache:${txCache.size}`);
+    
+    // Force garbage collection every 10 batches if available
+    if (global.gc && processed % (batchSize * 10) === 0) {
+      global.gc();
+    }
   }
 
   console.log('\n════════════════════════════════════════════════════════════');
