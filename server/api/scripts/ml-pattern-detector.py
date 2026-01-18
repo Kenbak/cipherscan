@@ -269,22 +269,24 @@ def score_cluster(cluster: List[Dict], matching_shield: Optional[Dict] = None) -
 
     # Factor 3: Round number detection
     # Check if amount is a "nice" number humans would pick
+    # Use fee tolerance of 0.001 ZEC (typical Zcash fee = 0.0001-0.001)
+    FEE_TOLERANCE = 0.001
     round_score = 0
-    if amount_zec >= 1000 and amount_zec % 1000 < 0.01:
-        round_score = 20
-    elif amount_zec >= 500 and amount_zec % 500 < 0.01:
-        round_score = 18
-    elif amount_zec >= 100 and amount_zec % 100 < 0.01:
-        round_score = 15
-    elif amount_zec >= 50 and amount_zec % 50 < 0.01:
-        round_score = 12
-    elif amount_zec >= 10 and amount_zec % 10 < 0.01:
-        round_score = 10
-    elif amount_zec >= 1 and amount_zec % 1 < 0.001:
-        round_score = 5
+    if amount_zec >= 1000 and amount_zec % 1000 < FEE_TOLERANCE:
+        round_score = 25  # 1000, 2000, 5000 ZEC
+    elif amount_zec >= 500 and amount_zec % 500 < FEE_TOLERANCE:
+        round_score = 22  # 500, 1500, 2500 ZEC
+    elif amount_zec >= 100 and amount_zec % 100 < FEE_TOLERANCE:
+        round_score = 20  # 100, 200, 300 ZEC
+    elif amount_zec >= 50 and amount_zec % 50 < FEE_TOLERANCE:
+        round_score = 15  # 50, 150, 250 ZEC
+    elif amount_zec >= 10 and amount_zec % 10 < FEE_TOLERANCE:
+        round_score = 12  # 10, 20, 30 ZEC
+    elif amount_zec >= 1 and amount_zec % 1 < FEE_TOLERANCE:
+        round_score = 8   # 1, 2, 5 ZEC
     # Bonus: if NOT round but still clustered = even MORE suspicious!
     elif uniformity_score >= 10:
-        round_score = 8  # "Weird identical amount" bonus
+        round_score = 10  # "Weird identical amount" bonus (non-round but uniform)
     score += round_score
     breakdown['round_number'] = {'amount_zec': float(amount_zec), 'is_round': round_score >= 10, 'points': round_score}
 

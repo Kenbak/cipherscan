@@ -476,27 +476,39 @@ function calculateLinkabilityScore(shieldAmountZat, deshieldAmountZat, timeDelta
 /**
  * Check if an amount is a "round" psychological number
  * These are amounts humans naturally choose, making them fingerprints
+ * 
+ * IMPROVED: Uses fee tolerance (0.001 ZEC) to handle amounts like 50.0003 ZEC
  */
 function isRoundAmount(amountZec) {
+  const FEE_TOLERANCE = 0.001; // Typical Zcash fee is 0.0001-0.001 ZEC
+  
   // Common round amounts people use
   const exactRounds = [
     0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000
   ];
 
-  // Check exact match
-  if (exactRounds.includes(amountZec)) return true;
+  // Check if close to any exact round (within fee tolerance)
+  for (const round of exactRounds) {
+    if (Math.abs(amountZec - round) < FEE_TOLERANCE) return true;
+  }
 
-  // Check if it's a multiple of 100 (for amounts >= 100)
-  if (amountZec >= 100 && amountZec % 100 === 0) return true;
+  // Check if it's close to a multiple of 1000 (for amounts >= 1000)
+  if (amountZec >= 1000 && (amountZec % 1000) < FEE_TOLERANCE) return true;
+  
+  // Check if it's close to a multiple of 500 (for amounts >= 500)
+  if (amountZec >= 500 && (amountZec % 500) < FEE_TOLERANCE) return true;
 
-  // Check if it's a multiple of 50 (for amounts >= 50)
-  if (amountZec >= 50 && amountZec % 50 === 0) return true;
+  // Check if it's close to a multiple of 100 (for amounts >= 100)
+  if (amountZec >= 100 && (amountZec % 100) < FEE_TOLERANCE) return true;
 
-  // Check if it's a multiple of 10 (for amounts >= 10)
-  if (amountZec >= 10 && amountZec % 10 === 0) return true;
+  // Check if it's close to a multiple of 50 (for amounts >= 50)
+  if (amountZec >= 50 && (amountZec % 50) < FEE_TOLERANCE) return true;
 
-  // Check if it's a multiple of 1 (whole numbers)
-  if (amountZec >= 1 && amountZec % 1 === 0) return true;
+  // Check if it's close to a multiple of 10 (for amounts >= 10)
+  if (amountZec >= 10 && (amountZec % 10) < FEE_TOLERANCE) return true;
+
+  // Check if it's close to a whole number (for amounts >= 1)
+  if (amountZec >= 1 && (amountZec % 1) < FEE_TOLERANCE) return true;
 
   return false;
 }
@@ -504,14 +516,19 @@ function isRoundAmount(amountZec) {
 /**
  * Score how "round" an amount is (more round = more suspicious)
  * Returns 0-25 points
+ * 
+ * IMPROVED: Uses fee tolerance to properly detect 50.0003 as "50 ZEC"
  */
 function scoreRoundness(amountZec) {
-  if (amountZec >= 1000 && amountZec % 1000 === 0) return 25; // 1000, 2000, 5000...
-  if (amountZec >= 500 && amountZec % 500 === 0) return 22;   // 500, 1500, 2500...
-  if (amountZec >= 100 && amountZec % 100 === 0) return 20;   // 100, 200, 300...
-  if (amountZec >= 50 && amountZec % 50 === 0) return 15;     // 50, 150, 250...
-  if (amountZec >= 10 && amountZec % 10 === 0) return 12;     // 10, 20, 30...
-  if (amountZec >= 1 && amountZec % 1 === 0) return 8;        // Whole numbers
+  const FEE_TOLERANCE = 0.001;
+  
+  // Check multiples with tolerance (most specific first)
+  if (amountZec >= 1000 && (amountZec % 1000) < FEE_TOLERANCE) return 25; // 1000, 2000, 5000...
+  if (amountZec >= 500 && (amountZec % 500) < FEE_TOLERANCE) return 22;   // 500, 1500, 2500...
+  if (amountZec >= 100 && (amountZec % 100) < FEE_TOLERANCE) return 20;   // 100, 200, 300...
+  if (amountZec >= 50 && (amountZec % 50) < FEE_TOLERANCE) return 15;     // 50, 150, 250...
+  if (amountZec >= 10 && (amountZec % 10) < FEE_TOLERANCE) return 12;     // 10, 20, 30...
+  if (amountZec >= 1 && (amountZec % 1) < FEE_TOLERANCE) return 8;        // Whole numbers
   return 0;
 }
 
@@ -537,7 +554,7 @@ async function detectBatchDeshields(pool, options = {}) {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const minTime = nowSeconds - (timeWindowDays * 86400);
 
-  // Step 1: Find batches of identical deshields
+  // Step 1: Find batches of identical deshields (including addresses)
   const batchesResult = await pool.query(`
     SELECT
       amount_zat,
@@ -547,7 +564,8 @@ async function detectBatchDeshields(pool, options = {}) {
       MAX(block_time) as last_time,
       ARRAY_AGG(txid ORDER BY block_time) as txids,
       ARRAY_AGG(block_height ORDER BY block_time) as heights,
-      ARRAY_AGG(block_time ORDER BY block_time) as times
+      ARRAY_AGG(block_time ORDER BY block_time) as times,
+      ARRAY_AGG(COALESCE(transparent_addresses[1], '') ORDER BY block_time) as addresses
     FROM shielded_flows
     WHERE flow_type = 'deshield'
       AND block_time > $1
@@ -645,6 +663,63 @@ async function detectBatchDeshields(pool, options = {}) {
       points: timePoints
     };
 
+    // Factor 5: Address analysis (MEGA suspicious if same address receives all)
+    const addresses = (batch.addresses || []).filter(a => a && a.length > 0);
+    const uniqueAddresses = [...new Set(addresses)];
+    const addressCount = uniqueAddresses.length;
+    let addressPoints = 0;
+    let sameAddressRatio = 0;
+    
+    if (addresses.length > 0 && addressCount > 0) {
+      sameAddressRatio = 1 - (addressCount - 1) / Math.max(addresses.length - 1, 1);
+      
+      if (addressCount === 1 && addresses.length >= 3) {
+        // ALL deshields go to SAME address = EXTREMELY suspicious
+        addressPoints = 20;
+      } else if (addressCount <= 2 && addresses.length >= 5) {
+        // 1-2 addresses for 5+ deshields = very suspicious
+        addressPoints = 15;
+      } else if (addressCount <= 3 && addresses.length >= 8) {
+        // 3 addresses for 8+ deshields = suspicious
+        addressPoints = 10;
+      } else if (sameAddressRatio > 0.5) {
+        // More than 50% reuse = somewhat suspicious
+        addressPoints = 5;
+      }
+    }
+    score += addressPoints;
+    breakdown.addressAnalysis = {
+      totalAddresses: addresses.length,
+      uniqueAddresses: addressCount,
+      sameAddressRatio: Math.round(sameAddressRatio * 100),
+      topAddresses: uniqueAddresses.slice(0, 3),
+      points: addressPoints
+    };
+
+    // Factor 6: Time between shield and first deshield (faster = more suspicious)
+    let shieldToFirstDeshieldPoints = 0;
+    let shieldToFirstDeshieldHours = null;
+    if (bestMatch) {
+      const shieldTime = parseInt(bestMatch.block_time);
+      shieldToFirstDeshieldHours = (firstTime - shieldTime) / 3600;
+      
+      if (shieldToFirstDeshieldHours < 1) {
+        shieldToFirstDeshieldPoints = 10;  // < 1 hour = very suspicious
+      } else if (shieldToFirstDeshieldHours < 6) {
+        shieldToFirstDeshieldPoints = 8;   // < 6 hours
+      } else if (shieldToFirstDeshieldHours < 24) {
+        shieldToFirstDeshieldPoints = 5;   // < 1 day
+      } else if (shieldToFirstDeshieldHours < 72) {
+        shieldToFirstDeshieldPoints = 3;   // < 3 days
+      }
+      // > 3 days = 0 points (patient = less suspicious)
+    }
+    score += shieldToFirstDeshieldPoints;
+    breakdown.shieldTiming = {
+      hoursAfterShield: shieldToFirstDeshieldHours ? Math.round(shieldToFirstDeshieldHours * 10) / 10 : null,
+      points: shieldToFirstDeshieldPoints
+    };
+
     // Minimum score threshold
     if (score < 30) continue;
 
@@ -656,9 +731,13 @@ async function detectBatchDeshields(pool, options = {}) {
       txids: batch.txids,
       heights: batch.heights.map(h => parseInt(h)),
       times: batch.times.map(t => parseInt(t)),
+      addresses: uniqueAddresses,
+      addressCount: addressCount,
+      sameAddressRatio: Math.round(sameAddressRatio * 100),
       firstTime,
       lastTime,
       timeSpanHours: Math.round(timeSpanHours * 10) / 10,
+      shieldToFirstDeshieldHours: shieldToFirstDeshieldHours ? Math.round(shieldToFirstDeshieldHours * 10) / 10 : null,
       isRoundNumber: roundPoints > 0,
       matchingShield: bestMatch ? {
         txid: bestMatch.txid,
@@ -669,7 +748,7 @@ async function detectBatchDeshields(pool, options = {}) {
       score: Math.min(score, 100),
       warningLevel: score >= 70 ? 'HIGH' : score >= 50 ? 'MEDIUM' : 'LOW',
       breakdown,
-      explanation: generateBatchExplanation(batchCount, amountZec, totalZec, bestMatch, timeSpanHours),
+      explanation: generateBatchExplanation(batchCount, amountZec, totalZec, bestMatch, timeSpanHours, addressCount, shieldToFirstDeshieldHours),
     });
   }
 
@@ -680,24 +759,44 @@ async function detectBatchDeshields(pool, options = {}) {
 /**
  * Generate human-readable explanation for a batch pattern
  */
-function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShield, timeSpanHours) {
+function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShield, timeSpanHours, addressCount = null, shieldToFirstDeshieldHours = null) {
   let explanation = `Detected ${batchCount} identical deshields of ${amountZec} ZEC each (total: ${totalZec} ZEC)`;
-
+  
   if (timeSpanHours < 24) {
     explanation += ` within ${Math.round(timeSpanHours)} hours`;
   } else if (timeSpanHours < 168) {
     explanation += ` over ${Math.round(timeSpanHours / 24)} days`;
   }
-
+  
   explanation += '. ';
-
+  
+  // Address analysis
+  if (addressCount !== null) {
+    if (addressCount === 1) {
+      explanation += `⚠️ ALL withdrawals go to the SAME address! `;
+    } else if (addressCount <= 2 && batchCount >= 5) {
+      explanation += `Only ${addressCount} unique addresses for ${batchCount} withdrawals. `;
+    }
+  }
+  
   if (matchingShield) {
     const shieldAmount = parseInt(matchingShield.amount_zat) / 100000000;
-    explanation += `This matches a shield of ${shieldAmount} ZEC, strongly suggesting these withdrawals came from the same source.`;
+    explanation += `Matches a shield of ${shieldAmount} ZEC`;
+    
+    // Timing info
+    if (shieldToFirstDeshieldHours !== null) {
+      if (shieldToFirstDeshieldHours < 24) {
+        explanation += ` (first withdrawal ${Math.round(shieldToFirstDeshieldHours)}h after shielding)`;
+      } else {
+        explanation += ` (first withdrawal ${Math.round(shieldToFirstDeshieldHours / 24)} days after shielding)`;
+      }
+    }
+    
+    explanation += ', strongly suggesting these withdrawals came from the same source.';
   } else {
     explanation += `No exact matching shield found, but the identical amounts and timing pattern is a privacy fingerprint.`;
   }
-
+  
   return explanation;
 }
 

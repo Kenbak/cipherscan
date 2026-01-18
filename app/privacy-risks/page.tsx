@@ -41,9 +41,13 @@ interface BatchPattern {
   txids: string[];
   heights: number[];
   times: number[];
+  addresses?: string[];
+  addressCount?: number;
+  sameAddressRatio?: number;
   firstTime: number;
   lastTime: number;
   timeSpanHours: number;
+  shieldToFirstDeshieldHours?: number | null;
   isRoundNumber: boolean;
   matchingShield: {
     txid: string;
@@ -59,6 +63,8 @@ interface BatchPattern {
     roundNumber: { amountZec: number; isRound: boolean; points: number };
     matchingShield: { found: boolean; txid: string | null; points: number };
     timeClustering: { hours: number; points: number };
+    addressAnalysis?: { totalAddresses: number; uniqueAddresses: number; sameAddressRatio: number; topAddresses: string[]; points: number };
+    shieldTiming?: { hoursAfterShield: number | null; points: number };
   };
 }
 
@@ -544,7 +550,7 @@ function PrivacyRisksContent() {
                     <div>
                       <h3 className="text-sm font-semibold text-orange-400 mb-1">What are Batch Patterns?</h3>
                       <p className="text-xs text-secondary">
-                        When someone shields a large amount then withdraws in identical chunks (e.g., 6000 ZEC → 12×500 ZEC), 
+                        When someone shields a large amount then withdraws in identical chunks (e.g., 6000 ZEC → 12×500 ZEC),
                         this creates a detectable pattern even without direct links. ML clustering detects both round and unusual amounts.
                       </p>
                     </div>
@@ -589,10 +595,10 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
   const [expanded, setExpanded] = useState(false);
 
   // Map warning levels to available Badge colors
-  const badgeColor: 'orange' | 'purple' | 'muted' = pattern.warningLevel === 'HIGH' 
-    ? 'orange' 
-    : pattern.warningLevel === 'MEDIUM' 
-    ? 'purple' 
+  const badgeColor: 'orange' | 'purple' | 'muted' = pattern.warningLevel === 'HIGH'
+    ? 'orange'
+    : pattern.warningLevel === 'MEDIUM'
+    ? 'purple'
     : 'muted';
 
   const borderColor = pattern.warningLevel === 'HIGH'
@@ -634,13 +640,13 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
               </div>
             </div>
           </div>
-          
+
           <div className="text-right flex-shrink-0">
             <Badge color={badgeColor}>
               Score: {pattern.score}
             </Badge>
             <div className="text-xs text-muted mt-1">
-              {pattern.timeSpanHours < 24 
+              {pattern.timeSpanHours < 24
                 ? `${Math.round(pattern.timeSpanHours)}h span`
                 : `${Math.round(pattern.timeSpanHours / 24)}d span`
               }
@@ -656,7 +662,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <span className="text-cipher-green font-medium">Matches Shield:</span>
-              <Link 
+              <Link
                 href={`/tx/${pattern.matchingShield.txid}`}
                 className="font-mono text-cipher-cyan hover:underline"
               >
@@ -678,10 +684,10 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
           className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
         >
           {expanded ? 'Hide' : 'Show'} {pattern.batchCount} transactions
-          <svg 
-            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} 
-            fill="none" 
-            viewBox="0 0 24 24" 
+          <svg
+            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -715,11 +721,28 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
 
         {/* Score Breakdown */}
         <div className="mt-3 pt-3 border-t border-cipher-border flex flex-wrap gap-3 text-xs text-muted">
-          <span>Batch: +{pattern.breakdown.batchCount.points}</span>
-          <span>Round: +{pattern.breakdown.roundNumber.points}</span>
-          <span>Shield: +{pattern.breakdown.matchingShield.points}</span>
-          <span>Time: +{pattern.breakdown.timeClustering.points}</span>
+          <span title="More identical deshields = higher score">Batch: +{pattern.breakdown.batchCount.points}</span>
+          <span title="Round amounts (50, 100, 500 ZEC) = suspicious">Round: +{pattern.breakdown.roundNumber.points}</span>
+          <span title="Matching shield found for total amount">Shield: +{pattern.breakdown.matchingShield.points}</span>
+          <span title="Deshields clustered in time = suspicious">Time: +{pattern.breakdown.timeClustering.points}</span>
+          {pattern.breakdown.addressAnalysis && (
+            <span title="Same address receives multiple deshields" className={pattern.breakdown.addressAnalysis.points > 0 ? 'text-orange-400' : ''}>
+              Addr: +{pattern.breakdown.addressAnalysis.points}
+            </span>
+          )}
+          {pattern.breakdown.shieldTiming && pattern.breakdown.shieldTiming.hoursAfterShield !== null && (
+            <span title="Time between shield and first deshield">
+              Delay: +{pattern.breakdown.shieldTiming.points}
+            </span>
+          )}
         </div>
+        
+        {/* Address Warning */}
+        {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
+          <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400">
+            ⚠️ All {pattern.batchCount} deshields go to the <span className="font-mono">{pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 16)}...</span>
+          </div>
+        )}
       </CardBody>
     </Card>
   );
