@@ -7,10 +7,10 @@
  * detected_patterns table for fast API access.
  *
  * Run periodically via cron (e.g., every 10 minutes):
- * */10 * * * * cd /path/to/server/api && node scripts/scan-batch-patterns.js >> /var/log/pattern-scanner.log 2>&1
+ *   Cron: 0,10,20,30,40,50 * * * * cd /path/to/server/api && node scripts/scan-batch-patterns.js
  *
  * Or run manually:
- * node scripts/scan-batch-patterns.js
+ *   node scripts/scan-batch-patterns.js
  *
  * Options:
  *   --period=30    Time window in days (default: 30)
