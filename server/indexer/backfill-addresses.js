@@ -1,52 +1,77 @@
 #!/usr/bin/env node
 /**
  * Backfill transparent_addresses for existing shielded_flows
- *
- * This script fetches transaction details from zcashd and updates
- * the transparent_addresses column for all existing flows.
- *
+ * 
+ * Uses the same RPC connection as the indexer (Zebra with cookie auth)
+ * 
  * Usage:
  *   node backfill-addresses.js [options]
- *
+ * 
  * Options:
- *   --batch-size=1000   Number of rows to process per batch (default: 1000)
+ *   --batch-size=500    Number of rows to process per batch (default: 500)
  *   --start-id=0        Start from this ID (for resuming)
- *   --dry-run           Don't update database, just show what would happen
+ *   --dry-run           Don't update database
  *   --verbose           Print detailed output
  */
 
+require('dotenv').config();
 const { Pool } = require('pg');
-
-// Load environment variables
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+const fs = require('fs');
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (same as indexer)
 // ============================================================================
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'zcash_explorer',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-});
+const config = {
+  zebra: {
+    url: process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232',
+    cookieFile: process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie',
+  },
+  db: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'zcash_explorer_testnet',
+    user: process.env.DB_USER || 'zcash_user',
+    password: process.env.DB_PASSWORD,
+    max: 10,
+    idleTimeoutMillis: 30000,
+  },
+};
 
-const ZCASHD_URL = process.env.ZCASHD_URL || 'http://127.0.0.1:8232';
-const ZCASHD_USER = process.env.ZCASHD_USER || process.env.RPC_USER || '';
-const ZCASHD_PASS = process.env.ZCASHD_PASS || process.env.RPC_PASSWORD || '';
+const pool = new Pool(config.db);
+
+// Transaction cache
+const txCache = new Map();
+const CACHE_SIZE = 10000;
+
+function cacheTx(txid, tx) {
+  if (txCache.size >= CACHE_SIZE) {
+    const firstKey = txCache.keys().next().value;
+    txCache.delete(firstKey);
+  }
+  txCache.set(txid, tx);
+}
 
 // ============================================================================
-// RPC HELPER
+// RPC (same as indexer)
 // ============================================================================
 
-async function zcashRPC(method, params = []) {
-  const response = await fetch(ZCASHD_URL, {
+async function zebradRPC(method, params = []) {
+  let auth = '';
+
+  try {
+    const cookie = fs.readFileSync(config.zebra.cookieFile, 'utf8').trim();
+    auth = 'Basic ' + Buffer.from(cookie).toString('base64');
+  } catch (err) {
+    // Try without auth
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) headers['Authorization'] = auth;
+
+  const response = await fetch(config.zebra.url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Basic ' + Buffer.from(`${ZCASHD_USER}:${ZCASHD_PASS}`).toString('base64'),
-    },
+    headers,
     body: JSON.stringify({
       jsonrpc: '1.0',
       id: 'backfill',
@@ -63,12 +88,12 @@ async function zcashRPC(method, params = []) {
 }
 
 // ============================================================================
-// MAIN BACKFILL LOGIC
+// BACKFILL LOGIC
 // ============================================================================
 
 async function backfillAddresses(options = {}) {
   const {
-    batchSize = 1000,
+    batchSize = 500,
     startId = 0,
     dryRun = false,
     verbose = false,
@@ -76,21 +101,32 @@ async function backfillAddresses(options = {}) {
 
   console.log('════════════════════════════════════════════════════════════');
   console.log('🔄 BACKFILL TRANSPARENT ADDRESSES');
+  console.log(`   Zebra RPC: ${config.zebra.url}`);
+  console.log(`   Database: ${config.db.database}`);
   console.log(`   Batch size: ${batchSize}`);
   console.log(`   Start ID: ${startId}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log('════════════════════════════════════════════════════════════');
 
-  // Get total count of flows needing update
+  // Test RPC connection
+  try {
+    const info = await zebradRPC('getblockchaininfo');
+    console.log(`\n✅ Connected to Zebra (block ${info.blocks})`);
+  } catch (err) {
+    console.error('❌ Cannot connect to Zebra:', err.message);
+    process.exit(1);
+  }
+
+  // Get total count
   const countResult = await pool.query(`
-    SELECT COUNT(*) as total
-    FROM shielded_flows
-    WHERE id >= $1
+    SELECT COUNT(*) as total 
+    FROM shielded_flows 
+    WHERE id >= $1 
       AND (transparent_addresses IS NULL OR array_length(transparent_addresses, 1) IS NULL)
   `, [startId]);
-
+  
   const totalToProcess = parseInt(countResult.rows[0].total);
-  console.log(`\n📊 Total flows to process: ${totalToProcess.toLocaleString()}`);
+  console.log(`📊 Total flows to process: ${totalToProcess.toLocaleString()}\n`);
 
   if (totalToProcess === 0) {
     console.log('✅ Nothing to backfill!');
@@ -104,7 +140,6 @@ async function backfillAddresses(options = {}) {
   const startTime = Date.now();
 
   while (true) {
-    // Fetch batch of flows
     const batchResult = await pool.query(`
       SELECT id, txid, flow_type
       FROM shielded_flows
@@ -114,18 +149,17 @@ async function backfillAddresses(options = {}) {
       LIMIT $2
     `, [currentId, batchSize]);
 
-    if (batchResult.rows.length === 0) {
-      break; // No more rows
-    }
-
-    console.log(`\n📦 Processing batch starting at ID ${currentId}...`);
+    if (batchResult.rows.length === 0) break;
 
     for (const flow of batchResult.rows) {
       try {
-        // Fetch transaction from zcashd
-        const tx = await zcashRPC('getrawtransaction', [flow.txid, 1]);
+        // Check cache first
+        let tx = txCache.get(flow.txid);
+        if (!tx) {
+          tx = await zebradRPC('getrawtransaction', [flow.txid, 1]);
+          cacheTx(flow.txid, tx);
+        }
 
-        // Extract addresses based on flow type
         let transparentAddresses = [];
         let transparentValueZat = 0;
 
@@ -138,13 +172,17 @@ async function backfillAddresses(options = {}) {
             }
           }
         } else if (flow.flow_type === 'shield' && tx.vin) {
-          // Shield: need to look up prevout for each vin
+          // Shield: need to look up prevout
           for (const vin of tx.vin) {
             if (vin.coinbase) continue;
-
+            
             try {
               if (vin.txid && vin.vout !== undefined) {
-                const prevTx = await zcashRPC('getrawtransaction', [vin.txid, 1]);
+                let prevTx = txCache.get(vin.txid);
+                if (!prevTx) {
+                  prevTx = await zebradRPC('getrawtransaction', [vin.txid, 1]);
+                  cacheTx(vin.txid, prevTx);
+                }
                 const prevOut = prevTx.vout[vin.vout];
                 if (prevOut && prevOut.scriptPubKey && prevOut.scriptPubKey.addresses) {
                   transparentAddresses.push(...prevOut.scriptPubKey.addresses);
@@ -152,10 +190,7 @@ async function backfillAddresses(options = {}) {
                 }
               }
             } catch (vinErr) {
-              // Skip this vin if we can't fetch it
-              if (verbose) {
-                console.log(`   ⚠️  Could not fetch prevout for vin in ${flow.txid}`);
-              }
+              // Skip this vin
             }
           }
         }
@@ -172,9 +207,9 @@ async function backfillAddresses(options = {}) {
             `, [transparentAddresses, transparentValueZat, flow.id]);
           }
           updated++;
-
+          
           if (verbose) {
-            console.log(`   ✅ ${flow.txid.slice(0, 12)}... → ${transparentAddresses.length} addr(s)`);
+            console.log(`   ✅ ${flow.txid.slice(0, 12)}... → ${transparentAddresses.join(', ').slice(0, 40)}...`);
           }
         }
 
@@ -184,21 +219,18 @@ async function backfillAddresses(options = {}) {
       } catch (err) {
         errors++;
         if (verbose) {
-          console.log(`   ❌ ${flow.txid.slice(0, 12)}... Error: ${err.message}`);
+          console.log(`   ❌ ${flow.txid.slice(0, 12)}... ${err.message}`);
         }
         currentId = flow.id + 1;
       }
     }
 
-    // Progress update
+    // Progress
     const elapsed = (Date.now() - startTime) / 1000;
     const rate = processed / elapsed;
-    const remaining = totalToProcess - processed;
-    const eta = remaining / rate;
+    const eta = (totalToProcess - processed) / rate;
 
-    console.log(`   📈 Progress: ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%)`);
-    console.log(`   ⏱️  Rate: ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)}`);
-    console.log(`   ✅ Updated: ${updated.toLocaleString()} | ❌ Errors: ${errors}`);
+    console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors}`);
   }
 
   console.log('\n════════════════════════════════════════════════════════════');
@@ -206,6 +238,7 @@ async function backfillAddresses(options = {}) {
   console.log(`   Processed: ${processed.toLocaleString()}`);
   console.log(`   Updated: ${updated.toLocaleString()}`);
   console.log(`   Errors: ${errors}`);
+  console.log(`   Cache hits: ${txCache.size}`);
   console.log(`   Time: ${formatDuration((Date.now() - startTime) / 1000)}`);
   console.log('════════════════════════════════════════════════════════════');
 }
@@ -223,7 +256,7 @@ function formatDuration(seconds) {
 async function main() {
   const args = process.argv.slice(2);
   const options = {
-    batchSize: 1000,
+    batchSize: 500,
     startId: 0,
     dryRun: false,
     verbose: false,
