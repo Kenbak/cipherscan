@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Backfill transparent_addresses for existing shielded_flows
- * 
+ *
  * Uses the same RPC connection as the indexer (Zebra with cookie auth)
- * 
+ *
  * Usage:
  *   node backfill-addresses.js [options]
- * 
+ *
  * Options:
  *   --batch-size=500    Number of rows to process per batch (default: 500)
  *   --start-id=0        Start from this ID (for resuming)
@@ -119,12 +119,12 @@ async function backfillAddresses(options = {}) {
 
   // Get total count
   const countResult = await pool.query(`
-    SELECT COUNT(*) as total 
-    FROM shielded_flows 
-    WHERE id >= $1 
+    SELECT COUNT(*) as total
+    FROM shielded_flows
+    WHERE id >= $1
       AND (transparent_addresses IS NULL OR array_length(transparent_addresses, 1) IS NULL)
   `, [startId]);
-  
+
   const totalToProcess = parseInt(countResult.rows[0].total);
   console.log(`📊 Total flows to process: ${totalToProcess.toLocaleString()}\n`);
 
@@ -175,7 +175,7 @@ async function backfillAddresses(options = {}) {
           // Shield: need to look up prevout
           for (const vin of tx.vin) {
             if (vin.coinbase) continue;
-            
+
             try {
               if (vin.txid && vin.vout !== undefined) {
                 let prevTx = txCache.get(vin.txid);
@@ -207,7 +207,7 @@ async function backfillAddresses(options = {}) {
             `, [transparentAddresses, transparentValueZat, flow.id]);
           }
           updated++;
-          
+
           if (verbose) {
             console.log(`   ✅ ${flow.txid.slice(0, 12)}... → ${transparentAddresses.join(', ').slice(0, 40)}...`);
           }

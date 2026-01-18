@@ -343,7 +343,11 @@ function PrivacyRisksContent() {
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-4">
         <button
-          onClick={() => setActiveTab('roundtrip')}
+          onClick={() => {
+            setActiveTab('roundtrip');
+            // Reset to valid period for roundtrip if current is invalid
+            if (periodFilter === '90d') setPeriodFilter('30d');
+          }}
           className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
             activeTab === 'roundtrip'
               ? 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -358,7 +362,11 @@ function PrivacyRisksContent() {
           </span>
         </button>
         <button
-          onClick={() => setActiveTab('batch')}
+          onClick={() => {
+            setActiveTab('batch');
+            // Reset to valid period for batch if current is invalid
+            if (periodFilter === '24h') setPeriodFilter('7d');
+          }}
           className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
             activeTab === 'batch'
               ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
@@ -383,12 +391,15 @@ function PrivacyRisksContent() {
       <Card variant="compact" className="mb-6">
         <CardBody>
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {/* Period Filter */}
+            {/* Period Filter - Different options per tab */}
             <div className="filter-group">
-              {(['24h', '7d', '30d'] as PeriodFilter[]).map((period) => (
+              {(activeTab === 'roundtrip' 
+                ? ['24h', '7d', '30d'] 
+                : ['7d', '30d', '90d']
+              ).map((period) => (
                 <button
                   key={period}
-                  onClick={() => setPeriodFilter(period)}
+                  onClick={() => setPeriodFilter(period as PeriodFilter)}
                   className={`filter-btn ${periodFilter === period ? 'filter-btn-active' : ''}`}
                 >
                   {period}
