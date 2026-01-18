@@ -31,7 +31,14 @@ const scanRouter = require('./routes/scan');
 const addressRouter = require('./routes/address');
 
 // Import linkability functions
-const { findLinkedTransactions, calculateLinkabilityScore, formatTimeDelta, getTransparentAddresses } = require('./linkability');
+const {
+  findLinkedTransactions,
+  calculateLinkabilityScore,
+  formatTimeDelta,
+  getTransparentAddresses,
+  detectBatchDeshields,
+  detectBatchForShield,
+} = require('./linkability');
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -302,6 +309,8 @@ app.locals.findLinkedTransactions = findLinkedTransactions;
 app.locals.calculateLinkabilityScore = calculateLinkabilityScore;
 app.locals.formatTimeDelta = formatTimeDelta;
 app.locals.getTransparentAddresses = getTransparentAddresses;
+app.locals.detectBatchDeshields = detectBatchDeshields;
+app.locals.detectBatchForShield = detectBatchForShield;
 app.locals.redisClient = redisClient;
 
 // Block routes: /health, /api/info, /api/blocks, /api/block/:height

@@ -1,0 +1,14 @@
+# ML Pattern Detector Dependencies
+# Install with: pip install -r requirements.txt
+
+# Database
+psycopg2-binary>=2.9.9
+
+# ML/Data Science
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# Optional: for future enhancements
+# pandas>=2.0.0          # If we need DataFrames
+# matplotlib>=3.7.0      # For visualization
+# networkx>=3.0          # For graph analysis

@@ -2,7 +2,9 @@
  * Privacy Routes
  *
  * Handles privacy analysis and risk detection endpoints:
- * - GET /api/privacy/risks - Linkable transaction pairs
+ * - GET /api/privacy/risks - Linkable transaction pairs (1:1)
+ * - GET /api/privacy/batch-risks - Batch deshield patterns (1:N)
+ * - GET /api/privacy/shield/:txid/batch - Check if a shield has batch withdrawals
  * - GET /api/privacy/common-amounts - Common shielding amounts
  */
 
@@ -14,6 +16,8 @@ let pool;
 let calculateLinkabilityScore;
 let formatTimeDelta;
 let getTransparentAddresses;
+let detectBatchDeshields;
+let detectBatchForShield;
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
@@ -21,6 +25,8 @@ router.use((req, res, next) => {
   calculateLinkabilityScore = req.app.locals.calculateLinkabilityScore;
   formatTimeDelta = req.app.locals.formatTimeDelta;
   getTransparentAddresses = req.app.locals.getTransparentAddresses;
+  detectBatchDeshields = req.app.locals.detectBatchDeshields;
+  detectBatchForShield = req.app.locals.detectBatchForShield;
   next();
 });
 
@@ -216,6 +222,266 @@ router.get('/api/privacy/risks', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch privacy risks',
+    });
+  }
+});
+
+/**
+ * GET /api/privacy/batch-risks
+ *
+ * Detect "batch deshield" patterns where someone:
+ * 1. Shields a large amount
+ * 2. Deshields in identical chunks that sum to the original
+ *
+ * Example: 6000 ZEC in → 12×500 ZEC out
+ *
+ * Query params:
+ *   - period: 7d, 30d, 90d (default 30d)
+ *   - minBatchCount: Minimum identical transactions (default 3)
+ *   - minAmount: Minimum ZEC per transaction (default 10)
+ *   - limit: Max results (default 20, max 50)
+ */
+router.get('/api/privacy/batch-risks', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 50);
+    const minBatchCount = Math.max(parseInt(req.query.minBatchCount) || 3, 2);
+    const minAmountZec = Math.max(parseFloat(req.query.minAmount) || 10, 1);
+    const minAmountZat = Math.round(minAmountZec * 100000000);
+
+    // Parse period
+    const periodMap = {
+      '7d': 7,
+      '30d': 30,
+      '90d': 90,
+    };
+    const timeWindowDays = periodMap[req.query.period] || 30;
+
+    console.log(`🔗 [BATCH RISKS] Detecting batch deshields (period=${timeWindowDays}d, minBatch=${minBatchCount}, minAmount=${minAmountZec})`);
+
+    const patterns = await detectBatchDeshields(pool, {
+      minBatchCount,
+      minAmountZat,
+      timeWindowDays,
+      limit,
+    });
+
+    // Calculate stats
+    const stats = {
+      total: patterns.length,
+      highRisk: patterns.filter(p => p.warningLevel === 'HIGH').length,
+      mediumRisk: patterns.filter(p => p.warningLevel === 'MEDIUM').length,
+      totalZecFlagged: patterns.reduce((sum, p) => sum + p.totalAmountZec, 0),
+      period: `${timeWindowDays}d`,
+    };
+
+    console.log(`✅ [BATCH RISKS] Found ${stats.total} patterns (${stats.highRisk} HIGH, ${stats.mediumRisk} MEDIUM)`);
+
+    res.json({
+      success: true,
+      patterns,
+      stats,
+      algorithm: {
+        version: '1.0',
+        description: 'Detects identical deshield amounts that sum to a matching shield',
+        factors: [
+          'Batch count (more identical = more suspicious)',
+          'Round number detection (psychological fingerprint)',
+          'Matching shield (sum matches original amount)',
+          'Time clustering (all withdrawals close together)',
+        ],
+      },
+    });
+  } catch (error) {
+    console.error('❌ [BATCH RISKS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to detect batch patterns',
+    });
+  }
+});
+
+/**
+ * GET /api/privacy/shield/:txid/batch
+ *
+ * Check if a specific shield transaction has been followed by batch withdrawals.
+ * Useful for analyzing a known "whale" shield.
+ *
+ * Example: Check if 66e29c07... was split into 12×500 ZEC
+ */
+router.get('/api/privacy/shield/:txid/batch', async (req, res) => {
+  try {
+    const { txid } = req.params;
+
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid transaction ID format',
+      });
+    }
+
+    console.log(`🔍 [BATCH CHECK] Analyzing shield ${txid.slice(0, 8)}... for batch withdrawals`);
+
+    const result = await detectBatchForShield(pool, txid);
+
+    if (result.error) {
+      return res.status(404).json({
+        success: false,
+        error: result.error,
+      });
+    }
+
+    console.log(`✅ [BATCH CHECK] Found ${result.potentialBatchWithdrawals?.length || 0} potential batch patterns`);
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('❌ [BATCH CHECK] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to analyze shield for batch patterns',
+    });
+  }
+});
+
+/**
+ * GET /api/privacy/patterns
+ *
+ * Get stored patterns from the detected_patterns table.
+ * These are pre-computed by the background scanner for fast access.
+ *
+ * Query params:
+ *   - type: Pattern type filter (BATCH_DESHIELD, etc.) (optional)
+ *   - riskLevel: HIGH, MEDIUM, LOW, or ALL (default ALL)
+ *   - limit: Max results (default 20, max 100)
+ *   - offset: Pagination offset (default 0)
+ */
+router.get('/api/privacy/patterns', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const patternType = req.query.type?.toUpperCase();
+    const riskLevel = (req.query.riskLevel || 'ALL').toUpperCase();
+
+    // Build query
+    let whereClause = 'WHERE expires_at > NOW()';
+    const params = [];
+    let paramIndex = 1;
+
+    if (patternType) {
+      whereClause += ` AND pattern_type = $${paramIndex++}`;
+      params.push(patternType);
+    }
+
+    if (riskLevel !== 'ALL') {
+      whereClause += ` AND warning_level = $${paramIndex++}`;
+      params.push(riskLevel);
+    }
+
+    // Count total
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as total FROM detected_patterns ${whereClause}`,
+      params
+    );
+    const totalCount = parseInt(countResult.rows[0]?.total) || 0;
+
+    // Fetch patterns
+    params.push(limit, offset);
+    const result = await pool.query(`
+      SELECT
+        id,
+        pattern_type,
+        score,
+        warning_level,
+        shield_txids,
+        deshield_txids,
+        total_amount_zat / 100000000.0 as total_amount_zec,
+        per_tx_amount_zat / 100000000.0 as per_tx_amount_zec,
+        batch_count,
+        first_tx_time,
+        last_tx_time,
+        time_span_hours,
+        metadata,
+        detected_at
+      FROM detected_patterns
+      ${whereClause}
+      ORDER BY score DESC, detected_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `, params);
+
+    const patterns = result.rows.map(row => ({
+      id: row.id,
+      patternType: row.pattern_type,
+      score: row.score,
+      warningLevel: row.warning_level,
+      shieldTxids: row.shield_txids || [],
+      deshieldTxids: row.deshield_txids || [],
+      totalAmountZec: parseFloat(row.total_amount_zec),
+      perTxAmountZec: parseFloat(row.per_tx_amount_zec),
+      batchCount: row.batch_count,
+      firstTime: row.first_tx_time,
+      lastTime: row.last_tx_time,
+      timeSpanHours: parseFloat(row.time_span_hours),
+      metadata: row.metadata,
+      detectedAt: row.detected_at,
+    }));
+
+    // Stats
+    const statsResult = await pool.query(`
+      SELECT
+        warning_level,
+        COUNT(*) as count,
+        SUM(total_amount_zat) / 100000000.0 as total_zec
+      FROM detected_patterns
+      WHERE expires_at > NOW()
+      GROUP BY warning_level
+    `);
+
+    const stats = {
+      total: totalCount,
+      high: 0,
+      medium: 0,
+      low: 0,
+      totalZecFlagged: 0,
+    };
+
+    for (const row of statsResult.rows) {
+      const level = row.warning_level.toLowerCase();
+      stats[level] = parseInt(row.count);
+      stats.totalZecFlagged += parseFloat(row.total_zec) || 0;
+    }
+
+    console.log(`✅ [PATTERNS] Returning ${patterns.length} stored patterns`);
+
+    res.json({
+      success: true,
+      patterns,
+      stats,
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        returned: patterns.length,
+        hasMore: offset + limit < totalCount,
+      },
+      note: 'These patterns are pre-computed by a background scanner running every 10 minutes.',
+    });
+  } catch (error) {
+    // Check if table doesn't exist
+    if (error.code === '42P01') {
+      return res.json({
+        success: true,
+        patterns: [],
+        stats: { total: 0, high: 0, medium: 0, low: 0, totalZecFlagged: 0 },
+        note: 'Pattern detection table not yet initialized. Run the migration.',
+      });
+    }
+
+    console.error('❌ [PATTERNS] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch patterns',
     });
   }
 });

@@ -470,6 +470,319 @@ function calculateLinkabilityScore(shieldAmountZat, deshieldAmountZat, timeDelta
 }
 
 // ============================================================================
+// BATCH DESHIELD DETECTION (NEW HEURISTIC)
+// ============================================================================
+
+/**
+ * Check if an amount is a "round" psychological number
+ * These are amounts humans naturally choose, making them fingerprints
+ */
+function isRoundAmount(amountZec) {
+  // Common round amounts people use
+  const exactRounds = [
+    0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000
+  ];
+
+  // Check exact match
+  if (exactRounds.includes(amountZec)) return true;
+
+  // Check if it's a multiple of 100 (for amounts >= 100)
+  if (amountZec >= 100 && amountZec % 100 === 0) return true;
+
+  // Check if it's a multiple of 50 (for amounts >= 50)
+  if (amountZec >= 50 && amountZec % 50 === 0) return true;
+
+  // Check if it's a multiple of 10 (for amounts >= 10)
+  if (amountZec >= 10 && amountZec % 10 === 0) return true;
+
+  // Check if it's a multiple of 1 (whole numbers)
+  if (amountZec >= 1 && amountZec % 1 === 0) return true;
+
+  return false;
+}
+
+/**
+ * Score how "round" an amount is (more round = more suspicious)
+ * Returns 0-25 points
+ */
+function scoreRoundness(amountZec) {
+  if (amountZec >= 1000 && amountZec % 1000 === 0) return 25; // 1000, 2000, 5000...
+  if (amountZec >= 500 && amountZec % 500 === 0) return 22;   // 500, 1500, 2500...
+  if (amountZec >= 100 && amountZec % 100 === 0) return 20;   // 100, 200, 300...
+  if (amountZec >= 50 && amountZec % 50 === 0) return 15;     // 50, 150, 250...
+  if (amountZec >= 10 && amountZec % 10 === 0) return 12;     // 10, 20, 30...
+  if (amountZec >= 1 && amountZec % 1 === 0) return 8;        // Whole numbers
+  return 0;
+}
+
+/**
+ * Detect "batch deshield" patterns where someone:
+ * 1. Shields a large amount
+ * 2. Deshields in identical chunks that sum to the original
+ *
+ * Example: 6000 ZEC in → 12×500 ZEC out
+ *
+ * @param {Pool} pool - PostgreSQL connection pool
+ * @param {object} options - Detection options
+ * @returns {Array} - Array of suspicious batch patterns
+ */
+async function detectBatchDeshields(pool, options = {}) {
+  const {
+    minBatchCount = 3,           // At least 3 identical deshields
+    minAmountZat = 1000000000,   // Min 10 ZEC per deshield (to filter noise)
+    timeWindowDays = 30,         // Look back 30 days
+    limit = 50,                  // Max patterns to return
+  } = options;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const minTime = nowSeconds - (timeWindowDays * 86400);
+
+  // Step 1: Find batches of identical deshields
+  const batchesResult = await pool.query(`
+    SELECT
+      amount_zat,
+      COUNT(*) as batch_count,
+      SUM(amount_zat) as total_zat,
+      MIN(block_time) as first_time,
+      MAX(block_time) as last_time,
+      ARRAY_AGG(txid ORDER BY block_time) as txids,
+      ARRAY_AGG(block_height ORDER BY block_time) as heights,
+      ARRAY_AGG(block_time ORDER BY block_time) as times
+    FROM shielded_flows
+    WHERE flow_type = 'deshield'
+      AND block_time > $1
+      AND amount_zat >= $2
+    GROUP BY amount_zat
+    HAVING COUNT(*) >= $3
+    ORDER BY COUNT(*) DESC, SUM(amount_zat) DESC
+    LIMIT $4
+  `, [minTime, minAmountZat, minBatchCount, limit]);
+
+  const suspiciousBatches = [];
+
+  for (const batch of batchesResult.rows) {
+    const batchTotal = parseInt(batch.total_zat);
+    const batchCount = parseInt(batch.batch_count);
+    const perTxAmount = parseInt(batch.amount_zat);
+    const firstTime = parseInt(batch.first_time);
+    const lastTime = parseInt(batch.last_time);
+    const amountZec = perTxAmount / 100000000;
+    const totalZec = batchTotal / 100000000;
+
+    // Step 2: Find matching shields (total matches batch total)
+    const matchingShields = await pool.query(`
+      SELECT txid, amount_zat, block_time, block_height
+      FROM shielded_flows
+      WHERE flow_type = 'shield'
+        AND amount_zat BETWEEN $1 AND $2
+        AND block_time < $3
+        AND block_time > $3 - (90 * 86400)
+      ORDER BY ABS(amount_zat - $4) ASC, block_time DESC
+      LIMIT 5
+    `, [
+      batchTotal - CONFIG.AMOUNT_TOLERANCE_ZAT * 10, // Wider tolerance for sums
+      batchTotal + CONFIG.AMOUNT_TOLERANCE_ZAT * 10,
+      firstTime,
+      batchTotal
+    ]);
+
+    // Step 3: Score this pattern
+    let score = 0;
+    const breakdown = {};
+
+    // Factor 1: Batch count (more identical = more suspicious)
+    // 3 = 10pts, 5 = 15pts, 8 = 20pts, 12+ = 30pts
+    let batchPoints = 0;
+    if (batchCount >= 12) batchPoints = 30;
+    else if (batchCount >= 8) batchPoints = 25;
+    else if (batchCount >= 5) batchPoints = 20;
+    else if (batchCount >= 3) batchPoints = 10;
+    score += batchPoints;
+    breakdown.batchCount = { count: batchCount, points: batchPoints };
+
+    // Factor 2: Round number (psychological fingerprint)
+    const roundPoints = scoreRoundness(amountZec);
+    score += roundPoints;
+    breakdown.roundNumber = {
+      amountZec,
+      isRound: roundPoints > 0,
+      points: roundPoints
+    };
+
+    // Factor 3: Matching shield found (strongest signal)
+    let matchPoints = 0;
+    let bestMatch = null;
+    if (matchingShields.rows.length > 0) {
+      bestMatch = matchingShields.rows[0];
+      const matchAmount = parseInt(bestMatch.amount_zat);
+      const diff = Math.abs(matchAmount - batchTotal);
+
+      // Closer match = more points
+      if (diff === 0) matchPoints = 35;
+      else if (diff <= CONFIG.AMOUNT_TOLERANCE_ZAT) matchPoints = 32;
+      else if (diff <= CONFIG.AMOUNT_TOLERANCE_ZAT * 5) matchPoints = 28;
+      else matchPoints = 20;
+
+      score += matchPoints;
+    }
+    breakdown.matchingShield = {
+      found: !!bestMatch,
+      txid: bestMatch?.txid || null,
+      amountZec: bestMatch ? parseInt(bestMatch.amount_zat) / 100000000 : null,
+      points: matchPoints
+    };
+
+    // Factor 4: Time clustering (all withdrawals close together = more suspicious)
+    const timeSpanHours = (lastTime - firstTime) / 3600;
+    let timePoints = 0;
+    if (timeSpanHours < 6) timePoints = 10;      // < 6 hours = very clustered
+    else if (timeSpanHours < 24) timePoints = 8; // < 1 day
+    else if (timeSpanHours < 72) timePoints = 5; // < 3 days
+    else if (timeSpanHours < 168) timePoints = 3; // < 1 week
+    score += timePoints;
+    breakdown.timeClustering = {
+      hours: Math.round(timeSpanHours * 10) / 10,
+      points: timePoints
+    };
+
+    // Minimum score threshold
+    if (score < 30) continue;
+
+    suspiciousBatches.push({
+      patternType: 'BATCH_DESHIELD',
+      perTxAmountZec: amountZec,
+      batchCount,
+      totalAmountZec: totalZec,
+      txids: batch.txids,
+      heights: batch.heights.map(h => parseInt(h)),
+      times: batch.times.map(t => parseInt(t)),
+      firstTime,
+      lastTime,
+      timeSpanHours: Math.round(timeSpanHours * 10) / 10,
+      isRoundNumber: roundPoints > 0,
+      matchingShield: bestMatch ? {
+        txid: bestMatch.txid,
+        amountZec: parseInt(bestMatch.amount_zat) / 100000000,
+        blockHeight: parseInt(bestMatch.block_height),
+        blockTime: parseInt(bestMatch.block_time),
+      } : null,
+      score: Math.min(score, 100),
+      warningLevel: score >= 70 ? 'HIGH' : score >= 50 ? 'MEDIUM' : 'LOW',
+      breakdown,
+      explanation: generateBatchExplanation(batchCount, amountZec, totalZec, bestMatch, timeSpanHours),
+    });
+  }
+
+  // Sort by score descending
+  return suspiciousBatches.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Generate human-readable explanation for a batch pattern
+ */
+function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShield, timeSpanHours) {
+  let explanation = `Detected ${batchCount} identical deshields of ${amountZec} ZEC each (total: ${totalZec} ZEC)`;
+
+  if (timeSpanHours < 24) {
+    explanation += ` within ${Math.round(timeSpanHours)} hours`;
+  } else if (timeSpanHours < 168) {
+    explanation += ` over ${Math.round(timeSpanHours / 24)} days`;
+  }
+
+  explanation += '. ';
+
+  if (matchingShield) {
+    const shieldAmount = parseInt(matchingShield.amount_zat) / 100000000;
+    explanation += `This matches a shield of ${shieldAmount} ZEC, strongly suggesting these withdrawals came from the same source.`;
+  } else {
+    explanation += `No exact matching shield found, but the identical amounts and timing pattern is a privacy fingerprint.`;
+  }
+
+  return explanation;
+}
+
+/**
+ * Detect patterns for a specific shield transaction
+ * Check if this shield was later deshielded in batches
+ */
+async function detectBatchForShield(pool, shieldTxid) {
+  // Get the shield transaction
+  const shieldResult = await pool.query(`
+    SELECT txid, amount_zat, block_time, block_height
+    FROM shielded_flows
+    WHERE txid = $1 AND flow_type = 'shield'
+  `, [shieldTxid]);
+
+  if (shieldResult.rows.length === 0) {
+    return { error: 'Shield transaction not found', txid: shieldTxid };
+  }
+
+  const shield = shieldResult.rows[0];
+  const shieldAmount = parseInt(shield.amount_zat);
+  const shieldTime = parseInt(shield.block_time);
+  const shieldZec = shieldAmount / 100000000;
+
+  // Find potential divisors (how the amount could be split)
+  const potentialDivisors = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 50, 100];
+  const matches = [];
+
+  for (const divisor of potentialDivisors) {
+    const expectedPerTx = Math.round(shieldAmount / divisor);
+    if (expectedPerTx < 100000000) continue; // Skip if < 1 ZEC per tx
+
+    // Find deshields with this amount after the shield
+    const deshieldsResult = await pool.query(`
+      SELECT txid, amount_zat, block_time, block_height
+      FROM shielded_flows
+      WHERE flow_type = 'deshield'
+        AND amount_zat BETWEEN $1 AND $2
+        AND block_time > $3
+        AND block_time < $3 + (90 * 86400)
+      ORDER BY block_time ASC
+    `, [
+      expectedPerTx - CONFIG.AMOUNT_TOLERANCE_ZAT,
+      expectedPerTx + CONFIG.AMOUNT_TOLERANCE_ZAT,
+      shieldTime
+    ]);
+
+    if (deshieldsResult.rows.length >= divisor * 0.5) { // At least 50% of expected
+      const totalDeshielded = deshieldsResult.rows.reduce(
+        (sum, r) => sum + parseInt(r.amount_zat), 0
+      );
+
+      // Check if total is close to shield amount
+      const diffPercent = Math.abs(totalDeshielded - shieldAmount) / shieldAmount * 100;
+
+      if (diffPercent < 5) { // Within 5% of original
+        matches.push({
+          divisor,
+          expectedPerTxZec: expectedPerTx / 100000000,
+          foundCount: deshieldsResult.rows.length,
+          totalDeshieldedZec: totalDeshielded / 100000000,
+          diffPercent: Math.round(diffPercent * 100) / 100,
+          deshields: deshieldsResult.rows.map(r => ({
+            txid: r.txid,
+            amountZec: parseInt(r.amount_zat) / 100000000,
+            blockHeight: parseInt(r.block_height),
+            blockTime: parseInt(r.block_time),
+          })),
+        });
+      }
+    }
+  }
+
+  return {
+    shieldTxid,
+    shieldAmountZec: shieldZec,
+    shieldBlockHeight: parseInt(shield.block_height),
+    shieldBlockTime: shieldTime,
+    potentialBatchWithdrawals: matches,
+    hasBatchPattern: matches.length > 0,
+    warningLevel: matches.length > 0 ? 'HIGH' : 'NONE',
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -485,4 +798,10 @@ module.exports = {
   applyRarityTimeBonus,
   getWarningLevel,
   formatTimeDelta,
+  // NEW: Batch detection exports
+  detectBatchDeshields,
+  detectBatchForShield,
+  isRoundAmount,
+  scoreRoundness,
+  generateBatchExplanation,
 };
