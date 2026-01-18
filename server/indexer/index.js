@@ -522,13 +522,44 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
         ? (valueBalanceOrchard > 0 ? valueBalanceOrchard : 0)
         : (valueBalanceOrchard < 0 ? Math.abs(valueBalanceOrchard) : 0);
 
+      // Extract transparent addresses involved in this flow
+      // - For DESHIELD: addresses from vout (where the ZEC is going)
+      // - For SHIELD: addresses from vin (where the ZEC came from)
+      let transparentAddresses = [];
+      let transparentValueZat = 0;
+
+      if (flowType === 'deshield' && tx.vout) {
+        // Deshield: ZEC going to transparent addresses via vout
+        for (const vout of tx.vout) {
+          if (vout.scriptPubKey && vout.scriptPubKey.addresses && vout.scriptPubKey.addresses.length > 0) {
+            transparentAddresses.push(...vout.scriptPubKey.addresses);
+            transparentValueZat += Math.round((vout.value || 0) * 100000000);
+          }
+        }
+      } else if (flowType === 'shield' && tx.vin) {
+        // Shield: ZEC coming from transparent addresses via vin
+        // We already process vin below, so collect addresses here
+        for (const vin of tx.vin) {
+          if (vin.address) {
+            transparentAddresses.push(vin.address);
+          } else if (vin.prevout && vin.prevout.scriptPubKey && vin.prevout.scriptPubKey.addresses) {
+            transparentAddresses.push(...vin.prevout.scriptPubKey.addresses);
+          }
+        }
+      }
+
+      // Deduplicate addresses
+      transparentAddresses = [...new Set(transparentAddresses)];
+
       try {
         await db.query(`
           INSERT INTO shielded_flows (
             txid, block_height, block_time, flow_type, amount_zat,
-            pool, amount_sapling_zat, amount_orchard_zat
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          ON CONFLICT (txid, flow_type) DO NOTHING
+            pool, amount_sapling_zat, amount_orchard_zat, transparent_addresses, transparent_value_zat
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (txid, flow_type) DO UPDATE SET
+            transparent_addresses = EXCLUDED.transparent_addresses,
+            transparent_value_zat = EXCLUDED.transparent_value_zat
         `, [
           txid,
           blockHeight,
@@ -538,6 +569,8 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
           poolType,
           amountSaplingZat,
           amountOrchardZat,
+          transparentAddresses.length > 0 ? transparentAddresses : null,
+          transparentValueZat,
         ]);
       } catch (flowErr) {
         // Silently fail if shielded_flows table doesn't exist yet

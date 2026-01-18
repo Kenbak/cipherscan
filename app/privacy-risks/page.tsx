@@ -736,7 +736,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             </span>
           )}
         </div>
-        
+
         {/* Address Warning */}
         {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
           <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400">

@@ -476,12 +476,12 @@ function calculateLinkabilityScore(shieldAmountZat, deshieldAmountZat, timeDelta
 /**
  * Check if an amount is a "round" psychological number
  * These are amounts humans naturally choose, making them fingerprints
- * 
+ *
  * IMPROVED: Uses fee tolerance (0.001 ZEC) to handle amounts like 50.0003 ZEC
  */
 function isRoundAmount(amountZec) {
   const FEE_TOLERANCE = 0.001; // Typical Zcash fee is 0.0001-0.001 ZEC
-  
+
   // Common round amounts people use
   const exactRounds = [
     0.1, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000
@@ -494,7 +494,7 @@ function isRoundAmount(amountZec) {
 
   // Check if it's close to a multiple of 1000 (for amounts >= 1000)
   if (amountZec >= 1000 && (amountZec % 1000) < FEE_TOLERANCE) return true;
-  
+
   // Check if it's close to a multiple of 500 (for amounts >= 500)
   if (amountZec >= 500 && (amountZec % 500) < FEE_TOLERANCE) return true;
 
@@ -516,12 +516,12 @@ function isRoundAmount(amountZec) {
 /**
  * Score how "round" an amount is (more round = more suspicious)
  * Returns 0-25 points
- * 
+ *
  * IMPROVED: Uses fee tolerance to properly detect 50.0003 as "50 ZEC"
  */
 function scoreRoundness(amountZec) {
   const FEE_TOLERANCE = 0.001;
-  
+
   // Check multiples with tolerance (most specific first)
   if (amountZec >= 1000 && (amountZec % 1000) < FEE_TOLERANCE) return 25; // 1000, 2000, 5000...
   if (amountZec >= 500 && (amountZec % 500) < FEE_TOLERANCE) return 22;   // 500, 1500, 2500...
@@ -669,10 +669,10 @@ async function detectBatchDeshields(pool, options = {}) {
     const addressCount = uniqueAddresses.length;
     let addressPoints = 0;
     let sameAddressRatio = 0;
-    
+
     if (addresses.length > 0 && addressCount > 0) {
       sameAddressRatio = 1 - (addressCount - 1) / Math.max(addresses.length - 1, 1);
-      
+
       if (addressCount === 1 && addresses.length >= 3) {
         // ALL deshields go to SAME address = EXTREMELY suspicious
         addressPoints = 20;
@@ -702,7 +702,7 @@ async function detectBatchDeshields(pool, options = {}) {
     if (bestMatch) {
       const shieldTime = parseInt(bestMatch.block_time);
       shieldToFirstDeshieldHours = (firstTime - shieldTime) / 3600;
-      
+
       if (shieldToFirstDeshieldHours < 1) {
         shieldToFirstDeshieldPoints = 10;  // < 1 hour = very suspicious
       } else if (shieldToFirstDeshieldHours < 6) {
@@ -761,15 +761,15 @@ async function detectBatchDeshields(pool, options = {}) {
  */
 function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShield, timeSpanHours, addressCount = null, shieldToFirstDeshieldHours = null) {
   let explanation = `Detected ${batchCount} identical deshields of ${amountZec} ZEC each (total: ${totalZec} ZEC)`;
-  
+
   if (timeSpanHours < 24) {
     explanation += ` within ${Math.round(timeSpanHours)} hours`;
   } else if (timeSpanHours < 168) {
     explanation += ` over ${Math.round(timeSpanHours / 24)} days`;
   }
-  
+
   explanation += '. ';
-  
+
   // Address analysis
   if (addressCount !== null) {
     if (addressCount === 1) {
@@ -778,11 +778,11 @@ function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShiel
       explanation += `Only ${addressCount} unique addresses for ${batchCount} withdrawals. `;
     }
   }
-  
+
   if (matchingShield) {
     const shieldAmount = parseInt(matchingShield.amount_zat) / 100000000;
     explanation += `Matches a shield of ${shieldAmount} ZEC`;
-    
+
     // Timing info
     if (shieldToFirstDeshieldHours !== null) {
       if (shieldToFirstDeshieldHours < 24) {
@@ -791,12 +791,12 @@ function generateBatchExplanation(batchCount, amountZec, totalZec, matchingShiel
         explanation += ` (first withdrawal ${Math.round(shieldToFirstDeshieldHours / 24)} days after shielding)`;
       }
     }
-    
+
     explanation += ', strongly suggesting these withdrawals came from the same source.';
   } else {
     explanation += `No exact matching shield found, but the identical amounts and timing pattern is a privacy fingerprint.`;
   }
-  
+
   return explanation;
 }
 
