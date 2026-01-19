@@ -553,7 +553,7 @@ function PrivacyRisksContent() {
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="btn btn-secondary disabled:opacity-50"
+                    className="btn btn-md btn-secondary disabled:opacity-50"
                   >
                     {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
                   </button>
@@ -642,7 +642,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMoreBatch}
                         disabled={batchLoadingMore}
-                        className="btn btn-secondary disabled:opacity-50"
+                        className="btn btn-md btn-secondary disabled:opacity-50"
                       >
                         {batchLoadingMore ? 'Loading...' : 'Load More'}
                       </button>
