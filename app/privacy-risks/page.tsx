@@ -251,7 +251,12 @@ function PrivacyRisksContent() {
       const data = await response.json();
       if (data.success) {
         if (append) {
-          setBatchPatterns(prev => [...prev, ...data.patterns]);
+          // Deduplicate by first txid to avoid duplicates on pagination edge
+          setBatchPatterns(prev => {
+            const existingIds = new Set(prev.map((p: BatchPattern) => p.txids[0]));
+            const newPatterns = data.patterns.filter((p: BatchPattern) => !existingIds.has(p.txids[0]));
+            return [...prev, ...newPatterns];
+          });
         } else {
           setBatchPatterns(data.patterns);
         }
@@ -627,8 +632,8 @@ function PrivacyRisksContent() {
                 </Card>
               ) : (
                 <>
-                  {batchPatterns.map((pattern, index) => (
-                    <BatchPatternCard key={`batch-${index}`} pattern={pattern} />
+                  {batchPatterns.map((pattern) => (
+                    <BatchPatternCard key={pattern.txids[0]} pattern={pattern} />
                   ))}
 
                   {/* Load More */}
@@ -649,7 +654,7 @@ function PrivacyRisksContent() {
               {/* Stats */}
               {batchStats && (
                 <p className="text-center text-sm text-muted pt-2">
-                  Showing {batchPatterns.length} of {batchStats.filteredTotal || batchStats.total} patterns
+                  Showing {Math.min(batchPatterns.length, batchStats.filteredTotal || batchStats.total)} of {batchStats.filteredTotal || batchStats.total} patterns
                   {batchRiskFilter !== 'ALL' && ` (filtered from ${batchStats.total} total)`}
                 </p>
               )}
