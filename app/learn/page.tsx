@@ -765,6 +765,24 @@ export default function LearnPage() {
                     <span>SciFi Money (Guides)</span>
                   </a>
                   <a
+                    href="https://zechub.wiki/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 text-secondary hover:text-cipher-cyan hover:bg-cipher-hover rounded-lg transition-all text-sm"
+                  >
+                    <Icons.Book className="w-4 h-4" />
+                    <span>ZecHub Wiki</span>
+                  </a>
+                  <a
+                    href="https://maxdesalle.com/mastering-zcash/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 text-secondary hover:text-cipher-cyan hover:bg-cipher-hover rounded-lg transition-all text-sm"
+                  >
+                    <Icons.Book className="w-4 h-4" />
+                    <span>Mastering Zcash (Deep Dive)</span>
+                  </a>
+                  <a
                     href="https://z.cash/"
                     target="_blank"
                     rel="noopener noreferrer"

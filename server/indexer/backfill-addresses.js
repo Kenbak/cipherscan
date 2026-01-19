@@ -243,7 +243,7 @@ async function backfillAddresses(options = {}) {
     const eta = (totalToProcess - processed) / rate;
 
     console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors} | cache:${txCache.size}`);
-    
+
     // Force garbage collection every 10 batches if available
     if (global.gc && processed % (batchSize * 10) === 0) {
       global.gc();
