@@ -7,7 +7,6 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -74,6 +73,7 @@ interface BatchStats {
   mediumRisk: number;
   totalZecFlagged: number;
   period: string;
+  filteredTotal?: number;
 }
 
 interface Stats {
@@ -137,13 +137,20 @@ function PrivacyRisksContent() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchError, setBatchError] = useState<string | null>(null);
 
-  // Filters
+  // Filters - Round Trip
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('ALL');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(initialPeriod);
-  const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [sortBy, setSortBy] = useState<SortOption>('score');
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Filters - Batch Patterns (server-side with cursor pagination)
+  const [batchRiskFilter, setBatchRiskFilter] = useState<RiskFilter>('ALL');
+  const [batchSortBy, setBatchSortBy] = useState<SortOption>('score');
+  const [batchCursor, setBatchCursor] = useState<{ score?: number; amount?: number; time?: number } | null>(null);
+  const [batchHasMore, setBatchHasMore] = useState(false);
+  const [batchLoadingMore, setBatchLoadingMore] = useState(false);
 
   // Common amounts
   const [commonAmounts, setCommonAmounts] = useState<CommonAmount[]>([]);
@@ -206,22 +213,51 @@ function PrivacyRisksContent() {
     }
   };
 
-  const fetchBatchPatterns = async () => {
-    setBatchLoading(true);
+  const fetchBatchPatterns = async (append: boolean = false) => {
+    if (append) {
+      setBatchLoadingMore(true);
+    } else {
+      setBatchLoading(true);
+      setBatchCursor(null); // Reset cursor on fresh fetch
+    }
     setBatchError(null);
 
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/privacy/batch-risks?period=${periodFilter}&limit=50`
-        : `/api/privacy/batch-risks?period=${periodFilter}&limit=50`;
+      // Build URL with filters and cursor
+      let url = usePostgresApiClient()
+        ? `${getApiUrl()}/api/privacy/batch-risks`
+        : `/api/privacy/batch-risks`;
 
-      const response = await fetch(apiUrl);
+      const params = new URLSearchParams({
+        period: periodFilter,
+        limit: '20',
+        riskLevel: batchRiskFilter,
+        sort: batchSortBy,
+      });
+
+      // Add cursor for pagination
+      if (append && batchCursor) {
+        if (batchSortBy === 'score' && batchCursor.score !== undefined && batchCursor.amount !== undefined) {
+          params.set('afterScore', batchCursor.score.toString());
+          params.set('afterAmount', batchCursor.amount.toString());
+        } else if (batchSortBy === 'recent' && batchCursor.time !== undefined) {
+          params.set('afterScore', batchCursor.time.toString()); // API uses afterScore for both
+        }
+      }
+
+      const response = await fetch(`${url}?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch batch patterns');
 
       const data = await response.json();
       if (data.success) {
-        setBatchPatterns(data.patterns);
+        if (append) {
+          setBatchPatterns(prev => [...prev, ...data.patterns]);
+        } else {
+          setBatchPatterns(data.patterns);
+        }
         setBatchStats(data.stats);
+        setBatchHasMore(data.pagination.hasMore);
+        setBatchCursor(data.pagination.nextCursor);
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -230,6 +266,7 @@ function PrivacyRisksContent() {
       setBatchError(err instanceof Error ? err.message : 'Failed to fetch batch patterns');
     } finally {
       setBatchLoading(false);
+      setBatchLoadingMore(false);
     }
   };
 
@@ -238,13 +275,24 @@ function PrivacyRisksContent() {
     if (activeTab === 'roundtrip') {
       fetchRisks(0, false);
     } else {
-      fetchBatchPatterns();
+      fetchBatchPatterns(false);
     }
     fetchCommonAmounts();
   }, [riskFilter, periodFilter, sortBy, activeTab]);
 
+  // Re-fetch batch patterns when batch filters change
+  useEffect(() => {
+    if (activeTab === 'batch') {
+      fetchBatchPatterns(false);
+    }
+  }, [batchRiskFilter, batchSortBy]);
+
   const loadMore = () => {
     fetchRisks(offset, true);
+  };
+
+  const loadMoreBatch = () => {
+    fetchBatchPatterns(true);
   };
 
   return (
@@ -407,46 +455,42 @@ function PrivacyRisksContent() {
               ))}
             </div>
 
-            {activeTab === 'roundtrip' && (
-              <>
-                {/* Risk Level Filter */}
-                <div className="filter-group">
-                  {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setRiskFilter(level)}
-                      className={`filter-btn ${
-                        riskFilter === level
-                          ? level === 'HIGH'
-                            ? 'filter-btn-danger'
-                            : level === 'MEDIUM'
-                            ? 'filter-btn-warning'
-                            : 'filter-btn-active'
-                          : ''
-                      }`}
-                    >
-                      {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
-                    </button>
-                  ))}
-                </div>
+            {/* Risk Level Filter - Both tabs */}
+            <div className="filter-group">
+              {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => activeTab === 'roundtrip' ? setRiskFilter(level) : setBatchRiskFilter(level)}
+                  className={`filter-btn ${
+                    (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level
+                      ? level === 'HIGH'
+                        ? 'filter-btn-danger'
+                        : level === 'MEDIUM'
+                        ? 'filter-btn-warning'
+                        : 'filter-btn-active'
+                      : ''
+                  }`}
+                >
+                  {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
+                </button>
+              ))}
+            </div>
 
-                {/* Sort Toggle */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted">Sort:</span>
-                  <div className="filter-group">
-                    {(['recent', 'score'] as SortOption[]).map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => setSortBy(option)}
-                        className={`filter-btn ${sortBy === option ? 'filter-btn-active' : ''}`}
-                      >
-                        {option === 'recent' ? 'Recent' : 'Score'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Sort Toggle - Both tabs */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted">Sort:</span>
+              <div className="filter-group">
+                {(['score', 'recent'] as SortOption[]).map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
+                    className={`filter-btn ${(activeTab === 'roundtrip' ? sortBy : batchSortBy) === option ? 'filter-btn-active' : ''}`}
+                  >
+                    {option === 'recent' ? 'Recent' : 'Score'}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Stats inline */}
             {activeTab === 'roundtrip' && stats && (
@@ -456,7 +500,7 @@ function PrivacyRisksContent() {
             )}
             {activeTab === 'batch' && batchStats && (
               <Badge color="orange" className="ml-auto">
-                {batchStats.total} patterns • {batchStats.totalZecFlagged.toLocaleString()} ZEC
+                {batchStats?.filteredTotal || batchPatterns.length} patterns • {batchPatterns.reduce((sum, p) => sum + p.totalAmountZec, 0).toLocaleString()} ZEC
               </Badge>
             )}
           </div>
@@ -501,14 +545,13 @@ function PrivacyRisksContent() {
               {/* Load More */}
               {hasMore && (
                 <div className="text-center pt-4">
-                  <Button
+                  <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    variant="secondary"
-                    size="lg"
+                    className="btn btn-secondary disabled:opacity-50"
                   >
-                    {loadingMore ? 'Loading...' : 'Load More'}
-                  </Button>
+                    {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
+                  </button>
                 </div>
               )}
 
@@ -570,14 +613,44 @@ function PrivacyRisksContent() {
               </Card>
 
               {/* Pattern Cards */}
-              {batchPatterns.map((pattern, index) => (
-                <BatchPatternCard key={`batch-${index}`} pattern={pattern} />
-              ))}
+              {batchPatterns.length === 0 ? (
+                <Card>
+                  <CardBody className="py-16 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <p className="text-primary text-lg font-medium">No patterns match your filters</p>
+                    <p className="text-sm text-secondary mt-2">Try selecting &quot;All&quot; risk levels.</p>
+                  </CardBody>
+                </Card>
+              ) : (
+                <>
+                  {batchPatterns.map((pattern, index) => (
+                    <BatchPatternCard key={`batch-${index}`} pattern={pattern} />
+                  ))}
+
+                  {/* Load More */}
+                  {batchHasMore && (
+                    <div className="text-center pt-4">
+                      <button
+                        onClick={loadMoreBatch}
+                        disabled={batchLoadingMore}
+                        className="btn btn-secondary disabled:opacity-50"
+                      >
+                        {batchLoadingMore ? 'Loading...' : 'Load More'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
 
               {/* Stats */}
               {batchStats && (
                 <p className="text-center text-sm text-muted pt-2">
-                  {batchStats.total} patterns detected • {batchStats.totalZecFlagged.toLocaleString()} ZEC flagged
+                  Showing {batchPatterns.length} of {batchStats.filteredTotal || batchStats.total} patterns
+                  {batchRiskFilter !== 'ALL' && ` (filtered from ${batchStats.total} total)`}
                 </p>
               )}
             </>

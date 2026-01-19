@@ -766,7 +766,7 @@ export default function LearnPage() {
                   </a>
                   <a
                     href="https://zechub.wiki/"
-                    target="_blank"
+
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 text-secondary hover:text-cipher-cyan hover:bg-cipher-hover rounded-lg transition-all text-sm"
                   >

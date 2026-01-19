@@ -229,17 +229,17 @@ router.get('/api/privacy/risks', async (req, res) => {
 /**
  * GET /api/privacy/batch-risks
  *
- * Detect "batch deshield" patterns where someone:
- * 1. Shields a large amount
- * 2. Deshields in identical chunks that sum to the original
- *
- * Example: 6000 ZEC in → 12×500 ZEC out
+ * Detect batch deshield patterns with cursor-based pagination.
  *
  * Query params:
- *   - period: 7d, 30d, 90d (default 30d)
+ *   - period: '7d', '30d', '90d' (default 30d)
+ *   - riskLevel: 'ALL', 'HIGH', 'MEDIUM' (default ALL)
+ *   - sort: 'score', 'recent' (default score)
+ *   - limit: Max results per page (default 20, max 50)
+ *   - afterScore: Cursor - score of last item seen
+ *   - afterAmount: Cursor - amount of last item (for tie-breaking)
  *   - minBatchCount: Minimum identical transactions (default 3)
  *   - minAmount: Minimum ZEC per transaction (default 10)
- *   - limit: Max results (default 20, max 50)
  */
 router.get('/api/privacy/batch-risks', async (req, res) => {
   try {
@@ -247,6 +247,18 @@ router.get('/api/privacy/batch-risks', async (req, res) => {
     const minBatchCount = Math.max(parseInt(req.query.minBatchCount) || 3, 2);
     const minAmountZec = Math.max(parseFloat(req.query.minAmount) || 10, 1);
     const minAmountZat = Math.round(minAmountZec * 100000000);
+
+    // Parse filters
+    const riskLevel = ['ALL', 'HIGH', 'MEDIUM'].includes(req.query.riskLevel)
+      ? req.query.riskLevel
+      : 'ALL';
+    const sortBy = ['score', 'recent'].includes(req.query.sort)
+      ? req.query.sort
+      : 'score';
+
+    // Parse cursor (for pagination)
+    const afterScore = req.query.afterScore ? parseFloat(req.query.afterScore) : null;
+    const afterAmount = req.query.afterAmount ? parseFloat(req.query.afterAmount) : null;
 
     // Parse period
     const periodMap = {
@@ -256,38 +268,100 @@ router.get('/api/privacy/batch-risks', async (req, res) => {
     };
     const timeWindowDays = periodMap[req.query.period] || 30;
 
-    console.log(`🔗 [BATCH RISKS] Detecting batch deshields (period=${timeWindowDays}d, minBatch=${minBatchCount}, minAmount=${minAmountZec})`);
+    console.log(`🔗 [BATCH RISKS] period=${timeWindowDays}d, risk=${riskLevel}, sort=${sortBy}, limit=${limit}, cursor=${afterScore || 'none'}`);
 
-    const patterns = await detectBatchDeshields(pool, {
+    // Fetch ALL patterns (no limit in DB query - we paginate after scoring)
+    let patterns = await detectBatchDeshields(pool, {
       minBatchCount,
       minAmountZat,
       timeWindowDays,
-      limit,
+      limit: 500, // High limit, we'll filter/paginate below
     });
 
-    // Calculate stats
-    const stats = {
-      total: patterns.length,
-      highRisk: patterns.filter(p => p.warningLevel === 'HIGH').length,
-      mediumRisk: patterns.filter(p => p.warningLevel === 'MEDIUM').length,
-      totalZecFlagged: patterns.reduce((sum, p) => sum + p.totalAmountZec, 0),
-      period: `${timeWindowDays}d`,
-    };
+    // Calculate stats BEFORE filtering (for display)
+    const totalPatterns = patterns.length;
+    const totalHigh = patterns.filter(p => p.warningLevel === 'HIGH').length;
+    const totalMedium = patterns.filter(p => p.warningLevel === 'MEDIUM').length;
+    const totalZecFlagged = patterns.reduce((sum, p) => sum + p.totalAmountZec, 0);
 
-    console.log(`✅ [BATCH RISKS] Found ${stats.total} patterns (${stats.highRisk} HIGH, ${stats.mediumRisk} MEDIUM)`);
+    // Apply risk level filter
+    if (riskLevel === 'HIGH') {
+      patterns = patterns.filter(p => p.warningLevel === 'HIGH');
+    } else if (riskLevel === 'MEDIUM') {
+      patterns = patterns.filter(p => p.warningLevel === 'MEDIUM' || p.warningLevel === 'HIGH');
+    }
+
+    // Sort
+    if (sortBy === 'score') {
+      patterns.sort((a, b) => b.score - a.score || b.perTxAmountZec - a.perTxAmountZec);
+    } else {
+      patterns.sort((a, b) => b.lastTime - a.lastTime);
+    }
+
+    const filteredTotal = patterns.length;
+
+    // Apply cursor-based pagination
+    if (afterScore !== null && afterAmount !== null && sortBy === 'score') {
+      const cursorIndex = patterns.findIndex(
+        p => p.score < afterScore || (p.score === afterScore && p.perTxAmountZec <= afterAmount)
+      );
+      if (cursorIndex > 0) {
+        patterns = patterns.slice(cursorIndex);
+      } else if (cursorIndex === -1) {
+        patterns = []; // Cursor is past all data
+      }
+    } else if (afterScore !== null && sortBy === 'recent') {
+      // For recent sort, afterScore is actually afterTime
+      const afterTime = afterScore;
+      const cursorIndex = patterns.findIndex(p => p.lastTime < afterTime);
+      if (cursorIndex > 0) {
+        patterns = patterns.slice(cursorIndex);
+      } else if (cursorIndex === -1) {
+        patterns = [];
+      }
+    }
+
+    // Apply limit
+    const hasMore = patterns.length > limit;
+    const paginatedPatterns = patterns.slice(0, limit);
+
+    // Generate next cursor
+    let nextCursor = null;
+    if (hasMore && paginatedPatterns.length > 0) {
+      const lastItem = paginatedPatterns[paginatedPatterns.length - 1];
+      nextCursor = sortBy === 'score'
+        ? { score: lastItem.score, amount: lastItem.perTxAmountZec }
+        : { time: lastItem.lastTime };
+    }
+
+    console.log(`✅ [BATCH RISKS] Returning ${paginatedPatterns.length}/${filteredTotal} (hasMore: ${hasMore})`);
 
     res.json({
       success: true,
-      patterns,
-      stats,
+      patterns: paginatedPatterns,
+      pagination: {
+        total: filteredTotal,
+        returned: paginatedPatterns.length,
+        hasMore,
+        nextCursor,
+      },
+      stats: {
+        total: totalPatterns,
+        highRisk: totalHigh,
+        mediumRisk: totalMedium,
+        totalZecFlagged,
+        period: `${timeWindowDays}d`,
+        filteredTotal,
+      },
       algorithm: {
-        version: '1.0',
-        description: 'Detects identical deshield amounts that sum to a matching shield',
+        version: '2.0',
+        description: 'Cursor-based pagination with server-side filtering',
         factors: [
           'Batch count (more identical = more suspicious)',
           'Round number detection (psychological fingerprint)',
           'Matching shield (sum matches original amount)',
           'Time clustering (all withdrawals close together)',
+          'Address reuse analysis',
         ],
       },
     });
