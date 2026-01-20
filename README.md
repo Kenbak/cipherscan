@@ -234,7 +234,7 @@ Contributions are welcome! Here's how you can help:
 
 ## ☕ Support the Project
 
-CipherScan is free, open-source, and community-driven. If you find it useful, consider supporting development:
+CipherScan is free, source-available, and community-driven. If you find it useful, consider supporting development:
 
 ### Zcash Donation Address (Shielded)
 
@@ -261,7 +261,7 @@ CipherScan is built with **privacy-first** principles:
 | **No IP Logging** | Aligned with Zcash privacy values |
 | **No Cookies** | No unnecessary data collection |
 | **Client-Side Decryption** | Viewing keys never leave your browser |
-| **Open Source** | Verify our privacy claims yourself |
+| **Source Available** | Verify our privacy claims yourself |
 
 ---
 

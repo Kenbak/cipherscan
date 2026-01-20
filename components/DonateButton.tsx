@@ -53,7 +53,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
                 Support CipherScan
               </h2>
               <p className="text-sm text-secondary">
-                Help us keep this explorer free and open-source
+                Help us keep this explorer free and transparent
               </p>
             </div>
           </div>
@@ -99,7 +99,7 @@ export function DonateButton({ compact = false }: DonateButtonProps) {
           </svg>
           <p className="text-sm">
             Your donation is <strong>private and encrypted</strong>.
-            Thank you for supporting open-source blockchain tools!
+            Thank you for supporting privacy-first blockchain tools!
           </p>
         </div>
       </div>

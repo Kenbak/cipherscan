@@ -121,7 +121,7 @@ export function Footer() {
             © {new Date().getFullYear()} CipherScan
           </p>
           <p className="text-xs text-muted">
-            Open source explorer for the Zcash community
+            Privacy-first explorer for the Zcash community
           </p>
         </div>
       </div>
