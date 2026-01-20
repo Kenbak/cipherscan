@@ -8,12 +8,33 @@
 //!   cargo run --release -- --backfill
 //!   cargo run --release -- --live
 
-use rocksdb::{DB, Options, IteratorMode};
+use rocksdb::{DB, Options, IteratorMode, ColumnFamilyDescriptor};
 use std::path::Path;
 use std::time::Instant;
 
 // Zebra state path (adjust for your setup)
 const ZEBRA_STATE_PATH: &str = "/root/.cache/zebra/state/v27/mainnet";
+
+// Known Zebra column families (from Zebra source code)
+const COLUMN_FAMILIES: &[&str] = &[
+    "default",
+    "hash_by_height",
+    "height_by_hash",
+    "block_header_by_height",
+    "tx_loc_by_hash",
+    "utxo_by_outpoint",
+    "sprout_nullifiers",
+    "sapling_nullifiers",
+    "orchard_nullifiers",
+    "sprout_anchors",
+    "sapling_anchors",
+    "orchard_anchors",
+    "sprout_note_commitment_tree",
+    "sapling_note_commitment_tree",
+    "orchard_note_commitment_tree",
+    "history_tree",
+    "tip_chain_value_pool",
+];
 
 // PostgreSQL connection (from environment)
 // const DATABASE_URL: &str = "postgres://zcash_user:password@localhost/zcash_explorer_mainnet";
@@ -33,35 +54,112 @@ fn main() {
 
     println!("📂 Zebra state path: {}", ZEBRA_STATE_PATH);
 
-    // Open RocksDB in read-only mode
+    // First, list column families
+    println!("🔍 Listing column families...");
+    match DB::list_cf(&Options::default(), ZEBRA_STATE_PATH) {
+        Ok(cfs) => {
+            println!("   Found {} column families:", cfs.len());
+            for cf in &cfs {
+                println!("      - {}", cf);
+            }
+        }
+        Err(e) => {
+            println!("   Could not list CFs: {}", e);
+        }
+    }
+
+    // Open RocksDB with column families
     let mut opts = Options::default();
     opts.set_error_if_exists(false);
     opts.create_if_missing(false);
 
-    println!("🔓 Opening RocksDB (read-only)...");
+    println!("\n🔓 Opening RocksDB with column families (read-only)...");
     let start = Instant::now();
 
-    match DB::open_for_read_only(&opts, ZEBRA_STATE_PATH, false) {
+    // Create column family descriptors
+    let cf_descriptors: Vec<ColumnFamilyDescriptor> = COLUMN_FAMILIES
+        .iter()
+        .map(|name| ColumnFamilyDescriptor::new(*name, Options::default()))
+        .collect();
+
+    match DB::open_cf_for_read_only(&opts, ZEBRA_STATE_PATH, cf_descriptors, false) {
         Ok(db) => {
             let elapsed = start.elapsed();
             println!("✅ RocksDB opened in {:?}", elapsed);
 
             // Get some stats
-            analyze_database(&db);
+            analyze_database_cf(&db);
         }
         Err(e) => {
             eprintln!("❌ Failed to open RocksDB: {}", e);
             eprintln!("");
-            eprintln!("Possible causes:");
-            eprintln!("  1. Zebra is using the DB exclusively");
-            eprintln!("  2. Wrong path");
-            eprintln!("  3. Permissions issue");
-            std::process::exit(1);
+            eprintln!("Trying without column families...");
+            
+            // Fallback: open without CFs
+            match DB::open_for_read_only(&opts, ZEBRA_STATE_PATH, false) {
+                Ok(db) => {
+                    println!("✅ Opened without CFs");
+                    analyze_database(&db);
+                }
+                Err(e2) => {
+                    eprintln!("❌ Also failed: {}", e2);
+                    std::process::exit(1);
+                }
+            }
         }
     }
 }
 
-/// Analyze the database structure
+/// Analyze database with column families
+fn analyze_database_cf(db: &DB) {
+    println!("");
+    println!("📊 Analyzing column families...");
+    println!("────────────────────────────────────────────────────────────");
+
+    for cf_name in COLUMN_FAMILIES {
+        if let Some(cf) = db.cf_handle(cf_name) {
+            let iter = db.iterator_cf(cf, IteratorMode::Start);
+            let mut count = 0;
+            let mut sample_key: Option<String> = None;
+
+            for item in iter {
+                match item {
+                    Ok((key, _value)) => {
+                        count += 1;
+                        if sample_key.is_none() && key.len() > 0 {
+                            sample_key = Some(hex::encode(&key[..std::cmp::min(32, key.len())]));
+                        }
+                        if count >= 100000 {
+                            break; // Sample first 100k per CF
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+
+            let sample = sample_key.unwrap_or_else(|| "N/A".to_string());
+            if count > 0 {
+                println!("   ✅ {:30} → {:>7} entries (sample: {}...)", cf_name, count, &sample[..std::cmp::min(16, sample.len())]);
+            } else {
+                println!("   ⬚ {:30} → empty", cf_name);
+            }
+        } else {
+            println!("   ❌ {:30} → not found", cf_name);
+        }
+    }
+
+    println!("");
+    println!("════════════════════════════════════════════════════════════");
+    println!("✅ Column family analysis complete!");
+    println!("");
+    println!("Key column families for indexing:");
+    println!("  - hash_by_height: Get block hash from height");
+    println!("  - tx_loc_by_hash: Find transaction location");
+    println!("  - utxo_by_outpoint: UTXO set");
+    println!("════════════════════════════════════════════════════════════");
+}
+
+/// Analyze the database structure (fallback without CFs)
 fn analyze_database(db: &DB) {
     println!("");
     println!("📊 Analyzing database structure...");
