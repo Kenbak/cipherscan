@@ -157,6 +157,15 @@ async function backfillAddresses(options = {}) {
   let currentId = startId;
   const startTime = Date.now();
 
+  // Track error types for debugging
+  const errorTypes = new Map();
+  const MAX_ERROR_SAMPLES = 5; // Show first N errors of each type
+
+  // Track empty flows (no addresses found) for debugging
+  let emptyFlows = 0;
+  const emptySamples = []; // First few examples of empty flows
+  const MAX_EMPTY_SAMPLES = 10;
+
   while (true) {
     const batchResult = await pool.query(`
       SELECT id, txid, flow_type
@@ -231,6 +240,23 @@ async function backfillAddresses(options = {}) {
           if (verbose) {
             console.log(`   ✅ ${flow.txid.slice(0, 12)}... → ${transparentAddresses.join(', ').slice(0, 40)}...`);
           }
+        } else {
+          emptyFlows++;
+          // Log first few empty flows for debugging
+          if (emptySamples.length < MAX_EMPTY_SAMPLES) {
+            const hasVout = tx.vout && tx.vout.length > 0;
+            const hasVin = tx.vin && tx.vin.length > 0;
+            const voutAddrs = tx.vout?.filter(v => v.scriptPubKey?.addresses).length || 0;
+            emptySamples.push({
+              id: flow.id,
+              txid: flow.txid.slice(0, 16),
+              type: flow.flow_type,
+              hasVout,
+              hasVin,
+              voutWithAddrs: voutAddrs,
+              vinCount: tx.vin?.length || 0
+            });
+          }
         }
 
         processed++;
@@ -238,6 +264,16 @@ async function backfillAddresses(options = {}) {
 
       } catch (err) {
         errors++;
+
+        // Track error types
+        const errType = err.message.split(':')[0].slice(0, 50);
+        if (!errorTypes.has(errType)) {
+          errorTypes.set(errType, { count: 0, sample: flow.txid.slice(0, 16) });
+          // Log first occurrence of each error type
+          console.log(`   ⚠️ New error type: ${err.message.slice(0, 80)} (txid: ${flow.txid.slice(0, 16)}...)`);
+        }
+        errorTypes.get(errType).count++;
+
         if (verbose) {
           console.log(`   ❌ ${flow.txid.slice(0, 12)}... ${err.message}`);
         }
@@ -250,7 +286,16 @@ async function backfillAddresses(options = {}) {
     const rate = processed / elapsed;
     const eta = (totalToProcess - processed) / rate;
 
-    console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors} | cache:${txCache.size}`);
+    console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ⬚${emptyFlows} ❌${errors} | cache:${txCache.size}`);
+
+    // Show sample empty flows early for debugging (after ~5k processed)
+    if (processed >= 5000 && processed < 5500 && emptySamples.length > 0) {
+      console.log('\n   📋 Sample empty flows (first 10):');
+      for (const s of emptySamples.slice(0, 5)) {
+        console.log(`      ID ${s.id} | ${s.txid}... | ${s.type} | vout_with_addrs:${s.voutWithAddrs} vin_count:${s.vinCount}`);
+      }
+      console.log('');
+    }
 
     // Save checkpoint after each batch
     saveCheckpoint(currentId);
@@ -264,10 +309,28 @@ async function backfillAddresses(options = {}) {
   console.log('\n════════════════════════════════════════════════════════════');
   console.log('📊 BACKFILL COMPLETE');
   console.log(`   Processed: ${processed.toLocaleString()}`);
-  console.log(`   Updated: ${updated.toLocaleString()}`);
+  console.log(`   Updated (with addresses): ${updated.toLocaleString()}`);
+  console.log(`   Empty (no transparent): ${emptyFlows.toLocaleString()}`);
   console.log(`   Errors: ${errors}`);
   console.log(`   Cache hits: ${txCache.size}`);
   console.log(`   Time: ${formatDuration((Date.now() - startTime) / 1000)}`);
+
+  // Show empty flow samples for debugging
+  if (emptySamples.length > 0) {
+    console.log('\n📋 Sample empty flows (no transparent addresses found):');
+    for (const s of emptySamples) {
+      console.log(`   ID ${s.id} | ${s.txid}... | ${s.type} | vout:${s.hasVout} vin:${s.hasVin} | vout_with_addrs:${s.voutWithAddrs} vin_count:${s.vinCount}`);
+    }
+  }
+
+  // Show error type summary
+  if (errorTypes.size > 0) {
+    console.log('\n⚠️ Error types encountered:');
+    for (const [type, data] of errorTypes) {
+      console.log(`   ${type}: ${data.count}x (e.g. ${data.sample})`);
+    }
+  }
+
   console.log('════════════════════════════════════════════════════════════');
 }
 
