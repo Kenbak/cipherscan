@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js 15" />
   <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Rust-WASM-orange?logo=rust" alt="Rust WASM" />
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License MIT" />
+  <img src="https://img.shields.io/badge/License-AGPL%20v3%20+%20Commons%20Clause-blue" alt="License AGPL v3 + Commons Clause" />
 </p>
 
 ---
@@ -267,7 +267,12 @@ CipherScan is built with **privacy-first** principles:
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** with the **Commons Clause** restriction — see the [LICENSE](LICENSE) file for details.
+
+**What this means:**
+- ✅ You can view, fork, and modify the code
+- ✅ You must share your modifications under the same license
+- ❌ You cannot sell this software or offer it as a paid service
 
 ---
 
