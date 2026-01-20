@@ -126,7 +126,7 @@ fn analyze_database(db: &DB) {
     sorted_prefixes.sort_by(|a, b| b.1.cmp(a.1));
 
     for (prefix, count) in sorted_prefixes.iter().take(15) {
-        let percent = (*count as f64 / total_entries as f64) * 100.0;
+        let percent = (**count as f64 / total_entries as f64) * 100.0;
         println!("   {} → {:>8} ({:.1}%)", prefix, count, percent);
     }
 
