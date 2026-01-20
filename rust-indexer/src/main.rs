@@ -167,7 +167,7 @@ fn decode_blocks(db: &DB) {
 
     if let Some(cf) = db.cf_handle("hash_by_height") {
         println!("   ✅ Got CF handle");
-        
+
         let iter = db.iterator_cf(cf, IteratorMode::Start);
         let mut count = 0;
         let mut last_height = 0u32;
@@ -185,11 +185,12 @@ fn decode_blocks(db: &DB) {
                             value.len()
                         );
                     }
-                    
-                    // Key = height (4 bytes, little-endian in Zebra)
+
+                    // Key = height (3 bytes, big-endian in Zebra)
                     // Value = block hash (32 bytes)
-                    if key.len() >= 4 && value.len() >= 32 {
-                        let height = u32::from_le_bytes(key[0..4].try_into().unwrap());
+                    if key.len() >= 3 && value.len() >= 32 {
+                        // 3 bytes big-endian to u32
+                        let height = ((key[0] as u32) << 16) | ((key[1] as u32) << 8) | (key[2] as u32);
 
                         // Reverse the hash for display (Zcash uses reversed byte order)
                         let mut hash_bytes = value[0..32].to_vec();
@@ -205,9 +206,9 @@ fn decode_blocks(db: &DB) {
 
                         last_height = height;
                     }
-                    
+
                     count += 1;
-                    
+
                     // Stop after 1 million to avoid long wait
                     if count >= 1_000_000 {
                         println!("   (stopped at 1M entries)");
