@@ -72,6 +72,7 @@ fn main() {
     let mut opts = Options::default();
     opts.set_error_if_exists(false);
     opts.create_if_missing(false);
+    opts.set_max_open_files(256);  // Limit open files to avoid "Too many open files"
 
     println!("\n🔓 Opening RocksDB with column families (read-only)...");
     let start = Instant::now();
