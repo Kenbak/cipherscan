@@ -249,12 +249,14 @@ async function backfillAddresses(options = {}) {
             const voutAddrs = tx.vout?.filter(v => v.scriptPubKey?.addresses).length || 0;
             emptySamples.push({
               id: flow.id,
-              txid: flow.txid.slice(0, 16),
+              txid: flow.txid, // Full txid for debugging
               type: flow.flow_type,
               hasVout,
               hasVin,
               voutWithAddrs: voutAddrs,
-              vinCount: tx.vin?.length || 0
+              vinCount: tx.vin?.length || 0,
+              // Extra debug info
+              voutTypes: tx.vout?.map(v => v.scriptPubKey?.type).join(',') || 'none'
             });
           }
         }
@@ -292,7 +294,8 @@ async function backfillAddresses(options = {}) {
     if (processed >= 5000 && processed < 5500 && emptySamples.length > 0) {
       console.log('\n   📋 Sample empty flows (first 10):');
       for (const s of emptySamples.slice(0, 5)) {
-        console.log(`      ID ${s.id} | ${s.txid}... | ${s.type} | vout_with_addrs:${s.voutWithAddrs} vin_count:${s.vinCount}`);
+        console.log(`      ID ${s.id} | ${s.type} | vout_addrs:${s.voutWithAddrs} vin:${s.vinCount} | types:${s.voutTypes}`);
+        console.log(`         txid: ${s.txid}`);
       }
       console.log('');
     }
@@ -319,7 +322,8 @@ async function backfillAddresses(options = {}) {
   if (emptySamples.length > 0) {
     console.log('\n📋 Sample empty flows (no transparent addresses found):');
     for (const s of emptySamples) {
-      console.log(`   ID ${s.id} | ${s.txid}... | ${s.type} | vout:${s.hasVout} vin:${s.hasVin} | vout_with_addrs:${s.voutWithAddrs} vin_count:${s.vinCount}`);
+      console.log(`   ID ${s.id} | ${s.type} | vout_addrs:${s.voutWithAddrs} vin:${s.vinCount} | types:${s.voutTypes}`);
+      console.log(`      txid: ${s.txid}`);
     }
   }
 
