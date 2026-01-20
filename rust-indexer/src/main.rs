@@ -150,10 +150,10 @@ fn analyze_database_cf(db: &DB, cf_names: &[String]) {
     }
 
     println!("");
-    
+
     // Decode some entries from hash_by_height
     decode_blocks(db);
-    
+
     println!("════════════════════════════════════════════════════════════");
     println!("✅ Column family analysis complete!");
     println!("════════════════════════════════════════════════════════════");
@@ -164,68 +164,68 @@ fn decode_blocks(db: &DB) {
     println!("════════════════════════════════════════════════════════════");
     println!("🔍 Decoding blocks from hash_by_height...");
     println!("────────────────────────────────────────────────────────────");
-    
+
     if let Some(cf) = db.cf_handle("hash_by_height") {
+        println!("   ✅ Got CF handle");
+        
         let iter = db.iterator_cf(cf, IteratorMode::Start);
         let mut count = 0;
         let mut last_height = 0u32;
-        
+
         for item in iter {
             match item {
                 Ok((key, value)) => {
+                    // Debug: show first few raw entries
+                    if count < 3 {
+                        println!("   Raw entry {}: key={} ({} bytes), value={} ({} bytes)",
+                            count,
+                            hex::encode(&key[..std::cmp::min(8, key.len())]),
+                            key.len(),
+                            hex::encode(&value[..std::cmp::min(8, value.len())]),
+                            value.len()
+                        );
+                    }
+                    
                     // Key = height (4 bytes, little-endian in Zebra)
                     // Value = block hash (32 bytes)
-                    
                     if key.len() >= 4 && value.len() >= 32 {
                         let height = u32::from_le_bytes(key[0..4].try_into().unwrap());
-                        
+
                         // Reverse the hash for display (Zcash uses reversed byte order)
                         let mut hash_bytes = value[0..32].to_vec();
                         hash_bytes.reverse();
                         let hash = hex::encode(&hash_bytes);
-                        
-                        // Show first 5 and last 5 blocks
-                        if count < 5 {
+
+                        // Show first 5 blocks
+                        if count < 8 {
                             println!("   Block {:>7}: {}", height, hash);
-                        } else if count == 5 {
+                        } else if count == 8 {
                             println!("   ...");
                         }
-                        
+
                         last_height = height;
-                        count += 1;
+                    }
+                    
+                    count += 1;
+                    
+                    // Stop after 1 million to avoid long wait
+                    if count >= 1_000_000 {
+                        println!("   (stopped at 1M entries)");
+                        break;
                     }
                 }
-                Err(_) => break,
-            }
-        }
-        
-        // Show last block (chain tip)
-        if count > 5 {
-            // Get the last few blocks
-            let start_height = if last_height > 5 { last_height - 4 } else { 0 };
-            let iter = db.iterator_cf(cf, IteratorMode::Start);
-            
-            for item in iter {
-                if let Ok((key, value)) = item {
-                    if key.len() >= 4 && value.len() >= 32 {
-                        let height = u32::from_le_bytes(key[0..4].try_into().unwrap());
-                        
-                        if height >= start_height {
-                            let mut hash_bytes = value[0..32].to_vec();
-                            hash_bytes.reverse();
-                            let hash = hex::encode(&hash_bytes);
-                            println!("   Block {:>7}: {}", height, hash);
-                        }
-                    }
+                Err(e) => {
+                    println!("   ❌ Error: {}", e);
+                    break;
                 }
             }
         }
-        
+
         println!("");
-        println!("   📊 Total blocks: {}", count);
-        println!("   📈 Chain tip: height {}", last_height);
+        println!("   📊 Total entries scanned: {}", count);
+        println!("   📈 Last height seen: {}", last_height);
     } else {
-        println!("   ❌ hash_by_height not found");
+        println!("   ❌ hash_by_height CF handle not found");
     }
     println!("");
 }
