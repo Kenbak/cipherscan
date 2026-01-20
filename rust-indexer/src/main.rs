@@ -8,7 +8,7 @@
 //!   cargo run --release -- --backfill
 //!   cargo run --release -- --live
 
-use rocksdb::{DB, Options, IteratorMode, ColumnFamilyDescriptor};
+use rocksdb::{DB, Options, IteratorMode};
 use std::path::Path;
 use std::time::Instant;
 
@@ -76,25 +76,25 @@ fn main() {
     println!("\n🔓 Opening RocksDB with column families (read-only)...");
     let start = Instant::now();
 
-    // Create column family descriptors
-    let cf_descriptors: Vec<ColumnFamilyDescriptor> = COLUMN_FAMILIES
-        .iter()
-        .map(|name| ColumnFamilyDescriptor::new(*name, Options::default()))
-        .collect();
+    // Get actual column families from the database
+    let cf_names = match DB::list_cf(&Options::default(), ZEBRA_STATE_PATH) {
+        Ok(cfs) => cfs,
+        Err(_) => COLUMN_FAMILIES.iter().map(|s| s.to_string()).collect(),
+    };
 
-    match DB::open_cf_for_read_only(&opts, ZEBRA_STATE_PATH, cf_descriptors, false) {
+    match DB::open_cf_for_read_only(&opts, ZEBRA_STATE_PATH, &cf_names, false) {
         Ok(db) => {
             let elapsed = start.elapsed();
             println!("✅ RocksDB opened in {:?}", elapsed);
 
             // Get some stats
-            analyze_database_cf(&db);
+            analyze_database_cf(&db, &cf_names);
         }
         Err(e) => {
             eprintln!("❌ Failed to open RocksDB: {}", e);
             eprintln!("");
             eprintln!("Trying without column families...");
-            
+
             // Fallback: open without CFs
             match DB::open_for_read_only(&opts, ZEBRA_STATE_PATH, false) {
                 Ok(db) => {
@@ -111,13 +111,13 @@ fn main() {
 }
 
 /// Analyze database with column families
-fn analyze_database_cf(db: &DB) {
+fn analyze_database_cf(db: &DB, cf_names: &[String]) {
     println!("");
     println!("📊 Analyzing column families...");
     println!("────────────────────────────────────────────────────────────");
 
-    for cf_name in COLUMN_FAMILIES {
-        if let Some(cf) = db.cf_handle(cf_name) {
+    for cf_name in cf_names {
+        if let Some(cf) = db.cf_handle(cf_name.as_str()) {
             let iter = db.iterator_cf(cf, IteratorMode::Start);
             let mut count = 0;
             let mut sample_key: Option<String> = None;
