@@ -14,9 +14,15 @@
  *   --verbose           Print detailed output
  */
 
-require('dotenv').config();
+const path = require('path');
+// Load .env from the script's directory (not cwd)
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const { Pool } = require('pg');
 const fs = require('fs');
+
+// Checkpoint file to resume after crash
+const CHECKPOINT_FILE = path.join(__dirname, '.backfill-checkpoint');
 
 // ============================================================================
 // CONFIGURATION (same as indexer)
@@ -129,12 +135,12 @@ async function backfillAddresses(options = {}) {
     process.exit(1);
   }
 
-  // Get total count
+  // Get total count - only NULL, not empty arrays (empty = already processed)
   const countResult = await pool.query(`
     SELECT COUNT(*) as total
     FROM shielded_flows
     WHERE id >= $1
-      AND (transparent_addresses IS NULL OR array_length(transparent_addresses, 1) IS NULL)
+      AND transparent_addresses IS NULL
   `, [startId]);
 
   const totalToProcess = parseInt(countResult.rows[0].total);
@@ -156,7 +162,7 @@ async function backfillAddresses(options = {}) {
       SELECT id, txid, flow_type
       FROM shielded_flows
       WHERE id >= $1
-        AND (transparent_addresses IS NULL OR array_length(transparent_addresses, 1) IS NULL)
+        AND transparent_addresses IS NULL
       ORDER BY id
       LIMIT $2
     `, [currentId, batchSize]);
@@ -210,16 +216,18 @@ async function backfillAddresses(options = {}) {
         // Deduplicate
         transparentAddresses = [...new Set(transparentAddresses)];
 
-        if (transparentAddresses.length > 0) {
-          if (!dryRun) {
-            await pool.query(`
-              UPDATE shielded_flows
-              SET transparent_addresses = $1, transparent_value_zat = $2
-              WHERE id = $3
-            `, [transparentAddresses, transparentValueZat, flow.id]);
-          }
-          updated++;
+        // Always update - use empty array if no addresses found
+        // This marks the flow as "processed" so it won't be re-checked
+        if (!dryRun) {
+          await pool.query(`
+            UPDATE shielded_flows
+            SET transparent_addresses = $1, transparent_value_zat = $2
+            WHERE id = $3
+          `, [transparentAddresses, transparentValueZat, flow.id]);
+        }
 
+        if (transparentAddresses.length > 0) {
+          updated++;
           if (verbose) {
             console.log(`   ✅ ${flow.txid.slice(0, 12)}... → ${transparentAddresses.join(', ').slice(0, 40)}...`);
           }
@@ -244,6 +252,9 @@ async function backfillAddresses(options = {}) {
 
     console.log(`📦 ID ${currentId} | ${processed.toLocaleString()}/${totalToProcess.toLocaleString()} (${((processed/totalToProcess)*100).toFixed(1)}%) | ${rate.toFixed(1)} tx/s | ETA: ${formatDuration(eta)} | ✅${updated} ❌${errors} | cache:${txCache.size}`);
 
+    // Save checkpoint after each batch
+    saveCheckpoint(currentId);
+
     // Force garbage collection every 10 batches if available
     if (global.gc && processed % (batchSize * 10) === 0) {
       global.gc();
@@ -264,6 +275,31 @@ function formatDuration(seconds) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
   return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+// ============================================================================
+// CHECKPOINT (resume after crash)
+// ============================================================================
+
+function saveCheckpoint(id) {
+  try {
+    fs.writeFileSync(CHECKPOINT_FILE, JSON.stringify({ lastId: id, timestamp: Date.now() }));
+  } catch (err) {
+    // Ignore checkpoint save errors
+  }
+}
+
+function loadCheckpoint() {
+  try {
+    if (fs.existsSync(CHECKPOINT_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CHECKPOINT_FILE, 'utf8'));
+      console.log(`📍 Found checkpoint: resuming from ID ${data.lastId}`);
+      return data.lastId;
+    }
+  } catch (err) {
+    // Ignore checkpoint load errors
+  }
+  return null;
 }
 
 // ============================================================================
@@ -288,13 +324,32 @@ async function main() {
       options.dryRun = true;
     } else if (arg === '--verbose') {
       options.verbose = true;
+    } else if (arg === '--reset') {
+      // Delete checkpoint to start fresh
+      if (fs.existsSync(CHECKPOINT_FILE)) {
+        fs.unlinkSync(CHECKPOINT_FILE);
+        console.log('🗑️  Checkpoint deleted, starting fresh');
+      }
+    }
+  }
+
+  // Load checkpoint if startId not explicitly provided
+  if (options.startId === 0) {
+    const checkpointId = loadCheckpoint();
+    if (checkpointId) {
+      options.startId = checkpointId;
     }
   }
 
   try {
     await backfillAddresses(options);
+    // Delete checkpoint on successful completion
+    if (fs.existsSync(CHECKPOINT_FILE)) {
+      fs.unlinkSync(CHECKPOINT_FILE);
+    }
   } catch (err) {
     console.error('❌ Fatal error:', err);
+    console.log('💾 Checkpoint saved - run again to resume');
     process.exit(1);
   } finally {
     await pool.end();
