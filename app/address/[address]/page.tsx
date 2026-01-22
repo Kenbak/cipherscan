@@ -839,7 +839,7 @@ export default function AddressPage() {
 
           {/* Pagination Controls - Etherscan style */}
           {totalPages > 1 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border relative">
               {/* Page info */}
               <div className="text-sm text-secondary">
                 Page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
@@ -848,6 +848,16 @@ export default function AddressPage() {
                   ({((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalTxCount)} of {totalTxCount} txns)
                 </span>
               </div>
+
+              {/* Loading overlay */}
+              {pageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-cipher-bg/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-cipher-cyan">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-cipher-cyan border-t-transparent"></div>
+                    Loading...
+                  </div>
+                </div>
+              )}
 
               {/* Page navigation */}
               <div className="flex items-center gap-1">
@@ -949,14 +959,6 @@ export default function AddressPage() {
                   »»
                 </button>
               </div>
-
-              {/* Loading indicator */}
-              {pageLoading && (
-                <div className="flex items-center gap-2 text-sm text-muted">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-cipher-cyan border-t-transparent"></div>
-                  Loading...
-                </div>
-              )}
             </div>
           )}
         </>
