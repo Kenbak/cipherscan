@@ -84,13 +84,20 @@ router.get('/api/label/:address', async (req, res) => {
 
 /**
  * GET /api/address/:address
- * Get address details including balance and recent transactions
+ * Get address details including balance and transactions
+ *
+ * Query params:
+ * - page: Page number (1-based, default 1)
+ * - limit: Transactions per page (default 25, max 100)
+ *
+ * Returns Etherscan-style pagination with page numbers.
  */
 router.get('/api/address/:address', async (req, res) => {
   try {
     const { address } = req.params;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit) || 25, 100);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const offset = (page - 1) * limit;
 
     if (!address) {
       return res.status(400).json({ error: 'Invalid address' });
@@ -103,13 +110,10 @@ router.get('/api/address/:address', async (req, res) => {
                        address.startsWith('ztestsapling');
 
     if (isShielded) {
-      // Determine address type and note message (match RPC API exactly)
       let addressType = 'shielded';
       let noteMessage = 'Shielded address - balance and transactions are private';
 
       if (address.startsWith('u')) {
-        // For unified addresses, we should ideally check if they have a transparent receiver
-        // But for now, treat all u* addresses as fully shielded
         noteMessage = 'Fully shielded unified address - balance and transactions are private';
       }
 
@@ -142,55 +146,63 @@ router.get('/api/address/:address', async (req, res) => {
     }
 
     const summary = summaryResult.rows[0];
+    const totalTxCount = parseInt(summary.tx_count) || 0;
+    const totalPages = Math.ceil(totalTxCount / limit);
 
-    // Get recent transactions with counterparty addresses
+    // Optimized query with OFFSET (fast with proper indexes)
+    // The new composite indexes make this efficient even for large offsets
     const txResult = await pool.query(
-      `WITH recent_txids AS (
-        SELECT DISTINCT txid
-        FROM (
-          SELECT txid FROM transaction_outputs
-          WHERE address = $1
-          UNION ALL
-          SELECT txid FROM transaction_inputs
-          WHERE address = $1
-        ) all_txids
+      `WITH address_txids AS (
+        SELECT txid FROM transaction_outputs WHERE address = $1
+        UNION
+        SELECT txid FROM transaction_inputs WHERE address = $1
+      ),
+      tx_ordered AS (
+        SELECT
+          t.txid,
+          t.block_height,
+          t.block_time,
+          t.size,
+          t.tx_index,
+          t.has_sapling,
+          t.has_orchard
+        FROM transactions t
+        WHERE t.txid IN (SELECT txid FROM address_txids)
+        ORDER BY t.block_height DESC, t.tx_index DESC
+        LIMIT $2 OFFSET $3
       )
       SELECT
-        t.txid,
-        t.block_height,
-        t.block_time,
-        t.size,
-        t.tx_index,
-        t.has_sapling,
-        t.has_orchard,
-        COALESCE(ti.input_value, 0) as input_value,
-        COALESCE(tov.output_value, 0) as output_value,
-        -- Get sender addresses (from inputs, excluding current address)
-        (SELECT ARRAY_AGG(DISTINCT address)
-         FROM transaction_inputs
-         WHERE txid = t.txid AND address IS NOT NULL AND address != $1
-        ) as sender_addresses,
-        -- Get recipient addresses (from outputs, excluding current address)
-        (SELECT ARRAY_AGG(DISTINCT address)
-         FROM transaction_outputs
-         WHERE txid = t.txid AND address IS NOT NULL AND address != $1
-        ) as recipient_addresses
-      FROM transactions t
-      JOIN recent_txids rt ON t.txid = rt.txid
-      LEFT JOIN (
-        SELECT txid, SUM(value) as input_value
+        tv.txid,
+        tv.block_height,
+        tv.block_time,
+        tv.size,
+        tv.tx_index,
+        tv.has_sapling,
+        tv.has_orchard,
+        COALESCE(my_in.value, 0) as input_value,
+        COALESCE(my_out.value, 0) as output_value,
+        other_in.addresses as sender_addresses,
+        other_out.addresses as recipient_addresses
+      FROM tx_ordered tv
+      LEFT JOIN LATERAL (
+        SELECT SUM(value) as value FROM transaction_inputs
+        WHERE txid = tv.txid AND address = $1
+      ) my_in ON true
+      LEFT JOIN LATERAL (
+        SELECT SUM(value) as value FROM transaction_outputs
+        WHERE txid = tv.txid AND address = $1
+      ) my_out ON true
+      LEFT JOIN LATERAL (
+        SELECT ARRAY_AGG(DISTINCT address) as addresses
         FROM transaction_inputs
-        WHERE address = $1
-        GROUP BY txid
-      ) ti ON t.txid = ti.txid
-      LEFT JOIN (
-        SELECT txid, SUM(value) as output_value
+        WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
+      ) other_in ON true
+      LEFT JOIN LATERAL (
+        SELECT ARRAY_AGG(DISTINCT address) as addresses
         FROM transaction_outputs
-        WHERE address = $1
-        GROUP BY txid
-      ) tov ON t.txid = tov.txid
-      ORDER BY t.block_height DESC, t.tx_index DESC
-      LIMIT $2 OFFSET $3`,
+        WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
+      ) other_out ON true
+      ORDER BY tv.block_height DESC, tv.tx_index DESC`,
       [address, limit, offset]
     );
 
@@ -198,13 +210,10 @@ router.get('/api/address/:address', async (req, res) => {
       const netChange = parseFloat(tx.output_value) - parseFloat(tx.input_value);
       const isReceiving = netChange > 0;
 
-      // Determine counterparty address
       let counterparty = null;
       if (isReceiving && tx.sender_addresses && tx.sender_addresses.length > 0) {
-        // We received - counterparty is the sender
         counterparty = tx.sender_addresses[0];
       } else if (!isReceiving && tx.recipient_addresses && tx.recipient_addresses.length > 0) {
-        // We sent - counterparty is the recipient
         counterparty = tx.recipient_addresses[0];
       }
 
@@ -230,15 +239,17 @@ router.get('/api/address/:address', async (req, res) => {
       balance: parseFloat(summary.balance),
       totalReceived: parseFloat(summary.total_received),
       totalSent: parseFloat(summary.total_sent),
-      txCount: summary.tx_count,
+      txCount: totalTxCount,
       firstSeen: summary.first_seen,
       lastSeen: summary.last_seen,
       transactions,
       pagination: {
+        page,
         limit,
-        offset,
-        total: summary.tx_count,
-        hasMore: offset + limit < summary.tx_count,
+        total: totalTxCount,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     });
   } catch (error) {

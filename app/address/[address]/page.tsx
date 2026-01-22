@@ -88,6 +88,12 @@ export default function AddressPage() {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageLoading, setPageLoading] = useState(false);
+  const pageSize = 25;
+
   const copyToClipboard = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -120,99 +126,112 @@ export default function AddressPage() {
     </button>
   );
 
+  // Transform API transactions to frontend format
+  const transformTransactions = (apiData: any, txList: any[]): Transaction[] => {
+    return txList.map((tx: any) => {
+      const hasShieldedActivity = tx.hasOrchard || tx.hasSapling;
+      const isReceiving = tx.netChange > 0;
+      const isSending = tx.netChange < 0;
+
+      let from = null;
+      let to = null;
+
+      if (isReceiving) {
+        to = apiData.address;
+        if (tx.counterparty) {
+          from = tx.counterparty;
+        } else if (hasShieldedActivity) {
+          from = 'shielded';
+        }
+      } else if (isSending) {
+        from = apiData.address;
+        if (tx.counterparty) {
+          to = tx.counterparty;
+        } else if (hasShieldedActivity) {
+          to = 'shielded';
+        }
+      }
+
+      return {
+        txid: tx.txid,
+        timestamp: tx.blockTime,
+        amount: Math.abs(tx.netChange / 100000000),
+        type: isReceiving ? 'received' : 'sent',
+        blockHeight: tx.blockHeight,
+        from,
+        to,
+        isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !hasShieldedActivity && tx.senderCount === 0,
+        isShielded: hasShieldedActivity && tx.inputValue === 0 && tx.outputValue === 0,
+        isDeshielding: !tx.counterparty && tx.outputValue > 0 && hasShieldedActivity && isReceiving,
+        isShielding: !tx.counterparty && hasShieldedActivity && isSending,
+      };
+    });
+  };
+
+  // Fetch transactions for a specific page
+  const fetchPage = async (page: number, isInitial = false) => {
+    try {
+      if (isInitial) {
+        setLoading(true);
+      } else {
+        setPageLoading(true);
+      }
+
+      const apiUrl = usePostgresApiClient()
+        ? `${getApiUrl()}/api/address/${address}?page=${page}&limit=${pageSize}`
+        : `/api/address/${address}?page=${page}&limit=${pageSize}`;
+
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error('Failed to fetch address data');
+
+      const apiData = await response.json();
+
+      // Update pagination state
+      setCurrentPage(apiData.pagination?.page || page);
+      setTotalPages(apiData.pagination?.totalPages || 1);
+
+      if (usePostgresApiClient()) {
+        const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
+
+        setData({
+          address: apiData.address,
+          balance: apiData.balance / 100000000,
+          type: apiData.type || 'transparent',
+          transactions: transformedTransactions,
+          transactionCount: apiData.txCount || apiData.transactionCount,
+          note: apiData.note,
+        });
+      } else {
+        setData({
+          address: apiData.address,
+          balance: apiData.balance ?? 0,
+          type: apiData.type,
+          transactions: apiData.transactions || [],
+          transactionCount: apiData.transactionCount,
+          note: apiData.note,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching address data:', error);
+      if (isInitial) setData(null);
+    } finally {
+      setLoading(false);
+      setPageLoading(false);
+    }
+  };
+
+  // Go to a specific page
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage || pageLoading) return;
+    fetchPage(page);
+    // Scroll to transactions section
+    const txSection = document.getElementById('transactions-section');
+    txSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        // For testnet, call Express API directly; for mainnet, use Next.js API
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/address/${address}`
-          : `/api/address/${address}`;
-
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch address data');
-        }
-
-        const apiData = await response.json();
-
-        // Transform data if coming from Express API
-        if (usePostgresApiClient()) {
-          // Express API returns values in satoshis
-          const transformedTransactions = (apiData.transactions || []).map((tx: any) => {
-            const hasShieldedActivity = tx.hasOrchard || tx.hasSapling;
-            const isReceiving = tx.netChange > 0;
-            const isSending = tx.netChange < 0;
-
-            // Use counterparty from API (now includes actual addresses!)
-            let from = null;
-            let to = null;
-
-            if (isReceiving) {
-              // We received funds
-              to = apiData.address;
-              // "from" is the counterparty if available, or shielded if has shielded activity
-              if (tx.counterparty) {
-                from = tx.counterparty;
-              } else if (hasShieldedActivity) {
-                from = 'shielded';
-              }
-            } else if (isSending) {
-              // We sent funds
-              from = apiData.address;
-              // "to" is the counterparty if available, or shielded if has shielded activity
-              if (tx.counterparty) {
-                to = tx.counterparty;
-              } else if (hasShieldedActivity) {
-                to = 'shielded';
-              }
-            }
-
-            return {
-              txid: tx.txid,
-              timestamp: tx.blockTime,
-              amount: Math.abs(tx.netChange / 100000000), // satoshis to ZEC
-              type: isReceiving ? 'received' : 'sent',
-              blockHeight: tx.blockHeight,
-              from,
-              to,
-              // Coinbase = first TX of block (tx_index 0) with no transparent inputs
-              isCoinbase: tx.txIndex === 0 && tx.inputValue === 0 && !hasShieldedActivity && tx.senderCount === 0,
-              // Fully shielded = has shielded activity with no transparent I/O for this address
-              isShielded: hasShieldedActivity && tx.inputValue === 0 && tx.outputValue === 0,
-              // Deshielding = receiving from shielded pool (no counterparty, has shielded activity)
-              isDeshielding: !tx.counterparty && tx.outputValue > 0 && hasShieldedActivity && isReceiving,
-              // Shielding = sending to shielded pool (no counterparty recipient, has shielded activity)
-              isShielding: !tx.counterparty && hasShieldedActivity && isSending,
-            };
-          });
-
-          setData({
-            address: apiData.address,
-            balance: apiData.balance / 100000000, // satoshis to ZEC
-            type: apiData.type || 'transparent',
-            transactions: transformedTransactions,
-            transactionCount: apiData.txCount || apiData.transactionCount,
-            note: apiData.note,
-          });
-        } else {
-          setData({
-            address: apiData.address,
-            balance: apiData.balance ?? 0,
-            type: apiData.type,
-            transactions: apiData.transactions || [],
-            transactionCount: apiData.transactionCount,
-            note: apiData.note,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching address data:', error);
-        setData(null);
-      } finally {
-      setLoading(false);
-      }
+      await fetchPage(1, true);
     };
 
     const fetchPrice = async () => {
@@ -457,7 +476,6 @@ export default function AddressPage() {
   const latestTx = sortedTxs[0];
 
   const totalTxCount = data.transactionCount || data.transactions.length;
-  const displayLimit = 25;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
@@ -651,7 +669,7 @@ export default function AddressPage() {
             <Badge color="cyan">{totalTxCount}</Badge>
           </div>
           <span className="text-sm text-muted font-normal ml-auto">
-            showing {Math.min(sortedTxs.length, displayLimit)}
+            {totalPages > 1 ? `page ${currentPage} of ${totalPages}` : `${totalTxCount} total`}
           </span>
         </CardHeader>
         <CardBody>
@@ -675,7 +693,7 @@ export default function AddressPage() {
 
               {/* Transaction Rows */}
               <div className="space-y-2 min-w-[800px]">
-              {sortedTxs.slice(0, displayLimit).map((tx, index) => (
+              {sortedTxs.map((tx, index) => (
                 <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
                   <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
                     {/* Type Column */}
@@ -819,21 +837,126 @@ export default function AddressPage() {
               </div>
           </div>
 
-          {/* View All Button - Outside scrollable area */}
-          {totalTxCount > displayLimit && (
-            <div className="mt-6 text-center p-4 tx-summary-box rounded-lg border border-cipher-border">
-              <p className="text-sm text-secondary mb-3">
-                Showing latest {displayLimit} of {totalTxCount} transactions
-              </p>
-              <button
-                onClick={() => {
-                  // TODO: Implement pagination or load all transactions
-                  alert('Full transaction history pagination coming soon! Currently showing the latest 25 transactions.');
-                }}
-                className="px-4 py-2 bg-cipher-cyan text-cipher-bg font-semibold rounded hover:bg-cipher-green transition-colors text-sm"
-              >
-                View All Transactions →
-              </button>
+          {/* Pagination Controls - Etherscan style */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border">
+              {/* Page info */}
+              <div className="text-sm text-secondary">
+                Page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
+                <span className="font-semibold text-primary">{totalPages}</span>
+                <span className="text-muted ml-2">
+                  ({((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalTxCount)} of {totalTxCount} txns)
+                </span>
+              </div>
+
+              {/* Page navigation */}
+              <div className="flex items-center gap-1">
+                {/* First page */}
+                <button
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1 || pageLoading}
+                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="First page"
+                >
+                  ««
+                </button>
+
+                {/* Previous page */}
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1 || pageLoading}
+                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Previous page"
+                >
+                  «
+                </button>
+
+                {/* Page numbers */}
+                <div className="flex items-center gap-1 mx-2">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    const maxVisible = 5;
+
+                    if (totalPages <= maxVisible + 2) {
+                      // Show all pages if few enough
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      // Always show first page
+                      pages.push(1);
+
+                      // Calculate range around current page
+                      let start = Math.max(2, currentPage - 1);
+                      let end = Math.min(totalPages - 1, currentPage + 1);
+
+                      // Adjust if at edges
+                      if (currentPage <= 3) {
+                        end = Math.min(4, totalPages - 1);
+                      } else if (currentPage >= totalPages - 2) {
+                        start = Math.max(2, totalPages - 3);
+                      }
+
+                      // Add ellipsis before if needed
+                      if (start > 2) pages.push('...');
+
+                      // Add middle pages
+                      for (let i = start; i <= end; i++) pages.push(i);
+
+                      // Add ellipsis after if needed
+                      if (end < totalPages - 1) pages.push('...');
+
+                      // Always show last page
+                      pages.push(totalPages);
+                    }
+
+                    return pages.map((p, idx) => (
+                      typeof p === 'number' ? (
+                        <button
+                          key={idx}
+                          onClick={() => goToPage(p)}
+                          disabled={pageLoading}
+                          className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                            p === currentPage
+                              ? 'bg-cipher-cyan text-cipher-bg font-semibold'
+                              : 'border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan'
+                          } disabled:opacity-50`}
+                        >
+                          {p}
+                        </button>
+                      ) : (
+                        <span key={idx} className="px-2 text-muted">...</span>
+                      )
+                    ));
+                  })()}
+                </div>
+
+                {/* Next page */}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages || pageLoading}
+                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Next page"
+                >
+                  »
+                </button>
+
+                {/* Last page */}
+                <button
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages || pageLoading}
+                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Last page"
+                >
+                  »»
+                </button>
+              </div>
+
+              {/* Loading indicator */}
+              {pageLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-cipher-cyan border-t-transparent"></div>
+                  Loading...
+                </div>
+              )}
             </div>
           )}
         </>
