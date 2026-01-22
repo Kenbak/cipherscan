@@ -1,7 +1,7 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { AddressLabel } from '@/components/AddressLabel';
@@ -82,16 +82,16 @@ const Icons = {
 
 export default function AddressPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const address = params.address as string;
   const [data, setData] = useState<AddressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
+  // Pagination - read from URL
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
   const [totalPages, setTotalPages] = useState(1);
-  const [pageLoading, setPageLoading] = useState(false);
   const pageSize = 25;
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -168,26 +168,21 @@ export default function AddressPage() {
     });
   };
 
-  // Fetch transactions for a specific page
-  const fetchPage = async (page: number, isInitial = false) => {
+  // Fetch transactions for current page (from URL)
+  const fetchPageData = useCallback(async () => {
     try {
-      if (isInitial) {
-        setLoading(true);
-      } else {
-        setPageLoading(true);
-      }
+      setLoading(true);
 
       const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/address/${address}?page=${page}&limit=${pageSize}`
-        : `/api/address/${address}?page=${page}&limit=${pageSize}`;
+        ? `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${pageSize}`
+        : `/api/address/${address}?page=${currentPage}&limit=${pageSize}`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch address data');
 
       const apiData = await response.json();
 
-      // Update pagination state
-      setCurrentPage(apiData.pagination?.page || page);
+      // Update total pages
       setTotalPages(apiData.pagination?.totalPages || 1);
 
       if (usePostgresApiClient()) {
@@ -213,30 +208,21 @@ export default function AddressPage() {
       }
     } catch (error) {
       console.error('Error fetching address data:', error);
-      if (isInitial) setData(null);
+      setData(null);
     } finally {
       setLoading(false);
-      setPageLoading(false);
     }
-  };
+  }, [address, currentPage, pageSize]);
 
-  // Go to a specific page
-  const goToPage = (page: number) => {
-    if (page < 1 || page > totalPages || page === currentPage || pageLoading) return;
-    fetchPage(page);
-    // Scroll to transactions section
-    const txSection = document.getElementById('transactions-section');
-    txSection?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Fetch data when address or page changes
   useEffect(() => {
-    const fetchData = async () => {
-      await fetchPage(1, true);
-    };
+    fetchPageData();
+  }, [fetchPageData]);
 
+  // Fetch price once
+  useEffect(() => {
     const fetchPrice = async () => {
       try {
-        // Call CoinGecko directly (no need for proxy API)
         const response = await fetch(
           'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true'
         );
@@ -249,10 +235,8 @@ export default function AddressPage() {
         console.error('Error fetching price:', error);
       }
     };
-
-    fetchData();
     fetchPrice();
-  }, [address]);
+  }, []);
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -837,9 +821,9 @@ export default function AddressPage() {
               </div>
           </div>
 
-          {/* Pagination Controls - Etherscan style */}
+          {/* Pagination Controls - Etherscan style with Links */}
           {totalPages > 1 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border relative">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border">
               {/* Page info */}
               <div className="text-sm text-secondary">
                 Page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
@@ -849,37 +833,33 @@ export default function AddressPage() {
                 </span>
               </div>
 
-              {/* Loading overlay */}
-              {pageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-cipher-bg/50 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-cipher-cyan">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-cipher-cyan border-t-transparent"></div>
-                    Loading...
-                  </div>
-                </div>
-              )}
-
               {/* Page navigation */}
               <div className="flex items-center gap-1">
                 {/* First page */}
-                <button
-                  onClick={() => goToPage(1)}
-                  disabled={currentPage === 1 || pageLoading}
-                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="First page"
-                >
-                  ««
-                </button>
+                {currentPage > 1 ? (
+                  <Link
+                    href={`/address/${address}`}
+                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                    title="First page"
+                  >
+                    ««
+                  </Link>
+                ) : (
+                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">««</span>
+                )}
 
                 {/* Previous page */}
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1 || pageLoading}
-                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Previous page"
-                >
-                  «
-                </button>
+                {currentPage > 1 ? (
+                  <Link
+                    href={currentPage === 2 ? `/address/${address}` : `/address/${address}?page=${currentPage - 1}`}
+                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                    title="Previous page"
+                  >
+                    «
+                  </Link>
+                ) : (
+                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">«</span>
+                )}
 
                 {/* Page numbers */}
                 <div className="flex items-center gap-1 mx-2">
@@ -888,50 +868,40 @@ export default function AddressPage() {
                     const maxVisible = 5;
 
                     if (totalPages <= maxVisible + 2) {
-                      // Show all pages if few enough
                       for (let i = 1; i <= totalPages; i++) pages.push(i);
                     } else {
-                      // Always show first page
                       pages.push(1);
-
-                      // Calculate range around current page
                       let start = Math.max(2, currentPage - 1);
                       let end = Math.min(totalPages - 1, currentPage + 1);
-
-                      // Adjust if at edges
                       if (currentPage <= 3) {
                         end = Math.min(4, totalPages - 1);
                       } else if (currentPage >= totalPages - 2) {
                         start = Math.max(2, totalPages - 3);
                       }
-
-                      // Add ellipsis before if needed
                       if (start > 2) pages.push('...');
-
-                      // Add middle pages
                       for (let i = start; i <= end; i++) pages.push(i);
-
-                      // Add ellipsis after if needed
                       if (end < totalPages - 1) pages.push('...');
-
-                      // Always show last page
                       pages.push(totalPages);
                     }
 
                     return pages.map((p, idx) => (
                       typeof p === 'number' ? (
-                        <button
-                          key={idx}
-                          onClick={() => goToPage(p)}
-                          disabled={pageLoading}
-                          className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                            p === currentPage
-                              ? 'bg-cipher-cyan text-cipher-bg font-semibold'
-                              : 'border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan'
-                          } disabled:opacity-50`}
-                        >
-                          {p}
-                        </button>
+                        p === currentPage ? (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 text-sm rounded bg-cipher-cyan text-cipher-bg font-semibold"
+                          >
+                            {p}
+                          </span>
+                        ) : (
+                          <Link
+                            key={idx}
+                            href={p === 1 ? `/address/${address}` : `/address/${address}?page=${p}`}
+                            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                          >
+                            {p}
+                          </Link>
+                        )
                       ) : (
                         <span key={idx} className="px-2 text-muted">...</span>
                       )
@@ -940,24 +910,30 @@ export default function AddressPage() {
                 </div>
 
                 {/* Next page */}
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages || pageLoading}
-                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Next page"
-                >
-                  »
-                </button>
+                {currentPage < totalPages ? (
+                  <Link
+                    href={`/address/${address}?page=${currentPage + 1}`}
+                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                    title="Next page"
+                  >
+                    »
+                  </Link>
+                ) : (
+                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»</span>
+                )}
 
                 {/* Last page */}
-                <button
-                  onClick={() => goToPage(totalPages)}
-                  disabled={currentPage === totalPages || pageLoading}
-                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Last page"
-                >
-                  »»
-                </button>
+                {currentPage < totalPages ? (
+                  <Link
+                    href={`/address/${address}?page=${totalPages}`}
+                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                    title="Last page"
+                  >
+                    »»
+                  </Link>
+                ) : (
+                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»»</span>
+                )}
               </div>
             </div>
           )}
