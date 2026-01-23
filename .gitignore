@@ -98,3 +98,6 @@ GrantExample*.md
 server/DEPLOYMENT.md
 
 rust-indexer/
+
+# Compact block cache (auto-generated)
+server/cache/
