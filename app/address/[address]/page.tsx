@@ -98,6 +98,7 @@ export default function AddressPage() {
   // Unified address components (for u1 addresses)
   const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
   const [uaLoading, setUaLoading] = useState(false);
+  const [selectedAddressTab, setSelectedAddressTab] = useState<'unified' | 'transparent' | 'sapling' | 'orchard'>('unified');
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -326,73 +327,161 @@ export default function AddressPage() {
               {address.startsWith('u1') || address.startsWith('utest') ? 'UNIFIED' : 'SHIELDED'}
             </Badge>
           </div>
-          <div className="p-3 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
-            <div className="flex items-center gap-2 mb-3">
-              <code className="text-sm text-secondary break-all font-mono">{address}</code>
-              <CopyButton text={address} label="address" />
-            </div>
-            {/* UA Component Badges */}
-            {(address.startsWith('u1') || address.startsWith('utest')) && (
-              uaLoading ? (
-                <div className="flex items-center gap-2 text-xs text-muted">
+          {/* Address Tabs */}
+          {(address.startsWith('u1') || address.startsWith('utest')) && (
+            <div className="rounded-lg bg-cipher-surface/50 border border-white/[0.04] overflow-hidden">
+              {/* Tab Bar */}
+              {uaLoading ? (
+                <div className="flex items-center gap-2 p-4 text-xs text-muted">
                   <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent"></div>
-                  Decoding...
+                  Decoding address components...
                 </div>
               ) : uaComponents ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Transparent */}
-                  {uaComponents.has_transparent && uaComponents.transparent_address ? (
-                    <Link
-                      href={`/address/${uaComponents.transparent_address}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/10 text-cipher-cyan text-xs font-medium hover:bg-cyan-500/20 transition-colors"
+                <>
+                  <div className="flex border-b border-white/[0.04]">
+                    {/* Unified Tab */}
+                    <button
+                      onClick={() => setSelectedAddressTab('unified')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        selectedAddressTab === 'unified'
+                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
+                          : 'text-muted hover:text-secondary hover:bg-white/[0.02]'
+                      }`}
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
+                      Unified
+                    </button>
+                    {/* Transparent Tab */}
+                    <button
+                      onClick={() => uaComponents.has_transparent && setSelectedAddressTab('transparent')}
+                      disabled={!uaComponents.has_transparent}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        selectedAddressTab === 'transparent'
+                          ? 'bg-cyan-500/10 text-cipher-cyan border-b-2 border-cipher-cyan'
+                          : uaComponents.has_transparent
+                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
+                            : 'text-muted/30 cursor-not-allowed'
+                      }`}
+                    >
                       Transparent
-                      <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </Link>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-border/30 text-muted text-xs">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
-                      Transparent
-                    </span>
-                  )}
-                  {/* Sapling */}
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${uaComponents.has_sapling ? 'bg-purple-500/10 text-purple-400' : 'bg-cipher-border/30 text-muted'}`}>
-                    {uaComponents.has_sapling ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
+                    </button>
+                    {/* Sapling Tab */}
+                    <button
+                      onClick={() => uaComponents.has_sapling && setSelectedAddressTab('sapling')}
+                      disabled={!uaComponents.has_sapling}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        selectedAddressTab === 'sapling'
+                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
+                          : uaComponents.has_sapling
+                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
+                            : 'text-muted/30 cursor-not-allowed'
+                      }`}
+                    >
+                      Sapling
+                    </button>
+                    {/* Orchard Tab */}
+                    <button
+                      onClick={() => uaComponents.has_orchard && setSelectedAddressTab('orchard')}
+                      disabled={!uaComponents.has_orchard}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        selectedAddressTab === 'orchard'
+                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
+                          : uaComponents.has_orchard
+                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
+                            : 'text-muted/30 cursor-not-allowed'
+                      }`}
+                    >
+                      Orchard
+                    </button>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="p-4">
+                    {selectedAddressTab === 'unified' && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Unified Address</span>
+                          <span className="text-[10px] text-muted">(contains all receivers below)</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <code className="text-sm text-secondary break-all font-mono flex-1">{address}</code>
+                          <CopyButton text={address} label="unified" />
+                        </div>
+                      </div>
                     )}
-                    Sapling
-                  </span>
-                  {/* Orchard */}
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${uaComponents.has_orchard ? 'bg-purple-500/10 text-purple-400' : 'bg-cipher-border/30 text-muted'}`}>
-                    {uaComponents.has_orchard ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
+
+                    {selectedAddressTab === 'transparent' && uaComponents.has_transparent && uaComponents.transparent_address && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-cipher-cyan font-medium uppercase tracking-wide">Transparent Address</span>
+                          <span className="text-[10px] text-muted">(public, viewable on-chain)</span>
+                        </div>
+                        <div className="flex items-start gap-2 mb-4">
+                          <code className="text-sm text-cipher-cyan break-all font-mono flex-1">{uaComponents.transparent_address}</code>
+                          <CopyButton text={uaComponents.transparent_address} label="transparent" />
+                        </div>
+                        <Link
+                          href={`/address/${uaComponents.transparent_address}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 text-cipher-cyan text-sm font-medium hover:bg-cipher-cyan/20 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View Transactions
+                        </Link>
+                      </div>
                     )}
-                    Orchard
-                  </span>
+
+                    {selectedAddressTab === 'sapling' && uaComponents.has_sapling && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Sapling Address</span>
+                          <span className="text-[10px] text-muted">(shielded, private)</span>
+                        </div>
+                        {uaComponents.sapling_address ? (
+                          <div className="flex items-start gap-2">
+                            <code className="text-sm text-purple-400 break-all font-mono flex-1">{uaComponents.sapling_address}</code>
+                            <CopyButton text={uaComponents.sapling_address} label="sapling" />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted italic">Sapling receiver is present but address encoding not available</p>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedAddressTab === 'orchard' && uaComponents.has_orchard && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Orchard Receiver</span>
+                          <span className="text-[10px] text-muted">(shielded, latest protocol)</span>
+                        </div>
+                        <p className="text-sm text-muted">
+                          Orchard receivers cannot be encoded as standalone addresses.
+                          Use the Unified Address to receive Orchard transactions.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="p-4">
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm text-secondary break-all font-mono">{address}</code>
+                    <CopyButton text={address} label="address" />
+                  </div>
                 </div>
-              ) : null
-            )}
-          </div>
+              )}
+            </div>
+          )}
+
+          {/* Non-unified shielded addresses */}
+          {!(address.startsWith('u1') || address.startsWith('utest')) && (
+            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                <code className="text-sm text-secondary break-all font-mono">{address}</code>
+                <CopyButton text={address} label="address" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Privacy Hero Card */}
