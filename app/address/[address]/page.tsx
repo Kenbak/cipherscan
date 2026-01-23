@@ -302,8 +302,11 @@ export default function AddressPage() {
     data.note.includes('Fully shielded unified address')
   );
 
-  // Check if we have indexing issues (but not for shielded addresses)
-  const hasIndexingIssue = !isShieldedAddress && data?.note && (
+  // Check if address has no transactions yet
+  const hasNoTransactions = data?.note?.includes('no transaction history yet');
+
+  // Check if we have indexing issues (but not for shielded addresses or empty addresses)
+  const hasIndexingIssue = !isShieldedAddress && !hasNoTransactions && data?.note && (
     data.note.includes('not found') ||
     data.note.includes('indexing') ||
     data.note.includes('Unable to connect')
@@ -472,6 +475,42 @@ export default function AddressPage() {
               </div>
             </div>
           </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  // Display message for addresses with no transactions
+  if (hasNoTransactions && data) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
+          <div className="flex items-center gap-2">
+            <Badge color="cyan">TRANSPARENT</Badge>
+            <code className="text-sm text-secondary break-all">{address}</code>
+            <CopyButton text={address} label="address" />
+          </div>
+        </div>
+
+        <Card>
+          <CardBody>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-cipher-border/30 flex items-center justify-center">
+                <svg className="w-8 h-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-primary mb-2">No Transactions Yet</h2>
+              <p className="text-sm text-secondary max-w-md mx-auto mb-6">
+                This is a valid transparent address, but it hasn&apos;t received or sent any transactions yet.
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-border/20 rounded-lg text-xs text-muted">
+                <span className="w-2 h-2 rounded-full bg-cipher-cyan"></span>
+                Balance: 0 ZEC
+              </div>
+            </div>
           </CardBody>
         </Card>
       </div>

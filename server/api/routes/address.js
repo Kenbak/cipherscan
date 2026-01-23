@@ -142,7 +142,35 @@ router.get('/api/address/:address', async (req, res) => {
     );
 
     if (summaryResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Address not found or has no transaction history' });
+      // Check if this is a valid Zcash address format
+      const isValidTransparent = /^t[13][a-zA-Z0-9]{32,34}$/.test(address) || // mainnet t1/t3
+                                  /^tm[a-zA-Z0-9]{32,34}$/.test(address);      // testnet
+
+      if (!isValidTransparent) {
+        return res.status(404).json({ error: 'Invalid address format' });
+      }
+
+      // Address is valid but has no transactions yet
+      return res.status(200).json({
+        address,
+        type: 'transparent',
+        balance: 0,
+        totalReceived: 0,
+        totalSent: 0,
+        txCount: 0,
+        firstSeen: null,
+        lastSeen: null,
+        transactions: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        note: 'This address has no transaction history yet.'
+      });
     }
 
     const summary = summaryResult.rows[0];
