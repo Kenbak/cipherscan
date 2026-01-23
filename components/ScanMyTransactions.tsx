@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { useWasmWorker } from '@/hooks/useWasmWorker';
+import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
 
 // Animated dots component for loading states (pure CSS for performance)
@@ -94,8 +94,8 @@ export function ScanMyTransactions() {
   const [blocksProcessed, setBlocksProcessed] = useState(0);
   const [matchesFound, setMatchesFound] = useState(0);
 
-  // Web Worker for WASM filtering (runs off main thread - 0% UI freeze!)
-  const wasmWorker = useWasmWorker();
+  // Multi-threaded Web Worker pool for WASM filtering (parallel scanning!)
+  const wasmWorkerPool = useWasmWorkerPool();
 
   // AbortController for cancelling fetch requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -177,11 +177,11 @@ export function ScanMyTransactions() {
         return;
       }
 
-      // Step 2: Filter compact outputs to find matching TXs (Web Worker - 0% UI FREEZE!)
+      // Step 2: Filter compact outputs to find matching TXs (Multi-threaded Workers!)
       setScanPhase('filtering');
       setBlocksProcessed(0);
 
-      const matchingTxs = await wasmWorker.filterCompactBlocks(
+      const matchingTxs = await wasmWorkerPool.filterCompactBlocks(
         compactData.blocks,
         sanitizedKey,
         (progress) => {
@@ -532,7 +532,7 @@ export function ScanMyTransactions() {
 
   const cancelScan = () => {
     setCancelRequested(true);
-    wasmWorker.cancel(); // Cancel the Web Worker
+    wasmWorkerPool.cancel(); // Cancel all workers in the pool
 
     // Abort any ongoing fetch requests
     if (abortControllerRef.current) {
@@ -652,7 +652,7 @@ export function ScanMyTransactions() {
                         )}
                         {scanPhase === 'filtering' && (
                           <>
-                            Filtering {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
+                            Scanning {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
                             {totalBlocks > 0 ? `${totalBlocks.toLocaleString()} blocks` : 'blocks'}
                             <AnimatedDots />
                           </>
@@ -700,9 +700,7 @@ export function ScanMyTransactions() {
                   <div>
                     <p className="font-bold mb-1 warning-title">Please don't close this page</p>
                     <p className="warning-text font-mono">
-                      {scanPeriod === 'birthday'
-                        ? 'Scanning large range may take 1-2 minutes. Your viewing key stays in your browser.'
-                        : 'This may take a moment. Your viewing key never leaves your device.'}
+                      This may take a moment. Your viewing key never leaves your browser.
                     </p>
                   </div>
                 </div>
@@ -771,7 +769,7 @@ export function ScanMyTransactions() {
 
           {/* Messages List */}
           <div className="inbox-body p-4 space-y-3">
-            {[...scanResults].reverse().map((result, idx) => (
+            {scanResults.map((result, idx) => (
               <div
                 key={idx}
                 className="inbox-message border-2 border-cipher-cyan/30 rounded overflow-hidden hover:border-cipher-cyan/60 transition-colors duration-200 animate-fade-in"
