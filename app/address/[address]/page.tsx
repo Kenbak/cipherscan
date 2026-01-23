@@ -315,166 +315,170 @@ export default function AddressPage() {
   // Display special message for shielded addresses
   if (isShieldedAddress) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
-          <div className="flex items-center">
-            <code className="text-sm text-secondary break-all">{address}</code>
-            <CopyButton text={address} label="address" />
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">
+              Shielded Address
+            </h1>
+            <Badge color="purple" icon={<Icons.Shield />}>
+              {address.startsWith('u1') || address.startsWith('utest') ? 'UNIFIED' : 'SHIELDED'}
+            </Badge>
+          </div>
+          <div className="p-3 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+            <div className="flex items-center gap-2 mb-3">
+              <code className="text-sm text-secondary break-all font-mono">{address}</code>
+              <CopyButton text={address} label="address" />
+            </div>
+            {/* UA Component Badges */}
+            {(address.startsWith('u1') || address.startsWith('utest')) && (
+              uaLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent"></div>
+                  Decoding...
+                </div>
+              ) : uaComponents ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Transparent */}
+                  {uaComponents.has_transparent && uaComponents.transparent_address ? (
+                    <Link
+                      href={`/address/${uaComponents.transparent_address}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/10 text-cipher-cyan text-xs font-medium hover:bg-cyan-500/20 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Transparent
+                      <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-border/30 text-muted text-xs">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      Transparent
+                    </span>
+                  )}
+                  {/* Sapling */}
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${uaComponents.has_sapling ? 'bg-purple-500/10 text-purple-400' : 'bg-cipher-border/30 text-muted'}`}>
+                    {uaComponents.has_sapling ? (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    )}
+                    Sapling
+                  </span>
+                  {/* Orchard */}
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${uaComponents.has_orchard ? 'bg-purple-500/10 text-purple-400' : 'bg-cipher-border/30 text-muted'}`}>
+                    {uaComponents.has_orchard ? (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    )}
+                    Orchard
+                  </span>
+                </div>
+              ) : null
+            )}
           </div>
         </div>
 
-        <Card className="py-12">
-          <CardBody>
-          <div className="gradient-card-purple-subtle rounded-lg p-6 max-w-2xl mx-auto">
-            <p className="text-sm text-secondary mb-4">
-              <strong className="text-purple-600 dark:text-purple-400">This is a shielded address.</strong> Balance and transaction history are private by design.
-            </p>
+        {/* Privacy Hero Card */}
+        <Card className="mb-6 overflow-hidden relative">
+          {/* Subtle gradient overlay for shielded feel */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.08] via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(167,139,250,0.02)_10px,rgba(167,139,250,0.02)_20px)] pointer-events-none" />
 
-            <p className="text-xs text-muted mb-4">
-              Zcash shielded addresses use zero-knowledge proofs to encrypt transaction data on the blockchain.
-              This means that while transactions are verified, the sender, receiver, and amount remain private.
-            </p>
-
-            <div className="block-hash-bg rounded p-4 mt-4">
-              <p className="text-xs text-muted mb-2">
-                <strong>Privacy Features:</strong>
-              </p>
-              <ul className="text-xs text-muted space-y-1">
-                <li>✓ Balance is encrypted</li>
-                <li>✓ Transaction amounts are hidden</li>
-                <li>✓ Sender and receiver are private</li>
-                <li>✓ Optional encrypted memos</li>
-              </ul>
-            </div>
-
-            {/* Unified Address Components */}
-            {(address.startsWith('u1') || address.startsWith('utest')) && (
-              <div className="block-hash-bg rounded p-4 mt-4 border border-cipher-border">
-                <p className="text-xs text-muted mb-3">
-                  <strong className="text-cipher-cyan">Unified Address Components:</strong>
+          <CardBody className="relative">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-primary mb-1">
+                  Privacy by Design
+                </h2>
+                <p className="text-sm text-secondary leading-relaxed">
+                  This address uses <span className="text-purple-400 font-medium">zero-knowledge proofs</span> to encrypt transaction data.
+                  Balance and history are only visible to holders of the viewing key.
                 </p>
-                {uaLoading ? (
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent"></div>
-                    Decoding address...
-                  </div>
-                ) : uaComponents ? (
-                  <div className="space-y-2 font-mono text-xs">
-                    {/* Transparent receiver */}
-                    <div className="flex items-start gap-2">
-                      <span className="text-muted">├─</span>
-                      <span className="text-muted">Transparent:</span>
-                      {uaComponents.has_transparent && uaComponents.transparent_address ? (
-                        <Link
-                          href={`/address/${uaComponents.transparent_address}`}
-                          className="text-cipher-cyan hover:underline break-all"
-                        >
-                          {uaComponents.transparent_address}
-                        </Link>
-                      ) : (
-                        <span className="text-muted italic">not included</span>
-                      )}
-                    </div>
-
-                    {/* Sapling receiver */}
-                    <div className="flex items-start gap-2">
-                      <span className="text-muted">├─</span>
-                      <span className="text-muted">Sapling:</span>
-                      {uaComponents.has_sapling ? (
-                        <span className="text-purple-400">
-                          {uaComponents.sapling_address || 'present'} <span className="text-muted">(shielded)</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted italic">not included</span>
-                      )}
-                    </div>
-
-                    {/* Orchard receiver */}
-                    <div className="flex items-start gap-2">
-                      <span className="text-muted">└─</span>
-                      <span className="text-muted">Orchard:</span>
-                      {uaComponents.has_orchard ? (
-                        <span className="text-purple-400">present <span className="text-muted">(shielded)</span></span>
-                      ) : (
-                        <span className="text-muted italic">not included</span>
-                      )}
-                    </div>
-
-                    {/* Link to transparent address if available */}
-                    {uaComponents.has_transparent && uaComponents.transparent_address && (
-                      <div className="mt-3 pt-3 border-t border-cipher-border">
-                        <Link
-                          href={`/address/${uaComponents.transparent_address}`}
-                          className="inline-flex items-center gap-2 text-xs text-cipher-cyan hover:text-cipher-green"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          View transparent component transactions
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted italic">Could not decode address components</p>
-                )}
-              </div>
-            )}
-
-            {/* Decrypt Tools Section */}
-            <div className="mt-8 pt-6 border-t border-cipher-border">
-              <h3 className="text-lg font-bold text-primary mb-3">
-                🔐 Want to View Your Transactions?
-              </h3>
-              <p className="text-sm text-secondary mb-6">
-                Use your <strong className="text-cipher-cyan">Unified Full Viewing Key (UFVK)</strong> to decrypt transactions sent to this address.
-                All decryption happens locally in your browser - your keys never leave your device.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                <Link
-                  href="/decrypt"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-cipher-cyan text-cipher-bg font-bold rounded-lg hover:bg-cipher-green transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <span>Decrypt Single Transaction</span>
-                </Link>
-
-                <Link
-                  href="/decrypt?tab=scan"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-cipher-border text-primary rounded-lg hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span>Scan Transaction History</span>
-                </Link>
-              </div>
-
-              <div className="block-hash-bg border border-cipher-border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                  <h4 className="text-sm font-semibold text-primary">How to Find Your Viewing Key</h4>
-                </div>
-                <div className="space-y-2 text-sm text-secondary ml-6">
-                  <p>
-                    <strong className="text-cipher-cyan">Zashi:</strong> Settings → Backup → Export Viewing Key
-                  </p>
-                  <p>
-                    <strong className="text-cipher-cyan">Ywallet:</strong> Accounts → Select Account → Export Viewing Key
-                  </p>
-                  <p>
-                    <strong className="text-cipher-cyan">Zingo-CLI:</strong> <code className="text-xs learn-code-inline px-2 py-1 rounded font-mono text-cipher-green">exportufvk</code>
-                  </p>
-                </div>
               </div>
             </div>
-          </div>
+
+            {/* Privacy Features Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Balance', status: 'encrypted' },
+                { label: 'Amounts', status: 'hidden' },
+                { label: 'Parties', status: 'private' },
+                { label: 'Memos', status: 'encrypted' },
+              ].map((feature) => (
+                <div key={feature.label} className="flex items-center gap-2 p-3 rounded-lg bg-purple-500/[0.06] border border-purple-500/10">
+                  <svg className="w-4 h-4 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-xs text-purple-300 font-medium block">{feature.label}</span>
+                    <span className="text-[10px] text-muted uppercase tracking-wide">{feature.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Decrypt Tools Section - Full Width */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              <h3 className="text-base font-semibold text-primary">Decrypt Your Transactions</h3>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <p className="text-sm text-secondary mb-6 leading-relaxed">
+              <strong className="text-primary">Is this your address?</strong> Use your viewing key to reveal transactions sent to you.
+              Only you can decrypt your own transactions.
+            </p>
+
+            {/* Action Buttons - Side by side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link
+                href="/decrypt"
+                className="group flex items-center justify-center gap-3 px-5 py-3.5 bg-gradient-to-b from-cipher-cyan to-[#00B8E0] text-cipher-bg font-semibold rounded-xl hover:from-[#00E0FF] hover:to-cipher-cyan transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_4px_12px_rgba(0,212,255,0.25)] hover:-translate-y-0.5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span>Decrypt Single Transaction</span>
+              </Link>
+
+              <Link
+                href="/decrypt?tab=scan"
+                className="group flex items-center justify-center gap-3 px-5 py-3.5 border border-cipher-border text-primary rounded-xl hover:border-cipher-cyan hover:text-cipher-cyan transition-all hover:bg-cipher-cyan/5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Scan Transaction History</span>
+              </Link>
+            </div>
           </CardBody>
         </Card>
       </div>
