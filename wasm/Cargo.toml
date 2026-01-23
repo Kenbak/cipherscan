@@ -34,6 +34,7 @@ subtle = "2.6"
 # Encoding
 hex = "0.4"
 bech32 = "0.11"
+bs58 = { version = "0.5", features = ["check"] }
 
 # Zcash address parsing (for UFVK)
 zcash_address = "0.10"

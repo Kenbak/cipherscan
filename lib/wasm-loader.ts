@@ -11,12 +11,22 @@ export interface DecryptedOutput {
   amount: number; // Amount in ZEC
 }
 
+export interface UnifiedAddressComponents {
+  network: string;
+  has_transparent: boolean;
+  has_sapling: boolean;
+  has_orchard: boolean;
+  transparent_address: string | null;
+  sapling_address: string | null;
+}
+
 export interface ZcashWasm {
   test_wasm: () => string;
   detect_key_type: (viewingKey: string) => string;
   decrypt_memo: (txHex: string, viewingKey: string) => string;
   decrypt_compact_output: (nullifierHex: string, cmxHex: string, ephemeralKeyHex: string, ciphertextHex: string, viewingKey: string) => string;
   batch_filter_compact_outputs: (outputsJson: string, viewingKey: string) => string;
+  decode_unified_address: (uaString: string) => string;
 }
 
 /**
@@ -44,6 +54,7 @@ export async function loadWasm(): Promise<ZcashWasm> {
         decrypt_memo: wasmInit.decrypt_memo,
         decrypt_compact_output: wasmInit.decrypt_compact_output,
         batch_filter_compact_outputs: wasmInit.batch_filter_compact_outputs,
+        decode_unified_address: wasmInit.decode_unified_address,
       };
 
     wasmInitialized = true;
@@ -69,6 +80,15 @@ export async function testWasm(): Promise<string> {
 export async function detectKeyType(viewingKey: string): Promise<string> {
   const wasm = await loadWasm();
   return wasm.detect_key_type(viewingKey);
+}
+
+/**
+ * Decode a unified address and return its component receivers
+ */
+export async function decodeUnifiedAddress(uaString: string): Promise<UnifiedAddressComponents> {
+  const wasm = await loadWasm();
+  const result = wasm.decode_unified_address(uaString);
+  return JSON.parse(result);
 }
 
 /**

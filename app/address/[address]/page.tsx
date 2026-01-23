@@ -11,6 +11,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { decodeUnifiedAddress, UnifiedAddressComponents } from '@/lib/wasm-loader';
 
 interface PriceData {
   price: number;
@@ -93,6 +94,10 @@ export default function AddressPage() {
   const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 25;
+
+  // Unified address components (for u1 addresses)
+  const [uaComponents, setUaComponents] = useState<UnifiedAddressComponents | null>(null);
+  const [uaLoading, setUaLoading] = useState(false);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -238,6 +243,27 @@ export default function AddressPage() {
     fetchPrice();
   }, []);
 
+  // Decode unified address to show components
+  useEffect(() => {
+    const decodeUA = async () => {
+      // Only decode u1 (mainnet) or utest (testnet) addresses
+      if (!address.startsWith('u1') && !address.startsWith('utest')) {
+        return;
+      }
+
+      try {
+        setUaLoading(true);
+        const components = await decodeUnifiedAddress(address);
+        setUaComponents(components);
+      } catch (error) {
+        console.error('Failed to decode unified address:', error);
+      } finally {
+        setUaLoading(false);
+      }
+    };
+    decodeUA();
+  }, [address]);
+
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     const now = new Date();
@@ -318,6 +344,80 @@ export default function AddressPage() {
                 <li>✓ Optional encrypted memos</li>
               </ul>
             </div>
+
+            {/* Unified Address Components */}
+            {(address.startsWith('u1') || address.startsWith('utest')) && (
+              <div className="block-hash-bg rounded p-4 mt-4 border border-cipher-border">
+                <p className="text-xs text-muted mb-3">
+                  <strong className="text-cipher-cyan">Unified Address Components:</strong>
+                </p>
+                {uaLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent"></div>
+                    Decoding address...
+                  </div>
+                ) : uaComponents ? (
+                  <div className="space-y-2 font-mono text-xs">
+                    {/* Transparent receiver */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-muted">├─</span>
+                      <span className="text-muted">Transparent:</span>
+                      {uaComponents.has_transparent && uaComponents.transparent_address ? (
+                        <Link
+                          href={`/address/${uaComponents.transparent_address}`}
+                          className="text-cipher-cyan hover:underline break-all"
+                        >
+                          {uaComponents.transparent_address}
+                        </Link>
+                      ) : (
+                        <span className="text-muted italic">not included</span>
+                      )}
+                    </div>
+
+                    {/* Sapling receiver */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-muted">├─</span>
+                      <span className="text-muted">Sapling:</span>
+                      {uaComponents.has_sapling ? (
+                        <span className="text-purple-400">
+                          {uaComponents.sapling_address || 'present'} <span className="text-muted">(shielded)</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted italic">not included</span>
+                      )}
+                    </div>
+
+                    {/* Orchard receiver */}
+                    <div className="flex items-start gap-2">
+                      <span className="text-muted">└─</span>
+                      <span className="text-muted">Orchard:</span>
+                      {uaComponents.has_orchard ? (
+                        <span className="text-purple-400">present <span className="text-muted">(shielded)</span></span>
+                      ) : (
+                        <span className="text-muted italic">not included</span>
+                      )}
+                    </div>
+
+                    {/* Link to transparent address if available */}
+                    {uaComponents.has_transparent && uaComponents.transparent_address && (
+                      <div className="mt-3 pt-3 border-t border-cipher-border">
+                        <Link
+                          href={`/address/${uaComponents.transparent_address}`}
+                          className="inline-flex items-center gap-2 text-xs text-cipher-cyan hover:text-cipher-green"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View transparent component transactions
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted italic">Could not decode address components</p>
+                )}
+              </div>
+            )}
 
             {/* Decrypt Tools Section */}
             <div className="mt-8 pt-6 border-t border-cipher-border">

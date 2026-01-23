@@ -7,7 +7,7 @@ use orchard::{
     note_encryption::{OrchardDomain, CompactAction},
     note::ExtractedNoteCommitment,
 };
-use zcash_address::unified::{Container, Encoding, Fvk, Ufvk};
+use zcash_address::unified::{Container, Encoding, Fvk, Ufvk, Address as UnifiedAddress, Receiver};
 
 // Use zcash_primitives for transaction parsing
 use zcash_primitives::transaction::Transaction;
@@ -20,6 +20,16 @@ use serde::{Serialize, Deserialize};
 pub struct DecryptedOutput {
     pub memo: String,
     pub amount: f64, // Amount in ZEC
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UnifiedAddressComponents {
+    pub network: String,
+    pub has_transparent: bool,
+    pub has_sapling: bool,
+    pub has_orchard: bool,
+    pub transparent_address: Option<String>,
+    pub sapling_address: Option<String>,
 }
 
 #[cfg(feature = "wee_alloc")]
@@ -46,6 +56,65 @@ pub fn detect_key_type(viewing_key: &str) -> String {
     } else {
         "unknown".to_string()
     }
+}
+
+/// Decode a unified address and return its component receivers
+#[wasm_bindgen]
+pub fn decode_unified_address(ua_string: &str) -> Result<String, String> {
+    // Decode the unified address
+    let (network, ua) = UnifiedAddress::decode(ua_string)
+        .map_err(|e| format!("Failed to decode unified address: {:?}", e))?;
+
+    let is_mainnet = ua_string.starts_with("u1");
+
+    let network_name = if is_mainnet { "mainnet" } else { "testnet" };
+
+    let mut components = UnifiedAddressComponents {
+        network: network_name.to_string(),
+        has_transparent: false,
+        has_sapling: false,
+        has_orchard: false,
+        transparent_address: None,
+        sapling_address: None,
+    };
+
+    // Iterate through receivers
+    for receiver in ua.items() {
+        match receiver {
+            Receiver::P2pkh(data) => {
+                components.has_transparent = true;
+                // Encode as t1 address (mainnet) or tm (testnet)
+                let prefix: &[u8] = if is_mainnet { &[0x1C, 0xB8] } else { &[0x1D, 0x25] };
+                let mut addr_bytes = prefix.to_vec();
+                addr_bytes.extend_from_slice(&data);
+                components.transparent_address = Some(bs58::encode(&addr_bytes).with_check().into_string());
+            },
+            Receiver::P2sh(data) => {
+                components.has_transparent = true;
+                // Encode as t3 address (mainnet) or t2 (testnet)
+                let prefix: &[u8] = if is_mainnet { &[0x1C, 0xBD] } else { &[0x1C, 0xBA] };
+                let mut addr_bytes = prefix.to_vec();
+                addr_bytes.extend_from_slice(&data);
+                components.transparent_address = Some(bs58::encode(&addr_bytes).with_check().into_string());
+            },
+            Receiver::Sapling(data) => {
+                components.has_sapling = true;
+                // Encode as zs address using bech32
+                // For sapling, we just show the raw hex since bech32 encoding is complex
+                components.sapling_address = Some(format!("zs1...{}", hex::encode(&data[..4])));
+            },
+            Receiver::Orchard(_) => {
+                components.has_orchard = true;
+                // Orchard receivers can't be encoded as standalone addresses
+            },
+            _ => {
+                // Unknown receiver type, skip
+            }
+        }
+    }
+
+    serde_json::to_string(&components)
+        .map_err(|e| format!("JSON serialization failed: {:?}", e))
 }
 
 /// Orchard memo decryption - The Official Way™
