@@ -58,6 +58,8 @@ MAINNET_SETUP/
 *config-dump*
 
 .cursor/
+!.cursor/skills/
+.agents/
 
 # ========================================
 # 🚫 INTERNAL: Do not commit private files
