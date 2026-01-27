@@ -334,7 +334,27 @@ async function __wbg_init(module_or_path) {
     const imports = __wbg_get_imports();
 
     if (typeof module_or_path === 'string' || (typeof Request === 'function' && module_or_path instanceof Request) || (typeof URL === 'function' && module_or_path instanceof URL)) {
-        module_or_path = fetch(module_or_path);
+        // Check if we're in Node.js or browser environment
+        const isNode = typeof window === 'undefined' && typeof process !== 'undefined' && process.versions?.node;
+        
+        if (isNode) {
+            // Node.js: use fs.readFile for local file paths
+            const { readFile } = await import('node:fs/promises');
+            const { fileURLToPath } = await import('node:url');
+            
+            let filePath;
+            if (module_or_path instanceof URL) {
+                filePath = fileURLToPath(module_or_path);
+            } else if (typeof module_or_path === 'string' && module_or_path.startsWith('file://')) {
+                filePath = fileURLToPath(new URL(module_or_path));
+            } else {
+                filePath = module_or_path;
+            }
+            module_or_path = readFile(filePath);
+        } else {
+            // Browser: use fetch
+            module_or_path = fetch(module_or_path);
+        }
     }
 
     const { instance, module } = await __wbg_load(await module_or_path, imports);
