@@ -83,6 +83,24 @@ function passStringToWasm0(arg, malloc, realloc) {
     WASM_VECTOR_LEN = offset;
     return ptr;
 }
+/**
+ * @param {string} viewing_key
+ * @returns {string}
+ */
+export function detect_key_type(viewing_key) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(viewing_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.detect_key_type(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
 
 function takeFromExternrefTable0(idx) {
     const value = wasm.__wbindgen_externrefs.get(idx);
@@ -129,25 +147,6 @@ export function decrypt_compact_output(nullifier_hex, cmx_hex, ephemeral_key_hex
 }
 
 /**
- * @param {string} viewing_key
- * @returns {string}
- */
-export function detect_key_type(viewing_key) {
-    let deferred2_0;
-    let deferred2_1;
-    try {
-        const ptr0 = passStringToWasm0(viewing_key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.detect_key_type(ptr0, len0);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-    }
-}
-
-/**
  * Batch filter compact outputs (MUCH FASTER!)
  * Takes JSON array of outputs and returns JSON array of matching indices
  * @param {string} outputs_json
@@ -174,6 +173,22 @@ export function batch_filter_compact_outputs(outputs_json, viewing_key) {
         return getStringFromWasm0(ptr3, len3);
     } finally {
         wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
+ * @returns {string}
+ */
+export function test_wasm() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.test_wasm();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
 }
 
@@ -207,18 +222,28 @@ export function decrypt_memo(tx_hex, viewing_key) {
 }
 
 /**
+ * Decode a unified address and return its component receivers
+ * @param {string} ua_string
  * @returns {string}
  */
-export function test_wasm() {
-    let deferred1_0;
-    let deferred1_1;
+export function decode_unified_address(ua_string) {
+    let deferred3_0;
+    let deferred3_1;
     try {
-        const ret = wasm.test_wasm();
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
+        const ptr0 = passStringToWasm0(ua_string, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.decode_unified_address(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
     } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 
