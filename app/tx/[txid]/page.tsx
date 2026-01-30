@@ -29,6 +29,7 @@ interface TransactionData {
   shieldedSpends: number;
   shieldedOutputs: number;
   hasShieldedData: boolean;
+  isCoinbase?: boolean;
   orchardActions?: number;
   valueBalance?: number;
   valueBalanceSapling?: number;
@@ -176,6 +177,10 @@ export default function TransactionPage() {
             },
           }));
 
+          // Calculate transparent totals from inputs/outputs
+          const transparentInputSum = transformedInputs.reduce((sum: number, i: any) => sum + (i.value || 0), 0);
+          const transparentOutputSum = transformedOutputs.reduce((sum: number, o: any) => sum + (o.value || 0), 0);
+
           const transformedData = {
             txid: txData.txid,
             blockHeight: txData.blockHeight,
@@ -184,8 +189,9 @@ export default function TransactionPage() {
             confirmations: parseInt(txData.confirmations),
             inputs: transformedInputs,
             outputs: transformedOutputs,
-            totalInput: transformedInputs.reduce((sum: number, i: any) => sum + (i.value || 0), 0),
-            totalOutput: transformedOutputs.reduce((sum: number, o: any) => sum + (o.value || 0), 0),
+            // Use API values if available (from Rust indexer), else calculate
+            totalInput: txData.totalInput != null ? txData.totalInput : transparentInputSum,
+            totalOutput: txData.totalOutput != null ? txData.totalOutput : transparentOutputSum,
             fee: 0, // Will be calculated below
             size: parseInt(txData.size),
             version: parseInt(txData.version),
@@ -193,6 +199,7 @@ export default function TransactionPage() {
             shieldedSpends: txData.shieldedSpends || 0,
             shieldedOutputs: txData.shieldedOutputs || 0,
             hasShieldedData: txData.hasSapling || txData.hasShielded || false,
+            isCoinbase: txData.isCoinbase || false,
             orchardActions: txData.orchardActions || 0,
             valueBalance: parseFloat(txData.valueBalance || 0),
             valueBalanceSapling: parseFloat(txData.valueBalanceSapling || 0),
@@ -289,7 +296,8 @@ export default function TransactionPage() {
     );
   }
 
-  const isCoinbase = data.inputs.length > 0 && data.inputs[0].coinbase;
+  // Detect coinbase: use API flag if available, otherwise check first input
+  const isCoinbase = data.isCoinbase || (data.inputs.length > 0 && data.inputs[0].coinbase);
   const hasOrchard = (data.orchardActions || 0) > 0;
   const hasSapling = data.hasShieldedData;
   const hasTransparentInputs = data.inputs.length > 0 && !isCoinbase;

@@ -73,7 +73,7 @@ router.get('/api/tx/shielded', async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Query
+    // Query (including Rust indexer fields)
     const result = await pool.query(
       `SELECT
         t.txid,
@@ -87,7 +87,10 @@ router.get('/api/tx/shielded', async (req, res) => {
         t.orchard_actions,
         t.vin_count,
         t.vout_count,
-        t.size
+        t.size,
+        t.fee,
+        t.value_balance_sapling,
+        t.value_balance_orchard
       FROM transactions t
       JOIN blocks b ON t.block_height = b.height
       ${whereClause}
@@ -120,6 +123,9 @@ router.get('/api/tx/shielded', async (req, res) => {
         vinCount: parseInt(tx.vin_count || 0),
         voutCount: parseInt(tx.vout_count || 0),
         size: parseInt(tx.size || 0),
+        fee: tx.fee ? tx.fee / 100000000 : null,
+        valueBalanceSapling: tx.value_balance_sapling ? tx.value_balance_sapling / 100000000 : 0,
+        valueBalanceOrchard: tx.value_balance_orchard ? tx.value_balance_orchard / 100000000 : 0,
         type: (tx.vin_count === 0 && tx.vout_count === 0) ? 'fully-shielded' : 'partial',
       })),
       pagination: {
@@ -153,7 +159,7 @@ router.get('/api/tx/:txid', async (req, res) => {
       return res.status(400).json({ error: 'Invalid transaction ID' });
     }
 
-    // Get transaction details
+    // Get transaction details (including Rust indexer fields)
     const txResult = await pool.query(
       `SELECT
         txid,
@@ -173,7 +179,11 @@ router.get('/api/tx/:txid', async (req, res) => {
         orchard_actions,
         shielded_spends,
         shielded_outputs,
-        tx_index
+        tx_index,
+        fee,
+        total_input,
+        total_output,
+        is_coinbase
       FROM transactions
       WHERE txid = $1`,
       [txid]
@@ -223,16 +233,28 @@ router.get('/api/tx/:txid', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || tx.block_height;
     const confirmations = currentHeight - tx.block_height + 1;
 
-    // Calculate fee from value balances
+    // Get value balances (in ZEC)
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
 
-    const transparentInputSum = inputsResult.rows.reduce((sum, inp) => sum + (parseFloat(inp.value) / 100000000), 0);
-    const transparentOutputSum = outputsResult.rows.reduce((sum, out) => sum + (parseFloat(out.value) / 100000000), 0);
-    const totalShieldedValueBalance = valueBalanceSapling + valueBalanceOrchard;
+    // Use fee from DB (Rust indexer), fallback to calculation if not available
+    let fee = null;
+    if (tx.fee && tx.fee > 0) {
+      // Fee from Rust indexer (in zatoshis, convert to ZEC)
+      fee = tx.fee / 100000000;
+    } else {
+      // Fallback: calculate from inputs/outputs
+      const transparentInputSum = inputsResult.rows.reduce((sum, inp) => sum + (parseFloat(inp.value) || 0), 0) / 100000000;
+      const transparentOutputSum = outputsResult.rows.reduce((sum, out) => sum + (parseFloat(out.value) || 0), 0) / 100000000;
+      const totalShieldedValueBalance = valueBalanceSapling + valueBalanceOrchard;
+      const calculatedFee = transparentInputSum - transparentOutputSum + totalShieldedValueBalance;
+      fee = calculatedFee > 0 ? calculatedFee : null;
+    }
 
-    const calculatedFee = transparentInputSum - transparentOutputSum + totalShieldedValueBalance;
+    // Total input/output from DB (Rust indexer, in zatoshis)
+    const totalInput = tx.total_input ? tx.total_input / 100000000 : null;
+    const totalOutput = tx.total_output ? tx.total_output / 100000000 : null;
 
     res.json({
       txid: tx.txid,
@@ -246,7 +268,10 @@ router.get('/api/tx/:txid', async (req, res) => {
       valueBalance: totalValueBalance,
       valueBalanceSapling,
       valueBalanceOrchard,
-      fee: calculatedFee > 0 ? calculatedFee : null,
+      fee,
+      totalInput,
+      totalOutput,
+      isCoinbase: tx.is_coinbase || false,
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
       hasSprout: tx.has_sprout,
