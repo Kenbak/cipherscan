@@ -1,18 +1,119 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useState, useMemo } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
-// Dynamic import for Globe (no SSR - uses WebGL)
-const Globe = dynamic(() => import('react-globe.gl'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-[500px] bg-cipher-bg/50">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent"></div>
-    </div>
-  ),
-});
+// Simplified world map dot coordinates (lat, lon) - major landmasses
+const WORLD_DOTS = generateWorldDots();
+
+function generateWorldDots(): { lat: number; lon: number }[] {
+  const dots: { lat: number; lon: number }[] = [];
+  
+  // North America
+  for (let lat = 25; lat <= 70; lat += 4) {
+    for (let lon = -170; lon <= -50; lon += 4) {
+      if (isLand(lat, lon, 'north_america')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  // South America
+  for (let lat = -55; lat <= 15; lat += 4) {
+    for (let lon = -80; lon <= -35; lon += 4) {
+      if (isLand(lat, lon, 'south_america')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  // Europe
+  for (let lat = 35; lat <= 72; lat += 4) {
+    for (let lon = -10; lon <= 60; lon += 4) {
+      if (isLand(lat, lon, 'europe')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  // Africa
+  for (let lat = -35; lat <= 38; lat += 4) {
+    for (let lon = -18; lon <= 52; lon += 4) {
+      if (isLand(lat, lon, 'africa')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  // Asia
+  for (let lat = 5; lat <= 75; lat += 4) {
+    for (let lon = 60; lon <= 180; lon += 4) {
+      if (isLand(lat, lon, 'asia')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  // Australia
+  for (let lat = -45; lat <= -10; lat += 4) {
+    for (let lon = 110; lon <= 155; lon += 4) {
+      if (isLand(lat, lon, 'australia')) {
+        dots.push({ lat, lon });
+      }
+    }
+  }
+  
+  return dots;
+}
+
+// Simplified land detection (rough approximation)
+function isLand(lat: number, lon: number, region: string): boolean {
+  switch (region) {
+    case 'north_america':
+      if (lon < -140 && lat < 55) return false; // Pacific
+      if (lon > -55 && lat < 45) return false; // Atlantic
+      if (lat > 50 && lon > -100 && lon < -60) return true; // Canada
+      if (lat >= 25 && lat <= 50 && lon >= -130 && lon <= -65) return true; // USA
+      if (lat >= 15 && lat <= 32 && lon >= -120 && lon <= -85) return true; // Mexico
+      if (lat >= 55 && lon >= -170 && lon <= -135) return true; // Alaska
+      return false;
+      
+    case 'south_america':
+      if (lon < -80 || lon > -35) return false;
+      if (lat > 12) return false;
+      if (lat < -55) return false;
+      if (lat < -45 && lon < -72) return false; // Chile tip
+      return true;
+      
+    case 'europe':
+      if (lat < 36 && lon > 25) return false; // Mediterranean
+      if (lat < 43 && lon < -5) return false; // Atlantic
+      if (lon > 55 && lat < 45) return false; // Caspian area
+      return true;
+      
+    case 'africa':
+      if (lat > 35 && lon > 30) return false; // Mediterranean
+      if (lat < -30 && lon < 18) return false; // Atlantic
+      if (lat < 5 && lon > 45) return false; // Indian Ocean
+      return true;
+      
+    case 'asia':
+      if (lat < 10 && lon > 100 && lon < 140) return Math.random() > 0.5; // SE Asia islands
+      if (lat > 70) return lon > 100 && lon < 180; // Siberia
+      if (lat < 25 && lon < 70) return false; // Indian Ocean
+      if (lon > 170) return false; // Pacific
+      return true;
+      
+    case 'australia':
+      if (lat < -40) return false;
+      if (lon < 115 || lon > 153) return false;
+      if (lat > -12) return false;
+      return true;
+      
+    default:
+      return false;
+  }
+}
 
 interface NodeLocation {
   country: string;
@@ -39,7 +140,7 @@ interface TopCountry {
   nodeCount: number;
 }
 
-// Country flag emoji from country code
+// Country flag emoji
 function getFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return '';
   const codePoints = countryCode
@@ -49,13 +150,25 @@ function getFlagEmoji(countryCode: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
+// Convert lat/lon to x/y on map
+function latLonToXY(lat: number, lon: number, width: number, height: number) {
+  const x = ((lon + 180) / 360) * width;
+  const latRad = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
+  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+  const y = height / 2 - (mercN * height) / (2 * Math.PI) * 0.8;
+  return { x, y };
+}
+
 export function NodeMap() {
   const [locations, setLocations] = useState<NodeLocation[]>([]);
   const [stats, setStats] = useState<NodeStats | null>(null);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const globeRef = useRef<any>(null);
+  const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
+
+  const mapWidth = 900;
+  const mapHeight = 450;
 
   // Fetch node data
   useEffect(() => {
@@ -87,74 +200,38 @@ export function NodeMap() {
     };
 
     fetchNodes();
-    
-    // Refresh every 5 minutes
     const interval = setInterval(fetchNodes, 300000);
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-rotate globe
-  useEffect(() => {
-    if (globeRef.current) {
-      // Set initial position
-      globeRef.current.pointOfView({ lat: 30, lng: 10, altitude: 2.2 }, 0);
+  // Pre-calculate dot positions
+  const worldDotPositions = useMemo(() => {
+    return WORLD_DOTS.map(dot => latLonToXY(dot.lat, dot.lon, mapWidth, mapHeight));
+  }, []);
+
+  // Cluster nearby nodes for cleaner display
+  const clusteredNodes = useMemo(() => {
+    // Group by approximate location
+    const clusters: Map<string, NodeLocation> = new Map();
+    
+    locations.forEach(loc => {
+      const key = `${Math.round(loc.lat / 5) * 5},${Math.round(loc.lon / 10) * 10}`;
+      const existing = clusters.get(key);
       
-      // Auto-rotate
-      const controls = globeRef.current.controls();
-      if (controls) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+      if (existing) {
+        clusters.set(key, {
+          ...existing,
+          nodeCount: existing.nodeCount + loc.nodeCount,
+          lat: (existing.lat + loc.lat) / 2,
+          lon: (existing.lon + loc.lon) / 2,
+        });
+      } else {
+        clusters.set(key, { ...loc });
       }
-    }
-  }, [loading]);
-
-  // Point color based on node count
-  const getPointColor = useCallback((d: any) => {
-    const count = d.nodeCount || 1;
-    if (count >= 5) return '#3ff4c6'; // Cyan for large clusters
-    if (count >= 2) return '#22d3ee'; // Light cyan
-    return '#a855f7'; // Purple for single nodes
-  }, []);
-
-  // Point size based on node count
-  const getPointAltitude = useCallback((d: any) => {
-    const count = d.nodeCount || 1;
-    return 0.01 + Math.sqrt(count) * 0.02;
-  }, []);
-
-  const getPointRadius = useCallback((d: any) => {
-    const count = d.nodeCount || 1;
-    return 0.3 + Math.sqrt(count) * 0.4;
-  }, []);
-
-  // Tooltip content
-  const getLabel = useCallback((d: any) => {
-    return `
-      <div style="
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid rgba(63, 244, 198, 0.3);
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-family: system-ui, -apple-system, sans-serif;
-        color: white;
-        min-width: 150px;
-      ">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-          <span style="font-size: 18px;">${getFlagEmoji(d.countryCode)}</span>
-          <span style="font-weight: 600; font-size: 14px;">${d.city}</span>
-        </div>
-        <div style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 8px;">
-          ${d.country}
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
-          <span style="color: #3ff4c6; font-weight: 600; font-family: monospace;">
-            ${d.nodeCount} node${d.nodeCount > 1 ? 's' : ''}
-          </span>
-          ${d.avgPingMs ? `<span style="color: rgba(255,255,255,0.5);">${d.avgPingMs.toFixed(0)}ms</span>` : ''}
-        </div>
-      </div>
-    `;
-  }, []);
+    });
+    
+    return Array.from(clusters.values());
+  }, [locations]);
 
   if (loading) {
     return (
@@ -191,75 +268,114 @@ export function NodeMap() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-primary">Network Node Map</h2>
-              <p className="text-xs text-muted">
-                Global distribution of Zcash full nodes
-              </p>
+              <p className="text-xs text-muted">Global distribution of Zcash full nodes</p>
             </div>
           </div>
           
-          {/* Stats badges */}
           {stats && (
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-6 text-sm">
               <div className="text-center">
-                <div className="font-bold text-cipher-cyan font-mono">{stats.activeNodes}</div>
-                <div className="text-[10px] text-muted uppercase">Nodes</div>
+                <div className="font-bold text-cipher-cyan font-mono text-xl">{stats.activeNodes}</div>
+                <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-cipher-green font-mono">{stats.countries}</div>
-                <div className="text-[10px] text-muted uppercase">Countries</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-purple-400 font-mono">{stats.cities}</div>
-                <div className="text-[10px] text-muted uppercase">Cities</div>
+                <div className="font-bold text-cipher-green font-mono text-xl">{stats.countries}</div>
+                <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Globe Container */}
-      <div className="relative h-[500px] bg-[#0a0a0f]">
-        <Globe
-          ref={globeRef}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-          backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-          pointsData={locations}
-          pointLat="lat"
-          pointLng="lon"
-          pointColor={getPointColor}
-          pointAltitude={getPointAltitude}
-          pointRadius={getPointRadius}
-          pointLabel={getLabel}
-          pointsMerge={false}
-          atmosphereColor="#3ff4c6"
-          atmosphereAltitude={0.15}
-          enablePointerInteraction={true}
-          width={typeof window !== 'undefined' ? Math.min(window.innerWidth - 48, 1200) : 800}
-          height={500}
-        />
+      {/* Dot Matrix Map */}
+      <div className="relative bg-[#0a0a0f] p-4">
+        <svg
+          viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+          className="w-full h-auto"
+          style={{ maxHeight: '500px' }}
+        >
+          {/* World outline dots */}
+          {worldDotPositions.map((pos, i) => (
+            <circle
+              key={`dot-${i}`}
+              cx={pos.x}
+              cy={pos.y}
+              r={1.5}
+              fill="#374151"
+              opacity={0.6}
+            />
+          ))}
 
-        {/* Legend overlay */}
-        <div className="absolute bottom-4 left-4 bg-cipher-card/90 backdrop-blur border border-cipher-border rounded-lg px-3 py-2 text-xs">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-[#3ff4c6]"></span>
-              <span className="text-muted">5+ nodes</span>
+          {/* Node clusters */}
+          {clusteredNodes.map((node, i) => {
+            const pos = latLonToXY(node.lat, node.lon, mapWidth, mapHeight);
+            const isHovered = hoveredNode === node;
+            const radius = Math.max(16, Math.min(30, 12 + node.nodeCount * 2));
+            
+            return (
+              <g
+                key={`node-${i}`}
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredNode(node)}
+                onMouseLeave={() => setHoveredNode(null)}
+              >
+                {/* Glow effect */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={radius + 8}
+                  fill="#3ff4c6"
+                  opacity={isHovered ? 0.3 : 0.15}
+                  className="transition-opacity duration-200"
+                />
+                
+                {/* Main circle */}
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={radius}
+                  fill={isHovered ? '#3ff4c6' : '#22d3ee'}
+                  stroke={isHovered ? '#fff' : 'transparent'}
+                  strokeWidth={2}
+                  className="transition-all duration-200"
+                />
+                
+                {/* Node count */}
+                <text
+                  x={pos.x}
+                  y={pos.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill={isHovered ? '#0a0a0f' : '#0a0a0f'}
+                  fontSize={radius > 20 ? 12 : 10}
+                  fontWeight="bold"
+                  fontFamily="monospace"
+                >
+                  {node.nodeCount}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Tooltip */}
+        {hoveredNode && (
+          <div className="absolute top-4 left-4 bg-cipher-card/95 backdrop-blur border border-cipher-cyan/30 rounded-lg px-4 py-3 shadow-xl z-10">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
+              <span className="font-semibold text-primary">{hoveredNode.city}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#22d3ee]"></span>
-              <span className="text-muted">2-4 nodes</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#a855f7]"></span>
-              <span className="text-muted">1 node</span>
+            <div className="text-xs text-secondary mb-2">{hoveredNode.country}</div>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-cipher-cyan font-mono font-bold">
+                {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
+              </span>
+              {hoveredNode.avgPingMs && (
+                <span className="text-muted">{hoveredNode.avgPingMs.toFixed(0)}ms ping</span>
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Controls hint */}
-        <div className="absolute top-4 right-4 text-[10px] text-muted/50">
-          Drag to rotate • Scroll to zoom
-        </div>
+        )}
       </div>
 
       {/* Top Countries */}
@@ -274,7 +390,7 @@ export function NodeMap() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {topCountries.slice(0, 8).map((country) => (
+            {topCountries.slice(0, 10).map((country) => (
               <div
                 key={country.countryCode}
                 className="flex items-center gap-2 bg-cipher-bg/50 rounded-lg px-3 py-1.5"
