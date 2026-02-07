@@ -241,6 +241,22 @@ This library is a thin TypeScript wrapper around Rust WASM code:
 
 ---
 
+## 🧪 Try It Out
+
+After installing, run the interactive example:
+
+```bash
+node node_modules/@cipherscan/zcash-decoder/examples/decrypt-memo.mjs
+```
+
+This will prompt you for:
+1. Your viewing key (UFVK)
+2. A transaction ID
+
+And decrypt the memo for you.
+
+---
+
 ## 🛠️ Development
 
 ### Build the WASM module
@@ -281,7 +297,7 @@ Funded by the **Gemini Hackathon 2025** bounty for privacy-preserving Zcash tool
 If you find this library useful, consider supporting development with ZEC:
 
 ```
-u19l33nnr9qnhekptmjacyj95a565tcns09xvyxmt777xnk2q6c6s0jrthgme6dkeevc24zue9yqlmspdla5fw5mjws9j7fq5lwcra6yurct42fsxy09agzanh296p2wcq597udtdgj79wc8mnm5eefuwrs8495g42queg9xmhagmp8tj0
+u1fh3kwyl9hq9q907rx9j8mdy2r7gz4xh0y4yt63dxykk2856gr0238vxsegemyfu8s5a77ycq72tcnzkxa75ykjtcn6wp2w9rtuu3ssdzpe2fyghl8wlk3vh6f67304xe4lrxtvywtudy5t434zc07u6mh27ekufx7ssr55l8875z7f4k76c3tk23s3jzf8rxdlkequlta8lwsv09gxm
 ```
 
 All donations go towards:

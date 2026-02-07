@@ -24,7 +24,7 @@
  * const matches = await wasm.filterCompactBlocks(blocks, viewingKey);
  * ```
  */
-export * from './types';
+export * from './types.js';
 /**
  * Main ZcashWASM class for client-side Zcash operations
  */

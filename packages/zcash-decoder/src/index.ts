@@ -25,7 +25,7 @@
  * ```
  */
 
-export * from './types';
+export * from './types.js';
 
 import type {
   DecryptedOutput,
@@ -33,7 +33,7 @@ import type {
   MatchingTransaction,
   FilterProgress,
   ViewingKeyType,
-} from './types';
+} from './types.js';
 
 /**
  * WASM module interface (loaded from zcash_wasm.js)

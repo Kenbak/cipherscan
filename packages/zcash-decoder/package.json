@@ -1,17 +1,21 @@
 {
   "name": "@cipherscan/zcash-decoder",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "description": "Client-side decoder for Zcash shielded transactions and memos",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
     "wasm",
+    "scripts",
+    "examples",
     "README.md"
   ],
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/postinstall.js || true"
   },
   "keywords": [
     "zcash",

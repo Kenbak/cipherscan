@@ -410,4 +410,110 @@ router.get('/api/network/peers', async (req, res) => {
   }
 });
 
+// ============================================================================
+// NODE MAP (Aggregated by location for privacy)
+// ============================================================================
+
+/**
+ * GET /api/network/nodes
+ * Get node locations aggregated by city (for privacy)
+ */
+router.get('/api/network/nodes', async (req, res) => {
+  try {
+    // Return nodes aggregated by city/country (no individual IPs exposed)
+    const result = await pool.query(`
+      SELECT 
+        country,
+        country_code,
+        city,
+        ROUND(lat::numeric, 2) as lat,
+        ROUND(lon::numeric, 2) as lon,
+        COUNT(*) as node_count,
+        ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms
+      FROM nodes 
+      WHERE is_active = TRUE AND lat IS NOT NULL
+      GROUP BY country, country_code, city, ROUND(lat::numeric, 2), ROUND(lon::numeric, 2)
+      ORDER BY node_count DESC
+    `);
+
+    res.json({
+      success: true,
+      locations: result.rows.map(row => ({
+        country: row.country,
+        countryCode: row.country_code,
+        city: row.city,
+        lat: parseFloat(row.lat),
+        lon: parseFloat(row.lon),
+        nodeCount: parseInt(row.node_count),
+        avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+      })),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('❌ [NODES] Error fetching node locations:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch node locations',
+    });
+  }
+});
+
+/**
+ * GET /api/network/nodes/stats
+ * Get aggregated node statistics
+ */
+router.get('/api/network/nodes/stats', async (req, res) => {
+  try {
+    const stats = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE is_active) as active_nodes,
+        COUNT(*) as total_nodes,
+        COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
+        COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
+        ROUND(AVG(ping_ms) FILTER (WHERE is_active)::numeric, 1) as avg_ping_ms,
+        MAX(last_seen) as last_updated
+      FROM nodes
+    `);
+
+    // Top countries by node count
+    const topCountries = await pool.query(`
+      SELECT 
+        country,
+        country_code,
+        COUNT(*) as node_count
+      FROM nodes 
+      WHERE is_active = TRUE
+      GROUP BY country, country_code
+      ORDER BY node_count DESC
+      LIMIT 10
+    `);
+
+    const row = stats.rows[0];
+    
+    res.json({
+      success: true,
+      stats: {
+        activeNodes: parseInt(row.active_nodes) || 0,
+        totalNodes: parseInt(row.total_nodes) || 0,
+        countries: parseInt(row.countries) || 0,
+        cities: parseInt(row.cities) || 0,
+        avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+        lastUpdated: row.last_updated,
+      },
+      topCountries: topCountries.rows.map(r => ({
+        country: r.country,
+        countryCode: r.country_code,
+        nodeCount: parseInt(r.node_count),
+      })),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('❌ [NODES] Error fetching node stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch node stats',
+    });
+  }
+});
+
 module.exports = router;

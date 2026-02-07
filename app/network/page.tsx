@@ -6,6 +6,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import NodeMap from '@/components/NodeMap';
 
 // Format hashrate with appropriate unit (H/s, KH/s, MH/s, GH/s, TH/s)
 function formatHashrate(hashrate: number): string {
@@ -494,6 +495,11 @@ export default function NetworkPage() {
             </div>
           </CardBody>
         </Card>
+      </div>
+
+      {/* Node Map */}
+      <div className="mb-8">
+        <NodeMap />
       </div>
 
       {/* Mining & Performance */}

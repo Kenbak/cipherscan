@@ -24,8 +24,8 @@
  * const matches = await wasm.filterCompactBlocks(blocks, viewingKey);
  * ```
  */
-export * from './types';
-import type { DecryptedOutput, CompactBlock, MatchingTransaction, FilterProgress, ViewingKeyType } from './types';
+export * from './types.js';
+import type { DecryptedOutput, CompactBlock, MatchingTransaction, FilterProgress, ViewingKeyType } from './types.js';
 /**
  * Main ZcashWASM class for client-side Zcash operations
  */
