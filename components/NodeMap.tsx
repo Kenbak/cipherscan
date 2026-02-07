@@ -46,7 +46,7 @@ const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.jso
 const DOT_SPACING = 2.5;
 const MAP_WIDTH = 960;
 const MAP_HEIGHT = 500;
-const DOT_RADIUS = 1.6;
+const DOT_RADIUS = 2.4;
 
 // Color tiers based on node count
 const NODE_TIERS = {
