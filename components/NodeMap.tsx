@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { feature } from 'topojson-client';
 
@@ -43,34 +43,41 @@ interface DotPosition {
 // ==========================================================================
 
 const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
-const DOT_SPACING = 3; // degrees between dots
+const DOT_SPACING = 2.5;
 const MAP_WIDTH = 960;
 const MAP_HEIGHT = 500;
-const DOT_RADIUS = 1.8;
+const DOT_RADIUS = 1.6;
+
+// Color tiers based on node count
+const NODE_TIERS = {
+  high: { fill: '#3ff4c6', glow: '#3ff4c6', label: '10+' },     // cipher-cyan
+  medium: { fill: '#22d3ee', glow: '#22d3ee', label: '5-9' },    // cyan-400
+  low: { fill: '#0891b2', glow: '#0891b2', label: '2-4' },       // cyan-700
+  single: { fill: '#a855f7', glow: '#a855f7', label: '1' },      // purple
+};
+
+function getNodeTier(count: number) {
+  if (count >= 10) return NODE_TIERS.high;
+  if (count >= 5) return NODE_TIERS.medium;
+  if (count >= 2) return NODE_TIERS.low;
+  return NODE_TIERS.single;
+}
 
 // ==========================================================================
 // GEOMETRY HELPERS
 // ==========================================================================
 
-/**
- * Equirectangular projection (clean flat map, like Solana Beach)
- */
 function project(lat: number, lon: number): { x: number; y: number } {
   const x = ((lon + 180) / 360) * MAP_WIDTH;
   const y = ((90 - lat) / 180) * MAP_HEIGHT;
   return { x, y };
 }
 
-/**
- * Ray-casting point-in-polygon
- * GeoJSON rings are [lon, lat] pairs
- */
 function pointInRing(lon: number, lat: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const xi = ring[i][0], yi = ring[i][1];
     const xj = ring[j][0], yj = ring[j][1];
-
     if (
       (yi > lat) !== (yj > lat) &&
       lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
@@ -81,9 +88,6 @@ function pointInRing(lon: number, lat: number, ring: number[][]): boolean {
   return inside;
 }
 
-/**
- * Check if a point is on land given GeoJSON features
- */
 function isPointOnLand(lat: number, lon: number, features: any[]): boolean {
   for (const feat of features) {
     const geom = feat.geometry || feat;
@@ -98,12 +102,8 @@ function isPointOnLand(lat: number, lon: number, features: any[]): boolean {
   return false;
 }
 
-/**
- * Generate world dot positions from GeoJSON land data
- */
 function generateWorldDots(landFeatures: any[]): DotPosition[] {
   const dots: DotPosition[] = [];
-
   for (let lat = 84; lat >= -60; lat -= DOT_SPACING) {
     for (let lon = -180; lon < 180; lon += DOT_SPACING) {
       if (isPointOnLand(lat, lon, landFeatures)) {
@@ -111,7 +111,6 @@ function generateWorldDots(landFeatures: any[]): DotPosition[] {
       }
     }
   }
-
   return dots;
 }
 
@@ -188,12 +187,11 @@ export function NodeMap() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cluster nearby nodes by rounding to nearest grid
+  // Cluster nearby nodes
   const clusteredNodes = useMemo(() => {
-    const clusters: Map<string, { lat: number; lon: number; nodeCount: number; country: string; countryCode: string; city: string; avgPingMs: number | null }> = new Map();
+    const clusters: Map<string, NodeLocation> = new Map();
 
     locations.forEach((loc) => {
-      // Round to 8° grid to cluster nearby cities
       const keyLat = Math.round(loc.lat / 8) * 8;
       const keyLon = Math.round(loc.lon / 8) * 8;
       const key = `${keyLat},${keyLon}`;
@@ -277,13 +275,55 @@ export function NodeMap() {
       </div>
 
       {/* Dot Matrix Map */}
-      <div className="relative bg-[#0b0b12]">
+      <div className="relative bg-[#08090F]">
         <svg
           viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
           className="w-full h-auto"
           style={{ maxHeight: '520px' }}
           onMouseLeave={() => setHoveredNode(null)}
         >
+          <defs>
+            {/* Glow filters for each tier */}
+            <filter id="glow-high" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.247  0 0 0 0 0.957  0 0 0 0 0.776  0 0 0 0.6 0" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="glow-medium" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.133  0 0 0 0 0.827  0 0 0 0 0.933  0 0 0 0.5 0" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="glow-low" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.031  0 0 0 0 0.569  0 0 0 0 0.698  0 0 0 0.4 0" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="glow-single" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.659  0 0 0 0 0.333  0 0 0 0 0.969  0 0 0 0.4 0" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            {/* Scan line animation */}
+            <linearGradient id="scanGradient" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor="transparent" />
+              <stop offset="50%" stopColor="#3ff4c6" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+
           {/* Land dots (gray dot matrix) */}
           {worldDots.map((dot, i) => (
             <circle
@@ -291,75 +331,96 @@ export function NodeMap() {
               cx={dot.x}
               cy={dot.y}
               r={DOT_RADIUS}
-              fill="#4b5563"
-              opacity={0.5}
+              fill="#374151"
+              opacity={0.45}
             />
           ))}
 
-          {/* Node clusters */}
-          {clusteredNodes.map((node, i) => {
-            const pos = project(node.lat, node.lon);
-            const isHovered = hoveredNode === node;
-            const count = node.nodeCount;
-            const radius = Math.max(14, Math.min(28, 10 + Math.sqrt(count) * 5));
+          {/* Scan line effect */}
+          <rect
+            x="0"
+            width={MAP_WIDTH}
+            height="3"
+            fill="url(#scanGradient)"
+            opacity="0.6"
+          >
+            <animate
+              attributeName="y"
+              from="-3"
+              to={MAP_HEIGHT}
+              dur="6s"
+              repeatCount="indefinite"
+            />
+          </rect>
 
-            return (
-              <g
-                key={`nc-${i}`}
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredNode(node as any)}
-                onMouseLeave={() => setHoveredNode(null)}
-              >
-                {/* Outer glow */}
-                <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={radius + 6}
-                  fill="#22d3ee"
-                  opacity={isHovered ? 0.35 : 0.18}
-                  className="transition-opacity duration-200"
-                />
+          {/* Node clusters - sorted so smaller ones render on top */}
+          {[...clusteredNodes]
+            .sort((a, b) => b.nodeCount - a.nodeCount)
+            .map((node, i) => {
+              const pos = project(node.lat, node.lon);
+              const isHovered = hoveredNode === node;
+              const count = node.nodeCount;
+              const tier = getNodeTier(count);
 
-                {/* Main circle */}
-                <circle
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={radius}
-                  fill={isHovered ? '#3ff4c6' : '#22d3ee'}
-                  opacity={isHovered ? 1 : 0.9}
-                  stroke={isHovered ? '#fff' : 'none'}
-                  strokeWidth={1.5}
-                  className="transition-all duration-200"
-                />
+              // Smaller, tighter circles
+              const radius = Math.max(10, Math.min(22, 8 + Math.sqrt(count) * 3.5));
 
-                {/* Count number */}
-                <text
-                  x={pos.x}
-                  y={pos.y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="#0b0b12"
-                  fontSize={radius > 18 ? 12 : 10}
-                  fontWeight="bold"
-                  fontFamily="ui-monospace, monospace"
-                  className="pointer-events-none select-none"
+              // Pick glow filter
+              const filterId = count >= 10 ? 'glow-high'
+                : count >= 5 ? 'glow-medium'
+                : count >= 2 ? 'glow-low'
+                : 'glow-single';
+
+              return (
+                <g
+                  key={`nc-${i}`}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredNode(node)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  filter={`url(#${filterId})`}
                 >
-                  {count}
-                </text>
-              </g>
-            );
-          })}
+                  {/* Main circle */}
+                  <circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={isHovered ? radius + 2 : radius}
+                    fill={tier.fill}
+                    opacity={isHovered ? 1 : 0.85}
+                    stroke={isHovered ? '#ffffff' : 'rgba(255,255,255,0.15)'}
+                    strokeWidth={isHovered ? 2 : 0.5}
+                    style={{
+                      transition: 'all 150ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                  />
+
+                  {/* Count number */}
+                  <text
+                    x={pos.x}
+                    y={pos.y + 0.5}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="#08090F"
+                    fontSize={radius > 16 ? 11 : 9}
+                    fontWeight="700"
+                    fontFamily="ui-monospace, 'JetBrains Mono', monospace"
+                    className="pointer-events-none select-none"
+                  >
+                    {count}
+                  </text>
+                </g>
+              );
+            })}
         </svg>
 
-        {/* Hover tooltip (fixed top-left) */}
+        {/* Hover tooltip (country + count only, no city) */}
         {hoveredNode && (
-          <div className="absolute top-3 left-3 bg-cipher-card/95 backdrop-blur border border-cipher-cyan/30 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="absolute top-3 left-3 bg-[#14161F]/95 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none">
+            <div className="flex items-center gap-2">
               <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
               <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
             </div>
-            <div className="flex items-center gap-3 text-xs mt-1">
-              <span className="text-cipher-cyan font-mono font-bold">
+            <div className="flex items-center gap-3 text-xs mt-1.5">
+              <span className="font-mono font-bold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
                 {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
               </span>
               {hoveredNode.avgPingMs && (
@@ -368,6 +429,28 @@ export function NodeMap() {
             </div>
           </div>
         )}
+
+        {/* Legend */}
+        <div className="absolute bottom-3 left-3 bg-[#14161F]/90 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: NODE_TIERS.high.fill, boxShadow: `0 0 6px ${NODE_TIERS.high.glow}` }}></span>
+              <span className="text-muted">{NODE_TIERS.high.label}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: NODE_TIERS.medium.fill }}></span>
+              <span className="text-muted">{NODE_TIERS.medium.label}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: NODE_TIERS.low.fill }}></span>
+              <span className="text-muted">{NODE_TIERS.low.label}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: NODE_TIERS.single.fill }}></span>
+              <span className="text-muted">{NODE_TIERS.single.label}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Top Countries */}
@@ -389,7 +472,9 @@ export function NodeMap() {
               >
                 <span className="text-base">{getFlagEmoji(country.countryCode)}</span>
                 <span className="text-xs text-secondary">{country.country}</span>
-                <span className="text-xs font-mono font-bold text-cipher-cyan">{country.nodeCount}</span>
+                <span className="text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
+                  {country.nodeCount}
+                </span>
               </div>
             ))}
           </div>
