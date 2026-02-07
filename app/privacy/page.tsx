@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Tooltip } from '@/components/Tooltip';
-import { CURRENCY, isTestnet } from '@/lib/config';
+import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
 // Format date for charts (shorter format)
@@ -159,14 +158,10 @@ export default function PrivacyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <Card>
-            <CardBody className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-400 border-t-transparent"></div>
-              <p className="text-secondary ml-4 font-mono">Loading privacy statistics...</p>
-            </CardBody>
-          </Card>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-400 border-t-transparent"></div>
+          <p className="text-secondary ml-4 font-mono">Loading privacy statistics...</p>
         </div>
       </div>
     );
@@ -174,21 +169,18 @@ export default function PrivacyPage() {
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <Card className="text-center">
-            <CardBody className="py-16">
-              <div className="text-6xl mb-6">🛡️</div>
-              <h1 className="text-2xl font-bold mb-4 text-primary">Privacy Stats Unavailable</h1>
-              <p className="text-secondary mb-6">
-                {error || 'Privacy statistics are being calculated. Check back soon!'}
-              </p>
-              <Link href="/" className="text-cipher-cyan hover:underline font-mono">
-                ← Back to Explorer
-              </Link>
-            </CardBody>
-          </Card>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <Card className="text-center">
+          <CardBody className="py-16">
+            <h1 className="text-2xl font-bold mb-4 text-primary">Privacy Stats Unavailable</h1>
+            <p className="text-secondary mb-6">
+              {error || 'Privacy statistics are being calculated. Check back soon!'}
+            </p>
+            <Link href="/" className="text-cipher-cyan hover:underline font-mono">
+              Back to Explorer
+            </Link>
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -204,40 +196,40 @@ export default function PrivacyPage() {
     <Icons.Chart />;
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
-        {/* Header */}
-        <div className="mb-8 sm:mb-12 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 font-mono text-primary">
-            🛡️ Zcash Privacy Metrics
-          </h1>
-          <p className="text-secondary text-base sm:text-lg max-w-3xl mx-auto px-2">
-            Live privacy statistics for the Zcash {isTestnet ? 'testnet' : 'mainnet'} blockchain.
-            Track shielded adoption, privacy score, and transparency trends.
+        {/* Header - cypherpunk style */}
+        <div className="mb-8 animate-fade-in">
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+            <span className="opacity-50">{'>'}</span> PRIVACY_DASHBOARD
           </p>
-          <div className="flex items-center justify-center gap-2 mt-3">
-
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+              Privacy Metrics
+            </h1>
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-1.5 ${trendColor}`}>
+                {trendIcon}
+                <span className="text-xs font-mono capitalize">{stats.metrics.adoptionTrend}</span>
+              </div>
+              <span className="text-xs text-muted font-mono">
+                {new Date(stats.lastUpdated).toLocaleTimeString()}
+              </span>
+            </div>
           </div>
-          <p className="text-xs sm:text-sm text-muted mt-2">
-            Last updated: {new Date(stats.lastUpdated).toLocaleString()}
-          </p>
         </div>
 
-        {/* Privacy Score + Recent Shielded Activity - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Privacy Score + Key Metrics | Recent Shielded Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
 
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
-            {/* Privacy Score */}
-            <Card variant="featured" className="border-purple-500/30">
+            {/* Privacy Score Hero */}
+            <Card>
               <CardBody className="text-center py-8">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                    <Icons.Shield />
-                  </div>
-                  <h2 className="text-xl font-bold text-purple-400">Privacy Score</h2>
-                  <Tooltip content="Overall privacy health metric (0-100) based on shielded adoption, fully shielded ratio, and pool size." />
+                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+                  <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">PRIVACY_SCORE</h2>
                 </div>
 
                 <div className="text-7xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -245,7 +237,6 @@ export default function PrivacyPage() {
                   <span className="text-3xl text-muted">/100</span>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="max-w-md mx-auto mb-6">
                   <div className="h-4 privacy-progress-bg rounded-full overflow-hidden">
                     <div
@@ -263,7 +254,6 @@ export default function PrivacyPage() {
 
             {/* Key Metrics 2x2 Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Shielded Percentage */}
               <Card variant="compact">
                 <CardBody>
                   <div className="flex items-center gap-2 mb-2">
@@ -281,7 +271,6 @@ export default function PrivacyPage() {
                 </CardBody>
               </Card>
 
-              {/* Supply Shielded % */}
               <Card variant="compact">
                 <CardBody>
                   <div className="flex items-center gap-2 mb-2">
@@ -293,15 +282,14 @@ export default function PrivacyPage() {
                   <div className="text-2xl font-bold text-cipher-cyan">
                     {stats.shieldedPool.chainSupply
                       ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
-                      : '—'}%
+                      : '\u2014'}%
                   </div>
                   <p className="text-xs text-muted mt-1">
-                    {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '—'}M
+                    {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '\u2014'}M
                   </p>
                 </CardBody>
               </Card>
 
-              {/* Adoption Trend */}
               <Card variant="compact">
                 <CardBody>
                   <div className="flex items-center gap-2 mb-2">
@@ -321,7 +309,6 @@ export default function PrivacyPage() {
                 </CardBody>
               </Card>
 
-              {/* Fully Shielded */}
               <Card variant="compact">
                 <CardBody>
                   <div className="flex items-center gap-2 mb-2">
@@ -337,34 +324,28 @@ export default function PrivacyPage() {
                 </CardBody>
               </Card>
             </div>
-
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
-          <Card variant="featured" className="border-purple-500/30">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                  <Icons.Lock />
-                </div>
-                <h2 className="text-xl font-bold font-mono text-purple-400">Recent Shielded TXs</h2>
-              </div>
-              <div className="flex items-center gap-2 ml-auto">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                <Badge color="purple">LIVE</Badge>
-              </div>
-            </CardHeader>
+          <Card>
             <CardBody>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+                  <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">SHIELDED_ACTIVITY</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  <Badge color="purple">LIVE</Badge>
+                </div>
+              </div>
               <p className="text-xs text-secondary mb-4">
                 Latest shielded transactions. Click to view or decrypt.
               </p>
-
-              {/* Show only 3-4 TXs */}
-              <div className="space-y-3 max-h-[350px] overflow-y-auto">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
                 <RecentShieldedTxs nested />
               </div>
-
-              <div className="mt-4 pt-4 border-t border-purple-500/20">
+              <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                 <Link
                   href="/txs/shielded"
                   className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
@@ -374,53 +355,47 @@ export default function PrivacyPage() {
               </div>
             </CardBody>
           </Card>
-
         </div>
 
-        {/* Transaction Types + Pool Breakdown - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Transaction Types + Pool Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           {/* Transaction Types */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cipher-surface flex items-center justify-center text-secondary">
-                  <Icons.Chart />
-                </div>
-                <h2 className="text-lg font-bold text-primary">Transaction Types</h2>
+            <CardBody>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+                <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">TX_TYPES</h2>
               </div>
-            </CardHeader>
-            <CardBody className="space-y-5">
-              {/* Shielded */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-purple-400 font-mono flex items-center gap-2 text-sm">
-                    <Icons.Lock />
-                    Shielded ({stats.totals.shieldedTx.toLocaleString()})
-                  </span>
-                  <Badge color="purple">{stats.metrics.shieldedPercentage.toFixed(1)}%</Badge>
+              <div className="space-y-5">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-purple-400 font-mono flex items-center gap-2 text-sm">
+                      <Icons.Lock />
+                      Shielded ({stats.totals.shieldedTx.toLocaleString()})
+                    </span>
+                    <Badge color="purple">{stats.metrics.shieldedPercentage.toFixed(1)}%</Badge>
+                  </div>
+                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 transition-all duration-700"
+                      style={{ width: `${stats.metrics.shieldedPercentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-purple-500 transition-all duration-700"
-                    style={{ width: `${stats.metrics.shieldedPercentage}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Transparent */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-secondary font-mono flex items-center gap-2 text-sm">
-                    <Icons.Eye />
-                    Transparent ({stats.totals.transparentTx.toLocaleString()})
-                  </span>
-                  <Badge color="muted">{(100 - stats.metrics.shieldedPercentage).toFixed(1)}%</Badge>
-                </div>
-                <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gray-500 transition-all duration-700"
-                    style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
-                  />
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-secondary font-mono flex items-center gap-2 text-sm">
+                      <Icons.Eye />
+                      Transparent ({stats.totals.transparentTx.toLocaleString()})
+                    </span>
+                    <Badge color="muted">{(100 - stats.metrics.shieldedPercentage).toFixed(1)}%</Badge>
+                  </div>
+                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gray-500 transition-all duration-700"
+                      style={{ width: `${100 - stats.metrics.shieldedPercentage}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </CardBody>
@@ -429,83 +404,78 @@ export default function PrivacyPage() {
           {/* Shielded Pool Breakdown */}
           {stats.shieldedPool.sapling !== undefined && (
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                    <Icons.Shield />
-                  </div>
-                  <h2 className="text-lg font-bold text-primary">Shielded Pool Breakdown</h2>
+              <CardBody>
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+                  <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">POOL_BREAKDOWN</h2>
                 </div>
-              </CardHeader>
-              <CardBody className="space-y-4">
-                {/* Sapling */}
-                <div>
-                  <div className="flex justify-between mb-2 items-center">
-                    <span className="text-cyan-400 font-mono text-sm">Sapling</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-secondary text-sm">
-                        {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
-                      </span>
-                      <Badge color="cyan">
-                        {((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                      </Badge>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-2 items-center">
+                      <span className="text-cyan-400 font-mono text-sm">Sapling</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-secondary text-sm">
+                          {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
+                        </span>
+                        <Badge color="cyan">
+                          {((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500 transition-all duration-700"
+                        style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-500 transition-all duration-700"
-                      style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
-                    />
-                  </div>
-                </div>
 
-                {/* Sprout */}
-                <div>
-                  <div className="flex justify-between mb-2 items-center">
-                    <span className="text-amber-400 font-mono text-sm">Sprout</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-secondary text-sm">
-                        {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
-                      </span>
-                      <Badge color="orange">
-                        {((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                      </Badge>
+                  <div>
+                    <div className="flex justify-between mb-2 items-center">
+                      <span className="text-amber-400 font-mono text-sm">Sprout</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-secondary text-sm">
+                          {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
+                        </span>
+                        <Badge color="orange">
+                          {((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 transition-all duration-700"
+                        style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-500 transition-all duration-700"
-                      style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
-                    />
-                  </div>
-                </div>
 
-                {/* Orchard */}
-                <div>
-                  <div className="flex justify-between mb-2 items-center">
-                    <span className="text-green-400 font-mono text-sm">Orchard</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-secondary text-sm">
-                        {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
-                      </span>
-                      <Badge color="green">
-                        {((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                      </Badge>
+                  <div>
+                    <div className="flex justify-between mb-2 items-center">
+                      <span className="text-green-400 font-mono text-sm">Orchard</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-secondary text-sm">
+                          {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
+                        </span>
+                        <Badge color="green">
+                          {((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 transition-all duration-700"
+                        style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-700"
-                      style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
-                    />
-                  </div>
-                </div>
 
-                <div className="pt-4 border-t border-cipher-border flex justify-between items-center">
-                  <span className="text-secondary font-mono text-sm">Total Shielded</span>
-                  <span className="text-cipher-cyan font-bold font-mono">
-                    {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
-                  </span>
+                  <div className="pt-4 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
+                    <span className="text-secondary font-mono text-sm">Total Shielded</span>
+                    <span className="text-primary font-bold font-mono">
+                      {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
+                    </span>
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -514,242 +484,40 @@ export default function PrivacyPage() {
 
         {/* Charts Section with Tabs */}
         {stats.trends.daily.length > 0 && (
-          <Card className="mb-8">
-            <CardBody>
-            {/* Tabs */}
-            <div className="flex gap-1 mb-6 border-b border-cipher-border overflow-x-auto pb-px">
-              <button
-                onClick={() => setActiveTab('adoption')}
-                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'adoption'
-                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'chart-tab'
-                }`}
-              >
-                <div className="w-4 h-4">
-                  <Icons.TrendUp />
-                </div>
-                Adoption Trend
-              </button>
-              <button
-                onClick={() => setActiveTab('pool')}
-                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'pool'
-                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'chart-tab'
-                }`}
-              >
-                <div className="w-4 h-4">
-                  <Icons.Shield />
-                </div>
-                Pool Growth
-              </button>
-              <button
-                onClick={() => setActiveTab('activity')}
-                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'activity'
-                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'chart-tab'
-                }`}
-              >
-                <div className="w-4 h-4">
-                  <Icons.Chart />
-                </div>
-                Daily Activity
-              </button>
-              <button
-                onClick={() => setActiveTab('score')}
-                className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'score'
-                    ? 'text-cipher-cyan border-b-2 border-cipher-cyan'
-                    : 'chart-tab'
-                }`}
-              >
-                <div className="w-4 h-4">
-                  <Icons.Star />
-                </div>
-                Privacy Score
-              </button>
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+              <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">HISTORICAL_TRENDS</h2>
             </div>
+            <Card>
+              <CardBody>
+              {/* Pill Tabs */}
+              <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+                {([
+                  { key: 'adoption', label: 'Adoption' },
+                  { key: 'pool', label: 'Pool Growth' },
+                  { key: 'activity', label: 'Daily Activity' },
+                  { key: 'score', label: 'Privacy Score' },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-full transition-all whitespace-nowrap ${
+                      activeTab === tab.key
+                        ? 'bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30'
+                        : 'text-muted hover:text-secondary border border-transparent'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-            {/* Chart Content */}
-            {activeTab === 'adoption' && (
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={[...stats.trends.daily].reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis
-                    dataKey="date"
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 11 }}
-                    tickFormatter={formatDate}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 12 }}
-                    label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
-                  />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: chartColors.tooltipBg,
-                      border: `1px solid ${chartColors.tooltipBorder}`,
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    labelFormatter={(label) => formatDate(label)}
-                    formatter={(value: any) => [`${Number(value).toFixed(2)}%`, 'Shielded']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="shieldedPercentage"
-                    stroke="#A78BFA"
-                    strokeWidth={3}
-                    dot={{ fill: '#A78BFA', r: 3 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-
-            {activeTab === 'pool' && (() => {
-              const poolData = [...stats.trends.daily].reverse();
-              const poolValues = poolData.map(d => d.poolSize);
-              const minPool = Math.min(...poolValues);
-              const maxPool = Math.max(...poolValues);
-              // Add 5% padding above and below, and round to nice numbers
-              const range = maxPool - minPool;
-              const padding = Math.max(range * 0.1, maxPool * 0.001); // At least 0.1% padding
-              const yMin = Math.floor((minPool - padding) / 10000) * 10000;
-              const yMax = Math.ceil((maxPool + padding) / 10000) * 10000;
-
-              return (
-              <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={poolData}>
-                  <defs>
-                    <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis
-                    dataKey="date"
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 11 }}
-                    tickFormatter={formatDate}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 12 }}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(2)}M`}
-                    domain={[yMin, yMax]}
-                    label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
-                  />
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: chartColors.tooltipBg,
-                      border: `1px solid ${chartColors.tooltipBorder}`,
-                      borderRadius: '8px',
-                      color: chartColors.tooltipText
-                    }}
-                    labelFormatter={(label) => formatDate(label)}
-                    formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(4)}M ZEC`, 'Pool Size']}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="poolSize"
-                    stroke="#10B981"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorPool)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-              );
-            })()}
-
-            {activeTab === 'activity' && (
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={[...stats.trends.daily].reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis
-                    dataKey="date"
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 11 }}
-                    tickFormatter={formatDate}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis
-                    stroke={chartColors.axis}
-                    tick={{ fill: chartColors.axis, fontSize: 12 }}
-                    label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
-                  />
-                  <RechartsTooltip
-                    cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
-                    contentStyle={{
-                      backgroundColor: chartColors.tooltipBg,
-                      border: `1px solid ${chartColors.tooltipBorder}`,
-                      borderRadius: '8px',
-                      padding: '12px'
-                    }}
-                    labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
-                    itemStyle={{ color: chartColors.axis }}
-                    labelFormatter={(label) => formatDate(label)}
-                    formatter={(value: any, name: string) => {
-                      const color = name === 'shielded' ? '#A78BFA' : '#9CA3AF';
-                      const icon = name === 'shielded' ? '🛡️' : '👁️';
-                      const displayName = name === 'shielded' ? 'Shielded' : 'Transparent';
-                      return [
-                        <span style={{ color, fontWeight: '600' }}>
-                          {icon} {Number(value).toLocaleString()} txs
-                        </span>,
-                        displayName
-                      ];
-                    }}
-                  />
-                  <Legend
-                    wrapperStyle={{ color: chartColors.axis }}
-                    formatter={(value) => value === 'shielded' ? '🛡️ Shielded' : '👁️ Transparent'}
-                  />
-                  <Bar
-                    dataKey="shielded"
-                    fill="#A78BFA"
-                    name="shielded"
-                    radius={[4, 4, 0, 0]}
-                    activeBar={{ fill: '#8B5CF6' }}
-                  />
-                  <Bar
-                    dataKey="transparent"
-                    fill="#6B7280"
-                    name="transparent"
-                    radius={[4, 4, 0, 0]}
-                    activeBar={{ fill: '#4B5563' }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-
-            {activeTab === 'score' && (
-              <div>
-                <div className="mb-4 text-sm text-secondary">
-                  Privacy Score combines shielded adoption rate, pool growth, and transaction privacy to measure overall network privacy health (0-100).
-                </div>
+              {/* Chart Content */}
+              {activeTab === 'adoption' && (
                 <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={[...stats.trends.daily].reverse()}>
-                    <defs>
-                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                  <LineChart data={[...stats.trends.daily].reverse()}>
+                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
                     <XAxis
                       dataKey="date"
                       stroke={chartColors.axis}
@@ -762,44 +530,232 @@ export default function PrivacyPage() {
                     <YAxis
                       stroke={chartColors.axis}
                       tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      domain={[0, 100]}
-                      label={{ value: 'Privacy Score', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                      label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                     />
                     <RechartsTooltip
                       contentStyle={{
                         backgroundColor: chartColors.tooltipBg,
                         border: `1px solid ${chartColors.tooltipBorder}`,
                         borderRadius: '8px',
-                        color: chartColors.tooltipText,
-                        padding: '12px'
+                        color: chartColors.tooltipText
                       }}
                       labelFormatter={(label) => formatDate(label)}
-                      formatter={(value: any) => {
-                        const score = Number(value);
-                        let rating = '🔴 Low';
-                        if (score >= 70) rating = '🟢 Excellent';
-                        else if (score >= 50) rating = '🟡 Good';
-                        else if (score >= 30) rating = '🟠 Fair';
-                        return [`${score.toFixed(1)} / 100 (${rating})`, 'Privacy Score'];
+                      formatter={(value: any) => [
+                        <span key="v" style={{ color: chartColors.tooltipText }}>{Number(value).toFixed(2)}%</span>,
+                        'Shielded'
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="shieldedPercentage"
+                      stroke="#A78BFA"
+                      strokeWidth={3}
+                      dot={{ fill: '#A78BFA', r: 3 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+
+              {activeTab === 'pool' && (() => {
+                const poolData = [...stats.trends.daily].reverse();
+                const poolValues = poolData.map(d => d.poolSize);
+                const minPool = Math.min(...poolValues);
+                const maxPool = Math.max(...poolValues);
+                const range = maxPool - minPool;
+                const padding = Math.max(range * 0.1, maxPool * 0.001);
+                const yMin = Math.floor((minPool - padding) / 10000) * 10000;
+                const yMax = Math.ceil((maxPool + padding) / 10000) * 10000;
+
+                return (
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={poolData}>
+                    <defs>
+                      <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00E676" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#00E676" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                    <XAxis
+                      dataKey="date"
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 11 }}
+                      tickFormatter={formatDate}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 12 }}
+                      tickFormatter={(value) => `${(value / 1000000).toFixed(2)}M`}
+                      domain={[yMin, yMax]}
+                      label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: chartColors.tooltipBg,
+                        border: `1px solid ${chartColors.tooltipBorder}`,
+                        borderRadius: '8px',
+                        color: chartColors.tooltipText
                       }}
+                      labelFormatter={(label) => formatDate(label)}
+                      formatter={(value: any) => [
+                        <span key="v" style={{ color: chartColors.tooltipText }}>{(Number(value) / 1000000).toFixed(4)}M ZEC</span>,
+                        'Pool Size'
+                      ]}
                     />
                     <Area
                       type="monotone"
-                      dataKey="privacyScore"
-                      stroke="#A78BFA"
-                      strokeWidth={3}
+                      dataKey="poolSize"
+                      stroke="#00E676"
+                      strokeWidth={2}
                       fillOpacity={1}
-                      fill="url(#colorScore)"
+                      fill="url(#colorPool)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            )}
-            </CardBody>
-          </Card>
+                );
+              })()}
+
+              {activeTab === 'activity' && (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={[...stats.trends.daily].reverse()}>
+                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                    <XAxis
+                      dataKey="date"
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 11 }}
+                      tickFormatter={formatDate}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 12 }}
+                      label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
+                      contentStyle={{
+                        backgroundColor: chartColors.tooltipBg,
+                        border: `1px solid ${chartColors.tooltipBorder}`,
+                        borderRadius: '8px',
+                        padding: '12px',
+                        color: chartColors.tooltipText
+                      }}
+                      labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
+                      labelFormatter={(label) => formatDate(label)}
+                      formatter={(value: any, name: string) => {
+                        const color = name === 'shielded' ? '#A78BFA' : chartColors.axis;
+                        const displayName = name === 'shielded' ? 'Shielded' : 'Transparent';
+                        return [
+                          <span key="v" style={{ color, fontWeight: '600' }}>
+                            {Number(value).toLocaleString()} txs
+                          </span>,
+                          displayName
+                        ];
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ color: chartColors.axis }}
+                      formatter={(value) => {
+                        const dotColor = value === 'shielded' ? '#A78BFA' : '#6B7280';
+                        return <span style={{ color: chartColors.tooltipText }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: dotColor, marginRight: 6 }} />{value === 'shielded' ? 'Shielded' : 'Transparent'}</span>;
+                      }}
+                    />
+                    <Bar
+                      dataKey="shielded"
+                      fill="#A78BFA"
+                      name="shielded"
+                      radius={[4, 4, 0, 0]}
+                      activeBar={{ fill: '#8B5CF6' }}
+                    />
+                    <Bar
+                      dataKey="transparent"
+                      fill="#6B7280"
+                      name="transparent"
+                      radius={[4, 4, 0, 0]}
+                      activeBar={{ fill: '#4B5563' }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+
+              {activeTab === 'score' && (
+                <div>
+                  <div className="mb-4 text-sm text-secondary">
+                    Privacy Score combines shielded adoption rate, pool growth, and transaction privacy to measure overall network privacy health (0-100).
+                  </div>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <AreaChart data={[...stats.trends.daily].reverse()}>
+                      <defs>
+                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                      <XAxis
+                        dataKey="date"
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis, fontSize: 11 }}
+                        tickFormatter={formatDate}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis, fontSize: 12 }}
+                        domain={[0, 100]}
+                        label={{ value: 'Privacy Score', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: chartColors.tooltipBg,
+                          border: `1px solid ${chartColors.tooltipBorder}`,
+                          borderRadius: '8px',
+                          color: chartColors.tooltipText,
+                          padding: '12px'
+                        }}
+                        labelFormatter={(label) => formatDate(label)}
+                        formatter={(value: any) => {
+                          const score = Number(value);
+                          let rating = 'Low';
+                          let ratingColor = '#EF4444';
+                          if (score >= 70) { rating = 'Excellent'; ratingColor = '#00E676'; }
+                          else if (score >= 50) { rating = 'Good'; ratingColor = '#FBBF24'; }
+                          else if (score >= 30) { rating = 'Fair'; ratingColor = '#FB923C'; }
+                          return [
+                            <span key="v" style={{ color: chartColors.tooltipText }}>
+                              {score.toFixed(1)} / 100 (<span style={{ color: ratingColor }}>{rating}</span>)
+                            </span>,
+                            'Privacy Score'
+                          ];
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="privacyScore"
+                        stroke="#A78BFA"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorScore)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+              </CardBody>
+            </Card>
+          </div>
         )}
 
         {/* Info Footer */}
+        <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
         <Card variant="glass">
           <CardBody>
             <h3 className="text-lg font-bold mb-4 text-primary">About Privacy Metrics</h3>
@@ -822,8 +778,8 @@ export default function PrivacyPage() {
             </div>
           </CardBody>
         </Card>
+        </div>
 
-      </div>
     </div>
   );
 }
