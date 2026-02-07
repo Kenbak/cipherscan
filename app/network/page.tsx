@@ -307,7 +307,7 @@ export default function NetworkPage() {
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">MINING_PERFORMANCE</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} />
           <StatCard label="Difficulty" value={stats.mining.difficulty.toFixed(1)} />
           <StatCard
@@ -318,6 +318,11 @@ export default function NetworkPage() {
           />
           <StatCard label="Blocks (24h)" value={stats.mining.blocks24h.toLocaleString()} />
           <StatCard label="Block Reward" value={`${stats.mining.blockReward} ZEC`} />
+          <StatCard
+            label="TX/Block"
+            value={(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}
+            subtitle="24h avg"
+          />
           <StatCard
             label="Daily Revenue"
             value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
