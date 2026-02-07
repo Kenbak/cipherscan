@@ -1,119 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getApiUrl } from '@/lib/api-config';
+import { feature } from 'topojson-client';
 
-// Simplified world map dot coordinates (lat, lon) - major landmasses
-const WORLD_DOTS = generateWorldDots();
-
-function generateWorldDots(): { lat: number; lon: number }[] {
-  const dots: { lat: number; lon: number }[] = [];
-  
-  // North America
-  for (let lat = 25; lat <= 70; lat += 4) {
-    for (let lon = -170; lon <= -50; lon += 4) {
-      if (isLand(lat, lon, 'north_america')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  // South America
-  for (let lat = -55; lat <= 15; lat += 4) {
-    for (let lon = -80; lon <= -35; lon += 4) {
-      if (isLand(lat, lon, 'south_america')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  // Europe
-  for (let lat = 35; lat <= 72; lat += 4) {
-    for (let lon = -10; lon <= 60; lon += 4) {
-      if (isLand(lat, lon, 'europe')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  // Africa
-  for (let lat = -35; lat <= 38; lat += 4) {
-    for (let lon = -18; lon <= 52; lon += 4) {
-      if (isLand(lat, lon, 'africa')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  // Asia
-  for (let lat = 5; lat <= 75; lat += 4) {
-    for (let lon = 60; lon <= 180; lon += 4) {
-      if (isLand(lat, lon, 'asia')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  // Australia
-  for (let lat = -45; lat <= -10; lat += 4) {
-    for (let lon = 110; lon <= 155; lon += 4) {
-      if (isLand(lat, lon, 'australia')) {
-        dots.push({ lat, lon });
-      }
-    }
-  }
-  
-  return dots;
-}
-
-// Simplified land detection (rough approximation)
-function isLand(lat: number, lon: number, region: string): boolean {
-  switch (region) {
-    case 'north_america':
-      if (lon < -140 && lat < 55) return false; // Pacific
-      if (lon > -55 && lat < 45) return false; // Atlantic
-      if (lat > 50 && lon > -100 && lon < -60) return true; // Canada
-      if (lat >= 25 && lat <= 50 && lon >= -130 && lon <= -65) return true; // USA
-      if (lat >= 15 && lat <= 32 && lon >= -120 && lon <= -85) return true; // Mexico
-      if (lat >= 55 && lon >= -170 && lon <= -135) return true; // Alaska
-      return false;
-      
-    case 'south_america':
-      if (lon < -80 || lon > -35) return false;
-      if (lat > 12) return false;
-      if (lat < -55) return false;
-      if (lat < -45 && lon < -72) return false; // Chile tip
-      return true;
-      
-    case 'europe':
-      if (lat < 36 && lon > 25) return false; // Mediterranean
-      if (lat < 43 && lon < -5) return false; // Atlantic
-      if (lon > 55 && lat < 45) return false; // Caspian area
-      return true;
-      
-    case 'africa':
-      if (lat > 35 && lon > 30) return false; // Mediterranean
-      if (lat < -30 && lon < 18) return false; // Atlantic
-      if (lat < 5 && lon > 45) return false; // Indian Ocean
-      return true;
-      
-    case 'asia':
-      if (lat < 10 && lon > 100 && lon < 140) return Math.random() > 0.5; // SE Asia islands
-      if (lat > 70) return lon > 100 && lon < 180; // Siberia
-      if (lat < 25 && lon < 70) return false; // Indian Ocean
-      if (lon > 170) return false; // Pacific
-      return true;
-      
-    case 'australia':
-      if (lat < -40) return false;
-      if (lon < 115 || lon > 153) return false;
-      if (lat > -12) return false;
-      return true;
-      
-    default:
-      return false;
-  }
-}
+// ==========================================================================
+// TYPES
+// ==========================================================================
 
 interface NodeLocation {
   country: string;
@@ -140,26 +33,107 @@ interface TopCountry {
   nodeCount: number;
 }
 
-// Country flag emoji
+interface DotPosition {
+  x: number;
+  y: number;
+}
+
+// ==========================================================================
+// CONSTANTS
+// ==========================================================================
+
+const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
+const DOT_SPACING = 3; // degrees between dots
+const MAP_WIDTH = 960;
+const MAP_HEIGHT = 500;
+const DOT_RADIUS = 1.8;
+
+// ==========================================================================
+// GEOMETRY HELPERS
+// ==========================================================================
+
+/**
+ * Equirectangular projection (clean flat map, like Solana Beach)
+ */
+function project(lat: number, lon: number): { x: number; y: number } {
+  const x = ((lon + 180) / 360) * MAP_WIDTH;
+  const y = ((90 - lat) / 180) * MAP_HEIGHT;
+  return { x, y };
+}
+
+/**
+ * Ray-casting point-in-polygon
+ * GeoJSON rings are [lon, lat] pairs
+ */
+function pointInRing(lon: number, lat: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+
+    if (
+      (yi > lat) !== (yj > lat) &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/**
+ * Check if a point is on land given GeoJSON features
+ */
+function isPointOnLand(lat: number, lon: number, features: any[]): boolean {
+  for (const feat of features) {
+    const geom = feat.geometry || feat;
+    if (geom.type === 'Polygon') {
+      if (pointInRing(lon, lat, geom.coordinates[0])) return true;
+    } else if (geom.type === 'MultiPolygon') {
+      for (const polygon of geom.coordinates) {
+        if (pointInRing(lon, lat, polygon[0])) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Generate world dot positions from GeoJSON land data
+ */
+function generateWorldDots(landFeatures: any[]): DotPosition[] {
+  const dots: DotPosition[] = [];
+
+  for (let lat = 84; lat >= -60; lat -= DOT_SPACING) {
+    for (let lon = -180; lon < 180; lon += DOT_SPACING) {
+      if (isPointOnLand(lat, lon, landFeatures)) {
+        dots.push(project(lat, lon));
+      }
+    }
+  }
+
+  return dots;
+}
+
+// ==========================================================================
+// HELPERS
+// ==========================================================================
+
 function getFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return '';
   const codePoints = countryCode
     .toUpperCase()
     .split('')
-    .map(char => 127397 + char.charCodeAt(0));
+    .map((char) => 127397 + char.charCodeAt(0));
   return String.fromCodePoint(...codePoints);
 }
 
-// Convert lat/lon to x/y on map
-function latLonToXY(lat: number, lon: number, width: number, height: number) {
-  const x = ((lon + 180) / 360) * width;
-  const latRad = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
-  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-  const y = height / 2 - (mercN * height) / (2 * Math.PI) * 0.8;
-  return { x, y };
-}
+// ==========================================================================
+// COMPONENT
+// ==========================================================================
 
 export function NodeMap() {
+  const [worldDots, setWorldDots] = useState<DotPosition[]>([]);
   const [locations, setLocations] = useState<NodeLocation[]>([]);
   const [stats, setStats] = useState<NodeStats | null>(null);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
@@ -167,10 +141,22 @@ export function NodeMap() {
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
 
-  const mapWidth = 900;
-  const mapHeight = 450;
+  // Fetch world topology for dot matrix background
+  useEffect(() => {
+    fetch(WORLD_TOPO_URL)
+      .then((res) => res.json())
+      .then((topology: any) => {
+        const land = feature(topology, topology.objects.land) as any;
+        const features = land.features ? land.features : [land];
+        const dots = generateWorldDots(features);
+        setWorldDots(dots);
+      })
+      .catch((err) => {
+        console.error('Failed to load world topology:', err);
+      });
+  }, []);
 
-  // Fetch node data
+  // Fetch node data from API
   useEffect(() => {
     const fetchNodes = async () => {
       try {
@@ -180,9 +166,7 @@ export function NodeMap() {
           fetch(`${apiUrl}/api/network/nodes/stats`),
         ]);
 
-        if (!nodesRes.ok || !statsRes.ok) {
-          throw new Error('Failed to fetch node data');
-        }
+        if (!nodesRes.ok || !statsRes.ok) throw new Error('Failed to fetch node data');
 
         const nodesData = await nodesRes.json();
         const statsData = await statsRes.json();
@@ -204,52 +188,57 @@ export function NodeMap() {
     return () => clearInterval(interval);
   }, []);
 
-  // Pre-calculate dot positions
-  const worldDotPositions = useMemo(() => {
-    return WORLD_DOTS.map(dot => latLonToXY(dot.lat, dot.lon, mapWidth, mapHeight));
-  }, []);
-
-  // Cluster nearby nodes for cleaner display
+  // Cluster nearby nodes by rounding to nearest grid
   const clusteredNodes = useMemo(() => {
-    // Group by approximate location
-    const clusters: Map<string, NodeLocation> = new Map();
-    
-    locations.forEach(loc => {
-      const key = `${Math.round(loc.lat / 5) * 5},${Math.round(loc.lon / 10) * 10}`;
+    const clusters: Map<string, { lat: number; lon: number; nodeCount: number; country: string; countryCode: string; city: string; avgPingMs: number | null }> = new Map();
+
+    locations.forEach((loc) => {
+      // Round to 8° grid to cluster nearby cities
+      const keyLat = Math.round(loc.lat / 8) * 8;
+      const keyLon = Math.round(loc.lon / 8) * 8;
+      const key = `${keyLat},${keyLon}`;
+
       const existing = clusters.get(key);
-      
       if (existing) {
+        const total = existing.nodeCount + loc.nodeCount;
         clusters.set(key, {
-          ...existing,
-          nodeCount: existing.nodeCount + loc.nodeCount,
-          lat: (existing.lat + loc.lat) / 2,
-          lon: (existing.lon + loc.lon) / 2,
+          lat: (existing.lat * existing.nodeCount + loc.lat * loc.nodeCount) / total,
+          lon: (existing.lon * existing.nodeCount + loc.lon * loc.nodeCount) / total,
+          nodeCount: total,
+          country: existing.nodeCount >= loc.nodeCount ? existing.country : loc.country,
+          countryCode: existing.nodeCount >= loc.nodeCount ? existing.countryCode : loc.countryCode,
+          city: existing.nodeCount >= loc.nodeCount ? existing.city : loc.city,
+          avgPingMs: loc.avgPingMs,
         });
       } else {
         clusters.set(key, { ...loc });
       }
     });
-    
+
     return Array.from(clusters.values());
   }, [locations]);
 
-  if (loading) {
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
+
+  if (loading && worldDots.length === 0) {
     return (
       <div className="bg-cipher-card border border-cipher-border rounded-xl p-6">
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent"></div>
-          <span className="ml-3 text-secondary">Loading node map...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+          <span className="ml-3 text-secondary font-mono">Loading node map...</span>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && locations.length === 0) {
     return (
       <div className="bg-cipher-card border border-cipher-border rounded-xl p-6">
         <div className="text-center py-12">
           <p className="text-secondary mb-2">Node map unavailable</p>
-          <p className="text-xs text-muted">{error}</p>
+          <p className="text-xs text-muted font-mono">{error}</p>
         </div>
       </div>
     );
@@ -271,9 +260,9 @@ export function NodeMap() {
               <p className="text-xs text-muted">Global distribution of Zcash full nodes</p>
             </div>
           </div>
-          
+
           {stats && (
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-6">
               <div className="text-center">
                 <div className="font-bold text-cipher-cyan font-mono text-xl">{stats.activeNodes}</div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
@@ -288,90 +277,93 @@ export function NodeMap() {
       </div>
 
       {/* Dot Matrix Map */}
-      <div className="relative bg-[#0a0a0f] p-4">
+      <div className="relative bg-[#0b0b12]">
         <svg
-          viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
           className="w-full h-auto"
-          style={{ maxHeight: '500px' }}
+          style={{ maxHeight: '520px' }}
+          onMouseLeave={() => setHoveredNode(null)}
         >
-          {/* World outline dots */}
-          {worldDotPositions.map((pos, i) => (
+          {/* Land dots (gray dot matrix) */}
+          {worldDots.map((dot, i) => (
             <circle
-              key={`dot-${i}`}
-              cx={pos.x}
-              cy={pos.y}
-              r={1.5}
-              fill="#374151"
-              opacity={0.6}
+              key={`wd-${i}`}
+              cx={dot.x}
+              cy={dot.y}
+              r={DOT_RADIUS}
+              fill="#4b5563"
+              opacity={0.5}
             />
           ))}
 
           {/* Node clusters */}
           {clusteredNodes.map((node, i) => {
-            const pos = latLonToXY(node.lat, node.lon, mapWidth, mapHeight);
+            const pos = project(node.lat, node.lon);
             const isHovered = hoveredNode === node;
-            const radius = Math.max(16, Math.min(30, 12 + node.nodeCount * 2));
-            
+            const count = node.nodeCount;
+            const radius = Math.max(14, Math.min(28, 10 + Math.sqrt(count) * 5));
+
             return (
               <g
-                key={`node-${i}`}
+                key={`nc-${i}`}
                 className="cursor-pointer"
-                onMouseEnter={() => setHoveredNode(node)}
+                onMouseEnter={() => setHoveredNode(node as any)}
                 onMouseLeave={() => setHoveredNode(null)}
               >
-                {/* Glow effect */}
+                {/* Outer glow */}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
-                  r={radius + 8}
-                  fill="#3ff4c6"
-                  opacity={isHovered ? 0.3 : 0.15}
+                  r={radius + 6}
+                  fill="#22d3ee"
+                  opacity={isHovered ? 0.35 : 0.18}
                   className="transition-opacity duration-200"
                 />
-                
+
                 {/* Main circle */}
                 <circle
                   cx={pos.x}
                   cy={pos.y}
                   r={radius}
                   fill={isHovered ? '#3ff4c6' : '#22d3ee'}
-                  stroke={isHovered ? '#fff' : 'transparent'}
-                  strokeWidth={2}
+                  opacity={isHovered ? 1 : 0.9}
+                  stroke={isHovered ? '#fff' : 'none'}
+                  strokeWidth={1.5}
                   className="transition-all duration-200"
                 />
-                
-                {/* Node count */}
+
+                {/* Count number */}
                 <text
                   x={pos.x}
                   y={pos.y}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill={isHovered ? '#0a0a0f' : '#0a0a0f'}
-                  fontSize={radius > 20 ? 12 : 10}
+                  fill="#0b0b12"
+                  fontSize={radius > 18 ? 12 : 10}
                   fontWeight="bold"
-                  fontFamily="monospace"
+                  fontFamily="ui-monospace, monospace"
+                  className="pointer-events-none select-none"
                 >
-                  {node.nodeCount}
+                  {count}
                 </text>
               </g>
             );
           })}
         </svg>
 
-        {/* Tooltip */}
+        {/* Hover tooltip (fixed top-left) */}
         {hoveredNode && (
-          <div className="absolute top-4 left-4 bg-cipher-card/95 backdrop-blur border border-cipher-cyan/30 rounded-lg px-4 py-3 shadow-xl z-10">
+          <div className="absolute top-3 left-3 bg-cipher-card/95 backdrop-blur border border-cipher-cyan/30 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
-              <span className="font-semibold text-primary">{hoveredNode.city}</span>
+              <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
             </div>
-            <div className="text-xs text-secondary mb-2">{hoveredNode.country}</div>
-            <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-3 text-xs mt-1">
               <span className="text-cipher-cyan font-mono font-bold">
                 {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
               </span>
               {hoveredNode.avgPingMs && (
-                <span className="text-muted">{hoveredNode.avgPingMs.toFixed(0)}ms ping</span>
+                <span className="text-muted font-mono">{hoveredNode.avgPingMs.toFixed(0)}ms</span>
               )}
             </div>
           </div>
@@ -384,7 +376,7 @@ export function NodeMap() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-secondary">Top Countries</h3>
             {stats?.lastUpdated && (
-              <span className="text-[10px] text-muted">
+              <span className="text-[10px] text-muted font-mono">
                 Last sync: {new Date(stats.lastUpdated).toLocaleString()}
               </span>
             )}

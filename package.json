@@ -20,12 +20,14 @@
     "react-globe.gl": "^2.37.0",
     "recharts": "^2.15.4",
     "redis": "^5.10.0",
-    "three": "^0.182.0"
+    "three": "^0.182.0",
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
