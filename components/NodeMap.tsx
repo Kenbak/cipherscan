@@ -139,6 +139,7 @@ export function NodeMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
+  const [activeRegion, setActiveRegion] = useState<string>('world');
 
   // Fetch world topology for dot matrix background
   useEffect(() => {
@@ -187,13 +188,14 @@ export function NodeMap() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cluster nearby nodes
+  // Cluster nearby nodes (tighter clustering when zoomed)
   const clusteredNodes = useMemo(() => {
     const clusters: Map<string, NodeLocation> = new Map();
+    const clusterSize = activeRegion === 'world' ? 8 : 3;
 
     locations.forEach((loc) => {
-      const keyLat = Math.round(loc.lat / 8) * 8;
-      const keyLon = Math.round(loc.lon / 8) * 8;
+      const keyLat = Math.round(loc.lat / clusterSize) * clusterSize;
+      const keyLon = Math.round(loc.lon / clusterSize) * clusterSize;
       const key = `${keyLat},${keyLon}`;
 
       const existing = clusters.get(key);
@@ -214,7 +216,17 @@ export function NodeMap() {
     });
 
     return Array.from(clusters.values());
-  }, [locations]);
+  }, [locations, activeRegion]);
+
+  // Region zoom presets (viewBox coordinates)
+  const REGIONS: Record<string, { viewBox: string; label: string }> = {
+    world:    { viewBox: '30 30 900 380', label: 'World' },
+    americas: { viewBox: '30 50 380 320', label: 'Americas' },
+    europe:   { viewBox: '410 40 260 260', label: 'Europe' },
+    asia:     { viewBox: '570 50 390 310', label: 'Asia-Pacific' },
+  };
+
+  const currentViewBox = REGIONS[activeRegion]?.viewBox || REGIONS.world.viewBox;
 
   // ==========================================================================
   // RENDER
@@ -276,10 +288,27 @@ export function NodeMap() {
 
       {/* Dot Matrix Map */}
       <div className="relative bg-[#08090F]">
+        {/* Region zoom buttons */}
+        <div className="absolute top-3 right-3 z-10 flex gap-1.5">
+          {Object.entries(REGIONS).map(([key, region]) => (
+            <button
+              key={key}
+              onClick={() => setActiveRegion(key)}
+              className={`px-2.5 py-1 text-[10px] font-mono font-semibold rounded-md transition-all ${
+                activeRegion === key
+                  ? 'bg-cipher-cyan/15 text-cipher-cyan border border-cipher-cyan/30'
+                  : 'bg-[#14161F]/80 text-muted hover:text-secondary border border-cipher-border/50 hover:border-cipher-border'
+              }`}
+            >
+              {region.label}
+            </button>
+          ))}
+        </div>
+
         <svg
-          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+          viewBox={currentViewBox}
           className="w-full h-auto"
-          style={{ maxHeight: '520px' }}
+          style={{ maxHeight: '520px', transition: 'all 600ms cubic-bezier(0.16, 1, 0.3, 1)' }}
           onMouseLeave={() => setHoveredNode(null)}
         >
           <defs>
@@ -362,8 +391,12 @@ export function NodeMap() {
               const count = node.nodeCount;
               const tier = getNodeTier(count);
 
-              // Smaller, tighter circles
-              const radius = Math.max(10, Math.min(22, 8 + Math.sqrt(count) * 3.5));
+              // Scale radius based on zoom level
+              const isZoomed = activeRegion !== 'world';
+              const baseRadius = isZoomed
+                ? Math.max(5, Math.min(12, 4 + Math.sqrt(count) * 2))
+                : Math.max(10, Math.min(22, 8 + Math.sqrt(count) * 3.5));
+              const radius = baseRadius;
 
               // Pick glow filter
               const filterId = count >= 10 ? 'glow-high'
@@ -400,7 +433,7 @@ export function NodeMap() {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill="#08090F"
-                    fontSize={radius > 16 ? 11 : 9}
+                    fontSize={isZoomed ? (radius > 8 ? 6 : 5) : (radius > 16 ? 11 : 9)}
                     fontWeight="700"
                     fontFamily="ui-monospace, 'JetBrains Mono', monospace"
                     className="pointer-events-none select-none"
