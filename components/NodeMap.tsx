@@ -139,7 +139,7 @@ export function NodeMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
-  const [activeRegion, setActiveRegion] = useState<string>('world');
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
   // Fetch world topology for dot matrix background
   useEffect(() => {
@@ -188,14 +188,13 @@ export function NodeMap() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cluster nearby nodes (tighter clustering when zoomed)
+  // Cluster nearby nodes
   const clusteredNodes = useMemo(() => {
     const clusters: Map<string, NodeLocation> = new Map();
-    const clusterSize = activeRegion === 'world' ? 8 : 3;
 
     locations.forEach((loc) => {
-      const keyLat = Math.round(loc.lat / clusterSize) * clusterSize;
-      const keyLon = Math.round(loc.lon / clusterSize) * clusterSize;
+      const keyLat = Math.round(loc.lat / 8) * 8;
+      const keyLon = Math.round(loc.lon / 8) * 8;
       const key = `${keyLat},${keyLon}`;
 
       const existing = clusters.get(key);
@@ -216,17 +215,14 @@ export function NodeMap() {
     });
 
     return Array.from(clusters.values());
-  }, [locations, activeRegion]);
+  }, [locations]);
 
-  // Region zoom presets (viewBox coordinates)
-  const REGIONS: Record<string, { viewBox: string; label: string }> = {
-    world:    { viewBox: '30 30 900 380', label: 'World' },
-    americas: { viewBox: '30 50 380 320', label: 'Americas' },
-    europe:   { viewBox: '410 40 260 260', label: 'Europe' },
-    asia:     { viewBox: '570 50 390 310', label: 'Asia-Pacific' },
-  };
-
-  const currentViewBox = REGIONS[activeRegion]?.viewBox || REGIONS.world.viewBox;
+  // Count nodes for selected country (for the header display)
+  const selectedCountryData = useMemo(() => {
+    if (!selectedCountry) return null;
+    const country = topCountries.find(c => c.countryCode === selectedCountry);
+    return country || null;
+  }, [selectedCountry, topCountries]);
 
   // ==========================================================================
   // RENDER
@@ -288,27 +284,23 @@ export function NodeMap() {
 
       {/* Dot Matrix Map */}
       <div className="relative bg-[#08090F]">
-        {/* Region zoom buttons */}
-        <div className="absolute top-3 right-3 z-10 flex gap-1.5">
-          {Object.entries(REGIONS).map(([key, region]) => (
-            <button
-              key={key}
-              onClick={() => setActiveRegion(key)}
-              className={`px-2.5 py-1 text-[10px] font-mono font-semibold rounded-md transition-all ${
-                activeRegion === key
-                  ? 'bg-cipher-cyan/15 text-cipher-cyan border border-cipher-cyan/30'
-                  : 'bg-[#14161F]/80 text-muted hover:text-secondary border border-cipher-border/50 hover:border-cipher-border'
-              }`}
-            >
-              {region.label}
-            </button>
-          ))}
-        </div>
+        {/* Active filter indicator */}
+        {selectedCountryData && (
+          <button
+            onClick={() => setSelectedCountry(null)}
+            className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-[#14161F]/90 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition-all hover:border-cipher-cyan/60"
+          >
+            <span>{getFlagEmoji(selectedCountryData.countryCode)}</span>
+            <span className="text-cipher-cyan font-semibold">{selectedCountryData.country}</span>
+            <span className="text-muted">({selectedCountryData.nodeCount})</span>
+            <span className="text-muted hover:text-primary ml-1">✕</span>
+          </button>
+        )}
 
         <svg
-          viewBox={currentViewBox}
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
           className="w-full h-auto"
-          style={{ maxHeight: '520px', transition: 'all 600ms cubic-bezier(0.16, 1, 0.3, 1)' }}
+          style={{ maxHeight: '520px' }}
           onMouseLeave={() => setHoveredNode(null)}
         >
           <defs>
@@ -391,15 +383,16 @@ export function NodeMap() {
               const count = node.nodeCount;
               const tier = getNodeTier(count);
 
-              // Scale radius based on zoom level
-              const isZoomed = activeRegion !== 'world';
-              const baseRadius = isZoomed
-                ? Math.max(5, Math.min(12, 4 + Math.sqrt(count) * 2))
-                : Math.max(10, Math.min(22, 8 + Math.sqrt(count) * 3.5));
-              const radius = baseRadius;
+              // Country filter: is this node in the selected country?
+              const isFiltered = selectedCountry !== null;
+              const isSelected = selectedCountry === node.countryCode;
+              const isDimmed = isFiltered && !isSelected;
+
+              const radius = Math.max(10, Math.min(22, 8 + Math.sqrt(count) * 3.5));
 
               // Pick glow filter
-              const filterId = count >= 10 ? 'glow-high'
+              const filterId = isDimmed ? undefined
+                : count >= 10 ? 'glow-high'
                 : count >= 5 ? 'glow-medium'
                 : count >= 2 ? 'glow-low'
                 : 'glow-single';
@@ -410,7 +403,11 @@ export function NodeMap() {
                   className="cursor-pointer"
                   onMouseEnter={() => setHoveredNode(node)}
                   onMouseLeave={() => setHoveredNode(null)}
-                  filter={`url(#${filterId})`}
+                  filter={filterId ? `url(#${filterId})` : undefined}
+                  style={{
+                    transition: 'opacity 300ms ease',
+                    opacity: isDimmed ? 0.15 : 1,
+                  }}
                 >
                   {/* Main circle */}
                   <circle
@@ -433,7 +430,7 @@ export function NodeMap() {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill="#08090F"
-                    fontSize={isZoomed ? (radius > 8 ? 6 : 5) : (radius > 16 ? 11 : 9)}
+                    fontSize={radius > 16 ? 11 : 9}
                     fontWeight="700"
                     fontFamily="ui-monospace, 'JetBrains Mono', monospace"
                     className="pointer-events-none select-none"
@@ -498,18 +495,26 @@ export function NodeMap() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {topCountries.slice(0, 10).map((country) => (
-              <div
-                key={country.countryCode}
-                className="flex items-center gap-2 bg-cipher-bg/50 rounded-lg px-3 py-1.5"
-              >
-                <span className="text-base">{getFlagEmoji(country.countryCode)}</span>
-                <span className="text-xs text-secondary">{country.country}</span>
-                <span className="text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
-                  {country.nodeCount}
-                </span>
-              </div>
-            ))}
+            {topCountries.slice(0, 10).map((country) => {
+              const isActive = selectedCountry === country.countryCode;
+              return (
+                <button
+                  key={country.countryCode}
+                  onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 transition-all ${
+                    isActive
+                      ? 'bg-cipher-cyan/10 border border-cipher-cyan/30 ring-1 ring-cipher-cyan/20'
+                      : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'
+                  }`}
+                >
+                  <span className="text-base">{getFlagEmoji(country.countryCode)}</span>
+                  <span className={`text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
+                  <span className="text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
+                    {country.nodeCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
