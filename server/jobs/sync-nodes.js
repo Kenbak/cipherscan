@@ -147,6 +147,20 @@ function sleep(ms) {
 }
 
 /**
+ * Resolve DNS seeder to get additional node IPs
+ */
+async function resolveSeeder(hostname) {
+  const dns = require('dns').promises;
+  try {
+    const addresses = await dns.resolve4(hostname);
+    return addresses;
+  } catch (err) {
+    console.warn(`⚠️  [NodeSync] Could not resolve seeder ${hostname}: ${err.message}`);
+    return [];
+  }
+}
+
+/**
  * Main sync function
  */
 async function syncNodes() {
@@ -154,7 +168,7 @@ async function syncNodes() {
   const startTime = Date.now();
 
   try {
-    // 1. Fetch peers from Zebra
+    // 1. Fetch peers from Zebra RPC
     console.log('📡 [NodeSync] Fetching peers from Zebra RPC...');
     const peers = await callZebraRPC('getpeerinfo');
 
@@ -164,7 +178,27 @@ async function syncNodes() {
 
     console.log(`📊 [NodeSync] Found ${peers.length} connected peers`);
 
-    // 2. Process each peer
+    // 2. Fetch additional nodes from DNS seeders
+    const DNS_SEEDERS = [
+      'mainnet.seeder.zfnd.org',
+      'mainnet.seeder.shieldedinfra.net',
+      'dnsseed.z.cash',
+      'dnsseed.str4d.xyz',
+    ];
+
+    console.log('🌱 [NodeSync] Querying DNS seeders...');
+    const seederIPs = new Set();
+    for (const seeder of DNS_SEEDERS) {
+      const ips = await resolveSeeder(seeder);
+      ips.forEach(ip => seederIPs.add(ip));
+    }
+
+    // Merge: extract IPs from peers, add seeder IPs that aren't already peers
+    const peerIPs = new Set(peers.map(p => (p.addr || '').split(':')[0]).filter(Boolean));
+    const seederOnlyIPs = [...seederIPs].filter(ip => !peerIPs.has(ip));
+    console.log(`🌱 [NodeSync] DNS seeders returned ${seederIPs.size} IPs (${seederOnlyIPs.length} new)`);
+
+    // 3. Process each peer
     let updated = 0;
     let newNodes = 0;
     let geoLookups = 0;
@@ -262,7 +296,68 @@ async function syncNodes() {
       }
     }
 
-    // 3. Mark inactive nodes (not seen in last 24h)
+    // 4. Process DNS seeder nodes (no ping/inbound info available)
+    console.log(`🌱 [NodeSync] Processing ${seederOnlyIPs.length} seeder-only nodes...`);
+    let seederNew = 0;
+    for (const ip of seederOnlyIPs) {
+      if (!ip || ip === '0.0.0.0') continue;
+
+      try {
+        // Check if node exists
+        const existing = await pool.query(
+          'SELECT id, lat FROM nodes WHERE ip = $1',
+          [ip]
+        );
+
+        if (existing.rows.length > 0) {
+          // Update last_seen for existing nodes
+          await pool.query(`
+            UPDATE nodes SET last_seen = NOW(), is_active = TRUE WHERE ip = $1
+          `, [ip]);
+
+          // Skip GeoIP if already have location
+          if (existing.rows[0].lat) continue;
+        }
+
+        // Fetch GeoIP
+        const geo = await fetchGeoIP(ip);
+        geoLookups++;
+
+        if (geo) {
+          await pool.query(`
+            INSERT INTO nodes (ip, port, country, country_code, city, lat, lon, isp)
+            VALUES ($1, 8233, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (ip) DO UPDATE SET
+              country = COALESCE($2, nodes.country),
+              country_code = COALESCE($3, nodes.country_code),
+              city = COALESCE($4, nodes.city),
+              lat = COALESCE($5, nodes.lat),
+              lon = COALESCE($6, nodes.lon),
+              isp = COALESCE($7, nodes.isp),
+              last_seen = NOW(),
+              is_active = TRUE
+          `, [ip, geo.country, geo.countryCode, geo.city, geo.lat, geo.lon, geo.isp]);
+          if (existing.rows.length === 0) seederNew++;
+        } else if (existing.rows.length === 0) {
+          await pool.query(`
+            INSERT INTO nodes (ip, port)
+            VALUES ($1, 8233)
+            ON CONFLICT (ip) DO UPDATE SET
+              last_seen = NOW(),
+              is_active = TRUE
+          `, [ip]);
+          seederNew++;
+        }
+
+        // Rate limit for GeoIP API
+        await sleep(GEOIP_RATE_LIMIT_MS);
+
+      } catch (err) {
+        console.error(`⚠️  [NodeSync] Error processing seeder IP ${ip}:`, err.message);
+      }
+    }
+
+    // 5. Mark inactive nodes (not seen in last 24h)
     const inactiveResult = await pool.query(`
       UPDATE nodes SET is_active = FALSE
       WHERE last_seen < NOW() - INTERVAL '${INACTIVE_THRESHOLD_HOURS} hours'
@@ -271,7 +366,7 @@ async function syncNodes() {
     `);
     const inactiveCount = inactiveResult.rowCount;
 
-    // 4. Get final stats
+    // 6. Get final stats
     const stats = await pool.query(`
       SELECT
         COUNT(*) FILTER (WHERE is_active) as active,
@@ -284,7 +379,9 @@ async function syncNodes() {
     console.log(`
 ✅ [NodeSync] Sync complete in ${elapsed}s
    - Peers processed: ${peers.length}
-   - New nodes: ${newNodes}
+   - Seeder IPs found: ${seederIPs.size} (${seederOnlyIPs.length} new)
+   - New nodes (peers): ${newNodes}
+   - New nodes (seeders): ${seederNew}
    - Updated: ${updated}
    - GeoIP lookups: ${geoLookups}
    - Marked inactive: ${inactiveCount}
