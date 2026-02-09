@@ -411,6 +411,98 @@ router.get('/api/network/peers', async (req, res) => {
 });
 
 // ============================================================================
+// SUPPLY & BLOCKCHAIN INFO APIs
+// ============================================================================
+
+/**
+ * GET /api/supply
+ * Get value pool breakdown (transparent, sprout, sapling, orchard, lockbox)
+ * Compatible with zcashexplorer.app /api/v1/supply format
+ */
+router.get('/api/supply', async (req, res) => {
+  try {
+    const blockchainInfo = await callZebraRPC('getblockchaininfo');
+
+    if (!blockchainInfo || !blockchainInfo.valuePools) {
+      return res.status(500).json({ error: 'Could not fetch supply data' });
+    }
+
+    // Return in same format as zcashexplorer.app
+    const pools = blockchainInfo.valuePools.map(pool => ({
+      id: pool.id,
+      chainValue: pool.chainValue,
+      chainValueZat: pool.chainValueZat,
+      monitored: pool.monitored,
+    }));
+
+    res.json(pools);
+  } catch (error) {
+    console.error('❌ [SUPPLY] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch supply data' });
+  }
+});
+
+/**
+ * GET /api/blockchain-info
+ * Full blockchain info (supply, difficulty, upgrades, softforks, etc.)
+ * Compatible with zcashexplorer.app /api/v1/blockchain-info format
+ */
+router.get('/api/blockchain-info', async (req, res) => {
+  try {
+    const [blockchainInfo, networkInfo] = await Promise.all([
+      callZebraRPC('getblockchaininfo'),
+      callZebraRPC('getnetworkinfo').catch(() => null),
+    ]);
+
+    if (!blockchainInfo) {
+      return res.status(500).json({ error: 'Could not fetch blockchain info' });
+    }
+
+    // Add build version from networkinfo if available
+    if (networkInfo?.subversion) {
+      blockchainInfo.build = networkInfo.subversion;
+    }
+
+    res.json(blockchainInfo);
+  } catch (error) {
+    console.error('❌ [BLOCKCHAIN-INFO] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch blockchain info' });
+  }
+});
+
+/**
+ * GET /api/circulating-supply
+ * Returns just the circulating supply number (plain text or JSON)
+ * Useful for CoinGecko, CoinMarketCap integrations
+ */
+router.get('/api/circulating-supply', async (req, res) => {
+  try {
+    const blockchainInfo = await callZebraRPC('getblockchaininfo');
+
+    if (!blockchainInfo?.chainSupply) {
+      return res.status(500).json({ error: 'Could not fetch supply data' });
+    }
+
+    const supply = blockchainInfo.chainSupply.chainValue;
+
+    // If ?format=json, return JSON; otherwise plain text (for aggregators)
+    if (req.query.format === 'json') {
+      res.json({
+        circulatingSupply: supply,
+        circulatingSupplyZat: blockchainInfo.chainSupply.chainValueZat,
+        maxSupply: 21000000,
+        unit: 'ZEC',
+      });
+    } else {
+      res.type('text/plain').send(supply.toString());
+    }
+  } catch (error) {
+    console.error('❌ [CIRCULATING-SUPPLY] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch circulating supply' });
+  }
+});
+
+// ============================================================================
 // NODE MAP (Aggregated by location for privacy)
 // ============================================================================
 
