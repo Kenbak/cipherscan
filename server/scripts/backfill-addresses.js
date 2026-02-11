@@ -16,7 +16,10 @@
  *   node backfill-addresses.js 2>&1 | tee backfill-addresses.log
  */
 
-require('dotenv').config();
+const path = require('path');
+// Load .env from scripts folder first, then fallback to api folder
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
 const { Pool } = require('pg');
 
 const config = {
