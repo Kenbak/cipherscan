@@ -1095,32 +1095,23 @@
 
   /* Hero tooltip (Privacy quote) */
   .hero-tooltip {
-    background-color: rgba(0, 0, 0, 0.95);
+    background-color: rgba(8, 9, 15, 0.95);
   }
 
   .light .hero-tooltip {
-    background-color: rgba(255, 255, 255, 0.98);
-    box-shadow: var(--shadow-card-hover);
+    background-color: rgba(255, 255, 255, 0.97);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      0 20px 40px rgba(0, 0, 0, 0.12);
+    border-color: rgba(147, 51, 234, 0.2) !important;
   }
 
   .hero-tooltip-text {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.92);
   }
 
   .light .hero-tooltip-text {
     color: var(--color-text-primary);
-  }
-
-  .hero-tooltip-arrow {
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 5px solid rgba(0, 212, 255, 0.5);
-  }
-
-  .light .hero-tooltip-arrow {
-    border-top-color: var(--color-border);
   }
 
   /* ===== MODALS ===== */

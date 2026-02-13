@@ -54,28 +54,34 @@ export default async function Home() {
             <span className="text-purple-400 cursor-help transition-all duration-300 group-hover/privacy:text-white group-hover/privacy:drop-shadow-[0_0_20px_rgba(167,139,250,0.6)]">
               Privacy
             </span>
-            {/* Cypherpunk Tooltip */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 invisible group-hover/privacy:opacity-100 group-hover/privacy:visible transition-all duration-300 z-[100] pointer-events-none w-[260px] sm:w-[300px]">
-              <div className="hero-tooltip backdrop-blur-xl border border-purple-500/40 rounded-lg p-4 shadow-2xl shadow-purple-500/20 relative">
-                  {/* Scan line effect */}
-                  <div className="absolute inset-0 overflow-hidden rounded-lg opacity-20">
-                    <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-scan"></div>
-                  </div>
+            {/* Cypherpunk Tooltip — positioned below to avoid navbar overlap */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 opacity-0 scale-95 -translate-y-2 group-hover/privacy:opacity-100 group-hover/privacy:scale-100 group-hover/privacy:translate-y-0 transition-all duration-300 ease-out z-[100] pointer-events-none w-[280px] sm:w-[320px]">
+              <div className="hero-tooltip backdrop-blur-2xl border border-purple-500/30 rounded-xl p-5 shadow-2xl shadow-purple-500/20 relative overflow-hidden">
+                {/* Arrow — now on top */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2">
+                  <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-transparent border-b-purple-500/30"></div>
+                </div>
 
-                  <div className="relative text-center">
-                    <div className="hero-tooltip-text font-mono text-xs sm:text-sm leading-relaxed mb-2">
-                      "Privacy is the power to selectively reveal oneself to the world."
-                    </div>
-                    <div className="text-purple-400/60 font-mono text-[10px] sm:text-xs italic">
-                      — Eric Hughes, 1993
-                    </div>
-                  </div>
+                {/* Scan line effect */}
+                <div className="absolute inset-0 overflow-hidden rounded-xl">
+                  <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400/40 to-transparent animate-scan"></div>
+                </div>
 
-                  {/* Arrow */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-purple-500/40"></div>
+                {/* Subtle gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent rounded-xl"></div>
+
+                <div className="relative text-center">
+                  {/* Quote icon */}
+                  <div className="text-purple-400/30 text-2xl font-serif mb-2">&ldquo;</div>
+                  <div className="hero-tooltip-text font-mono text-xs sm:text-sm leading-relaxed mb-3">
+                    Privacy is the power to selectively reveal oneself to the world.
+                  </div>
+                  <div className="w-8 h-[1px] bg-purple-400/30 mx-auto mb-2"></div>
+                  <div className="text-purple-400/50 font-mono text-[10px] sm:text-xs">
+                    Eric Hughes, 1993
                   </div>
                 </div>
+              </div>
             </div>
           </span>
           {' '}

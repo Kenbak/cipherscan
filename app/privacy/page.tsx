@@ -217,6 +217,18 @@ export default function PrivacyPage() {
               </span>
             </div>
           </div>
+          {/* Eric Hughes quote */}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="w-[2px] h-8 bg-gradient-to-b from-purple-500/60 to-purple-500/0 rounded-full"></div>
+            <div>
+              <p className="text-xs text-secondary font-mono leading-relaxed italic">
+                &ldquo;Privacy is the power to selectively reveal oneself to the world.&rdquo;
+              </p>
+              <p className="text-[10px] text-muted font-mono mt-0.5">
+                — Eric Hughes, A Cypherpunk&apos;s Manifesto, 1993
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Privacy Score + Key Metrics | Recent Shielded Activity */}
