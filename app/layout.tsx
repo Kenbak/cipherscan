@@ -83,9 +83,35 @@ export const metadata: Metadata = {
   category: 'technology',
 };
 
+// Site-wide JSON-LD structured data
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'CipherScan',
+  description: 'Zcash blockchain explorer and privacy intelligence platform. Explore blocks, transactions, addresses, and decrypt shielded memos.',
+  url: 'https://cipherscan.app',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://cipherscan.app/tx/{search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+  creator: {
+    '@type': 'Organization',
+    name: 'CipherScan',
+    url: 'https://cipherscan.app',
+  },
+};
+
 function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+      />
       <MaintenanceBanner />
       <NavBar />
       <main className="min-h-screen">{children}</main>

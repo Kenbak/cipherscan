@@ -59,15 +59,19 @@ export function NavBar() {
   }, []);
 
   const menuItems = [
-    { href: '/network', label: 'Network Stats' },
-    { href: '/privacy', label: 'Privacy Dashboard' },
-    { href: '/privacy-risks', label: 'Privacy Risks' },
-    { href: '/mempool', label: 'Mempool Viewer' },
-    ...(isMainnet ? [{ href: '/flows', label: 'ZEC Flows' }] : []),
-    { href: '/decrypt', label: 'Decrypt Memo' },
+    { sectionLabel: 'Analytics' },
+    { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
+    { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
+    { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
+    ...(isMainnet ? [{ href: '/flows', label: 'ZEC Flows', desc: 'Shielding & deshielding' }] : []),
+    { href: '/mempool', label: 'Mempool', desc: 'Pending transactions' },
     { divider: true },
-    { href: '/learn', label: 'Learn Zcash' },
-    { href: '/docs', label: 'API Docs' },
+    { sectionLabel: 'Tools' },
+    { href: '/decrypt', label: 'Decrypt Memo', desc: 'Decode shielded messages' },
+    { divider: true },
+    { sectionLabel: 'Resources' },
+    { href: '/learn', label: 'Learn Zcash', desc: 'Beginner guide' },
+    { href: '/docs', label: 'API Docs', desc: 'Developer reference' },
   ];
 
   return (
@@ -123,7 +127,7 @@ export function NavBar() {
                 onClick={() => setToolsOpen(!toolsOpen)}
                 className="tools-btn flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-md"
               >
-                <span>Tools</span>
+                <span>Explore</span>
                 <svg
                   className={`w-3 h-3 transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`}
                   fill="none"
@@ -136,18 +140,25 @@ export function NavBar() {
 
               {/* Dropdown Menu */}
               {toolsOpen && (
-                <div className="absolute right-0 mt-2 w-52 dropdown-menu rounded-lg shadow-xl border p-1.5 z-50 animate-scale-in origin-top-right">
+                <div className="absolute right-0 mt-2 w-60 dropdown-menu rounded-lg shadow-xl border p-1.5 z-50 animate-scale-in origin-top-right">
                   {menuItems.map((item, index) =>
                     'divider' in item ? (
                       <div key={`divider-${index}`} className="border-t border-cipher-border my-1.5" />
+                    ) : 'sectionLabel' in item ? (
+                      <div key={`section-${index}`} className="px-3 pt-2 pb-1">
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{item.sectionLabel}</span>
+                      </div>
                     ) : (
                       <Link
                         key={item.href}
                         href={item.href!}
                         onClick={() => setToolsOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-mono dropdown-item rounded-md transition-colors duration-150"
+                        className="flex flex-col px-3 py-2 dropdown-item rounded-md transition-colors duration-150"
                       >
-                        {item.label}
+                        <span className="text-sm font-mono">{item.label}</span>
+                        {'desc' in item && item.desc && (
+                          <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                        )}
                       </Link>
                     )
                   )}
@@ -217,14 +228,21 @@ export function NavBar() {
             {menuItems.map((item, index) =>
               'divider' in item ? (
                 <div key={`divider-${index}`} className="border-t navbar-border my-2" />
+              ) : 'sectionLabel' in item ? (
+                <div key={`section-${index}`} className="px-3 pt-3 pb-1">
+                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{item.sectionLabel}</span>
+                </div>
               ) : (
                 <Link
                   key={item.href}
                   href={item.href!}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2.5 text-sm font-mono mobile-menu-item rounded-md transition-colors duration-150"
+                  className="flex flex-col px-3 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
                 >
-                  {item.label}
+                  <span className="text-sm font-mono">{item.label}</span>
+                  {'desc' in item && item.desc && (
+                    <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                  )}
                 </Link>
               )
             )}
