@@ -560,6 +560,59 @@ router.get('/api/mempool', async (req, res) => {
 });
 
 // ============================================================================
+// DECODE RAW TRANSACTION
+// ============================================================================
+
+/**
+ * POST /api/tx/decode
+ * Decode a raw transaction hex into human-readable fields
+ * Body: { "rawTx": "hex-encoded-raw-transaction" }
+ *
+ * Uses Zebra's decoderawtransaction RPC to parse the transaction
+ * without broadcasting it. Useful for inspecting transactions before sending.
+ */
+router.post('/api/tx/decode', async (req, res) => {
+  try {
+    const { rawTx } = req.body;
+
+    if (!rawTx || typeof rawTx !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid rawTx parameter. Provide a hex-encoded transaction.',
+      });
+    }
+
+    if (!/^[0-9a-fA-F]+$/.test(rawTx)) {
+      return res.status(400).json({
+        success: false,
+        error: 'rawTx must be a valid hex string.',
+      });
+    }
+
+    if (rawTx.length < 20) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction hex is too short to be valid.',
+      });
+    }
+
+    const decoded = await callZebraRPC('decoderawtransaction', [rawTx]);
+
+    res.json({
+      success: true,
+      transaction: decoded,
+      size: rawTx.length / 2,
+    });
+  } catch (error) {
+    console.error('Decode TX error:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to decode transaction. Ensure the hex is a valid Zcash transaction.',
+    });
+  }
+});
+
+// ============================================================================
 // BROADCAST RAW TRANSACTION
 // ============================================================================
 

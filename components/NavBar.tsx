@@ -67,6 +67,7 @@ export function NavBar() {
     { href: '/mempool', label: 'Mempool', desc: 'Pending transactions' },
     { divider: true },
     { sectionLabel: 'Tools' },
+    { href: '/tools', label: 'Developer Tools', desc: 'All tools & API reference' },
     { href: '/decrypt', label: 'Decrypt Memo', desc: 'Decode shielded messages' },
     { divider: true },
     { sectionLabel: 'Resources' },
