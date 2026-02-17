@@ -198,6 +198,92 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       const t = timeRef.current;
       const bubbles = bubblesRef.current;
 
+      // === BACKGROUND LAYER ===
+
+      // Radial gradient atmosphere (cyan/purple corners)
+      const bgGrad1 = ctx.createRadialGradient(w * 0.15, h * 0.2, 0, w * 0.15, h * 0.2, w * 0.5);
+      bgGrad1.addColorStop(0, 'rgba(0, 212, 255, 0.03)');
+      bgGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bgGrad1;
+      ctx.fillRect(0, 0, w, h);
+
+      const bgGrad2 = ctx.createRadialGradient(w * 0.85, h * 0.8, 0, w * 0.85, h * 0.8, w * 0.5);
+      bgGrad2.addColorStop(0, 'rgba(167, 139, 250, 0.025)');
+      bgGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bgGrad2;
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid lines
+      const gridSpacing = 50;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+      ctx.lineWidth = 0.5;
+      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
+        ctx.stroke();
+      }
+      for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+
+      // Grid intersection dots
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
+        for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
+          ctx.beginPath();
+          ctx.arc(gx, gy, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Floating hex characters (faint, drifting slowly)
+      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.04)';
+      const hexChars = '0123456789abcdef';
+      const seed = t * 0.3;
+      for (let i = 0; i < 20; i++) {
+        const hx = ((Math.sin(seed * 0.01 + i * 7.3) * 0.5 + 0.5) * w);
+        const hy = ((Math.cos(seed * 0.008 + i * 4.1) * 0.5 + 0.5) * h);
+        const char1 = hexChars[Math.floor(Math.abs(Math.sin(i * 13.7 + t * 0.005)) * 16)];
+        const char2 = hexChars[Math.floor(Math.abs(Math.cos(i * 9.2 + t * 0.007)) * 16)];
+        ctx.fillText(`${char1}${char2}`, hx, hy);
+      }
+
+      // Scan line
+      const scanY = (t * 0.5) % (h + 40) - 20;
+      const scanGrad = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 15);
+      scanGrad.addColorStop(0, 'rgba(0, 212, 255, 0)');
+      scanGrad.addColorStop(0.5, 'rgba(0, 212, 255, 0.03)');
+      scanGrad.addColorStop(1, 'rgba(0, 212, 255, 0)');
+      ctx.fillStyle = scanGrad;
+      ctx.fillRect(0, scanY - 15, w, 30);
+
+      // === CONNECTION LINES between nearby bubbles ===
+      const aliveBubbles = bubblesRef.current.filter(b => b.state === 'alive' || b.state === 'entering');
+      for (let i = 0; i < aliveBubbles.length; i++) {
+        for (let j = i + 1; j < aliveBubbles.length; j++) {
+          const a = aliveBubbles[i];
+          const b2 = aliveBubbles[j];
+          const dx = b2.x - a.x;
+          const dy = b2.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 160;
+          if (dist < maxDist) {
+            const alpha = (1 - dist / maxDist) * 0.08 * Math.min(a.opacity, b2.opacity);
+            ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b2.x, b2.y);
+            ctx.stroke();
+          }
+        }
+      }
+
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
 
@@ -506,6 +592,22 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
         className="w-full h-full rounded-xl"
       />
 
+      {/* HUD corner brackets */}
+      <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-cyan/20 rounded-tl pointer-events-none" />
+      <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-cyan/20 rounded-tr pointer-events-none" />
+      <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-cyan/20 rounded-bl pointer-events-none" />
+      <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-cyan/20 rounded-br pointer-events-none" />
+
+      {/* Top-left HUD label */}
+      <div className="absolute top-4 left-6 font-mono text-[9px] text-cipher-cyan/30 tracking-widest pointer-events-none select-none">
+        MEMPOOL_LIVE // {transactions.length} TX
+      </div>
+
+      {/* Top-right timestamp */}
+      <div className="absolute top-4 right-6 font-mono text-[9px] text-white/15 tracking-wider pointer-events-none select-none">
+        {new Date().toISOString().slice(11, 19)} UTC
+      </div>
+
       {/* Tooltip */}
       {hoveredTx && (
         <div
@@ -515,9 +617,9 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
             top: Math.max(8, tooltipPos.y - 90),
           }}
         >
-          <div className="bg-[#14161F] border border-white/10 rounded-lg px-3 py-2 shadow-xl text-xs min-w-[200px]">
-            <div className="font-mono text-cipher-cyan mb-1 truncate">
-              {hoveredTx.txid.slice(0, 12)}...{hoveredTx.txid.slice(-8)}
+          <div className="bg-[#14161F]/95 backdrop-blur-sm border border-cipher-cyan/15 rounded-lg px-3 py-2 shadow-xl text-xs min-w-[200px]">
+            <div className="font-mono text-cipher-cyan mb-1 truncate text-[10px]">
+              &gt; {hoveredTx.txid.slice(0, 16)}...{hoveredTx.txid.slice(-8)}
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted">Type</span>
@@ -567,8 +669,14 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
 
       {/* Empty state overlay */}
       {transactions.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-muted font-mono text-sm">Waiting for transactions...</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+          <div className="w-8 h-8 border border-cipher-cyan/20 rounded-full flex items-center justify-center animate-pulse">
+            <div className="w-2 h-2 bg-cipher-cyan/40 rounded-full" />
+          </div>
+          <div className="text-center">
+            <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>
+            <p className="text-white/10 font-mono text-[10px] mt-1">awaiting pending transactions</p>
+          </div>
         </div>
       )}
     </div>
