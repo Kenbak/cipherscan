@@ -9,6 +9,7 @@ interface CardProps {
   variant?: CardVariant;
   interactive?: boolean;
   className?: string;
+  style?: React.CSSProperties;
   onClick?: () => void;
 }
 
@@ -31,6 +32,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     variant = 'standard',
     interactive = false,
     className = '',
+    style,
     onClick,
   },
   ref
@@ -50,6 +52,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     <div
       ref={ref}
       className={`${variantClasses[variant]} ${interactiveClass} ${className}`}
+      style={style}
       onClick={interactive ? onClick : undefined}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}

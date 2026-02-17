@@ -85,7 +85,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         <div className="space-y-3">
           {/* Shield */}
           <div className="flex items-center gap-3">
-            <Badge color="green" className="w-20 justify-center">
+            <Badge color="green" className="w-24 justify-center whitespace-nowrap">
               ↓ SHIELD
             </Badge>
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
@@ -104,7 +104,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
           {/* Time arrow */}
           <div className="flex items-center gap-3 text-muted pl-1">
-            <div className="w-20 flex justify-center">
+            <div className="w-24 flex justify-center">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
@@ -114,7 +114,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
           {/* Unshield */}
           <div className="flex items-center gap-3">
-            <Badge color="purple" className="w-20 justify-center">
+            <Badge color="purple" className="w-24 justify-center whitespace-nowrap">
               ↑ UNSHIELD
             </Badge>
             <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">

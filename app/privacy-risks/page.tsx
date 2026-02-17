@@ -301,41 +301,36 @@ function PrivacyRisksContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-                Privacy Risks
-              </h1>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <Badge color="orange">LIVE</Badge>
-              </div>
-            </div>
-            <p className="text-sm text-secondary mt-1">
-              Transactions where shielding patterns could reveal address ownership.
-            </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      {/* Header - cypherpunk style */}
+      <div className="mb-8 animate-fade-in">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+          <span className="opacity-50">{'>'}</span> PRIVACY_ANALYSIS
+        </p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            Privacy Risks
+          </h1>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            <Badge color="orange">LIVE</Badge>
           </div>
         </div>
+        <p className="text-sm text-secondary mt-2">
+          Transactions where shielding patterns could reveal address ownership.
+        </p>
       </div>
 
       {/* Educational Section - Combined */}
-      <Card className="mb-8 border-purple-500/20">
+      <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
         <CardBody>
-          <h2 className="text-sm font-semibold text-purple-400 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            How to protect your privacy
-          </h2>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+            <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">PRIVACY_TIPS</h2>
+          </div>
 
           {/* Tips */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
@@ -394,54 +389,44 @@ function PrivacyRisksContent() {
       </Card>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => {
-            setActiveTab('roundtrip');
-            // Reset to valid period for roundtrip if current is invalid
-            if (periodFilter === '90d') setPeriodFilter('30d');
-          }}
-          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'roundtrip'
-              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-              : 'bg-cipher-surface text-secondary hover:text-primary border border-transparent'
-          }`}
-        >
-          <span className="flex items-center gap-2">
+      <div className="mb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="filter-group inline-flex">
+          <button
+            onClick={() => {
+              setActiveTab('roundtrip');
+              // Reset to valid period for roundtrip if current is invalid
+              if (periodFilter === '90d') setPeriodFilter('30d');
+            }}
+            className={`filter-btn flex items-center gap-2 ${activeTab === 'roundtrip' ? 'filter-btn-active' : ''}`}
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
             Round Trip
-          </span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('batch');
-            // Reset to valid period for batch if current is invalid
-            if (periodFilter === '24h') setPeriodFilter('7d');
-          }}
-          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'batch'
-              ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-              : 'bg-cipher-surface text-secondary hover:text-primary border border-transparent'
-          }`}
-        >
-          <span className="flex items-center gap-2">
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('batch');
+              // Reset to valid period for batch if current is invalid
+              if (periodFilter === '24h') setPeriodFilter('7d');
+            }}
+            className={`filter-btn flex items-center gap-2 ${activeTab === 'batch' ? 'filter-btn-active' : ''}`}
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             Batch Patterns
             {batchStats && batchStats.highRisk > 0 && (
-              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              <span className="ml-1 text-[10px] font-mono bg-white/20 text-white font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
                 {batchStats.highRisk}
               </span>
             )}
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Filters - Mobile Friendly */}
-      <Card variant="compact" className="mb-6">
+      <Card variant="compact" className="mb-6 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
         <CardBody>
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {/* Period Filter - Different options per tab */}
@@ -513,7 +498,7 @@ function PrivacyRisksContent() {
       </Card>
 
       {/* Content based on active tab */}
-      <div className="space-y-4 mb-12">
+      <div className="space-y-4 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         {activeTab === 'roundtrip' ? (
           /* Round Trip Transactions */
           loading ? (
@@ -598,7 +583,7 @@ function PrivacyRisksContent() {
           ) : (
             <>
               {/* Batch Patterns Info */}
-              <Card className="border-orange-500/20 mb-4">
+              <Card className="mb-4">
                 <CardBody>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
@@ -829,7 +814,10 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
         {/* Address Warning */}
         {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
           <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400">
-            ⚠️ All {pattern.batchCount} deshields go to the <span className="font-mono">{pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 16)}...</span>
+            ⚠️ All {pattern.batchCount} deshields go to the{' '}
+            <Link href={`/address/${pattern.breakdown.addressAnalysis.topAddresses[0]}`} className="font-mono hover:text-red-300 underline underline-offset-2 transition-colors">
+              {pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 20)}...
+            </Link>
           </div>
         )}
       </CardBody>
