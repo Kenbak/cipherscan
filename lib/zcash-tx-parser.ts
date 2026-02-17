@@ -10,6 +10,8 @@
  * - Zcash protocol spec §7.1
  */
 
+import { isTestnet as networkIsTestnet } from './config';
+
 // Known version group IDs
 const VERSION_GROUP_IDS: Record<number, string> = {
   0x03c48270: 'Overwinter',
@@ -315,18 +317,6 @@ function base58Encode(data: Uint8Array): string {
   return encoded;
 }
 
-/**
- * Detect if a transaction is testnet based on output addresses
- */
-function detectTestnet(vout: ParsedVout[]): boolean {
-  for (const out of vout) {
-    if (out.scriptPubKey.address) {
-      if (out.scriptPubKey.address.startsWith('tm') || out.scriptPubKey.address.startsWith('t2')) return true;
-      if (out.scriptPubKey.address.startsWith('t1') || out.scriptPubKey.address.startsWith('t3')) return false;
-    }
-  }
-  return false;
-}
 
 /**
  * Parse a raw Zcash transaction hex string into structured data.
@@ -401,30 +391,15 @@ function parseV5Transaction(reader: HexReader, tx: ParsedTransaction): ParsedTra
   }
 
   const nVout = reader.readCompactSize();
-  // First pass without addresses (we detect testnet after)
-  const rawVouts: { value: number; n: number; scriptHex: string }[] = [];
   for (let i = 0; i < nVout; i++) {
     const value = reader.readUInt64LE();
     const scriptLen = reader.readCompactSize();
     const scriptHex = reader.readBytes(scriptLen);
-    rawVouts.push({ value, n: i, scriptHex });
-  }
-
-  // Detect testnet from script patterns and derive addresses
-  const isTestnet = rawVouts.some(v => {
-    if (v.scriptHex.length === 50 && v.scriptHex.startsWith('76a914') && v.scriptHex.endsWith('88ac')) {
-      const addr = deriveAddressFromScript(v.scriptHex, true);
-      return addr.address?.startsWith('tm');
-    }
-    return false;
-  });
-
-  for (const raw of rawVouts) {
-    const { type, address } = deriveAddressFromScript(raw.scriptHex, isTestnet);
+    const { type, address } = deriveAddressFromScript(scriptHex, networkIsTestnet);
     tx.vout.push({
-      value: raw.value / 1e8,
-      n: raw.n,
-      scriptPubKey: { hex: raw.scriptHex, type, address },
+      value: value / 1e8,
+      n: i,
+      scriptPubKey: { hex: scriptHex, type, address },
     });
   }
 
@@ -533,7 +508,7 @@ function parseLegacyTransaction(reader: HexReader, tx: ParsedTransaction, versio
     const value = reader.readUInt64LE();
     const scriptLen = reader.readCompactSize();
     const scriptHex = reader.readBytes(scriptLen);
-    const { type, address } = deriveAddressFromScript(scriptHex, false);
+    const { type, address } = deriveAddressFromScript(scriptHex, networkIsTestnet);
     tx.vout.push({
       value: value / 1e8,
       n: i,
