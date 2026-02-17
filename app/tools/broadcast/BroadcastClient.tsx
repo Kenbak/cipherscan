@@ -185,13 +185,7 @@ export default function BroadcastClient() {
                   Clear
                 </button>
               )}
-              {/* TODO: Remove this debug button before production */}
-              <button
-                onClick={() => setResult({ success: true, txid: '82621eca871a2478f0dbce4d8079f023e55b22f20f89f0524ce6645d960e69cb' })}
-                className="btn btn-secondary px-4 py-3 text-sm border-amber-500/30 text-amber-400 hover:text-amber-300"
-              >
-                Simulate Success
-              </button>
+
             </div>
           </div>
         </CardBody>
