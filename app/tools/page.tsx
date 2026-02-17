@@ -4,14 +4,14 @@ const tools = [
   {
     href: '/tools/decode',
     title: 'Decode Raw Transaction',
-    desc: 'Parse a raw transaction hex into human-readable fields — inputs, outputs, shielded data, and more.',
+    desc: 'Parse a raw transaction hex into human-readable fields, inputs, outputs, shielded data, and more.',
     color: 'cyan' as const,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
       </svg>
     ),
-    badge: 'POST /api/tx/decode',
+    badge: 'Client-side',
   },
   {
     href: '/tools/broadcast',
@@ -65,8 +65,8 @@ const colorMap = {
 
 export default function ToolsPage() {
   return (
-    <div className="min-h-screen py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
+      <div>
         {/* Header */}
         <div className="mb-10 sm:mb-12">
           <div className="flex items-center gap-4 mb-4">
@@ -123,11 +123,6 @@ export default function ToolsPage() {
         <div className="card-glass p-6 mt-10 sm:mt-12">
           <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-wider">&gt; API_ENDPOINTS</h3>
           <div className="space-y-3 text-sm font-mono">
-            <div className="flex items-center gap-3">
-              <span className="badge badge-cyan text-[10px]">POST</span>
-              <code className="text-primary">/api/tx/decode</code>
-              <span className="text-muted hidden sm:inline">— Decode raw transaction hex</span>
-            </div>
             <div className="flex items-center gap-3">
               <span className="badge badge-green text-[10px]">POST</span>
               <code className="text-primary">/api/tx/broadcast</code>

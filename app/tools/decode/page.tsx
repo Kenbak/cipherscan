@@ -27,10 +27,8 @@ export const metadata: Metadata = {
 
 export default function DecodePage() {
   return (
-    <div className="min-h-screen py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <DecodeClient />
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
+      <DecodeClient />
     </div>
   );
 }
