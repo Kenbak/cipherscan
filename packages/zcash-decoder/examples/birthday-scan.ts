@@ -51,7 +51,7 @@ async function main() {
       const percent = ((progress.blocksProcessed / progress.totalBlocks) * 100).toFixed(1);
       console.log(
         `  ${progress.blocksProcessed.toLocaleString()}/${progress.totalBlocks.toLocaleString()} ` +
-        `blocks (${percent}%) — ${progress.matchesFound} matches`
+        `blocks (${percent}%) ${progress.matchesFound} matches`
       );
     }
   );

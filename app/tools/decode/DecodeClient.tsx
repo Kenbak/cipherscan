@@ -210,8 +210,13 @@ export default function DecodeClient() {
   // Composition bar percentages (rough estimate based on component counts)
   const computeComposition = (tx: ParsedTransaction) => {
     const totalSize = tx.size;
+    const hasShieldedData = tx.nSpendsSapling > 0 || tx.nOutputsSapling > 0 || tx.orchardActions > 0;
+
+    if (!hasShieldedData) {
+      return { transparentBytes: totalSize, shieldedBytes: 0, transparentPct: 100, shieldedPct: 0 };
+    }
+
     // Estimate: header ~12 bytes, each vin ~148 bytes, each vout ~34 bytes
-    // Everything else is shielded data
     const headerBytes = 12;
     const vinBytes = tx.vin.length * 148;
     const voutBytes = tx.vout.length * 34;

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Zcash Decrypt Memo Tool - Decode Shielded Messages',
-    description: 'Free tool to decrypt Zcash shielded transaction memos using your viewing key. 100% client-side decryption — your keys never leave your browser.',
+    description: 'Free tool to decrypt Zcash shielded transaction memos using your viewing key. 100% client-side decryption, your keys never leave your browser.',
     url: 'https://cipherscan.app/decrypt',
     siteName: 'CipherScan',
     type: 'website',
@@ -71,7 +71,7 @@ const jsonLd = {
     'Support for Sapling and Orchard transactions',
     'Client-side decryption using WebAssembly',
     'Encrypted inbox scanner',
-    'No server-side processing — viewing keys never leave the browser',
+    'No server-side processing, viewing keys never leave the browser',
   ],
 };
 
@@ -84,7 +84,7 @@ const faqJsonLd = {
       name: 'How do I decrypt a Zcash memo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'To decrypt a Zcash memo, you need a Unified Full Viewing Key (UFVK) from a compatible wallet like YWallet, Zkool, or Zingo. Enter the transaction ID and your viewing key in the CipherScan Decrypt Memo tool. All decryption happens client-side in your browser using WebAssembly — your keys are never sent to any server.',
+        text: 'To decrypt a Zcash memo, you need a Unified Full Viewing Key (UFVK) from a compatible wallet like YWallet, Zkool, or Zingo. Enter the transaction ID and your viewing key in the CipherScan Decrypt Memo tool. All decryption happens client-side in your browser using WebAssembly, your keys are never sent to any server.',
       },
     },
     {
@@ -92,7 +92,7 @@ const faqJsonLd = {
       name: 'Is it safe to use my viewing key on CipherScan?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. CipherScan performs all decryption client-side using WebAssembly. Your viewing key never leaves your browser and is never transmitted to any server. A viewing key only allows you to read transactions — it cannot spend your funds.',
+        text: 'Yes. CipherScan performs all decryption client-side using WebAssembly. Your viewing key never leaves your browser and is never transmitted to any server. A viewing key only allows you to read transactions, it cannot spend your funds.',
       },
     },
     {
@@ -156,7 +156,7 @@ export default function DecryptPage() {
                 <h3 className="font-semibold text-primary mb-2">Is it safe to use my viewing key here?</h3>
                 <p className="text-sm text-secondary leading-relaxed">
                   Yes. All decryption happens client-side in your browser. Your viewing key never leaves your device.
-                  A viewing key only allows reading transactions — it cannot spend your funds.
+                  A viewing key only allows reading transactions, it cannot spend your funds.
                 </p>
               </div>
               <div className="card p-5">
@@ -201,7 +201,7 @@ export default function DecryptPage() {
               <p>
                 Zcash is unique among cryptocurrencies in offering encrypted memos attached to shielded transactions.
                 These memos allow users to include private messages, payment references, invoice numbers, or any
-                arbitrary data — all protected by the same zero-knowledge cryptography that shields transaction amounts
+                arbitrary data, all protected by the same zero-knowledge cryptography that shields transaction amounts
                 and addresses.
               </p>
               <p>
@@ -213,7 +213,7 @@ export default function DecryptPage() {
               <p>
                 Whether you need to verify a payment memo, read a private message, or audit your shielded transaction
                 history, CipherScan&apos;s decrypt tool handles Sapling and Orchard transactions with zero-knowledge proof
-                verification — all without your viewing key ever leaving your browser.
+                verification, all without your viewing key ever leaving your browser.
               </p>
             </div>
           </section>

@@ -278,7 +278,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
                 an observer can correlate the transactions and link your transparent addresses.
               </p>
               <p className="mt-2 text-muted">
-                The only foolproof way to defeat this is to <strong className="text-primary">ZODL</strong> — hold your ZEC in the shielded pool longer.
+                The only foolproof way to defeat this is to <strong className="text-primary">ZODL</strong>, hold your ZEC in the shielded pool longer.
               </p>
             </div>
           )}

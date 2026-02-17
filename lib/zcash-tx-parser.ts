@@ -238,9 +238,16 @@ function sha256(data: Uint8Array): Uint8Array {
   padded.set(data);
   padded[msgLen] = 0x80;
   // Length in bits as big-endian 64-bit
-  for (let i = 0; i < 8; i++) {
-    padded[padded.length - 1 - i] = (bitLen >>> (i * 8)) & 0xff;
-  }
+  // Upper 32 bits (always 0 for messages under 512MB)
+  padded[padded.length - 8] = 0;
+  padded[padded.length - 7] = 0;
+  padded[padded.length - 6] = 0;
+  padded[padded.length - 5] = 0;
+  // Lower 32 bits
+  padded[padded.length - 4] = (bitLen >>> 24) & 0xff;
+  padded[padded.length - 3] = (bitLen >>> 16) & 0xff;
+  padded[padded.length - 2] = (bitLen >>> 8) & 0xff;
+  padded[padded.length - 1] = bitLen & 0xff;
 
   const rotr = (x: number, n: number) => ((x >>> n) | (x << (32 - n))) >>> 0;
 
