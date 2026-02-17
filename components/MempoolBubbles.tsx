@@ -287,14 +287,10 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
             const ny = dy / dist;
             const overlap = (minDist - dist) * 0.4;
 
-            if (b.state !== 'popping') {
-              b.x -= nx * overlap;
-              b.y -= ny * overlap;
-            }
-            if (other.state !== 'popping') {
-              other.x += nx * overlap;
-              other.y += ny * overlap;
-            }
+            b.x -= nx * overlap;
+            b.y -= ny * overlap;
+            other.x += nx * overlap;
+            other.y += ny * overlap;
 
             // Soft bounce
             const relVx = other.vx - b.vx;
