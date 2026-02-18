@@ -1,5 +1,5 @@
 import { SearchBar } from '@/components/SearchBar';
-import { PrivacyWidget, PrivacyRisksWidget } from '@/components/PrivacyWidget';
+import { PrivacyWidget } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 
@@ -97,17 +97,9 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Main Content - lower z-index than hero */}
-      <div className="space-y-4 relative z-10">
-        {/* Privacy Widget */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <PrivacyWidget />
-        </div>
-
-        {/* Privacy Risks Widget */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-          <PrivacyRisksWidget />
-        </div>
+      {/* Privacy Health Module */}
+      <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <PrivacyWidget />
       </div>
 
       {/* Recent Blocks & Shielded TXs - Side by Side */}

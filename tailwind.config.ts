@@ -137,6 +137,7 @@ const config: Config = {
         'glow': 'glow 2s ease-in-out infinite',
         'shimmer': 'shimmer 1.5s ease-in-out infinite',
         'scan': 'scan 4s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
 
       keyframes: {
@@ -169,6 +170,10 @@ const config: Config = {
           '10%': { opacity: '0.5' },
           '90%': { opacity: '0.5' },
           '100%': { top: '100%', opacity: '0' },
+        },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
         },
       },
 

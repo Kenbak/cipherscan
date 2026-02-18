@@ -36,7 +36,7 @@
   --color-bg: #08090F;
   --color-elevated: #0E1018;
   --color-surface: rgba(20, 22, 31, 0.55);
-  --color-surface-solid: #14161F
+  --color-surface-solid: #14161F;
   --color-hover: #1A1D28;
   --color-active: #22252F;
   --color-border: rgba(30, 41, 59, 0.6);
@@ -623,6 +623,14 @@
   .mobile-menu-item:hover {
     background-color: var(--color-hover);
     color: var(--color-cyan);
+  }
+
+  .mobile-drawer {
+    background-color: var(--color-surface-solid);
+  }
+
+  .light .mobile-drawer {
+    background-color: #FFFFFF;
   }
 
   /* ===== FOOTER ===== */
