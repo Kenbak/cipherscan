@@ -276,22 +276,33 @@ router.get('/api/network/stats', async (req, res) => {
 
 /**
  * GET /api/network/fees
- * Get estimated transaction fees (slow, standard, fast)
+ * Get estimated transaction fees per ZIP-317
+ * ZIP-317: marginal_fee = 5000 zatoshi/action, grace_actions = 2, p2pkh_standard_fee = 10000 zatoshi
+ * Formula: max(marginal_fee * max(grace_actions, logical_actions), p2pkh_standard_fee)
  */
 router.get('/api/network/fees', async (req, res) => {
   try {
     console.log('💰 [FEES] Fetching fee estimates...');
 
-    // For now, return static values (Zcash fees are very low and predictable)
+    // ZIP-317 conventional fees based on logical actions
+    // 2 actions (simple tx): max(5000*2, 10000) = 10000 zatoshi
+    // 3 actions: max(5000*3, 10000) = 15000 zatoshi
+    // 5 actions (complex): max(5000*5, 10000) = 25000 zatoshi
     res.json({
       success: true,
       fees: {
-        slow: 0.000005,      // ~0.0005 cents
-        standard: 0.00001,   // ~0.001 cents
-        fast: 0.000015,      // ~0.0015 cents
+        low: 0.0001,          // 10,000 zatoshi — simple tx (2 logical actions)
+        standard: 0.00015,    // 15,000 zatoshi — typical shielded tx (3 actions)
+        high: 0.00025,        // 25,000 zatoshi — complex tx (5 actions)
       },
       unit: 'ZEC',
-      note: 'Zcash transaction fees are extremely low and predictable',
+      zip317: {
+        marginalFee: 5000,
+        graceActions: 2,
+        p2pkhStandardFee: 10000,
+        formula: 'max(marginal_fee * max(grace_actions, logical_actions), p2pkh_standard_fee)',
+      },
+      note: 'Fees follow ZIP-317 proportional fee mechanism. Actual fee depends on the number of logical actions in the transaction.',
       timestamp: Date.now(),
     });
 

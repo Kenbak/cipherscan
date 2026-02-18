@@ -378,20 +378,6 @@ export default function AddressPage() {
                     >
                       Sapling
                     </button>
-                    {/* Orchard Tab */}
-                    <button
-                      onClick={() => uaComponents.has_orchard && setSelectedAddressTab('orchard')}
-                      disabled={!uaComponents.has_orchard}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                        selectedAddressTab === 'orchard'
-                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
-                          : uaComponents.has_orchard
-                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
-                            : 'text-muted/30 cursor-not-allowed'
-                      }`}
-                    >
-                      Orchard
-                    </button>
                   </div>
 
                   {/* Tab Content */}
@@ -448,18 +434,6 @@ export default function AddressPage() {
                       </div>
                     )}
 
-                    {selectedAddressTab === 'orchard' && uaComponents.has_orchard && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Orchard Receiver</span>
-                          <span className="text-[10px] text-muted">(shielded, latest protocol)</span>
-                        </div>
-                        <p className="text-sm text-muted">
-                          Orchard receivers cannot be encoded as standalone addresses.
-                          Use the Unified Address to receive Orchard transactions.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </>
               ) : (
