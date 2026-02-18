@@ -56,11 +56,24 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
 
   if (loading) {
     return (
-      <div className="card">
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400"></div>
-          <p className="text-secondary ml-4 font-mono text-lg">Loading shielded data...</p>
-        </div>
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="card card-compact animate-pulse">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-28 skeleton-bg rounded" />
+                  <div className="h-4 w-20 skeleton-bg rounded" />
+                </div>
+                <div className="h-3 w-32 skeleton-bg rounded" />
+              </div>
+              <div className="space-y-2 text-right">
+                <div className="h-4 w-20 skeleton-bg rounded ml-auto" />
+                <div className="h-3 w-28 skeleton-bg rounded ml-auto" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -72,7 +85,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
     } else if (tx.vinCount > 0 && tx.voutCount === 0) {
       return <Badge color="green">↓ SHIELDING</Badge>;
     } else if (tx.vinCount === 0 && tx.voutCount > 0) {
-      return <Badge color="purple">↑ UNSHIELDING</Badge>;
+      return <Badge color="orange">↑ UNSHIELDING</Badge>;
     } else {
       return <Badge color="orange">MIXED</Badge>;
     }
@@ -113,7 +126,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                     </span>
                   )}
                   {tx.hasSapling && (
-                    <span className="ml-2 text-[10px] text-blue-400">
+                    <span className="ml-2 text-[10px] text-purple-400">
                       {tx.shieldedSpends || tx.shieldedOutputs} Sapling
                     </span>
                   )}

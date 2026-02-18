@@ -54,11 +54,24 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
 
   if (loading) {
     return (
-      <div className="card">
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan"></div>
-          <p className="text-secondary ml-4 font-mono text-lg">Syncing blockchain data...</p>
-        </div>
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="card card-compact animate-pulse">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-24 skeleton-bg rounded" />
+                  <div className="h-4 w-10 skeleton-bg rounded" />
+                </div>
+                <div className="h-3 w-36 skeleton-bg rounded" />
+              </div>
+              <div className="space-y-2 text-right">
+                <div className="h-4 w-20 skeleton-bg rounded ml-auto" />
+                <div className="h-3 w-28 skeleton-bg rounded ml-auto" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
