@@ -56,6 +56,9 @@
   --color-text-secondary: #9CA3AF;
   --color-text-muted: #6B7280;
 
+  /* Node map */
+  --color-map-dot: rgba(55, 65, 81, 0.45);
+
   /* Shadows */
   --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.12);
   --shadow-card-hover: 0 4px 8px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.16);
@@ -117,6 +120,9 @@
   --color-text-primary: #1A1D28;
   --color-text-secondary: #5A5D6B;
   --color-text-muted: #8B8E9C;
+
+  /* Node map */
+  --color-map-dot: rgba(148, 163, 184, 0.5);
 
   /* Shadows - softer for light mode */
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.05);

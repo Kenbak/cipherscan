@@ -578,15 +578,15 @@ router.get('/api/network/nodes/stats', async (req, res) => {
       FROM nodes
     `);
 
-    // Top countries by node count
+    // Top countries by node count (group by code to avoid "Netherlands" vs "The Netherlands" dupes)
     const topCountries = await pool.query(`
       SELECT 
-        country,
         country_code,
+        MODE() WITHIN GROUP (ORDER BY country) as country,
         COUNT(*) as node_count
       FROM nodes 
       WHERE is_active = TRUE
-      GROUP BY country, country_code
+      GROUP BY country_code
       ORDER BY node_count DESC
       LIMIT 10
     `);
