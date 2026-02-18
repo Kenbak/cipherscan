@@ -204,7 +204,8 @@ async function findLinkedTransactions(pool, txid, options = {}) {
 
   // 1. Get the transaction from shielded_flows
   const txResult = await pool.query(`
-    SELECT txid, block_height, block_time, flow_type, amount_zat, pool
+    SELECT txid, block_height, block_time, flow_type, amount_zat, pool,
+           transparent_addresses, transparent_value_zat
     FROM shielded_flows
     WHERE txid = $1
   `, [txid]);
@@ -233,6 +234,21 @@ async function findLinkedTransactions(pool, txid, options = {}) {
   const tx = txResult.rows[0];
   const amountZat = parseInt(tx.amount_zat);
   const blockTime = parseInt(tx.block_time);
+
+  // Check if this flow actually involves transparent addresses.
+  // Fully shielded txs have a positive valueBalance (the fee) but no transparent i/o —
+  // those are NOT real shield/deshield flows.
+  const hasTransparentAddresses = tx.transparent_addresses && tx.transparent_addresses.length > 0;
+  const transparentValueZat = parseInt(tx.transparent_value_zat || 0);
+  if (!hasTransparentAddresses && transparentValueZat === 0) {
+    return {
+      txid,
+      flowType: null,
+      hasShieldedActivity: false,
+      linkedTransactions: [],
+      message: 'Fully shielded transaction — no transparent inputs or outputs to link',
+    };
+  }
 
   // Get transparent addresses for the current transaction
   const currentAddresses = await getTransparentAddresses(pool, txid, tx.flow_type);

@@ -500,7 +500,10 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
     // Think of it as: valueBalance = shielded_outputs - shielded_inputs
     // - If you're shielding: inputs > outputs → negative balance
     // - If you're deshielding: outputs > inputs → positive balance
-    if (totalValueBalance !== 0) {
+    const hasTransparentInputs = tx.vin && tx.vin.some(v => !v.coinbase);
+    const hasTransparentOutputs = tx.vout && tx.vout.length > 0;
+
+    if (totalValueBalance !== 0 && (hasTransparentInputs || hasTransparentOutputs)) {
       const flowType = totalValueBalance > 0 ? 'deshield' : 'shield';
       const amountZat = Math.abs(totalValueBalance);
 
