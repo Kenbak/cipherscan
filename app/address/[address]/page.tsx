@@ -315,158 +315,179 @@ export default function AddressPage() {
 
   // Display special message for shielded addresses
   if (isShieldedAddress) {
+    const isUnified = address.startsWith('u1') || address.startsWith('utest');
+
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        {/* Cypherpunk Header */}
+        <div className="mb-8 animate-fade-in-up">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_SHIELDED</span>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">
               Shielded Address
             </h1>
-            <Badge color="purple" icon={<Icons.Shield />}>
-              {address.startsWith('u1') || address.startsWith('utest') ? 'UNIFIED' : 'SHIELDED'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge color="purple" icon={<Icons.Shield />}>
+                {isUnified ? 'UNIFIED' : 'SHIELDED'}
+              </Badge>
+            </div>
           </div>
-          {/* Address Tabs */}
-          {(address.startsWith('u1') || address.startsWith('utest')) && (
-            <div className="rounded-lg bg-cipher-surface/50 border border-white/[0.04] overflow-hidden">
-              {/* Tab Bar */}
-              {uaLoading ? (
-                <div className="flex items-center gap-2 p-4 text-xs text-muted">
-                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent"></div>
-                  Decoding address components...
-                </div>
-              ) : uaComponents ? (
-                <>
-                  <div className="flex border-b border-white/[0.04]">
-                    {/* Unified Tab */}
-                    <button
-                      onClick={() => setSelectedAddressTab('unified')}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                        selectedAddressTab === 'unified'
-                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
-                          : 'text-muted hover:text-secondary hover:bg-white/[0.02]'
-                      }`}
-                    >
-                      Unified
-                    </button>
-                    {/* Transparent Tab */}
-                    <button
-                      onClick={() => uaComponents.has_transparent && setSelectedAddressTab('transparent')}
-                      disabled={!uaComponents.has_transparent}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                        selectedAddressTab === 'transparent'
-                          ? 'bg-cyan-500/10 text-cipher-cyan border-b-2 border-cipher-cyan'
-                          : uaComponents.has_transparent
-                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
-                            : 'text-muted/30 cursor-not-allowed'
-                      }`}
-                    >
-                      Transparent
-                    </button>
-                    {/* Sapling Tab */}
-                    <button
-                      onClick={() => uaComponents.has_sapling && setSelectedAddressTab('sapling')}
-                      disabled={!uaComponents.has_sapling}
-                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                        selectedAddressTab === 'sapling'
-                          ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-400'
-                          : uaComponents.has_sapling
-                            ? 'text-muted hover:text-secondary hover:bg-white/[0.02]'
-                            : 'text-muted/30 cursor-not-allowed'
-                      }`}
-                    >
-                      Sapling
-                    </button>
-                  </div>
-
-                  {/* Tab Content */}
-                  <div className="p-4">
-                    {selectedAddressTab === 'unified' && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Unified Address</span>
-                          <span className="text-[10px] text-muted">(contains all receivers below)</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <code className="text-sm text-secondary break-all font-mono flex-1">{address}</code>
-                          <CopyButton text={address} label="unified" />
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedAddressTab === 'transparent' && uaComponents.has_transparent && uaComponents.transparent_address && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-cipher-cyan font-medium uppercase tracking-wide">Transparent Address</span>
-                          <span className="text-[10px] text-muted">(public, viewable on-chain)</span>
-                        </div>
-                        <div className="flex items-start gap-2 mb-4">
-                          <code className="text-sm text-cipher-cyan break-all font-mono flex-1">{uaComponents.transparent_address}</code>
-                          <CopyButton text={uaComponents.transparent_address} label="transparent" />
-                        </div>
-                        <Link
-                          href={`/address/${uaComponents.transparent_address}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 text-cipher-cyan text-sm font-medium hover:bg-cipher-cyan/20 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          View Transactions
-                        </Link>
-                      </div>
-                    )}
-
-                    {selectedAddressTab === 'sapling' && uaComponents.has_sapling && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-purple-400 font-medium uppercase tracking-wide">Sapling Address</span>
-                          <span className="text-[10px] text-muted">(shielded, private)</span>
-                        </div>
-                        {uaComponents.sapling_address ? (
-                          <div className="flex items-start gap-2">
-                            <code className="text-sm text-purple-400 break-all font-mono flex-1">{uaComponents.sapling_address}</code>
-                            <CopyButton text={uaComponents.sapling_address} label="sapling" />
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted italic">Sapling receiver is present but address encoding not available</p>
-                        )}
-                      </div>
-                    )}
-
-                  </div>
-                </>
-              ) : (
-                <div className="p-4">
-                  <div className="flex items-center gap-2">
-                    <code className="text-sm text-secondary break-all font-mono">{address}</code>
-                    <CopyButton text={address} label="address" />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Non-unified shielded addresses */}
-          {!(address.startsWith('u1') || address.startsWith('utest')) && (
-            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                <code className="text-sm text-secondary break-all font-mono">{address}</code>
-                <CopyButton text={address} label="address" />
-              </div>
-            </div>
-          )}
+          <p className="text-sm text-secondary">
+            Zero-knowledge encrypted address — balance and history are private
+          </p>
         </div>
 
-        {/* Privacy Hero Card */}
-        <Card className="mb-6 overflow-hidden relative">
-          {/* Subtle gradient overlay for shielded feel */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.08] via-transparent to-transparent pointer-events-none" />
-          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(167,139,250,0.02)_10px,rgba(167,139,250,0.02)_20px)] pointer-events-none" />
+        {/* Address Component Viewer */}
+        {isUnified && (
+          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+            <Card>
+              <CardBody>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_COMPONENTS</span>
+                </div>
+
+                {uaLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent" />
+                    <span className="font-mono">Decoding unified address...</span>
+                  </div>
+                ) : uaComponents ? (
+                  <>
+                    {/* Tabs */}
+                    <div className="inline-flex">
+                      <div className="filter-group inline-flex mb-4">
+                        <button
+                          onClick={() => setSelectedAddressTab('unified')}
+                          className={`filter-btn ${selectedAddressTab === 'unified' ? 'filter-btn-active' : ''}`}
+                        >
+                          Unified
+                        </button>
+                        <button
+                          onClick={() => uaComponents.has_transparent && setSelectedAddressTab('transparent')}
+                          disabled={!uaComponents.has_transparent}
+                          className={`filter-btn ${selectedAddressTab === 'transparent' ? 'filter-btn-active' : ''} ${!uaComponents.has_transparent ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        >
+                          Transparent
+                        </button>
+                        <button
+                          onClick={() => uaComponents.has_sapling && setSelectedAddressTab('sapling')}
+                          disabled={!uaComponents.has_sapling}
+                          className={`filter-btn ${selectedAddressTab === 'sapling' ? 'filter-btn-active' : ''} ${!uaComponents.has_sapling ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        >
+                          Sapling
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                      {selectedAddressTab === 'unified' && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge color="purple">UNIFIED</Badge>
+                            <span className="text-[10px] text-muted font-mono">contains all receivers</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <code className="text-xs text-secondary break-all font-mono flex-1 leading-relaxed">{address}</code>
+                            <CopyButton text={address} label="unified" />
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAddressTab === 'transparent' && uaComponents.has_transparent && uaComponents.transparent_address && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge color="cyan">TRANSPARENT</Badge>
+                            <span className="text-[10px] text-muted font-mono">public on-chain</span>
+                          </div>
+                          <div className="flex items-start gap-2 mb-4">
+                            <code className="text-xs text-cipher-cyan break-all font-mono flex-1 leading-relaxed">{uaComponents.transparent_address}</code>
+                            <CopyButton text={uaComponents.transparent_address} label="transparent" />
+                          </div>
+                          <Link
+                            href={`/address/${uaComponents.transparent_address}`}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 text-cipher-cyan text-sm font-medium hover:bg-cipher-cyan/20 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            View Transactions
+                          </Link>
+                        </div>
+                      )}
+
+                      {selectedAddressTab === 'sapling' && uaComponents.has_sapling && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge color="purple">SAPLING</Badge>
+                            <span className="text-[10px] text-muted font-mono">shielded receiver</span>
+                          </div>
+                          {uaComponents.sapling_address ? (
+                            <div className="flex items-start gap-2">
+                              <code className="text-xs text-purple-400 break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
+                              <CopyButton text={uaComponents.sapling_address} label="sapling" />
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted font-mono">Receiver present — address encoding unavailable</p>
+                          )}
+                        </div>
+                      )}
+
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                    <div className="flex items-start gap-2">
+                      <code className="text-xs text-secondary break-all font-mono flex-1">{address}</code>
+                      <CopyButton text={address} label="address" />
+                    </div>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        )}
+
+        {/* Non-unified shielded addresses */}
+        {!isUnified && (
+          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+            <Card>
+              <CardBody>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS</span>
+                </div>
+                <div className="flex items-start gap-2 p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                  <code className="text-xs text-secondary break-all font-mono flex-1">{address}</code>
+                  <CopyButton text={address} label="address" />
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        )}
+
+        {/* Privacy Status Card */}
+        <Card className="mb-6 overflow-hidden relative animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          {/* Atmospheric overlays */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.06] via-transparent to-cipher-cyan/[0.02] pointer-events-none" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(167,139,250,0.015)_10px,rgba(167,139,250,0.015)_20px)] pointer-events-none" />
+          {/* Scan line */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400/30 to-transparent animate-[scan_4s_ease-in-out_infinite]" style={{ animation: 'scan 4s ease-in-out infinite' }} />
+          </div>
 
           <CardBody className="relative">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_STATUS</span>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider">Protected</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
@@ -476,74 +497,80 @@ export default function AddressPage() {
                   Privacy by Design
                 </h2>
                 <p className="text-sm text-secondary leading-relaxed">
-                  This address uses <span className="text-purple-400 font-medium">zero-knowledge proofs</span> to encrypt transaction data.
+                  This address uses <span className="text-purple-400 font-medium">zero-knowledge proofs</span> to encrypt all transaction data.
                   Balance and history are only visible to holders of the viewing key.
                 </p>
               </div>
             </div>
 
-            {/* Privacy Features Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Redacted data visualization */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               {[
-                { label: 'Balance', status: 'encrypted' },
-                { label: 'Amounts', status: 'hidden' },
-                { label: 'Parties', status: 'private' },
-                { label: 'Memos', status: 'encrypted' },
-              ].map((feature) => (
-                <div key={feature.label} className="flex items-center gap-2 p-3 rounded-lg bg-purple-500/[0.06] border border-purple-500/10">
-                  <svg className="w-4 h-4 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                { label: 'BALANCE', redacted: '████████ ZEC' },
+                { label: 'TX_COUNT', redacted: '████' },
+                { label: 'LAST_ACTIVE', redacted: '████-██-██' },
+                { label: 'MEMO_FIELD', redacted: '██████████████' },
+              ].map((field) => (
+                <div key={field.label} className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/[0.04] border border-purple-500/[0.08]">
+                  <svg className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-muted font-mono uppercase tracking-wider block">{field.label}</span>
+                    <span className="text-xs text-purple-400/40 font-mono tracking-tight">{field.redacted}</span>
+                  </div>
+                  <span className="text-[9px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Privacy feature badges */}
+            <div className="flex flex-wrap gap-2">
+              {['Zero-Knowledge Proofs', 'Encrypted Amounts', 'Hidden Parties', 'Private Memos'].map((feature) => (
+                <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/[0.06] border border-purple-500/[0.08] text-[11px] text-purple-300 font-mono">
+                  <svg className="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <div>
-                    <span className="text-xs text-purple-300 font-medium block">{feature.label}</span>
-                    <span className="text-[10px] text-muted uppercase tracking-wide">{feature.status}</span>
-                  </div>
-                </div>
+                  {feature}
+                </span>
               ))}
             </div>
           </CardBody>
         </Card>
 
-        {/* Decrypt Tools Section - Full Width */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Decrypt Tools — compact inline */}
+        <div className="p-4 rounded-xl bg-cipher-surface/50 border border-white/[0.04] animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <svg className="w-4 h-4 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
-              <h3 className="text-base font-semibold text-primary">Decrypt Your Transactions</h3>
+              <p className="text-sm text-secondary">
+                <span className="text-primary font-medium">Your address?</span> Decrypt with your viewing key.
+              </p>
             </div>
-          </CardHeader>
-          <CardBody>
-            <p className="text-sm text-secondary mb-6 leading-relaxed">
-              <strong className="text-primary">Is this your address?</strong> Use your viewing key to reveal transactions sent to you.
-              Only you can decrypt your own transactions.
-            </p>
-
-            {/* Action Buttons - Side by side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Link
                 href="/decrypt"
-                className="group flex items-center justify-center gap-3 px-5 py-3.5 bg-gradient-to-b from-cipher-cyan to-[#00B8E0] text-cipher-bg font-semibold rounded-xl hover:from-[#00E0FF] hover:to-cipher-cyan transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_4px_12px_rgba(0,212,255,0.25)] hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-cipher-cyan/30 text-cipher-cyan hover:bg-cipher-cyan/10 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <span>Decrypt Single Transaction</span>
+                Decrypt TX
               </Link>
-
               <Link
                 href="/decrypt?tab=scan"
-                className="group flex items-center justify-center gap-3 px-5 py-3.5 border border-cipher-border text-primary rounded-xl hover:border-cipher-cyan hover:text-cipher-cyan transition-all hover:bg-cipher-cyan/5"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-cipher-border text-secondary hover:text-cipher-cyan hover:border-cipher-cyan/30 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Scan Transaction History</span>
+                Scan History
               </Link>
             </div>
-          </CardBody>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -551,30 +578,31 @@ export default function AddressPage() {
   // Display message for addresses with no transactions
   if (hasNoTransactions && data) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
-          <div className="flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        <div className="mb-8 animate-fade-in-up">
+          <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_LOOKUP</span>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h1>
+          <div className="flex flex-wrap items-center gap-2">
             <Badge color="cyan">TRANSPARENT</Badge>
-            <code className="text-sm text-secondary break-all">{address}</code>
+            <code className="text-xs text-secondary break-all font-mono">{address}</code>
             <CopyButton text={address} label="address" />
           </div>
         </div>
 
-        <Card>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
           <CardBody>
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-cipher-border/30 flex items-center justify-center">
-                <svg className="w-8 h-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-white/[0.04] flex items-center justify-center">
+                <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-primary mb-2">No Transactions Yet</h2>
+              <h2 className="text-lg font-semibold text-primary mb-2">No Transactions Yet</h2>
               <p className="text-sm text-secondary max-w-md mx-auto mb-6">
-                This is a valid transparent address, but it hasn&apos;t received or sent any transactions yet.
+                Valid transparent address with no transaction history.
               </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-border/20 rounded-lg text-xs text-muted">
-                <span className="w-2 h-2 rounded-full bg-cipher-cyan"></span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cipher-surface rounded-lg text-xs text-muted font-mono border border-white/[0.04]">
+                <span className="w-1.5 h-1.5 rounded-full bg-cipher-cyan" />
                 Balance: 0 ZEC
               </div>
             </div>
@@ -586,49 +614,59 @@ export default function AddressPage() {
 
   if (!data || hasIndexingIssue) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Address Details</h1>
-          <div className="flex items-center">
-            <code className="text-sm text-secondary break-all">{address}</code>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        <div className="mb-8 animate-fade-in-up">
+          <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_LOOKUP</span>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="text-xs text-secondary break-all font-mono">{address}</code>
             <CopyButton text={address} label="address" />
           </div>
         </div>
 
-        <Card>
-          <CardBody className="py-12">
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-4">⚠️</div>
-              <h2 className="text-xl font-bold text-amber-600 dark:text-yellow-400 mb-4">Limited Data Available</h2>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <CardBody>
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-xs font-mono text-muted tracking-wider">&gt; STATUS</span>
+              <Badge color="orange">LIMITED DATA</Badge>
             </div>
 
-            <div className="gradient-card-warning rounded-lg p-6 max-w-2xl mx-auto">
-              <p className="text-sm text-secondary mb-4">
-                <strong className="text-amber-600 dark:text-yellow-400">This address is valid, but we cannot display its transaction history.</strong>
-              </p>
-
-              <p className="text-xs text-muted mb-4">
-                The explorer node doesn&apos;t have address indexing enabled. This means we can only display
-                transaction data if you provide the specific transaction ID.
-              </p>
-
-              <div className="block-hash-bg rounded p-4 mt-4">
-                <p className="text-xs text-muted mb-2">
-                  <strong>Technical details:</strong>
-                </p>
-                <ul className="text-xs text-muted space-y-1">
-                  <li>• RPC methods <code className="text-cipher-cyan">getaddressbalance</code> and <code className="text-cipher-cyan">getaddresstxids</code> are not available</li>
-                  <li>• These require <code className="text-cipher-cyan">addressindex=1</code> in node configuration</li>
-                  <li>• Zebrad may not support these methods yet</li>
-                  <li>• Consider using zcashd with address indexing enabled</li>
-                </ul>
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
               </div>
-
-              <div className="mt-6 p-4 bg-cipher-cyan/10 rounded border border-cipher-cyan/30">
-                <p className="text-xs text-cipher-cyan">
-                  💡 <strong>Tip:</strong> You can still view individual transactions by searching for their transaction hash (txid).
+              <div>
+                <h2 className="text-base font-semibold text-primary mb-1">Address valid, but history unavailable</h2>
+                <p className="text-sm text-secondary leading-relaxed">
+                  The explorer node doesn&apos;t have address indexing enabled. Transaction data can only be retrieved by specific transaction ID.
                 </p>
               </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04] mb-4">
+              <span className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-3">&gt; TECHNICAL_DETAILS</span>
+              <ul className="text-xs text-secondary space-y-2 font-mono">
+                <li className="flex items-start gap-2">
+                  <span className="text-muted mt-0.5">$</span>
+                  <span>RPC methods <code className="text-cipher-cyan">getaddressbalance</code> / <code className="text-cipher-cyan">getaddresstxids</code> unavailable</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-muted mt-0.5">$</span>
+                  <span>Requires <code className="text-cipher-cyan">addressindex=1</code> in node config</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-muted mt-0.5">$</span>
+                  <span>Zebrad may not support these methods</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="p-3 rounded-lg bg-cipher-cyan/5 border border-cipher-cyan/10">
+              <p className="text-xs text-cipher-cyan font-mono">
+                &gt; TIP: Search by transaction hash (txid) to view individual transactions
+              </p>
             </div>
           </CardBody>
         </Card>
@@ -647,7 +685,7 @@ export default function AddressPage() {
       case 'unified':
         return {
           label: 'UNIFIED',
-          color: 'blue',
+          color: 'purple',
           description: 'Can receive both shielded and transparent funds',
         };
       case 'transparent':
@@ -670,15 +708,14 @@ export default function AddressPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-primary">Address Details</h1>
-            {/* Type Badge */}
-            <span className={`px-3 py-1 bg-${typeInfo.color}-500/10 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400 text-sm rounded font-mono flex items-center gap-2`}>
-              <Icons.Shield />
+      <div className="mb-8 animate-fade-in-up">
+        <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
+        <div className="flex items-center justify-between mt-1 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Address</h1>
+            <Badge color={typeInfo.color as 'purple' | 'cyan'} icon={<Icons.Shield />}>
               {typeInfo.label}
-            </span>
+            </Badge>
           </div>
 
           {/* Export Button - Right aligned */}
@@ -730,7 +767,7 @@ export default function AddressPage() {
       </div>
 
       {/* Overview Cards - Row 1 */}
-      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
         {/* Balance */}
         <Card variant="compact">
           <CardBody>
@@ -781,7 +818,7 @@ export default function AddressPage() {
       </div>
 
       {/* Overview Cards - Row 2 */}
-      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         {/* Total Transactions */}
         <Card variant="compact">
           <CardBody>
@@ -850,15 +887,14 @@ export default function AddressPage() {
       </div>
 
       {/* Transactions List */}
-      <div id="transactions-section">
+      <div id="transactions-section" className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Icons.List />
-            <h2 className="text-lg font-semibold text-primary">Transactions</h2>
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; TRANSACTIONS</span>
             <Badge color="cyan">{totalTxCount}</Badge>
           </div>
-          <span className="text-sm text-muted font-normal ml-auto">
+          <span className="text-sm text-muted font-normal font-mono ml-auto">
             {totalPages > 1 ? `page ${currentPage} of ${totalPages}` : `${totalTxCount} total`}
           </span>
         </CardHeader>
