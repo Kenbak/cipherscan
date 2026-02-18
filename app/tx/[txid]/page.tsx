@@ -269,10 +269,14 @@ export default function TransactionPage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-8">
+          <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h1>
+        </div>
         <Card>
           <CardBody className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
-            <p className="text-secondary ml-4 font-mono">Loading transaction...</p>
+            <p className="text-secondary ml-4 font-mono text-sm">Loading transaction...</p>
           </CardBody>
         </Card>
       </div>
@@ -281,15 +285,27 @@ export default function TransactionPage() {
 
   if (!data) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="text-center">
-          <CardBody className="py-16">
-            <div className="text-5xl mb-6">🔍</div>
-            <h2 className="text-2xl font-bold font-mono text-primary mb-3">Transaction Not Found</h2>
-            <p className="text-secondary mb-6">This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.</p>
-            <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
-              ← Back to Explorer
-            </Link>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        <div className="mb-8">
+          <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_LOOKUP</span>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h1>
+        </div>
+        <Card>
+          <CardBody>
+            <div className="text-center py-12">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-white/[0.04] flex items-center justify-center">
+                <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-primary mb-2">Transaction Not Found</h2>
+              <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
+                This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.
+              </p>
+              <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+                &larr; Back to Explorer
+              </Link>
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -328,81 +344,56 @@ export default function TransactionPage() {
     hasSapling ? 'SHIELDED' :
     'REGULAR';
 
-  // Generate transaction summary
-  const generateTxSummary = () => {
+  // Human-readable transaction explanation
+  const generateTxSummary = (): React.ReactNode => {
     if (isCoinbase) {
       const recipient = data.outputs[0]?.scriptPubKey?.addresses?.[0];
       if (recipient) {
         return (
           <>
-            New coins minted via <span className="text-cipher-green font-semibold">block reward</span> to{' '}
-            <AddressWithLabel address={recipient} />
+            New {CURRENCY} created as a block reward, sent to the address <AddressWithLabel address={recipient} />.
           </>
         );
       }
-      return 'New coins minted via block reward';
+      return `New ${CURRENCY} created as a block reward.`;
     }
 
     if (txType === 'ORCHARD') {
-      return (
-        <>
-          <span className="text-purple-400 font-semibold">Fully shielded transaction</span> with{' '}
-          {data.orchardActions} Orchard action{data.orchardActions !== 1 ? 's' : ''}. All amounts and addresses are private.
-        </>
-      );
+      return 'Fully private transaction. All amounts, senders, and recipients are encrypted and hidden from public view.';
     }
 
     if (txType === 'SHIELDED') {
-      return (
-        <>
-          <span className="text-purple-400 font-semibold">Fully shielded transaction</span> with{' '}
-          {data.shieldedSpends} shielded input{data.shieldedSpends !== 1 ? 's' : ''} →{' '}
-          {data.shieldedOutputs} shielded output{data.shieldedOutputs !== 1 ? 's' : ''}
-        </>
-      );
+      return 'Fully private transaction using Sapling shielded proofs. No amounts or addresses are publicly visible.';
     }
 
     if (txType === 'SHIELDING') {
       const amount = Math.abs(valueBalance);
-      return (
-        <>
-          <span className="text-green-600 dark:text-green-400 font-semibold">Shielding transaction</span>:{' '}
-          Moving {amount.toFixed(4)} {CURRENCY} into the shielded pool
-        </>
-      );
+      const fromAddr = data.inputs[0]?.address;
+      if (fromAddr) {
+        return (
+          <>
+            {amount.toFixed(4)} {CURRENCY} moved from the public address <AddressWithLabel address={fromAddr} /> into the private shielded pool, making future spending invisible.
+          </>
+        );
+      }
+      return `${amount.toFixed(4)} ${CURRENCY} moved from a public address into the private shielded pool, making future spending invisible.`;
     }
 
     if (txType === 'UNSHIELDING') {
       const amount = Math.abs(valueBalance);
-      return (
-        <>
-          <span className="text-purple-600 dark:text-purple-400 font-semibold">Unshielding transaction</span>:{' '}
-          Moving {amount.toFixed(4)} {CURRENCY} out of the shielded pool
-        </>
-      );
+      const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+      if (toAddr) {
+        return (
+          <>
+            {amount.toFixed(4)} {CURRENCY} moved out of the private shielded pool to the public address <AddressWithLabel address={toAddr} />.
+          </>
+        );
+      }
+      return `${amount.toFixed(4)} ${CURRENCY} moved out of the private shielded pool to a public transparent address.`;
     }
 
     if (txType === 'MIXED') {
-      const transparentIns = data.inputs.length;
-      const shieldedIns = data.shieldedSpends;
-      const transparentOuts = data.outputs.length;
-      const shieldedOuts = data.shieldedOutputs;
-
-      return (
-        <>
-          <span className="text-amber-600 dark:text-amber-400 font-semibold">Mixed transaction</span>:{' '}
-          {transparentIns > 0 && `${transparentIns} transparent`}
-          {transparentIns > 0 && shieldedIns > 0 && ' + '}
-          {shieldedIns > 0 && `${shieldedIns} shielded`}
-          {' input'}
-          {(transparentIns + shieldedIns) !== 1 ? 's' : ''} →{' '}
-          {transparentOuts > 0 && `${transparentOuts} transparent`}
-          {transparentOuts > 0 && shieldedOuts > 0 && ' + '}
-          {shieldedOuts > 0 && `${shieldedOuts} shielded`}
-          {' output'}
-          {(transparentOuts + shieldedOuts) !== 1 ? 's' : ''}
-        </>
-      );
+      return 'This transaction combines public and private funds in a single operation. Some inputs or outputs are visible on-chain, while shielded parts remain encrypted.';
     }
 
     // Regular transparent transaction
@@ -410,47 +401,39 @@ export default function TransactionPage() {
     const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
 
     if (fromAddr && toAddr) {
-      // Separate change outputs from real recipients
       const changeOutputs = data.outputs.filter(
-        out => out.scriptPubKey?.addresses?.[0] === fromAddr
+        (out: any) => out.scriptPubKey?.addresses?.[0] === fromAddr
       );
       const recipientOutputs = data.outputs.filter(
-        out => out.scriptPubKey?.addresses?.[0] !== fromAddr
+        (out: any) => out.scriptPubKey?.addresses?.[0] !== fromAddr
       );
 
-      // Find the largest recipient output (primary destination)
       const primaryOutput = recipientOutputs.length > 0
-        ? recipientOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))[0]
+        ? recipientOutputs.sort((a: any, b: any) => (b.value || 0) - (a.value || 0))[0]
         : data.outputs[0];
 
       const primaryAddr = primaryOutput?.scriptPubKey?.addresses?.[0];
       const primaryAmount = primaryOutput?.value || 0;
-
-      // Count other recipients (excluding primary and change)
       const otherRecipients = recipientOutputs.length - 1;
 
       return (
         <>
-          <AddressWithLabel address={fromAddr} />
+          The address <AddressWithLabel address={fromAddr} />
           {' sent '}
-          <span className="text-white font-semibold">{primaryAmount.toFixed(4)} {CURRENCY}</span>
-          {' to '}
+          <span className="text-primary font-semibold">{primaryAmount.toFixed(4)} {CURRENCY}</span>
+          {' to the address '}
           <AddressWithLabel address={primaryAddr || toAddr} />
           {otherRecipients > 0 && (
-            <span className="text-muted">
-              {' '}+ {otherRecipients} other recipient{otherRecipients > 1 ? 's' : ''}
+            <span>
+              {' '}and {otherRecipients} other{otherRecipients > 1 ? 's' : ''}
             </span>
           )}
-          {changeOutputs.length > 0 && (
-            <span className="text-muted text-xs">
-              {' '}({changeOutputs.length} change output{changeOutputs.length > 1 ? 's' : ''})
-            </span>
-          )}
+          .
         </>
       );
     }
 
-    return `Transaction with ${data.inputs.length} input${data.inputs.length !== 1 ? 's' : ''} and ${data.outputs.length} output${data.outputs.length !== 1 ? 's' : ''}`;
+    return `A transparent transaction with ${data.inputs.length} input${data.inputs.length !== 1 ? 's' : ''} and ${data.outputs.length} output${data.outputs.length !== 1 ? 's' : ''}.`;
   };
 
   // InfoRow component (same pattern as block page)
@@ -486,10 +469,11 @@ export default function TransactionPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+      <div className="mb-8 animate-fade-in-up">
+        <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
+        <div className="flex items-center justify-between mt-1 mb-2">
           <div className="flex flex-wrap items-center gap-2 md:gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary">Transaction Details</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-primary">Transaction Details</h1>
           {/* Type Badge */}
           {txType === 'COINBASE' && (
             <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>
@@ -548,27 +532,22 @@ export default function TransactionPage() {
           />
         </div>
 
-        {/* Transaction Summary - hide for SHIELDING/UNSHIELDING (Privacy Alert handles it) */}
-        {txType !== 'SHIELDING' && txType !== 'UNSHIELDING' && (
-          <div className="tx-summary-box border border-cipher-border/50 rounded-lg p-3 md:p-4 mt-4">
-            <div className="flex items-start gap-2 md:gap-3">
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-secondary text-xs md:text-sm leading-relaxed">
-                {generateTxSummary()}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Human-readable summary */}
+        <p className="text-sm text-secondary leading-relaxed mt-2">
+          {generateTxSummary()}
+        </p>
 
         {/* Privacy Risk Alert - standalone component */}
         <PrivacyRiskInline txid={data.txid} />
       </div>
 
       {/* Main Transaction Info Card */}
-      <Card className="mb-8">
+      <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <CardBody className="space-y-0">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_INFO</span>
+          </div>
+
           {/* Transaction Hash */}
           <div className="pb-3 border-b block-info-border">
             <div className="flex items-center mb-2 text-secondary">
@@ -652,20 +631,20 @@ export default function TransactionPage() {
               // Show hidden for fully shielded or shielding (output is shielded)
               (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING' || txType === 'MIXED') && (hasOrchard || hasSapling) ? (
                 <div className="flex flex-col gap-2">
-                  <span className="font-semibold text-purple-400 flex items-center gap-2">
-                    <Icons.Shield />
-                    (amount hidden)
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-purple-400/40 font-mono tracking-tight">████████</span>
+                    <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                  </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span className="text-secondary text-xs flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
+                    <span className="text-secondary text-xs flex items-center gap-1.5 font-mono">
                       Is this your transaction? Use your viewing key to decrypt.
                     </span>
                     <Link
                       href={`/decrypt?prefill=${data.txid}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10 text-purple-400 text-xs font-medium rounded-md transition-colors whitespace-nowrap"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -710,6 +689,9 @@ export default function TransactionPage() {
         {/* Additional Details (Collapsible) */}
         {showMoreDetails && (
           <div className="mt-4 pt-4 border-t block-info-border space-y-0">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-mono text-muted tracking-wider">&gt; ADVANCED</span>
+            </div>
             <InfoRow
               icon={Icons.Database}
               label="Size"
@@ -820,15 +802,14 @@ export default function TransactionPage() {
       </Card>
 
       {/* Inputs/Outputs Cards */}
-      <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
         {/* Inputs Card */}
         <Card variant="compact">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Icons.ArrowLeft />
-                Inputs
-                <Badge color="cyan" className="ml-1">{data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)}</Badge>
+              <h3 className="text-primary flex items-center gap-2">
+                <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUTS</span>
+                <Badge color="cyan">{data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)}</Badge>
               </h3>
               {data.inputs.length > 0 && (
                 <button
@@ -840,9 +821,15 @@ export default function TransactionPage() {
               )}
             </div>
             {((data.shieldedSpends > 0 || (data.orchardActions || 0) > 0) && data.totalInput === 0) ? (
-              <div className="flex items-center gap-2">
-                <Badge color="purple" icon={<Icons.Shield />}>(amount hidden)</Badge>
-                <span className="text-xs text-muted">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="text-purple-400/40 font-mono tracking-tight text-lg">████████</span>
+                  <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                </div>
+                <span className="text-xs text-muted font-mono">
                   {(data.orchardActions || 0) > 0
                     ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
                     : `Shielded input${data.shieldedSpends > 1 ? 's' : ''}`
@@ -865,10 +852,9 @@ export default function TransactionPage() {
         <Card variant="compact">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Icons.ArrowRight />
-                Outputs
-                <Badge color="green" className="ml-1">{data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)}</Badge>
+              <h3 className="text-primary flex items-center gap-2">
+                <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUTS</span>
+                <Badge color="cyan">{data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)}</Badge>
               </h3>
               {data.outputs.length > 0 && (
                 <button
@@ -880,9 +866,15 @@ export default function TransactionPage() {
               )}
             </div>
             {((data.shieldedOutputs > 0 || (data.orchardActions || 0) > 0) && data.totalOutput === 0) ? (
-              <div className="flex items-center gap-2">
-                <Badge color="purple" icon={<Icons.Shield />}>(amount hidden)</Badge>
-                <span className="text-xs text-muted">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="text-purple-400/40 font-mono tracking-tight text-lg">████████</span>
+                  <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                </div>
+                <span className="text-xs text-muted font-mono">
                   {(data.orchardActions || 0) > 0
                     ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
                     : `Shielded output${data.shieldedOutputs > 1 ? 's' : ''}`
@@ -904,10 +896,9 @@ export default function TransactionPage() {
 
       {/* Detailed Inputs */}
       {showInputs && (
-        <Card className="mb-8">
+        <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardHeader className="flex items-center gap-2">
-            <Icons.ArrowLeft />
-            <h3 className="text-lg font-semibold text-primary">Input Details</h3>
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUT_DETAILS</span>
             <Tooltip content="Sources of funds for this transaction. Each input references a previous transaction output." />
           </CardHeader>
           <CardBody>
@@ -1028,10 +1019,9 @@ export default function TransactionPage() {
 
       {/* Detailed Outputs */}
       {showOutputs && (
-        <Card>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardHeader className="flex items-center gap-2">
-            <Icons.ArrowRight />
-            <h3 className="text-lg font-semibold text-primary">Output Details</h3>
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUT_DETAILS</span>
             <Tooltip content="Destinations where funds are sent. Each output creates new spendable coins at specified addresses." />
           </CardHeader>
           <CardBody>
