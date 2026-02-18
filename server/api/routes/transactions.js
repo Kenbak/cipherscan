@@ -99,15 +99,19 @@ router.get('/api/tx/shielded', async (req, res) => {
       queryParams
     );
 
-    // Get total count for pagination
-    const countResult = await pool.query(
-      `SELECT COUNT(*) as total
-      FROM transactions t
-      ${whereClause}`,
-      queryParams.slice(0, -2) // Remove limit/offset for count
-    );
+    // Only run the expensive COUNT(*) when pagination is actually needed
+    const skipCount = req.query.skip_count === 'true' || (offset === 0 && limit <= 10);
+    let total = 0;
 
-    const total = parseInt(countResult.rows[0]?.total || 0);
+    if (!skipCount) {
+      const countResult = await pool.query(
+        `SELECT COUNT(*) as total
+        FROM transactions t
+        ${whereClause}`,
+        queryParams.slice(0, -2)
+      );
+      total = parseInt(countResult.rows[0]?.total || 0);
+    }
 
     res.json({
       transactions: result.rows.map(tx => ({
@@ -132,7 +136,7 @@ router.get('/api/tx/shielded', async (req, res) => {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: skipCount ? result.rows.length === limit : offset + limit < total,
       },
       filters: {
         pool: poolType || 'all',

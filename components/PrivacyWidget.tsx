@@ -7,7 +7,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Badge } from '@/components/ui/Badge';
 
-interface PrivacyStats {
+export interface PrivacyStats {
   metrics: {
     shieldedPercentage: number;
     privacyScore: number;
@@ -39,7 +39,7 @@ interface PrivacyStats {
   lastBlockScanned: number;
 }
 
-interface RiskStats {
+export interface RiskStats {
   total: number;
   highRisk: number;
   mediumRisk: number;
@@ -87,9 +87,14 @@ function MetricCell({
   );
 }
 
-export function PrivacyWidget() {
-  const [stats, setStats] = useState<PrivacyStats | null>(null);
-  const [riskStats, setRiskStats] = useState<RiskStats | null>(null);
+interface PrivacyWidgetProps {
+  initialStats?: PrivacyStats | null;
+  initialRiskStats?: RiskStats | null;
+}
+
+export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: PrivacyWidgetProps) {
+  const [stats, setStats] = useState<PrivacyStats | null>(initialStats);
+  const [riskStats, setRiskStats] = useState<RiskStats | null>(initialRiskStats);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -129,9 +134,15 @@ export function PrivacyWidget() {
       }
     };
 
-    fetchStats();
-    fetchRiskStats();
-  }, []);
+    if (!initialStats) fetchStats();
+    if (!initialRiskStats) fetchRiskStats();
+
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchRiskStats();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [initialStats, initialRiskStats]);
 
   if (!stats || !stats.totals || !stats.metrics) {
     return (

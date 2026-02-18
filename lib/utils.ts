@@ -32,6 +32,14 @@ export function formatRelativeTime(timestamp: number): string {
 }
 
 /**
+ * Format a number with commas (e.g., 3851472 → "3,851,472").
+ * Pure string manipulation — identical output on server and client.
+ */
+export function formatNumber(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
  * Format timestamp to readable date (e.g., "Nov 6, 2019")
  */
 export function formatDate(timestamp: number): string {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -21,12 +21,15 @@ interface ShieldedTx {
 }
 
 interface RecentShieldedTxsProps {
-  nested?: boolean; // When inside another card, use transparent bg
+  nested?: boolean;
+  initialTxs?: ShieldedTx[];
 }
 
-export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
-  const [txs, setTxs] = useState<ShieldedTx[]>([]);
-  const [loading, setLoading] = useState(true);
+export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = false, initialTxs = [] }: RecentShieldedTxsProps) {
+  const [txs, setTxs] = useState<ShieldedTx[]>(initialTxs);
+  const [loading, setLoading] = useState(initialTxs.length === 0);
+  const latestKey = useRef(initialTxs[0]?.txid ?? '');
+  const loadedOnce = useRef(initialTxs.length > 0);
 
   useEffect(() => {
     const fetchTxs = async () => {
@@ -37,22 +40,30 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
 
         const response = await fetch(apiUrl);
         const data = await response.json();
-        if (data.transactions) {
-          setTxs(data.transactions);
+        if (data.transactions?.length) {
+          const newTopTxid = data.transactions[0]?.txid;
+          if (newTopTxid !== latestKey.current) {
+            latestKey.current = newTopTxid;
+            setTxs(data.transactions);
+          }
         }
       } catch (error) {
         console.error('Error fetching shielded transactions:', error);
       } finally {
-        setLoading(false);
+        if (!loadedOnce.current) {
+          loadedOnce.current = true;
+          setLoading(false);
+        }
       }
     };
 
-    fetchTxs();
+    if (initialTxs.length === 0) {
+      fetchTxs();
+    }
 
-    // Set up polling for live updates
-    const interval = setInterval(fetchTxs, 10000); // Update every 10s
+    const interval = setInterval(fetchTxs, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [initialTxs.length]);
 
   if (loading) {
     return (
@@ -96,11 +107,8 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
       {txs.map((tx, index) => (
         <Link href={`/tx/${tx.txid}`} key={tx.txid}>
           <div
-            className={`card card-compact card-interactive group animate-fade-in-up ${
-              nested ? 'bg-transparent' : ''
-            }`}
+            className={`card card-compact card-interactive group ${nested ? 'bg-transparent' : ''}`}
             style={{
-              animationDelay: `${index * 50}ms`,
               borderColor: nested ? 'rgba(168, 85, 247, 0.2)' : undefined
             }}
           >
@@ -119,7 +127,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                 </div>
                 <div className="text-xs text-muted font-mono">
                   <span className="opacity-50">Block: </span>
-                  <code className="break-all">#{tx.blockHeight.toLocaleString()}</code>
+                  <code className="break-all">#{tx.blockHeight}</code>
                   {tx.hasOrchard && (
                     <span className="ml-2 text-[10px] text-purple-400">
                       {tx.orchardActions} Orchard
@@ -136,7 +144,7 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
                 <div className="text-sm text-secondary font-mono">
                   {formatRelativeTime(tx.blockTime)}
                 </div>
-                <div className="text-xs text-muted mt-1 suppress-hydration-warning">
+                <div className="text-xs text-muted mt-1" suppressHydrationWarning>
                   {new Date(tx.blockTime * 1000).toLocaleString('en-US', {
                     year: 'numeric',
                     month: '2-digit',
@@ -154,4 +162,4 @@ export function RecentShieldedTxs({ nested = false }: RecentShieldedTxsProps) {
       ))}
     </div>
   );
-}
+});

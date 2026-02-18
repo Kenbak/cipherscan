@@ -1,7 +1,8 @@
 import { SearchBar } from '@/components/SearchBar';
-import { PrivacyWidget } from '@/components/PrivacyWidget';
+import { PrivacyWidget, type PrivacyStats, type RiskStats } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
+import { API_CONFIG } from '@/lib/api-config';
 
 interface Block {
   height: number;
@@ -11,30 +12,106 @@ interface Block {
   size: number;
 }
 
-// Fetch blocks server-side
+interface ShieldedTx {
+  txid: string;
+  blockHeight: number;
+  blockTime: number;
+  hasSapling: boolean;
+  hasOrchard: boolean;
+  shieldedSpends: number;
+  shieldedOutputs: number;
+  orchardActions: number;
+  vinCount: number;
+  voutCount: number;
+  type: 'fully-shielded' | 'partial';
+}
+
+const API_URL = API_CONFIG.POSTGRES_API_URL;
+
 async function getRecentBlocks(): Promise<Block[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/blocks?limit=5`, {
-      next: { revalidate: 0 },
+    const response = await fetch(`${API_URL}/api/blocks?limit=5`, {
       cache: 'no-store',
     });
 
-    if (!response.ok) {
-      console.error('Failed to fetch blocks:', response.status);
-      return [];
-    }
+    if (!response.ok) return [];
 
     const data = await response.json();
-    return data.blocks || [];
+    return (data.blocks || []).map((b: any) => ({
+      height: parseInt(b.height),
+      hash: b.hash,
+      timestamp: parseInt(b.timestamp),
+      transactions: parseInt(b.transaction_count),
+      size: parseInt(b.size),
+    }));
   } catch (error) {
     console.error('Error fetching blocks:', error);
     return [];
   }
 }
 
+async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/tx/shielded?limit=5`, {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.transactions || [];
+  } catch (error) {
+    console.error('Error fetching shielded txs:', error);
+    return [];
+  }
+}
+
+async function getPrivacyStats(): Promise<PrivacyStats | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/privacy-stats`, {
+      next: { revalidate: 30 },
+    });
+
+    if (!response.ok) return null;
+
+    const result = await response.json();
+    return result.success ? result.data : result;
+  } catch (error) {
+    console.error('Error fetching privacy stats:', error);
+    return null;
+  }
+}
+
+async function getRiskStats(): Promise<RiskStats | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/privacy/risks?limit=1&period=7d`, {
+      next: { revalidate: 30 },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data.success && data.stats) {
+      return {
+        total: data.stats.total,
+        highRisk: data.stats.highRisk,
+        mediumRisk: data.stats.mediumRisk,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching risk stats:', error);
+    return null;
+  }
+}
+
 export default async function Home() {
-  const initialBlocks = await getRecentBlocks();
+  const [initialBlocks, initialShieldedTxs, privacyStats, riskStats] = await Promise.all([
+    getRecentBlocks(),
+    getRecentShieldedTxs(),
+    getPrivacyStats(),
+    getRiskStats(),
+  ]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -99,7 +176,7 @@ export default async function Home() {
 
       {/* Privacy Health Module */}
       <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <PrivacyWidget />
+        <PrivacyWidget initialStats={privacyStats} initialRiskStats={riskStats} />
       </div>
 
       {/* Recent Blocks & Shielded TXs - Side by Side */}
@@ -137,7 +214,7 @@ export default async function Home() {
                 <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
               </div>
             </div>
-            <RecentShieldedTxs />
+            <RecentShieldedTxs initialTxs={initialShieldedTxs} />
           </div>
         </div>
     </div>

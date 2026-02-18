@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -18,37 +18,43 @@ interface RecentBlocksProps {
   initialBlocks?: Block[];
 }
 
-export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
+export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [loading, setLoading] = useState(initialBlocks.length === 0);
+  const latestKey = useRef(initialBlocks[0]?.height ?? 0);
+  const loadedOnce = useRef(initialBlocks.length > 0);
 
   useEffect(() => {
     const fetchBlocks = async () => {
       try {
-        // For testnet, call Express API directly; for mainnet, use Next.js API
         const apiUrl = usePostgresApiClient()
           ? `${getApiUrl()}/api/blocks?limit=5`
           : '/api/blocks?limit=5';
 
         const response = await fetch(apiUrl);
         const data = await response.json();
-        if (data.blocks) {
-          setBlocks(data.blocks);
+        if (data.blocks?.length) {
+          const newTopHeight = data.blocks[0]?.height ?? data.blocks[0]?.block_height;
+          if (newTopHeight !== latestKey.current) {
+            latestKey.current = newTopHeight;
+            setBlocks(data.blocks);
+          }
         }
       } catch (error) {
         console.error('Error fetching blocks:', error);
       } finally {
-        setLoading(false);
+        if (!loadedOnce.current) {
+          loadedOnce.current = true;
+          setLoading(false);
+        }
       }
     };
 
-    // Only fetch if we don't have initial blocks
     if (initialBlocks.length === 0) {
       fetchBlocks();
     }
 
-    // Set up polling for live updates
-    const interval = setInterval(fetchBlocks, 10000); // Update every 10s
+    const interval = setInterval(fetchBlocks, 10000);
     return () => clearInterval(interval);
   }, [initialBlocks.length]);
 
@@ -81,8 +87,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
       {blocks.map((block, index) => (
         <Link href={`/block/${block.height}`} key={block.height}>
           <div
-            className="card card-compact card-interactive group animate-fade-in-up"
-            style={{ animationDelay: `${index * 50}ms` }}
+            className="card card-compact card-interactive group"
           >
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="flex-1">
@@ -93,7 +98,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
                     </svg>
                   </span>
                   <h3 className="text-base sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors">
-                    #{block.height.toLocaleString()}
+                    #{block.height}
                   </h3>
                   <Badge color="cyan">
                     {block.transactions} TX
@@ -108,7 +113,7 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
                 <div className="text-sm text-secondary font-mono">
                   {formatRelativeTime(block.timestamp)}
                 </div>
-                <div className="text-xs text-muted mt-1 suppress-hydration-warning">
+                <div className="text-xs text-muted mt-1" suppressHydrationWarning>
                   {new Date(block.timestamp * 1000).toLocaleString('en-US', {
                     year: 'numeric',
                     month: '2-digit',
@@ -126,4 +131,4 @@ export function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
       ))}
     </div>
   );
-}
+});
