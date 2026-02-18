@@ -169,7 +169,7 @@ export default async function Home() {
         </h1>
 
         {/* Search Section */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div>
           <SearchBar />
         </div>
       </div>
