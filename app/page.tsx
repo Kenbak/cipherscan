@@ -175,14 +175,14 @@ export default async function Home() {
       </div>
 
       {/* Privacy Health Module */}
-      <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+      <div className="relative z-10">
         <PrivacyWidget initialStats={privacyStats} initialRiskStats={riskStats} />
       </div>
 
       {/* Recent Blocks & Shielded TXs - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-12 sm:mt-16 lg:mt-20">
           {/* Recent Blocks */}
-          <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <div>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm sm:text-base font-bold font-mono text-cipher-cyan flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
@@ -200,7 +200,7 @@ export default async function Home() {
           </div>
 
           {/* Recent Shielded TXs */}
-          <div className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+          <div>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm sm:text-base font-bold font-mono text-purple-400 flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
