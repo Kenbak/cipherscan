@@ -795,35 +795,39 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
       )}
 
       {/* Footer: expand + score breakdown */}
-      <div className="flex items-center justify-between gap-4 pt-2 border-t border-cipher-border/15">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
-        >
-          {expanded ? 'Hide' : 'Show'} {pattern.batchCount} transactions
-          <svg
-            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+      <div className="pt-2">
+        <div className="h-px bg-white/[0.04] mb-2" aria-hidden />
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            {expanded ? 'Hide' : 'Show'} {pattern.batchCount} transactions
+            <svg
+              className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        <div className="flex flex-wrap gap-3 text-[10px] font-mono text-muted/60">
-          <span title="Batch count score">batch +{pattern.breakdown.batchCount.points}</span>
-          <span title="Round number score">round +{pattern.breakdown.roundNumber.points}</span>
-          <span title="Shield match score">shield +{pattern.breakdown.matchingShield.points}</span>
-          <span title="Time clustering score">time +{pattern.breakdown.timeClustering.points}</span>
-          {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.points > 0 && (
-            <span title="Address analysis score" className="text-orange-400/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
-          )}
+          <div className="flex flex-wrap gap-3 text-[10px] font-mono text-muted/60">
+            <span title="Batch count score">batch +{pattern.breakdown.batchCount.points}</span>
+            <span title="Round number score">round +{pattern.breakdown.roundNumber.points}</span>
+            <span title="Shield match score">shield +{pattern.breakdown.matchingShield.points}</span>
+            <span title="Time clustering score">time +{pattern.breakdown.timeClustering.points}</span>
+            {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.points > 0 && (
+              <span title="Address analysis score" className="text-orange-400/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
+            )}
+          </div>
         </div>
       </div>
 
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-cipher-border/15">
+        <div className="mt-3 pt-3">
+          <div className="h-px bg-white/[0.04] mb-3" aria-hidden />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto">
             {pattern.txids.slice(0, 20).map((txid, i) => (
               <Link
