@@ -125,11 +125,11 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         </div>
       </div>
 
-      {/* Conclusion */}
+      {/* Conclusion — dynamic, uses actual tx data */}
       <p className="text-[11px] text-muted mt-3 leading-relaxed">
         {hasAddresses
-          ? 'An observer could conclude that these addresses belong to the same person.'
-          : 'Similar amount shielded then unshielded in a short time window — a potential privacy leak.'}
+          ? `${tx.shieldAmount.toFixed(4)} ZEC shielded then sent to a different address ${timeDeltaDisplay} — an observer could link both addresses to the same person.`
+          : `${tx.shieldAmount.toFixed(4)} ZEC shielded then unshielded ${timeDeltaDisplay}, the matching amount makes this traceable.`}
       </p>
     </div>
   );
