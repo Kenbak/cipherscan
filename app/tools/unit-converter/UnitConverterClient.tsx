@@ -82,7 +82,7 @@ export default function UnitConverterClient() {
     if (trimmed === '') return { zec: null, zatoshi: null };
     try {
       const zatoshi = BigInt(trimmed);
-      if (zatoshi < 0n) return { zec: null, zatoshi: null };
+      if (zatoshi < BigInt(0)) return { zec: null, zatoshi: null };
       const zec = Number(zatoshi) / ZATOSHIS_PER_ZEC;
       return { zec, zatoshi };
     } catch {
