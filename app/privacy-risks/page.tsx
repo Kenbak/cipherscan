@@ -300,10 +300,12 @@ function PrivacyRisksContent() {
     fetchBatchPatterns(true);
   };
 
+  const currentStats = activeTab === 'roundtrip' ? stats : batchStats;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header - cypherpunk style */}
-      <div className="mb-8 animate-fade-in">
+      {/* Header */}
+      <div className="mb-6 animate-fade-in">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> PRIVACY_ANALYSIS
         </p>
@@ -324,112 +326,48 @@ function PrivacyRisksContent() {
         </p>
       </div>
 
-      {/* Educational Section - Combined */}
-      <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        <CardBody>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">PRIVACY_TIPS</h2>
+      {/* Two-column layout: main + sidebar */}
+      <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+
+        {/* ── Main Column ── */}
+        <div className="min-w-0">
+          {/* Tab Navigation */}
+          <div className="mb-4">
+            <div className="filter-group inline-flex">
+              <button
+                onClick={() => {
+                  setActiveTab('roundtrip');
+                  if (periodFilter === '90d') setPeriodFilter('30d');
+                }}
+                className={`filter-btn flex items-center gap-2 ${activeTab === 'roundtrip' ? 'filter-btn-active' : ''}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Round Trip
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('batch');
+                  if (periodFilter === '24h') setPeriodFilter('7d');
+                }}
+                className={`filter-btn flex items-center gap-2 ${activeTab === 'batch' ? 'filter-btn-active' : ''}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Batch Patterns
+                {batchStats && batchStats.highRisk > 0 && (
+                  <span className="ml-1 text-[10px] font-mono bg-white/20 text-white font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
+                    {batchStats.highRisk}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Tips */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
-            <div className="p-3 rounded-lg bg-cipher-surface">
-              <div className="font-medium text-primary text-sm mb-1">1. Common amounts</div>
-              <p className="text-muted text-xs hidden sm:block">
-                Shield popular amounts to blend in.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-cipher-surface">
-              <div className="font-medium text-primary text-sm mb-1">2. ZODL</div>
-              <p className="text-muted text-xs hidden sm:block">
-                Wait in the shielded pool.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-cipher-surface">
-              <div className="font-medium text-primary text-sm mb-1">3. Vary amounts</div>
-              <p className="text-muted text-xs hidden sm:block">
-                Withdraw different amount.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-cipher-surface">
-              <div className="font-medium text-primary text-sm mb-1">4. Stay shielded</div>
-              <p className="text-muted text-xs hidden sm:block">
-                Avoid transparent addresses.
-              </p>
-            </div>
-          </div>
-
-          {/* Common Amounts */}
-          {commonAmounts.length > 0 && (
-            <div className="pt-4 border-t border-cipher-border">
-              <div className="text-xs text-secondary mb-3 flex items-center gap-2">
-                <span className="font-medium text-purple-400">Popular amounts ({periodFilter}):</span>
-                <span className="hidden sm:inline text-muted">Use these to blend in</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {commonAmounts.map((amount, i) => (
-                  <Badge key={i} color="purple" className="text-sm py-1.5 px-3">
-                    <span className="font-mono font-medium">
-                      {amount.amountZec.toFixed(2)} ZEC
-                    </span>
-                    <span className="text-purple-300 ml-2 hidden sm:inline">
-                      ({amount.percentage}%)
-                    </span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-muted mt-5 pt-4 border-t border-cipher-border">
-            ⚠️ These results are based on heuristics (amount + timing). They indicate <em>potential</em> links, not proof.
-          </p>
-        </CardBody>
-      </Card>
-
-      {/* Tab Navigation */}
-      <div className="mb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <div className="filter-group inline-flex">
-          <button
-            onClick={() => {
-              setActiveTab('roundtrip');
-              // Reset to valid period for roundtrip if current is invalid
-              if (periodFilter === '90d') setPeriodFilter('30d');
-            }}
-            className={`filter-btn flex items-center gap-2 ${activeTab === 'roundtrip' ? 'filter-btn-active' : ''}`}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            Round Trip
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('batch');
-              // Reset to valid period for batch if current is invalid
-              if (periodFilter === '24h') setPeriodFilter('7d');
-            }}
-            className={`filter-btn flex items-center gap-2 ${activeTab === 'batch' ? 'filter-btn-active' : ''}`}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            Batch Patterns
-            {batchStats && batchStats.highRisk > 0 && (
-              <span className="ml-1 text-[10px] font-mono bg-white/20 text-white font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
-                {batchStats.highRisk}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Filters - Mobile Friendly */}
-      <Card variant="compact" className="mb-6 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-        <CardBody>
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {/* Period Filter - Different options per tab */}
+          {/* Filters — compact inline */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
             <div className="filter-group">
               {(activeTab === 'roundtrip'
                 ? ['24h', '7d', '30d']
@@ -445,7 +383,6 @@ function PrivacyRisksContent() {
               ))}
             </div>
 
-            {/* Risk Level Filter - Both tabs */}
             <div className="filter-group">
               {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
                 <button
@@ -466,144 +403,70 @@ function PrivacyRisksContent() {
               ))}
             </div>
 
-            {/* Sort Toggle - Both tabs */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted">Sort:</span>
-              <div className="filter-group">
-                {(['score', 'recent'] as SortOption[]).map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
-                    className={`filter-btn ${(activeTab === 'roundtrip' ? sortBy : batchSortBy) === option ? 'filter-btn-active' : ''}`}
-                  >
-                    {option === 'recent' ? 'Recent' : 'Score'}
-                  </button>
-                ))}
-              </div>
+            <div className="filter-group">
+              <span className="text-[10px] text-muted px-1.5 hidden sm:inline">Sort</span>
+              {(['score', 'recent'] as SortOption[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
+                  className={`filter-btn ${(activeTab === 'roundtrip' ? sortBy : batchSortBy) === option ? 'filter-btn-active' : ''}`}
+                >
+                  {option === 'recent' ? 'Recent' : 'Score'}
+                </button>
+              ))}
             </div>
 
-            {/* Stats inline */}
+            {/* Mobile-only stats (sidebar handles desktop) */}
             {activeTab === 'roundtrip' && stats && (
-              <Badge color="muted" className="ml-auto">
+              <Badge color="muted" className="ml-auto lg:hidden">
                 {stats.total} detected
               </Badge>
             )}
             {activeTab === 'batch' && batchStats && (
-              <Badge color="orange" className="ml-auto">
-                {batchStats?.filteredTotal || batchPatterns.length} patterns • {batchPatterns.reduce((sum, p) => sum + p.totalAmountZec, 0).toLocaleString()} ZEC
+              <Badge color="orange" className="ml-auto lg:hidden">
+                {batchStats?.filteredTotal || batchPatterns.length} patterns
               </Badge>
             )}
           </div>
-        </CardBody>
-      </Card>
 
-      {/* Content based on active tab */}
-      <div className="space-y-4 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        {activeTab === 'roundtrip' ? (
-          /* Round Trip Transactions */
-          loading ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-400 border-t-transparent mx-auto mb-4"></div>
-                <p className="text-muted">Loading...</p>
-              </CardBody>
-            </Card>
-          ) : error ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <p className="text-red-400">{error}</p>
-              </CardBody>
-            </Card>
-          ) : transactions.length === 0 ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <p className="text-primary text-lg font-medium">No risky transactions detected</p>
-                <p className="text-sm text-secondary mt-2">Try a longer time period.</p>
-              </CardBody>
-            </Card>
-          ) : (
-            <>
-              {transactions.map((tx, index) => (
-                <RiskyTxCard key={`${tx.shieldTxid}-${tx.deshieldTxid}-${index}`} tx={tx} />
+          {/* Mobile-only: popular amounts as compact pills */}
+          {commonAmounts.length > 0 && (
+            <div className="lg:hidden mb-4 flex flex-wrap gap-1.5">
+              <span className="text-[10px] text-muted font-mono self-center mr-1">Popular:</span>
+              {commonAmounts.slice(0, 5).map((amount, i) => (
+                <span key={i} className="text-[10px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">
+                  {amount.amountZec.toFixed(2)} ZEC
+                </span>
               ))}
+            </div>
+          )}
 
-              {/* Load More */}
-              {hasMore && (
-                <div className="text-center pt-4">
-                  <button
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="btn btn-md btn-secondary disabled:opacity-50"
-                  >
-                    {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
-                  </button>
-                </div>
-              )}
-
-              {/* Showing count */}
-              {stats && (
-                <p className="text-center text-sm text-muted pt-2">
-                  Showing {transactions.length} of {stats.total}
-                </p>
-              )}
-            </>
-          )
-        ) : (
-          /* Batch Patterns */
-          batchLoading ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-400 border-t-transparent mx-auto mb-4"></div>
-                <p className="text-muted">Detecting batch patterns...</p>
-              </CardBody>
-            </Card>
-          ) : batchError ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <p className="text-red-400">{batchError}</p>
-              </CardBody>
-            </Card>
-          ) : batchPatterns.length === 0 ? (
-            <Card>
-              <CardBody className="py-16 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <p className="text-primary text-lg font-medium">No batch patterns detected</p>
-                <p className="text-sm text-secondary mt-2">Try a longer time period.</p>
-              </CardBody>
-            </Card>
-          ) : (
-            <>
-              {/* Batch Patterns Info */}
-              <Card className="mb-4">
-                <CardBody>
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+          {/* Cards */}
+          <div className="space-y-3 mb-8">
+            {activeTab === 'roundtrip' ? (
+              loading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="card card-compact animate-pulse">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="h-4 bg-cipher-surface rounded w-32" />
+                        <div className="h-3 bg-cipher-surface rounded w-16" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-cipher-surface rounded w-full" />
+                        <div className="h-3 bg-cipher-surface rounded w-24" />
+                        <div className="h-4 bg-cipher-surface rounded w-full" />
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-orange-400 mb-1">What are Batch Patterns?</h3>
-                      <p className="text-xs text-secondary">
-                        When someone shields a large amount then withdraws in identical chunks (e.g., 6000 ZEC → 12×500 ZEC),
-                        this creates a detectable pattern even without direct links. ML clustering detects both round and unusual amounts.
-                      </p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Pattern Cards */}
-              {batchPatterns.length === 0 ? (
+                  ))}
+                </div>
+              ) : error ? (
+                <Card>
+                  <CardBody className="py-16 text-center">
+                    <p className="text-red-400">{error}</p>
+                  </CardBody>
+                </Card>
+              ) : transactions.length === 0 ? (
                 <Card>
                   <CardBody className="py-16 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
@@ -611,8 +474,70 @@ function PrivacyRisksContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                     </div>
-                    <p className="text-primary text-lg font-medium">No patterns match your filters</p>
-                    <p className="text-sm text-secondary mt-2">Try selecting &quot;All&quot; risk levels.</p>
+                    <p className="text-primary text-lg font-medium">No risky transactions detected</p>
+                    <p className="text-sm text-secondary mt-2">Try a longer time period.</p>
+                  </CardBody>
+                </Card>
+              ) : (
+                <>
+                  {transactions.map((tx, index) => (
+                    <RiskyTxCard key={`${tx.shieldTxid}-${tx.deshieldTxid}-${index}`} tx={tx} />
+                  ))}
+
+                  {hasMore && (
+                    <div className="text-center pt-4">
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="btn btn-md btn-secondary disabled:opacity-50"
+                      >
+                        {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
+                      </button>
+                    </div>
+                  )}
+
+                  {stats && (
+                    <p className="text-center text-sm text-muted pt-2">
+                      Showing {transactions.length} of {stats.total}
+                    </p>
+                  )}
+                </>
+              )
+            ) : (
+              batchLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="card animate-pulse">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-cipher-surface rounded-lg" />
+                          <div className="space-y-1.5">
+                            <div className="h-4 bg-cipher-surface rounded w-40" />
+                            <div className="h-3 bg-cipher-surface rounded w-28" />
+                          </div>
+                        </div>
+                        <div className="h-5 bg-cipher-surface rounded w-20" />
+                      </div>
+                      <div className="h-3 bg-cipher-surface rounded w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : batchError ? (
+                <Card>
+                  <CardBody className="py-16 text-center">
+                    <p className="text-red-400">{batchError}</p>
+                  </CardBody>
+                </Card>
+              ) : batchPatterns.length === 0 ? (
+                <Card>
+                  <CardBody className="py-16 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-cipher-green/10 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <p className="text-primary text-lg font-medium">No batch patterns detected</p>
+                    <p className="text-sm text-secondary mt-2">Try a longer time period.</p>
                   </CardBody>
                 </Card>
               ) : (
@@ -621,7 +546,6 @@ function PrivacyRisksContent() {
                     <BatchPatternCard key={pattern.txids[0]} pattern={pattern} />
                   ))}
 
-                  {/* Load More */}
                   {batchHasMore && (
                     <div className="text-center pt-4">
                       <button
@@ -633,23 +557,139 @@ function PrivacyRisksContent() {
                       </button>
                     </div>
                   )}
-                </>
-              )}
 
-              {/* Stats */}
-              {batchStats && (
-                <p className="text-center text-sm text-muted pt-2">
-                  Showing {Math.min(batchPatterns.length, batchStats.filteredTotal || batchStats.total)} of {batchStats.filteredTotal || batchStats.total} patterns
-                  {batchRiskFilter !== 'ALL' && ` (filtered from ${batchStats.total} total)`}
+                  {batchStats && (
+                    <p className="text-center text-sm text-muted pt-2">
+                      Showing {Math.min(batchPatterns.length, batchStats.filteredTotal || batchStats.total)} of {batchStats.filteredTotal || batchStats.total} patterns
+                      {batchRiskFilter !== 'ALL' && ` (filtered from ${batchStats.total} total)`}
+                    </p>
+                  )}
+                </>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* ── Sidebar (desktop only) ── */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 space-y-4">
+            {/* Stats */}
+            <div className="card card-compact">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                <span className="opacity-50">{'>'}</span> {activeTab === 'roundtrip' ? 'DETECTION_STATS' : 'BATCH_STATS'}
+              </p>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-secondary">Detected</span>
+                  <span className="text-base font-mono font-bold text-primary tabular-nums">
+                    {activeTab === 'roundtrip' ? (stats?.total || 0) : (batchStats?.filteredTotal || batchStats?.total || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-secondary">High Risk</span>
+                  <span className="text-base font-mono font-bold text-red-400 tabular-nums">
+                    {currentStats?.highRisk || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-secondary">Medium</span>
+                  <span className="text-base font-mono font-bold text-yellow-500 tabular-nums">
+                    {currentStats?.mediumRisk || 0}
+                  </span>
+                </div>
+                {activeTab === 'roundtrip' && stats && (
+                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border/20">
+                    <span className="text-xs text-secondary">Avg Score</span>
+                    <span className="text-sm font-mono font-semibold text-primary tabular-nums">
+                      {Math.round(stats.avgScore)}/100
+                    </span>
+                  </div>
+                )}
+                {activeTab === 'batch' && batchStats && (
+                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border/20">
+                    <span className="text-xs text-secondary">ZEC Flagged</span>
+                    <span className="text-sm font-mono font-semibold text-primary tabular-nums">
+                      {batchStats.totalZecFlagged?.toLocaleString() || batchPatterns.reduce((sum, p) => sum + p.totalAmountZec, 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Popular Amounts */}
+            {commonAmounts.length > 0 && (
+              <div className="card card-compact">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                  <span className="opacity-50">{'>'}</span> POPULAR_AMOUNTS <span className="text-muted/50">({periodFilter})</span>
                 </p>
-              )}
-            </>
-          )
-        )}
+                <div className="space-y-1.5">
+                  {commonAmounts.map((amount, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <span className="font-mono text-xs text-primary">{amount.amountZec.toFixed(2)} ZEC</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-12 h-1 rounded-full bg-cipher-surface overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-purple-500/50"
+                            style={{ width: `${Math.min(parseFloat(amount.percentage) * 1.5, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-muted tabular-nums w-10 text-right">{amount.percentage}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted/60 mt-3">Use common amounts to blend in with the crowd.</p>
+              </div>
+            )}
+
+            {/* Privacy Tips */}
+            <div className="card card-compact">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                <span className="opacity-50">{'>'}</span> PRIVACY_TIPS
+              </p>
+              <div className="space-y-2">
+                {[
+                  { n: '01', text: 'Shield popular amounts to blend in' },
+                  { n: '02', text: 'Wait in the shielded pool (ZODL)' },
+                  { n: '03', text: 'Withdraw a different amount' },
+                  { n: '04', text: 'Avoid transparent addresses' },
+                ].map((tip) => (
+                  <div key={tip.n} className="flex gap-2 text-xs">
+                    <span className="font-mono text-muted/50 shrink-0">{tip.n}</span>
+                    <span className="text-secondary">{tip.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Batch explainer (only on batch tab) */}
+            {activeTab === 'batch' && (
+              <div className="card card-compact">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-2">
+                  <span className="opacity-50">{'>'}</span> ABOUT_BATCH
+                </p>
+                <p className="text-[11px] text-secondary leading-relaxed">
+                  When someone shields a large amount then withdraws in identical chunks,
+                  this creates a detectable pattern. ML clustering detects both round and unusual amounts.
+                </p>
+              </div>
+            )}
+
+            {/* Disclaimer */}
+            <p className="text-[10px] text-muted/50 leading-relaxed px-1">
+              ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
+            </p>
+          </div>
+        </aside>
       </div>
 
+      {/* Mobile-only disclaimer */}
+      <p className="lg:hidden text-[10px] text-muted/50 leading-relaxed mt-2 mb-8">
+        ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
+      </p>
+
       {/* Back Link */}
-      <div className="mt-8 pt-6 border-t border-cipher-border">
+      <div className="pt-6 border-t border-cipher-border">
         <Link
           href="/privacy"
           className="inline-flex items-center gap-2 text-secondary hover:text-cipher-cyan text-sm font-mono transition-colors"
@@ -664,22 +704,9 @@ function PrivacyRisksContent() {
   );
 }
 
-// Batch Pattern Card Component
 function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
   const [expanded, setExpanded] = useState(false);
-
-  // Map warning levels to available Badge colors
-  const badgeColor: 'orange' | 'purple' | 'muted' = pattern.warningLevel === 'HIGH'
-    ? 'orange'
-    : pattern.warningLevel === 'MEDIUM'
-    ? 'purple'
-    : 'muted';
-
-  const borderColor = pattern.warningLevel === 'HIGH'
-    ? 'border-red-500/30'
-    : pattern.warningLevel === 'MEDIUM'
-    ? 'border-orange-500/30'
-    : 'border-yellow-500/30';
+  const isHigh = pattern.warningLevel === 'HIGH';
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {
@@ -691,68 +718,84 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
   };
 
   return (
-    <Card className={`${borderColor} hover:border-opacity-50 transition-colors`}>
-      <CardBody>
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg ${pattern.warningLevel === 'HIGH' ? 'bg-red-500/10' : pattern.warningLevel === 'MEDIUM' ? 'bg-orange-500/10' : 'bg-yellow-500/10'} flex items-center justify-center flex-shrink-0`}>
-              <span className="text-lg font-bold text-primary">{pattern.batchCount}×</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-lg font-bold text-primary">
-                  {pattern.perTxAmountZec.toFixed(4)} ZEC
-                </span>
-                <span className="text-muted">each</span>
-                {!pattern.isRoundNumber && pattern.batchCount >= 5 && (
-                  <Badge color="orange" className="text-xs">NON-ROUND</Badge>
-                )}
-              </div>
-              <div className="text-sm text-secondary">
-                Total: <span className="font-mono font-medium text-primary">{pattern.totalAmountZec.toLocaleString()} ZEC</span>
-              </div>
-            </div>
-          </div>
+    <div className="card card-compact">
+      {/* Header — monospace terminal style */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-yellow-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-red-400' : 'text-yellow-500'}`}>
+            {isHigh ? 'High' : 'Med'}
+            <span className="opacity-30 mx-1">·</span>
+            {pattern.score}/100
+          </span>
+          {!pattern.isRoundNumber && pattern.batchCount >= 5 && (
+            <span className="text-[10px] font-mono text-orange-400/70 uppercase tracking-wider">non-round</span>
+          )}
+        </div>
+        <span className="text-[11px] text-muted font-mono">
+          {pattern.timeSpanHours < 24
+            ? `${Math.round(pattern.timeSpanHours)}h span`
+            : `${Math.round(pattern.timeSpanHours / 24)}d span`
+          }
+        </span>
+      </div>
 
-          <div className="text-right flex-shrink-0">
-            <Badge color={badgeColor}>
-              Score: {pattern.score}
-            </Badge>
-            <div className="text-xs text-muted mt-1">
-              {pattern.timeSpanHours < 24
-                ? `${Math.round(pattern.timeSpanHours)}h span`
-                : `${Math.round(pattern.timeSpanHours / 24)}d span`
-              }
-            </div>
+      {/* Core pattern info — balanced layout */}
+      <div className="flex items-center justify-between gap-4 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-lg font-bold font-mono text-primary shrink-0">{pattern.batchCount}×</span>
+          <div className="min-w-0">
+            <span className="font-mono text-sm font-semibold text-primary">
+              {pattern.perTxAmountZec.toFixed(4)} ZEC
+            </span>
+            <span className="text-xs text-muted ml-1.5">each</span>
           </div>
         </div>
+        <div className="text-right shrink-0">
+          <span className="font-mono text-sm font-semibold text-primary tabular-nums">
+            {pattern.totalAmountZec.toLocaleString()} ZEC
+          </span>
+          <span className="text-[10px] text-muted block">total</span>
+        </div>
+      </div>
 
-        {/* Matching Shield */}
-        {pattern.matchingShield && (
-          <div className="bg-cipher-surface rounded-lg p-3 mb-3">
-            <div className="flex items-center gap-2 text-sm">
-              <svg className="w-4 h-4 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span className="text-cipher-green font-medium">Matches Shield:</span>
-              <Link
-                href={`/tx/${pattern.matchingShield.txid}`}
-                className="font-mono text-cipher-cyan hover:underline"
-              >
-                {pattern.matchingShield.txid.slice(0, 12)}...
-              </Link>
-              <span className="text-muted">
-                ({pattern.matchingShield.amountZec.toLocaleString()} ZEC)
-              </span>
-            </div>
-          </div>
-        )}
+      {/* Matching Shield */}
+      {pattern.matchingShield && (
+        <div className="flex items-center gap-2 text-xs bg-cipher-surface/50 rounded-lg px-3 py-2 mb-3">
+          <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+          <span className="text-secondary">Matches shield:</span>
+          <Link
+            href={`/tx/${pattern.matchingShield.txid}`}
+            className="font-mono text-cipher-cyan hover:underline truncate"
+          >
+            {pattern.matchingShield.txid.slice(0, 12)}…
+          </Link>
+          <span className="text-muted shrink-0">
+            ({pattern.matchingShield.amountZec.toLocaleString()} ZEC)
+          </span>
+        </div>
+      )}
 
         {/* Explanation */}
-        <p className="text-sm text-secondary mb-3">{pattern.explanation}</p>
+        <p className="text-[11px] text-muted leading-relaxed mb-3">{pattern.explanation}</p>
 
-        {/* Expand/Collapse for TXIDs */}
+      {/* Address Warning */}
+      {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
+        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/5 border border-red-500/15 rounded-lg px-3 py-2 mb-3">
+          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>All {pattern.batchCount} deshields go to</span>
+          <Link href={`/address/${pattern.breakdown.addressAnalysis.topAddresses[0]}`} className="font-mono hover:text-red-300 underline underline-offset-2 transition-colors truncate">
+            {pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 20)}…
+          </Link>
+        </div>
+      )}
+
+      {/* Footer: expand + score breakdown */}
+      <div className="flex items-center justify-between gap-4 pt-2 border-t border-cipher-border/15">
         <button
           onClick={() => setExpanded(!expanded)}
           className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
@@ -768,59 +811,41 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
           </svg>
         </button>
 
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-cipher-border">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-              {pattern.txids.slice(0, 20).map((txid, i) => (
-                <Link
-                  key={txid}
-                  href={`/tx/${txid}`}
-                  className="font-mono text-xs text-secondary hover:text-cipher-cyan flex items-center gap-2"
-                >
-                  <span className="text-muted w-6">{i + 1}.</span>
-                  {txid.slice(0, 16)}...
-                  <span className="text-muted text-[10px]">
-                    {formatTime(pattern.times[i])}
-                  </span>
-                </Link>
-              ))}
-              {pattern.txids.length > 20 && (
-                <p className="text-xs text-muted col-span-2">
-                  ...and {pattern.txids.length - 20} more
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Score Breakdown */}
-        <div className="mt-3 pt-3 border-t border-cipher-border flex flex-wrap gap-3 text-xs text-muted">
-          <span title="More identical deshields = higher score">Batch: +{pattern.breakdown.batchCount.points}</span>
-          <span title="Round amounts (50, 100, 500 ZEC) = suspicious">Round: +{pattern.breakdown.roundNumber.points}</span>
-          <span title="Matching shield found for total amount">Shield: +{pattern.breakdown.matchingShield.points}</span>
-          <span title="Deshields clustered in time = suspicious">Time: +{pattern.breakdown.timeClustering.points}</span>
-          {pattern.breakdown.addressAnalysis && (
-            <span title="Same address receives multiple deshields" className={pattern.breakdown.addressAnalysis.points > 0 ? 'text-orange-400' : ''}>
-              Addr: +{pattern.breakdown.addressAnalysis.points}
-            </span>
-          )}
-          {pattern.breakdown.shieldTiming && pattern.breakdown.shieldTiming.hoursAfterShield !== null && (
-            <span title="Time between shield and first deshield">
-              Delay: +{pattern.breakdown.shieldTiming.points}
-            </span>
+        <div className="flex flex-wrap gap-3 text-[10px] font-mono text-muted/60">
+          <span title="Batch count score">batch +{pattern.breakdown.batchCount.points}</span>
+          <span title="Round number score">round +{pattern.breakdown.roundNumber.points}</span>
+          <span title="Shield match score">shield +{pattern.breakdown.matchingShield.points}</span>
+          <span title="Time clustering score">time +{pattern.breakdown.timeClustering.points}</span>
+          {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.points > 0 && (
+            <span title="Address analysis score" className="text-orange-400/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
           )}
         </div>
+      </div>
 
-        {/* Address Warning */}
-        {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
-          <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400">
-            ⚠️ All {pattern.batchCount} deshields go to the{' '}
-            <Link href={`/address/${pattern.breakdown.addressAnalysis.topAddresses[0]}`} className="font-mono hover:text-red-300 underline underline-offset-2 transition-colors">
-              {pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 20)}...
-            </Link>
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-cipher-border/15">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto">
+            {pattern.txids.slice(0, 20).map((txid, i) => (
+              <Link
+                key={txid}
+                href={`/tx/${txid}`}
+                className="font-mono text-xs text-muted hover:text-cipher-cyan flex items-center gap-2 py-0.5 transition-colors"
+              >
+                <span className="text-muted/50 w-5 text-right tabular-nums">{i + 1}.</span>
+                <span className="truncate">{txid.slice(0, 16)}…</span>
+                <span className="text-[10px] text-muted/50 shrink-0">
+                  {formatTime(pattern.times[i])}
+                </span>
+              </Link>
+            ))}
+            {pattern.txids.length > 20 && (
+              <p className="text-[10px] text-muted/50 col-span-2 pt-1">
+                …and {pattern.txids.length - 20} more
+              </p>
+            )}
           </div>
-        )}
-      </CardBody>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

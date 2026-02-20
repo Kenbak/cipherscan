@@ -469,20 +469,23 @@
     display: inline-block;
   }
 
-  /* ===== FILTER GROUPS ===== */
+  /* ===== FILTER GROUPS — Terminal Aesthetic ===== */
   .filter-group {
     display: flex;
-    border-radius: var(--radius-md);
+    border-radius: 4px;
     overflow: hidden;
     border: 1px solid var(--color-border);
   }
 
   .filter-btn {
     padding: var(--space-2) var(--space-3);
-    font-size: 12px;
+    font-size: 11px;
+    font-family: var(--font-mono), monospace;
     font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     background: var(--color-surface);
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
     border: none;
     cursor: pointer;
     transition: all var(--duration-fast) var(--ease-out-expo);
@@ -490,21 +493,25 @@
 
   .filter-btn:hover:not(.filter-btn-active):not(.filter-btn-danger):not(.filter-btn-warning) {
     background: var(--color-hover);
+    color: var(--color-text-secondary);
   }
 
   .filter-btn-active {
-    background: var(--color-purple);
-    color: white;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 -2px 0 var(--color-purple);
   }
 
   .filter-btn-danger {
-    background: #EF4444;
-    color: white;
+    background: rgba(248, 113, 113, 0.08);
+    color: #F87171;
+    box-shadow: inset 0 -2px 0 #F87171;
   }
 
   .filter-btn-warning {
-    background: #F59E0B;
-    color: white;
+    background: rgba(251, 191, 36, 0.08);
+    color: #FBBF24;
+    box-shadow: inset 0 -2px 0 #FBBF24;
   }
 
   .light .filter-group {
@@ -519,27 +526,31 @@
 
   .light .filter-btn:hover:not(.filter-btn-active):not(.filter-btn-danger):not(.filter-btn-warning) {
     background: #E2E8F0;
+    color: #475569;
   }
 
   .light .filter-btn-active {
-    background: #7C3AED;
-    color: white;
+    background: rgba(0, 0, 0, 0.04);
+    color: #0F172A;
+    box-shadow: inset 0 -2px 0 #7C3AED;
   }
 
   .light .filter-btn-danger {
-    background: #EF4444;
-    color: white;
+    background: rgba(239, 68, 68, 0.06);
+    color: #DC2626;
+    box-shadow: inset 0 -2px 0 #DC2626;
   }
 
   .light .filter-btn-warning {
-    background: #F59E0B;
-    color: white;
+    background: rgba(245, 158, 11, 0.06);
+    color: #D97706;
+    box-shadow: inset 0 -2px 0 #D97706;
   }
 
   @media (min-width: 640px) {
     .filter-btn {
       padding: var(--space-2) var(--space-4);
-      font-size: 13px;
+      font-size: 12px;
     }
   }
 
