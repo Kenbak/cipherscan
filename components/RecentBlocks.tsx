@@ -12,6 +12,7 @@ interface Block {
   timestamp: number;
   transactions: number;
   size: number;
+  finality?: string | null;
 }
 
 interface RecentBlocksProps {
@@ -103,6 +104,11 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
                   <Badge color="cyan">
                     {block.transactions} TX
                   </Badge>
+                  {block.finality && (
+                    <Badge color={block.finality === 'Finalized' ? 'green' : 'orange'}>
+                      {block.finality === 'Finalized' ? 'Final' : 'Pending'}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-muted font-mono">
                   <span className="opacity-50">Hash: </span>

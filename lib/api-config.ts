@@ -4,20 +4,24 @@
  * Determines which backend to use based on network:
  * - Mainnet: PostgreSQL API (fast, indexed) on api.mainnet.cipherscan.app
  * - Testnet: PostgreSQL API (fast, indexed) on api.testnet.cipherscan.app
+ * - Crosslink Testnet: PostgreSQL API + crosslink finality enrichment
  *
  * Network is auto-detected from the domain:
  * - cipherscan.app → mainnet
  * - testnet.cipherscan.app → testnet
+ * - crosslink.cipherscan.app → crosslink-testnet
  * - localhost → testnet (default)
  */
+
+export type Network = 'mainnet' | 'testnet' | 'crosslink-testnet';
 
 /**
  * Detect network from domain (client-side safe)
  */
-function detectNetwork(): 'mainnet' | 'testnet' {
+function detectNetwork(): Network {
   // Server-side: check env var
   if (typeof window === 'undefined') {
-    return (process.env.NEXT_PUBLIC_NETWORK as 'mainnet' | 'testnet') || 'testnet';
+    return (process.env.NEXT_PUBLIC_NETWORK as Network) || 'testnet';
   }
 
   // Client-side: detect from hostname
@@ -27,22 +31,32 @@ function detectNetwork(): 'mainnet' | 'testnet' {
     return 'mainnet';
   }
 
-  return 'testnet'; // Default to testnet for localhost and testnet subdomain
+  if (hostname.includes('crosslink')) {
+    return 'crosslink-testnet';
+  }
+
+  return 'testnet';
 }
 
 export const NETWORK = detectNetwork();
 
+const POSTGRES_API_URLS: Record<Network, string> = {
+  'mainnet': 'https://api.mainnet.cipherscan.app',
+  'testnet': 'https://api.testnet.cipherscan.app',
+  'crosslink-testnet': process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.testnet.cipherscan.app',
+};
+
 export const API_CONFIG = {
-  // PostgreSQL API URL (auto-detect based on network)
-  POSTGRES_API_URL: NETWORK === 'mainnet'
-    ? 'https://api.mainnet.cipherscan.app'
-    : 'https://api.testnet.cipherscan.app',
+  POSTGRES_API_URL: POSTGRES_API_URLS[NETWORK],
 
   // Direct RPC for fallback - server-side only
   RPC_URL: process.env.ZCASH_RPC_URL || 'http://localhost:18232',
   RPC_COOKIE: process.env.ZCASH_RPC_COOKIE,
 
-  // Use PostgreSQL API for both mainnet and testnet
+  // Crosslink zebra-crosslink RPC (only set when running against a crosslink node)
+  CROSSLINK_RPC_URL: process.env.CROSSLINK_RPC_URL || null,
+  CROSSLINK_RPC_COOKIE: process.env.CROSSLINK_RPC_COOKIE || null,
+
   USE_POSTGRES_API: true,
 };
 
@@ -59,12 +73,26 @@ export function getApiUrl(): string {
  * Check if we should use PostgreSQL API (server-side for API routes)
  */
 export function usePostgresApi(): boolean {
-  return true; // Always use PostgreSQL API for both mainnet and testnet
+  return true;
 }
 
 /**
  * Check if we should use PostgreSQL API (client-side safe)
  */
 export function usePostgresApiClient(): boolean {
-  return true; // Always use PostgreSQL API for both mainnet and testnet
+  return true;
+}
+
+/**
+ * Whether crosslink finality data is available (server-side only)
+ */
+export function hasCrosslinkRpc(): boolean {
+  return !!API_CONFIG.CROSSLINK_RPC_URL;
+}
+
+/**
+ * Whether this deployment targets a crosslink network (client-side safe)
+ */
+export function isCrosslinkNetwork(): boolean {
+  return NETWORK === 'crosslink-testnet';
 }

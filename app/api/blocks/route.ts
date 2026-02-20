@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { usePostgresApi } from '@/lib/api-config';
 import { fetchRecentBlocksFromPostgres } from '@/lib/postgres-api';
+import { getBlocksFinality } from '@/lib/crosslink';
 
 /**
  * API Route: Get recent blocks
@@ -21,9 +22,16 @@ export async function GET(request: NextRequest) {
       ? await fetchRecentBlocksFromPostgres(limit)
       : await fetchRecentBlocks(limit);
 
+    // Enrich with crosslink finality (no-op when not configured)
+    const finalityMap = await getBlocksFinality(blocks);
+    const enrichedBlocks = blocks.map((block: any) => ({
+      ...block,
+      finality: finalityMap.get(block.hash) || null,
+    }));
+
     // Cache for 10 seconds (homepage needs fresh data)
     return NextResponse.json(
-      { blocks },
+      { blocks: enrichedBlocks },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
@@ -118,6 +126,7 @@ async function fetchRecentBlocks(limit: number) {
           timestamp: block.time,
           transactions: block.tx ? block.tx.length : 0,
           size: block.size,
+          finality: null,
         });
       }
     }

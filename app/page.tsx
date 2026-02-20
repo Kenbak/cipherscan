@@ -10,6 +10,7 @@ interface Block {
   timestamp: number;
   transactions: number;
   size: number;
+  finality?: string | null;
 }
 
 interface ShieldedTx {

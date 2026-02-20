@@ -36,6 +36,7 @@ interface TransactionData {
   valueBalanceOrchard?: number;
   bindingSig?: string;
   bindingSigSapling?: string;
+  finality?: string | null;
 }
 
 // Icon components (same as block page)
@@ -206,6 +207,7 @@ export default function TransactionPage() {
             valueBalanceOrchard: parseFloat(txData.valueBalanceOrchard || 0),
             bindingSig: txData.bindingSig,
             bindingSigSapling: txData.bindingSigSapling,
+            finality: txData.finality || null,
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
@@ -578,13 +580,18 @@ export default function TransactionPage() {
             icon={Icons.Cube}
             label="Block"
             value={
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">
                   #{data.blockHeight.toLocaleString()}
                 </Link>
                 <span className="text-muted">
                   ({data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''})
                 </span>
+                {data.finality && (
+                  <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'}>
+                    {data.finality === 'Finalized' ? 'Finalized' : 'Pending Finality'}
+                  </Badge>
+                )}
               </div>
             }
             tooltip="The block that includes this transaction"

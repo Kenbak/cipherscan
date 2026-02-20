@@ -30,6 +30,7 @@ interface BlockData {
   solution?: string;
   totalFees?: number;
   minerAddress?: string;
+  finality?: string | null;
 }
 
 // Heroicons SVG Components
@@ -211,6 +212,7 @@ export default function BlockPage() {
             solution: blockData.solution,
             totalFees: totalFeesZatoshi / 100000000, // zatoshis to ZEC
             minerAddress: blockData.miner_address || blockData.minerAddress,
+            finality: blockData.finality || null,
           };
           setData(transformedData);
         } else {
@@ -418,6 +420,23 @@ export default function BlockPage() {
             }
             tooltip="Number of blocks mined after this one (6+ confirmations = secure)"
           />
+
+          {data.finality && (
+            <InfoRow
+              icon={Icons.Shield}
+              label="Finality"
+              value={
+                <span className={
+                  data.finality === 'Finalized'
+                    ? 'text-cipher-green font-semibold'
+                    : 'text-cipher-orange'
+                }>
+                  {data.finality === 'Finalized' ? 'Finalized' : 'Not Yet Finalized'}
+                </span>
+              }
+              tooltip="Crosslink finality status — Finalized blocks are irreversible via PoS consensus"
+            />
+          )}
 
           <InfoRow
             icon={Icons.Database}

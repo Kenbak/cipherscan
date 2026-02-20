@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { usePostgresApi } from '@/lib/api-config';
 import { fetchBlockByHeightFromPostgres, getCurrentBlockHeightFromPostgres } from '@/lib/postgres-api';
+import { getBlockFinality } from '@/lib/crosslink';
 
 /**
  * API Route: Get block by height
@@ -46,6 +47,14 @@ export async function GET(
 
     // Override confirmations with freshly calculated value
     block.confirmations = confirmations;
+
+    // Enrich with crosslink finality (returns null when not configured)
+    if (block.hash) {
+      const finality = await getBlockFinality(block.hash);
+      if (finality) {
+        block.finality = finality;
+      }
+    }
 
     // Determine cache duration based on confirmations (Etherscan strategy)
     let cacheMaxAge: number;
@@ -254,8 +263,9 @@ async function fetchBlockByHeight(height: number) {
       bits: block.bits,
       nonce: block.nonce,
       solution: block.solution,
-      totalFees: totalFees > 0 ? totalFees : undefined, // Only include if we have real data
+      totalFees: totalFees > 0 ? totalFees : undefined,
       minerAddress,
+      finality: null as string | null,
     };
   } catch (error) {
     console.error('Error fetching block from RPC:', error);

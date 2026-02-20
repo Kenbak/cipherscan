@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { usePostgresApi } from '@/lib/api-config';
 import { fetchTransactionFromPostgres, getCurrentBlockHeightFromPostgres } from '@/lib/postgres-api';
+import { getBlockFinality } from '@/lib/crosslink';
 
 /**
  * API Route: Get transaction by ID
@@ -47,10 +48,18 @@ export async function GET(
 
       if (currentHeight) {
         confirmations = currentHeight - transaction.blockHeight + 1;
-        // Override transaction confirmations with fresh value
         transaction.confirmations = confirmations;
       }
     }
+
+    // Enrich with crosslink finality (returns null when not configured)
+    if (transaction.blockHash) {
+      const finality = await getBlockFinality(transaction.blockHash);
+      if (finality) {
+        (transaction as any).finality = finality;
+      }
+    }
+
     let cacheMaxAge: number;
     let staleWhileRevalidate: number;
 
