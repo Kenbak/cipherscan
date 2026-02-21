@@ -225,7 +225,7 @@ export default function MempoolPage() {
                     </thead>
                     <tbody>
                       {data.transactions.map((tx) => (
-                        <tr key={tx.txid} className="border-b border-cipher-border/30 hover:bg-cipher-hover/50 transition-colors">
+                        <tr key={tx.txid} className="border-b border-cipher-border hover:bg-cipher-hover/50 transition-colors">
                           <td className="py-3 px-6">
                             <Badge color={getTypeBadgeColor(tx.type)}>
                               {tx.type.toUpperCase()}

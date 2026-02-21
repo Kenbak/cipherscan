@@ -188,7 +188,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
       {/* Metrics grid — responsive: 2-col mobile, 4-col desktop */}
       <Link href="/privacy" className="block">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-0">
-          <div className="lg:border-r lg:border-cipher-border/20 lg:pr-5">
+          <div className="lg:border-r lg:border-cipher-border lg:pr-5">
             <MetricCell
               label="Privacy Score"
               tooltip="Overall network privacy health score"
@@ -197,7 +197,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               color="purple"
             />
           </div>
-          <div className="lg:border-r lg:border-cipher-border/20 lg:px-5">
+          <div className="lg:border-r lg:border-cipher-border lg:px-5">
             <MetricCell
               label="Shielded Pool"
               tooltip="Total ZEC currently in the shielded pool"
@@ -207,8 +207,8 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
             />
           </div>
           {/* Divider between rows on mobile only */}
-          <div className="col-span-2 border-t border-cipher-border/10 lg:hidden" />
-          <div className="lg:border-r lg:border-cipher-border/20 lg:px-5">
+          <div className="col-span-2 border-t border-cipher-border lg:hidden" />
+          <div className="lg:border-r lg:border-cipher-border lg:px-5">
             <MetricCell
               label="Shielded TXs"
               tooltip="Percentage of transactions using shielded pools"
@@ -232,7 +232,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
       {hasRisks && (
         <Link
           href="/privacy-risks?period=7d"
-          className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-cipher-border/20 group/risk"
+          className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-cipher-border group/risk"
         >
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <svg className={`w-4 h-4 flex-shrink-0 ${hasHighRisk ? 'text-red-400' : 'text-orange-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

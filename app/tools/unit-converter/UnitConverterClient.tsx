@@ -38,7 +38,7 @@ function CopyableRow({
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-cipher-border/20 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-cipher-border last:border-0">
       <span className="text-xs font-mono text-muted shrink-0">{label}</span>
       <code className="font-mono text-sm text-secondary text-right break-all min-w-0 flex-1">
         {valueDisplay}

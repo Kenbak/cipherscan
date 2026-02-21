@@ -392,7 +392,7 @@ function InfoRow({ label, value, subtitle, badge }: {
   label: string; value: string; subtitle?: string; badge?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center py-3 border-b border-cipher-border/30 last:border-b-0">
+    <div className="flex justify-between items-center py-3 border-b border-cipher-border last:border-b-0">
       <span className="text-sm text-secondary">{label}</span>
       <div className="text-right">
         {badge ? (

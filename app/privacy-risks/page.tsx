@@ -598,7 +598,7 @@ function PrivacyRisksContent() {
                   </span>
                 </div>
                 {activeTab === 'roundtrip' && stats && (
-                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border/20">
+                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border">
                     <span className="text-xs text-secondary">Avg Score</span>
                     <span className="text-sm font-mono font-semibold text-primary tabular-nums">
                       {Math.round(stats.avgScore)}/100
@@ -606,7 +606,7 @@ function PrivacyRisksContent() {
                   </div>
                 )}
                 {activeTab === 'batch' && batchStats && (
-                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border/20">
+                  <div className="flex items-center justify-between pt-1 border-t border-cipher-border">
                     <span className="text-xs text-secondary">ZEC Flagged</span>
                     <span className="text-sm font-mono font-semibold text-primary tabular-nums">
                       {batchStats.totalZecFlagged?.toLocaleString() || batchPatterns.reduce((sum, p) => sum + p.totalAmountZec, 0).toLocaleString()}
