@@ -95,6 +95,7 @@ export function NavBar() {
   const resourcesItems: MenuItem[] = [
     { href: '/learn', label: 'Learn Zcash', desc: 'Beginner guide' },
     { href: '/docs', label: 'API Docs', desc: 'Developer reference' },
+    { href: '/about', label: 'About', desc: 'Our story & mission' },
   ];
 
   const DropdownLink = ({ item, onClick }: { item: MenuItem; onClick: () => void }) => (

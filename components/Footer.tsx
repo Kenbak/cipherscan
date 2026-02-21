@@ -50,6 +50,7 @@ export function Footer() {
               <Link href="/privacy" className="footer-link text-xs font-mono">Privacy</Link>
               <Link href="/privacy-risks" className="footer-link text-xs font-mono">Privacy Risks</Link>
               <Link href="/mempool" className="footer-link text-xs font-mono">Mempool</Link>
+              <Link href="/about" className="footer-link text-xs font-mono">About</Link>
             </div>
           </div>
 
