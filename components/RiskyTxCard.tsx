@@ -38,7 +38,7 @@ function truncateTxid(txid: string): string {
 
 function TxLink({ href }: { href: string }) {
   return (
-    <Link href={href} className="text-muted/40 hover:text-cipher-cyan transition-colors shrink-0" title="View transaction">
+    <Link href={href} className="text-muted hover:text-cipher-cyan transition-colors shrink-0" title="View transaction">
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
       </svg>
@@ -95,11 +95,11 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           {tx.shieldAmount.toFixed(4)} ZEC
         </span>
         <div className="flex items-center mx-2 sm:mx-4">
-          <div className="flex-1 h-px" style={{ backgroundImage: 'repeating-linear-gradient(90deg, rgba(167,139,250,0.2) 0px, rgba(167,139,250,0.2) 2px, transparent 2px, transparent 6px)' }} />
-          <span className="text-[10px] font-mono text-muted/40 px-2 sm:px-3 whitespace-nowrap">
+          <div className="risk-connector-line" />
+          <span className="text-[10px] font-mono text-muted px-2 sm:px-3 whitespace-nowrap">
             {timeDeltaDisplay}
           </span>
-          <div className="flex-1 h-px" style={{ backgroundImage: 'repeating-linear-gradient(90deg, rgba(167,139,250,0.2) 0px, rgba(167,139,250,0.2) 2px, transparent 2px, transparent 6px)' }} />
+          <div className="risk-connector-line" />
         </div>
         <span className="font-mono text-sm font-semibold text-primary tabular-nums text-right">
           {tx.deshieldAmount.toFixed(4)} ZEC

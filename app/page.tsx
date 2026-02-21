@@ -129,7 +129,7 @@ export default async function Home() {
           {' '}
           {/* Privacy with tooltip */}
           <span className="relative group/privacy inline-block">
-            <span className="text-purple-400 cursor-help transition-all duration-300 group-hover/privacy:text-white group-hover/privacy:drop-shadow-[0_0_20px_rgba(167,139,250,0.6)]">
+            <span className="text-purple-400 cursor-help transition-all duration-300 dark:group-hover/privacy:text-white dark:group-hover/privacy:drop-shadow-[0_0_20px_rgba(167,139,250,0.6)]">
               Privacy
             </span>
             {/* Cypherpunk Tooltip — positioned below to avoid navbar overlap */}

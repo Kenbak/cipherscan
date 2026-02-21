@@ -28,20 +28,20 @@ const config: Config = {
 
           // ===== BRAND IDENTITY - CYAN =====
           cyan: '#00D4FF',         // PRIMARY - Logo, titles, links (dark mode)
-          'cyan-dark': '#0891B2',  // PRIMARY for light mode
-          'cyan-glow': '#00E5FF',  // Glow effects (NEW)
-          'cyan-muted': '#5EBBCE', // Softer accent (NEW)
+          'cyan-dark': '#0E7490',  // PRIMARY for light mode
+          'cyan-glow': '#00E5FF',  // Glow effects
+          'cyan-muted': '#5EBBCE', // Softer accent
 
           // ===== FUNCTIONAL COLORS =====
           green: '#00E676',        // SUCCESS - Warmer than pure #00FF41
-          'green-dark': '#059669', // Green for light mode
+          'green-dark': '#047857', // Green for light mode
 
-          purple: '#A78BFA',       // SHIELDED - Slightly muted for elegance (was #A855F7)
-          'purple-dark': '#9333EA',// Purple for light mode (NEW)
-          'purple-glow': '#C4B5FD',// Purple glow (NEW)
+          purple: '#A78BFA',       // SHIELDED - Slightly muted for elegance
+          'purple-dark': '#7C3AED',// Purple for light mode
+          'purple-glow': '#C4B5FD',// Purple glow
 
           orange: '#FF6B35',       // WARNING - Only for alerts
-          'orange-dark': '#EA580C',// Orange for light mode (NEW)
+          'orange-dark': '#C2410C',// Orange for light mode
 
           // ===== TEXT COLORS =====
           text: {
