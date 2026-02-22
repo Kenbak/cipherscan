@@ -91,12 +91,8 @@ FORUM_POST_DO_NOT_COMMIT.md
 ENDPOINTS_TO_ADD.md
 GrantExample*.md
 
-# Private documentation (local only)
-/docs/*.md
-/docs/CMO/
-/docs/CPO/
-/docs/GRANTS/
-/docs/UI-UX/
+# Private documentation (local only — never commit anything in docs/)
+/docs/
 server/DEPLOYMENT.md
 
 rust-indexer/
