@@ -242,19 +242,8 @@ router.get('/api/tx/:txid', async (req, res) => {
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
 
-    // Use fee from DB (Rust indexer), fallback to calculation if not available
-    let fee = null;
-    if (tx.fee && tx.fee > 0) {
-      // Fee from Rust indexer (in zatoshis, convert to ZEC)
-      fee = tx.fee / 100000000;
-    } else {
-      // Fallback: calculate from inputs/outputs
-      const transparentInputSum = inputsResult.rows.reduce((sum, inp) => sum + (parseFloat(inp.value) || 0), 0) / 100000000;
-      const transparentOutputSum = outputsResult.rows.reduce((sum, out) => sum + (parseFloat(out.value) || 0), 0) / 100000000;
-      const totalShieldedValueBalance = valueBalanceSapling + valueBalanceOrchard;
-      const calculatedFee = transparentInputSum - transparentOutputSum + totalShieldedValueBalance;
-      fee = calculatedFee > 0 ? calculatedFee : null;
-    }
+    // Fee from DB (in zatoshis, convert to ZEC)
+    const fee = (tx.fee && tx.fee > 0) ? tx.fee / 100000000 : null;
 
     // Total input/output from DB (Rust indexer, in zatoshis)
     const totalInput = tx.total_input ? tx.total_input / 100000000 : null;

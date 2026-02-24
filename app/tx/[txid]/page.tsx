@@ -892,7 +892,13 @@ export default function TransactionPage() {
               <div>
                 <div className="text-2xl font-bold font-mono text-primary">{data.totalOutput.toFixed(8)}</div>
                 <div className="text-sm text-muted font-mono">{CURRENCY}</div>
-                {data.shieldedOutputs > 0 && (
+                {valueBalance < 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
+                    <span className="text-sm font-mono text-purple-400">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
+                  </div>
+                )}
+                {data.shieldedOutputs > 0 && valueBalance >= 0 && (
                   <Badge color="purple" className="mt-2">+ {data.shieldedOutputs} shielded (hidden)</Badge>
                 )}
               </div>
@@ -1083,8 +1089,43 @@ export default function TransactionPage() {
               </div>
             ))}
 
-            {/* Shielded Outputs - More visual */}
-            {data.shieldedOutputs > 0 &&
+            {/* Shielded Output with known value (from value_balance) */}
+            {valueBalance < 0 && (
+                <div
+                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                >
+                  <div className="absolute inset-0 opacity-5">
+                    <div className="absolute inset-0" style={{
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 92, 246, 0.1) 10px, rgba(139, 92, 246, 0.1) 20px)`
+                    }}></div>
+                  </div>
+                  <div className="relative">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length}</span>
+                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
+                      </div>
+                      <span className="text-sm font-mono text-purple-400 font-semibold">
+                        {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted">To:</span>
+                        <span className="text-purple-400 font-mono flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                          Shielded Pool ({(data.valueBalanceOrchard || 0) < 0 ? 'Orchard' : 'Sapling'})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            )}
+
+            {/* Shielded Outputs - encrypted (no known value) */}
+            {data.shieldedOutputs > 0 && valueBalance >= 0 &&
               Array.from({ length: data.shieldedOutputs }).map((_, index) => (
                 <div
                   key={`shielded-${index}`}

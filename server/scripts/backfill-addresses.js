@@ -15,6 +15,9 @@
  * Run:
  *   node backfill-addresses.js
  *
+ * Resume from a specific step (e.g. after a crash):
+ *   node backfill-addresses.js --from-step=4
+ *
  * In tmux for long runs:
  *   node backfill-addresses.js 2>&1 | tee backfill-addresses.log
  */
@@ -27,6 +30,7 @@ const { Pool } = require('pg');
 const BATCH_SIZE = 5000;       // Addresses per batch
 const MAX_RETRIES = 3;         // Retries per batch on deadlock
 const RETRY_DELAY_MS = 2000;   // Wait between retries
+const FROM_STEP = parseInt(process.argv.find(a => a.startsWith('--from-step='))?.split('=')[1] || '1');
 
 const config = {
   host: process.env.DB_HOST || 'localhost',
@@ -111,6 +115,7 @@ async function main() {
   log('========================================');
   log(`Database: ${config.database}`);
   log(`Batch size: ${BATCH_SIZE.toLocaleString()}`);
+  if (FROM_STEP > 1) log(`Resuming from step ${FROM_STEP} (skipping steps 1-${FROM_STEP - 1})`);
   log('');
 
   const totalStart = Date.now();
@@ -172,6 +177,7 @@ async function main() {
     log('');
 
     // ─── Step 3: Recalculate total_received (batched) ───
+    if (FROM_STEP <= 3) {
     log('--- Step 3: Recalculating total_received (batched) ---');
     const step3Start = Date.now();
 
@@ -192,8 +198,10 @@ async function main() {
 
     log(`  ✓ Done (${formatDuration(Date.now() - step3Start)})`);
     log('');
+    } else { log('--- Step 3: Skipped (total_received) ---'); log(''); }
 
     // ─── Step 4: Recalculate total_sent (batched) ───
+    if (FROM_STEP <= 4) {
     log('--- Step 4: Recalculating total_sent (batched) ---');
     const step4Start = Date.now();
 
@@ -214,8 +222,10 @@ async function main() {
 
     log(`  ✓ Done (${formatDuration(Date.now() - step4Start)})`);
     log('');
+    } else { log('--- Step 4: Skipped (total_sent) ---'); log(''); }
 
     // ─── Step 5: Recalculate balance (batched) ───
+    if (FROM_STEP <= 5) {
     log('--- Step 5: Recalculating balances (batched) ---');
     const step5Start = Date.now();
 
@@ -230,8 +240,10 @@ async function main() {
 
     log(`  ✓ Done (${formatDuration(Date.now() - step5Start)})`);
     log('');
+    } else { log('--- Step 5: Skipped (balance) ---'); log(''); }
 
     // ─── Step 6: Recalculate tx_count (batched) ───
+    if (FROM_STEP <= 6) {
     log('--- Step 6: Recalculating transaction counts (batched) ---');
     log('  This is the slow step...');
     const step6Start = Date.now();
@@ -256,8 +268,10 @@ async function main() {
 
     log(`  ✓ Done (${formatDuration(Date.now() - step6Start)})`);
     log('');
+    } else { log('--- Step 6: Skipped (tx_count) ---'); log(''); }
 
     // ─── Step 7: Update first_seen / last_seen (batched) ───
+    if (FROM_STEP <= 7) {
     log('--- Step 7: Updating first_seen / last_seen (batched) ---');
     const step7Start = Date.now();
 
@@ -291,6 +305,7 @@ async function main() {
 
     log(`  ✓ Done (${formatDuration(Date.now() - step7Start)})`);
     log('');
+    } else { log('--- Step 7: Skipped (first_seen/last_seen) ---'); log(''); }
 
     // ─── Step 8: Summary ───
     log('========================================');
