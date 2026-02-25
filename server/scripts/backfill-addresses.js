@@ -263,7 +263,7 @@ async function main() {
           GROUP BY address
         ) tc
         WHERE a.address = tc.address
-      `, [batch, batch]);
+      `, [batch]);
     });
 
     log(`  ✓ Done (${formatDuration(Date.now() - step6Start)})`);
@@ -300,7 +300,7 @@ async function main() {
           GROUP BY address
         ) ts
         WHERE a.address = ts.address
-      `, [batch, batch]);
+      `, [batch]);
     });
 
     log(`  ✓ Done (${formatDuration(Date.now() - step7Start)})`);
