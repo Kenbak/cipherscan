@@ -34,10 +34,16 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (data.blocks?.length) {
-          const newTopHeight = data.blocks[0]?.height ?? data.blocks[0]?.block_height;
+          const newTopHeight = parseInt(data.blocks[0]?.height ?? data.blocks[0]?.block_height);
           if (newTopHeight !== latestKey.current) {
             latestKey.current = newTopHeight;
-            setBlocks(data.blocks);
+            setBlocks(data.blocks.map((b: any) => ({
+              height: parseInt(b.height ?? b.block_height),
+              hash: b.hash,
+              timestamp: parseInt(b.timestamp ?? b.block_time),
+              transactions: parseInt(b.transaction_count ?? b.transactions ?? 0),
+              size: parseInt(b.size ?? 0),
+            })));
           }
         }
       } catch (error) {
