@@ -102,6 +102,11 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // PoW block hashes must have leading zeros (difficulty target).
+  // 4+ leading zeros safely covers every Zcash block ever mined.
+  // Tested BEFORE the generic 64-char hex check (same pattern as mempool.space).
+  const BLOCK_HASH_REGEX = /^0{4}[a-fA-F0-9]{60}$/;
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -123,6 +128,10 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       router.push(`/address/${encodeURIComponent(trimmedQuery)}`);
     } else if (!isNaN(Number(trimmedQuery))) {
       router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+    } else if (BLOCK_HASH_REGEX.test(trimmedQuery)) {
+      router.push(`/block/${encodeURIComponent(trimmedQuery)}`);
+    } else if (/^[a-fA-F0-9]{64}$/.test(trimmedQuery)) {
+      router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else if (/^[a-fA-F0-9]+$/.test(trimmedQuery)) {
       router.push(`/tx/${encodeURIComponent(trimmedQuery)}`);
     } else {

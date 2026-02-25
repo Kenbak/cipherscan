@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -100,9 +100,11 @@ const Icons = {
 
 export default function TransactionPage() {
   const params = useParams();
+  const router = useRouter();
   const txid = params.txid as string;
   const [data, setData] = useState<TransactionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [blockFallbackChecked, setBlockFallbackChecked] = useState(false);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showInputs, setShowInputs] = useState(false);
   const [showOutputs, setShowOutputs] = useState(false);
@@ -236,6 +238,30 @@ export default function TransactionPage() {
     fetchData();
   }, [txid]);
 
+  // Fallback: if tx not found, check if this hash is actually a block hash
+  useEffect(() => {
+    if (loading || data || blockFallbackChecked) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(txid)) return;
+
+    setBlockFallbackChecked(true);
+
+    const checkBlock = async () => {
+      try {
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/block/${txid}`
+          : `/api/block/${txid}`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+          router.replace(`/block/${txid}`);
+        }
+      } catch {
+        // Not a block hash either — stay on the "not found" view
+      }
+    };
+
+    checkBlock();
+  }, [loading, data, txid, blockFallbackChecked, router]);
+
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     const now = new Date();
@@ -286,6 +312,9 @@ export default function TransactionPage() {
   }
 
   if (!data) {
+    const isValidHash = /^[a-fA-F0-9]{64}$/.test(txid);
+    const isChecking = isValidHash && !blockFallbackChecked;
+
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
         <div className="mb-8">
@@ -295,18 +324,27 @@ export default function TransactionPage() {
         <Card>
           <CardBody>
             <div className="text-center py-12">
-              <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-white/[0.04] flex items-center justify-center">
-                <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold text-primary mb-2">Transaction Not Found</h2>
-              <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
-                This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.
-              </p>
-              <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
-                &larr; Back to Explorer
-              </Link>
+              {isChecking ? (
+                <>
+                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent mx-auto mb-5"></div>
+                  <p className="text-sm text-secondary font-mono">Checking if this is a block hash...</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-white/[0.04] flex items-center justify-center">
+                    <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-primary mb-2">Transaction Not Found</h2>
+                  <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
+                    This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.
+                  </p>
+                  <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+                    &larr; Back to Explorer
+                  </Link>
+                </>
+              )}
             </div>
           </CardBody>
         </Card>

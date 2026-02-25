@@ -18,25 +18,34 @@ export async function GET(
 ) {
   try {
     const { height: heightStr } = await params;
-    const height = parseInt(heightStr, 10);
+    const isHash = /^[a-fA-F0-9]{64}$/.test(heightStr);
+    const height = isHash ? null : parseInt(heightStr, 10);
 
-    if (isNaN(height)) {
+    if (!isHash && isNaN(height!)) {
       return NextResponse.json(
-        { error: 'Invalid block height' },
+        { error: 'Invalid block height or hash' },
         { status: 400 }
       );
     }
 
+    // Fetch block by hash or height
+    let block;
+    if (isHash) {
+      block = usePostgresApi()
+        ? await fetchBlockByHeightFromPostgres(heightStr)
+        : await fetchBlockByHash(heightStr);
+    } else {
+      block = usePostgresApi()
+        ? await fetchBlockByHeightFromPostgres(height!)
+        : await fetchBlockByHeight(height!);
+    }
+
     // Get current block height to calculate confirmations
+    const blockHeight = block?.height ?? height;
     const currentHeight = usePostgresApi()
       ? await getCurrentBlockHeightFromPostgres()
       : await getCurrentBlockHeight();
-    const confirmations = currentHeight ? currentHeight - height + 1 : 1;
-
-    // Use PostgreSQL API for testnet, RPC for mainnet
-    const block = usePostgresApi()
-      ? await fetchBlockByHeightFromPostgres(height)
-      : await fetchBlockByHeight(height);
+    const confirmations = (currentHeight && blockHeight) ? currentHeight - blockHeight + 1 : 1;
 
     if (!block) {
       return NextResponse.json(
@@ -269,6 +278,66 @@ async function fetchBlockByHeight(height: number) {
     };
   } catch (error) {
     console.error('Error fetching block from RPC:', error);
+    return null;
+  }
+}
+
+async function fetchBlockByHash(hash: string) {
+  const rpcUrl = process.env.ZCASH_RPC_URL || 'http://localhost:18232';
+  const rpcCookie = process.env.ZCASH_RPC_COOKIE;
+
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (rpcCookie) {
+    headers['Authorization'] = `Basic ${Buffer.from(rpcCookie).toString('base64')}`;
+  }
+
+  try {
+    const blockResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '1.0',
+        id: 'block-by-hash',
+        method: 'getblock',
+        params: [hash, 2],
+      }),
+    });
+
+    const blockData = await blockResponse.json();
+    if (blockData.error || !blockData.result) return null;
+
+    const block = blockData.result;
+    let minerAddress = null;
+
+    if (block.tx?.length > 0) {
+      const coinbaseTx = block.tx[0];
+      if (coinbaseTx.vout?.[0]?.scriptPubKey?.addresses) {
+        minerAddress = coinbaseTx.vout[0].scriptPubKey.addresses[0];
+      }
+    }
+
+    return {
+      height: block.height,
+      hash: block.hash,
+      timestamp: block.time,
+      transactions: block.tx || [],
+      transactionCount: block.tx ? block.tx.length : 0,
+      size: block.size,
+      difficulty: block.difficulty,
+      confirmations: block.confirmations,
+      previousBlockHash: block.previousblockhash,
+      nextBlockHash: block.nextblockhash,
+      version: block.version,
+      merkleRoot: block.merkleroot,
+      finalSaplingRoot: block.finalsaplingroot,
+      bits: block.bits,
+      nonce: block.nonce,
+      solution: block.solution,
+      minerAddress,
+      finality: null as string | null,
+    };
+  } catch (error) {
+    console.error('Error fetching block by hash from RPC:', error);
     return null;
   }
 }

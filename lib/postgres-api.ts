@@ -40,11 +40,11 @@ export async function fetchRecentBlocksFromPostgres(limit: number = 10) {
 }
 
 /**
- * Fetch block by height from PostgreSQL API
+ * Fetch block by height or hash from PostgreSQL API
  */
-export async function fetchBlockByHeightFromPostgres(height: number) {
+export async function fetchBlockByHeightFromPostgres(heightOrHash: number | string) {
   try {
-    const response = await fetch(`${API_URL}/api/block/${height}`, {
+    const response = await fetch(`${API_URL}/api/block/${heightOrHash}`, {
       next: { revalidate: 30 }, // Cache based on confirmations (handled by API)
     });
 
