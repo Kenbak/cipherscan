@@ -84,16 +84,18 @@ router.get('/api/blocks', async (req, res) => {
   }
 });
 
-// Get block by height
-router.get('/api/block/:height', async (req, res) => {
+// Get block by height or hash
+router.get('/api/block/:heightOrHash', async (req, res) => {
   try {
-    const height = parseInt(req.params.height);
+    const param = req.params.heightOrHash;
+    const isHash = /^[a-fA-F0-9]{64}$/.test(param);
+    const height = isHash ? null : parseInt(param);
 
-    if (isNaN(height)) {
-      return res.status(400).json({ error: 'Invalid block height' });
+    if (!isHash && isNaN(height)) {
+      return res.status(400).json({ error: 'Invalid block height or hash' });
     }
 
-    // Get block details
+    // Get block details by height or hash
     const blockResult = await pool.query(
       `SELECT
         height,
@@ -114,8 +116,8 @@ router.get('/api/block/:height', async (req, res) => {
         total_fees,
         miner_address
       FROM blocks
-      WHERE height = $1`,
-      [height]
+      WHERE ${isHash ? 'hash = $1' : 'height = $1'}`,
+      [isHash ? param : height]
     );
 
     if (blockResult.rows.length === 0) {
@@ -123,6 +125,7 @@ router.get('/api/block/:height', async (req, res) => {
     }
 
     const block = blockResult.rows[0];
+    const blockHeight = parseInt(block.height);
 
     // Get transactions for this block
     const txResult = await pool.query(
@@ -145,7 +148,7 @@ router.get('/api/block/:height', async (req, res) => {
       FROM transactions
       WHERE block_height = $1
       ORDER BY tx_index`,
-      [height]
+      [blockHeight]
     );
 
     // Get all inputs and outputs for all transactions in this block (optimized: 2 queries instead of N)
@@ -195,8 +198,8 @@ router.get('/api/block/:height', async (req, res) => {
 
     // Calculate confirmations
     const currentHeightResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
-    const currentHeight = currentHeightResult.rows[0]?.max_height || height;
-    const confirmations = currentHeight - height + 1;
+    const currentHeight = currentHeightResult.rows[0]?.max_height || blockHeight;
+    const confirmations = currentHeight - blockHeight + 1;
 
     res.json({
       ...block,
