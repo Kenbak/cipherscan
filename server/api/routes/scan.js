@@ -387,8 +387,7 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
   } catch (error) {
     console.error('❌ [LIGHTWALLETD] Error:', error);
     res.status(500).json({
-      error: error.message || 'Failed to scan blocks',
-      details: error.details || null,
+      error: 'Failed to scan blocks',
     });
   }
 });

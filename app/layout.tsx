@@ -1,22 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 
-// Geist Sans - Modern, clean sans-serif with Apple-like refinement
-const geistSans = Geist({
+const geistSans = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
   display: "swap",
 });
 
-// Geist Mono - Distinctive monospace for data and code
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
   display: "swap",
 });
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CURRENCY } from '@/lib/config';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
@@ -147,11 +147,10 @@ export default function PrivacyPage() {
         setLoading(false);
       });
 
-    // Fetch ZEC price from CoinGecko directly
-    fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd')
+    fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`)
       .then((res) => res.json())
       .then((data) => {
-        setZecPrice(data.zcash.usd);
+        setZecPrice(data.price);
       })
       .catch((err) => console.error('Failed to load ZEC price:', err));
   }, []);

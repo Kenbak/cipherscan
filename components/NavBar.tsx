@@ -9,6 +9,7 @@ import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, MAINNET_URL, TESTNET_URL } from '@/lib/config';
+import { API_CONFIG } from '@/lib/api-config';
 
 interface PriceData {
   price: number;
@@ -43,14 +44,12 @@ export function NavBar() {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true'
-        );
+        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
           setPriceData({
-            price: data.zcash.usd,
-            change24h: data.zcash.usd_24h_change,
+            price: data.price,
+            change24h: data.change24h,
           });
         }
       } catch (error) {

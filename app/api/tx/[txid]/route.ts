@@ -19,7 +19,7 @@ export async function GET(
   try {
     const { txid } = await params;
 
-    if (!txid || txid.length < 64) {
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
       return NextResponse.json(
         { error: 'Invalid transaction ID' },
         { status: 400 }

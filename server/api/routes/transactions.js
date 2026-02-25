@@ -159,7 +159,7 @@ router.get('/api/tx/:txid', async (req, res) => {
   try {
     const { txid } = req.params;
 
-    if (!txid || txid.length !== 64) {
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
       return res.status(400).json({ error: 'Invalid transaction ID' });
     }
 
@@ -291,7 +291,7 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
   try {
     const { txid } = req.params;
 
-    if (!txid || txid.length !== 64) {
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
       return res.status(400).json({ error: 'Invalid transaction ID' });
     }
 
@@ -409,7 +409,7 @@ router.get('/api/tx/:txid/linkability', async (req, res) => {
   try {
     const { txid } = req.params;
 
-    if (!txid || txid.length !== 64) {
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
       return res.status(400).json({ error: 'Invalid transaction ID' });
     }
 

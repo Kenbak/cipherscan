@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getApiUrl } from '@/lib/api-config';
+import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import NodeMap from '@/components/NodeMap';
@@ -74,16 +74,13 @@ export default function NetworkPage() {
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
 
-  // Fetch ZEC price
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd'
-        );
+        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
         if (response.ok) {
           const data = await response.json();
-          setZecPrice(data.zcash.usd);
+          setZecPrice(data.price);
         }
       } catch (error) {
         console.error('Error fetching ZEC price:', error);

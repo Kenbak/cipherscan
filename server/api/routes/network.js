@@ -619,4 +619,43 @@ router.get('/api/network/nodes/stats', async (req, res) => {
   }
 });
 
+// ============================================================================
+// ZEC PRICE (Privacy proxy — prevents user IPs from leaking to CoinGecko)
+// ============================================================================
+
+let priceCache = { data: null, timestamp: 0 };
+const PRICE_CACHE_MS = 60_000;
+
+router.get('/api/price', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (priceCache.data && now - priceCache.timestamp < PRICE_CACHE_MS) {
+      return res.json(priceCache.data);
+    }
+
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true'
+    );
+
+    if (!response.ok) {
+      if (priceCache.data) return res.json(priceCache.data);
+      return res.status(502).json({ error: 'Price service unavailable' });
+    }
+
+    const raw = await response.json();
+    const data = {
+      price: raw.zcash?.usd ?? null,
+      change24h: raw.zcash?.usd_24h_change ?? null,
+      timestamp: now,
+    };
+
+    priceCache = { data, timestamp: now };
+    res.json(data);
+  } catch (error) {
+    console.error('❌ [PRICE] Error:', error.message);
+    if (priceCache.data) return res.json(priceCache.data);
+    res.status(500).json({ error: 'Failed to fetch price' });
+  }
+});
+
 module.exports = router;

@@ -12,6 +12,7 @@
     "@mayaprotocol/zcash-js": "^1.0.7",
     "@types/pg": "^8.15.6",
     "bip39": "^3.1.0",
+    "geist": "^1.7.0",
     "next": "^15.5.7",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",

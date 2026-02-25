@@ -8,7 +8,7 @@ import { AddressLabel } from '@/components/AddressLabel';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { decodeUnifiedAddress, UnifiedAddressComponents } from '@/lib/wasm-loader';
@@ -225,17 +225,14 @@ export default function AddressPage() {
     fetchPageData();
   }, [fetchPageData]);
 
-  // Fetch price once
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true'
-        );
+        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
         const data = await response.json();
         setPriceData({
-          price: data.zcash.usd,
-          change24h: data.zcash.usd_24h_change,
+          price: data.price,
+          change24h: data.change24h,
         });
       } catch (error) {
         console.error('Error fetching price:', error);
