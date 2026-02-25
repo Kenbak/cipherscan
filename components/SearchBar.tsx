@@ -352,8 +352,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           onClick={() => setQuery('zs1...')}
           className="example-tag example-tag-default"
         >
-          z-address
-          <span>🛡️</span>
+          u-address
+          
         </button>
       </div>
     </form>
