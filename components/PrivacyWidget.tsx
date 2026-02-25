@@ -68,9 +68,9 @@ function MetricCell({
   color?: 'purple' | 'cyan' | 'muted';
 }) {
   const colorClass = {
-    purple: 'text-purple-400',
-    cyan: 'text-cipher-cyan',
-    muted: 'text-secondary',
+    purple: 'text-primary',
+    cyan: 'text-primary',
+    muted: 'text-primary',
   }[color];
 
   return (
@@ -80,8 +80,8 @@ function MetricCell({
         <Tooltip content={tooltip} />
       </div>
       <div className="flex items-baseline gap-1">
-        <span className={`text-xl sm:text-2xl lg:text-3xl font-bold font-mono ${colorClass}`}>{value}</span>
-        {suffix && <span className="text-[10px] sm:text-xs text-muted font-mono">{suffix}</span>}
+        <span className={`text-lg sm:text-xl font-semibold font-mono ${colorClass}`}>{value}</span>
+        {suffix && <span className="text-[10px] text-muted font-mono">{suffix}</span>}
       </div>
     </div>
   );
@@ -173,9 +173,9 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
   const hasHighRisk = riskStats && riskStats.highRisk > 0;
 
   return (
-    <div className="card card-interactive group">
+    <div className="card card-compact card-interactive group">
       {/* Header */}
-      <Link href="/privacy" className="flex items-center justify-between mb-5">
+      <Link href="/privacy" className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-muted opacity-50">&gt;</span>
           <span className="text-xs text-muted font-mono uppercase tracking-wide">PRIVACY_METRICS</span>
@@ -194,7 +194,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               tooltip="Overall network privacy health score"
               value={privacyScore}
               suffix="/100"
-              color="purple"
+              color="muted"
             />
           </div>
           <div className="lg:border-r lg:border-cipher-border lg:px-5">
@@ -203,7 +203,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               tooltip="Total ZEC currently in the shielded pool"
               value={`${poolSizeFormatted}M`}
               suffix={CURRENCY}
-              color="purple"
+              color="muted"
             />
           </div>
           {/* Divider between rows on mobile only */}
@@ -214,7 +214,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               tooltip="Percentage of transactions using shielded pools"
               value={shieldedPct}
               suffix="%"
-              color="cyan"
+              color="muted"
             />
           </div>
           <div className="lg:pl-5">
@@ -232,7 +232,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
       {hasRisks && (
         <Link
           href="/privacy-risks?period=7d"
-          className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-cipher-border group/risk"
+          className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-cipher-border group/risk"
         >
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <svg className={`w-4 h-4 flex-shrink-0 ${hasHighRisk ? 'text-red-400' : 'text-orange-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

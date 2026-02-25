@@ -269,15 +269,16 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     <form onSubmit={handleSearch} className="max-w-3xl mx-auto px-2 sm:px-0 relative z-50">
       {/* Search Container with Glow Effect */}
       <div className="relative group">
-        {/* Glow effect on focus */}
+        {/* Ambient glow on focus — single color, wide spread, barely visible */}
         <div
-          className={`absolute -inset-1 bg-gradient-to-r from-cipher-cyan/30 via-purple-500/20 to-cipher-cyan/30 rounded-xl blur-lg transition-opacity duration-500 ${
+          className={`absolute -inset-3 rounded-2xl blur-2xl transition-opacity duration-700 ease-out ${
             isFocused ? 'opacity-100' : 'opacity-0'
           }`}
+          style={{ background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.08) 0%, transparent 70%)' }}
         />
 
         {/* Search Input Container */}
-        <div className={`relative transition-all duration-300 ${isFocused ? 'scale-[1.01]' : ''}`}>
+        <div className="relative">
           {/* Terminal prompt */}
           <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-lg sm:text-xl font-bold">
             {'>'}
@@ -298,8 +299,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               search-input-hero border-2 rounded-xl text-primary
               placeholder:text-muted transition-all duration-300
               ${isFocused
-                ? 'border-cipher-cyan shadow-lg shadow-cipher-cyan/10'
-                : 'border-cipher-border hover:border-cipher-cyan/50'
+                ? 'border-cipher-cyan/60 shadow-[0_0_20px_rgba(0,212,255,0.06)]'
+                : 'border-cipher-border hover:border-white/[0.12]'
               }
               focus:outline-none`}
           />
@@ -335,7 +336,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <button
           type="button"
           onClick={() => setQuery('354939')}
-          className="example-tag example-tag-cyan"
+          className="example-tag example-tag-default"
         >
           Block #354939
         </button>
@@ -349,7 +350,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <button
           type="button"
           onClick={() => setQuery('zs1...')}
-          className="example-tag example-tag-purple"
+          className="example-tag example-tag-default"
         >
           z-address
           <span>🛡️</span>

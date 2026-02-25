@@ -25,6 +25,13 @@ interface RecentShieldedTxsProps {
   initialTxs?: ShieldedTx[];
 }
 
+function getTxBadge(tx: ShieldedTx) {
+  if (tx.type === 'fully-shielded') return <Badge color="purple">SHIELDED</Badge>;
+  if (tx.vinCount > 0 && tx.voutCount === 0) return <Badge color="green">↓ SHIELDING</Badge>;
+  if (tx.vinCount === 0 && tx.voutCount > 0) return <Badge color="orange">↑ UNSHIELDING</Badge>;
+  return <Badge color="orange">MIXED</Badge>;
+}
+
 export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = false, initialTxs = [] }: RecentShieldedTxsProps) {
   const [txs, setTxs] = useState<ShieldedTx[]>(initialTxs);
   const [loading, setLoading] = useState(initialTxs.length === 0);
@@ -67,99 +74,68 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="card card-compact animate-pulse">
-            <div className="flex justify-between items-center">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-28 skeleton-bg rounded" />
-                  <div className="h-4 w-20 skeleton-bg rounded" />
-                </div>
-                <div className="h-3 w-32 skeleton-bg rounded" />
-              </div>
-              <div className="space-y-2 text-right">
-                <div className="h-4 w-20 skeleton-bg rounded ml-auto" />
-                <div className="h-3 w-28 skeleton-bg rounded ml-auto" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="card p-0 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <tr key={i} className="animate-pulse">
+                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-28 skeleton-bg rounded" /></td>
+                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-20 skeleton-bg rounded" /></td>
+                <td className="px-4 py-4 border-b border-cipher-border hidden sm:table-cell"><div className="h-3 w-16 skeleton-bg rounded ml-auto" /></td>
+                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-3 w-14 skeleton-bg rounded ml-auto" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }
 
-  // Helper to determine badge
-  const getTxBadge = (tx: ShieldedTx) => {
-    if (tx.type === 'fully-shielded') {
-      return <Badge color="purple">SHIELDED</Badge>;
-    } else if (tx.vinCount > 0 && tx.voutCount === 0) {
-      return <Badge color="green">↓ SHIELDING</Badge>;
-    } else if (tx.vinCount === 0 && tx.voutCount > 0) {
-      return <Badge color="orange">↑ UNSHIELDING</Badge>;
-    } else {
-      return <Badge color="orange">MIXED</Badge>;
-    }
-  };
-
   return (
-    <div className="space-y-3">
-      {txs.map((tx, index) => (
-        <Link href={`/tx/${tx.txid}`} key={tx.txid}>
-          <div
-            className={`card card-compact card-interactive group ${nested ? 'bg-transparent' : ''}`}
-            style={{
-              borderColor: nested ? 'rgba(168, 85, 247, 0.2)' : undefined
-            }}
-          >
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="w-6 h-6 flex items-center justify-center rounded-md bg-purple-500/10">
-                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </span>
-                  <h3 className="text-base sm:text-lg font-bold font-mono text-purple-400 group-hover:text-purple-300 transition-colors">
-                    {tx.txid.slice(0, 12)}...
-                  </h3>
-                  {getTxBadge(tx)}
-                </div>
-                <div className="text-xs text-muted font-mono">
-                  <span className="opacity-50">Block: </span>
-                  <code className="break-all">#{tx.blockHeight}</code>
-                  {tx.hasOrchard && (
-                    <span className="ml-2 text-[10px] text-purple-400">
-                      {tx.orchardActions} Orchard
-                    </span>
-                  )}
-                  {tx.hasSapling && (
-                    <span className="ml-2 text-[10px] text-purple-400">
-                      {tx.shieldedSpends || tx.shieldedOutputs} Sapling
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="text-left sm:text-right sm:ml-6">
-                <div className="text-sm text-secondary font-mono">
-                  {formatRelativeTime(tx.blockTime)}
-                </div>
-                <div className="text-xs text-muted mt-1" suppressHydrationWarning>
-                  {new Date(tx.blockTime * 1000).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Link>
-      ))}
+    <div className="card p-0 overflow-hidden">
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
+            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+          </tr>
+        </thead>
+        <tbody>
+          {txs.map((tx, i) => (
+            <tr
+              key={tx.txid}
+              className="group transition-colors duration-100 hover:bg-[var(--color-hover)] animate-fade-in-up"
+              style={{ animationDelay: `${i * 30}ms` }}
+            >
+              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
+                <Link href={`/tx/${tx.txid}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-purple-400 transition-colors truncate block max-w-[120px] sm:max-w-none">
+                  <span className="sm:hidden">{tx.txid.slice(0, 6)}...{tx.txid.slice(-4)}</span>
+                  <span className="hidden sm:inline">{tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}</span>
+                </Link>
+              </td>
+              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
+                {getTxBadge(tx)}
+              </td>
+              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right hidden sm:table-cell">
+                <span className="font-mono text-xs text-muted">#{tx.blockHeight.toLocaleString()}</span>
+              </td>
+              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+                <span className="text-xs sm:text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.blockTime)}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 });
