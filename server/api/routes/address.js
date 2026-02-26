@@ -177,62 +177,102 @@ router.get('/api/address/:address', async (req, res) => {
     const totalTxCount = parseInt(summary.tx_count) || 0;
     const totalPages = Math.ceil(totalTxCount / limit);
 
-    // Optimized query with OFFSET (fast with proper indexes)
-    // The new composite indexes make this efficient even for large offsets
-    const txResult = await pool.query(
-      `WITH address_txids AS (
-        SELECT txid FROM transaction_outputs WHERE address = $1
-        UNION
-        SELECT txid FROM transaction_inputs WHERE address = $1
-      ),
-      tx_ordered AS (
+    // Try fast path: denormalized address_transactions table
+    // Falls back to legacy UNION query if table doesn't exist yet
+    let txResult;
+    try {
+      txResult = await pool.query(
+        `WITH paged AS (
+          SELECT txid, block_height, tx_index, block_time, value_in, value_out
+          FROM address_transactions
+          WHERE address = $1
+          ORDER BY block_height DESC, tx_index DESC
+          LIMIT $2 OFFSET $3
+        )
         SELECT
-          t.txid,
-          t.block_height,
-          t.block_time,
+          p.txid,
+          p.block_height,
+          p.block_time,
           t.size,
-          t.tx_index,
+          p.tx_index,
           t.has_sapling,
-          t.has_orchard
-        FROM transactions t
-        WHERE t.txid IN (SELECT txid FROM address_txids)
-        ORDER BY t.block_height DESC, t.tx_index DESC
-        LIMIT $2 OFFSET $3
-      )
-      SELECT
-        tv.txid,
-        tv.block_height,
-        tv.block_time,
-        tv.size,
-        tv.tx_index,
-        tv.has_sapling,
-        tv.has_orchard,
-        COALESCE(my_in.value, 0) as input_value,
-        COALESCE(my_out.value, 0) as output_value,
-        other_in.addresses as sender_addresses,
-        other_out.addresses as recipient_addresses
-      FROM tx_ordered tv
-      LEFT JOIN LATERAL (
-        SELECT SUM(value) as value FROM transaction_inputs
-        WHERE txid = tv.txid AND address = $1
-      ) my_in ON true
-      LEFT JOIN LATERAL (
-        SELECT SUM(value) as value FROM transaction_outputs
-        WHERE txid = tv.txid AND address = $1
-      ) my_out ON true
-      LEFT JOIN LATERAL (
-        SELECT ARRAY_AGG(DISTINCT address) as addresses
-        FROM transaction_inputs
-        WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
-      ) other_in ON true
-      LEFT JOIN LATERAL (
-        SELECT ARRAY_AGG(DISTINCT address) as addresses
-        FROM transaction_outputs
-        WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
-      ) other_out ON true
-      ORDER BY tv.block_height DESC, tv.tx_index DESC`,
-      [address, limit, offset]
-    );
+          t.has_orchard,
+          COALESCE(p.value_in, 0) as input_value,
+          COALESCE(p.value_out, 0) as output_value,
+          other_in.addresses as sender_addresses,
+          other_out.addresses as recipient_addresses
+        FROM paged p
+        JOIN transactions t ON t.txid = p.txid
+        LEFT JOIN LATERAL (
+          SELECT ARRAY_AGG(DISTINCT address) as addresses
+          FROM transaction_inputs
+          WHERE txid = p.txid AND address IS NOT NULL AND address != $1
+        ) other_in ON true
+        LEFT JOIN LATERAL (
+          SELECT ARRAY_AGG(DISTINCT address) as addresses
+          FROM transaction_outputs
+          WHERE txid = p.txid AND address IS NOT NULL AND address != $1
+        ) other_out ON true
+        ORDER BY p.block_height DESC, p.tx_index DESC`,
+        [address, limit, offset]
+      );
+    } catch (fastPathError) {
+      // Fallback: legacy UNION query (used when address_transactions table doesn't exist)
+      txResult = await pool.query(
+        `WITH address_txids AS (
+          SELECT txid FROM transaction_outputs WHERE address = $1
+          UNION
+          SELECT txid FROM transaction_inputs WHERE address = $1
+        ),
+        tx_ordered AS (
+          SELECT
+            t.txid,
+            t.block_height,
+            t.block_time,
+            t.size,
+            t.tx_index,
+            t.has_sapling,
+            t.has_orchard
+          FROM transactions t
+          WHERE t.txid IN (SELECT txid FROM address_txids)
+          ORDER BY t.block_height DESC, t.tx_index DESC
+          LIMIT $2 OFFSET $3
+        )
+        SELECT
+          tv.txid,
+          tv.block_height,
+          tv.block_time,
+          tv.size,
+          tv.tx_index,
+          tv.has_sapling,
+          tv.has_orchard,
+          COALESCE(my_in.value, 0) as input_value,
+          COALESCE(my_out.value, 0) as output_value,
+          other_in.addresses as sender_addresses,
+          other_out.addresses as recipient_addresses
+        FROM tx_ordered tv
+        LEFT JOIN LATERAL (
+          SELECT SUM(value) as value FROM transaction_inputs
+          WHERE txid = tv.txid AND address = $1
+        ) my_in ON true
+        LEFT JOIN LATERAL (
+          SELECT SUM(value) as value FROM transaction_outputs
+          WHERE txid = tv.txid AND address = $1
+        ) my_out ON true
+        LEFT JOIN LATERAL (
+          SELECT ARRAY_AGG(DISTINCT address) as addresses
+          FROM transaction_inputs
+          WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
+        ) other_in ON true
+        LEFT JOIN LATERAL (
+          SELECT ARRAY_AGG(DISTINCT address) as addresses
+          FROM transaction_outputs
+          WHERE txid = tv.txid AND address IS NOT NULL AND address != $1
+        ) other_out ON true
+        ORDER BY tv.block_height DESC, tv.tx_index DESC`,
+        [address, limit, offset]
+      );
+    }
 
     const transactions = txResult.rows.map(tx => {
       const netChange = parseFloat(tx.output_value) - parseFloat(tx.input_value);
