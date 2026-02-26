@@ -17,7 +17,7 @@ export function Footer() {
           <div className="col-span-2 sm:col-span-4 lg:col-span-4">
             <Link href="/" className="inline-flex items-center gap-2 mb-3 group">
               <Image
-                src={theme === 'light' ? '/logo_light.png' : '/logo.png'}
+                src={theme === 'light' ? '/logo.png' : '/logo.png'}
                 alt="CipherScan Logo"
                 width={24}
                 height={24}

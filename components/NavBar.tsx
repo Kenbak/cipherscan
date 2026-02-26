@@ -122,13 +122,13 @@ export function NavBar() {
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
               <Image
-                src={theme === 'light' ? '/logo_light.png' : '/logo.png'}
+                src={theme === 'light' ? '/logo.png' : '/logo.png'}
                 alt="CipherScan Logo"
-                width={32}
-                height={32}
+                width={24}
+                height={24}
                 quality={100}
                 unoptimized
-                className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10"
+                className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10 object-contain"
               />
               <div>
                 <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors duration-200">
