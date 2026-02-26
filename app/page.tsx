@@ -106,6 +106,15 @@ async function getRiskStats(): Promise<RiskStats | null> {
   }
 }
 
+export const metadata = {
+  title: 'CipherScan - Zcash Blockchain Explorer',
+  description: 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Fast, open-source, and privacy-first.',
+  openGraph: {
+    title: 'CipherScan - Zcash Blockchain Explorer',
+    description: 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health.',
+  },
+};
+
 export default async function Home() {
   const [initialBlocks, initialShieldedTxs, privacyStats, riskStats] = await Promise.all([
     getRecentBlocks(),
@@ -128,6 +137,9 @@ export default async function Home() {
         <div>
           <SearchBar />
         </div>
+        <p className="text-xs text-muted mt-4 max-w-lg mx-auto leading-relaxed">
+          Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.
+        </p>
       </div>
 
       {/* Privacy Health Module */}
