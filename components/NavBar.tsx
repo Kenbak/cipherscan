@@ -221,23 +221,23 @@ export function NavBar() {
               )}
 
               {/* Network Switcher (Desktop) */}
-              <div className="hidden md:flex items-center network-switcher border rounded-lg p-0.5">
+              <div className="hidden md:flex items-center border border-cipher-border rounded-lg p-0.5">
                 <a
                   href={TESTNET_URL}
-                  className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded-md transition-all duration-150 ${
+                  className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     !isMainnet
-                      ? 'bg-cipher-cyan text-cipher-bg font-bold shadow-sm'
-                      : 'network-link hover:bg-cipher-hover'
+                      ? 'border border-cipher-cyan/60 text-cipher-cyan'
+                      : 'text-muted hover:text-foreground'
                   }`}
                 >
                   TESTNET
                 </a>
                 <a
                   href={MAINNET_URL}
-                  className={`text-[10px] sm:text-xs font-mono px-2 py-1 rounded-md transition-all duration-150 ${
+                  className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     isMainnet
-                      ? 'bg-cipher-green text-white font-bold shadow-sm'
-                      : 'network-link hover:bg-cipher-hover'
+                      ? 'border border-cipher-green/60 text-cipher-green'
+                      : 'text-muted hover:text-foreground'
                   }`}
                 >
                   MAINNET
@@ -354,8 +354,8 @@ export function NavBar() {
                     href={TESTNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       !isMainnet
-                        ? 'bg-cipher-cyan text-cipher-bg font-bold'
-                        : 'network-switcher-inactive'
+                        ? 'border border-cipher-cyan text-cipher-cyan'
+                        : 'text-muted network-switcher-inactive'
                     }`}
                   >
                     TESTNET
@@ -364,8 +364,8 @@ export function NavBar() {
                     href={MAINNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       isMainnet
-                        ? 'bg-cipher-green text-white font-bold'
-                        : 'network-switcher-inactive'
+                        ? 'border border-cipher-green text-cipher-green'
+                        : 'text-muted network-switcher-inactive'
                     }`}
                   >
                     MAINNET
