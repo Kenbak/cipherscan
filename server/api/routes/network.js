@@ -25,6 +25,8 @@ router.use((req, res, next) => {
 
 const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
 const NETWORK_STATS_CACHE_DURATION = 30; // 30 seconds (Redis uses seconds)
+const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
+const NETWORK_HEALTH_CACHE_DURATION = 30;
 
 // Fallback in-memory cache (if Redis fails)
 let networkStatsCache = null;
@@ -99,18 +101,11 @@ async function fetchNetworkStatsOptimized() {
 
     const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
 
-    // Get blockchain size from DB
-    const sizeResult = await pool.query(`
-      SELECT SUM(size) as total_size
-      FROM blocks
-    `);
-    const blockchainSizeBytes = parseInt(sizeResult.rows[0]?.total_size || 0);
-    const blockchainSizeGB = (blockchainSizeBytes / (1024 * 1024 * 1024)).toFixed(2);
-
-    // Get network info (Zebra 3.0+ has more detailed info)
-    const networkInfo = await callZebraRPC('getnetworkinfo').catch(() => null);
-    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
-    const blockchainInfo = await callZebraRPC('getblockchaininfo').catch(() => null);
+    const [networkInfo, peerInfo, blockchainInfo] = await Promise.all([
+      callZebraRPC('getnetworkinfo').catch(() => null),
+      callZebraRPC('getpeerinfo').catch(() => []),
+      callZebraRPC('getblockchaininfo').catch(() => null),
+    ]);
 
     // Extract peer count and network details
     const peerCount = networkInfo?.connections || (Array.isArray(peerInfo) ? peerInfo.length : 0);
@@ -187,8 +182,8 @@ async function fetchNetworkStatsOptimized() {
         height: parseInt(height),
         latestBlockTime: parseInt(timestamp),
         syncProgress: 100, // Assume synced if we have recent blocks
-        sizeBytes: blockchainSizeBytes,
-        sizeGB: parseFloat(blockchainSizeGB),
+        sizeBytes: blockchainInfo?.size_on_disk || 0,
+        sizeGB: parseFloat(((blockchainInfo?.size_on_disk || 0) / (1024 * 1024 * 1024)).toFixed(2)),
         tx24h,
       },
       supply: supplyData,
@@ -322,11 +317,13 @@ router.get('/api/network/fees', async (req, res) => {
  */
 router.get('/api/network/health', async (req, res) => {
   try {
-    console.log('🏥 [HEALTH] Checking Zebra node health...');
+    const cached = await getFromRedisCache(NETWORK_HEALTH_CACHE_KEY);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
 
     const zebraHealthUrl = process.env.ZEBRA_HEALTH_URL || 'http://127.0.0.1:8080';
 
-    // Try to fetch Zebra's health endpoints (Zebra 3.0+)
     const [healthyRes, readyRes] = await Promise.allSettled([
       fetch(`${zebraHealthUrl}/healthy`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
       fetch(`${zebraHealthUrl}/ready`).then(r => ({ status: r.status, ok: r.ok })).catch(() => null),
@@ -335,7 +332,6 @@ router.get('/api/network/health', async (req, res) => {
     const healthy = healthyRes.status === 'fulfilled' && healthyRes.value?.ok;
     const ready = readyRes.status === 'fulfilled' && readyRes.value?.ok;
 
-    // Fallback: check via RPC if health endpoints not available
     let fallbackHealthy = false;
     if (!healthy) {
       try {
@@ -346,7 +342,7 @@ router.get('/api/network/health', async (req, res) => {
       }
     }
 
-    res.json({
+    const result = {
       success: true,
       zebra: {
         healthy: healthy || fallbackHealthy,
@@ -354,11 +350,11 @@ router.get('/api/network/health', async (req, res) => {
         healthEndpointAvailable: healthy,
         readyEndpointAvailable: ready,
       },
-      note: healthy ? 'Zebra 3.0+ health endpoints available' : 'Using RPC fallback (Zebra < 3.0 or health endpoints not configured)',
       timestamp: Date.now(),
-    });
+    };
 
-    console.log(`✅ [HEALTH] Node healthy: ${healthy || fallbackHealthy}, ready: ${ready}`);
+    await setInRedisCache(NETWORK_HEALTH_CACHE_KEY, result, NETWORK_HEALTH_CACHE_DURATION);
+    res.json(result);
   } catch (error) {
     console.error('❌ [HEALTH] Error checking health:', error);
     res.status(500).json({

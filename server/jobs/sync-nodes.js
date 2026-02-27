@@ -178,13 +178,21 @@ async function syncNodes() {
 
     console.log(`📊 [NodeSync] Found ${peers.length} connected peers`);
 
-    // 2. Fetch additional nodes from DNS seeders
-    const DNS_SEEDERS = [
-      'mainnet.seeder.zfnd.org',
-      'mainnet.seeder.shieldedinfra.net',
-      'dnsseed.z.cash',
-      'dnsseed.str4d.xyz',
-    ];
+    // 2. Fetch additional nodes from DNS seeders (network-aware)
+    const isTestnet = ZEBRA_RPC_URL.includes('18232') || (process.env.NETWORK || '').toLowerCase() === 'testnet';
+    const DNS_SEEDERS = isTestnet
+      ? [
+          'testnet.seeder.zfnd.org',
+          'testnet.seeder.shieldedinfra.net',
+          'dnsseed.testnet.z.cash',
+        ]
+      : [
+          'mainnet.seeder.zfnd.org',
+          'mainnet.seeder.shieldedinfra.net',
+          'dnsseed.z.cash',
+          'dnsseed.str4d.xyz',
+        ];
+    console.log(`🔍 [NodeSync] Network: ${isTestnet ? 'testnet' : 'mainnet'}`);
 
     console.log('🌱 [NodeSync] Querying DNS seeders...');
     const seederIPs = new Set();

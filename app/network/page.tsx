@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import NodeMap from '@/components/NodeMap';
+
+const NodeMap = lazy(() => import('@/components/NodeMap'));
 
 // Format hashrate with appropriate unit
 function formatHashrate(hashrate: number): string {
@@ -74,21 +75,6 @@ export default function NetworkPage() {
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
-        if (response.ok) {
-          const data = await response.json();
-          setZecPrice(data.price);
-        }
-      } catch (error) {
-        console.error('Error fetching ZEC price:', error);
-      }
-    };
-    fetchPrice();
-  }, []);
-
   // WebSocket for real-time updates
   const { isConnected } = useWebSocket({
     onMessage: (data) => {
@@ -103,15 +89,21 @@ export default function NetworkPage() {
   const fetchData = async () => {
     try {
       const apiUrl = getApiUrl();
-      const [statsRes, healthRes] = await Promise.all([
+      const [statsRes, healthRes, priceRes] = await Promise.all([
         fetch(`${apiUrl}/api/network/stats`),
         fetch(`${apiUrl}/api/network/health`),
+        fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`).catch(() => null),
       ]);
 
       if (!statsRes.ok || !healthRes.ok) throw new Error('Failed to fetch network data');
 
       const statsData = await statsRes.json();
       const healthData = await healthRes.json();
+
+      if (priceRes?.ok) {
+        const priceData = await priceRes.json();
+        setZecPrice(priceData.price);
+      }
 
       setPreviousStats(stats);
       setStats(statsData);
@@ -133,10 +125,34 @@ export default function NetworkPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent" />
-          <p className="text-secondary ml-4 font-mono">Loading network stats...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="mb-8">
+          <div className="h-3 w-32 bg-cipher-border rounded animate-pulse mb-3" />
+          <div className="h-8 w-48 bg-cipher-border rounded animate-pulse" />
+        </div>
+        <div className="mb-8 h-[300px] bg-cipher-border/30 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card p-4">
+              <div className="h-2 w-16 bg-cipher-border rounded animate-pulse mb-3" />
+              <div className="h-6 w-24 bg-cipher-border rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card p-6 min-h-[200px]">
+              <div className="h-4 w-32 bg-cipher-border rounded animate-pulse mb-4" />
+              <div className="space-y-3">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="flex justify-between">
+                    <div className="h-3 w-24 bg-cipher-border rounded animate-pulse" />
+                    <div className="h-3 w-16 bg-cipher-border rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -211,9 +227,15 @@ export default function NetworkPage() {
         />
       </div>
 
-      {/* Node Map - hero visual */}
+      {/* Node Map - lazy loaded, doesn't block initial render */}
       <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <NodeMap />
+        <Suspense fallback={
+          <div className="card p-8 flex items-center justify-center min-h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+          </div>
+        }>
+          <NodeMap />
+        </Suspense>
       </div>
 
       {/* Supply Distribution + Chain Stats */}
