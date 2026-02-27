@@ -137,13 +137,13 @@ export default async function AboutPage() {
 
         {/* Live Stats */}
         <div className="mb-20 sm:mb-28">
-          <div className="grid grid-cols-3 gap-6 sm:gap-8">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-8 sm:gap-0 sm:divide-x sm:divide-cipher-border">
             {[
               { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-cyan' },
               { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
               { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-purple' },
-            ].map((stat) => (
-              <div key={stat.label}>
+            ].map((stat, i) => (
+              <div key={stat.label} className={`${i > 0 ? 'sm:pl-8 lg:pl-12' : ''} ${i < 2 ? 'sm:pr-8 lg:pr-12' : ''}`}>
                 <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold font-mono ${stat.color} leading-none`}>
                   {stat.value}
                 </div>
