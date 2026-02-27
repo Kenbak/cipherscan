@@ -236,7 +236,7 @@ export function NavBar() {
                   href={MAINNET_URL}
                   className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     isMainnet
-                      ? 'bg-cipher-yellow/15 text-cipher-yellow'
+                      ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -364,7 +364,7 @@ export function NavBar() {
                     href={MAINNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       isMainnet
-                        ? 'bg-cipher-yellow/15 text-cipher-yellow'
+                        ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
                         : 'text-muted network-switcher-inactive'
                     }`}
                   >

@@ -34,7 +34,7 @@ export const RPC_CONFIG = {
 };
 
 // Network colors
-export const NETWORK_COLOR = isMainnet ? 'text-cipher-yellow' : 'text-gray-400';
+export const NETWORK_COLOR = isMainnet ? 'text-cipher-yellow-dark dark:text-cipher-yellow' : 'text-gray-400';
 
 // Domain URLs
 export const MAINNET_URL = 'https://cipherscan.app';
