@@ -41,7 +41,7 @@ const config: Config = {
           'purple-glow': '#C4B5FD',// Purple glow
 
           yellow: '#F4B728',       // ZCASH ACCENT - Secondary brand highlight
-          'yellow-dark': '#996515',// Yellow for light mode
+          'yellow-dark': '#D49B00',// Yellow for light mode
           'yellow-glow': '#FFD060',// Yellow glow
           'yellow-muted': '#C9A035',// Muted yellow
 
