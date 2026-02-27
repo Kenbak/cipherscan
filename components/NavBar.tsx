@@ -226,7 +226,7 @@ export function NavBar() {
                   href={TESTNET_URL}
                   className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     !isMainnet
-                      ? 'border border-cipher-cyan/60 text-cipher-cyan'
+                      ? 'bg-cipher-cyan/15 text-cipher-cyan'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -236,7 +236,7 @@ export function NavBar() {
                   href={MAINNET_URL}
                   className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     isMainnet
-                      ? 'border border-cipher-yellow/60 text-cipher-yellow'
+                      ? 'bg-cipher-yellow/15 text-cipher-yellow'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -354,7 +354,7 @@ export function NavBar() {
                     href={TESTNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       !isMainnet
-                        ? 'border border-cipher-cyan text-cipher-cyan'
+                        ? 'bg-cipher-cyan/15 text-cipher-cyan'
                         : 'text-muted network-switcher-inactive'
                     }`}
                   >
@@ -364,7 +364,7 @@ export function NavBar() {
                     href={MAINNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       isMainnet
-                        ? 'border border-cipher-yellow text-cipher-yellow'
+                        ? 'bg-cipher-yellow/15 text-cipher-yellow'
                         : 'text-muted network-switcher-inactive'
                     }`}
                   >
