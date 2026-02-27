@@ -65,7 +65,7 @@ export function Tooltip({ content, children }: TooltipProps) {
         )}
       </button>
       {show && (
-        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs">
+        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs normal-case tracking-normal">
           {content}
           <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
             <div className="tooltip-arrow"></div>

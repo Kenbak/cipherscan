@@ -5,8 +5,24 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Tooltip } from '@/components/Tooltip';
 
 const NodeMap = lazy(() => import('@/components/NodeMap'));
+
+const UPGRADE_URLS: Record<string, string> = {
+  'NU6': 'https://z.cash/upgrade/nu6/',
+  'NU6.1': 'https://z.cash/upgrade/nu6-1/',
+  'NU5': 'https://z.cash/upgrade/nu5/',
+  'Canopy': 'https://z.cash/upgrade/canopy/',
+  'Heartwood': 'https://z.cash/upgrade/heartwood/',
+  'Blossom': 'https://z.cash/upgrade/blossom/',
+  'Sapling': 'https://z.cash/upgrade/sapling/',
+};
+
+function getUpgradeUrl(name: string | null): string | undefined {
+  if (!name) return undefined;
+  return UPGRADE_URLS[name];
+}
 
 // Format hashrate with appropriate unit
 function formatHashrate(hashrate: number): string {
@@ -213,17 +229,17 @@ export default function NetworkPage() {
         <MetricCard
           label="Block Height"
           value={stats.network.height.toLocaleString()}
-          accent="cyan"
+          tooltip="The latest block number confirmed on the Zcash blockchain."
         />
         <MetricCard
           label="Transactions (24h)"
           value={stats.blockchain.tx24h.toLocaleString()}
-          accent="cyan"
+          tooltip="Total number of transactions processed in the last 24 hours."
         />
         <MetricCard
           label="Connected Peers"
           value={stats.network.peers.toString()}
-          accent="green"
+          tooltip="Number of Zcash nodes currently connected to this explorer's node."
         />
       </div>
 
@@ -300,18 +316,34 @@ export default function NetworkPage() {
                 </div>
 
                 <div className="space-y-0">
-                  <InfoRow label="Total Supply" value={`${(stats.supply!.chainSupply / 1e6).toFixed(2)}M ZEC`} />
+                  <InfoRow
+                    label="Total Supply"
+                    value={`${(stats.supply!.chainSupply / 1e6).toFixed(2)}M ZEC`}
+                    tooltip="Total ZEC mined so far. Zcash has a fixed cap of 21 million ZEC."
+                  />
                   <InfoRow
                     label="Lockbox"
                     value={`${stats.supply!.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`}
                     subtitle={zecPrice ? `$${((stats.supply!.lockbox * zecPrice) / 1e6).toFixed(1)}M` : undefined}
+                    tooltip="ZEC reserved in the protocol lockbox for future Zcash development funding."
                   />
-                  <InfoRow label="Network Upgrade" value={stats.supply!.activeUpgrade || 'Unknown'} badge />
-                  <InfoRow label="Blockchain Size" value={`${stats.blockchain.sizeGB.toFixed(2)} GB`} />
+                  <InfoRow
+                    label="Network Upgrade"
+                    value={stats.supply!.activeUpgrade || 'Unknown'}
+                    badge
+                    href={getUpgradeUrl(stats.supply!.activeUpgrade)}
+                    tooltip="The currently active Zcash network upgrade. Click the badge to learn more."
+                  />
+                  <InfoRow
+                    label="Blockchain Size"
+                    value={`${stats.blockchain.sizeGB.toFixed(2)} GB`}
+                    tooltip="Total disk space used by the full Zcash blockchain on this node."
+                  />
                   <InfoRow
                     label="Latest Block"
                     value={`${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`}
                     subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
+                    tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
                   />
                 </div>
               </CardBody>
@@ -327,25 +359,28 @@ export default function NetworkPage() {
           <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">MINING_PERFORMANCE</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} />
-          <StatCard label="Difficulty" value={stats.mining.difficulty.toFixed(1)} />
+          <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} tooltip="Combined computing power securing the Zcash network." />
+          <StatCard label="Difficulty" value={stats.mining.difficulty.toFixed(1)} tooltip="How hard it is to mine a new block. Adjusts automatically to maintain ~75s block times." />
           <StatCard
             label="Block Time"
             value={`${stats.mining.avgBlockTime}s`}
             subtitle="Target: 75s"
             status={stats.mining.avgBlockTime <= 90 ? 'good' : stats.mining.avgBlockTime <= 120 ? 'warning' : 'bad'}
+            tooltip="Average time between blocks over the last 24 hours. Green means close to the 75s target."
           />
-          <StatCard label="Blocks (24h)" value={stats.mining.blocks24h.toLocaleString()} />
-          <StatCard label="Block Reward" value={`${stats.mining.blockReward} ZEC`} />
+          <StatCard label="Blocks (24h)" value={stats.mining.blocks24h.toLocaleString()} tooltip="Number of blocks mined in the last 24 hours." />
+          <StatCard label="Block Reward" value={`${stats.mining.blockReward} ZEC`} tooltip="ZEC paid to miners for each new block." />
           <StatCard
             label="TX/Block"
             value={(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}
             subtitle="24h avg"
+            tooltip="Average number of transactions included per block over the last 24 hours."
           />
           <StatCard
             label="Daily Revenue"
             value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
             subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
+            tooltip="Total ZEC paid to miners in the last 24 hours (blocks × block reward)."
           />
         </div>
       </div>
@@ -358,14 +393,15 @@ export default function NetworkPage() {
 // ==========================================================================
 
 /** Compact top metric card */
-function MetricCard({ label, value, accent }: { label: string; value: string; accent: 'cyan' | 'green' }) {
-  const accentColor = accent === 'cyan' ? 'text-cipher-cyan' : 'text-cipher-green';
-
+function MetricCard({ label, value, tooltip }: { label: string; value: string; tooltip?: string }) {
   return (
     <Card variant="compact">
       <CardBody>
-        <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">{label}</div>
-        <div className={`text-xl sm:text-2xl lg:text-3xl font-bold font-mono ${accentColor}`}>{value}</div>
+        <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
+          {label}
+          {tooltip && <Tooltip content={tooltip} />}
+        </div>
+        <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-mono text-primary">{value}</div>
       </CardBody>
     </Card>
   );
@@ -407,18 +443,27 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
 }
 
 /** Info row for chain stats */
-function InfoRow({ label, value, subtitle, badge }: {
-  label: string; value: string; subtitle?: string; badge?: boolean;
+function InfoRow({ label, value, subtitle, badge, href, tooltip }: {
+  label: string; value: string; subtitle?: string; badge?: boolean; href?: string; tooltip?: string;
 }) {
+  const content = badge ? (
+    <Badge color="green">{value}</Badge>
+  ) : (
+    <span className="font-mono font-bold text-sm text-primary">{value}</span>
+  );
+
   return (
     <div className="flex justify-between items-center py-3 border-b border-cipher-border last:border-b-0">
-      <span className="text-sm text-secondary">{label}</span>
+      <span className="text-sm text-secondary flex items-center gap-1.5">
+        {label}
+        {tooltip && <Tooltip content={tooltip} />}
+      </span>
       <div className="text-right">
-        {badge ? (
-          <Badge color="green">{value}</Badge>
-        ) : (
-          <span className="font-mono font-bold text-sm text-primary">{value}</span>
-        )}
+        {href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+            {content}
+          </a>
+        ) : content}
         {subtitle && (
           <div className="text-[10px] text-muted font-mono mt-0.5">{subtitle}</div>
         )}
@@ -428,8 +473,8 @@ function InfoRow({ label, value, subtitle, badge }: {
 }
 
 /** Small stat card for mining section */
-function StatCard({ label, value, subtitle, status }: {
-  label: string; value: string; subtitle?: string; status?: 'good' | 'warning' | 'bad';
+function StatCard({ label, value, subtitle, status, tooltip }: {
+  label: string; value: string; subtitle?: string; status?: 'good' | 'warning' | 'bad'; tooltip?: string;
 }) {
   const statusColors: Record<string, string> = {
     good: 'text-cipher-green',
@@ -441,7 +486,10 @@ function StatCard({ label, value, subtitle, status }: {
   return (
     <Card variant="compact">
       <CardBody>
-        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2">{label}</div>
+        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2 flex items-center gap-1">
+          {label}
+          {tooltip && <Tooltip content={tooltip} />}
+        </div>
         <div className={`text-lg sm:text-xl font-bold font-mono ${valueColor}`}>{value}</div>
         {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
       </CardBody>
