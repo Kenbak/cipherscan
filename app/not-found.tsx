@@ -42,7 +42,7 @@ export default function NotFound() {
       <div className="text-center animate-fade-in">
         {/* Glitchy 404 */}
         <div className="relative mb-6">
-          <h1 className="text-[100px] sm:text-[150px] font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-cipher-cyan via-purple-500 to-cipher-green leading-none select-none">
+          <h1 className="text-[100px] sm:text-[150px] font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-cipher-cyan via-cipher-purple to-cipher-green leading-none select-none">
             {glitchText}
           </h1>
           {/* Scan line effect */}
@@ -53,7 +53,7 @@ export default function NotFound() {
 
         {/* Message */}
         <div className="space-y-3 mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold font-mono text-cipher-cyan">
+          <h2 className="text-xl sm:text-2xl font-bold font-mono text-secondary">
             PAGE_NOT_FOUND
           </h2>
           <p className="text-secondary text-base sm:text-lg max-w-lg mx-auto">
@@ -78,10 +78,10 @@ export default function NotFound() {
             </Link>
             <Link
               href="/privacy"
-              className="card-bg hover:border-purple-500 border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-purple border border-transparent rounded-lg p-3 transition-all group"
             >
               <div className="text-2xl mb-2">🛡️</div>
-              <div className="text-xs font-mono text-secondary group-hover:text-purple-400 transition-colors">Privacy Stats</div>
+              <div className="text-xs font-mono text-secondary group-hover:text-cipher-purple transition-colors">Privacy Stats</div>
             </Link>
             <Link
               href="/network"
@@ -92,10 +92,10 @@ export default function NotFound() {
             </Link>
             <Link
               href="/docs"
-              className="card-bg hover:border-amber-500 border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-yellow border border-transparent rounded-lg p-3 transition-all group"
             >
               <div className="text-2xl mb-2">📚</div>
-              <div className="text-xs font-mono text-secondary group-hover:text-amber-400 transition-colors">API Docs</div>
+              <div className="text-xs font-mono text-secondary group-hover:text-cipher-yellow transition-colors">API Docs</div>
             </Link>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function NotFound() {
         <div className="mt-10">
           <p className="text-xs text-muted font-mono">
             Meanwhile, the Zcash network continues to process{' '}
-            <span className="text-purple-400">private transactions</span> at this very moment...
+            <span className="text-cipher-purple">private transactions</span> at this very moment...
           </p>
         </div>
       </div>

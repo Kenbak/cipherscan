@@ -131,7 +131,7 @@ export function NavBar() {
                 className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10 object-contain"
               />
               <div>
-                <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-green transition-colors duration-200">
+                <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-yellow transition-colors duration-200">
                   CIPHERSCAN
                 </h1>
                 <p className={`text-[10px] sm:text-xs font-mono ${NETWORK_COLOR}`}>[ {NETWORK_LABEL} ]</p>
@@ -236,7 +236,7 @@ export function NavBar() {
                   href={MAINNET_URL}
                   className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
                     isMainnet
-                      ? 'border border-cipher-green/60 text-cipher-green'
+                      ? 'border border-cipher-yellow/60 text-cipher-yellow'
                       : 'text-muted hover:text-foreground'
                   }`}
                 >
@@ -364,7 +364,7 @@ export function NavBar() {
                     href={MAINNET_URL}
                     className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
                       isMainnet
-                        ? 'border border-cipher-green text-cipher-green'
+                        ? 'border border-cipher-yellow text-cipher-yellow'
                         : 'text-muted network-switcher-inactive'
                     }`}
                   >

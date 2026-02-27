@@ -40,6 +40,11 @@ const config: Config = {
           'purple-dark': '#7C3AED',// Purple for light mode
           'purple-glow': '#C4B5FD',// Purple glow
 
+          yellow: '#F4B728',       // ZCASH ACCENT - Secondary brand highlight
+          'yellow-dark': '#996515',// Yellow for light mode
+          'yellow-glow': '#FFD060',// Yellow glow
+          'yellow-muted': '#C9A035',// Muted yellow
+
           orange: '#FF6B35',       // WARNING - Only for alerts
           'orange-dark': '#C2410C',// Orange for light mode
 

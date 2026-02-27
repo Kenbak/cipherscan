@@ -37,7 +37,7 @@ export function ThemeToggle() {
       {/* Sun icon (light mode) - visible when in light mode */}
       {theme === 'light' && (
         <svg
-          className="w-4 h-4 text-amber-500"
+          className="w-4 h-4 text-cipher-yellow"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

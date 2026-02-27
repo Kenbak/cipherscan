@@ -61,8 +61,8 @@ const timeline = [
   {
     date: 'DEC 2025',
     tag: 'WASM',
-    tagColor: 'text-purple-400',
-    dotColor: 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.6)]',
+    tagColor: 'text-cipher-purple',
+    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgba(167,139,250,0.6)]',
     title: 'Browser-Native Decryption',
     description:
       'First frontend WASM-powered Zcash transaction decoder. Decrypt shielded memos entirely in-browser — no server, no keys shared, no trust required.',
@@ -88,8 +88,8 @@ const timeline = [
   {
     date: 'FEB 2026',
     tag: 'GRANT',
-    tagColor: 'text-yellow-400',
-    dotColor: 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]',
+    tagColor: 'text-cipher-yellow',
+    dotColor: 'bg-cipher-yellow shadow-[0_0_8px_rgba(244,183,40,0.6)]',
     title: 'ZCG Grant Awarded',
     description:
       'Funded by the Zcash Community Grants program. Community recognition that privacy visibility infrastructure is essential for the ecosystem.',
@@ -140,8 +140,8 @@ export default async function AboutPage() {
           <div className="grid grid-cols-3 gap-6 sm:gap-8">
             {[
               { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-cyan' },
-              { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-purple-400' },
-              { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-green' },
+              { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
+              { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-purple' },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold font-mono ${stat.color} leading-none`}>
@@ -168,7 +168,7 @@ export default async function AboutPage() {
 
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-cipher-cyan/40 via-purple-400/20 to-transparent" />
+            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-cipher-cyan/40 via-cipher-purple/20 to-transparent" />
 
             <div className="space-y-8 sm:space-y-10">
               {timeline.map((item, i) => (
@@ -226,7 +226,7 @@ export default async function AboutPage() {
         <div className="border border-cipher-border rounded-2xl p-6 sm:p-8 card-surface">
           <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-base sm:text-lg font-bold font-mono text-cipher-cyan mb-2">
+              <h2 className="text-base sm:text-lg font-bold font-mono text-primary mb-2">
                 Open source. Community funded.
               </h2>
               <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-lg">

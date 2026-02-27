@@ -103,7 +103,7 @@ function PrivacyRisksLoading() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Card>
         <CardBody className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-red-400 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-orange border-t-transparent"></div>
           <p className="text-secondary ml-4 font-mono">Scanning for privacy risks...</p>
         </CardBody>
       </Card>
@@ -315,10 +315,10 @@ function PrivacyRisksContent() {
           </h1>
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
             </span>
-            <Badge color="orange">LIVE</Badge>
+            <Badge color="green">LIVE</Badge>
           </div>
         </div>
         <p className="text-sm text-secondary mt-2">
@@ -434,7 +434,7 @@ function PrivacyRisksContent() {
             <div className="lg:hidden mb-4 flex flex-wrap gap-1.5">
               <span className="text-[10px] text-muted font-mono self-center mr-1">Popular:</span>
               {commonAmounts.slice(0, 5).map((amount, i) => (
-                <span key={i} className="text-[10px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">
+                <span key={i} className="text-[10px] font-mono text-cipher-purple bg-cipher-purple/10 border border-cipher-purple/20 px-2 py-0.5 rounded-full">
                   {amount.amountZec.toFixed(2)} ZEC
                 </span>
               ))}
@@ -593,7 +593,7 @@ function PrivacyRisksContent() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-secondary">Medium</span>
-                  <span className="text-base font-mono font-bold text-yellow-500 tabular-nums">
+                  <span className="text-base font-mono font-bold text-cipher-yellow tabular-nums">
                     {currentStats?.mediumRisk || 0}
                   </span>
                 </div>
@@ -629,7 +629,7 @@ function PrivacyRisksContent() {
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1 rounded-full bg-cipher-surface overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-purple-500/50"
+                            className="h-full rounded-full bg-cipher-purple/50"
                             style={{ width: `${Math.min(parseFloat(amount.percentage) * 1.5, 100)}%` }}
                           />
                         </div>
@@ -688,18 +688,6 @@ function PrivacyRisksContent() {
         ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
       </p>
 
-      {/* Back Link */}
-      <div className="pt-6 border-t border-cipher-border">
-        <Link
-          href="/privacy"
-          className="inline-flex items-center gap-2 text-secondary hover:text-cipher-cyan text-sm font-mono transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Privacy Dashboard
-        </Link>
-      </div>
     </div>
   );
 }
@@ -722,10 +710,10 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
       {/* Header — monospace terminal style */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-yellow-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-red-400' : 'text-yellow-500'}`}>
+          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`}>
             {isHigh ? 'High' : 'Med'}
             <span className="opacity-30 mx-1">·</span>
             {pattern.score}/100
@@ -764,7 +752,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
       {/* Matching Shield */}
       {pattern.matchingShield && (
         <div className="flex items-center gap-2 text-xs bg-cipher-surface/50 rounded-lg px-3 py-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+          <div className="w-2 h-2 rounded-full bg-cipher-green shrink-0" />
           <span className="text-secondary">Matches shield:</span>
           <Link
             href={`/tx/${pattern.matchingShield.txid}`}

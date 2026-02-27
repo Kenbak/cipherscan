@@ -340,7 +340,7 @@ export default function TransactionPage() {
                   <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
                     This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.
                   </p>
-                  <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+                  <Link href="/" className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm">
                     &larr; Back to Explorer
                   </Link>
                 </>
@@ -677,11 +677,11 @@ export default function TransactionPage() {
               (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING' || txType === 'MIXED') && (hasOrchard || hasSapling) ? (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-3">
-                    <svg className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span className="text-purple-400/40 font-mono tracking-tight">████████</span>
-                    <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                    <span className="text-cipher-purple/40 font-mono tracking-tight">████████</span>
+                    <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <span className="text-secondary text-xs flex items-center gap-1.5 font-mono">
@@ -689,7 +689,7 @@ export default function TransactionPage() {
                     </span>
                     <Link
                       href={`/decrypt?prefill=${data.txid}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10 text-purple-400 text-xs font-medium rounded-md transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-cipher-purple/20 hover:border-cipher-purple/40 hover:bg-cipher-purple/10 text-cipher-purple text-xs font-medium rounded-md transition-colors whitespace-nowrap"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -718,7 +718,7 @@ export default function TransactionPage() {
           {/* More Details Toggle */}
         <button
           onClick={() => setShowMoreDetails(!showMoreDetails)}
-          className="mt-6 text-sm text-cipher-cyan hover:text-cipher-green transition-colors flex items-center font-mono"
+          className="mt-6 text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors flex items-center font-mono"
         >
           <svg
             className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`}
@@ -765,14 +765,14 @@ export default function TransactionPage() {
                   label="Sapling Spends"
                   value={data.shieldedSpends}
                   tooltip="Number of Sapling shielded inputs (vShieldedSpend) in this transaction. These are private inputs using zero-knowledge proofs."
-                  valueClass="text-purple-400"
+                  valueClass="text-cipher-purple"
                 />
                 <InfoRow
                   icon={Icons.Shield}
                   label="Sapling Outputs"
                   value={data.shieldedOutputs}
                   tooltip="Number of Sapling shielded outputs (vShieldedOutput) in this transaction. These are private outputs using zero-knowledge proofs."
-                  valueClass="text-purple-400"
+                  valueClass="text-cipher-purple"
                 />
               </>
             )}
@@ -783,7 +783,7 @@ export default function TransactionPage() {
                 label="Orchard Actions"
                 value={data.orchardActions}
                 tooltip="Number of Orchard actions in this transaction. Orchard is the newest shielded pool with improved performance and privacy."
-                valueClass="text-purple-400"
+                valueClass="text-cipher-purple"
               />
             )}
 
@@ -793,7 +793,7 @@ export default function TransactionPage() {
                 label="Sapling Value Balance"
                 value={`${data.valueBalanceSapling.toFixed(8)} ${CURRENCY}`}
                 tooltip="Net value transferred between transparent and Sapling shielded pools. Positive = shielding, Negative = deshielding."
-                valueClass="text-purple-400"
+                valueClass="text-cipher-purple"
               />
             )}
 
@@ -803,14 +803,14 @@ export default function TransactionPage() {
                 label="Orchard Value Balance"
                 value={`${data.valueBalanceOrchard.toFixed(8)} ${CURRENCY}`}
                 tooltip="Net value transferred between transparent and Orchard shielded pools. Positive = shielding, Negative = deshielding."
-                valueClass="text-purple-400"
+                valueClass="text-cipher-purple"
               />
             )}
 
             {data.bindingSigSapling && (
               <div className="pt-3 border-t block-info-border mt-3">
                 <div className="flex items-center mb-2">
-                  <span className="mr-2 text-purple-400">
+                  <span className="mr-2 text-cipher-purple">
                     <Icons.Shield />
                   </span>
                   <span className="text-sm text-secondary">Sapling Binding Signature</span>
@@ -819,7 +819,7 @@ export default function TransactionPage() {
                   </span>
                 </div>
                 <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
-                  <code className="text-xs text-purple-400/60 break-all block">{data.bindingSigSapling}</code>
+                  <code className="text-xs text-cipher-purple/60 break-all block">{data.bindingSigSapling}</code>
                 </div>
               </div>
             )}
@@ -859,7 +859,7 @@ export default function TransactionPage() {
               {data.inputs.length > 0 && (
                 <button
                   onClick={() => setShowInputs(!showInputs)}
-                  className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                  className="text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono"
                 >
                   {showInputs ? 'Hide' : 'Show'}
                 </button>
@@ -868,11 +868,11 @@ export default function TransactionPage() {
             {((data.shieldedSpends > 0 || (data.orchardActions || 0) > 0) && data.totalInput === 0) ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  <span className="text-purple-400/40 font-mono tracking-tight text-lg">████████</span>
-                  <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                  <span className="text-cipher-purple/40 font-mono tracking-tight text-lg">████████</span>
+                  <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
                 </div>
                 <span className="text-xs text-muted font-mono">
                   {(data.orchardActions || 0) > 0
@@ -904,7 +904,7 @@ export default function TransactionPage() {
               {data.outputs.length > 0 && (
                 <button
                   onClick={() => setShowOutputs(!showOutputs)}
-                  className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                  className="text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono"
                 >
                   {showOutputs ? 'Hide' : 'Show'}
                 </button>
@@ -913,11 +913,11 @@ export default function TransactionPage() {
             {((data.shieldedOutputs > 0 || (data.orchardActions || 0) > 0) && data.totalOutput === 0) ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  <span className="text-purple-400/40 font-mono tracking-tight text-lg">████████</span>
-                  <span className="text-[10px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                  <span className="text-cipher-purple/40 font-mono tracking-tight text-lg">████████</span>
+                  <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
                 </div>
                 <span className="text-xs text-muted font-mono">
                   {(data.orchardActions || 0) > 0
@@ -933,7 +933,7 @@ export default function TransactionPage() {
                 {valueBalance < 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                    <span className="text-sm font-mono text-purple-400">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
+                    <span className="text-sm font-mono text-cipher-purple">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
                   </div>
                 )}
                 {data.shieldedOutputs > 0 && valueBalance >= 0 && (
@@ -1018,12 +1018,12 @@ export default function TransactionPage() {
               Array.from({ length: data.shieldedSpends }).map((_, index) => (
                 <div
                   key={`shielded-${index}`}
-                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
                 >
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 92, 246, 0.1) 10px, rgba(139, 92, 246, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
                     }}></div>
                   </div>
 
@@ -1033,7 +1033,7 @@ export default function TransactionPage() {
                         <span className="text-xs text-muted font-mono">INPUT #{data.inputs.length + index}</span>
                         <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
                       </div>
-                      <div className="flex items-center gap-1 text-purple-400">
+                      <div className="flex items-center gap-1 text-cipher-purple">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                         </svg>
@@ -1044,15 +1044,15 @@ export default function TransactionPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted">Address:</span>
-                        <span className="text-purple-400/60 font-mono">████████████████████████████████████</span>
+                        <span className="text-cipher-purple/60 font-mono">████████████████████████████████████</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted">Amount:</span>
-                        <span className="text-purple-400/60 font-mono">█████████</span>
+                        <span className="text-cipher-purple/60 font-mono">█████████</span>
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-purple-500/10">
+                    <div className="mt-3 pt-3 border-t border-cipher-purple/10">
                       <p className="text-xs text-muted font-mono italic flex items-center gap-1">
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -1130,11 +1130,11 @@ export default function TransactionPage() {
             {/* Shielded Output with known value (from value_balance) */}
             {valueBalance < 0 && (
                 <div
-                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
                 >
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 92, 246, 0.1) 10px, rgba(139, 92, 246, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
                     }}></div>
                   </div>
                   <div className="relative">
@@ -1143,14 +1143,14 @@ export default function TransactionPage() {
                         <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length}</span>
                         <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
                       </div>
-                      <span className="text-sm font-mono text-purple-400 font-semibold">
+                      <span className="text-sm font-mono text-cipher-purple font-semibold">
                         {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
                       </span>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted">To:</span>
-                        <span className="text-purple-400 font-mono flex items-center gap-1">
+                        <span className="text-cipher-purple font-mono flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
@@ -1167,12 +1167,12 @@ export default function TransactionPage() {
               Array.from({ length: data.shieldedOutputs }).map((_, index) => (
                 <div
                   key={`shielded-${index}`}
-                  className="relative shielded-input-row p-4 rounded-lg border border-purple-500/20 overflow-hidden group hover:border-purple-500/40 transition-all"
+                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
                 >
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 92, 246, 0.1) 10px, rgba(139, 92, 246, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
                     }}></div>
                   </div>
 
@@ -1182,7 +1182,7 @@ export default function TransactionPage() {
                         <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length + index}</span>
                         <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
                       </div>
-                      <div className="flex items-center gap-1 text-purple-400">
+                      <div className="flex items-center gap-1 text-cipher-purple">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                         </svg>
@@ -1193,7 +1193,7 @@ export default function TransactionPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted">To:</span>
-                        <span className="text-purple-400 font-mono flex items-center gap-1">
+                        <span className="text-cipher-purple font-mono flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
@@ -1202,11 +1202,11 @@ export default function TransactionPage() {
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-muted">Amount:</span>
-                        <span className="text-purple-400/60 font-mono italic">(amount hidden)</span>
+                        <span className="text-cipher-purple/60 font-mono italic">(amount hidden)</span>
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-purple-500/10">
+                    <div className="mt-3 pt-3 border-t border-cipher-purple/10">
                       <p className="text-xs text-muted font-mono italic flex items-center gap-1">
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />

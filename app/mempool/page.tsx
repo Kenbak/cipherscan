@@ -158,7 +158,7 @@ export default function MempoolPage() {
         <Card variant="compact">
           <CardBody>
             <span className="text-xs text-muted uppercase tracking-wide">Shielded</span>
-            <div className="text-2xl font-bold text-purple-400 font-mono mt-1">{data?.stats.shielded || 0}</div>
+            <div className="text-2xl font-bold text-cipher-purple font-mono mt-1">{data?.stats.shielded || 0}</div>
           </CardBody>
         </Card>
         <Card variant="compact">
@@ -234,25 +234,25 @@ export default function MempoolPage() {
                           <td className="py-3 px-4">
                             <Link
                               href={`/tx/${tx.txid}`}
-                              className="font-mono text-sm text-cipher-cyan hover:text-cyan-300 transition-colors"
+                              className="font-mono text-sm text-cipher-cyan hover:text-cipher-cyan-glow transition-colors"
                             >
                               {tx.txid.slice(0, 8)}...{tx.txid.slice(-8)}
                             </Link>
                           </td>
                           <td className="py-3 px-4 font-mono text-sm">
                             {tx.orchardActions && tx.orchardActions > 0 ? (
-                              <span className="text-purple-400">{tx.orchardActions} Orchard</span>
+                              <span className="text-cipher-purple">{tx.orchardActions} Orchard</span>
                             ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
-                              <span className="text-purple-400">{tx.vShieldedSpend} Sapling</span>
+                              <span className="text-cipher-purple">{tx.vShieldedSpend} Sapling</span>
                             ) : (
                               <span className="text-muted">{tx.vin} t-in</span>
                             )}
                           </td>
                           <td className="py-3 px-4 font-mono text-sm">
                             {tx.orchardActions && tx.orchardActions > 0 ? (
-                              <span className="text-purple-400">{tx.orchardActions} Orchard</span>
+                              <span className="text-cipher-purple">{tx.orchardActions} Orchard</span>
                             ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
-                              <span className="text-purple-400">{tx.vShieldedOutput} Sapling</span>
+                              <span className="text-cipher-purple">{tx.vShieldedOutput} Sapling</span>
                             ) : (
                               <span className="text-muted">{tx.vout} t-out</span>
                             )}
@@ -279,7 +279,7 @@ export default function MempoolPage() {
         <CardBody>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h3 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">ABOUT_MEMPOOL</h3>
+            <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">ABOUT_MEMPOOL</h3>
           </div>
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
@@ -287,7 +287,7 @@ export default function MempoolPage() {
               <p className="text-secondary">Memory Pool of unconfirmed transactions waiting to be included in the next block.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-purple-400">Shielded Transactions</p>
+              <p className="font-medium text-cipher-purple">Shielded Transactions</p>
               <p className="text-secondary">Use zero-knowledge proofs to hide sender, receiver, and amount.</p>
             </div>
             <div className="space-y-1">

@@ -417,7 +417,7 @@ export default function DecodeClient() {
                       )}
                       {comp.shieldedPct > 0 && (
                         <div
-                          className="h-full bg-purple-500/70 transition-all duration-700"
+                          className="h-full bg-cipher-purple/70 transition-all duration-700"
                           style={{ width: `${comp.shieldedPct}%` }}
                           title={`Encrypted: ${comp.shieldedBytes.toLocaleString()} bytes`}
                         />
@@ -432,7 +432,7 @@ export default function DecodeClient() {
                       </div>
                       {comp.shieldedPct > 0 && (
                         <div className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-sm bg-purple-500/70" />
+                          <div className="w-2.5 h-2.5 rounded-sm bg-cipher-purple/70" />
                           <span className="text-xs text-muted">
                             Encrypted data ({comp.shieldedPct.toFixed(0)}%)
                           </span>
@@ -519,7 +519,7 @@ export default function DecodeClient() {
                               Coinbase Data
                             </label>
                             <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
-                              <code className="text-xs text-amber-400 break-all block">
+                              <code className="text-xs text-cipher-yellow break-all block">
                                 {vin.coinbase.length > 120
                                   ? `${vin.coinbase.slice(0, 120)}...`
                                   : vin.coinbase}
@@ -680,10 +680,10 @@ export default function DecodeClient() {
                   </div>
 
                 {/* Privacy notice */}
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-purple-500/20 bg-purple-500/5 mb-4">
-                  <span className="text-purple-400 mt-0.5"><Icons.Shield /></span>
+                <div className="flex items-start gap-3 p-3 rounded-lg border border-cipher-purple/20 bg-cipher-purple/5 mb-4">
+                  <span className="text-cipher-purple mt-0.5"><Icons.Shield /></span>
                   <div>
-                    <p className="text-sm font-semibold text-purple-400 mb-0.5">Privacy Protection Active</p>
+                    <p className="text-sm font-semibold text-cipher-purple mb-0.5">Privacy Protection Active</p>
                     <p className="text-xs text-secondary">
                       Addresses and amounts are encrypted using zero-knowledge proofs.
                     </p>
@@ -693,12 +693,12 @@ export default function DecodeClient() {
                   <div className="space-y-3">
                     {/* Sapling Spends */}
                     {result.nSpendsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-purple-500/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge color="purple" icon={<Icons.Shield />}>SAPLING SPENDS</Badge>
                           </div>
-                          <span className="text-xl font-bold font-mono text-purple-400">{result.nSpendsSapling}</span>
+                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.nSpendsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="purple">(amount hidden)</Badge>
@@ -708,12 +708,12 @@ export default function DecodeClient() {
 
                     {/* Sapling Outputs */}
                     {result.nOutputsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-purple-500/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge color="purple" icon={<Icons.Shield />}>SAPLING OUTPUTS</Badge>
                           </div>
-                          <span className="text-xl font-bold font-mono text-purple-400">{result.nOutputsSapling}</span>
+                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.nOutputsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="purple">(amount hidden)</Badge>
@@ -723,12 +723,12 @@ export default function DecodeClient() {
 
                     {/* Sapling Value Balance */}
                     {result.valueBalanceSapling !== undefined && result.valueBalanceSapling !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-purple-500/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge color="purple" icon={<Icons.Currency />}>SAPLING VALUE BALANCE</Badge>
                           </div>
-                          <span className="text-lg font-bold font-mono text-purple-400">
+                          <span className="text-lg font-bold font-mono text-cipher-purple">
                             {result.valueBalanceSapling.toFixed(8)} ZEC
                           </span>
                         </div>
@@ -737,12 +737,12 @@ export default function DecodeClient() {
 
                     {/* Orchard Actions */}
                     {result.orchardActions > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-purple-500/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge color="purple" icon={<Icons.Shield />}>ORCHARD ACTIONS</Badge>
                           </div>
-                          <span className="text-xl font-bold font-mono text-purple-400">{result.orchardActions}</span>
+                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.orchardActions}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="purple">(amount hidden)</Badge>
@@ -755,12 +755,12 @@ export default function DecodeClient() {
 
                     {/* Orchard Value Balance */}
                     {result.valueBalanceOrchard !== undefined && result.valueBalanceOrchard !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-purple-500/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Badge color="purple" icon={<Icons.Currency />}>ORCHARD VALUE BALANCE</Badge>
                           </div>
-                          <span className="text-lg font-bold font-mono text-purple-400">
+                          <span className="text-lg font-bold font-mono text-cipher-purple">
                             {result.valueBalanceOrchard.toFixed(8)} ZEC
                           </span>
                         </div>

@@ -57,7 +57,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
         />
         <button
           onClick={handleSave}
-          className="text-cipher-green hover:text-green-400 transition-colors"
+          className="text-cipher-green hover:text-cipher-green transition-colors"
           title="Save"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
   if (labelInfo) {
     const bgColor = labelInfo.isOfficial
       ? labelInfo.category === 'foundation'
-        ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
+        ? 'bg-cipher-purple/20 border-cipher-purple/50 text-cipher-purple-glow'
         : labelInfo.category === 'exchange'
         ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
         : labelInfo.category === 'mining'

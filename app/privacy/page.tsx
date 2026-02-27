@@ -159,7 +159,7 @@ export default function PrivacyPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-400 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-purple border-t-transparent"></div>
           <p className="text-secondary ml-4 font-mono">Loading privacy statistics...</p>
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function PrivacyPage() {
           </div>
           {/* Eric Hughes quote */}
           <div className="mt-3 flex items-center gap-2">
-            <div className="w-[2px] h-8 bg-gradient-to-b from-purple-500/60 to-purple-500/0 rounded-full"></div>
+            <div className="w-[2px] h-8 bg-gradient-to-b from-cipher-purple/60 to-cipher-purple/0 rounded-full"></div>
             <div>
               <p className="text-xs text-secondary font-mono leading-relaxed italic">
                 &ldquo;Privacy is the power to selectively reveal oneself to the world.&rdquo;
@@ -240,10 +240,10 @@ export default function PrivacyPage() {
               <CardBody className="text-center py-8">
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">PRIVACY_SCORE</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">PRIVACY_SCORE</h2>
                 </div>
 
-                <div className="text-7xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <div className="text-7xl font-bold mb-4 bg-gradient-to-r from-cipher-purple to-pink-400 bg-clip-text text-transparent">
                   {stats.metrics.privacyScore}
                   <span className="text-3xl text-muted">/100</span>
                 </div>
@@ -251,7 +251,7 @@ export default function PrivacyPage() {
                 <div className="max-w-md mx-auto mb-6">
                   <div className="h-4 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
+                      className="h-full bg-gradient-to-r from-cipher-purple to-pink-500 transition-all duration-1000"
                       style={{ width: `${stats.metrics.privacyScore}%` }}
                     />
                   </div>
@@ -268,12 +268,12 @@ export default function PrivacyPage() {
               <Card variant="compact">
                 <CardBody>
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                    <div className="w-8 h-8 rounded-lg bg-cipher-purple/10 flex items-center justify-center text-cipher-purple">
                       <Icons.Lock />
                     </div>
                     <h3 className="text-xs font-semibold text-secondary uppercase">Shielded Tx %</h3>
                   </div>
-                  <div className="text-2xl font-bold text-purple-400">
+                  <div className="text-2xl font-bold text-primary">
                     {stats.metrics.shieldedPercentage.toFixed(1)}%
                   </div>
                   <p className="text-xs text-muted mt-1">
@@ -290,7 +290,7 @@ export default function PrivacyPage() {
                     </div>
                     <h3 className="text-xs font-semibold text-secondary uppercase">Supply Shielded</h3>
                   </div>
-                  <div className="text-2xl font-bold text-cipher-cyan">
+                  <div className="text-2xl font-bold text-primary">
                     {stats.shieldedPool.chainSupply
                       ? ((stats.shieldedPool.currentSize / stats.shieldedPool.chainSupply) * 100).toFixed(1)
                       : '\u2014'}%
@@ -328,7 +328,7 @@ export default function PrivacyPage() {
                     </div>
                     <h3 className="text-xs font-semibold text-secondary uppercase">Fully Shielded</h3>
                   </div>
-                  <div className="text-2xl font-bold text-cipher-green">
+                  <div className="text-2xl font-bold text-primary">
                     {stats.totals.fullyShieldedTx.toLocaleString()}
                   </div>
                   <p className="text-xs text-muted mt-1">100% private</p>
@@ -343,10 +343,10 @@ export default function PrivacyPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">SHIELDED_ACTIVITY</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SHIELDED_ACTIVITY</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-cipher-purple rounded-full animate-pulse"></div>
                   <Badge color="purple">LIVE</Badge>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export default function PrivacyPage() {
               <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                 <Link
                   href="/txs/shielded"
-                  className="block text-center text-sm text-purple-400 hover:text-purple-300 transition-colors font-mono"
+                  className="block text-center text-sm text-cipher-purple hover:text-cipher-purple-glow transition-colors font-mono"
                 >
                   View All Shielded Transactions →
                 </Link>
@@ -375,12 +375,12 @@ export default function PrivacyPage() {
             <CardBody>
               <div className="flex items-center gap-2 mb-5">
                 <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">TX_TYPES</h2>
+                <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TX_TYPES</h2>
               </div>
               <div className="space-y-5">
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-purple-400 font-mono flex items-center gap-2 text-sm">
+                    <span className="text-cipher-purple font-mono flex items-center gap-2 text-sm">
                       <Icons.Lock />
                       Shielded ({stats.totals.shieldedTx.toLocaleString()})
                     </span>
@@ -388,7 +388,7 @@ export default function PrivacyPage() {
                   </div>
                   <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-purple-500 transition-all duration-700"
+                      className="h-full bg-cipher-purple transition-all duration-700"
                       style={{ width: `${stats.metrics.shieldedPercentage}%` }}
                     />
                   </div>
@@ -418,12 +418,12 @@ export default function PrivacyPage() {
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">POOL_BREAKDOWN</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_BREAKDOWN</h2>
                 </div>
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between mb-2 items-center">
-                      <span className="text-cyan-400 font-mono text-sm">Sapling</span>
+                      <span className="text-cipher-cyan font-mono text-sm">Sapling</span>
                       <div className="flex items-center gap-2">
                         <span className="text-secondary text-sm">
                           {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
@@ -435,7 +435,7 @@ export default function PrivacyPage() {
                     </div>
                     <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-cyan-500 transition-all duration-700"
+                        className="h-full bg-cipher-cyan transition-all duration-700"
                         style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
                       />
                     </div>
@@ -443,7 +443,7 @@ export default function PrivacyPage() {
 
                   <div>
                     <div className="flex justify-between mb-2 items-center">
-                      <span className="text-amber-400 font-mono text-sm">Sprout</span>
+                      <span className="text-cipher-yellow font-mono text-sm">Sprout</span>
                       <div className="flex items-center gap-2">
                         <span className="text-secondary text-sm">
                           {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
@@ -455,7 +455,7 @@ export default function PrivacyPage() {
                     </div>
                     <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-amber-500 transition-all duration-700"
+                        className="h-full bg-cipher-yellow transition-all duration-700"
                         style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
                       />
                     </div>
@@ -463,7 +463,7 @@ export default function PrivacyPage() {
 
                   <div>
                     <div className="flex justify-between mb-2 items-center">
-                      <span className="text-green-400 font-mono text-sm">Orchard</span>
+                      <span className="text-cipher-green font-mono text-sm">Orchard</span>
                       <div className="flex items-center gap-2">
                         <span className="text-secondary text-sm">
                           {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
@@ -475,7 +475,7 @@ export default function PrivacyPage() {
                     </div>
                     <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-green-500 transition-all duration-700"
+                        className="h-full bg-cipher-green transition-all duration-700"
                         style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
                       />
                     </div>
@@ -498,7 +498,7 @@ export default function PrivacyPage() {
           <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-              <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">HISTORICAL_TRENDS</h2>
+              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">HISTORICAL_TRENDS</h2>
             </div>
             <Card>
               <CardBody>
@@ -649,7 +649,7 @@ export default function PrivacyPage() {
                       label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                     />
                     <RechartsTooltip
-                      cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }}
+                      cursor={{ fill: 'rgba(167, 139, 250, 0.1)' }}
                       contentStyle={{
                         backgroundColor: chartColors.tooltipBg,
                         border: `1px solid ${chartColors.tooltipBorder}`,
@@ -738,7 +738,7 @@ export default function PrivacyPage() {
                           let rating = 'Low';
                           let ratingColor = '#EF4444';
                           if (score >= 70) { rating = 'Excellent'; ratingColor = '#00E676'; }
-                          else if (score >= 50) { rating = 'Good'; ratingColor = '#FBBF24'; }
+                          else if (score >= 50) { rating = 'Good'; ratingColor = '#F4B728'; }
                           else if (score >= 30) { rating = 'Fair'; ratingColor = '#FB923C'; }
                           return [
                             <span key="v" style={{ color: chartColors.tooltipText }}>

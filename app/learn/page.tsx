@@ -107,7 +107,7 @@ function NetworkToggle({ value, onChange, accentColor = 'cyan' }: {
   accentColor?: 'cyan' | 'purple' | 'default';
 }) {
   const activeClass = accentColor === 'purple'
-    ? 'filter-btn-active !bg-purple-500 !text-white'
+    ? 'filter-btn-active !bg-cipher-purple !text-white'
     : accentColor === 'cyan'
       ? 'filter-btn-active !bg-cipher-cyan !text-cipher-bg'
       : 'filter-btn-active';
@@ -219,8 +219,8 @@ export default function LearnPage() {
           {/* Zero-Knowledge Proofs */}
           <Card variant="glass">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
-                <Icons.Layers className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
+                <Icons.Layers className="w-5 h-5 text-cipher-purple" />
               </div>
               <h3 className="font-bold text-primary mb-2">Zero-Knowledge Proofs</h3>
               <p className="text-sm text-secondary leading-relaxed">
@@ -238,8 +238,8 @@ export default function LearnPage() {
               </div>
               <h3 className="font-bold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                ZEC lives in two worlds: <strong className="text-purple-400">Orchard</strong> (newest, most private)
-                and <strong className="text-purple-400">Sapling</strong> pools use encryption, while
+                ZEC lives in two worlds: <strong className="text-cipher-purple">Orchard</strong> (newest, most private)
+                and <strong className="text-cipher-purple">Sapling</strong> pools use encryption, while
                 the transparent pool works like Bitcoin. Always shield your ZEC.
               </p>
             </CardBody>
@@ -306,15 +306,15 @@ export default function LearnPage() {
             <Card variant="compact">
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
-                  <Icons.Lock className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-bold text-purple-400 font-mono text-sm">Sapling (zs...)</h3>
+                  <Icons.Lock className="w-4 h-4 text-cipher-purple" />
+                  <h3 className="font-bold text-cipher-purple font-mono text-sm">Sapling (zs...)</h3>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Legacy shielded address. Fully private with encrypted memos.
                   Still widely supported by exchanges and wallets.
                 </p>
                 <NetworkToggle value={saplingNetwork} onChange={setSaplingNetwork} accentColor="purple" />
-                <code className="text-xs text-purple-400 break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
+                <code className="text-xs text-cipher-purple break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
                   {addressExamples[saplingNetwork].sapling}
                 </code>
               </CardBody>
@@ -350,7 +350,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Eye className="w-5 h-5 text-purple-400" />
+            <Icons.Eye className="w-5 h-5 text-cipher-purple" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} VIEWING_KEYS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -623,8 +623,8 @@ export default function LearnPage() {
               { href: 'https://www.scifi.money/', icon: Icons.Book, label: 'SciFi Money', desc: 'Interactive guides', color: 'text-cipher-cyan' },
               { href: 'https://discord.gg/THspb5PM', icon: Icons.Chat, label: 'Developer Discord', desc: 'Real-time chat', color: 'text-cipher-green' },
               { href: 'https://testnet.zecfaucet.com/', icon: Icons.Gift, label: 'Testnet Faucet', desc: 'Free test ZEC', color: 'text-cipher-green' },
-              { href: 'https://maxdesalle.com/mastering-zcash/', icon: Icons.Book, label: 'Mastering Zcash', desc: 'Deep technical dive', color: 'text-purple-400' },
-              { href: 'https://electriccoin.co/', icon: Icons.Zap, label: 'Electric Coin Co.', desc: 'Core development team', color: 'text-purple-400' },
+              { href: 'https://maxdesalle.com/mastering-zcash/', icon: Icons.Book, label: 'Mastering Zcash', desc: 'Deep technical dive', color: 'text-cipher-purple' },
+              { href: 'https://electriccoin.co/', icon: Icons.Zap, label: 'Electric Coin Co.', desc: 'Core development team', color: 'text-cipher-purple' },
             ].map(item => (
               <a
                 key={item.href}
@@ -661,7 +661,7 @@ export default function LearnPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { href: '/decrypt', icon: Icons.Lock, label: 'Decrypt Memos', desc: 'Decode shielded messages', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+              { href: '/decrypt', icon: Icons.Lock, label: 'Decrypt Memos', desc: 'Decode shielded messages', color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },
               { href: '/privacy', icon: Icons.Shield, label: 'Privacy Dashboard', desc: 'Shielded pool metrics', color: 'text-cipher-cyan', bg: 'bg-cipher-cyan/10' },
               { href: '/network', icon: Icons.Globe, label: 'Network Stats', desc: 'Nodes, hashrate & peers', color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
               { href: '/docs', icon: Icons.Code, label: 'API Docs', desc: 'Developer reference', color: 'text-orange-400', bg: 'bg-orange-500/10' },

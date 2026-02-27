@@ -184,7 +184,7 @@ export default function NetworkPage() {
             <p className="text-secondary mb-6">{error || 'Failed to load network data'}</p>
             <button
               onClick={fetchData}
-              className="px-6 py-2 bg-cipher-cyan text-cipher-bg font-semibold rounded-lg hover:bg-cipher-green transition-colors"
+              className="px-6 py-2 bg-cipher-cyan text-cipher-bg font-semibold rounded-lg hover:bg-cipher-yellow transition-colors"
             >
               Retry
             </button>
@@ -210,10 +210,10 @@ export default function NetworkPage() {
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-amber-400'
+                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-cipher-orange'
                 }`}></span>
                 <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-amber-400'
+                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-cipher-orange'
                 }`}></span>
               </span>
               <span className="text-xs text-muted font-mono">
@@ -263,7 +263,7 @@ export default function NetworkPage() {
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider">SUPPLY_DISTRIBUTION</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SUPPLY_DISTRIBUTION</h2>
                 </div>
 
                 {/* Shielded vs Transparent */}
@@ -274,9 +274,9 @@ export default function NetworkPage() {
 
                 {/* Multi-pool bar */}
                 <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex mb-4">
-                  <div className="h-full bg-green-500" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
-                  <div className="h-full bg-cyan-500" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
-                  <div className="h-full bg-amber-500" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout" />
+                  <div className="h-full bg-cipher-green" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
+                  <div className="h-full bg-cipher-cyan" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
+                  <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout" />
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
 
@@ -312,7 +312,7 @@ export default function NetworkPage() {
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">CHAIN_INFO</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">CHAIN_INFO</h2>
                 </div>
 
                 <div className="space-y-0">
@@ -356,7 +356,7 @@ export default function NetworkPage() {
       <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-          <h2 className="text-sm font-bold font-mono text-cipher-cyan uppercase tracking-wider">MINING_PERFORMANCE</h2>
+          <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">MINING_PERFORMANCE</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} tooltip="Combined computing power securing the Zcash network." />
@@ -412,14 +412,14 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
   name: string; amount: number; color: string; zecPrice: number | null; isSmall?: boolean;
 }) {
   const colorMap: Record<string, string> = {
-    green: 'text-green-400',
-    cyan: 'text-cyan-400',
-    amber: 'text-amber-400',
+    green: 'text-cipher-green',
+    cyan: 'text-cipher-cyan',
+    amber: 'text-cipher-yellow',
   };
   const dotColor: Record<string, string> = {
-    green: 'bg-green-400',
-    cyan: 'bg-cyan-400',
-    amber: 'bg-amber-400',
+    green: 'bg-cipher-green',
+    cyan: 'bg-cipher-cyan',
+    amber: 'bg-cipher-yellow',
   };
 
   const display = isSmall ? `${(amount / 1000).toFixed(1)}K` : `${(amount / 1e6).toFixed(2)}M`;
@@ -478,7 +478,7 @@ function StatCard({ label, value, subtitle, status, tooltip }: {
 }) {
   const statusColors: Record<string, string> = {
     good: 'text-cipher-green',
-    warning: 'text-amber-400',
+    warning: 'text-cipher-orange',
     bad: 'text-red-400',
   };
   const valueColor = status ? statusColors[status] : 'text-primary';

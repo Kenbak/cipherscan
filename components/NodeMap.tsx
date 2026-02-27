@@ -48,12 +48,12 @@ const MAP_WIDTH = 960;
 const MAP_HEIGHT = 500;
 const DOT_RADIUS = 2.4;
 
-// Color tiers based on node count
+// Color tiers based on node count (cipher-yellow intensity scale)
 const NODE_TIERS = {
-  high: { fill: '#3ff4c6', glow: '#3ff4c6', label: '10+' },     // cipher-cyan
-  medium: { fill: '#22d3ee', glow: '#22d3ee', label: '5-9' },    // cyan-400
-  low: { fill: '#0891b2', glow: '#0891b2', label: '2-4' },       // cyan-700
-  single: { fill: '#a855f7', glow: '#a855f7', label: '1' },      // purple
+  high: { fill: '#F4B728', glow: '#F4B728', label: '10+' },      // cipher-yellow (full)
+  medium: { fill: '#D49A20', glow: '#D49A20', label: '5-9' },    // mid yellow
+  low: { fill: '#A07818', glow: '#A07818', label: '2-4' },       // deep yellow
+  single: { fill: '#7A6030', glow: '#7A6030', label: '1' },      // muted yellow
 };
 
 function getNodeTier(count: number) {
@@ -270,11 +270,11 @@ export function NodeMap() {
           {stats && (
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <div className="font-bold text-cipher-cyan font-mono text-xl">{stats.activeNodes}</div>
+                <div className="font-bold text-primary font-mono text-xl">{stats.activeNodes}</div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-cipher-green font-mono text-xl">{stats.countries}</div>
+                <div className="font-bold text-primary font-mono text-xl">{stats.countries}</div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
               </div>
             </div>
@@ -308,7 +308,7 @@ export function NodeMap() {
             {/* Glow filters for each tier */}
             <filter id="glow-high" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.247  0 0 0 0 0.957  0 0 0 0 0.776  0 0 0 0.6 0" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.957  0 0 0 0 0.718  0 0 0 0 0.157  0 0 0 0.6 0" />
               <feMerge>
                 <feMergeNode />
                 <feMergeNode in="SourceGraphic" />
@@ -316,7 +316,7 @@ export function NodeMap() {
             </filter>
             <filter id="glow-medium" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.133  0 0 0 0 0.827  0 0 0 0 0.933  0 0 0 0.5 0" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.831  0 0 0 0 0.604  0 0 0 0 0.125  0 0 0 0.5 0" />
               <feMerge>
                 <feMergeNode />
                 <feMergeNode in="SourceGraphic" />
@@ -324,7 +324,7 @@ export function NodeMap() {
             </filter>
             <filter id="glow-low" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.031  0 0 0 0 0.569  0 0 0 0 0.698  0 0 0 0.4 0" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.627  0 0 0 0 0.471  0 0 0 0 0.094  0 0 0 0.4 0" />
               <feMerge>
                 <feMergeNode />
                 <feMergeNode in="SourceGraphic" />
@@ -332,7 +332,7 @@ export function NodeMap() {
             </filter>
             <filter id="glow-single" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.659  0 0 0 0 0.333  0 0 0 0 0.969  0 0 0 0.4 0" />
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.478  0 0 0 0 0.376  0 0 0 0 0.188  0 0 0 0.3 0" />
               <feMerge>
                 <feMergeNode />
                 <feMergeNode in="SourceGraphic" />
@@ -341,7 +341,7 @@ export function NodeMap() {
             {/* Scan line animation */}
             <linearGradient id="scanGradient" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="transparent" />
-              <stop offset="50%" stopColor="#3ff4c6" stopOpacity="0.08" />
+              <stop offset="50%" stopColor="#F4B728" stopOpacity="0.08" />
               <stop offset="100%" stopColor="transparent" />
             </linearGradient>
           </defs>

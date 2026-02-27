@@ -47,6 +47,7 @@
   --color-cyan-glow: #00E5FF;
   --color-cyan-muted: #5EBBCE;
   --color-green: #00E676;
+  --color-yellow: #F4B728;
   --color-purple: #A78BFA;
   --color-purple-glow: #C4B5FD;
   --color-orange: #FF6B35;
@@ -112,6 +113,7 @@
   --color-cyan-glow: #0891B2;
   --color-cyan-muted: #0891B2;
   --color-green: #047857;
+  --color-yellow: #996515;
   --color-purple: #7C3AED;
   --color-purple-glow: #8B5CF6;
   --color-orange: #C2410C;
@@ -724,7 +726,7 @@
 
   .donate-btn:hover {
     border-color: var(--color-cyan);
-    color: var(--color-green);
+    color: var(--color-cyan);
     background-color: rgba(20, 22, 31, 0.7);
   }
 

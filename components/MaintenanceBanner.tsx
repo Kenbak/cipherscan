@@ -12,7 +12,7 @@ export function MaintenanceBanner() {
   if (!MAINTENANCE_MODE || dismissed) return null;
 
   return (
-    <div className="bg-amber-500/90 text-black px-4 py-2 text-center text-sm font-medium relative">
+    <div className="bg-cipher-orange/90 text-black px-4 py-2 text-center text-sm font-medium relative">
       <span>{MAINTENANCE_MESSAGE}</span>
       <button
         onClick={() => setDismissed(true)}

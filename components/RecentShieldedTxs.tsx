@@ -118,7 +118,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
               style={{ animationDelay: `${i * 30}ms` }}
             >
               <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                <Link href={`/tx/${tx.txid}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-purple-400 transition-colors truncate block max-w-[120px] sm:max-w-none">
+                <Link href={`/tx/${tx.txid}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-cipher-purple transition-colors truncate block max-w-[120px] sm:max-w-none">
                   <span className="sm:hidden">{tx.txid.slice(0, 6)}...{tx.txid.slice(-4)}</span>
                   <span className="hidden sm:inline">{tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}</span>
                 </Link>

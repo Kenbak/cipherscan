@@ -423,7 +423,7 @@ export default function AddressPage() {
                           </div>
                           {uaComponents.sapling_address ? (
                             <div className="flex items-start gap-2">
-                              <code className="text-xs text-purple-400 break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
+                              <code className="text-xs text-cipher-purple break-all font-mono flex-1 leading-relaxed">{uaComponents.sapling_address}</code>
                               <CopyButton text={uaComponents.sapling_address} label="sapling" />
                             </div>
                           ) : (
@@ -467,25 +467,25 @@ export default function AddressPage() {
         {/* Privacy Status Card */}
         <Card className="mb-6 overflow-hidden relative animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           {/* Atmospheric overlays */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.06] via-transparent to-cipher-cyan/[0.02] pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-cipher-purple/[0.06] via-transparent to-cipher-cyan/[0.02] pointer-events-none" />
           <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(167,139,250,0.015)_10px,rgba(167,139,250,0.015)_20px)] pointer-events-none" />
           {/* Scan line */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400/30 to-transparent animate-[scan_4s_ease-in-out_infinite]" style={{ animation: 'scan 4s ease-in-out infinite' }} />
+            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-purple/30 to-transparent animate-[scan_4s_ease-in-out_infinite]" style={{ animation: 'scan 4s ease-in-out infinite' }} />
           </div>
 
           <CardBody className="relative">
             <div className="flex items-center gap-2 mb-6">
               <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_STATUS</span>
               <div className="flex items-center gap-1.5 ml-auto">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider">Protected</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple animate-pulse" />
+                <span className="text-[10px] font-mono text-cipher-purple uppercase tracking-wider">Protected</span>
               </div>
             </div>
 
             <div className="flex items-start gap-4 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-xl bg-cipher-purple/10 border border-cipher-purple/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -494,7 +494,7 @@ export default function AddressPage() {
                   Privacy by Design
                 </h2>
                 <p className="text-sm text-secondary leading-relaxed">
-                  This address uses <span className="text-purple-400 font-medium">zero-knowledge proofs</span> to encrypt all transaction data.
+                  This address uses <span className="text-cipher-purple font-medium">zero-knowledge proofs</span> to encrypt all transaction data.
                   Balance and history are only visible to holders of the viewing key.
                 </p>
               </div>
@@ -508,15 +508,15 @@ export default function AddressPage() {
                 { label: 'LAST_ACTIVE', redacted: '████-██-██' },
                 { label: 'MEMO_FIELD', redacted: '██████████████' },
               ].map((field) => (
-                <div key={field.label} className="flex items-center gap-3 p-3 rounded-lg bg-purple-500/[0.04] border border-purple-500/[0.08]">
-                  <svg className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div key={field.label} className="flex items-center gap-3 p-3 rounded-lg bg-cipher-purple/[0.04] border border-cipher-purple/[0.08]">
+                  <svg className="w-3.5 h-3.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] text-muted font-mono uppercase tracking-wider block">{field.label}</span>
-                    <span className="text-xs text-purple-400/40 font-mono tracking-tight">{field.redacted}</span>
+                    <span className="text-xs text-cipher-purple/40 font-mono tracking-tight">{field.redacted}</span>
                   </div>
-                  <span className="text-[9px] text-purple-400/60 font-mono uppercase">encrypted</span>
+                  <span className="text-[9px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
                 </div>
               ))}
             </div>
@@ -524,8 +524,8 @@ export default function AddressPage() {
             {/* Privacy feature badges */}
             <div className="flex flex-wrap gap-2">
               {['Zero-Knowledge Proofs', 'Encrypted Amounts', 'Hidden Parties', 'Private Memos'].map((feature) => (
-                <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/[0.06] border border-purple-500/[0.08] text-[11px] text-purple-300 font-mono">
-                  <svg className="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-purple/[0.06] border border-cipher-purple/[0.08] text-[11px] text-cipher-purple-glow font-mono">
+                  <svg className="w-3 h-3 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   {feature}
@@ -629,8 +629,8 @@ export default function AddressPage() {
             </div>
 
             <div className="flex items-start gap-4 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-xl bg-cipher-orange/10 border border-cipher-orange/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-cipher-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
@@ -964,7 +964,7 @@ export default function AddressPage() {
                         {tx.isDeshielding ? (
                           <>
                             {/* Deshielding: From shielded, To transparent (visible) */}
-                            <span className="text-purple-400 flex items-center gap-1">
+                            <span className="text-cipher-purple flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
@@ -978,7 +978,7 @@ export default function AddressPage() {
                             {/* Shielding: From transparent (visible), To shielded */}
                             <AddressDisplay address={address} className="text-xs truncate" />
                             <span className="text-muted">→</span>
-                            <span className="text-purple-400 flex items-center gap-1">
+                            <span className="text-cipher-purple flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
@@ -987,7 +987,7 @@ export default function AddressPage() {
                           </>
                         ) : tx.isShielded ? (
                           <>
-                            <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] rounded font-mono flex items-center gap-1">
+                            <span className="px-1.5 py-0.5 bg-cipher-purple/10 text-cipher-purple text-[10px] rounded font-mono flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                               </svg>
@@ -1005,7 +1005,7 @@ export default function AddressPage() {
                           <>
                             {/* From address */}
                             {tx.from === 'shielded' ? (
-                              <span className="text-purple-400 flex items-center gap-1">
+                              <span className="text-cipher-purple flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
@@ -1021,7 +1021,7 @@ export default function AddressPage() {
 
                             {/* To address */}
                             {tx.to === 'shielded' ? (
-                              <span className="text-purple-400 flex items-center gap-1">
+                              <span className="text-cipher-purple flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                 </svg>
@@ -1040,7 +1040,7 @@ export default function AddressPage() {
                     {/* Amount Column */}
                     <div className="col-span-2 text-right">
                       {(tx.isShielded && !tx.isDeshielding && !tx.isShielding) || tx.amount === 0 ? (
-                        <span className="text-xs text-purple-400 font-mono flex items-center justify-end gap-1">
+                        <span className="text-xs text-cipher-purple font-mono flex items-center justify-end gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                           </svg>

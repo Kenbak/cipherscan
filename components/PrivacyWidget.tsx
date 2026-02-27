@@ -180,7 +180,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
           <span className="text-muted opacity-50">&gt;</span>
           <span className="text-xs text-muted font-mono uppercase tracking-wide">PRIVACY_METRICS</span>
         </div>
-        <span className="text-xs text-purple-400 font-mono group-hover:text-purple-300 transition-colors">
+        <span className="text-xs text-muted font-mono group-hover:text-secondary transition-colors">
           View Dashboard &gt;
         </span>
       </Link>
@@ -246,7 +246,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
             </span>
             <Badge color={hasHighRisk ? 'orange' : 'muted'}>7D</Badge>
           </div>
-          <span className={`text-xs font-mono flex-shrink-0 ${hasHighRisk ? 'text-red-400' : 'text-orange-400'} group-hover/risk:opacity-70 transition-opacity`}>
+          <span className="text-xs font-mono flex-shrink-0 text-muted group-hover/risk:text-secondary transition-colors">
             View &gt;
           </span>
         </Link>

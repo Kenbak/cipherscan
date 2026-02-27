@@ -54,7 +54,7 @@ export function AddressWithLabel({
     }
     switch (labelInfo.category) {
       case 'foundation':
-        return 'bg-purple-500/20 border-purple-500/40 text-purple-300';
+        return 'bg-cipher-purple/20 border-cipher-purple/40 text-cipher-purple-glow';
       case 'exchange':
         return 'bg-blue-500/20 border-blue-500/40 text-blue-300';
       case 'mining':

@@ -55,8 +55,8 @@ export default function DecryptPageClient() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-            <Icons.Lock className="w-6 h-6 text-purple-400" />
+          <div className="w-12 h-12 rounded-xl bg-cipher-purple/10 flex items-center justify-center">
+            <Icons.Lock className="w-6 h-6 text-cipher-purple" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">

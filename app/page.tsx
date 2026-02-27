@@ -152,7 +152,7 @@ export default async function Home() {
           {/* Recent Blocks */}
           <div>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-cipher-cyan flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 RECENT_BLOCKS
               </h2>
@@ -170,7 +170,7 @@ export default async function Home() {
           {/* Recent Shielded TXs */}
           <div>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-purple-400 flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 SHIELDED_ACTIVITY
               </h2>

@@ -624,7 +624,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted">Type</span>
               <span className={
-                hoveredTx.type === 'shielded' ? 'text-purple-400' :
+                hoveredTx.type === 'shielded' ? 'text-cipher-purple' :
                 hoveredTx.type === 'mixed' ? 'text-orange-400' :
                 'text-cipher-cyan'
               }>
@@ -638,12 +638,12 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
             {hoveredTx.orchardActions ? (
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted">Orchard</span>
-                <span className="text-purple-400 font-mono">{hoveredTx.orchardActions} actions</span>
+                <span className="text-cipher-purple font-mono">{hoveredTx.orchardActions} actions</span>
               </div>
             ) : hoveredTx.vShieldedSpend > 0 || hoveredTx.vShieldedOutput > 0 ? (
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted">Sapling</span>
-                <span className="text-purple-400 font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
+                <span className="text-cipher-purple font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
               </div>
             ) : null}
             <div className="text-[10px] text-muted mt-1 border-t border-white/5 pt-1">Click to view transaction</div>
@@ -654,7 +654,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       {/* Legend */}
       <div className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-muted font-mono bg-[#14161F]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/5">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-purple-400/60 border border-purple-400/80" />
+          <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/60 border border-cipher-purple/80" />
           <span>Shielded</span>
         </div>
         <div className="flex items-center gap-1.5">

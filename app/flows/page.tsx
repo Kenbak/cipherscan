@@ -386,7 +386,7 @@ export default function FlowsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="card gradient-card-warning text-center py-12">
             <div className="text-6xl mb-4">🔗</div>
-            <h1 className="text-2xl font-bold font-mono text-yellow-600 dark:text-yellow-400 mb-4">
+            <h1 className="text-2xl font-bold font-mono text-cipher-yellow-dark dark:text-cipher-yellow mb-4">
               Cross-Chain Integration Coming Soon
             </h1>
             <p className="text-secondary max-w-lg mx-auto mb-6">
@@ -436,13 +436,13 @@ export default function FlowsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold font-mono text-cipher-cyan flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary flex items-center gap-3">
               <Icons.Bridge />
               ZEC Flows
             </h1>
             <p className="text-sm text-secondary mt-2">
               Real-time tracking of ZEC swaps via{' '}
-              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                 NEAR Intents
               </a>
             </p>
@@ -683,13 +683,13 @@ export default function FlowsPage() {
                   {/* Status - based on NEAR tx status */}
                   <div className="flex justify-end">
                     {swap.status === 'SUCCESS' && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded border border-green-500/30">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-cipher-green/20 text-cipher-green text-xs font-medium rounded border border-cipher-green/30">
                         <Icons.Shield />
                         Complete
                       </span>
                     )}
                     {swap.status === 'PROCESSING' && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-medium rounded border border-yellow-500/30">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-cipher-yellow/20 text-cipher-yellow text-xs font-medium rounded border border-cipher-yellow/30">
                         <Icons.Pending />
                         Processing
                       </span>
@@ -715,7 +715,7 @@ export default function FlowsPage() {
           <div className="mt-4 pt-4 border-t border-cipher-border text-center">
             <p className="text-xs text-muted font-mono">
               Powered by{' '}
-              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
                 NEAR Intents
               </a>
               {' '}• Data updates every 5 seconds
@@ -724,9 +724,9 @@ export default function FlowsPage() {
         </div>
 
         {/* Info Banner */}
-        <div className="mt-8 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
+        <div className="mt-8 p-4 bg-cipher-cyan/5 border border-cipher-cyan/20 rounded-lg">
           <p className="text-sm text-secondary">
-            <span className="text-cyan-400 font-bold">🔗 About Cross-Chain Swaps:</span>{' '}
+            <span className="text-cipher-cyan font-bold">🔗 About Cross-Chain Swaps:</span>{' '}
             NEAR Intents enables trustless ZEC swaps with BTC, ETH, SOL, and 15+ other chains.
             Track real-time inflows and outflows to see how ZEC is being used across the multichain ecosystem.
           </p>
