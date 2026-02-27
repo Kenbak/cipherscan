@@ -175,82 +175,73 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
   return (
     <div className="card card-compact card-interactive group">
       {/* Header */}
-      <Link href="/privacy" className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-muted opacity-50">&gt;</span>
-          <span className="text-xs text-muted font-mono uppercase tracking-wide">PRIVACY_METRICS</span>
-        </div>
-        <span className="text-xs text-muted font-mono group-hover:text-secondary transition-colors">
-          View Dashboard &gt;
-        </span>
-      </Link>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-muted opacity-50">&gt;</span>
+        <span className="text-xs text-muted font-mono uppercase tracking-wide">PRIVACY_METRICS</span>
+      </div>
 
-      {/* Metrics grid — responsive: 2-col mobile, 4-col desktop */}
-      <Link href="/privacy" className="block">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-0">
-          <div className="lg:border-r lg:border-cipher-border lg:pr-5">
-            <MetricCell
-              label="Privacy Score"
-              tooltip="Overall network privacy health score"
-              value={privacyScore}
-              suffix="/100"
-              color="muted"
-            />
-          </div>
-          <div className="lg:border-r lg:border-cipher-border lg:px-5">
-            <MetricCell
-              label="Shielded Pool"
-              tooltip="Total ZEC currently in the shielded pool"
-              value={`${poolSizeFormatted}M`}
-              suffix={CURRENCY}
-              color="muted"
-            />
-          </div>
-          {/* Divider between rows on mobile only */}
-          <div className="col-span-2 border-t border-cipher-border lg:hidden" />
-          <div className="lg:border-r lg:border-cipher-border lg:px-5">
-            <MetricCell
-              label="Shielded TXs"
-              tooltip="Percentage of transactions using shielded pools"
-              value={shieldedPct}
-              suffix="%"
-              color="muted"
-            />
-          </div>
-          <div className="lg:pl-5">
-            <MetricCell
-              label="Total TXs"
-              tooltip="Total transactions indexed"
-              value={formatLargeNumber(totalTxs)}
-              color="muted"
-            />
-          </div>
-        </div>
-      </Link>
-
-      {/* Risk alert footer */}
-      {hasRisks && (
-        <Link
-          href="/privacy-risks?period=7d"
-          className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-cipher-border group/risk"
-        >
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <svg className={`w-4 h-4 flex-shrink-0 ${hasHighRisk ? 'text-red-400' : 'text-orange-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span className={`text-sm font-bold font-mono ${hasHighRisk ? 'text-red-400' : 'text-orange-400'}`}>
-              {riskStats!.total}
-            </span>
-            <span className="text-xs sm:text-sm text-secondary">
-              Privacy Risk{riskStats!.total > 1 ? 's' : ''}
-            </span>
-            <Badge color={hasHighRisk ? 'orange' : 'muted'}>7D</Badge>
-          </div>
-          <span className="text-xs font-mono flex-shrink-0 text-muted group-hover/risk:text-secondary transition-colors">
-            View &gt;
-          </span>
+      {/* Metrics row — all columns share the same visual rhythm */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-0">
+        <Link href="/privacy" className="lg:border-r lg:border-cipher-border lg:pr-5">
+          <MetricCell
+            label="Privacy Score"
+            tooltip="Overall network privacy health score"
+            value={privacyScore}
+            suffix="/100"
+            color="muted"
+          />
         </Link>
-      )}
+        <Link href="/privacy" className="lg:border-r lg:border-cipher-border lg:px-5">
+          <MetricCell
+            label="Shielded Pool"
+            tooltip="Total ZEC currently in the shielded pool"
+            value={`${poolSizeFormatted}M`}
+            suffix={CURRENCY}
+            color="muted"
+          />
+        </Link>
+        {/* Divider between rows on mobile only */}
+        <div className="col-span-2 border-t border-cipher-border lg:hidden" />
+        <Link href="/privacy" className="lg:border-r lg:border-cipher-border lg:px-5">
+          <MetricCell
+            label="Shielded TXs"
+            tooltip="Percentage of transactions using shielded pools"
+            value={shieldedPct}
+            suffix="%"
+            color="muted"
+          />
+        </Link>
+        <Link href="/privacy" className={`${hasRisks ? 'lg:border-r lg:border-cipher-border' : ''} lg:px-5`}>
+          <MetricCell
+            label="Total TXs"
+            tooltip="Total transactions indexed"
+            value={formatLargeNumber(totalTxs)}
+            color="muted"
+          />
+        </Link>
+
+        {/* Risk column — same cell pattern everywhere */}
+        {hasRisks && (
+          <>
+            <div className="col-span-2 border-t border-cipher-border lg:hidden" />
+            <Link
+              href="/privacy-risks?period=7d"
+              className="lg:pl-5 group/risk"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] text-muted font-mono uppercase tracking-wide">Privacy Risks</span>
+                <Tooltip content="Transactions where shielding patterns may reveal address links" />
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-lg sm:text-xl font-semibold font-mono ${hasHighRisk ? 'text-red-400' : 'text-cipher-orange'}`}>
+                  {riskStats!.total}
+                </span>
+                <span className="text-[10px] text-muted font-mono">7d</span>
+              </div>
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   );
 }
