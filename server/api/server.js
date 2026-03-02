@@ -282,8 +282,6 @@ const limiter = rateLimit({
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  // Trust the X-Forwarded-For header from Nginx
-  validate: { trustProxy: false },
 });
 
 app.use(limiter);
