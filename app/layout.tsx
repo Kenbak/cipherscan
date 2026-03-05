@@ -77,6 +77,11 @@ export const metadata: Metadata = {
   // Manifest for PWA
   manifest: "/manifest.json",
 
+  // Canonical
+  alternates: {
+    canonical: 'https://cipherscan.app',
+  },
+
   // Category
   category: 'technology',
 };
