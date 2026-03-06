@@ -165,6 +165,14 @@ async function updateTransactionCounts() {
 async function updatePrivacyStats(pools, txStats) {
   log('Updating privacy_stats table...');
 
+  const privacyScore = calculatePrivacyScore({
+    allTimeShieldedPercent: txStats.shieldedPercentage,
+    totalShieldedZat: pools.shieldedPoolSize,
+    chainSupplyZat: pools.chainSupply,
+    fullyShieldedTx: txStats.fullyShieldedTx,
+    shieldedTx: txStats.shieldedTx,
+  });
+
   const existing = await pool.query('SELECT id FROM privacy_stats ORDER BY updated_at DESC LIMIT 1');
 
   if (existing.rows.length > 0) {
@@ -176,7 +184,7 @@ async function updatePrivacyStats(pools, txStats) {
         transparent_tx = $10, coinbase_tx = $11, mixed_tx = $12,
         fully_shielded_tx = $13, shielded_percentage = $14,
         avg_shielded_per_day = $15, adoption_trend = $16,
-        last_block_scanned = $17, updated_at = NOW()
+        last_block_scanned = $17, privacy_score = $19, updated_at = NOW()
       WHERE id = $18
     `, [
       pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
@@ -185,7 +193,7 @@ async function updatePrivacyStats(pools, txStats) {
       txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
       txStats.fullyShieldedTx, txStats.shieldedPercentage,
       txStats.avgShieldedPerDay, txStats.adoptionTrend,
-      txStats.latestBlock, existing.rows[0].id,
+      txStats.latestBlock, existing.rows[0].id, privacyScore,
     ]);
   } else {
     await pool.query(`
@@ -196,7 +204,7 @@ async function updatePrivacyStats(pools, txStats) {
         coinbase_tx, mixed_tx, fully_shielded_tx, shielded_percentage,
         privacy_score, avg_shielded_per_day, adoption_trend,
         last_block_scanned, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,0,$15,$16,$17,NOW())
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$18,$15,$16,$17,NOW())
     `, [
       pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
       pools.orchardPool, pools.transparentPool, pools.chainSupply,
@@ -204,6 +212,7 @@ async function updatePrivacyStats(pools, txStats) {
       txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
       txStats.fullyShieldedTx, txStats.shieldedPercentage,
       txStats.avgShieldedPerDay, txStats.adoptionTrend, txStats.latestBlock,
+      privacyScore,
     ]);
   }
 
