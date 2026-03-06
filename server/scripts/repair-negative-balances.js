@@ -226,7 +226,47 @@ async function repairAddress(address) {
   }
 }
 
+async function repairSpecificTxids(txids) {
+  log(`Repairing ${txids.length} specific transactions...`);
+
+  for (const txid of txids) {
+    const existing = await pool.query('SELECT txid FROM transactions WHERE txid = $1', [txid]);
+    if (existing.rows.length > 0) {
+      log(`  ${txid} — already in DB, skipping`);
+      continue;
+    }
+
+    try {
+      const result = await fetchAndInsertTransaction(txid);
+      log(`  ${txid} — inserted (block ${result.blockHeight}, ${result.outputsInserted} outputs, ${result.inputsInserted} inputs)`);
+    } catch (e) {
+      log(`  ${txid} — ERROR: ${e.message}`);
+    }
+  }
+}
+
 async function main() {
+  const txidArgs = process.argv.filter(a => /^[0-9a-f]{64}$/.test(a));
+
+  if (txidArgs.length > 0) {
+    log('=== Transaction Repair Mode ===');
+    try {
+      await pool.query('SELECT 1');
+      log('DB connected');
+      await callZebraRPC('getblockchaininfo');
+      log('Zebra RPC connected');
+      await repairSpecificTxids(txidArgs);
+      log('=== Done ===');
+    } catch (e) {
+      log(`FATAL: ${e.message}`);
+      console.error(e);
+      process.exit(1);
+    } finally {
+      await pool.end();
+    }
+    return;
+  }
+
   log('=== Negative Balance Repair ===');
   if (DRY_RUN) log('Running in DRY RUN mode — no changes will be made');
 
