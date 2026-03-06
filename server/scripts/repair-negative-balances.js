@@ -120,7 +120,7 @@ async function fetchAndInsertTransaction(txid) {
 
     await pool.query(`
       INSERT INTO transactions (txid, block_height, block_time, size, tx_index, version,
-        is_coinbase, has_sapling, has_orchard, vin_count, vout_count, transparent_value_out)
+        is_coinbase, has_sapling, has_orchard, vin_count, vout_count, total_output)
       VALUES ($1, $2, $3, $4, 0, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (txid) DO NOTHING
     `, [txid, blockHeight, blockTime, rawTx.size || 0, rawTx.version || 0,
