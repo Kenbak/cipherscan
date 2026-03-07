@@ -275,13 +275,19 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting (100 requests per minute per IP)
+// Internal service API keys bypass rate limiting (comma-separated in env)
+const SERVICE_API_KEYS = (process.env.SERVICE_API_KEYS || '').split(',').filter(Boolean);
+
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 100,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const key = req.headers['x-service-key'];
+    return key && SERVICE_API_KEYS.includes(key);
+  },
 });
 
 app.use(limiter);
