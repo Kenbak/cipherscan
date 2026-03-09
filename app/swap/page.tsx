@@ -86,6 +86,22 @@ interface SourceToken {
   contractAddress?: string;
 }
 
+const CHAIN_EXPLORERS: Record<string, string> = {
+  eth: 'https://etherscan.io/tx/',
+  base: 'https://basescan.org/tx/',
+  arb: 'https://arbiscan.io/tx/',
+  op: 'https://optimistic.etherscan.io/tx/',
+  pol: 'https://polygonscan.com/tx/',
+  avax: 'https://snowtrace.io/tx/',
+  bsc: 'https://bscscan.com/tx/',
+  sol: 'https://solscan.io/tx/',
+  btc: 'https://mempool.space/tx/',
+  near: 'https://nearblocks.io/txns/',
+  gnosis: 'https://gnosisscan.io/tx/',
+  bera: 'https://berascan.com/tx/',
+  scroll: 'https://scrollscan.com/tx/',
+};
+
 const CHAIN_LABELS: Record<string, string> = {
   eth: 'Ethereum', base: 'Base', arb: 'Arbitrum', sol: 'Solana', btc: 'Bitcoin',
   near: 'NEAR', ton: 'TON', doge: 'Dogecoin', xrp: 'XRP', bsc: 'BNB Chain',
@@ -991,7 +1007,18 @@ export default function SwapPage() {
                           <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                           <span className="text-xs font-mono text-cipher-green font-semibold">Transaction sent</span>
                         </div>
-                        <code className="text-[10px] text-muted break-all block text-center">{txHash}</code>
+                        {CHAIN_EXPLORERS[selectedToken.chain] ? (
+                          <a
+                            href={`${CHAIN_EXPLORERS[selectedToken.chain]}${txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-cipher-cyan hover:text-cipher-cyan/80 break-all block text-center font-mono underline underline-offset-2 decoration-cipher-cyan/30"
+                          >
+                            {txHash} ↗
+                          </a>
+                        ) : (
+                          <code className="text-[10px] text-muted break-all block text-center">{txHash}</code>
+                        )}
                       </div>
                     )}
 
