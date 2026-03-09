@@ -378,12 +378,11 @@ export default function SwapPage() {
         }),
       });
       const data = await res.json();
-      console.log('[swap] Quote response:', JSON.stringify(data).slice(0, 1000));
       if (!data.success) throw new Error(data.error || 'Failed to get quote');
+      const q = data.quote || data;
       setQuote(data);
-      setDepositAddress(data.depositAddress || '');
-      const outAmount = data.amountOut || data.estimatedAmountOut;
-      console.log('[swap] Output amount field:', { amountOut: data.amountOut, estimatedAmountOut: data.estimatedAmountOut, resolved: outAmount });
+      setDepositAddress(q.depositAddress || data.depositAddress || '');
+      const outAmount = q.amountOut || q.estimatedAmountOut || data.amountOut;
       if (outAmount) {
         setEstimatedZec((parseInt(outAmount) / Math.pow(10, ZEC_DECIMALS)).toFixed(4));
       }
