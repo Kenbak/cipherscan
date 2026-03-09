@@ -11,14 +11,20 @@ const BASE58_CHARS = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwx
 
 function validateZecAddress(addr: string): string | null {
   if (!addr) return null;
-  if (addr.startsWith('zs') || addr.startsWith('u1') || addr.startsWith('utest') || addr.startsWith('ztestsapling'))
-    return 'Shielded/unified addresses not supported by NEAR Intents. Use a transparent address (t1/t3).';
+  if (addr.startsWith('u1') || addr.startsWith('utest')) {
+    if (addr.length < 80) return 'Unified address too short';
+    return null;
+  }
+  if (addr.startsWith('zs') || addr.startsWith('ztestsapling')) {
+    if (addr.length < 70) return 'Sapling address too short';
+    return null;
+  }
   if (!addr.startsWith('t1') && !addr.startsWith('t3'))
-    return 'Must start with t1 or t3';
+    return 'Must start with t1, t3, u1, or zs';
   if (!BASE58_CHARS.test(addr))
     return 'Contains invalid characters';
   if (addr.length !== 35)
-    return `Address must be 35 characters (currently ${addr.length})`;
+    return `Transparent address must be 35 characters (currently ${addr.length})`;
   return null;
 }
 
@@ -822,13 +828,13 @@ export default function SwapPage() {
                         type="text"
                         value={zecAddress}
                         onChange={(e) => setZecAddress(e.target.value)}
-                        placeholder="t1... or t3..."
+                        placeholder="t1..., t3..., u1..."
                         className="w-full px-4 py-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
                       />
                       {zecAddress && zecAddrError ? (
                         <p className="mt-1.5 text-[10px] text-red-400 font-mono">{zecAddrError}</p>
                       ) : (
-                        <p className="mt-1.5 text-[10px] text-muted/60 font-mono">Transparent address only (t1 or t3).</p>
+                        <p className="mt-1.5 text-[10px] text-muted/60 font-mono">Transparent (t1/t3) or shielded (u1/zs) address.</p>
                       )}
                     </div>
 
