@@ -11,7 +11,7 @@
  *   node sync-crosschain-swaps.js --seed       # insert test fixtures (local dev)
  *
  * Cron (every 5 min):
- *   */5 * * * * cd /root/cipherscan/server/jobs && npx dotenv -e ../api/.env -- node sync-crosschain-swaps.js >> /var/log/crosschain-sync.log 2>&1
+ *   star/5 * * * * cd /root/cipherscan/server/jobs && node sync-crosschain-swaps.js >> /var/log/crosschain-sync.log 2>&1
  */
 
 const path = require('path');
