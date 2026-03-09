@@ -428,7 +428,7 @@ export default function SwapPage() {
   // -- Testnet fallback --
   if (!isMainnet) {
     return (
-      <div className="min-h-screen py-12 px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-md mx-auto text-center">
           <div className="card py-16 px-8">
             <div className="w-12 h-12 rounded-full bg-cipher-cyan/10 flex items-center justify-center mx-auto mb-6">
@@ -449,19 +449,23 @@ export default function SwapPage() {
   }
 
   return (
-    <div className="min-h-screen py-8 sm:py-12 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
-        {/* Header */}
-        <div className="mb-10 text-center animate-fade-in">
-          <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mb-2 tracking-tight">Buy ZEC</h1>
-          <p className="text-sm text-muted max-w-md mx-auto">
-            Swap from 15+ chains into ZEC via{' '}
-            <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
+        {/* Header — cypherpunk style, consistent with other pages */}
+        <div className="mb-8 animate-fade-in">
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+            <span className="opacity-50">{'>'}</span> CROSS_CHAIN_SWAP
           </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary">Buy ZEC</h1>
+            <p className="text-sm text-secondary">
+              Swap from 15+ chains via{' '}
+              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in-up">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in-up">
 
           {/* ─── Main Swap Card ─── */}
           <div className="lg:col-span-3">
@@ -1003,6 +1007,5 @@ export default function SwapPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
