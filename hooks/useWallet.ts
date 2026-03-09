@@ -216,7 +216,7 @@ function getAllProviders() {
 function chainToWalletType(chainId: string): WalletType {
   if (['eth', 'base', 'arb', 'pol', 'op', 'avax', 'bnb', 'bsc'].includes(chainId)) return 'evm';
   if (chainId === 'sol') return 'solana';
-  if (['btc', 'doge', 'ltc'].includes(chainId)) return 'bitcoin';
+  if (chainId === 'btc') return 'bitcoin';
   if (['tron', 'trx'].includes(chainId)) return 'tron';
   return null;
 }
