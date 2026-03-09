@@ -404,12 +404,7 @@ export default function SwapPage() {
       if (outAmount) {
         setEstimatedZec((parseInt(outAmount) / Math.pow(10, ZEC_DECIMALS)).toFixed(4));
       }
-      const deadline = q.deadline || q.timeWhenInactive;
-      if (deadline) {
-        setQuoteExpiry(new Date(deadline).getTime());
-      } else {
-        setQuoteExpiry(Date.now() + 150_000);
-      }
+      setQuoteExpiry(Date.now() + 60_000);
       setStep('quote');
     } catch (err: any) {
       setError(err.message || 'Failed to get quote');
