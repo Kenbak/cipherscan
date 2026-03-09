@@ -67,6 +67,7 @@ const CHAIN_LABELS: Record<string, string> = {
 };
 
 const POPULAR_ORDER = ['usdc', 'eth', 'usdt', 'btc', 'sol', 'bnb', 'near', 'dai', 'doge', 'xrp', 'ton', 'ltc'];
+const CHAIN_POPULARITY = ['eth', 'sol', 'base', 'arb', 'btc', 'bsc', 'op', 'pol', 'avax', 'near', 'ton', 'doge', 'xrp', 'ltc', 'sui', 'tron'];
 
 function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
   return apiTokens
@@ -101,11 +102,16 @@ function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
       };
     })
     .sort((a, b) => {
-      const aIdx = POPULAR_ORDER.indexOf(a.token.toLowerCase());
-      const bIdx = POPULAR_ORDER.indexOf(b.token.toLowerCase());
-      const aRank = aIdx >= 0 ? aIdx : 999;
-      const bRank = bIdx >= 0 ? bIdx : 999;
+      const aToken = POPULAR_ORDER.indexOf(a.token.toLowerCase());
+      const bToken = POPULAR_ORDER.indexOf(b.token.toLowerCase());
+      const aRank = aToken >= 0 ? aToken : 999;
+      const bRank = bToken >= 0 ? bToken : 999;
       if (aRank !== bRank) return aRank - bRank;
+      const aChain = CHAIN_POPULARITY.indexOf(a.chain.toLowerCase());
+      const bChain = CHAIN_POPULARITY.indexOf(b.chain.toLowerCase());
+      const aChainRank = aChain >= 0 ? aChain : 999;
+      const bChainRank = bChain >= 0 ? bChain : 999;
+      if (aChainRank !== bChainRank) return aChainRank - bChainRank;
       return a.chainLabel.localeCompare(b.chainLabel);
     });
 }
