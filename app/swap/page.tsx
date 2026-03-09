@@ -66,8 +66,43 @@ const CHAIN_LABELS: Record<string, string> = {
   dash: 'Dash',
 };
 
-const POPULAR_ORDER = ['usdc', 'eth', 'usdt', 'btc', 'sol', 'bnb', 'near', 'dai', 'doge', 'xrp', 'ton', 'ltc'];
-const CHAIN_POPULARITY = ['eth', 'sol', 'base', 'arb', 'btc', 'bsc', 'op', 'pol', 'avax', 'near', 'ton', 'doge', 'xrp', 'ltc', 'sui', 'tron'];
+const FALLBACK_TOKEN_ORDER = ['usdc', 'eth', 'usdt', 'btc', 'sol', 'bnb', 'near', 'dai', 'doge', 'xrp', 'ton', 'ltc'];
+const FALLBACK_CHAIN_ORDER = ['eth', 'sol', 'base', 'arb', 'btc', 'bsc', 'op', 'pol', 'avax', 'near', 'ton', 'doge', 'xrp', 'ltc', 'sui', 'tron'];
+
+interface PopularPair { chain: string; token: string; swapCount: number }
+
+function sortTokens(tokens: SourceToken[], popularPairs: PopularPair[]): SourceToken[] {
+  if (popularPairs.length > 0) {
+    const pairRank = new Map<string, number>();
+    popularPairs.forEach((p, i) => {
+      pairRank.set(`${p.chain.toLowerCase()}:${p.token.toLowerCase()}`, i);
+    });
+    return [...tokens].sort((a, b) => {
+      const aKey = `${a.chain.toLowerCase()}:${a.token.toLowerCase()}`;
+      const bKey = `${b.chain.toLowerCase()}:${b.token.toLowerCase()}`;
+      const aRank = pairRank.get(aKey) ?? 9999;
+      const bRank = pairRank.get(bKey) ?? 9999;
+      if (aRank !== bRank) return aRank - bRank;
+      const aToken = FALLBACK_TOKEN_ORDER.indexOf(a.token.toLowerCase());
+      const bToken = FALLBACK_TOKEN_ORDER.indexOf(b.token.toLowerCase());
+      if ((aToken >= 0 ? aToken : 999) !== (bToken >= 0 ? bToken : 999))
+        return (aToken >= 0 ? aToken : 999) - (bToken >= 0 ? bToken : 999);
+      return a.chainLabel.localeCompare(b.chainLabel);
+    });
+  }
+  return [...tokens].sort((a, b) => {
+    const aToken = FALLBACK_TOKEN_ORDER.indexOf(a.token.toLowerCase());
+    const bToken = FALLBACK_TOKEN_ORDER.indexOf(b.token.toLowerCase());
+    const aRank = aToken >= 0 ? aToken : 999;
+    const bRank = bToken >= 0 ? bToken : 999;
+    if (aRank !== bRank) return aRank - bRank;
+    const aChain = FALLBACK_CHAIN_ORDER.indexOf(a.chain.toLowerCase());
+    const bChain = FALLBACK_CHAIN_ORDER.indexOf(b.chain.toLowerCase());
+    if ((aChain >= 0 ? aChain : 999) !== (bChain >= 0 ? bChain : 999))
+      return (aChain >= 0 ? aChain : 999) - (bChain >= 0 ? bChain : 999);
+    return a.chainLabel.localeCompare(b.chainLabel);
+  });
+}
 
 function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
   return apiTokens
@@ -86,7 +121,6 @@ function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
         if (evmMatch) {
           contractAddress = evmMatch[0];
         } else {
-          // Solana SPL: "nep141:sol-<MINT>.omft.near" → extract mint
           const solMatch = t.assetId.match(/sol-([A-HJ-NP-Za-km-z1-9]{32,44})\./);
           if (solMatch) contractAddress = solMatch[1];
         }
@@ -100,19 +134,6 @@ function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
         assetId: t.assetId,
         contractAddress,
       };
-    })
-    .sort((a, b) => {
-      const aToken = POPULAR_ORDER.indexOf(a.token.toLowerCase());
-      const bToken = POPULAR_ORDER.indexOf(b.token.toLowerCase());
-      const aRank = aToken >= 0 ? aToken : 999;
-      const bRank = bToken >= 0 ? bToken : 999;
-      if (aRank !== bRank) return aRank - bRank;
-      const aChain = CHAIN_POPULARITY.indexOf(a.chain.toLowerCase());
-      const bChain = CHAIN_POPULARITY.indexOf(b.chain.toLowerCase());
-      const aChainRank = aChain >= 0 ? aChain : 999;
-      const bChainRank = bChain >= 0 ? bChain : 999;
-      if (aChainRank !== bChainRank) return aChainRank - bChainRank;
-      return a.chainLabel.localeCompare(b.chainLabel);
     });
 }
 
@@ -204,17 +225,24 @@ export default function SwapPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Fetch available tokens from API
+  // Fetch available tokens and popularity ranking from API
   useEffect(() => {
     const fetchTokens = async () => {
       try {
-        const res = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/swap/tokens`);
-        const data = await res.json();
-        if (data.success && data.tokens?.length) {
-          const mapped = apiTokensToSourceTokens(data.tokens);
+        const [tokensRes, pairsRes] = await Promise.all([
+          fetch(`${API_CONFIG.POSTGRES_API_URL}/api/swap/tokens`),
+          fetch(`${API_CONFIG.POSTGRES_API_URL}/api/crosschain/popular-pairs`).catch(() => null),
+        ]);
+        const tokensData = await tokensRes.json();
+        const pairsData = pairsRes ? await pairsRes.json().catch(() => null) : null;
+        const popularPairs: PopularPair[] = pairsData?.success ? pairsData.pairs : [];
+
+        if (tokensData.success && tokensData.tokens?.length) {
+          const mapped = apiTokensToSourceTokens(tokensData.tokens);
           if (mapped.length > 0) {
-            setAvailableTokens(mapped);
-            setSelectedToken(mapped[0]);
+            const sorted = sortTokens(mapped, popularPairs);
+            setAvailableTokens(sorted);
+            setSelectedToken(sorted[0]);
           }
         }
       } catch { /* fallback list stays */ }

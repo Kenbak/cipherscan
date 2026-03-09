@@ -346,4 +346,39 @@ router.get('/api/crosschain/address/:address', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/crosschain/popular-pairs
+ * Top token+chain combos ranked by 30d swap count for dynamic sorting
+ * Returns: [{ chain: "eth", token: "USDC", swapCount: 42 }, ...]
+ */
+router.get('/api/crosschain/popular-pairs', async (req, res) => {
+  try {
+    const pool = req.app.locals.pool;
+    const { rows } = await pool.query(`
+      SELECT
+        CASE WHEN direction = 'inflow' THEN source_chain ELSE dest_chain END as chain,
+        CASE WHEN direction = 'inflow' THEN source_token ELSE dest_token END as token,
+        COUNT(*) as swap_count
+      FROM cross_chain_swaps
+      WHERE status = 'SUCCESS'
+        AND swap_created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY chain, token
+      ORDER BY swap_count DESC
+      LIMIT 100
+    `);
+
+    res.json({
+      success: true,
+      pairs: rows.map(r => ({
+        chain: r.chain,
+        token: r.token,
+        swapCount: parseInt(r.swap_count),
+      })),
+    });
+  } catch (error) {
+    console.error('Popular pairs error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
