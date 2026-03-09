@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Amount Checker | CipherScan',
-  description: 'Check how common a ZEC amount is on the blockchain. Use popular amounts to blend in with the crowd.',
-  keywords: ['zcash', 'privacy', 'amount', 'blend', 'shielded', 'transaction'],
+  title: 'Blend Check | CipherScan',
+  description: 'See how common a ZEC amount is on the Zcash blockchain. Use popular amounts to blend in with the crowd.',
+  keywords: ['zcash', 'privacy', 'blend', 'amount', 'shielded', 'transaction', 'common'],
   openGraph: {
-    title: 'Privacy Amount Checker | CipherScan',
-    description: 'Check how common a ZEC amount is on the blockchain.',
+    title: 'Blend Check | CipherScan',
+    description: 'See how common a ZEC amount is on the Zcash blockchain.',
   },
 };
 

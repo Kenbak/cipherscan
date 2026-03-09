@@ -89,7 +89,7 @@ export function NavBar() {
   const toolsItems: MenuItem[] = [
     { href: '/tools', label: 'Developer Tools', desc: 'All tools & API reference' },
     { href: '/decrypt', label: 'Decrypt Memo', desc: 'Decode shielded messages' },
-    { href: '/tools/privacy-check', label: 'Privacy Checker', desc: 'Check amount blend score' },
+    { href: '/tools/privacy-check', label: 'Blend Check', desc: 'See if your amount blends in' },
   ];
 
   const resourcesItems: MenuItem[] = [
