@@ -149,13 +149,21 @@ function transformSwap(tx, direction) {
   const fromParsed = parseChainFromAsset(tx.originAsset);
   const toParsed = parseChainFromAsset(tx.destinationAsset);
 
-  const zecHashes = direction === 'inflow'
-    ? (tx.destinationChainTxHashes || [])
-    : (tx.originChainTxHashes || []);
+  const originHashes = tx.originChainTxHashes || [];
+  const destHashes = tx.destinationChainTxHashes || [];
+  const destIsZec = (tx.destinationAsset || '').toLowerCase().includes('zec');
+  const originIsZec = (tx.originAsset || '').toLowerCase().includes('zec');
 
-  const otherHashes = direction === 'inflow'
-    ? (tx.originChainTxHashes || [])
-    : (tx.destinationChainTxHashes || []);
+  let zecHashes, otherHashes;
+  if (direction === 'inflow') {
+    zecHashes = destHashes.length > 0 ? destHashes : (originIsZec ? originHashes : []);
+    otherHashes = originHashes;
+  } else {
+    // For outflows: prefer originChainTxHashes, but for ZEC→ZEC swaps
+    // the API often only populates destinationChainTxHashes
+    zecHashes = originHashes.length > 0 ? originHashes : (destIsZec ? destHashes : []);
+    otherHashes = destHashes;
+  }
 
   const zecTxid = zecHashes.length > 0 ? zecHashes[0] : null;
 

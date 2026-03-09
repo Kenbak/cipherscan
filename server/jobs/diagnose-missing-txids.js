@@ -57,6 +57,48 @@ async function main() {
     console.log(`${s.direction}: ${s.missing}/${s.total} missing zec_txid (${((s.missing/s.total)*100).toFixed(1)}%)`);
   }
 
+  // Breakdown of missing outflows by dest_chain (ZEC→ZEC vs ZEC→other)
+  console.log('\nMissing outflows by dest_chain:');
+  const { rows: outBreak } = await pool.query(`
+    SELECT dest_chain, dest_token, COUNT(*) as cnt
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND direction = 'outflow' AND status = 'SUCCESS'
+    GROUP BY dest_chain, dest_token ORDER BY cnt DESC LIMIT 10
+  `);
+  for (const r of outBreak) console.log(`  ${r.dest_chain}/${r.dest_token}: ${r.cnt}`);
+
+  // How many missing outflows have t1 deposit addresses?
+  console.log('\nMissing outflow deposit_address patterns:');
+  const { rows: depPat } = await pool.query(`
+    SELECT
+      CASE WHEN deposit_address LIKE 't1%' THEN 't1_addr'
+           WHEN deposit_address LIKE 't3%' THEN 't3_addr'
+           ELSE 'hex_hash' END as type,
+      COUNT(*) as cnt
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND direction = 'outflow' AND status = 'SUCCESS'
+    GROUP BY type ORDER BY cnt DESC
+  `);
+  for (const r of depPat) console.log(`  ${r.type}: ${r.cnt}`);
+
+  // Missing inflows by recipient type
+  console.log('\nMissing inflow recipient patterns:');
+  const { rows: recPat } = await pool.query(`
+    SELECT
+      CASE WHEN recipient IS NULL THEN 'null'
+           WHEN recipient LIKE 't1%' THEN 't1_addr'
+           WHEN recipient LIKE 't3%' THEN 't3_addr'
+           WHEN recipient LIKE 'u1%' THEN 'unified'
+           WHEN recipient LIKE 'zs%' THEN 'sapling'
+           WHEN recipient LIKE '0x%' THEN 'evm_addr'
+           ELSE 'other_hash' END as type,
+      COUNT(*) as cnt
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND direction = 'inflow' AND status = 'SUCCESS'
+    GROUP BY type ORDER BY cnt DESC
+  `);
+  for (const r of recPat) console.log(`  ${r.type}: ${r.cnt}`);
+
   // Pick 5 recent INFLOWS missing zec_txid
   const { rows: missingInflows } = await pool.query(`
     SELECT deposit_address, direction, recipient, dest_amount, swap_created_at,
