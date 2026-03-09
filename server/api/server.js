@@ -30,7 +30,7 @@ const privacyRouter = require('./routes/privacy');
 const scanRouter = require('./routes/scan');
 const swapRouter = require('./routes/swap');
 const addressRouter = require('./routes/address');
-const privacyCheckRouter = require('./routes/privacy-check');
+const blendCheckRouter = require('./routes/blend-check');
 
 // Import linkability functions
 const {
@@ -346,8 +346,8 @@ app.use(swapRouter);
 // Address routes: /api/address/*
 app.use(addressRouter);
 
-// Privacy check routes: /api/privacy-check
-app.use(privacyCheckRouter);
+// Blend check routes: /api/blend-check
+app.use(blendCheckRouter);
 
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)

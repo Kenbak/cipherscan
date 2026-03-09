@@ -80,7 +80,7 @@ export default function BlendCheckPage() {
 
     try {
       const res = await fetch(
-        `${API_CONFIG.POSTGRES_API_URL}/api/privacy-check?amount=${parsed}&tolerance=2`,
+        `${API_CONFIG.POSTGRES_API_URL}/api/blend-check?amount=${parsed}&tolerance=2`,
         { signal: controller.signal }
       );
       if (!res.ok) throw new Error(`API error: ${res.status}`);

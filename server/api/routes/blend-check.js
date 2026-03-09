@@ -1,6 +1,6 @@
 /**
  * Privacy / Blend Check Routes
- * /api/privacy-check
+ * /api/blend-check
  *
  * Check how common a ZEC amount is on the blockchain.
  * Uses the shielded_flows table (same source as privacy-risks common amounts).
@@ -51,9 +51,9 @@ function getPeriodStart(period) {
 }
 
 /**
- * GET /api/privacy-check?amount=1.25&tolerance=2
+ * GET /api/blend-check?amount=1.25&tolerance=2
  */
-router.get('/api/privacy-check', async (req, res) => {
+router.get('/api/blend-check', async (req, res) => {
   try {
     const amount = parseFloat(req.query.amount);
     const tolerance = Math.min(parseFloat(req.query.tolerance) || 2, 10);

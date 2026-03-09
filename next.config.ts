@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         destination: '/crosschain',
         permanent: true,
       },
+      {
+        source: '/tools/privacy-check',
+        destination: '/tools/blend-check',
+        permanent: true,
+      },
     ];
   },
   webpack: (config, { isServer }) => {
