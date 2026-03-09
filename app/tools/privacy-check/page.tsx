@@ -69,8 +69,8 @@ export default function PrivacyCheckPage() {
   const [result, setResult] = useState<CheckResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const debounceRef = useRef<NodeJS.Timeout>();
-  const abortRef = useRef<AbortController>();
+  const debounceRef = useRef<NodeJS.Timeout>(null);
+  const abortRef = useRef<AbortController>(null);
 
   const fetchCheck = useCallback(async (amt: string) => {
     const parsed = parseFloat(amt);
