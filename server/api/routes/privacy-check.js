@@ -3,7 +3,8 @@
  * /api/privacy-check
  *
  * Check how common a ZEC amount is on the blockchain.
- * Uses the shielded_flows table (same as privacy-risks common amounts).
+ * Uses the shielded_flows table (same source as privacy-risks common amounts).
+ * Returns shield/deshield breakdown per time period.
  * Results cached in-memory for 5 minutes.
  */
 
@@ -19,7 +20,6 @@ router.use((req, res, next) => {
 
 const ZATOSHI = 100000000;
 
-// Simple in-memory cache
 const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -79,31 +79,24 @@ router.get('/api/privacy-check', async (req, res) => {
       const since = period === 'all' ? 0 : getPeriodStart(period);
 
       const { rows } = await pool.query(`
-        SELECT COUNT(*) AS matches
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE flow_type = 'shield') AS shields,
+          COUNT(*) FILTER (WHERE flow_type = 'deshield') AS deshields
         FROM shielded_flows
         WHERE amount_zat BETWEEN $1 AND $2
           AND block_time >= $3
       `, [lower, upper, since]);
 
       results[period] = {
-        matches: parseInt(rows[0].matches),
+        total: parseInt(rows[0].total),
+        shields: parseInt(rows[0].shields),
+        deshields: parseInt(rows[0].deshields),
       };
     }
 
-    // Total shielded flows in 30d for percentage context
-    let total30d = getCached('blend:total:30d');
-    if (!total30d) {
-      const { rows: totalRows } = await pool.query(`
-        SELECT COUNT(*) AS cnt
-        FROM shielded_flows
-        WHERE block_time >= $1 AND amount_zat >= 1000000
-      `, [getPeriodStart('30d')]);
-      total30d = parseInt(totalRows[0].cnt);
-      setCache('blend:total:30d', total30d);
-    }
-
-    // Blend score based on 30d match count
-    const matches30d = results['30d'].matches;
+    // Blend score based on 30d total match count
+    const matches30d = results['30d'].total;
     let blendScore;
     if (matches30d >= 10000) blendScore = 95;
     else if (matches30d >= 5000) blendScore = 85;
@@ -117,7 +110,7 @@ router.get('/api/privacy-check', async (req, res) => {
 
     const blendLabel = blendScore >= 70 ? 'Blends well' : blendScore >= 40 ? 'Moderate' : 'Stands out';
 
-    // Nearby popular amounts from shielded_flows (same approach as common-amounts endpoint)
+    // Nearby popular amounts
     const rangeLower = Math.round(amountZat * 0.2);
     const rangeUpper = Math.round(amountZat * 5);
 

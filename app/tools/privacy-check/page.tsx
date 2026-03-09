@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { API_CONFIG } from '@/lib/api-config';
 
 interface PeriodResult {
-  matches: number;
   total: number;
-  percentage: number;
+  shields: number;
+  deshields: number;
 }
 
 interface NearbyAmount {
@@ -29,7 +29,8 @@ interface CheckResult {
   nearbyPopular: NearbyAmount[];
 }
 
-function formatNumber(n: number): string {
+function formatNumber(n: number | undefined): string {
+  if (n == null) return '0';
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
   return n.toLocaleString();
@@ -178,11 +179,10 @@ export default function BlendCheckPage() {
               ))}
             </div>
 
-            {/* Loading */}
             {loading && (
               <div className="flex items-center gap-2 text-muted/50 text-xs font-mono mt-5">
                 <div className="animate-spin rounded-full h-3 w-3 border border-cipher-purple border-t-transparent" />
-                Scanning blockchain...
+                Scanning shielded pool...
               </div>
             )}
 
@@ -254,11 +254,11 @@ export default function BlendCheckPage() {
         <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           {result && !loading ? (
             <div className="space-y-6">
-              {/* Period breakdown */}
+              {/* Period breakdown with shield/deshield split */}
               <div className="card">
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">ON-CHAIN_MATCHES</h2>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SHIELDED_POOL_MATCHES</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {periods.map((p) => {
@@ -272,17 +272,35 @@ export default function BlendCheckPage() {
                           {periodLabels[p]}
                         </div>
                         <div className="text-xl sm:text-2xl font-bold font-mono text-primary">
-                          {formatNumber(d.matches)}
+                          {formatNumber(d.total)}
                         </div>
-                        <div className="text-[10px] font-mono text-muted/40 mt-1">
-                          of {formatNumber(d.total)} outputs
-                        </div>
-                        <div className="text-[10px] font-mono text-muted/50 mt-0.5">
-                          {d.percentage >= 0.01 ? `${d.percentage.toFixed(2)}%` : d.matches > 0 ? '<0.01%' : '0%'}
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
+                            <span className="text-[10px] font-mono text-muted/50">
+                              {formatNumber(d.shields)} in
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
+                            <span className="text-[10px] font-mono text-muted/50">
+                              {formatNumber(d.deshields)} out
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center gap-4 text-[10px] font-mono text-muted/30">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
+                    <span>in = shields (t → z)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/60" />
+                    <span>out = deshields (z → t)</span>
+                  </div>
                 </div>
               </div>
 
@@ -327,7 +345,7 @@ export default function BlendCheckPage() {
                     })}
                   </div>
                   <p className="text-[10px] text-muted/30 font-mono mt-3">
-                    Click any amount to check it. Based on 30-day on-chain data.
+                    Click any amount to check it. Based on 30-day shielded pool data.
                   </p>
                 </div>
               )}
@@ -335,7 +353,6 @@ export default function BlendCheckPage() {
           ) : !loading && (
             <div className="card h-full flex items-center justify-center min-h-[300px]">
               <div className="text-center">
-                <div className="text-4xl mb-3 opacity-20">🛡</div>
                 <p className="text-sm text-muted/40 font-mono">
                   Enter an amount to see<br />how well it blends on-chain
                 </p>
