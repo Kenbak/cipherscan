@@ -1186,8 +1186,8 @@ export default function SwapPage() {
             </div>
 
             <div className="card p-0 overflow-hidden">
-              <Link href="/flows" className="block px-6 py-4 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-between">
-                <span>View all ZEC Flows</span>
+              <Link href="/crosschain" className="block px-6 py-4 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-between">
+                <span>View Crosschain Analytics</span>
                 <span>→</span>
               </Link>
             </div>

@@ -132,6 +132,227 @@ router.get('/api/crosschain/status', async (req, res) => {
 // ============================================================================
 
 /**
+ * GET /api/crosschain/db-stats
+ * Cross-chain stats entirely from PostgreSQL (cross_chain_swaps table).
+ * Returns the same shape as /api/crosschain/stats for frontend compatibility.
+ */
+router.get('/api/crosschain/db-stats', async (req, res) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database pool not available',
+      });
+    }
+
+    const twentyFourHoursAgo = "NOW() - INTERVAL '24 hours'";
+
+    // Run all queries in parallel
+    const [
+      stats24hResult,
+      statsAllTimeResult,
+      inflowsByChainTokenResult,
+      outflowsByChainTokenResult,
+      recentSwapsResult,
+      latencyResult,
+    ] = await Promise.all([
+      // 1. 24h volume and swap count
+      pool.query(`
+        SELECT
+          COUNT(*)::int as swap_count,
+          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
+        FROM cross_chain_swaps
+        WHERE status = 'SUCCESS'
+          AND swap_created_at >= ${twentyFourHoursAgo}
+      `),
+      // 2. All-time totals
+      pool.query(`
+        SELECT
+          COUNT(*)::int as swap_count,
+          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
+        FROM cross_chain_swaps
+        WHERE status = 'SUCCESS'
+      `),
+      // 3. Inflows grouped by source_chain with token breakdown (24h)
+      pool.query(`
+        SELECT
+          source_chain as chain,
+          source_token as token,
+          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
+        FROM cross_chain_swaps
+        WHERE status = 'SUCCESS'
+          AND direction = 'inflow'
+          AND swap_created_at >= ${twentyFourHoursAgo}
+          AND source_chain IS NOT NULL
+          AND source_chain != 'zec'
+        GROUP BY source_chain, source_token
+        ORDER BY source_chain, volume_usd DESC
+      `),
+      // 4. Outflows grouped by dest_chain with token breakdown (24h)
+      pool.query(`
+        SELECT
+          dest_chain as chain,
+          dest_token as token,
+          COALESCE(SUM(dest_amount_usd), 0)::float as volume_usd
+        FROM cross_chain_swaps
+        WHERE status = 'SUCCESS'
+          AND direction = 'outflow'
+          AND swap_created_at >= ${twentyFourHoursAgo}
+          AND dest_chain IS NOT NULL
+          AND dest_chain != 'zec'
+        GROUP BY dest_chain, dest_token
+        ORDER BY dest_chain, volume_usd DESC
+      `),
+      // 5. Recent 20 swaps
+      pool.query(`
+        SELECT
+          deposit_address, direction, source_chain, source_token, source_amount, source_amount_usd,
+          dest_chain, dest_token, dest_amount, dest_amount_usd,
+          zec_txid, source_tx_hashes, dest_tx_hashes, status, swap_created_at
+        FROM cross_chain_swaps
+        WHERE status = 'SUCCESS'
+        ORDER BY swap_created_at DESC
+        LIMIT 20
+      `),
+      // 6. Latency by chain — join with transactions table for ZEC block_time
+      pool.query(`
+        SELECT
+          CASE WHEN ccs.direction = 'inflow' THEN ccs.source_chain ELSE ccs.dest_chain END as chain,
+          COUNT(*)::int as swap_count,
+          AVG((t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0)::float as avg_minutes,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (
+            ORDER BY (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0
+          )::float as median_minutes
+        FROM cross_chain_swaps ccs
+        JOIN transactions t ON t.txid = ccs.zec_txid
+        WHERE ccs.status = 'SUCCESS'
+          AND ccs.matched = true
+          AND ccs.zec_txid IS NOT NULL
+          AND ((ccs.direction = 'inflow' AND ccs.source_chain != 'zec') OR (ccs.direction = 'outflow' AND ccs.dest_chain != 'zec'))
+          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) > 0
+          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) < 86400
+        GROUP BY CASE WHEN ccs.direction = 'inflow' THEN ccs.source_chain ELSE ccs.dest_chain END
+        ORDER BY swap_count DESC
+      `),
+    ]);
+
+    const totalVolume24h = parseFloat(stats24hResult.rows[0]?.volume_usd || 0);
+    const totalSwaps24h = parseInt(stats24hResult.rows[0]?.swap_count || 0);
+    const totalSwapsAllTime = parseInt(statsAllTimeResult.rows[0]?.swap_count || 0);
+    const totalVolumeAllTime = parseFloat(statsAllTimeResult.rows[0]?.volume_usd || 0);
+
+    // Build inflows: { chain, chainName, totalVolume24h, tokens: [{ symbol, volume24h }] }
+    const inflowsByChain = {};
+    for (const r of inflowsByChainTokenResult.rows) {
+      const chain = r.chain?.toLowerCase() || 'unknown';
+      if (!inflowsByChain[chain]) {
+        const config = CHAIN_CONFIG[chain] || { name: chain, color: '#888' };
+        inflowsByChain[chain] = {
+          chain,
+          chainName: config.name || chain,
+          totalVolume24h: 0,
+          tokens: [],
+        };
+      }
+      inflowsByChain[chain].totalVolume24h += parseFloat(r.volume_usd || 0);
+      inflowsByChain[chain].tokens.push({
+        symbol: r.token || 'UNKNOWN',
+        volume24h: parseFloat(r.volume_usd || 0),
+      });
+    }
+    const inflows = Object.values(inflowsByChain)
+      .sort((a, b) => b.totalVolume24h - a.totalVolume24h)
+      .map((c) => ({
+        ...c,
+        totalVolume24h: parseFloat(c.totalVolume24h.toFixed(2)),
+        volumeUsd: parseFloat(c.totalVolume24h.toFixed(2)), // alias for frontend compatibility
+      }));
+
+    // Build outflows: same shape
+    const outflowsByChain = {};
+    for (const r of outflowsByChainTokenResult.rows) {
+      const chain = r.chain?.toLowerCase() || 'unknown';
+      if (!outflowsByChain[chain]) {
+        const config = CHAIN_CONFIG[chain] || { name: chain, color: '#888' };
+        outflowsByChain[chain] = {
+          chain,
+          chainName: config.name || chain,
+          totalVolume24h: 0,
+          tokens: [],
+        };
+      }
+      outflowsByChain[chain].totalVolume24h += parseFloat(r.volume_usd || 0);
+      outflowsByChain[chain].tokens.push({
+        symbol: r.token || 'UNKNOWN',
+        volume24h: parseFloat(r.volume_usd || 0),
+      });
+    }
+    const outflows = Object.values(outflowsByChain)
+      .sort((a, b) => b.totalVolume24h - a.totalVolume24h)
+      .map((c) => ({
+        ...c,
+        totalVolume24h: parseFloat(c.totalVolume24h.toFixed(2)),
+        volumeUsd: parseFloat(c.totalVolume24h.toFixed(2)), // alias for frontend compatibility
+      }));
+
+    // Format recent swaps
+    const recentSwaps = recentSwapsResult.rows.map((r) => {
+      const isInflow = r.direction === 'inflow';
+      const sourceTxHash = Array.isArray(r.source_tx_hashes) && r.source_tx_hashes.length > 0 ? r.source_tx_hashes[0] : null;
+      const destTxHash = Array.isArray(r.dest_tx_hashes) && r.dest_tx_hashes.length > 0 ? r.dest_tx_hashes[0] : r.zec_txid;
+      return {
+        id: r.deposit_address,
+        timestamp: new Date(r.swap_created_at).getTime(),
+        direction: isInflow ? 'in' : 'out',
+        fromChain: isInflow ? (r.source_chain || 'unknown') : 'zec',
+        toChain: isInflow ? 'zec' : (r.dest_chain || 'unknown'),
+        fromAmount: parseFloat(isInflow ? r.source_amount : r.source_amount) || 0,
+        fromSymbol: isInflow ? (r.source_token || 'UNKNOWN') : 'ZEC',
+        toAmount: parseFloat(isInflow ? r.dest_amount : r.dest_amount) || 0,
+        toSymbol: isInflow ? 'ZEC' : (r.dest_token || 'UNKNOWN'),
+        amountUsd: parseFloat(isInflow ? r.source_amount_usd : r.dest_amount_usd) || 0,
+        status: r.status || 'SUCCESS',
+        zecTxid: r.zec_txid || null,
+        sourceTxHash: isInflow ? sourceTxHash : r.zec_txid,
+        destTxHash: isInflow ? r.zec_txid : destTxHash,
+      };
+    });
+
+    const latencyByChain = latencyResult.rows.map((r) => {
+      const chain = r.chain?.toLowerCase() || 'unknown';
+      const config = CHAIN_CONFIG[chain] || { name: chain };
+      return {
+        chain,
+        chainName: config.name || chain,
+        avgMinutes: parseFloat(parseFloat(r.avg_minutes || 0).toFixed(1)),
+        medianMinutes: parseFloat(parseFloat(r.median_minutes || 0).toFixed(1)),
+        swapCount: parseInt(r.swap_count || 0),
+      };
+    });
+
+    res.json({
+      success: true,
+      totalVolume24h: parseFloat(totalVolume24h.toFixed(2)),
+      totalSwaps24h,
+      totalSwapsAllTime,
+      totalVolumeAllTime: parseFloat(totalVolumeAllTime.toFixed(2)),
+      inflows,
+      outflows,
+      recentSwaps,
+      latencyByChain,
+      chainConfig: CHAIN_CONFIG,
+    });
+  } catch (error) {
+    console.error('❌ [CROSSCHAIN] db-stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch cross-chain stats from database',
+    });
+  }
+});
+
+/**
  * GET /api/crosschain/trends
  * Historical volume trends from stored swap data
  * ?period=7d|30d|90d  &granularity=daily|weekly

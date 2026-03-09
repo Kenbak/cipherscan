@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/flows',
+        destination: '/crosschain',
+        permanent: true,
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     // Add WASM support
     config.experiments = {

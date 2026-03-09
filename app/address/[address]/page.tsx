@@ -982,7 +982,7 @@ export default function AddressPage() {
               </div>
               {crossChain.totalSwaps > 5 && (
                 <div className="mt-3 text-center">
-                  <Link href="/flows" className="text-xs text-cipher-cyan hover:underline font-mono">
+                  <Link href="/crosschain" className="text-xs text-cipher-cyan hover:underline font-mono">
                     View all {crossChain.totalSwaps} swaps →
                   </Link>
                 </div>
