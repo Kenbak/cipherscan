@@ -278,6 +278,73 @@ async function retryUnmatched() {
 }
 
 // ---------------------------------------------------------------------------
+// Re-fetch swaps missing zec_txid from the API
+// The API might have populated the tx hash field after our initial sync
+// ---------------------------------------------------------------------------
+
+async function refetchMissingTxids() {
+  const { rows } = await pool.query(`
+    SELECT deposit_address, direction
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND status = 'SUCCESS'
+      AND swap_created_at >= NOW() - INTERVAL '30 days'
+    ORDER BY swap_created_at DESC
+    LIMIT 500
+  `);
+
+  if (rows.length === 0) return;
+  log(`Re-checking ${rows.length} recent swaps missing zec_txid...`);
+
+  let filled = 0;
+  const depositSet = new Set(rows.map(r => r.deposit_address));
+  const directionMap = new Map(rows.map(r => [r.deposit_address, r.direction]));
+
+  // Scan recent pages from the API looking for these deposit addresses
+  for (const direction of ['inflow', 'outflow']) {
+    let page = 1;
+    let checked = 0;
+    const maxPages = 20;
+
+    while (page <= maxPages) {
+      try {
+        const data = await fetchSwapPage(direction, page, null);
+        const txs = data.data || [];
+        if (txs.length === 0) break;
+
+        for (const tx of txs) {
+          if (!depositSet.has(tx.depositAddress)) continue;
+
+          const dir = directionMap.get(tx.depositAddress);
+          const zecHashes = dir === 'inflow'
+            ? (tx.destinationChainTxHashes || [])
+            : (tx.originChainTxHashes || []);
+
+          if (zecHashes.length > 0) {
+            const zecTxid = zecHashes[0];
+            const matched = await checkTxExists(zecTxid);
+            await pool.query(
+              'UPDATE cross_chain_swaps SET zec_txid = $1, matched = $2 WHERE deposit_address = $3 AND zec_txid IS NULL',
+              [zecTxid, matched, tx.depositAddress]
+            );
+            filled++;
+          }
+        }
+
+        checked += txs.length;
+        if (page >= (data.totalPages || 1)) break;
+        page++;
+        await delay(RATE_LIMIT_MS);
+      } catch (e) {
+        log(`  refetch error on ${direction} page ${page}: ${e.message}`);
+        break;
+      }
+    }
+  }
+
+  log(`Filled ${filled}/${rows.length} previously-missing zec_txid values`);
+}
+
+// ---------------------------------------------------------------------------
 // Fetch and store swaps (one direction at a time)
 // ---------------------------------------------------------------------------
 
@@ -461,6 +528,11 @@ async function main() {
 
   // Retry unmatched swaps
   await retryUnmatched();
+
+  // Re-fetch swaps missing zec_txid (API may have filled them in)
+  if (!isBackfill) {
+    await refetchMissingTxids();
+  }
 
   // Update amount stats
   await updateAmountStats();

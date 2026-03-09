@@ -155,7 +155,8 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       inflowsByChainTokenResult,
       outflowsByChainTokenResult,
       recentSwapsResult,
-      latencyResult,
+      latencyInflowResult,
+      latencyOutflowResult,
     ] = await Promise.all([
       // 1. 24h volume and swap count
       pool.query(`
@@ -215,10 +216,10 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
         ORDER BY swap_created_at DESC
         LIMIT 20
       `),
-      // 6. Latency by chain — join with transactions table for ZEC block_time
+      // 6a. Latency for inflows (time until user receives ZEC)
       pool.query(`
         SELECT
-          CASE WHEN ccs.direction = 'inflow' THEN ccs.source_chain ELSE ccs.dest_chain END as chain,
+          ccs.source_chain as chain,
           COUNT(*)::int as swap_count,
           AVG((t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0)::float as avg_minutes,
           PERCENTILE_CONT(0.5) WITHIN GROUP (
@@ -227,12 +228,34 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
         FROM cross_chain_swaps ccs
         JOIN transactions t ON t.txid = ccs.zec_txid
         WHERE ccs.status = 'SUCCESS'
+          AND ccs.direction = 'inflow'
           AND ccs.matched = true
           AND ccs.zec_txid IS NOT NULL
-          AND ((ccs.direction = 'inflow' AND ccs.source_chain != 'zec') OR (ccs.direction = 'outflow' AND ccs.dest_chain != 'zec'))
+          AND ccs.source_chain != 'zec'
           AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) > 0
           AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) < 86400
-        GROUP BY CASE WHEN ccs.direction = 'inflow' THEN ccs.source_chain ELSE ccs.dest_chain END
+        GROUP BY ccs.source_chain
+        ORDER BY swap_count DESC
+      `),
+      // 6b. Latency for outflows (time for ZEC deposit to confirm)
+      pool.query(`
+        SELECT
+          ccs.dest_chain as chain,
+          COUNT(*)::int as swap_count,
+          AVG((t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0)::float as avg_minutes,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (
+            ORDER BY (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0
+          )::float as median_minutes
+        FROM cross_chain_swaps ccs
+        JOIN transactions t ON t.txid = ccs.zec_txid
+        WHERE ccs.status = 'SUCCESS'
+          AND ccs.direction = 'outflow'
+          AND ccs.matched = true
+          AND ccs.zec_txid IS NOT NULL
+          AND ccs.dest_chain != 'zec'
+          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) > 0
+          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) < 86400
+        GROUP BY ccs.dest_chain
         ORDER BY swap_count DESC
       `),
     ]);
@@ -319,7 +342,7 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       };
     });
 
-    const latencyByChain = latencyResult.rows.map((r) => {
+    const mapLatencyRows = (rows) => rows.map((r) => {
       const chain = r.chain?.toLowerCase() || 'unknown';
       const config = CHAIN_CONFIG[chain] || { name: chain };
       return {
@@ -331,6 +354,9 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       };
     });
 
+    const latencyInflows = mapLatencyRows(latencyInflowResult.rows);
+    const latencyOutflows = mapLatencyRows(latencyOutflowResult.rows);
+
     res.json({
       success: true,
       totalVolume24h: parseFloat(totalVolume24h.toFixed(2)),
@@ -340,7 +366,8 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       inflows,
       outflows,
       recentSwaps,
-      latencyByChain,
+      latencyByChain: latencyInflows,
+      latencyOutflows,
       chainConfig: CHAIN_CONFIG,
     });
   } catch (error) {

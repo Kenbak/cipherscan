@@ -55,6 +55,7 @@ interface CrossChainStats {
   outflows: ChainGroup[];
   recentSwaps: RecentSwap[];
   latencyByChain: LatencyStat[];
+  latencyOutflows: LatencyStat[];
 }
 
 interface TrendDataPoint {
@@ -137,15 +138,12 @@ function formatAmount(amount: number): string {
 }
 
 function getSwapExplorerUrl(swap: RecentSwap): string | null {
+  // Always prefer CipherScan when we have a ZEC txid
+  if (swap.zecTxid) return `/tx/${swap.zecTxid}`;
+  // Fallback to external explorer
   if (swap.direction === 'in' && swap.sourceTxHash) {
     const explorer = CHAIN_EXPLORERS[swap.fromChain];
     if (explorer) return `${explorer}${swap.sourceTxHash}`;
-  }
-  if (swap.direction === 'in' && swap.zecTxid) {
-    return `/tx/${swap.zecTxid}`;
-  }
-  if (swap.direction === 'out' && swap.zecTxid) {
-    return `/tx/${swap.zecTxid}`;
   }
   if (swap.direction === 'out' && swap.destTxHash) {
     const explorer = CHAIN_EXPLORERS[swap.toChain];
@@ -217,6 +215,7 @@ export default function CrosschainPage() {
             destTxHash: swap.destTxHash,
           })),
           latencyByChain: data.latencyByChain || [],
+          latencyOutflows: data.latencyOutflows || [],
         };
 
         setStats(transformedStats);
@@ -447,32 +446,72 @@ export default function CrosschainPage() {
         )}
 
         {/* Swap Latency */}
-        {stats.latencyByChain.length > 0 && (
+        {(stats.latencyByChain.length > 0 || stats.latencyOutflows.length > 0) && (
           <div className="card mb-8">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-5">
               <h2 className="text-base font-bold font-mono text-foreground">Swap Latency</h2>
-              <Tooltip content="Median time from swap initiation to ZEC block confirmation, measured from 43K+ matched swaps" />
+              <Tooltip content="Median time from swap initiation to ZEC block confirmation, measured from matched on-chain swaps" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {stats.latencyByChain.filter(l => l.medianMinutes > 0).map((l) => (
-                <div key={l.chain} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
-                    <span className="text-xs font-mono text-secondary">{l.chainName}</span>
-                  </div>
-                  <div className="text-lg font-bold font-mono text-foreground">
-                    {l.medianMinutes < 60
-                      ? `${l.medianMinutes.toFixed(0)}m`
-                      : `${(l.medianMinutes / 60).toFixed(1)}h`
-                    }
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[10px] text-muted">median</span>
-                    <span className="text-[10px] text-muted">{l.swapCount.toLocaleString()} swaps</span>
-                  </div>
+
+            {/* Inflows: Time to receive ZEC */}
+            {stats.latencyByChain.filter(l => l.medianMinutes > 0).length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-mono text-cipher-green uppercase tracking-wider">Buy ZEC (Inflows)</span>
+                  <span className="text-[10px] text-muted">— time until ZEC arrives</span>
                 </div>
-              ))}
-            </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+                  {stats.latencyByChain.filter(l => l.medianMinutes > 0).map((l) => (
+                    <div key={l.chain} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
+                        <span className="text-xs font-mono text-secondary">{l.chainName}</span>
+                      </div>
+                      <div className="text-lg font-bold font-mono text-foreground">
+                        {l.medianMinutes < 60
+                          ? `${l.medianMinutes.toFixed(0)}m`
+                          : `${(l.medianMinutes / 60).toFixed(1)}h`
+                        }
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted">median</span>
+                        <span className="text-[10px] text-muted">{l.swapCount.toLocaleString()} swaps</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Outflows: ZEC deposit confirmation */}
+            {stats.latencyOutflows.filter(l => l.medianMinutes > 0).length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-mono text-red-400 uppercase tracking-wider">Sell ZEC (Outflows)</span>
+                  <span className="text-[10px] text-muted">— ZEC deposit confirmation time</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {stats.latencyOutflows.filter(l => l.medianMinutes > 0).map((l) => (
+                    <div key={l.chain} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
+                        <span className="text-xs font-mono text-secondary">{l.chainName}</span>
+                      </div>
+                      <div className="text-lg font-bold font-mono text-foreground">
+                        {l.medianMinutes < 60
+                          ? `${l.medianMinutes.toFixed(0)}m`
+                          : `${(l.medianMinutes / 60).toFixed(1)}h`
+                        }
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted">median</span>
+                        <span className="text-[10px] text-muted">{l.swapCount.toLocaleString()} swaps</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
