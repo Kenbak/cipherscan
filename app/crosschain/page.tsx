@@ -431,7 +431,7 @@ export default function CrosschainPage() {
                     tickFormatter={(v: number) => v >= 1000 ? `$${(v/1000).toFixed(0)}K` : `$${v.toFixed(0)}`}
                   />
                   <RechartsTooltip
-                    contentStyle={{ backgroundColor: 'var(--color-card-bg, #1a1a2e)', border: '1px solid var(--color-border, #333)', borderRadius: '8px', fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px' }}
                     labelStyle={{ color: 'var(--color-secondary, #ccc)' }}
                     formatter={(value: number, name: string) => [formatUSD(value), name === 'inflowVolume' ? 'Inflows' : 'Outflows']}
                     labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
@@ -462,7 +462,7 @@ export default function CrosschainPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
                   {stats.latencyByChain.filter(l => l.medianMinutes > 0).map((l) => (
-                    <div key={l.chain} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+                    <div key={l.chain} className="rounded-lg bg-glass-2 border border-glass-4 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
                         <span className="text-xs font-mono text-secondary">{l.chainName}</span>
@@ -492,7 +492,7 @@ export default function CrosschainPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {stats.latencyOutflows.filter(l => l.medianMinutes > 0).map((l) => (
-                    <div key={l.chain} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+                    <div key={l.chain} className="rounded-lg bg-glass-2 border border-glass-4 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
                         <span className="text-xs font-mono text-secondary">{l.chainName}</span>
@@ -656,7 +656,7 @@ export default function CrosschainPage() {
               const isInternal = explorerUrl?.startsWith('/');
 
               const rowContent = (
-                <div className="grid grid-cols-1 sm:grid-cols-[60px_60px_1fr_30px_1fr_80px] gap-2 items-center p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 transition-all bg-white/[0.01] hover:bg-white/[0.03]">
+                <div className="grid grid-cols-1 sm:grid-cols-[60px_60px_1fr_30px_1fr_80px] gap-2 items-center p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 transition-all bg-glass-2 hover:bg-glass-3">
                   {/* Time */}
                   <span className="text-[10px] text-muted font-mono hidden sm:block">
                     {formatRelativeTime(swap.timestamp)}

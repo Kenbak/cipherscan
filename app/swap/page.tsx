@@ -594,7 +594,7 @@ export default function SwapPage() {
             <div className="card p-0 overflow-hidden">
 
               {/* Card header */}
-              <div className="px-6 pt-5 pb-4 border-b border-white/[0.04]">
+              <div className="px-6 pt-5 pb-4 border-b border-glass-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-muted tracking-wider">&gt; SWAP</span>
 
@@ -605,7 +605,7 @@ export default function SwapPage() {
                       disabled={wallet.switching || chainWallets.length === 0}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono transition-all disabled:opacity-40 ${
                         wallet.connected
-                          ? 'bg-cipher-green/8 hover:bg-white/[0.06] text-secondary'
+                          ? 'bg-cipher-green/8 hover:bg-glass-6 text-secondary'
                           : 'text-muted hover:text-cipher-cyan'
                       }`}
                       title={chainWallets.length === 0 ? 'No wallet detected for this chain' : undefined}
@@ -627,8 +627,8 @@ export default function SwapPage() {
 
                     {/* Wallet picker dropdown */}
                     {showWalletPicker && chainWallets.length > 0 && (
-                      <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] rounded-xl bg-[var(--bg-surface,#14161F)] border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
-                        <div className="px-3 py-2.5 border-b border-white/[0.04] flex items-center justify-between">
+                      <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] rounded-xl bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                        <div className="px-3 py-2.5 border-b border-glass-4 flex items-center justify-between">
                           <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Select wallet</span>
                           {wallet.connected && (
                             <button
@@ -645,8 +645,8 @@ export default function SwapPage() {
                             onClick={() => connectToWallet(w)}
                             className={`w-full flex items-center gap-3 px-3 py-3 transition-colors text-left ${
                               wallet.connected && wallet.walletName === w.name
-                                ? 'bg-white/[0.06]'
-                                : 'hover:bg-white/[0.04]'
+                                ? 'bg-glass-6'
+                                : 'hover:bg-glass-4'
                             }`}
                           >
                             <WalletIcon wallet={w} size={24} />
@@ -695,7 +695,7 @@ export default function SwapPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex rounded-xl bg-white/[0.03] border border-white/[0.06] focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all">
+                      <div className="flex rounded-xl bg-glass-3 border border-glass-6 focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all">
                         {/* Amount input */}
                         <input
                           type="text"
@@ -712,7 +712,7 @@ export default function SwapPage() {
                         <div className="relative" ref={tokenPickerRef}>
                           <button
                             onClick={() => { setShowTokenPicker(!showTokenPicker); setTokenSearch(''); }}
-                            className="flex items-center gap-2 px-4 py-4 hover:bg-white/[0.04] transition-colors h-full"
+                            className="flex items-center gap-2 px-4 py-4 hover:bg-glass-4 transition-colors h-full"
                           >
                             <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
                             <div className="text-left">
@@ -726,21 +726,21 @@ export default function SwapPage() {
 
                           {/* Token picker dropdown */}
                           {showTokenPicker && (
-                            <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[360px] rounded-xl bg-[var(--bg-surface,#14161F)] border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
-                              <div className="p-2 border-b border-white/[0.04]">
+                            <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[360px] rounded-xl bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                              <div className="p-2 border-b border-glass-4">
                                 <input
                                   type="text"
                                   value={tokenSearch}
                                   onChange={(e) => setTokenSearch(e.target.value)}
                                   placeholder="Search token or chain..."
                                   autoFocus
-                                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] text-primary font-mono text-sm placeholder:text-muted/40 focus:outline-none"
+                                  className="w-full px-3 py-2 rounded-lg bg-glass-4 text-primary font-mono text-sm placeholder:text-muted/40 focus:outline-none"
                                 />
                               </div>
                               <div className="overflow-y-auto max-h-[340px]">
                                 {tokensLoading ? (
                                   <div className="px-3 py-8 text-center">
-                                    <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-white/10 border-t-cipher-cyan animate-spin" />
+                                    <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-glass-12 border-t-cipher-cyan animate-spin" />
                                     <div className="text-[11px] text-muted font-mono">Loading tokens...</div>
                                   </div>
                                 ) : filteredTokens.length === 0 ? (
@@ -760,7 +760,7 @@ export default function SwapPage() {
                                         if (wallet.connected && !sameType) wallet.disconnect();
                                       }}
                                       className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                                        selectedToken.id === t.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                                        selectedToken.id === t.id ? 'bg-glass-6' : 'hover:bg-glass-3'
                                       }`}
                                     >
                                       <TokenChainIcon token={t.token} chain={t.chain} size={28} />
@@ -794,7 +794,7 @@ export default function SwapPage() {
                                   ? 'border-cipher-green/30 text-cipher-green hover:bg-cipher-green/10'
                                   : rec.blendingScore === 'medium'
                                   ? 'border-amber-400/30 text-amber-400 hover:bg-amber-400/10'
-                                  : 'border-white/10 text-muted hover:bg-white/[0.06]'
+                                  : 'border-glass-12 text-muted hover:bg-glass-6'
                               }`}
                             >
                               {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
@@ -806,20 +806,20 @@ export default function SwapPage() {
 
                     {/* Arrow divider */}
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-white/[0.04]" />
-                      <div className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center">
+                      <div className="flex-1 h-px bg-glass-4" />
+                      <div className="w-8 h-8 rounded-full bg-glass-4 flex items-center justify-center">
                         <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
                       </div>
-                      <div className="flex-1 h-px bg-white/[0.04]" />
+                      <div className="flex-1 h-px bg-glass-4" />
                     </div>
 
                     {/* To section */}
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <label className="text-[11px] font-mono text-muted uppercase tracking-wider">You receive</label>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04]">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-glass-4">
                           <TokenChainIcon token="zec" chain="zec" size={14} />
                           <span className="text-[11px] font-mono text-primary">ZEC</span>
                         </div>
@@ -829,7 +829,7 @@ export default function SwapPage() {
                         value={zecAddress}
                         onChange={(e) => setZecAddress(e.target.value)}
                         placeholder="t1..., t3..., u1..."
-                        className="w-full px-4 py-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
+                        className="w-full px-4 py-3.5 rounded-xl bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
                       />
                       {zecAddress && zecAddrError ? (
                         <p className="mt-1.5 text-[10px] text-red-400 font-mono">{zecAddrError}</p>
@@ -856,7 +856,7 @@ export default function SwapPage() {
                         value={refundAddress}
                         onChange={(e) => setRefundAddress(e.target.value)}
                         placeholder={wallet.connected ? 'Auto-filled from wallet' : `Your ${selectedToken.chainLabel} address (optional)`}
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
+                        className="w-full px-4 py-3 rounded-xl bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
                       />
                     </div>
 
@@ -872,7 +872,7 @@ export default function SwapPage() {
                               className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${
                                 slippage === opt.value
                                   ? 'bg-cipher-cyan/10 text-cipher-cyan'
-                                  : 'text-muted hover:text-secondary bg-white/[0.02] hover:bg-white/[0.04]'
+                                  : 'text-muted hover:text-secondary bg-glass-2 hover:bg-glass-4'
                               }`}
                             >
                               {opt.label}
@@ -909,7 +909,7 @@ export default function SwapPage() {
                 {step === 'quote' && quote && (
                   <div className="space-y-6 animate-fade-in">
                     {/* Summary */}
-                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-5">
+                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-5">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={28} />
@@ -930,7 +930,7 @@ export default function SwapPage() {
                         </div>
                       </div>
 
-                      <div className="border-t border-white/[0.04] pt-3 space-y-1.5">
+                      <div className="border-t border-glass-4 pt-3 space-y-1.5">
                         <div className="flex justify-between text-xs font-mono">
                           <span className="text-muted">Slippage</span>
                           <span className="text-secondary">{slippage / 100}%</span>
@@ -952,7 +952,7 @@ export default function SwapPage() {
                     )}
 
                     <div className="flex gap-3">
-                      <button onClick={resetSwap} className="flex-1 py-3.5 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                      <button onClick={resetSwap} className="flex-1 py-3.5 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                         Back
                       </button>
                       <button
@@ -969,7 +969,7 @@ export default function SwapPage() {
                 {step === 'waiting' && (
                   <div className="space-y-5 animate-fade-in">
                     {/* Swap summary row */}
-                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-5">
+                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
@@ -1011,7 +1011,7 @@ export default function SwapPage() {
                     )}
 
                     {txHash && (
-                      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+                      <div className="rounded-xl bg-glass-2 border border-glass-4 p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -1021,7 +1021,7 @@ export default function SwapPage() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => { navigator.clipboard.writeText(txHash); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-                              className="p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+                              className="p-1.5 rounded-md hover:bg-glass-4 transition-colors"
                               title="Copy tx hash"
                             >
                               {copied ? (
@@ -1035,7 +1035,7 @@ export default function SwapPage() {
                                 href={`${CHAIN_EXPLORERS[selectedToken.chain]}${txHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+                                className="p-1.5 rounded-md hover:bg-glass-4 transition-colors"
                                 title="View on explorer"
                               >
                                 <svg className="w-3.5 h-3.5 text-muted hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
@@ -1053,19 +1053,19 @@ export default function SwapPage() {
                       <>
                         {wallet.connected && (
                           <div className="flex items-center gap-3">
-                            <div className="flex-1 h-px bg-white/[0.04]" />
+                            <div className="flex-1 h-px bg-glass-4" />
                             <span className="text-[10px] font-mono text-muted">or send manually</span>
-                            <div className="flex-1 h-px bg-white/[0.04]" />
+                            <div className="flex-1 h-px bg-glass-4" />
                           </div>
                         )}
 
-                        <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+                        <div className="rounded-xl bg-glass-2 border border-glass-4 p-4">
                           <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">Deposit address</div>
                           <div className="flex items-center gap-2">
                             <code className="text-[11px] text-secondary break-all font-mono flex-1 leading-relaxed">{depositAddress}</code>
                             <button
                               onClick={copyAddress}
-                              className="shrink-0 p-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+                              className="shrink-0 p-2 rounded-lg hover:bg-glass-4 transition-colors"
                             >
                               {copied ? (
                                 <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -1088,7 +1088,7 @@ export default function SwapPage() {
                         </button>
                       </div>
                     ) : (
-                      <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                      <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                         Cancel
                       </button>
                     )}
@@ -1098,7 +1098,7 @@ export default function SwapPage() {
                 {/* ─── COMPLETE ─── */}
                 {step === 'complete' && (
                   <div className="space-y-5 animate-fade-in">
-                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-6">
+                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-6">
                       <div className="flex flex-col items-center text-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-cipher-green/10 border border-cipher-green/20 flex items-center justify-center">
                           <svg className="w-6 h-6 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1111,7 +1111,7 @@ export default function SwapPage() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                       New Swap
                     </button>
                   </div>
@@ -1120,7 +1120,7 @@ export default function SwapPage() {
                 {/* ─── ERROR ─── */}
                 {step === 'error' && (
                   <div className="space-y-5 animate-fade-in">
-                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-6">
+                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-6">
                       <div className="flex flex-col items-center text-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                           <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1133,7 +1133,7 @@ export default function SwapPage() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                       Try Again
                     </button>
                   </div>
@@ -1147,7 +1147,7 @@ export default function SwapPage() {
 
             {/* Privacy tips */}
             <div className="card p-0 overflow-hidden">
-              <div className="px-6 pt-5 pb-4 border-b border-white/[0.04]">
+              <div className="px-6 pt-5 pb-4 border-b border-glass-4">
                 <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_TIPS</span>
               </div>
               <div className="px-6 py-5">
@@ -1161,7 +1161,7 @@ export default function SwapPage() {
                         <button
                           key={i}
                           onClick={() => setAmount(String(rec.amount))}
-                          className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-all group text-left"
+                          className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-glass-3 transition-all group text-left"
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="text-sm font-mono font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
@@ -1170,7 +1170,7 @@ export default function SwapPage() {
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${
                               rec.blendingScore === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
                               rec.blendingScore === 'medium' ? 'bg-amber-400/10 text-amber-400' :
-                              'bg-white/[0.04] text-muted'
+                              'bg-glass-4 text-muted'
                             }`}>
                               {rec.blendingScore}
                             </span>

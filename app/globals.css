@@ -60,6 +60,15 @@
   /* Node map */
   --color-map-dot: rgba(55, 65, 81, 0.45);
 
+  /* Glass overlays — theme-aware subtle backgrounds & borders */
+  --glass-2: rgba(255, 255, 255, 0.02);
+  --glass-3: rgba(255, 255, 255, 0.03);
+  --glass-4: rgba(255, 255, 255, 0.04);
+  --glass-6: rgba(255, 255, 255, 0.06);
+  --glass-8: rgba(255, 255, 255, 0.08);
+  --glass-12: rgba(255, 255, 255, 0.12);
+  --glass-18: rgba(255, 255, 255, 0.18);
+
   /* Shadows */
   --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.12);
   --shadow-card-hover: 0 4px 8px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.16);
@@ -125,6 +134,15 @@
 
   /* Node map */
   --color-map-dot: rgba(148, 163, 184, 0.5);
+
+  /* Glass overlays — dark tints for light backgrounds */
+  --glass-2: rgba(0, 0, 0, 0.02);
+  --glass-3: rgba(0, 0, 0, 0.03);
+  --glass-4: rgba(0, 0, 0, 0.04);
+  --glass-6: rgba(0, 0, 0, 0.06);
+  --glass-8: rgba(0, 0, 0, 0.08);
+  --glass-12: rgba(0, 0, 0, 0.12);
+  --glass-18: rgba(0, 0, 0, 0.18);
 
   /* Shadows - minimal, borders do the work */
   --shadow-card: none;

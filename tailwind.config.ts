@@ -55,6 +55,15 @@ const config: Config = {
             muted: '#6B7280',
           },
         },
+        glass: {
+          2: 'var(--glass-2)',
+          3: 'var(--glass-3)',
+          4: 'var(--glass-4)',
+          6: 'var(--glass-6)',
+          8: 'var(--glass-8)',
+          12: 'var(--glass-12)',
+          18: 'var(--glass-18)',
+        },
       },
 
       // ===== TYPOGRAPHY =====
