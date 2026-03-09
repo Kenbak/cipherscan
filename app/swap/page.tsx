@@ -224,6 +224,8 @@ export default function SwapPage() {
   const [copied, setCopied] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const [nativeBalance, setNativeBalance] = useState<string | null>(null);
+  const [quoteExpiry, setQuoteExpiry] = useState<number>(0);
+  const [quoteTimeLeft, setQuoteTimeLeft] = useState<number>(0);
   const wallet = useWallet();
   const pickerRef = useRef<HTMLDivElement>(null);
   const tokenPickerRef = useRef<HTMLDivElement>(null);
@@ -273,6 +275,22 @@ export default function SwapPage() {
       setRefundAddress('');
     }
   }, [wallet.connected, wallet.address]);
+
+  // Quote countdown timer
+  useEffect(() => {
+    if (step !== 'quote' || !quoteExpiry) return;
+    const tick = () => {
+      const left = Math.max(0, Math.floor((quoteExpiry - Date.now()) / 1000));
+      setQuoteTimeLeft(left);
+      if (left === 0) {
+        setStep('form');
+        setError('Quote expired — please get a new one');
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [step, quoteExpiry]);
 
   const NATIVE_TOKENS = ['eth', 'sol', 'btc', 'bnb', 'doge', 'ltc', 'avax', 'matic', 'pol'];
   const isNativeToken = NATIVE_TOKENS.includes(selectedToken.token.toLowerCase()) && !selectedToken.contractAddress;
@@ -385,6 +403,12 @@ export default function SwapPage() {
       const outAmount = q.amountOut || q.estimatedAmountOut || data.amountOut;
       if (outAmount) {
         setEstimatedZec((parseInt(outAmount) / Math.pow(10, ZEC_DECIMALS)).toFixed(4));
+      }
+      const deadline = q.deadline || q.timeWhenInactive;
+      if (deadline) {
+        setQuoteExpiry(new Date(deadline).getTime());
+      } else {
+        setQuoteExpiry(Date.now() + 150_000);
       }
       setStep('quote');
     } catch (err: any) {
@@ -819,15 +843,20 @@ export default function SwapPage() {
                           <span className="text-secondary">{slippage / 100}%</span>
                         </div>
                         <div className="flex justify-between text-xs font-mono">
-                          <span className="text-muted">Fee</span>
-                          <span className="text-secondary">0.5%</span>
-                        </div>
-                        <div className="flex justify-between text-xs font-mono">
                           <span className="text-muted">Destination</span>
                           <span className="text-secondary">{zecAddress.slice(0, 10)}...{zecAddress.slice(-6)}</span>
                         </div>
                       </div>
                     </div>
+
+                    {quoteTimeLeft > 0 && (
+                      <div className="flex items-center justify-center gap-2 text-xs font-mono">
+                        <div className={`w-1.5 h-1.5 rounded-full ${quoteTimeLeft > 30 ? 'bg-cipher-green' : quoteTimeLeft > 10 ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} />
+                        <span className={quoteTimeLeft > 30 ? 'text-muted' : quoteTimeLeft > 10 ? 'text-yellow-500' : 'text-red-500'}>
+                          Quote expires in {Math.floor(quoteTimeLeft / 60)}:{(quoteTimeLeft % 60).toString().padStart(2, '0')}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex gap-3">
                       <button onClick={resetSwap} className="flex-1 py-3.5 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
