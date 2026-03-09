@@ -254,15 +254,19 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     let bridge = null;
     try {
       const bridgeResult = await pool.query(
-        `SELECT direction, source_chain, source_token, source_amount, source_amount_usd,
+        `SELECT id, direction, source_chain, source_token, source_amount, source_amount_usd,
                 source_tx_hashes, dest_chain, dest_token, dest_amount, dest_amount_usd,
-                dest_tx_hashes, swap_created_at
+                dest_tx_hashes, swap_created_at, matched
          FROM cross_chain_swaps
-         WHERE zec_txid = $1 AND matched = true
+         WHERE zec_txid = $1
          LIMIT 1`,
         [txid]
       );
       if (bridgeResult.rows.length > 0) {
+        // Auto-fix: if viewing this tx, it exists — mark as matched
+        if (!bridgeResult.rows[0].matched) {
+          pool.query('UPDATE cross_chain_swaps SET matched = true WHERE id = $1', [bridgeResult.rows[0].id]).catch(() => {});
+        }
         const b = bridgeResult.rows[0];
         const isInflow = b.direction === 'inflow';
         const otherChain = isInflow ? b.source_chain : b.dest_chain;

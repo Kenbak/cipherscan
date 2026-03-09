@@ -283,8 +283,19 @@ async function retryUnmatched() {
 // ---------------------------------------------------------------------------
 
 async function refetchMissingTxids() {
+  // Get breakdown of missing txids by direction
+  const { rows: missingStats } = await pool.query(`
+    SELECT direction, COUNT(*) as cnt
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND status = 'SUCCESS'
+    GROUP BY direction
+  `);
+  const missingByDir = {};
+  for (const r of missingStats) missingByDir[r.direction] = parseInt(r.cnt);
+  log(`Missing zec_txid totals: inflow=${missingByDir.inflow || 0}, outflow=${missingByDir.outflow || 0}`);
+
   const { rows } = await pool.query(`
-    SELECT deposit_address, direction
+    SELECT deposit_address, direction, source_chain, dest_chain, swap_created_at
     FROM cross_chain_swaps
     WHERE zec_txid IS NULL AND status = 'SUCCESS'
       AND swap_created_at >= NOW() - INTERVAL '30 days'
@@ -292,17 +303,21 @@ async function refetchMissingTxids() {
     LIMIT 500
   `);
 
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    log('No recent swaps missing zec_txid (last 30 days)');
+    return;
+  }
   log(`Re-checking ${rows.length} recent swaps missing zec_txid...`);
 
   let filled = 0;
+  let apiStillEmpty = 0;
+  let notFoundInApi = 0;
   const depositSet = new Set(rows.map(r => r.deposit_address));
   const directionMap = new Map(rows.map(r => [r.deposit_address, r.direction]));
+  const foundInApi = new Set();
 
-  // Scan recent pages from the API looking for these deposit addresses
   for (const direction of ['inflow', 'outflow']) {
     let page = 1;
-    let checked = 0;
     const maxPages = 20;
 
     while (page <= maxPages) {
@@ -313,11 +328,11 @@ async function refetchMissingTxids() {
 
         for (const tx of txs) {
           if (!depositSet.has(tx.depositAddress)) continue;
+          foundInApi.add(tx.depositAddress);
 
           const dir = directionMap.get(tx.depositAddress);
-          const zecHashes = dir === 'inflow'
-            ? (tx.destinationChainTxHashes || [])
-            : (tx.originChainTxHashes || []);
+          const zecField = dir === 'inflow' ? 'destinationChainTxHashes' : 'originChainTxHashes';
+          const zecHashes = tx[zecField] || [];
 
           if (zecHashes.length > 0) {
             const zecTxid = zecHashes[0];
@@ -327,10 +342,12 @@ async function refetchMissingTxids() {
               [zecTxid, matched, tx.depositAddress]
             );
             filled++;
+            log(`  FILLED: ${tx.depositAddress.slice(0, 12)}... → zec_txid=${zecTxid.slice(0, 12)}... (matched=${matched})`);
+          } else {
+            apiStillEmpty++;
           }
         }
 
-        checked += txs.length;
         if (page >= (data.totalPages || 1)) break;
         page++;
         await delay(RATE_LIMIT_MS);
@@ -341,7 +358,14 @@ async function refetchMissingTxids() {
     }
   }
 
-  log(`Filled ${filled}/${rows.length} previously-missing zec_txid values`);
+  notFoundInApi = rows.length - foundInApi.size;
+  log(`Refetch summary: filled=${filled}, API still empty=${apiStillEmpty}, not found in API pages=${notFoundInApi}, total checked=${rows.length}`);
+  if (apiStillEmpty > 0) {
+    log(`  → ${apiStillEmpty} swaps exist in NEAR API but ${directionMap.size > 0 ? 'destinationChainTxHashes/originChainTxHashes' : 'tx hashes'} are still empty (NEAR API data gap)`);
+  }
+  if (notFoundInApi > 0) {
+    log(`  → ${notFoundInApi} swaps not found in recent API pages (older than scan window)`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -352,6 +376,8 @@ async function syncDirection(direction, startTs) {
   let page = 1;
   let total = 0;
   let hasMore = true;
+  let missingZecTxid = 0;
+  let hasZecTxid = 0;
 
   while (hasMore) {
     const data = await fetchSwapPage(direction, page, startTs);
@@ -361,6 +387,8 @@ async function syncDirection(direction, startTs) {
 
     for (const tx of txs) {
       const row = transformSwap(tx, direction);
+      if (row.zec_txid) hasZecTxid++;
+      else missingZecTxid++;
       await upsertSwap(row);
       total++;
     }
@@ -374,6 +402,7 @@ async function syncDirection(direction, startTs) {
     }
   }
 
+  log(`  ${direction}: ${total} synced (${hasZecTxid} with zec_txid, ${missingZecTxid} missing — ${total > 0 ? ((missingZecTxid/total)*100).toFixed(1) : 0}% gap from NEAR API)`);
   return total;
 }
 
