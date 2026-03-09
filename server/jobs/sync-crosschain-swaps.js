@@ -380,118 +380,119 @@ async function refetchMissingTxids() {
 
 // ---------------------------------------------------------------------------
 // Self-heal: find missing zec_txid from our own blockchain data
-// For outflows: deposit_address IS a Zcash t-address, look it up directly
-// For inflows: recipient is the user's ZEC address, match by amount + time
+//
+// Strategy 1: Direct address lookup (outflows with t1 deposit_address)
+// Strategy 2: Amount + time matching (all remaining swaps)
+//   - For outflows: find tx with output value ≈ source_amount within time window
+//   - For inflows: find tx with output value ≈ dest_amount within time window
+//   - Only accept unique matches (exactly 1 candidate) to avoid false positives
 // ---------------------------------------------------------------------------
 
 async function selfHealFromBlockchain() {
   log('Self-healing missing zec_txid from blockchain data...');
 
-  // --- Outflows: deposit_address is a ZEC t-address ---
-  const { rows: outflows } = await pool.query(`
-    SELECT id, deposit_address, source_amount, swap_created_at
+  let totalFixed = 0;
+
+  // --- Strategy 1: Outflows with t1 deposit_address (direct lookup) ---
+  const { rows: outflowsDirect } = await pool.query(`
+    SELECT id, deposit_address
     FROM cross_chain_swaps
     WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'outflow'
       AND deposit_address LIKE 't1%'
   `);
 
-  let outflowFixed = 0;
-  for (const row of outflows) {
+  let directFixed = 0;
+  for (const row of outflowsDirect) {
     const { rows: txRows } = await pool.query(`
-      SELECT DISTINCT o.txid, t.block_time
+      SELECT DISTINCT o.txid
       FROM transaction_outputs o
       JOIN transactions t ON t.txid = o.txid
       WHERE o.address = $1
       ORDER BY t.block_time DESC
-      LIMIT 3
+      LIMIT 1
     `, [row.deposit_address]);
 
     if (txRows.length > 0) {
-      const txid = txRows[0].txid;
-      await pool.query(
-        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
-        [txid, row.id]
-      );
-      outflowFixed++;
-    }
-  }
-  log(`  Outflows: checked ${outflows.length}, fixed ${outflowFixed} from blockchain`);
-
-  // --- Inflows: recipient is the user's ZEC address ---
-  const { rows: inflows } = await pool.query(`
-    SELECT id, recipient, dest_amount, swap_created_at
-    FROM cross_chain_swaps
-    WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'inflow'
-      AND recipient IS NOT NULL AND recipient LIKE 't1%'
-  `);
-
-  let inflowFixed = 0;
-  for (const row of inflows) {
-    const swapTime = new Date(row.swap_created_at);
-    const windowStart = new Date(swapTime.getTime() - 2 * 3600 * 1000); // 2h before
-    const windowEnd = new Date(swapTime.getTime() + 24 * 3600 * 1000);  // 24h after
-
-    const amountZat = Math.round(row.dest_amount * 1e8);
-    const tolerance = Math.round(amountZat * 0.02); // 2% tolerance
-
-    const { rows: txRows } = await pool.query(`
-      SELECT DISTINCT o.txid
-      FROM transaction_outputs o
-      JOIN transactions t ON t.txid = o.txid
-      WHERE o.address = $1
-        AND t.block_time >= $2 AND t.block_time <= $3
-        AND o.value BETWEEN $4 AND $5
-      LIMIT 1
-    `, [row.recipient, Math.floor(windowStart.getTime() / 1000), Math.floor(windowEnd.getTime() / 1000), amountZat - tolerance, amountZat + tolerance]);
-
-    if (txRows.length > 0) {
       await pool.query(
         'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
         [txRows[0].txid, row.id]
       );
-      inflowFixed++;
+      directFixed++;
     }
   }
-  log(`  Inflows: checked ${inflows.length}, fixed ${inflowFixed} from blockchain`);
+  log(`  Strategy 1 (direct address): checked ${outflowsDirect.length}, fixed ${directFixed}`);
+  totalFixed += directFixed;
 
-  // Also try inflows with t3 (Sapling) addresses
-  const { rows: inflowsSapling } = await pool.query(`
-    SELECT id, recipient, dest_amount, swap_created_at
-    FROM cross_chain_swaps
-    WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'inflow'
-      AND recipient IS NOT NULL AND recipient LIKE 't3%'
-  `);
+  // --- Strategy 2: Amount + time matching for ALL remaining missing swaps ---
+  // Process in batches to avoid memory issues
+  const BATCH_SIZE = 500;
+  let offset = 0;
+  let amountFixed = 0;
+  let ambiguous = 0;
+  let noMatch = 0;
 
-  let saplingFixed = 0;
-  for (const row of inflowsSapling) {
-    const swapTime = new Date(row.swap_created_at);
-    const windowStart = new Date(swapTime.getTime() - 2 * 3600 * 1000);
-    const windowEnd = new Date(swapTime.getTime() + 24 * 3600 * 1000);
+  while (true) {
+    const { rows: batch } = await pool.query(`
+      SELECT id, direction, source_amount, dest_amount, swap_created_at
+      FROM cross_chain_swaps
+      WHERE zec_txid IS NULL AND status = 'SUCCESS'
+      ORDER BY swap_created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [BATCH_SIZE, offset]);
 
-    const amountZat = Math.round(row.dest_amount * 1e8);
-    const tolerance = Math.round(amountZat * 0.02);
+    if (batch.length === 0) break;
 
-    const { rows: txRows } = await pool.query(`
-      SELECT DISTINCT o.txid
-      FROM transaction_outputs o
-      JOIN transactions t ON t.txid = o.txid
-      WHERE o.address = $1
-        AND t.block_time >= $2 AND t.block_time <= $3
-        AND o.value BETWEEN $4 AND $5
-      LIMIT 1
-    `, [row.recipient, Math.floor(windowStart.getTime() / 1000), Math.floor(windowEnd.getTime() / 1000), amountZat - tolerance, amountZat + tolerance]);
+    for (const row of batch) {
+      // For outflows: user sent source_amount ZEC
+      // For inflows: user received dest_amount ZEC
+      const zecAmount = row.direction === 'outflow'
+        ? parseFloat(row.source_amount)
+        : parseFloat(row.dest_amount);
 
-    if (txRows.length > 0) {
-      await pool.query(
-        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
-        [txRows[0].txid, row.id]
-      );
-      saplingFixed++;
+      if (!zecAmount || zecAmount <= 0) { noMatch++; continue; }
+
+      const amountZat = Math.round(zecAmount * 1e8);
+      // Tight tolerance: 0.5% to minimize false positives
+      const tolerance = Math.max(Math.round(amountZat * 0.005), 1);
+
+      const swapTime = new Date(row.swap_created_at);
+      // For outflows: ZEC tx happens around or slightly before swap_created_at
+      // For inflows: ZEC tx happens after swap_created_at (bridge processing)
+      const windowStart = Math.floor((swapTime.getTime() - 4 * 3600 * 1000) / 1000);
+      const windowEnd = Math.floor((swapTime.getTime() + 48 * 3600 * 1000) / 1000);
+
+      // Find transactions with an output matching this exact amount in the time window
+      const { rows: candidates } = await pool.query(`
+        SELECT DISTINCT o.txid
+        FROM transaction_outputs o
+        JOIN transactions t ON t.txid = o.txid
+        WHERE o.value BETWEEN $1 AND $2
+          AND t.block_time >= $3 AND t.block_time <= $4
+          AND t.is_coinbase = false
+        LIMIT 2
+      `, [amountZat - tolerance, amountZat + tolerance, windowStart, windowEnd]);
+
+      if (candidates.length === 1) {
+        // Unique match — safe to assign
+        await pool.query(
+          'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
+          [candidates[0].txid, row.id]
+        );
+        amountFixed++;
+      } else if (candidates.length > 1) {
+        ambiguous++;
+      } else {
+        noMatch++;
+      }
     }
-  }
-  log(`  Inflows (t3): checked ${inflowsSapling.length}, fixed ${saplingFixed} from blockchain`);
 
-  const totalFixed = outflowFixed + inflowFixed + saplingFixed;
+    offset += BATCH_SIZE;
+    log(`  Strategy 2 progress: processed ${offset} swaps (fixed=${amountFixed}, ambiguous=${ambiguous}, no_match=${noMatch})`);
+  }
+
+  log(`  Strategy 2 (amount+time): fixed ${amountFixed}, ambiguous ${ambiguous}, no match ${noMatch}`);
+  totalFixed += amountFixed;
+
   log(`Self-heal complete: ${totalFixed} total fixed from blockchain data`);
   return totalFixed;
 }
