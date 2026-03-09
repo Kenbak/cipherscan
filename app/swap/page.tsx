@@ -29,6 +29,18 @@ interface RecommendedAmount {
   blendingScore: 'high' | 'medium' | 'low';
 }
 
+function formatRecAmount(amount: number, token: string): string {
+  const t = token.toLowerCase();
+  if (['usdc', 'usdt', 'dai', 'busd', 'tusd', 'usdp'].includes(t)) {
+    return amount >= 1 ? amount.toLocaleString(undefined, { maximumFractionDigits: 0 }) : amount.toString();
+  }
+  if (amount === 0) return '0';
+  if (amount >= 100) return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (amount >= 1) return amount.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 });
+  if (amount >= 0.01) return amount.toFixed(3);
+  return amount.toFixed(4);
+}
+
 interface Recommendation {
   chain: string;
   token: string;
@@ -651,10 +663,15 @@ export default function SwapPage() {
                             <button
                               key={i}
                               onClick={() => setAmount(String(rec.amount))}
-                              className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono text-muted hover:text-primary bg-white/[0.02] hover:bg-white/[0.06] transition-all"
+                              className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border ${
+                                rec.blendingScore === 'high'
+                                  ? 'border-cipher-green/30 text-cipher-green hover:bg-cipher-green/10'
+                                  : rec.blendingScore === 'medium'
+                                  ? 'border-amber-400/30 text-amber-400 hover:bg-amber-400/10'
+                                  : 'border-white/10 text-muted hover:bg-white/[0.06]'
+                              }`}
                             >
-                              {rec.amount}
-                              <span className={`w-1.5 h-1.5 rounded-full ${rec.blendingScore === 'high' ? 'bg-cipher-green' : rec.blendingScore === 'medium' ? 'bg-amber-400' : 'bg-gray-500'}`} />
+                              {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
                             </button>
                           ))}
                         </div>
@@ -954,7 +971,7 @@ export default function SwapPage() {
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="text-sm font-mono font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
-                              {rec.amount.toLocaleString()} {recommendations.token}
+                              {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${
                               rec.blendingScore === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
