@@ -348,6 +348,7 @@ async function updateAmountStats() {
  * Density-based clustering: find natural groups where amounts fall within 5% of each other
  */
 function clusterAmounts(amounts) {
+  amounts = amounts.filter(a => a.amount > 0);
   if (amounts.length === 0) return [];
 
   amounts.sort((a, b) => a.amount - b.amount);
@@ -371,11 +372,19 @@ function clusterAmounts(amounts) {
   // Only keep clusters with >= 3 swaps
   return clusters
     .filter(c => c.amounts.length >= 3)
-    .map(c => ({
-      centroid: parseFloat((c.amounts.reduce((s, a) => s + a.amount, 0) / c.amounts.length).toFixed(4)),
-      count: c.amounts.length,
-      totalUsd: parseFloat(c.totalUsd.toFixed(2)),
-    }))
+    .map(c => {
+      const rawCentroid = c.amounts.reduce((s, a) => s + a.amount, 0) / c.amounts.length;
+      const avgUsd = c.totalUsd / c.amounts.length;
+      const unitPrice = rawCentroid > 0 ? avgUsd / rawCentroid : 1;
+      // Round so each step ≈ $1-$5
+      const decimals = unitPrice >= 10000 ? 5 : unitPrice >= 1000 ? 4 : unitPrice >= 100 ? 3 : unitPrice >= 10 ? 2 : unitPrice >= 1 ? 1 : 0;
+      return {
+        centroid: parseFloat(rawCentroid.toFixed(decimals)),
+        count: c.amounts.length,
+        totalUsd: parseFloat(c.totalUsd.toFixed(2)),
+      };
+    })
+    .filter(c => c.centroid > 0)
     .sort((a, b) => b.count - a.count);
 }
 

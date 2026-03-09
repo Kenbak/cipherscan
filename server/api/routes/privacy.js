@@ -660,59 +660,66 @@ router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts
       });
     }
 
-    // Get recent stats from swap_amount_stats_daily
+    // Query actual swap amounts — no clustering, just count real amounts
+    // Use light rounding (2 significant figures) to group near-identical amounts
     const { rows } = await pool.query(`
-      SELECT amount_bucket, swap_count, total_volume_usd
-      FROM swap_amount_stats_daily
+      SELECT
+        source_amount as exact_amount,
+        COUNT(*) as swap_count
+      FROM cross_chain_swaps
       WHERE source_chain = $1 AND source_token = $2
-        AND date >= (CURRENT_DATE - INTERVAL '7 days')
-      ORDER BY swap_count DESC
-      LIMIT 10
+        AND direction = 'inflow' AND status = 'SUCCESS'
+        AND source_amount > 0
+        AND swap_created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY source_amount
+      ORDER BY swap_count DESC, source_amount
+      LIMIT 50
     `, [chain, token]);
 
     if (rows.length === 0) {
-      // Fallback: query cross_chain_swaps directly for trailing 7d
-      const fallback = await pool.query(`
-        SELECT
-          ROUND(source_amount, 0) as amount_bucket,
-          COUNT(*) as swap_count,
-          SUM(source_amount_usd) as total_volume_usd
-        FROM cross_chain_swaps
-        WHERE source_chain = $1 AND source_token = $2
-          AND direction = 'inflow' AND status = 'SUCCESS'
-          AND swap_created_at >= NOW() - INTERVAL '7 days'
-        GROUP BY ROUND(source_amount, 0)
-        HAVING COUNT(*) >= 2
-        ORDER BY swap_count DESC
-        LIMIT 10
-      `, [chain, token]);
-
-      if (fallback.rows.length === 0) {
-        return res.json({
-          success: true,
-          chain,
-          token,
-          recommendations: [],
-          tip: `Not enough ${token} swap data from ${chain.toUpperCase()} this week to generate recommendations.`,
-        });
-      }
-
-      rows.push(...fallback.rows);
+      return res.json({
+        success: true,
+        chain,
+        token,
+        recommendations: [],
+        tip: `Not enough ${token} swap data from ${chain.toUpperCase()} this week to generate recommendations.`,
+      });
     }
 
-    // Total swaps for percentage calc
-    const totalSwaps = rows.reduce((s, r) => s + parseInt(r.swap_count), 0);
+    // Group amounts that are within 2% of each other (same "intended" amount)
+    const grouped = [];
+    const used = new Set();
+    for (let i = 0; i < rows.length; i++) {
+      if (used.has(i)) continue;
+      const amt = parseFloat(rows[i].exact_amount);
+      let count = parseInt(rows[i].swap_count);
+      for (let j = i + 1; j < rows.length; j++) {
+        if (used.has(j)) continue;
+        const other = parseFloat(rows[j].exact_amount);
+        if (amt > 0 && Math.abs(other - amt) / amt <= 0.02) {
+          count += parseInt(rows[j].swap_count);
+          used.add(j);
+        }
+      }
+      grouped.push({ amount: amt, swapCount: count });
+      used.add(i);
+    }
 
-    const recommendations = rows.slice(0, 5).map(r => {
-      const count = parseInt(r.swap_count);
-      const pct = (count / totalSwaps) * 100;
-      return {
-        amount: parseFloat(r.amount_bucket),
-        swapCount: count,
-        percentage: parseFloat(pct.toFixed(1)),
-        blendingScore: pct >= 10 ? 'high' : pct >= 5 ? 'medium' : 'low',
-      };
-    });
+    grouped.sort((a, b) => b.swapCount - a.swapCount);
+
+    const totalSwaps = grouped.reduce((s, g) => s + g.swapCount, 0);
+
+    const recommendations = grouped
+      .slice(0, 5)
+      .map(g => {
+        const pct = (g.swapCount / totalSwaps) * 100;
+        return {
+          amount: g.amount,
+          swapCount: g.swapCount,
+          percentage: parseFloat(pct.toFixed(1)),
+          blendingScore: pct >= 10 ? 'high' : pct >= 5 ? 'medium' : 'low',
+        };
+      });
 
     const topRec = recommendations[0];
     const tip = topRec
