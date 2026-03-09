@@ -869,12 +869,36 @@ export default function SwapPage() {
 
                 {/* ─── WAITING FOR DEPOSIT ─── */}
                 {step === 'waiting' && (
-                  <div className="space-y-6 animate-fade-in">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-cipher-cyan/20 border-t-cipher-cyan animate-spin" />
-                      <div className="text-xs text-muted mb-1">Send exactly</div>
-                      <div className="text-2xl font-bold font-mono text-primary">{amount} {selectedToken.token}</div>
-                      <div className="text-xs text-muted mt-1">on {selectedToken.chainLabel}</div>
+                  <div className="space-y-5 animate-fade-in">
+                    {/* Swap summary row */}
+                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
+                          <div>
+                            <div className="text-base font-bold font-mono text-primary">{amount} {selectedToken.token}</div>
+                            <div className="text-[10px] text-muted">{selectedToken.chainLabel}</div>
+                          </div>
+                        </div>
+                        <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-base font-bold font-mono text-foreground">{estimatedZec || '~'} ZEC</div>
+                            <div className="text-[10px] text-muted">Estimated</div>
+                          </div>
+                          <TokenChainIcon token="zec" chain="zec" size={24} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status indicator */}
+                    <div className="flex items-center justify-center gap-2.5 py-1">
+                      <div className="w-2 h-2 rounded-full bg-cipher-cyan animate-pulse" />
+                      <span className="text-xs font-mono text-secondary uppercase tracking-wider">
+                        {swapStatus ? swapStatus.replace(/_/g, ' ') : 'Waiting for deposit'}
+                      </span>
                     </div>
 
                     {/* One-click wallet send */}
@@ -882,61 +906,55 @@ export default function SwapPage() {
                       <button
                         onClick={sendFromWallet}
                         disabled={sendingTx}
-                        className="w-full py-4 rounded-xl font-mono font-semibold text-sm bg-gradient-to-b from-cipher-cyan to-[#00B8E0] text-[#08090F] hover:shadow-[0_4px_20px_rgba(0,212,255,0.25)] hover:-translate-y-[1px] active:translate-y-0 transition-all disabled:opacity-50"
+                        className="w-full py-3.5 rounded-xl font-mono font-semibold text-sm bg-gradient-to-b from-cipher-green to-[#00C870] text-[#08090F] hover:shadow-[0_4px_20px_rgba(0,230,118,0.2)] hover:-translate-y-[1px] active:translate-y-0 transition-all disabled:opacity-50"
                       >
                         {sendingTx ? 'Confirm in wallet...' : `Send ${amount} ${selectedToken.token}`}
                       </button>
                     )}
 
                     {txHash && (
-                      <div className="rounded-xl bg-cipher-green/[0.06] border border-cipher-green/20 p-4 text-center">
-                        <div className="text-xs font-mono text-cipher-green mb-1">Transaction sent</div>
-                        <code className="text-[10px] text-muted break-all">{txHash}</code>
+                      <div className="rounded-xl bg-cipher-green/[0.06] border border-cipher-green/20 p-4">
+                        <div className="flex items-center gap-2 justify-center mb-2">
+                          <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          <span className="text-xs font-mono text-cipher-green font-semibold">Transaction sent</span>
+                        </div>
+                        <code className="text-[10px] text-muted break-all block text-center">{txHash}</code>
                       </div>
                     )}
 
-                    {walletError && <p className="text-xs text-red-400 text-center">{walletError}</p>}
+                    {walletError && <p className="text-xs text-red-400 text-center font-mono">{walletError}</p>}
 
-                    {/* Separator */}
-                    {wallet.connected && !txHash && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-white/[0.04]" />
-                        <span className="text-[10px] font-mono text-muted">or send manually</span>
-                        <div className="flex-1 h-px bg-white/[0.04]" />
-                      </div>
-                    )}
-
-                    {/* Deposit address */}
-                    <div>
-                      <div className="text-[11px] font-mono text-muted uppercase tracking-wider mb-2 text-center">Deposit address</div>
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                        <code className="text-xs text-cipher-cyan break-all font-mono block text-center leading-relaxed">{depositAddress}</code>
-                      </div>
-                      <button
-                        onClick={copyAddress}
-                        className="mt-2 w-full py-2 rounded-lg text-xs font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        {copied ? (
-                          <>
-                            <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                            Copy address
-                          </>
+                    {/* Manual deposit section */}
+                    {(!wallet.connected || (wallet.connected && !txHash)) && (
+                      <>
+                        {wallet.connected && (
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-white/[0.04]" />
+                            <span className="text-[10px] font-mono text-muted">or send manually</span>
+                            <div className="flex-1 h-px bg-white/[0.04]" />
+                          </div>
                         )}
-                      </button>
-                    </div>
 
-                    {/* Status */}
-                    <div className="text-center text-xs font-mono">
-                      <span className="text-muted">Status: </span>
-                      <span className="text-cipher-cyan uppercase font-semibold">{swapStatus || 'waiting for deposit'}</span>
-                    </div>
+                        <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+                          <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">Deposit address</div>
+                          <div className="flex items-center gap-2">
+                            <code className="text-[11px] text-secondary break-all font-mono flex-1 leading-relaxed">{depositAddress}</code>
+                            <button
+                              onClick={copyAddress}
+                              className="shrink-0 p-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+                            >
+                              {copied ? (
+                                <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              ) : (
+                                <svg className="w-4 h-4 text-muted hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
 
-                    <button onClick={resetSwap} className="w-full text-xs font-mono text-muted hover:text-secondary transition-colors py-2">
+                    <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
                       Cancel
                     </button>
                   </div>
