@@ -51,6 +51,7 @@ interface Recommendation {
 interface QuoteResponse {
   success: boolean;
   depositAddress?: string;
+  amountOut?: string;
   estimatedAmountOut?: string;
   deadline?: string;
   error?: string;
@@ -264,10 +265,12 @@ export default function SwapPage() {
     else setTokensLoading(false);
   }, []);
 
-  // Auto-fill refund address from connected wallet
+  // Sync refund address with connected wallet
   useEffect(() => {
-    if (wallet.connected && wallet.address && !refundAddress) {
+    if (wallet.connected && wallet.address) {
       setRefundAddress(wallet.address);
+    } else {
+      setRefundAddress('');
     }
   }, [wallet.connected, wallet.address]);
 
@@ -284,7 +287,6 @@ export default function SwapPage() {
     const fetchBal = async () => {
       let bal: string | null = null;
       const isEvm = evmChains.includes(chainKey);
-      console.log('[swap] Balance fetch:', { token: selectedToken.token, chain: chainKey, isNativeToken, contractAddress: selectedToken.contractAddress, walletType: wallet.walletType });
       if (isNativeToken) {
         bal = await wallet.getNativeBalance(isEvm ? chainKey : undefined);
       } else if (selectedToken.contractAddress) {
@@ -379,8 +381,9 @@ export default function SwapPage() {
       if (!data.success) throw new Error(data.error || 'Failed to get quote');
       setQuote(data);
       setDepositAddress(data.depositAddress || '');
-      if (data.estimatedAmountOut) {
-        setEstimatedZec((parseInt(data.estimatedAmountOut) / Math.pow(10, ZEC_DECIMALS)).toFixed(4));
+      const outAmount = data.amountOut || data.estimatedAmountOut;
+      if (outAmount) {
+        setEstimatedZec((parseInt(outAmount) / Math.pow(10, ZEC_DECIMALS)).toFixed(4));
       }
       setStep('quote');
     } catch (err: any) {
@@ -802,7 +805,7 @@ export default function SwapPage() {
                         </svg>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <div className="text-lg font-bold font-mono text-cipher-green">{estimatedZec} ZEC</div>
+                            <div className="text-lg font-bold font-mono text-foreground">{estimatedZec || '~'} ZEC</div>
                             <div className="text-[11px] text-muted">Estimated</div>
                           </div>
                           <TokenChainIcon token="zec" chain="zec" size={28} />

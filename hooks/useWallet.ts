@@ -403,7 +403,6 @@ export function useWallet(): UseWalletReturn {
         return bal;
       }
       if (state.walletType === 'solana') {
-        console.log('[wallet] Fetching SPL balance:', { address: state.address, mint: contractAddress });
         const rpcRes = await fetch(SOLANA_RPC, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -414,7 +413,6 @@ export function useWallet(): UseWalletReturn {
           }),
         });
         const rpcData = await rpcRes.json();
-        console.log('[wallet] SPL RPC response:', JSON.stringify(rpcData).slice(0, 500));
         const accounts = rpcData.result?.value || [];
         if (accounts.length > 0) {
           const info = accounts[0].account.data.parsed.info;
