@@ -59,6 +59,23 @@ interface QuoteResponse {
 
 type SwapStep = 'form' | 'quote' | 'waiting' | 'complete' | 'error';
 
+const PENDING_SWAP_KEY = 'cipherscan_pending_swap';
+
+interface PendingSwap {
+  depositAddress: string;
+  amount: string;
+  token: string;
+  chain: string;
+  chainLabel: string;
+  assetId: string;
+  decimals: number;
+  contractAddress?: string;
+  zecAddress: string;
+  estimatedZec: string;
+  txHash?: string;
+  createdAt: number;
+}
+
 interface SourceToken {
   id: string;
   chain: string;
@@ -230,6 +247,38 @@ export default function SwapPage() {
   const pickerRef = useRef<HTMLDivElement>(null);
   const tokenPickerRef = useRef<HTMLDivElement>(null);
 
+  // Restore pending swap from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PENDING_SWAP_KEY);
+      if (!raw) return;
+      const pending: PendingSwap = JSON.parse(raw);
+      const age = Date.now() - pending.createdAt;
+      if (age > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(PENDING_SWAP_KEY);
+        return;
+      }
+      setDepositAddress(pending.depositAddress);
+      setAmount(pending.amount);
+      setZecAddress(pending.zecAddress);
+      setEstimatedZec(pending.estimatedZec);
+      if (pending.txHash) setTxHash(pending.txHash);
+      const restored: SourceToken = {
+        id: `${pending.chain}:${pending.token}`,
+        chain: pending.chain,
+        chainLabel: pending.chainLabel,
+        token: pending.token,
+        decimals: pending.decimals,
+        assetId: pending.assetId,
+        contractAddress: pending.contractAddress,
+      };
+      setSelectedToken(restored);
+      setStep('waiting');
+    } catch {
+      localStorage.removeItem(PENDING_SWAP_KEY);
+    }
+  }, []);
+
   // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -333,6 +382,27 @@ export default function SwapPage() {
     if (isMainnet) fetchRecs();
   }, [selectedToken]);
 
+  // Persist pending swap to localStorage
+  useEffect(() => {
+    if (step === 'waiting' && depositAddress) {
+      const pending: PendingSwap = {
+        depositAddress,
+        amount,
+        token: selectedToken.token,
+        chain: selectedToken.chain,
+        chainLabel: selectedToken.chainLabel,
+        assetId: selectedToken.assetId,
+        decimals: selectedToken.decimals,
+        contractAddress: selectedToken.contractAddress,
+        zecAddress,
+        estimatedZec,
+        txHash: txHash || undefined,
+        createdAt: Date.now(),
+      };
+      localStorage.setItem(PENDING_SWAP_KEY, JSON.stringify(pending));
+    }
+  }, [step, depositAddress, txHash]);
+
   // Poll swap status
   useEffect(() => {
     if (step !== 'waiting' || !depositAddress) return;
@@ -343,11 +413,13 @@ export default function SwapPage() {
         if (data.status === 'COMPLETE' || data.status === 'SUCCESS') {
           setSwapStatus('complete');
           setStep('complete');
+          localStorage.removeItem(PENDING_SWAP_KEY);
           if (pollRef.current) clearInterval(pollRef.current);
         } else if (data.status === 'FAILED' || data.status === 'REFUNDED') {
           setSwapStatus(data.status.toLowerCase());
           setStep('error');
           setError(`Swap ${data.status.toLowerCase()}. Funds will be returned to your refund address.`);
+          localStorage.removeItem(PENDING_SWAP_KEY);
           if (pollRef.current) clearInterval(pollRef.current);
         } else {
           setSwapStatus(data.status || 'processing');
@@ -442,6 +514,7 @@ export default function SwapPage() {
     setTxHash('');
     setWalletError('');
     setCopied(false);
+    localStorage.removeItem(PENDING_SWAP_KEY);
   };
 
   const insufficientBalance = !!(wallet.connected && nativeBalance && amount && parseFloat(amount) > parseFloat(nativeBalance));
