@@ -284,6 +284,7 @@ export default function SwapPage() {
     const fetchBal = async () => {
       let bal: string | null = null;
       const isEvm = evmChains.includes(chainKey);
+      console.log('[swap] Balance fetch:', { token: selectedToken.token, chain: chainKey, isNativeToken, contractAddress: selectedToken.contractAddress, walletType: wallet.walletType });
       if (isNativeToken) {
         bal = await wallet.getNativeBalance(isEvm ? chainKey : undefined);
       } else if (selectedToken.contractAddress) {

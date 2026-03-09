@@ -6,6 +6,8 @@ import { mainnet, base, arbitrum, polygon, optimism, avalanche, bsc } from 'viem
 
 type WalletType = 'evm' | 'solana' | 'bitcoin' | null;
 
+const SOLANA_RPC = `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY || ''}`;
+
 export interface DetectedWallet {
   type: WalletType;
   name: string;
@@ -334,7 +336,7 @@ export function useWallet(): UseWalletReturn {
 
     if (state.walletType === 'solana') {
       const { PublicKey, SystemProgram, Transaction, Connection } = await import('@solana/web3.js');
-      const connection = new Connection('https://solana-rpc.publicnode.com');
+      const connection = new Connection(SOLANA_RPC);
       const lamports = Math.round(parseFloat(amount) * Math.pow(10, decimals));
       const tx = new Transaction().add(
         SystemProgram.transfer({ fromPubkey: new PublicKey(state.address!), toPubkey: new PublicKey(to), lamports })
@@ -401,7 +403,8 @@ export function useWallet(): UseWalletReturn {
         return bal;
       }
       if (state.walletType === 'solana') {
-        const rpcRes = await fetch('https://solana-rpc.publicnode.com', {
+        console.log('[wallet] Fetching SPL balance:', { address: state.address, mint: contractAddress });
+        const rpcRes = await fetch(SOLANA_RPC, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -411,6 +414,7 @@ export function useWallet(): UseWalletReturn {
           }),
         });
         const rpcData = await rpcRes.json();
+        console.log('[wallet] SPL RPC response:', JSON.stringify(rpcData).slice(0, 500));
         const accounts = rpcData.result?.value || [];
         if (accounts.length > 0) {
           const info = accounts[0].account.data.parsed.info;
@@ -436,7 +440,7 @@ export function useWallet(): UseWalletReturn {
         return bal;
       }
       if (state.walletType === 'solana') {
-        const rpcRes = await fetch('https://solana-rpc.publicnode.com', {
+        const rpcRes = await fetch(SOLANA_RPC, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [state.address] }),
