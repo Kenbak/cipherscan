@@ -505,7 +505,7 @@ export default function SwapPage() {
     setSendingTx(true);
     setWalletError('');
     try {
-      const hash = await wallet.sendTransaction(depositAddress, amount, selectedToken.decimals);
+      const hash = await wallet.sendTransaction(depositAddress, amount, selectedToken.decimals, selectedToken.contractAddress);
       setTxHash(hash);
     } catch (err: any) {
       setWalletError(err.message || 'Transaction rejected');

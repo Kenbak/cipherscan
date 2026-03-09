@@ -26,7 +26,7 @@ interface WalletState {
 interface UseWalletReturn extends WalletState {
   connect: (wallet: DetectedWallet) => Promise<void>;
   disconnect: () => void;
-  sendTransaction: (to: string, amount: string, decimals: number) => Promise<string>;
+  sendTransaction: (to: string, amount: string, decimals: number, contractAddress?: string) => Promise<string>;
   getNativeBalance: (evmChainKey?: string) => Promise<string | null>;
   getTokenBalance: (contractAddress: string, decimals: number, evmChainKey?: string) => Promise<string | null>;
   switchEvmChain: (chainKey: string) => Promise<boolean>;
@@ -323,10 +323,21 @@ export function useWallet(): UseWalletReturn {
     setState({ connected: false, address: null, walletType: null, walletName: null, chainId: null });
   }, [state.walletType, rawProvider]);
 
-  const sendTransaction = useCallback(async (to: string, amount: string, decimals: number): Promise<string> => {
+  const sendTransaction = useCallback(async (to: string, amount: string, decimals: number, contractAddress?: string): Promise<string> => {
     if (!state.connected || !rawProvider) throw new Error('Wallet not connected');
 
     if (state.walletType === 'evm') {
+      if (contractAddress) {
+        const value = parseUnits(amount, decimals);
+        const transferSelector = '0xa9059cbb';
+        const paddedTo = to.slice(2).padStart(64, '0');
+        const paddedAmount = value.toString(16).padStart(64, '0');
+        const data = transferSelector + paddedTo + paddedAmount;
+        return await rawProvider.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: state.address, to: contractAddress, data, value: '0x0' }],
+        });
+      }
       const value = parseUnits(amount, decimals);
       return await rawProvider.request({
         method: 'eth_sendTransaction',
@@ -335,12 +346,33 @@ export function useWallet(): UseWalletReturn {
     }
 
     if (state.walletType === 'solana') {
-      const { PublicKey, SystemProgram, Transaction, Connection } = await import('@solana/web3.js');
+      const { PublicKey, Transaction, Connection } = await import('@solana/web3.js');
       const connection = new Connection(SOLANA_RPC);
-      const lamports = Math.round(parseFloat(amount) * Math.pow(10, decimals));
-      const tx = new Transaction().add(
-        SystemProgram.transfer({ fromPubkey: new PublicKey(state.address!), toPubkey: new PublicKey(to), lamports })
-      );
+      const tx = new Transaction();
+
+      if (contractAddress) {
+        const { createTransferInstruction, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getAccount } = await import('@solana/spl-token');
+        const mint = new PublicKey(contractAddress);
+        const from = new PublicKey(state.address!);
+        const toPubkey = new PublicKey(to);
+        const tokenAmount = BigInt(Math.round(parseFloat(amount) * Math.pow(10, decimals)));
+
+        const sourceAta = await getAssociatedTokenAddress(mint, from);
+        const destAta = await getAssociatedTokenAddress(mint, toPubkey, true);
+
+        try {
+          await getAccount(connection, destAta);
+        } catch {
+          tx.add(createAssociatedTokenAccountInstruction(from, destAta, toPubkey, mint));
+        }
+
+        tx.add(createTransferInstruction(sourceAta, destAta, from, tokenAmount));
+      } else {
+        const { SystemProgram } = await import('@solana/web3.js');
+        const lamports = Math.round(parseFloat(amount) * Math.pow(10, decimals));
+        tx.add(SystemProgram.transfer({ fromPubkey: new PublicKey(state.address!), toPubkey: new PublicKey(to), lamports }));
+      }
+
       tx.feePayer = new PublicKey(state.address!);
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       const signed = await rawProvider.signAndSendTransaction(tx);
