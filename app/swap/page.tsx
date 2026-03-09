@@ -53,6 +53,7 @@ interface SourceToken {
   token: string;
   decimals: number;
   assetId: string;
+  contractAddress?: string;
 }
 
 const CHAIN_LABELS: Record<string, string> = {
@@ -75,14 +76,30 @@ function apiTokensToSourceTokens(apiTokens: any[]): SourceToken[] {
       if (id.includes('zec') || t.blockchain === 'zec') return false;
       return true;
     })
-    .map(t => ({
-      id: `${t.blockchain}-${t.symbol.toLowerCase()}-${t.assetId}`,
-      chain: t.blockchain,
-      chainLabel: CHAIN_LABELS[t.blockchain] || t.blockchain,
-      token: t.symbol,
-      decimals: t.decimals,
-      assetId: t.assetId,
-    }))
+    .map(t => {
+      let contractAddress: string | undefined;
+      if (t.address) contractAddress = t.address;
+      else if (t.contractAddress) contractAddress = t.contractAddress;
+      else if (t.assetId) {
+        const evmMatch = t.assetId.match(/0x[a-fA-F0-9]{40}/);
+        if (evmMatch) {
+          contractAddress = evmMatch[0];
+        } else {
+          // Solana SPL: "nep141:sol-<MINT>.omft.near" → extract mint
+          const solMatch = t.assetId.match(/sol-([A-HJ-NP-Za-km-z1-9]{32,44})\./);
+          if (solMatch) contractAddress = solMatch[1];
+        }
+      }
+      return {
+        id: `${t.blockchain}-${t.symbol.toLowerCase()}-${t.assetId}`,
+        chain: t.blockchain,
+        chainLabel: CHAIN_LABELS[t.blockchain] || t.blockchain,
+        token: t.symbol,
+        decimals: t.decimals,
+        assetId: t.assetId,
+        contractAddress,
+      };
+    })
     .sort((a, b) => {
       const aIdx = POPULAR_ORDER.indexOf(a.token.toLowerCase());
       const bIdx = POPULAR_ORDER.indexOf(b.token.toLowerCase());
@@ -208,12 +225,29 @@ export default function SwapPage() {
     }
   }, [wallet.connected, wallet.address]);
 
-  // Fetch native balance when wallet connects or token changes
+  const NATIVE_TOKENS = ['eth', 'sol', 'btc', 'bnb', 'doge', 'ltc', 'avax', 'matic', 'pol'];
+  const isNativeToken = NATIVE_TOKENS.includes(selectedToken.token.toLowerCase()) && !selectedToken.contractAddress;
+
+  const evmChains = ['eth', 'base', 'arb', 'pol', 'op', 'avax', 'bsc'];
+  const chainKey = selectedToken.chain;
+
   useEffect(() => {
     setNativeBalance(null);
     if (!wallet.connected) return;
     let cancelled = false;
-    wallet.getNativeBalance().then(bal => { if (!cancelled) setNativeBalance(bal); });
+    const fetchBal = async () => {
+      let bal: string | null = null;
+      const isEvm = evmChains.includes(chainKey);
+      if (isNativeToken) {
+        bal = await wallet.getNativeBalance(isEvm ? chainKey : undefined);
+      } else if (selectedToken.contractAddress) {
+        bal = await wallet.getTokenBalance(selectedToken.contractAddress, selectedToken.decimals, isEvm ? chainKey : undefined);
+      } else {
+        bal = await wallet.getNativeBalance(isEvm ? chainKey : undefined);
+      }
+      if (!cancelled) setNativeBalance(bal);
+    };
+    fetchBal();
     return () => { cancelled = true; };
   }, [wallet.connected, wallet.address, selectedToken]);
 
@@ -472,7 +506,7 @@ export default function SwapPage() {
                         {wallet.connected && nativeBalance && (
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-muted">
-                              Bal: {parseFloat(nativeBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {wallet.walletType === 'evm' ? 'ETH' : wallet.walletType === 'solana' ? 'SOL' : 'BTC'}
+                              Bal: {parseFloat(nativeBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedToken.token}
                             </span>
                             <button
                               onClick={() => setAmount(String(parseFloat(nativeBalance) * 0.5))}
@@ -689,7 +723,7 @@ export default function SwapPage() {
 
                     {/* Fee note */}
                     <p className="text-center text-[10px] font-mono text-muted/60">
-                      0.5% fee · Powered by NEAR Intents · Slippage: {slippage / 100}%
+                      Powered by NEAR Intents · Slippage: {slippage / 100}%
                     </p>
                   </div>
                 )}
@@ -909,23 +943,6 @@ export default function SwapPage() {
                     Privacy recommendations appear once swap data is collected.
                   </p>
                 )}
-              </div>
-            </div>
-
-            {/* Info card */}
-            <div className="card p-5">
-              <div className="space-y-3 text-[12px] text-muted">
-                {[
-                  { icon: '✓', text: 'Non-custodial — send from your wallet', color: 'text-cipher-green' },
-                  { icon: '✓', text: '15+ chains (ETH, BTC, SOL, NEAR, Base...)', color: 'text-cipher-green' },
-                  { icon: '✓', text: 'Powered by NEAR Intents', color: 'text-cipher-green' },
-                  { icon: 'i', text: '0.5% fee supports CipherScan', color: 'text-cipher-cyan' },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <span className={`text-xs font-mono font-bold shrink-0 ${item.color}`}>{item.icon}</span>
-                    <span>{item.text}</span>
-                  </div>
-                ))}
               </div>
             </div>
 

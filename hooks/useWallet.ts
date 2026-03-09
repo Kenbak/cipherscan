@@ -25,7 +25,9 @@ interface UseWalletReturn extends WalletState {
   connect: (wallet: DetectedWallet) => Promise<void>;
   disconnect: () => void;
   sendTransaction: (to: string, amount: string, decimals: number) => Promise<string>;
-  getNativeBalance: () => Promise<string | null>;
+  getNativeBalance: (evmChainKey?: string) => Promise<string | null>;
+  getTokenBalance: (contractAddress: string, decimals: number, evmChainKey?: string) => Promise<string | null>;
+  switchEvmChain: (chainKey: string) => Promise<boolean>;
   getWalletsForChain: (chainId: string) => DetectedWallet[];
   allWallets: DetectedWallet[];
   switching: boolean;
@@ -351,18 +353,89 @@ export function useWallet(): UseWalletReturn {
     throw new Error('Unknown wallet type');
   }, [state, rawProvider]);
 
-  const getNativeBalance = useCallback(async (): Promise<string | null> => {
-    if (!state.connected || !rawProvider || !state.address) return null;
+  const switchEvmChain = useCallback(async (chainKey: string): Promise<boolean> => {
+    if (state.walletType !== 'evm' || !rawProvider) return false;
+    const target = EVM_CHAINS[chainKey];
+    if (!target) return false;
+    const targetHex = '0x' + target.id.toString(16);
     try {
-      if (state.walletType === 'evm') {
-        const hex = await rawProvider.request({ method: 'eth_getBalance', params: [state.address, 'latest'] });
-        const wei = BigInt(hex);
-        const bal = (Number(wei) / 1e18).toFixed(6);
-        console.log('[wallet] EVM balance:', bal);
+      const currentHex = await rawProvider.request({ method: 'eth_chainId' });
+      if (parseInt(currentHex, 16) === target.id) return true;
+      await rawProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+      setState(prev => ({ ...prev, chainId: target.id }));
+      return true;
+    } catch (err: any) {
+      if (err?.code === 4902) {
+        try {
+          await rawProvider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: targetHex,
+              chainName: target.name,
+              rpcUrls: target.rpcUrls?.default?.http ? [...target.rpcUrls.default.http] : [],
+              nativeCurrency: target.nativeCurrency,
+              blockExplorers: target.blockExplorers?.default ? [{ url: target.blockExplorers.default.url }] : [],
+            }],
+          });
+          setState(prev => ({ ...prev, chainId: target.id }));
+          return true;
+        } catch { /* user rejected add */ }
+      }
+      console.error('[wallet] Chain switch failed:', err);
+      return false;
+    }
+  }, [state.walletType, rawProvider]);
+
+  const getTokenBalance = useCallback(async (contractAddress: string, decimals: number, evmChainKey?: string): Promise<string | null> => {
+    if (!state.connected || !state.address) return null;
+    try {
+      if (state.walletType === 'evm' && rawProvider) {
+        if (evmChainKey) await switchEvmChain(evmChainKey);
+        const data = '0x70a08231' + state.address.slice(2).padStart(64, '0');
+        const hex = await rawProvider.request({
+          method: 'eth_call',
+          params: [{ to: contractAddress, data }, 'latest'],
+        });
+        const raw = BigInt(hex);
+        const bal = (Number(raw) / Math.pow(10, decimals)).toFixed(6);
         return bal;
       }
       if (state.walletType === 'solana') {
-        // Use fetch directly — simpler and avoids @solana/web3.js Connection issues
+        const rpcRes = await fetch('https://solana-rpc.publicnode.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 1,
+            method: 'getTokenAccountsByOwner',
+            params: [state.address, { mint: contractAddress }, { encoding: 'jsonParsed' }],
+          }),
+        });
+        const rpcData = await rpcRes.json();
+        const accounts = rpcData.result?.value || [];
+        if (accounts.length > 0) {
+          const info = accounts[0].account.data.parsed.info;
+          const bal = (Number(info.tokenAmount.amount) / Math.pow(10, info.tokenAmount.decimals)).toFixed(6);
+          return bal;
+        }
+        return '0';
+      }
+    } catch (err) {
+      console.error('[wallet] Token balance fetch failed:', err);
+    }
+    return null;
+  }, [state, rawProvider, switchEvmChain]);
+
+  const getNativeBalance = useCallback(async (evmChainKey?: string): Promise<string | null> => {
+    if (!state.connected || !rawProvider || !state.address) return null;
+    try {
+      if (state.walletType === 'evm') {
+        if (evmChainKey) await switchEvmChain(evmChainKey);
+        const hex = await rawProvider.request({ method: 'eth_getBalance', params: [state.address, 'latest'] });
+        const wei = BigInt(hex);
+        const bal = (Number(wei) / 1e18).toFixed(6);
+        return bal;
+      }
+      if (state.walletType === 'solana') {
         const rpcRes = await fetch('https://solana-rpc.publicnode.com', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -371,7 +444,6 @@ export function useWallet(): UseWalletReturn {
         const rpcData = await rpcRes.json();
         if (rpcData.result?.value != null) {
           const bal = (rpcData.result.value / 1e9).toFixed(6);
-          console.log('[wallet] Solana balance:', bal, 'SOL');
           return bal;
         }
       }
@@ -379,7 +451,6 @@ export function useWallet(): UseWalletReturn {
         if (rawProvider.getBalance) {
           const sats = await rawProvider.getBalance();
           const bal = (sats / 1e8).toFixed(8);
-          console.log('[wallet] Bitcoin balance:', bal);
           return bal;
         }
       }
@@ -387,7 +458,7 @@ export function useWallet(): UseWalletReturn {
       console.error('[wallet] Balance fetch failed:', err);
     }
     return null;
-  }, [state, rawProvider]);
+  }, [state, rawProvider, switchEvmChain]);
 
   return {
     ...state,
@@ -395,6 +466,8 @@ export function useWallet(): UseWalletReturn {
     disconnect,
     sendTransaction,
     getNativeBalance,
+    getTokenBalance,
+    switchEvmChain,
     getWalletsForChain,
     allWallets,
     switching,

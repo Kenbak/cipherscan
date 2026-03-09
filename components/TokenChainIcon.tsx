@@ -88,9 +88,6 @@ const NATIVE_PAIRS: Record<string, string> = {
   sui: 'sui',
   ltc: 'ltc',
   ada: 'ada',
-  base: 'eth',
-  arb: 'eth',
-  op: 'eth',
 };
 
 interface TokenChainIconProps {
