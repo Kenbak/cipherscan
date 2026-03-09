@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@mayaprotocol/zcash-js": "^1.0.7",
+    "@solana/web3.js": "^1.98.4",
     "@types/pg": "^8.15.6",
     "bip39": "^3.1.0",
     "geist": "^1.7.0",
@@ -20,7 +21,9 @@
     "react-dom": "^19.0.0",
     "recharts": "^2.15.4",
     "redis": "^5.10.0",
-    "topojson-client": "^3.1.0"
+    "topojson-client": "^3.1.0",
+    "viem": "^2.47.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

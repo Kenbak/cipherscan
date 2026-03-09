@@ -10,6 +10,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { validate } = require('../validation');
 
 // Dependencies injected via app.locals
 let pool;
@@ -634,6 +635,110 @@ router.get('/api/privacy/common-amounts', async (req, res) => {
       success: false,
       error: error.message || 'Failed to fetch common amounts',
     });
+  }
+});
+
+/**
+ * GET /api/privacy/recommended-swap-amounts
+ *
+ * Privacy-aware swap amount recommendations based on cross-chain swap patterns.
+ * Suggests amounts that blend into the highest-density anonymity sets.
+ *
+ * Query params:
+ *   - chain: Source chain (eth, sol, btc, etc.)
+ *   - token: Source token (USDC, BTC, etc.)
+ */
+router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts'), async (req, res) => {
+  try {
+    const chain = (req.query.chain || '').toLowerCase();
+    const token = (req.query.token || '').toUpperCase();
+
+    if (!chain || !token) {
+      return res.status(400).json({
+        success: false,
+        error: 'chain and token query params required',
+      });
+    }
+
+    // Get recent stats from swap_amount_stats_daily
+    const { rows } = await pool.query(`
+      SELECT amount_bucket, swap_count, total_volume_usd
+      FROM swap_amount_stats_daily
+      WHERE source_chain = $1 AND source_token = $2
+        AND date >= (CURRENT_DATE - INTERVAL '7 days')
+      ORDER BY swap_count DESC
+      LIMIT 10
+    `, [chain, token]);
+
+    if (rows.length === 0) {
+      // Fallback: query cross_chain_swaps directly for trailing 7d
+      const fallback = await pool.query(`
+        SELECT
+          ROUND(source_amount, 0) as amount_bucket,
+          COUNT(*) as swap_count,
+          SUM(source_amount_usd) as total_volume_usd
+        FROM cross_chain_swaps
+        WHERE source_chain = $1 AND source_token = $2
+          AND direction = 'inflow' AND status = 'SUCCESS'
+          AND swap_created_at >= NOW() - INTERVAL '7 days'
+        GROUP BY ROUND(source_amount, 0)
+        HAVING COUNT(*) >= 2
+        ORDER BY swap_count DESC
+        LIMIT 10
+      `, [chain, token]);
+
+      if (fallback.rows.length === 0) {
+        return res.json({
+          success: true,
+          chain,
+          token,
+          recommendations: [],
+          tip: `Not enough ${token} swap data from ${chain.toUpperCase()} this week to generate recommendations.`,
+        });
+      }
+
+      rows.push(...fallback.rows);
+    }
+
+    // Total swaps for percentage calc
+    const totalSwaps = rows.reduce((s, r) => s + parseInt(r.swap_count), 0);
+
+    const recommendations = rows.slice(0, 5).map(r => {
+      const count = parseInt(r.swap_count);
+      const pct = (count / totalSwaps) * 100;
+      return {
+        amount: parseFloat(r.amount_bucket),
+        swapCount: count,
+        percentage: parseFloat(pct.toFixed(1)),
+        blendingScore: pct >= 10 ? 'high' : pct >= 5 ? 'medium' : 'low',
+      };
+    });
+
+    const topRec = recommendations[0];
+    const tip = topRec
+      ? `Using common amounts makes your swap harder to trace. ${topRec.percentage}% of ${chain.toUpperCase()}→ZEC swaps this week used ~${topRec.amount} ${token}.`
+      : '';
+
+    res.json({
+      success: true,
+      chain,
+      token,
+      recommendations,
+      tip,
+    });
+  } catch (error) {
+    // Table may not exist yet
+    if (error.code === '42P01') {
+      return res.json({
+        success: true,
+        chain: req.query.chain,
+        token: req.query.token,
+        recommendations: [],
+        tip: 'Cross-chain swap data is being collected. Recommendations coming soon.',
+      });
+    }
+    console.error('Recommended amounts error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

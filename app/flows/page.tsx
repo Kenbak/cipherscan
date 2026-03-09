@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY, isMainnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TokenChainIcon } from '@/components/TokenChainIcon';
 
 // Types
 interface TokenVolume {
@@ -45,6 +47,14 @@ interface CrossChainStats {
   inflows: ChainGroup[];
   outflows: ChainGroup[];
   recentSwaps: RecentSwap[];
+}
+
+interface TrendDataPoint {
+  date: string;
+  inflowVolume: number;
+  outflowVolume: number;
+  inflowCount: number;
+  outflowCount: number;
 }
 
 // Icons
@@ -115,62 +125,7 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string;
   unknown: { color: '#6B7280', symbol: '?', name: 'Unknown', iconId: 'other' },
 };
 
-// Custom icon URLs for chains not in the standard CDN
-const customIcons: Record<string, string> = {
-  near: 'https://cryptologos.cc/logos/near-protocol-near-logo.svg',
-  apt: 'https://cryptologos.cc/logos/aptos-apt-logo.svg',
-  sui: 'https://cryptologos.cc/logos/sui-sui-logo.svg',
-  ton: 'https://cryptologos.cc/logos/toncoin-ton-logo.svg',
-  base: 'https://raw.githubusercontent.com/base-org/brand-kit/main/logo/symbol/Base_Symbol_Blue.svg',
-  arb: 'https://cryptologos.cc/logos/arbitrum-arb-logo.svg',
-  op: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.svg',
-};
 
-// Crypto icon component using CDN
-function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
-  // Extract base token from "USDC (ETH)" → "usdc"
-  const baseSymbol = symbol.split(' ')[0].toLowerCase();
-  const config = chainConfig[baseSymbol] || chainConfig[symbol.toLowerCase()];
-  const iconId = config?.iconId || baseSymbol;
-  const needsWhiteBg = config?.needsWhiteBg || false;
-
-  // For "other" or "unknown", show a generic icon
-  if (iconId === 'other' || !config) {
-    return (
-      <div
-        className={`rounded-full flex items-center justify-center text-white font-bold ${className}`}
-        style={{
-          width: size,
-          height: size,
-          backgroundColor: config?.color || '#6B7280',
-          fontSize: size * 0.4,
-        }}
-      >
-        {symbol.charAt(0).toUpperCase()}
-      </div>
-    );
-  }
-
-  // Use custom icon if available, otherwise CDN
-  const iconUrl = customIcons[iconId]
-    || `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${iconId}.svg`;
-
-  return (
-    <img
-      src={iconUrl}
-      alt={symbol}
-      width={size}
-      height={size}
-      className={`rounded-full ${needsWhiteBg ? 'bg-white p-0.5' : ''} ${className}`}
-      onError={(e) => {
-        // Fallback to colored circle with initials
-        const target = e.target as HTMLImageElement;
-        target.style.display = 'none';
-        target.parentElement?.classList.add('fallback-icon');
-      }}
-    />
-  );
-}
 
 // Chain name mapping for full names
 const chainNames: Record<string, string> = {
@@ -246,6 +201,9 @@ export default function FlowsPage() {
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
   const hasFetchedOnce = useRef(false);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [trendPeriod, setTrendPeriod] = useState<'7d' | '30d'>('30d');
+  const [trendChange, setTrendChange] = useState(0);
 
   // Fetch cross-chain stats from API
   useEffect(() => {
@@ -330,6 +288,26 @@ export default function FlowsPage() {
     const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch historical trend data from DB
+  useEffect(() => {
+    const fetchTrends = async () => {
+      try {
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/crosschain/trends?period=${trendPeriod}&granularity=daily`
+          : `/api/crosschain/trends?period=${trendPeriod}&granularity=daily`;
+        const res = await fetch(apiUrl);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setTrendData(json.data);
+          setTrendChange(json.volumeChange || 0);
+        }
+      } catch {
+        // DB trends not available yet — not critical
+      }
+    };
+    if (isMainnet) fetchTrends();
+  }, [trendPeriod]);
 
   // Testnet: Cross-chain not available
   if (!isMainnet) {
@@ -474,6 +452,65 @@ export default function FlowsPage() {
           </div>
         </div>
 
+        {/* Volume Trends Chart */}
+        {trendData.length > 1 && (
+          <div className="card mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold font-mono text-primary">Volume Trends</h2>
+                {trendChange !== 0 && (
+                  <span className={`text-xs font-mono px-2 py-0.5 rounded ${trendChange > 0 ? 'bg-cipher-green/20 text-cipher-green' : 'bg-red-500/20 text-red-400'}`}>
+                    {trendChange > 0 ? '+' : ''}{trendChange.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-1">
+                {(['7d', '30d'] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setTrendPeriod(p)}
+                    className={`px-3 py-1 text-xs font-mono rounded transition-colors ${
+                      trendPeriod === p
+                        ? 'bg-cipher-cyan/20 text-cipher-cyan border border-cipher-cyan/30'
+                        : 'text-muted hover:text-secondary border border-cipher-border'
+                    }`}
+                  >
+                    {p.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #333)" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: 'var(--color-muted, #888)' }}
+                    tickFormatter={(v: string) => {
+                      const d = new Date(v);
+                      return `${d.getMonth() + 1}/${d.getDate()}`;
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'var(--color-muted, #888)' }}
+                    tickFormatter={(v: number) => v >= 1000 ? `$${(v/1000).toFixed(0)}K` : `$${v.toFixed(0)}`}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: 'var(--color-card-bg, #1a1a2e)', border: '1px solid var(--color-border, #333)', borderRadius: '8px', fontSize: '12px' }}
+                    labelStyle={{ color: 'var(--color-secondary, #ccc)' }}
+                    formatter={(value: number, name: string) => [formatUSD(value), name === 'inflowVolume' ? 'Inflows' : 'Outflows']}
+                    labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
+                  />
+                  <Legend formatter={(value: string) => value === 'inflowVolume' ? 'Inflows' : 'Outflows'} />
+                  <Bar dataKey="inflowVolume" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="volume" />
+                  <Bar dataKey="outflowVolume" fill="#ef4444" radius={[2, 2, 0, 0]} stackId="volume" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
         {/* Inflows & Outflows */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Inflows */}
@@ -490,9 +527,7 @@ export default function FlowsPage() {
                 <div key={chainGroup.chain} className="group relative">
                   {/* Chain row */}
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
-                      <CryptoIcon symbol={chainGroup.chain} size={20} />
-                    </div>
+                    <TokenChainIcon token={chainGroup.chain} chain={chainGroup.chain} size={28} />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -508,7 +543,7 @@ export default function FlowsPage() {
                                 {chainGroup.tokens.map((token) => (
                                   <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
                                     <span className="flex items-center gap-1 text-secondary">
-                                      <CryptoIcon symbol={token.symbol} size={12} />
+                                      <TokenChainIcon token={token.symbol} chain={chainGroup.chain} size={12} />
                                       {token.symbol}
                                     </span>
                                     <span className="text-primary">{formatUSD(token.volume24h)}</span>
@@ -552,9 +587,7 @@ export default function FlowsPage() {
                   <div key={chainGroup.chain} className="group relative">
                     {/* Chain row */}
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: `${chainGroup.color}15` }}>
-                        <CryptoIcon symbol={chainGroup.chain} size={20} />
-                      </div>
+                      <TokenChainIcon token={chainGroup.chain} chain={chainGroup.chain} size={28} />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -570,7 +603,7 @@ export default function FlowsPage() {
                                   {chainGroup.tokens.map((token) => (
                                     <div key={token.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
                                       <span className="flex items-center gap-1 text-secondary">
-                                        <CryptoIcon symbol={token.symbol} size={12} />
+                                        <TokenChainIcon token={token.symbol} chain={chainGroup.chain} size={12} />
                                         {token.symbol}
                                       </span>
                                       <span className="text-primary">{formatUSD(token.volume24h)}</span>
@@ -647,9 +680,11 @@ export default function FlowsPage() {
 
                   {/* Source */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden icon-circle-bg">
-                      <CryptoIcon symbol={swap.fromSymbol} size={24} />
-                    </div>
+                    <TokenChainIcon
+                      token={swap.fromSymbol}
+                      chain={isInflow ? swap.fromChain : 'zec'}
+                      size={28}
+                    />
                     <div className="flex flex-col">
                       <span className="text-sm font-mono text-primary font-semibold">
                         {swap.fromAmount} {swap.fromSymbol}
@@ -667,9 +702,11 @@ export default function FlowsPage() {
 
                   {/* Destination */}
                     <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden icon-circle-bg">
-                      <CryptoIcon symbol={swap.toSymbol} size={24} />
-                    </div>
+                    <TokenChainIcon
+                      token={swap.toSymbol}
+                      chain={isInflow ? 'zec' : swap.toChain}
+                      size={28}
+                    />
                     <div className="flex flex-col">
                       <span className="text-sm font-mono text-primary font-semibold">
                         {swap.toAmount} {swap.toSymbol}

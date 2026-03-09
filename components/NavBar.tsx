@@ -207,6 +207,19 @@ export function NavBar() {
                 )}
               </div>
 
+              {/* Buy ZEC Button (Desktop) — hidden until swap is fully tested */}
+              {false && isMainnet && (
+                <Link
+                  href="/swap"
+                  className="hidden md:flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1.5 rounded-lg bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow border border-cipher-yellow-dark/30 dark:border-cipher-yellow/30 hover:bg-cipher-yellow-dark/25 dark:hover:bg-cipher-yellow/25 transition-all duration-150"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Buy ZEC
+                </Link>
+              )}
+
               {/* Price Display */}
               {priceData && (
                 <div className="hidden lg:flex items-center space-x-2 border-l navbar-border pl-3">
@@ -297,6 +310,20 @@ export function NavBar() {
                 <DonateButton />
                 <ThemeToggle />
               </div>
+
+              {/* Buy ZEC (Mobile) — hidden until swap is fully tested */}
+              {false && isMainnet && (
+                <Link
+                  href="/swap"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 mx-2.5 mb-3 px-4 py-2.5 rounded-lg bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow border border-cipher-yellow-dark/30 dark:border-cipher-yellow/30 font-mono text-sm font-bold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Buy ZEC
+                </Link>
+              )}
 
               {/* Analytics */}
               <SectionLabel label="Analytics" />

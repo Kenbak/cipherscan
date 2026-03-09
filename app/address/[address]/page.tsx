@@ -27,6 +27,29 @@ interface AddressData {
   note?: string;
 }
 
+interface CrossChainSwap {
+  id: string;
+  direction: string;
+  sourceChain: string;
+  sourceToken: string;
+  sourceAmount: number;
+  sourceAmountUsd: number;
+  destChain: string;
+  destToken: string;
+  destAmount: number;
+  destAmountUsd: number;
+  zecTxid: string;
+  timestamp: number;
+}
+
+interface CrossChainActivity {
+  totalSwaps: number;
+  totalVolumeUsd: number;
+  entryCount: number;
+  exitCount: number;
+  swaps: CrossChainSwap[];
+}
+
 interface Transaction {
   txid: string;
   timestamp: number;
@@ -89,6 +112,7 @@ export default function AddressPage() {
   const [loading, setLoading] = useState(true);
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [crossChain, setCrossChain] = useState<CrossChainActivity | null>(null);
 
   // Pagination - read from URL
   const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -239,7 +263,22 @@ export default function AddressPage() {
       }
     };
     fetchPrice();
-  }, []);
+
+    // Fetch cross-chain activity
+    const fetchCrossChain = async () => {
+      try {
+        const apiUrl = `${API_CONFIG.POSTGRES_API_URL}/api/crosschain/address/${encodeURIComponent(address)}`;
+        const res = await fetch(apiUrl);
+        const json = await res.json();
+        if (json.success && json.totalSwaps > 0) {
+          setCrossChain(json);
+        }
+      } catch {
+        // cross_chain_swaps table may not exist yet
+      }
+    };
+    fetchCrossChain();
+  }, [address]);
 
   // Decode unified address to show components
   useEffect(() => {
@@ -882,6 +921,76 @@ export default function AddressPage() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Cross-Chain Activity */}
+      {crossChain && crossChain.totalSwaps > 0 && (
+        <div className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '125ms' }}>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span className="text-xs font-mono text-muted tracking-wider">&gt; CROSS_CHAIN_ACTIVITY</span>
+                <Badge color="cyan">{crossChain.totalSwaps}</Badge>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <div className="text-xs text-muted mb-1">Total volume</div>
+                  <div className="text-sm font-mono text-primary">${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted mb-1">Bridge entries</div>
+                  <div className="text-sm font-mono text-cipher-green">{crossChain.entryCount}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted mb-1">Bridge exits</div>
+                  <div className="text-sm font-mono text-red-400">{crossChain.exitCount}</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {crossChain.swaps.slice(0, 5).map((swap) => (
+                  <div key={swap.id} className="flex items-center justify-between py-2 border-b border-cipher-border last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        swap.direction === 'inflow'
+                          ? 'bg-cipher-green/20 text-cipher-green border border-cipher-green/30'
+                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        {swap.direction === 'inflow' ? 'IN' : 'OUT'}
+                      </span>
+                      <span className="text-sm font-mono text-primary">
+                        {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
+                      </span>
+                      <span className="text-muted">→</span>
+                      <span className="text-sm font-mono text-primary">
+                        {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      {swap.zecTxid && (
+                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline">
+                          {swap.zecTxid.slice(0, 8)}...
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {crossChain.totalSwaps > 5 && (
+                <div className="mt-3 text-center">
+                  <Link href="/flows" className="text-xs text-cipher-cyan hover:underline font-mono">
+                    View all {crossChain.totalSwaps} swaps →
+                  </Link>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      )}
 
       {/* Transactions List */}
       <div id="transactions-section" className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>

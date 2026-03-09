@@ -7,12 +7,23 @@ export default function robots(): MetadataRoute.Robots {
     ? 'https://cipherscan.app'
     : 'https://testnet.cipherscan.app';
 
+  if (!isMainnet) {
+    return {
+      rules: [
+        {
+          userAgent: '*',
+          disallow: ['/'],
+        },
+      ],
+    };
+  }
+
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/'], // Don't crawl API endpoints
+        disallow: ['/api/'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

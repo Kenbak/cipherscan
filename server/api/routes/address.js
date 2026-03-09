@@ -9,6 +9,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { validate } = require('../validation');
 
 // Dependencies injected via app.locals
 let pool;
@@ -92,7 +93,7 @@ router.get('/api/label/:address', async (req, res) => {
  *
  * Returns Etherscan-style pagination with page numbers.
  */
-router.get('/api/address/:address', async (req, res) => {
+router.get('/api/address/:address', validate('addressById'), async (req, res) => {
   try {
     const { address } = req.params;
     const limit = Math.min(parseInt(req.query.limit) || 25, 100);

@@ -12,6 +12,23 @@ import { AddressWithLabel } from '@/components/AddressWithLabel';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 
+interface BridgeData {
+  direction: 'entry' | 'exit';
+  sourceChain: string;
+  sourceToken: string;
+  sourceAmount: number | null;
+  destChain: string;
+  destToken: string;
+  destAmount: number | null;
+  otherChain: string;
+  otherToken: string;
+  otherAmount: number;
+  otherAmountUsd: number;
+  otherTxHash: string | null;
+  explorerUrl: string | null;
+  swapTimestamp: string;
+}
+
 interface TransactionData {
   txid: string;
   blockHeight: number;
@@ -37,6 +54,7 @@ interface TransactionData {
   bindingSig?: string;
   bindingSigSapling?: string;
   finality?: string | null;
+  bridge?: BridgeData | null;
 }
 
 // Icon components (same as block page)
@@ -386,6 +404,29 @@ export default function TransactionPage() {
 
   // Human-readable transaction explanation
   const generateTxSummary = (): React.ReactNode => {
+    // Cross-chain bridge explanations take priority
+    if (data.bridge) {
+      const b = data.bridge;
+      if (b.direction === 'entry') {
+        return (
+          <>
+            {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} was bridged from {b.otherChain.toUpperCase()} to Zcash via NEAR Intents.
+            {b.otherAmountUsd > 0 && (
+              <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+            )}
+          </>
+        );
+      }
+      return (
+        <>
+          ZEC was bridged out to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
+          {b.otherAmountUsd > 0 && (
+            <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+          )}
+        </>
+      );
+    }
+
     if (isCoinbase) {
       const recipient = data.outputs[0]?.scriptPubKey?.addresses?.[0];
       if (recipient) {
@@ -530,6 +571,15 @@ export default function TransactionPage() {
           {txType === 'MIXED' && (
             <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>
           )}
+          {data.bridge && (
+            <Badge color="cyan" icon={
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={data.bridge.direction === 'entry' ? 'M19 14l-7 7m0 0l-7-7m7 7V3' : 'M5 10l7-7m0 0l7 7m-7-7v18'} />
+              </svg>
+            }>
+              {data.bridge.direction === 'entry' ? 'BRIDGE ENTRY' : 'BRIDGE EXIT'}
+            </Badge>
+          )}
           </div>
 
           {/* Export Button - Right aligned */}
@@ -576,6 +626,36 @@ export default function TransactionPage() {
         <p className="text-sm text-secondary leading-relaxed mt-2">
           {generateTxSummary()}
         </p>
+
+        {/* Cross-chain bridge info */}
+        {data.bridge && (
+          <div className="mt-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <div className="flex items-center gap-2 text-sm">
+              <svg className="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <span className="text-secondary">
+                {data.bridge.direction === 'entry'
+                  ? `${data.bridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${data.bridge.otherToken} bridged from ${data.bridge.otherChain.toUpperCase()} to Zcash via NEAR Intents`
+                  : `ZEC bridged to ${data.bridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${data.bridge.otherToken} on ${data.bridge.otherChain.toUpperCase()} via NEAR Intents`
+                }
+              </span>
+              {data.bridge.explorerUrl && (
+                <a
+                  href={data.bridge.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-xs text-cyan-400 hover:text-cyan-300 whitespace-nowrap flex items-center gap-1"
+                >
+                  View on {data.bridge.otherChain.toUpperCase()}
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Privacy Risk Alert - standalone component */}
         <PrivacyRiskInline txid={data.txid} />

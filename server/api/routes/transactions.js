@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { validate } = require('../validation');
 
 // Dependencies will be injected via middleware
 let pool;
@@ -28,7 +29,7 @@ router.use((req, res, next) => {
 // ============================================================================
 
 // Get shielded transactions with filters (MUST be before /api/tx/:txid)
-router.get('/api/tx/shielded', async (req, res) => {
+router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
   try {
     // Query parameters
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
@@ -155,7 +156,7 @@ router.get('/api/tx/shielded', async (req, res) => {
 // ============================================================================
 
 // Get transaction by txid
-router.get('/api/tx/:txid', async (req, res) => {
+router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
   try {
     const { txid } = req.params;
 
@@ -249,6 +250,67 @@ router.get('/api/tx/:txid', async (req, res) => {
     const totalInput = tx.total_input ? tx.total_input / 100000000 : null;
     const totalOutput = tx.total_output ? tx.total_output / 100000000 : null;
 
+    // Bridge / cross-chain data (NEAR Intents)
+    let bridge = null;
+    try {
+      const bridgeResult = await pool.query(
+        `SELECT direction, source_chain, source_token, source_amount, source_amount_usd,
+                source_tx_hashes, dest_chain, dest_token, dest_amount, dest_amount_usd,
+                dest_tx_hashes, swap_created_at
+         FROM cross_chain_swaps
+         WHERE zec_txid = $1 AND matched = true
+         LIMIT 1`,
+        [txid]
+      );
+      if (bridgeResult.rows.length > 0) {
+        const b = bridgeResult.rows[0];
+        const isInflow = b.direction === 'inflow';
+        const otherChain = isInflow ? b.source_chain : b.dest_chain;
+        const otherToken = isInflow ? b.source_token : b.dest_token;
+        const otherAmount = isInflow ? parseFloat(b.source_amount) : parseFloat(b.dest_amount);
+        const otherAmountUsd = isInflow ? parseFloat(b.source_amount_usd) : parseFloat(b.dest_amount_usd);
+        const otherHashes = isInflow ? (b.source_tx_hashes || []) : (b.dest_tx_hashes || []);
+        const otherHash = otherHashes.length > 0 ? otherHashes[0] : null;
+
+        const explorerUrls = {
+          eth: 'https://etherscan.io/tx/',
+          sol: 'https://solscan.io/tx/',
+          btc: 'https://mempool.space/tx/',
+          near: 'https://nearblocks.io/txns/',
+          doge: 'https://dogechain.info/tx/',
+          xrp: 'https://xrpscan.com/tx/',
+          arb: 'https://arbiscan.io/tx/',
+          base: 'https://basescan.org/tx/',
+          pol: 'https://polygonscan.com/tx/',
+          avax: 'https://snowtrace.io/tx/',
+          bsc: 'https://bscscan.com/tx/',
+          op: 'https://optimistic.etherscan.io/tx/',
+          tron: 'https://tronscan.org/#/transaction/',
+        };
+
+        bridge = {
+          direction: isInflow ? 'entry' : 'exit',
+          sourceChain: isInflow ? otherChain : 'zec',
+          sourceToken: isInflow ? otherToken : 'ZEC',
+          sourceAmount: isInflow ? otherAmount : null,
+          destChain: isInflow ? 'zec' : otherChain,
+          destToken: isInflow ? 'ZEC' : otherToken,
+          destAmount: isInflow ? null : otherAmount,
+          otherChain,
+          otherToken,
+          otherAmount,
+          otherAmountUsd,
+          otherTxHash: otherHash,
+          explorerUrl: otherHash && explorerUrls[otherChain]
+            ? explorerUrls[otherChain] + otherHash
+            : null,
+          swapTimestamp: b.swap_created_at,
+        };
+      }
+    } catch (bridgeErr) {
+      // cross_chain_swaps table may not exist yet; silently ignore
+    }
+
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
@@ -275,6 +337,7 @@ router.get('/api/tx/:txid', async (req, res) => {
       outputs: outputsResult.rows,
       inputCount: inputsResult.rows.length,
       outputCount: outputsResult.rows.length,
+      bridge,
     });
   } catch (error) {
     console.error('Error fetching transaction:', error);
@@ -313,7 +376,7 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
 // ============================================================================
 
 // Batch get raw transactions (for wallet scanning)
-router.post('/api/tx/raw/batch', async (req, res) => {
+router.post('/api/tx/raw/batch', validate('txRawBatch'), async (req, res) => {
   try {
     const { txids } = req.body;
 
@@ -405,7 +468,7 @@ router.post('/api/tx/raw/batch', async (req, res) => {
  * GET /api/tx/:txid/linkability
  * Analyze a specific shielding transaction for potential round-trip deshielding
  */
-router.get('/api/tx/:txid/linkability', async (req, res) => {
+router.get('/api/tx/:txid/linkability', validate('txLinkability'), async (req, res) => {
   try {
     const { txid } = req.params;
 
@@ -565,7 +628,7 @@ router.get('/api/mempool', async (req, res) => {
  * No private keys or viewing keys are involved - the TX is fully
  * constructed and signed client-side before being sent here.
  */
-router.post('/api/tx/broadcast', async (req, res) => {
+router.post('/api/tx/broadcast', validate('txBroadcast'), async (req, res) => {
   try {
     const { rawTx } = req.body;
 
