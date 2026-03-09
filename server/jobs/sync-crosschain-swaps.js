@@ -8,6 +8,7 @@
  * Modes:
  *   node sync-crosschain-swaps.js              # incremental sync (cron)
  *   node sync-crosschain-swaps.js --backfill   # full historical backfill
+ *   node sync-crosschain-swaps.js --heal       # match missing zec_txid from blockchain data
  *   node sync-crosschain-swaps.js --seed       # insert test fixtures (local dev)
  *
  * Cron (every 5 min):
@@ -38,6 +39,7 @@ const MAX_MATCH_ATTEMPTS = 288; // 24h of 5-min retries
 
 const isBackfill = process.argv.includes('--backfill');
 const isSeed = process.argv.includes('--seed');
+const isHeal = process.argv.includes('--heal');
 
 // Populated on startup from the 1Click /v0/tokens endpoint
 let TOKEN_MAP = {};
@@ -205,7 +207,7 @@ async function upsertSwap(row) {
       dest_tx_hashes = EXCLUDED.dest_tx_hashes,
       zec_txid = COALESCE(EXCLUDED.zec_txid, cross_chain_swaps.zec_txid),
       near_tx_hashes = EXCLUDED.near_tx_hashes,
-      matched = EXCLUDED.matched
+      matched = CASE WHEN cross_chain_swaps.matched THEN true ELSE EXCLUDED.matched END
     RETURNING id
   `;
 
@@ -369,6 +371,124 @@ async function refetchMissingTxids() {
 }
 
 // ---------------------------------------------------------------------------
+// Self-heal: find missing zec_txid from our own blockchain data
+// For outflows: deposit_address IS a Zcash t-address, look it up directly
+// For inflows: recipient is the user's ZEC address, match by amount + time
+// ---------------------------------------------------------------------------
+
+async function selfHealFromBlockchain() {
+  log('Self-healing missing zec_txid from blockchain data...');
+
+  // --- Outflows: deposit_address is a ZEC t-address ---
+  const { rows: outflows } = await pool.query(`
+    SELECT id, deposit_address, source_amount, swap_created_at
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'outflow'
+      AND deposit_address LIKE 't1%'
+  `);
+
+  let outflowFixed = 0;
+  for (const row of outflows) {
+    const { rows: txRows } = await pool.query(`
+      SELECT DISTINCT o.txid, t.block_time
+      FROM transaction_outputs o
+      JOIN transactions t ON t.txid = o.txid
+      WHERE o.address = $1
+      ORDER BY t.block_time DESC
+      LIMIT 3
+    `, [row.deposit_address]);
+
+    if (txRows.length > 0) {
+      const txid = txRows[0].txid;
+      await pool.query(
+        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
+        [txid, row.id]
+      );
+      outflowFixed++;
+    }
+  }
+  log(`  Outflows: checked ${outflows.length}, fixed ${outflowFixed} from blockchain`);
+
+  // --- Inflows: recipient is the user's ZEC address ---
+  const { rows: inflows } = await pool.query(`
+    SELECT id, recipient, dest_amount, swap_created_at
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'inflow'
+      AND recipient IS NOT NULL AND recipient LIKE 't1%'
+  `);
+
+  let inflowFixed = 0;
+  for (const row of inflows) {
+    const swapTime = new Date(row.swap_created_at);
+    const windowStart = new Date(swapTime.getTime() - 2 * 3600 * 1000); // 2h before
+    const windowEnd = new Date(swapTime.getTime() + 24 * 3600 * 1000);  // 24h after
+
+    const amountZat = Math.round(row.dest_amount * 1e8);
+    const tolerance = Math.round(amountZat * 0.02); // 2% tolerance
+
+    const { rows: txRows } = await pool.query(`
+      SELECT DISTINCT o.txid
+      FROM transaction_outputs o
+      JOIN transactions t ON t.txid = o.txid
+      WHERE o.address = $1
+        AND t.block_time >= $2 AND t.block_time <= $3
+        AND o.value BETWEEN $4 AND $5
+      LIMIT 1
+    `, [row.recipient, Math.floor(windowStart.getTime() / 1000), Math.floor(windowEnd.getTime() / 1000), amountZat - tolerance, amountZat + tolerance]);
+
+    if (txRows.length > 0) {
+      await pool.query(
+        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
+        [txRows[0].txid, row.id]
+      );
+      inflowFixed++;
+    }
+  }
+  log(`  Inflows: checked ${inflows.length}, fixed ${inflowFixed} from blockchain`);
+
+  // Also try inflows with t3 (Sapling) addresses
+  const { rows: inflowsSapling } = await pool.query(`
+    SELECT id, recipient, dest_amount, swap_created_at
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'inflow'
+      AND recipient IS NOT NULL AND recipient LIKE 't3%'
+  `);
+
+  let saplingFixed = 0;
+  for (const row of inflowsSapling) {
+    const swapTime = new Date(row.swap_created_at);
+    const windowStart = new Date(swapTime.getTime() - 2 * 3600 * 1000);
+    const windowEnd = new Date(swapTime.getTime() + 24 * 3600 * 1000);
+
+    const amountZat = Math.round(row.dest_amount * 1e8);
+    const tolerance = Math.round(amountZat * 0.02);
+
+    const { rows: txRows } = await pool.query(`
+      SELECT DISTINCT o.txid
+      FROM transaction_outputs o
+      JOIN transactions t ON t.txid = o.txid
+      WHERE o.address = $1
+        AND t.block_time >= $2 AND t.block_time <= $3
+        AND o.value BETWEEN $4 AND $5
+      LIMIT 1
+    `, [row.recipient, Math.floor(windowStart.getTime() / 1000), Math.floor(windowEnd.getTime() / 1000), amountZat - tolerance, amountZat + tolerance]);
+
+    if (txRows.length > 0) {
+      await pool.query(
+        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
+        [txRows[0].txid, row.id]
+      );
+      saplingFixed++;
+    }
+  }
+  log(`  Inflows (t3): checked ${inflowsSapling.length}, fixed ${saplingFixed} from blockchain`);
+
+  const totalFixed = outflowFixed + inflowFixed + saplingFixed;
+  log(`Self-heal complete: ${totalFixed} total fixed from blockchain data`);
+  return totalFixed;
+}
+
+// ---------------------------------------------------------------------------
 // Fetch and store swaps (one direction at a time)
 // ---------------------------------------------------------------------------
 
@@ -528,6 +648,17 @@ async function main() {
     return;
   }
 
+  // Heal mode: only run blockchain-based self-healing
+  if (isHeal) {
+    log('HEAL MODE: matching missing zec_txid from blockchain data');
+    await selfHealFromBlockchain();
+    await retryUnmatched();
+    await updateAmountStats();
+    await pool.end();
+    log('=== Heal complete ===');
+    return;
+  }
+
   // Get last sync timestamp
   const stateResult = await pool.query(
     "SELECT last_sync_timestamp FROM sync_state WHERE job_name = 'crosschain_swaps'"
@@ -557,6 +688,9 @@ async function main() {
 
   // Retry unmatched swaps
   await retryUnmatched();
+
+  // Self-heal: find missing zec_txid from our own blockchain data
+  await selfHealFromBlockchain();
 
   // Re-fetch swaps missing zec_txid (API may have filled them in)
   if (!isBackfill) {
