@@ -258,6 +258,7 @@ export default function SwapPage() {
   const [copied, setCopied] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const [nativeBalance, setNativeBalance] = useState<string | null>(null);
+  const [balanceRefresh, setBalanceRefresh] = useState(0);
   const [quoteExpiry, setQuoteExpiry] = useState<number>(0);
   const [quoteTimeLeft, setQuoteTimeLeft] = useState<number>(0);
   const wallet = useWallet();
@@ -382,7 +383,7 @@ export default function SwapPage() {
     };
     fetchBal();
     return () => { cancelled = true; };
-  }, [wallet.connected, wallet.address, selectedToken]);
+  }, [wallet.connected, wallet.address, selectedToken, balanceRefresh]);
 
   // Fetch privacy recommendations
   useEffect(() => {
@@ -532,6 +533,7 @@ export default function SwapPage() {
     setWalletError('');
     setCopied(false);
     localStorage.removeItem(PENDING_SWAP_KEY);
+    setBalanceRefresh(n => n + 1);
   };
 
   const insufficientBalance = !!(wallet.connected && nativeBalance && amount && parseFloat(amount) > parseFloat(nativeBalance));
@@ -1089,17 +1091,21 @@ export default function SwapPage() {
 
                 {/* ─── COMPLETE ─── */}
                 {step === 'complete' && (
-                  <div className="text-center py-8 space-y-5 animate-fade-in">
-                    <div className="w-16 h-16 rounded-full bg-cipher-green/10 flex items-center justify-center mx-auto">
-                      <svg className="w-8 h-8 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-6">
+                      <div className="flex flex-col items-center text-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-cipher-green/10 border border-cipher-green/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-bold font-mono text-foreground mb-1">Swap Complete</h2>
+                          <p className="text-xs text-muted font-mono">{estimatedZec} ZEC sent to your address</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold font-mono text-cipher-green mb-1">Swap Complete</h2>
-                      <p className="text-sm text-muted">{estimatedZec} ZEC sent to your address</p>
-                    </div>
-                    <button onClick={resetSwap} className="px-6 py-2.5 rounded-xl font-mono text-sm text-cipher-cyan bg-cipher-cyan/10 hover:bg-cipher-cyan/15 transition-colors">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
                       New Swap
                     </button>
                   </div>
@@ -1107,17 +1113,21 @@ export default function SwapPage() {
 
                 {/* ─── ERROR ─── */}
                 {step === 'error' && (
-                  <div className="text-center py-8 space-y-5 animate-fade-in">
-                    <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
-                      <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-6">
+                      <div className="flex flex-col items-center text-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-bold font-mono text-foreground mb-1">Swap Failed</h2>
+                          <p className="text-xs text-muted font-mono">{error}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold font-mono text-red-400 mb-1">Swap Failed</h2>
-                      <p className="text-sm text-muted">{error}</p>
-                    </div>
-                    <button onClick={resetSwap} className="px-6 py-2.5 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-colors">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
                       Try Again
                     </button>
                   </div>
@@ -1131,16 +1141,16 @@ export default function SwapPage() {
 
             {/* Privacy tips */}
             <div className="card p-0 overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.04]">
+              <div className="px-6 pt-5 pb-4 border-b border-white/[0.04]">
                 <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_TIPS</span>
               </div>
-              <div className="p-5">
+              <div className="px-6 py-5">
                 {recommendations && recommendations.recommendations.length > 0 ? (
                   <div>
-                    <p className="text-xs text-muted mb-3 leading-relaxed">
+                    <p className="text-xs text-muted mb-4 leading-relaxed">
                       Popular {selectedToken.token} amounts this week. Common amounts make your swap harder to trace.
                     </p>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       {recommendations.recommendations.map((rec, i) => (
                         <button
                           key={i}
@@ -1175,9 +1185,12 @@ export default function SwapPage() {
               </div>
             </div>
 
-            <Link href="/flows" className="block text-center py-2.5 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
-              View all ZEC Flows →
-            </Link>
+            <div className="card p-0 overflow-hidden">
+              <Link href="/flows" className="block px-6 py-4 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-between">
+                <span>View all ZEC Flows</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
