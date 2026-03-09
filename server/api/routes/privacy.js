@@ -660,8 +660,25 @@ router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts
       });
     }
 
-    // Query actual swap amounts — no clustering, just count real amounts
-    // Use light rounding (2 significant figures) to group near-identical amounts
+    // Stablecoins have price ~$1; non-stablecoins need a sanity check
+    // to filter out mislabeled entries (e.g., USDC amounts tagged as SOL)
+    const stablecoins = ['USDC', 'USDT', 'DAI', 'BUSD', 'TUSD', 'UST', 'FRAX'];
+    const isStable = stablecoins.includes(token);
+
+    // For non-stablecoins: exclude entries where amount ≈ amount_usd (implied price ~$1),
+    // and also exclude extreme outliers beyond the 95th percentile
+    let sanityFilter = '';
+    if (!isStable) {
+      sanityFilter = `
+        AND (source_amount_usd = 0 OR ABS(source_amount_usd / NULLIF(source_amount, 0) - 1) > 0.3)
+        AND source_amount < (
+          SELECT COALESCE(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY source_amount), 1e18)
+          FROM cross_chain_swaps
+          WHERE source_chain = $1 AND source_token = $2 AND status = 'SUCCESS'
+            AND (source_amount_usd = 0 OR ABS(source_amount_usd / NULLIF(source_amount, 0) - 1) > 0.3)
+        )`;
+    }
+
     const { rows } = await pool.query(`
       SELECT
         source_amount as exact_amount,
@@ -670,7 +687,9 @@ router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts
       WHERE source_chain = $1 AND source_token = $2
         AND direction = 'inflow' AND status = 'SUCCESS'
         AND source_amount > 0
+        AND source_token != 'UNKNOWN_TOKEN'
         AND swap_created_at >= NOW() - INTERVAL '7 days'
+        ${sanityFilter}
       GROUP BY source_amount
       ORDER BY swap_count DESC, source_amount
       LIMIT 50

@@ -362,6 +362,8 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
       FROM cross_chain_swaps
       WHERE status = 'SUCCESS'
         AND swap_created_at >= NOW() - INTERVAL '30 days'
+        AND source_token NOT IN ('UNKNOWN_TOKEN', 'UNKNOWN', 'OTHER')
+        AND dest_token NOT IN ('UNKNOWN_TOKEN', 'UNKNOWN', 'OTHER')
       GROUP BY chain, token
       ORDER BY swap_count DESC
       LIMIT 100

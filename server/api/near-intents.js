@@ -7,18 +7,7 @@
  */
 
 const NEAR_INTENTS_API_BASE = 'https://explorer.near-intents.org/api/v0';
-
-// Chain ID mapping
-const CHAIN_IDS = {
-  zec: 'zec',
-  btc: 'btc',
-  eth: 'eth',
-  sol: 'sol',
-  near: 'near',
-  doge: 'doge',
-  xrp: 'xrp',
-  usdc: 'usdc', // This would be token-based, not chain
-};
+const ONECLICK_API_BASE = 'https://1click.chaindefuser.com/v0';
 
 // Chain display config
 const CHAIN_CONFIG = {
@@ -58,6 +47,11 @@ class NearIntentsClient {
       lastFetch: 0,
     };
     this.cacheDuration = 60 * 1000; // 1 minute cache
+
+    // Token lookup map: assetId → { chain, token }
+    this.tokenMap = {};
+    this.tokenMapLoaded = false;
+    this.tokenMapLoadPromise = null;
   }
 
   /**
@@ -168,6 +162,9 @@ class NearIntentsClient {
       return this.cache.stats;
     }
 
+    // Ensure token map is loaded before parsing any assets
+    await this.ensureTokenMap();
+
     console.log('🔄 [NEAR-INTENTS] Fetching fresh cross-chain stats...');
 
     // Calculate timestamps for 24h
@@ -266,80 +263,64 @@ class NearIntentsClient {
   }
 
   /**
-   * Parse chain ID from NEAR asset string
-   * e.g., "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near" → "eth"
+   * Load token map from 1Click /v0/tokens API.
+   * Maps assetId → { chain, token } for accurate identification.
+   * Called lazily on first use, cached for the lifetime of the process.
+   */
+  async ensureTokenMap() {
+    if (this.tokenMapLoaded) return;
+    if (this.tokenMapLoadPromise) {
+      await this.tokenMapLoadPromise;
+      return;
+    }
+
+    this.tokenMapLoadPromise = (async () => {
+      try {
+        console.log('🔗 [NEAR-INTENTS] Loading token map from 1Click API...');
+        const res = await fetch(`${ONECLICK_API_BASE}/tokens`, {
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const tokens = await res.json();
+
+        for (const t of tokens) {
+          if (t.assetId && t.blockchain && t.symbol) {
+            this.tokenMap[t.assetId] = {
+              chain: t.blockchain === 'trx' ? 'tron' : t.blockchain === 'bnb' ? 'bsc' : t.blockchain,
+              token: t.symbol.toUpperCase(),
+            };
+          }
+        }
+
+        console.log(`✅ [NEAR-INTENTS] Loaded ${Object.keys(this.tokenMap).length} tokens into lookup map`);
+      } catch (e) {
+        console.error(`⚠️ [NEAR-INTENTS] Failed to load token map: ${e.message}`);
+      }
+      this.tokenMapLoaded = true;
+    })();
+
+    await this.tokenMapLoadPromise;
+  }
+
+  /**
+   * Parse chain and token from a NEAR asset string.
+   * Uses the 1Click token map for exact lookup; falls back to chain prefix extraction.
    */
   parseChainFromAsset(asset) {
     if (!asset) return { chain: 'unknown', token: 'UNKNOWN' };
 
-    const assetLower = asset.toLowerCase();
+    // 1. Exact lookup from the token map (authoritative)
+    if (this.tokenMap[asset]) return this.tokenMap[asset];
 
-    // Handle ZEC
-    if (assetLower.includes('zec') || assetLower.includes('zcash')) {
-      return { chain: 'zec', token: 'ZEC' };
-    }
+    // 2. Fallback: basic extraction
+    const a = asset.toLowerCase();
+    if (a.includes('zec') || a.includes('zcash')) return { chain: 'zec', token: 'ZEC' };
 
-    // Known token contract addresses
-    const knownTokens = {
-      // Ethereum tokens
-      '0xdac17f958d2ee523a2206206994597c13d831ec7': { token: 'USDT', chain: 'eth' },
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { token: 'USDC', chain: 'eth' },
-      '0x6b175474e89094c44da98b954eedeac495271d0f': { token: 'DAI', chain: 'eth' },
-      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': { token: 'WBTC', chain: 'eth' },
-      // Solana tokens
-      'c800a4bd850783ccb82c2b2c7e84175443606352': { token: 'USDT', chain: 'sol' },  // USDT on Solana
-      'epjfwdd5aufqssqem2qn1xzybapc8g4weggkzwytdt1v': { token: 'USDC', chain: 'sol' },
-      'es9vmfrzacermjfrf4h2fyd4kconky11mcce8benwnyb': { token: 'USDT', chain: 'sol' },
-    };
-
-    // Check for known token addresses
-    for (const [address, info] of Object.entries(knownTokens)) {
-      if (assetLower.includes(address)) {
-        return info;
-      }
-    }
-
-    // Handle USDT on NEAR (native)
-    if (assetLower.includes('usdt.tether-token.near')) {
-      return { chain: 'near', token: 'USDT' };
-    }
-
-    // Handle USDC variants
-    if (assetLower.includes('usdc')) {
-      // Try to detect chain from prefix
-      if (assetLower.includes('sol-')) return { chain: 'sol', token: 'USDC' };
-      if (assetLower.includes('eth-')) return { chain: 'eth', token: 'USDC' };
-      if (assetLower.includes('base-')) return { chain: 'base', token: 'USDC' };
-      if (assetLower.includes('arb-')) return { chain: 'arb', token: 'USDC' };
-      return { chain: 'near', token: 'USDC' };
-    }
-
-    // Handle native chain tokens
-    const chainPrefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax', 'tron', 'trx', 'bnb'];
-    for (const prefix of chainPrefixes) {
-      // Check for "nep141:CHAIN." or "nep141:CHAIN-" format (native tokens)
-      const nativePattern = new RegExp(`nep141:${prefix}[\\.\\-]`);
-      if (nativePattern.test(assetLower) && !assetLower.includes('0x')) {
-        // Map aliases
-        const chain = prefix === 'trx' ? 'tron' : prefix === 'bnb' ? 'bsc' : prefix;
-        const symbol = CHAIN_CONFIG[chain]?.symbol || chain.toUpperCase();
-        return { chain, token: symbol };
-      }
-    }
-
-    // Try to extract chain from asset format: "nep141:CHAIN-address.omft.near"
-    const match = asset.match(/nep141:([a-zA-Z]+)-/);
-    if (match && match[1]) {
-      const extracted = match[1].toLowerCase();
-      if (extracted.length >= 2 && extracted.length <= 6 && !/^\d+$/.test(extracted)) {
-        const chain = extracted === 'trx' ? 'tron' : extracted === 'bnb' ? 'bsc' : extracted;
-        // If it has 0x address, it's likely a token on that chain
-        if (assetLower.includes('0x')) {
-          return { chain, token: chain.toUpperCase() + ' Token' };
-        }
-        const symbol = CHAIN_CONFIG[chain]?.symbol || chain.toUpperCase();
-        return { chain, token: symbol };
-      }
+    const m = asset.match(/nep141:([a-zA-Z]+)[\.\-]/);
+    if (m && m[1]) {
+      const raw = m[1].toLowerCase();
+      const chain = raw === 'trx' ? 'tron' : raw === 'bnb' ? 'bsc' : raw;
+      return { chain, token: `UNKNOWN_ON_${chain.toUpperCase()}` };
     }
 
     return { chain: 'other', token: 'OTHER' };

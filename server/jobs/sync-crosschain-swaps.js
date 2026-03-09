@@ -31,12 +31,16 @@ const pool = new Pool({
 });
 
 const NEAR_API_BASE = 'https://explorer.near-intents.org/api/v0';
+const ONECLICK_API_BASE = 'https://1click.chaindefuser.com/v0';
 const API_KEY = process.env.NEAR_INTENTS_API_KEY;
 const RATE_LIMIT_MS = 5500;
 const MAX_MATCH_ATTEMPTS = 288; // 24h of 5-min retries
 
 const isBackfill = process.argv.includes('--backfill');
 const isSeed = process.argv.includes('--seed');
+
+// Populated on startup from the 1Click /v0/tokens endpoint
+let TOKEN_MAP = {};
 
 function log(msg) {
   const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -84,44 +88,54 @@ async function fetchSwapPage(direction, page, startTs) {
 }
 
 // ---------------------------------------------------------------------------
-// Chain parsing (reused from near-intents.js)
+// Token map: assetId → { chain, token }
+// Loaded once on startup from the 1Click /v0/tokens API (source of truth)
 // ---------------------------------------------------------------------------
+
+async function loadTokenMap() {
+  try {
+    log('Loading token map from 1Click API...');
+    const res = await fetch(`${ONECLICK_API_BASE}/tokens`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const tokens = await res.json();
+
+    const map = {};
+    for (const t of tokens) {
+      if (t.assetId && t.blockchain && t.symbol) {
+        map[t.assetId] = {
+          chain: t.blockchain === 'trx' ? 'tron' : t.blockchain === 'bnb' ? 'bsc' : t.blockchain,
+          token: t.symbol.toUpperCase(),
+        };
+      }
+    }
+
+    log(`Loaded ${Object.keys(map).length} tokens into lookup map`);
+    return map;
+  } catch (e) {
+    log(`⚠️ Failed to load token map: ${e.message} — falling back to chain-prefix parsing`);
+    return {};
+  }
+}
 
 function parseChainFromAsset(asset) {
   if (!asset) return { chain: 'unknown', token: 'UNKNOWN' };
+
+  // 1. Exact lookup from the token map (authoritative)
+  if (TOKEN_MAP[asset]) return TOKEN_MAP[asset];
+
+  // 2. Fallback: extract chain prefix from nep141 format
   const a = asset.toLowerCase();
   if (a.includes('zec') || a.includes('zcash')) return { chain: 'zec', token: 'ZEC' };
 
-  const knownTokens = {
-    '0xdac17f958d2ee523a2206206994597c13d831ec7': { token: 'USDT', chain: 'eth' },
-    '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { token: 'USDC', chain: 'eth' },
-  };
-  for (const [addr, info] of Object.entries(knownTokens)) {
-    if (a.includes(addr)) return info;
-  }
-  if (a.includes('usdt.tether-token.near')) return { chain: 'near', token: 'USDT' };
-  if (a.includes('usdc')) {
-    if (a.includes('sol-')) return { chain: 'sol', token: 'USDC' };
-    if (a.includes('eth-')) return { chain: 'eth', token: 'USDC' };
-    if (a.includes('base-')) return { chain: 'base', token: 'USDC' };
-    if (a.includes('arb-')) return { chain: 'arb', token: 'USDC' };
-    return { chain: 'near', token: 'USDC' };
+  const m = asset.match(/nep141:([a-zA-Z]+)[\.\-]/);
+  if (m && m[1]) {
+    const raw = m[1].toLowerCase();
+    const chain = raw === 'trx' ? 'tron' : raw === 'bnb' ? 'bsc' : raw;
+    return { chain, token: `UNKNOWN_ON_${chain.toUpperCase()}` };
   }
 
-  const prefixes = ['eth', 'btc', 'sol', 'near', 'doge', 'xrp', 'base', 'arb', 'pol', 'bsc', 'avax', 'tron', 'trx', 'bnb', 'op', 'ftm', 'sui', 'apt'];
-  for (const p of prefixes) {
-    const re = new RegExp(`nep141:${p}[\\.\\-]`);
-    if (re.test(a) && !a.includes('0x')) {
-      const chain = p === 'trx' ? 'tron' : p === 'bnb' ? 'bsc' : p;
-      return { chain, token: chain.toUpperCase() };
-    }
-  }
-
-  const m = asset.match(/nep141:([a-zA-Z]+)-/);
-  if (m && m[1] && m[1].length >= 2 && m[1].length <= 6) {
-    const chain = m[1].toLowerCase();
-    return { chain: chain === 'trx' ? 'tron' : chain === 'bnb' ? 'bsc' : chain, token: chain.toUpperCase() };
-  }
   return { chain: 'other', token: 'OTHER' };
 }
 
@@ -407,6 +421,9 @@ async function main() {
     log(`DB connection failed: ${e.message}`);
     process.exit(1);
   }
+
+  // Load token map from 1Click API (assetId → { chain, token })
+  TOKEN_MAP = await loadTokenMap();
 
   // Seed mode: insert test fixtures
   if (isSeed) {
