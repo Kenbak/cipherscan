@@ -312,7 +312,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         };
       }
     } catch (bridgeErr) {
-      // cross_chain_swaps table may not exist yet; silently ignore
+      console.error('❌ [TX] Bridge lookup error for txid', txid, ':', bridgeErr.message);
     }
 
     res.json({
