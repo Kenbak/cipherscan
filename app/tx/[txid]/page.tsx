@@ -228,6 +228,7 @@ export default function TransactionPage() {
             bindingSig: txData.bindingSig,
             bindingSigSapling: txData.bindingSigSapling,
             finality: txData.finality || null,
+            bridge: txData.bridge || null,
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
