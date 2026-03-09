@@ -27,6 +27,8 @@ interface BridgeData {
   otherTxHash: string | null;
   explorerUrl: string | null;
   swapTimestamp: string;
+  zecAmount?: number;
+  zecAddress?: string | null;
 }
 
 interface TransactionData {
@@ -55,6 +57,7 @@ interface TransactionData {
   bindingSigSapling?: string;
   finality?: string | null;
   bridge?: BridgeData | null;
+  bridges?: BridgeData[];
 }
 
 // Icon components (same as block page)
@@ -229,6 +232,7 @@ export default function TransactionPage() {
             bindingSigSapling: txData.bindingSigSapling,
             finality: txData.finality || null,
             bridge: txData.bridge || null,
+            bridges: txData.bridges || [],
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
@@ -403,15 +407,32 @@ export default function TransactionPage() {
     hasSapling ? 'SHIELDED' :
     'REGULAR';
 
+  const allBridges = data.bridges && data.bridges.length > 0 ? data.bridges : (data.bridge ? [data.bridge] : []);
+
+  // Build a set of output addresses that correspond to bridge swaps (for highlighting)
+  const bridgeOutputAddresses = new Map<string, BridgeData>();
+  for (const b of allBridges) {
+    if (b.zecAddress) bridgeOutputAddresses.set(b.zecAddress, b);
+  }
+
   // Human-readable transaction explanation
   const generateTxSummary = (): React.ReactNode => {
-    // Cross-chain bridge explanations take priority
-    if (data.bridge) {
-      const b = data.bridge;
-      if (b.direction === 'entry') {
+    if (allBridges.length > 0) {
+      if (allBridges.length === 1) {
+        const b = allBridges[0];
+        if (b.direction === 'entry') {
+          return (
+            <>
+              {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} was bridged from {b.otherChain.toUpperCase()} to Zcash via NEAR Intents.
+              {b.otherAmountUsd > 0 && (
+                <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+              )}
+            </>
+          );
+        }
         return (
           <>
-            {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} was bridged from {b.otherChain.toUpperCase()} to Zcash via NEAR Intents.
+            ZEC was bridged out to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
             {b.otherAmountUsd > 0 && (
               <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
             )}
@@ -420,10 +441,7 @@ export default function TransactionPage() {
       }
       return (
         <>
-          ZEC was bridged out to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
-          {b.otherAmountUsd > 0 && (
-            <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
-          )}
+          Batched bridge transaction with {allBridges.length} swaps via NEAR Intents.
         </>
       );
     }
@@ -572,13 +590,14 @@ export default function TransactionPage() {
           {txType === 'MIXED' && (
             <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>
           )}
-          {data.bridge && (
+          {allBridges.length > 0 && (
             <Badge color="cyan" icon={
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={data.bridge.direction === 'entry' ? 'M19 14l-7 7m0 0l-7-7m7 7V3' : 'M5 10l7-7m0 0l7 7m-7-7v18'} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={allBridges[0].direction === 'entry' ? 'M19 14l-7 7m0 0l-7-7m7 7V3' : 'M5 10l7-7m0 0l7 7m-7-7v18'} />
               </svg>
             }>
-              {data.bridge.direction === 'entry' ? 'BRIDGE ENTRY' : 'BRIDGE EXIT'}
+              {allBridges[0].direction === 'entry' ? 'BRIDGE ENTRY' : 'BRIDGE EXIT'}
+              {allBridges.length > 1 && ` (${allBridges.length})`}
             </Badge>
           )}
           </div>
@@ -629,32 +648,39 @@ export default function TransactionPage() {
         </p>
 
         {/* Cross-chain bridge info */}
-        {data.bridge && (
-          <div className="mt-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-            <div className="flex items-center gap-2 text-sm">
-              <svg className="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              <span className="text-secondary">
-                {data.bridge.direction === 'entry'
-                  ? `${data.bridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${data.bridge.otherToken} bridged from ${data.bridge.otherChain.toUpperCase()} to Zcash via NEAR Intents`
-                  : `ZEC bridged to ${data.bridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${data.bridge.otherToken} on ${data.bridge.otherChain.toUpperCase()} via NEAR Intents`
-                }
-              </span>
-              {data.bridge.explorerUrl && (
-                <a
-                  href={data.bridge.explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto text-xs text-cyan-400 hover:text-cyan-300 whitespace-nowrap flex items-center gap-1"
-                >
-                  View on {data.bridge.otherChain.toUpperCase()}
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        {allBridges.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {allBridges.map((b, i) => (
+              <div key={i} className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                <div className="flex items-center gap-2 text-sm">
+                  <svg className="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
-                </a>
-              )}
-            </div>
+                  <span className="text-secondary">
+                    {b.direction === 'entry'
+                      ? `${b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${b.otherToken} bridged from ${b.otherChain.toUpperCase()} to Zcash`
+                      : `ZEC bridged to ${b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${b.otherToken} on ${b.otherChain.toUpperCase()}`
+                    }
+                    {b.zecAmount && b.zecAmount > 0 && (
+                      <span className="text-muted"> ({b.zecAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })} ZEC)</span>
+                    )}
+                  </span>
+                  {b.explorerUrl && (
+                    <a
+                      href={b.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto text-xs text-cyan-400 hover:text-cyan-300 whitespace-nowrap flex items-center gap-1"
+                    >
+                      View on {b.otherChain.toUpperCase()}
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -1172,32 +1198,44 @@ export default function TransactionPage() {
             )}
 
             <div className="space-y-3">
-              {data.outputs.map((output, index) => (
+              {data.outputs.map((output, index) => {
+                const outputAddr = output.scriptPubKey?.addresses?.[0];
+                const matchedBridge = outputAddr ? bridgeOutputAddresses.get(outputAddr) : undefined;
+                return (
                 <div
                   key={index}
-                  className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                  className={`block-tx-row p-4 rounded-lg border transition-all ${matchedBridge ? 'border-cyan-500/40 bg-cyan-500/5' : 'border-cipher-border hover:border-cipher-cyan/50'}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted font-mono">OUTPUT #{index}</span>
                       <Badge color="cyan">TRANSPARENT</Badge>
+                      {matchedBridge && (
+                        <Badge color="cyan" icon={
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                        }>
+                          {matchedBridge.direction === 'entry' ? 'SWAP' : 'SWAP'} · {matchedBridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} {matchedBridge.otherToken}
+                        </Badge>
+                      )}
                     </div>
                     <span className="text-sm font-mono text-primary font-semibold">
                       {output.value?.toFixed(8)} {CURRENCY}
                     </span>
                   </div>
-                {output.scriptPubKey?.addresses?.[0] ? (
+                {outputAddr ? (
                   <div>
                     <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
                       To
                     </label>
                     <div className="flex items-center">
-                      <Link href={`/address/${output.scriptPubKey.addresses[0]}`}>
+                      <Link href={`/address/${outputAddr}`}>
                         <code className="text-xs text-secondary hover:text-cipher-cyan break-all block transition-colors">
-                          {output.scriptPubKey.addresses[0]}
+                          {outputAddr}
                         </code>
                       </Link>
-                      <CopyButton text={output.scriptPubKey.addresses[0]} label={`output-${index}`} />
+                      <CopyButton text={outputAddr} label={`output-${index}`} />
                     </div>
                   </div>
                 ) : (
@@ -1206,7 +1244,8 @@ export default function TransactionPage() {
                   </code>
                 )}
               </div>
-            ))}
+                );
+              })}
 
             {/* Shielded Output with known value (from value_balance) */}
             {valueBalance < 0 && (

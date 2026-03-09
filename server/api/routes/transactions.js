@@ -251,48 +251,49 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     const totalOutput = tx.total_output ? tx.total_output / 100000000 : null;
 
     // Bridge / cross-chain data (NEAR Intents)
+    // Supports multiple swaps batched in one txid
     let bridge = null;
+    let bridges = [];
     try {
       const bridgeResult = await pool.query(
         `SELECT id, direction, source_chain, source_token, source_amount, source_amount_usd,
                 source_tx_hashes, dest_chain, dest_token, dest_amount, dest_amount_usd,
-                dest_tx_hashes, swap_created_at, matched
+                dest_tx_hashes, swap_created_at, matched, zec_address
          FROM cross_chain_swaps
-         WHERE zec_txid = $1
-         LIMIT 1`,
+         WHERE zec_txid = $1`,
         [txid]
       );
-      if (bridgeResult.rows.length > 0) {
-        // Auto-fix: if viewing this tx, it exists — mark as matched
-        if (!bridgeResult.rows[0].matched) {
-          pool.query('UPDATE cross_chain_swaps SET matched = true WHERE id = $1', [bridgeResult.rows[0].id]).catch(() => {});
+
+      const explorerUrls = {
+        eth: 'https://etherscan.io/tx/',
+        sol: 'https://solscan.io/tx/',
+        btc: 'https://mempool.space/tx/',
+        near: 'https://nearblocks.io/txns/',
+        doge: 'https://dogechain.info/tx/',
+        xrp: 'https://xrpscan.com/tx/',
+        arb: 'https://arbiscan.io/tx/',
+        base: 'https://basescan.org/tx/',
+        pol: 'https://polygonscan.com/tx/',
+        avax: 'https://snowtrace.io/tx/',
+        bsc: 'https://bscscan.com/tx/',
+        op: 'https://optimistic.etherscan.io/tx/',
+        tron: 'https://tronscan.org/#/transaction/',
+      };
+
+      for (const b of bridgeResult.rows) {
+        if (!b.matched) {
+          pool.query('UPDATE cross_chain_swaps SET matched = true WHERE id = $1', [b.id]).catch(() => {});
         }
-        const b = bridgeResult.rows[0];
         const isInflow = b.direction === 'inflow';
         const otherChain = isInflow ? b.source_chain : b.dest_chain;
         const otherToken = isInflow ? b.source_token : b.dest_token;
         const otherAmount = isInflow ? parseFloat(b.source_amount) : parseFloat(b.dest_amount);
         const otherAmountUsd = isInflow ? parseFloat(b.source_amount_usd) : parseFloat(b.dest_amount_usd);
+        const zecAmount = isInflow ? parseFloat(b.dest_amount) : parseFloat(b.source_amount);
         const otherHashes = isInflow ? (b.source_tx_hashes || []) : (b.dest_tx_hashes || []);
         const otherHash = otherHashes.length > 0 ? otherHashes[0] : null;
 
-        const explorerUrls = {
-          eth: 'https://etherscan.io/tx/',
-          sol: 'https://solscan.io/tx/',
-          btc: 'https://mempool.space/tx/',
-          near: 'https://nearblocks.io/txns/',
-          doge: 'https://dogechain.info/tx/',
-          xrp: 'https://xrpscan.com/tx/',
-          arb: 'https://arbiscan.io/tx/',
-          base: 'https://basescan.org/tx/',
-          pol: 'https://polygonscan.com/tx/',
-          avax: 'https://snowtrace.io/tx/',
-          bsc: 'https://bscscan.com/tx/',
-          op: 'https://optimistic.etherscan.io/tx/',
-          tron: 'https://tronscan.org/#/transaction/',
-        };
-
-        bridge = {
+        bridges.push({
           direction: isInflow ? 'entry' : 'exit',
           sourceChain: isInflow ? otherChain : 'zec',
           sourceToken: isInflow ? otherToken : 'ZEC',
@@ -309,8 +310,11 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
             ? explorerUrls[otherChain] + otherHash
             : null,
           swapTimestamp: b.swap_created_at,
-        };
+          zecAmount,
+          zecAddress: b.zec_address,
+        });
       }
+      if (bridges.length > 0) bridge = bridges[0];
     } catch (bridgeErr) {
       console.error('❌ [TX] Bridge lookup error for txid', txid, ':', bridgeErr.message);
     }
@@ -342,6 +346,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       inputCount: inputsResult.rows.length,
       outputCount: outputsResult.rows.length,
       bridge,
+      bridges: bridges.length > 0 ? bridges : undefined,
     });
   } catch (error) {
     console.error('Error fetching transaction:', error);

@@ -552,12 +552,27 @@ router.get('/api/crosschain/address/:address', async (req, res) => {
     const pool = req.app.locals.pool;
     const { address } = req.params;
 
+    // Find swaps linked to this address via zec_address column
+    // OR by matching zec_txid against transaction outputs/inputs for this address
     const { rows } = await pool.query(`
-      SELECT deposit_address, direction, source_chain, source_token, source_amount, source_amount_usd,
-             dest_chain, dest_token, dest_amount, dest_amount_usd,
-             zec_txid, swap_created_at, source_tx_hashes, dest_tx_hashes
-      FROM cross_chain_swaps
-      WHERE zec_address = $1 AND status = 'SUCCESS' AND matched = true
+      (
+        SELECT deposit_address, direction, source_chain, source_token,
+               source_amount, source_amount_usd, dest_chain, dest_token,
+               dest_amount, dest_amount_usd, zec_txid, swap_created_at,
+               source_tx_hashes, dest_tx_hashes
+        FROM cross_chain_swaps
+        WHERE zec_address = $1 AND status = 'SUCCESS' AND matched = true
+      )
+      UNION
+      (
+        SELECT ccs.deposit_address, ccs.direction, ccs.source_chain, ccs.source_token,
+               ccs.source_amount, ccs.source_amount_usd, ccs.dest_chain, ccs.dest_token,
+               ccs.dest_amount, ccs.dest_amount_usd, ccs.zec_txid, ccs.swap_created_at,
+               ccs.source_tx_hashes, ccs.dest_tx_hashes
+        FROM cross_chain_swaps ccs
+        JOIN transaction_outputs tou ON tou.txid = ccs.zec_txid AND tou.address = $1
+        WHERE ccs.status = 'SUCCESS' AND ccs.matched = true AND ccs.zec_address IS NULL
+      )
       ORDER BY swap_created_at DESC
       LIMIT 50
     `, [address]);

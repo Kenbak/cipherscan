@@ -238,12 +238,54 @@ async function checkTxExists(txid) {
 }
 
 // ---------------------------------------------------------------------------
+// Extract the user's ZEC address from a matched transaction
+// For inflows: find the output matching the expected ZEC amount (not the change output)
+// For outflows: find the input address that isn't the bridge deposit address
+// ---------------------------------------------------------------------------
+
+async function extractZecAddress(txid, direction, expectedZecAmount) {
+  try {
+    if (direction === 'inflow' || direction === 'in') {
+      if (expectedZecAmount && expectedZecAmount > 0) {
+        const amountZat = Math.round(expectedZecAmount * 1e8);
+        const tolerance = Math.max(Math.round(amountZat * 0.01), 100);
+        const { rows } = await pool.query(
+          `SELECT address FROM transaction_outputs
+           WHERE txid = $1 AND address IS NOT NULL
+             AND value BETWEEN $2 AND $3
+           LIMIT 1`,
+          [txid, amountZat - tolerance, amountZat + tolerance]
+        );
+        if (rows.length > 0) return rows[0].address;
+      }
+      const { rows } = await pool.query(
+        `SELECT address, value FROM transaction_outputs
+         WHERE txid = $1 AND address IS NOT NULL
+         ORDER BY value ASC LIMIT 1`,
+        [txid]
+      );
+      return rows.length > 0 ? rows[0].address : null;
+    } else {
+      const { rows } = await pool.query(
+        `SELECT address FROM transaction_inputs
+         WHERE txid = $1 AND address IS NOT NULL
+         LIMIT 1`,
+        [txid]
+      );
+      return rows.length > 0 ? rows[0].address : null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Retry unmatched swaps
 // ---------------------------------------------------------------------------
 
 async function retryUnmatched() {
   const { rows } = await pool.query(`
-    SELECT id, zec_txid, zec_address, direction, dest_tx_hashes, source_tx_hashes
+    SELECT id, zec_txid, zec_address, direction, dest_amount, source_amount, dest_tx_hashes, source_tx_hashes
     FROM cross_chain_swaps
     WHERE matched = false AND zec_txid IS NOT NULL AND match_attempts < $1
   `, [MAX_MATCH_ATTEMPTS]);
@@ -255,21 +297,10 @@ async function retryUnmatched() {
   for (const row of rows) {
     const exists = await checkTxExists(row.zec_txid);
     if (exists) {
-      // Try to find the ZEC address from our DB
-      let zecAddr = null;
-      if (row.direction === 'inflow') {
-        const addrResult = await pool.query(
-          'SELECT address FROM transaction_outputs WHERE txid = $1 AND address IS NOT NULL LIMIT 1',
-          [row.zec_txid]
-        );
-        if (addrResult.rows.length > 0) zecAddr = addrResult.rows[0].address;
-      } else {
-        const addrResult = await pool.query(
-          'SELECT address FROM transaction_inputs WHERE txid = $1 AND address IS NOT NULL LIMIT 1',
-          [row.zec_txid]
-        );
-        if (addrResult.rows.length > 0) zecAddr = addrResult.rows[0].address;
-      }
+      const expectedZec = row.direction === 'inflow'
+        ? parseFloat(row.dest_amount)
+        : parseFloat(row.source_amount);
+      const zecAddr = await extractZecAddress(row.zec_txid, row.direction, expectedZec);
 
       await pool.query(
         'UPDATE cross_chain_swaps SET matched = true, zec_address = COALESCE($2, zec_address), match_attempts = match_attempts + 1 WHERE id = $1',
@@ -395,7 +426,7 @@ async function selfHealFromBlockchain() {
 
   // --- Strategy 1: Outflows with t1 deposit_address (direct lookup) ---
   const { rows: outflowsDirect } = await pool.query(`
-    SELECT id, deposit_address
+    SELECT id, deposit_address, source_amount
     FROM cross_chain_swaps
     WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'outflow'
       AND deposit_address LIKE 't1%'
@@ -413,9 +444,10 @@ async function selfHealFromBlockchain() {
     `, [row.deposit_address]);
 
     if (txRows.length > 0) {
+      const zecAddr = await extractZecAddress(txRows[0].txid, 'outflow', parseFloat(row.source_amount));
       await pool.query(
-        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
-        [txRows[0].txid, row.id]
+        'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true, zec_address = COALESCE($3, zec_address) WHERE id = $2',
+        [txRows[0].txid, row.id, zecAddr]
       );
       directFixed++;
     }
@@ -473,10 +505,10 @@ async function selfHealFromBlockchain() {
       `, [amountZat - tolerance, amountZat + tolerance, windowStart, windowEnd]);
 
       if (candidates.length === 1) {
-        // Unique match — safe to assign
+        const zecAddr = await extractZecAddress(candidates[0].txid, row.direction, zecAmount);
         await pool.query(
-          'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true WHERE id = $2',
-          [candidates[0].txid, row.id]
+          'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true, zec_address = COALESCE($3, zec_address) WHERE id = $2',
+          [candidates[0].txid, row.id, zecAddr]
         );
         amountFixed++;
       } else if (candidates.length > 1) {
@@ -533,6 +565,36 @@ async function syncDirection(direction, startTs) {
 
   log(`  ${direction}: ${total} synced (${hasZecTxid} with zec_txid, ${missingZecTxid} missing — ${total > 0 ? ((missingZecTxid/total)*100).toFixed(1) : 0}% gap from NEAR API)`);
   return total;
+}
+
+// ---------------------------------------------------------------------------
+// Backfill zec_address for matched swaps that are missing it
+// ---------------------------------------------------------------------------
+
+async function backfillZecAddresses() {
+  const { rows } = await pool.query(`
+    SELECT id, zec_txid, direction, dest_amount, source_amount
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NOT NULL AND zec_address IS NULL AND matched = true
+    LIMIT 2000
+  `);
+
+  if (rows.length === 0) return 0;
+  log(`Backfilling zec_address for ${rows.length} matched swaps...`);
+
+  let fixed = 0;
+  for (const row of rows) {
+    const expectedZec = row.direction === 'inflow'
+      ? parseFloat(row.dest_amount)
+      : parseFloat(row.source_amount);
+    const addr = await extractZecAddress(row.zec_txid, row.direction, expectedZec);
+    if (addr) {
+      await pool.query('UPDATE cross_chain_swaps SET zec_address = $1 WHERE id = $2', [addr, row.id]);
+      fixed++;
+    }
+  }
+  log(`  Backfilled zec_address for ${fixed}/${rows.length} swaps`);
+  return fixed;
 }
 
 // ---------------------------------------------------------------------------
@@ -662,6 +724,7 @@ async function main() {
     log('HEAL MODE: matching missing zec_txid from blockchain data');
     await selfHealFromBlockchain();
     await retryUnmatched();
+    await backfillZecAddresses();
     await updateAmountStats();
     await pool.end();
     log('=== Heal complete ===');
@@ -700,6 +763,9 @@ async function main() {
 
   // Self-heal: find missing zec_txid from our own blockchain data
   await selfHealFromBlockchain();
+
+  // Backfill zec_address for matched swaps missing it
+  await backfillZecAddresses();
 
   // Re-fetch swaps missing zec_txid (API may have filled them in)
   if (!isBackfill) {

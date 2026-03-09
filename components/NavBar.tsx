@@ -82,7 +82,7 @@ export function NavBar() {
     { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
     { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
     { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
-    ...(isMainnet ? [{ href: '/crosschain', label: 'Crosschain', desc: 'Cross-chain swap analytics' }] : []),
+    ...(isMainnet ? [{ href: '/crosschain', label: 'ZEC Crosschain', desc: 'Cross-chain swap analytics' }] : []),
     { href: '/mempool', label: 'Mempool', desc: 'Pending transactions' },
   ];
 
