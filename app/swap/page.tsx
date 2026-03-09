@@ -1003,23 +1003,38 @@ export default function SwapPage() {
                     )}
 
                     {txHash && (
-                      <div className="rounded-xl bg-cipher-green/[0.06] border border-cipher-green/20 p-4">
-                        <div className="flex items-center gap-2 justify-center mb-2">
-                          <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                          <span className="text-xs font-mono text-cipher-green font-semibold">Transaction sent</span>
+                      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            <span className="text-[11px] font-mono text-cipher-green">Sent</span>
+                            <code className="text-[11px] text-muted/70 font-mono ml-1">{txHash.slice(0, 8)}...{txHash.slice(-6)}</code>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(txHash); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                              className="p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+                              title="Copy tx hash"
+                            >
+                              {copied ? (
+                                <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5 text-muted hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              )}
+                            </button>
+                            {CHAIN_EXPLORERS[selectedToken.chain] && (
+                              <a
+                                href={`${CHAIN_EXPLORERS[selectedToken.chain]}${txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+                                title="View on explorer"
+                              >
+                                <svg className="w-3.5 h-3.5 text-muted hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        {CHAIN_EXPLORERS[selectedToken.chain] ? (
-                          <a
-                            href={`${CHAIN_EXPLORERS[selectedToken.chain]}${txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-cipher-cyan hover:text-cipher-cyan/80 break-all block text-center font-mono underline underline-offset-2 decoration-cipher-cyan/30"
-                          >
-                            {txHash} ↗
-                          </a>
-                        ) : (
-                          <code className="text-[10px] text-muted break-all block text-center">{txHash}</code>
-                        )}
                       </div>
                     )}
 
@@ -1056,14 +1071,14 @@ export default function SwapPage() {
                     )}
 
                     {txHash ? (
-                      <>
-                        <p className="text-[10px] font-mono text-muted/60 text-center">
-                          Your swap is processing and will complete automatically
-                        </p>
-                        <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
-                          Start New Swap
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] font-mono text-muted/50">
+                          Swap will complete automatically
+                        </span>
+                        <button onClick={resetSwap} className="text-[11px] font-mono text-muted hover:text-secondary transition-colors">
+                          New Swap →
                         </button>
-                      </>
+                      </div>
                     ) : (
                       <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
                         Cancel
