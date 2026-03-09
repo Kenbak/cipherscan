@@ -1027,9 +1027,20 @@ export default function SwapPage() {
                       </>
                     )}
 
-                    <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
-                      Cancel
-                    </button>
+                    {txHash ? (
+                      <>
+                        <p className="text-[10px] font-mono text-muted/60 text-center">
+                          Your swap is processing and will complete automatically
+                        </p>
+                        <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                          Start New Swap
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 )}
 
