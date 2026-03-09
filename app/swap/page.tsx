@@ -100,6 +100,7 @@ const CHAIN_EXPLORERS: Record<string, string> = {
   gnosis: 'https://gnosisscan.io/tx/',
   bera: 'https://berascan.com/tx/',
   scroll: 'https://scrollscan.com/tx/',
+  tron: 'https://tronscan.org/#/transaction/',
 };
 
 const CHAIN_LABELS: Record<string, string> = {

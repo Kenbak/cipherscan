@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { parseUnits, type Chain } from 'viem';
 import { mainnet, base, arbitrum, polygon, optimism, avalanche, bsc } from 'viem/chains';
 
-type WalletType = 'evm' | 'solana' | 'bitcoin' | null;
+type WalletType = 'evm' | 'solana' | 'bitcoin' | 'tron' | null;
 
 const SOLANA_RPC = `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY || ''}`;
 
@@ -182,6 +182,18 @@ function getSolanaProviders(): { name: string; icon?: string; key: string; provi
   return results;
 }
 
+function getTronProviders(): { name: string; icon?: string; key: string; provider: any }[] {
+  if (typeof window === 'undefined') return [];
+  const results: { name: string; icon?: string; key: string; provider: any }[] = [];
+  const tronLink = (window as any).tronLink;
+  const tronWeb = (window as any).tronWeb;
+  if (tronLink || tronWeb) {
+    const icon = getIconFromAnySource('TronLink');
+    results.push({ name: 'TronLink', icon, key: 'tron-tronlink', provider: tronLink || tronWeb });
+  }
+  return results;
+}
+
 function getBitcoinProviders(): { name: string; icon?: string; key: string; provider: any }[] {
   if (typeof window === 'undefined') return [];
   const results: { name: string; icon?: string; key: string; provider: any }[] = [];
@@ -196,6 +208,7 @@ function getAllProviders() {
   return {
     evm: getEvmProviders(),
     solana: getSolanaProviders(),
+    tron: getTronProviders(),
     bitcoin: getBitcoinProviders(),
   };
 }
@@ -204,7 +217,7 @@ function chainToWalletType(chainId: string): WalletType {
   if (['eth', 'base', 'arb', 'pol', 'op', 'avax', 'bnb', 'bsc'].includes(chainId)) return 'evm';
   if (chainId === 'sol') return 'solana';
   if (['btc', 'doge', 'ltc'].includes(chainId)) return 'bitcoin';
-  // near, xrp, ton, trx: no browser wallet integration — manual send
+  if (['tron', 'trx'].includes(chainId)) return 'tron';
   return null;
 }
 
@@ -221,6 +234,7 @@ export function useWallet(): UseWalletReturn {
     const wallets: DetectedWallet[] = [];
     for (const p of providers.evm) wallets.push({ type: 'evm', name: p.name, icon: p.icon, providerKey: p.key });
     for (const p of providers.solana) wallets.push({ type: 'solana', name: p.name, icon: p.icon, providerKey: p.key });
+    for (const p of providers.tron) wallets.push({ type: 'tron', name: p.name, icon: p.icon, providerKey: p.key });
     for (const p of providers.bitcoin) wallets.push({ type: 'bitcoin', name: p.name, icon: p.icon, providerKey: p.key });
     setAllWallets(wallets);
   }, []);
@@ -284,6 +298,25 @@ export function useWallet(): UseWalletReturn {
           address: resp.publicKey.toString(),
           walletType: 'solana',
           walletName: match.name,
+          chainId: null,
+        });
+      } else if (wallet.type === 'tron') {
+        const tronLink = (window as any).tronLink;
+        const tronWeb = (window as any).tronWeb;
+        if (!tronLink && !tronWeb) throw new Error('TronLink not found. Is the extension enabled?');
+
+        if (tronLink?.request) {
+          await tronLink.request({ method: 'tron_requestAccounts' });
+        }
+        const tw = (window as any).tronWeb;
+        if (!tw?.defaultAddress?.base58) throw new Error('TronLink: please unlock your wallet');
+
+        setRawProvider(tw);
+        setState({
+          connected: true,
+          address: tw.defaultAddress.base58,
+          walletType: 'tron',
+          walletName: 'TronLink',
           chainId: null,
         });
       } else if (wallet.type === 'bitcoin') {
@@ -379,6 +412,19 @@ export function useWallet(): UseWalletReturn {
       return signed.signature;
     }
 
+    if (state.walletType === 'tron') {
+      const tw = rawProvider;
+      if (contractAddress) {
+        const contract = await tw.contract().at(contractAddress);
+        const tokenAmount = BigInt(Math.round(parseFloat(amount) * Math.pow(10, decimals)));
+        const result = await contract.transfer(to, tokenAmount.toString()).send();
+        return result;
+      }
+      const sunAmount = Math.round(parseFloat(amount) * 1e6);
+      const tx = await tw.trx.sendTransaction(to, sunAmount);
+      return tx.txid || tx.transaction?.txID || '';
+    }
+
     if (state.walletType === 'bitcoin') {
       const satoshis = Math.round(parseFloat(amount) * 1e8);
       return await rawProvider.sendBitcoin(to, satoshis);
@@ -453,6 +499,12 @@ export function useWallet(): UseWalletReturn {
         }
         return '0';
       }
+      if (state.walletType === 'tron' && rawProvider) {
+        const contract = await rawProvider.contract().at(contractAddress);
+        const raw = await contract.balanceOf(state.address).call();
+        const val = typeof raw === 'object' ? (raw._hex ? BigInt(raw._hex) : BigInt(raw.toString())) : BigInt(raw);
+        return (Number(val) / Math.pow(10, decimals)).toFixed(6);
+      }
     } catch (err) {
       console.error('[wallet] Token balance fetch failed:', err);
     }
@@ -480,6 +532,10 @@ export function useWallet(): UseWalletReturn {
           const bal = (rpcData.result.value / 1e9).toFixed(6);
           return bal;
         }
+      }
+      if (state.walletType === 'tron') {
+        const bal = await rawProvider.trx.getBalance(state.address);
+        return (bal / 1e6).toFixed(6);
       }
       if (state.walletType === 'bitcoin') {
         if (rawProvider.getBalance) {
