@@ -572,29 +572,55 @@ async function syncDirection(direction, startTs) {
 // ---------------------------------------------------------------------------
 
 async function backfillZecAddresses() {
-  const { rows } = await pool.query(`
+  // Phase 1: fill NULL zec_address
+  const { rows: nullRows } = await pool.query(`
     SELECT id, zec_txid, direction, dest_amount, source_amount
     FROM cross_chain_swaps
     WHERE zec_txid IS NOT NULL AND zec_address IS NULL AND matched = true
     LIMIT 2000
   `);
 
-  if (rows.length === 0) return 0;
-  log(`Backfilling zec_address for ${rows.length} matched swaps...`);
-
   let fixed = 0;
-  for (const row of rows) {
-    const expectedZec = row.direction === 'inflow'
-      ? parseFloat(row.dest_amount)
-      : parseFloat(row.source_amount);
-    const addr = await extractZecAddress(row.zec_txid, row.direction, expectedZec);
-    if (addr) {
-      await pool.query('UPDATE cross_chain_swaps SET zec_address = $1 WHERE id = $2', [addr, row.id]);
-      fixed++;
+  if (nullRows.length > 0) {
+    log(`Backfilling zec_address for ${nullRows.length} swaps with NULL address...`);
+    for (const row of nullRows) {
+      const expectedZec = row.direction === 'inflow'
+        ? parseFloat(row.dest_amount)
+        : parseFloat(row.source_amount);
+      const addr = await extractZecAddress(row.zec_txid, row.direction, expectedZec);
+      if (addr) {
+        await pool.query('UPDATE cross_chain_swaps SET zec_address = $1 WHERE id = $2', [addr, row.id]);
+        fixed++;
+      }
     }
+    log(`  Phase 1: filled ${fixed}/${nullRows.length} NULL addresses`);
   }
-  log(`  Backfilled zec_address for ${fixed}/${rows.length} swaps`);
-  return fixed;
+
+  // Phase 2: re-verify existing zec_address values (fix old LIMIT 1 mismatches)
+  const { rows: existingRows } = await pool.query(`
+    SELECT id, zec_txid, zec_address, direction, dest_amount, source_amount
+    FROM cross_chain_swaps
+    WHERE zec_txid IS NOT NULL AND zec_address IS NOT NULL AND matched = true
+      AND direction = 'inflow'
+    LIMIT 5000
+  `);
+
+  let corrected = 0;
+  if (existingRows.length > 0) {
+    log(`Re-verifying zec_address for ${existingRows.length} inflow swaps...`);
+    for (const row of existingRows) {
+      const expectedZec = parseFloat(row.dest_amount);
+      const correctAddr = await extractZecAddress(row.zec_txid, 'inflow', expectedZec);
+      if (correctAddr && correctAddr !== row.zec_address) {
+        await pool.query('UPDATE cross_chain_swaps SET zec_address = $1 WHERE id = $2', [correctAddr, row.id]);
+        corrected++;
+      }
+    }
+    log(`  Phase 2: corrected ${corrected}/${existingRows.length} mismatched addresses`);
+  }
+
+  log(`Backfill complete: ${fixed} filled, ${corrected} corrected`);
+  return fixed + corrected;
 }
 
 // ---------------------------------------------------------------------------
