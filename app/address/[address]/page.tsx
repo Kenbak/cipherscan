@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
@@ -110,6 +110,7 @@ const Icons = {
 export default function AddressPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const address = params.address as string;
   const [data, setData] = useState<AddressData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -321,41 +322,28 @@ export default function AddressPage() {
 
   if (loading) {
     const Skeleton = ({ className = '' }: { className?: string }) => (
-      <div className={`animate-pulse rounded bg-cipher-surface ${className}`} />
+      <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
     );
 
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
         {/* Header skeleton */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Skeleton className="h-3 w-32 mb-3" />
-          <Skeleton className="h-9 w-48 mb-4" />
+          <Skeleton className="h-5 w-20 mb-3 rounded-full" />
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
 
-        {/* Overview cards row 1 */}
-        <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
-          {[0, 1, 2].map((i) => (
-            <Card key={i} variant="compact">
-              <CardBody>
-                <Skeleton className="h-3 w-24 mb-3" />
-                <Skeleton className="h-7 w-36" />
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-
-        {/* Overview cards row 2 */}
-        <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          {[0, 1, 2].map((i) => (
-            <Card key={i} variant="compact">
-              <CardBody>
-                <Skeleton className="h-3 w-28 mb-3" />
-                <Skeleton className="h-6 w-32" />
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+        {/* Hero card skeleton */}
+        <Card className="mb-6">
+          <CardBody>
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-full max-w-lg" />
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Tab bar skeleton */}
         <div className="flex items-center gap-6 border-b border-cipher-border mb-6 md:mb-8">
@@ -792,20 +780,50 @@ export default function AddressPage() {
 
   const totalTxCount = data.transactionCount || data.transactions.length;
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
-      {/* Header */}
-      <div className="mb-8 animate-fade-in-up">
-        <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
-        <div className="flex items-center justify-between mt-1 mb-2">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Address</h1>
-            <Badge color={typeInfo.color as 'purple' | 'cyan'} icon={<Icons.Shield />}>
-              {typeInfo.label}
-            </Badge>
-          </div>
+  const formatAbsoluteDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
 
-          {/* Export Button - Right aligned */}
+  const TimeHover = ({ relative, absolute }: { relative: string; absolute: string }) => (
+    <span className="relative inline-block group/time">
+      <span className="text-secondary border-b border-dotted border-cipher-border cursor-default">{relative}</span>
+      <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 text-[10px] font-mono tooltip-content whitespace-nowrap opacity-0 pointer-events-none group-hover/time:opacity-100 transition-opacity">
+        {absolute}
+      </span>
+    </span>
+  );
+
+  const generateAddressSummary = (): React.ReactNode => {
+    const typeLabel = data.type === 'transparent' ? 'transparent' : data.type === 'unified' ? 'unified' : 'shielded';
+    const parts: React.ReactNode[] = [];
+
+    parts.push(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} address with ${totalTxCount.toLocaleString()} transaction${totalTxCount !== 1 ? 's' : ''}.`);
+
+    if (data.firstSeen && data.lastSeen) {
+      parts.push(
+        <span key="times">
+          {' '}First seen <TimeHover relative={formatTimestamp(data.firstSeen)} absolute={formatAbsoluteDate(data.firstSeen)} />, last active <TimeHover relative={formatTimestamp(data.lastSeen)} absolute={formatAbsoluteDate(data.lastSeen)} />.
+        </span>
+      );
+    } else if (data.firstSeen) {
+      parts.push(
+        <span key="first">
+          {' '}First seen <TimeHover relative={formatTimestamp(data.firstSeen)} absolute={formatAbsoluteDate(data.firstSeen)} />.
+        </span>
+      );
+    }
+
+    return <>{parts}</>;
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+      {/* Header */}
+      <div className="mb-6 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2">
+          <span className="text-[10px] font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
           <ExportButton
             data={{
               address: data.address,
@@ -841,134 +859,58 @@ export default function AddressPage() {
           />
         </div>
 
-        {/* Address with copy button */}
-        <div className="flex flex-wrap items-center gap-2 mt-4">
-          <code className="text-sm text-secondary break-all">{address}</code>
-          <CopyButton text={address} label="address" />
-        </div>
+        <Badge color={typeInfo.color as 'purple' | 'cyan'} icon={<Icons.Shield />}>
+          {typeInfo.label}
+        </Badge>
 
-        {/* Address Label */}
-        <div className="mt-3">
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <code className="text-sm text-secondary break-all font-mono">{address}</code>
+          <CopyButton text={address} label="address" />
           <AddressLabel address={address} />
         </div>
       </div>
 
-      {/* Overview Cards - Row 1 */}
-      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        {/* Balance */}
-        <Card variant="compact">
+      {/* Hero Card */}
+      <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <Card>
           <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Wallet />
-              <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Balance</span>
-              <Tooltip content="Current balance of this address" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold font-mono text-primary">
-              {data.balance.toFixed(8)}
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Value (USD) */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Currency />
-              <span className="text-xs md:text-sm uppercase tracking-wide">{CURRENCY} Value</span>
-              <Tooltip content="Estimated value in US Dollars" />
-            </div>
-            {priceData ? (
-              <div className="text-xl md:text-2xl font-bold font-mono text-primary">
-                ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs md:text-sm text-muted">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
-              </div>
-            ) : (
-              <div className="text-sm text-muted">Loading price...</div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* Address Type */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Shield />
-              <span className="text-xs md:text-sm uppercase tracking-wide">Address Type</span>
-            </div>
-            <div className="text-base md:text-lg font-semibold text-primary mb-1">
-              {typeInfo.label}
-            </div>
-            <div className="text-xs text-muted">
-              {typeInfo.description}
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Overview Cards - Row 2 */}
-      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        {/* Total Transactions */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.List />
-              <span className="text-xs md:text-sm">Total Transactions</span>
-              <Tooltip content="Total number of transactions involving this address" />
-            </div>
-            <button
-              onClick={() => {
-                const txSection = document.getElementById('transactions-section');
-                txSection?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="text-xl md:text-2xl font-bold font-mono text-primary hover:text-cipher-cyan transition-colors text-left"
-            >
-              {totalTxCount}
-            </button>
-          </CardBody>
-        </Card>
-
-        {/* First Seen */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Clock />
-              <span className="text-xs md:text-sm">First Seen</span>
-              <Tooltip content="When this address was first seen on the blockchain" />
-            </div>
-            {data.firstSeen ? (
+            <div className="flex flex-col items-center text-center space-y-3 py-2">
+              {/* Balance with ZEC icon */}
               <div>
-                <div className="text-base md:text-lg font-semibold text-primary mb-1">
-                  {formatTimestamp(data.firstSeen)}
+                <div className="flex items-center justify-center gap-3">
+                  <img src="/tokens/zec.png" alt="ZEC" className="w-7 h-7 sm:w-10 sm:h-10 rounded-full" />
+                  <span className="text-base sm:text-2xl font-bold font-mono text-primary">
+                    {data.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} {CURRENCY}
+                  </span>
                 </div>
-                <div className="text-xs text-muted font-mono">
-                  {new Date(data.firstSeen * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </div>
+                {priceData ? (
+                  <div className="text-sm text-muted font-mono mt-1">
+                    ≈ ${(data.balance * priceData.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="ml-1.5 text-xs">(@ ${priceData.price.toFixed(2)}/ZEC)</span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted mt-1">Loading price...</div>
+                )}
               </div>
-            ) : (
-              <div className="text-sm text-muted">Unknown</div>
-            )}
-          </CardBody>
-        </Card>
 
-        {/* Last Seen */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center gap-2 mb-2 text-secondary">
-              <Icons.Clock />
-              <span className="text-xs md:text-sm">Last Seen</span>
-              <Tooltip content="When this address was last active on the blockchain" />
+              {/* Summary */}
+              <p className="text-sm text-muted leading-relaxed max-w-lg">
+                {generateAddressSummary()}
+              </p>
+
+              {/* Cross-chain summary if present */}
+              {crossChain && crossChain.totalSwaps > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-mono text-muted border-t border-cipher-border pt-3 w-full">
+                  <span className="text-secondary">{crossChain.totalSwaps} bridge{crossChain.totalSwaps !== 1 ? 's' : ''}</span>
+                  <span>·</span>
+                  <span>${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol</span>
+                  <span>·</span>
+                  <span className="text-cipher-green">{crossChain.entryCount} in</span>
+                  <span>·</span>
+                  <span className="text-red-400">{crossChain.exitCount} out</span>
+                </div>
+              )}
             </div>
-            {data.lastSeen ? (
-              <div>
-                <div className="text-base md:text-lg font-semibold text-primary mb-1">
-                  {formatTimestamp(data.lastSeen)}
-                </div>
-                <div className="text-xs text-muted font-mono">
-                  {new Date(data.lastSeen * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted">Unknown</div>
-            )}
           </CardBody>
         </Card>
       </div>
@@ -1135,8 +1077,7 @@ export default function AddressPage() {
                 {/* Transaction Rows */}
                 <div className="space-y-2 min-w-[800px]">
                 {sortedTxs.map((tx, index) => (
-                  <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
-                    <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                  <div key={tx.txid || index} onClick={() => router.push(`/tx/${tx.txid}`)} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
                       {/* Type Column */}
                       <div className="col-span-1">
                         {tx.type === 'received' ? (
@@ -1268,8 +1209,7 @@ export default function AddressPage() {
                           </span>
                         )}
                       </div>
-                    </div>
-                  </Link>
+                  </div>
                 ))}
                 </div>
             </div>

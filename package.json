@@ -12,7 +12,11 @@
     "@mayaprotocol/zcash-js": "^1.0.7",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
+    "@types/node": "^22.10.5",
     "@types/pg": "^8.15.6",
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
     "autoprefixer": "^10.4.21",
     "bip39": "^3.1.0",
     "geist": "^1.7.0",
@@ -27,14 +31,8 @@
     "redis": "^5.10.0",
     "tailwindcss": "^3.4.17",
     "topojson-client": "^3.1.0",
+    "typescript": "^5.7.2",
     "viem": "^2.47.0",
     "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.5",
-    "@types/react": "^19.0.6",
-    "@types/react-dom": "^19.2.3",
-    "@types/topojson-client": "^3.1.5",
-    "typescript": "^5.7.2"
   }
 }
