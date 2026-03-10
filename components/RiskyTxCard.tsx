@@ -86,8 +86,8 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         </div>
         <div />
         <div className="flex items-center gap-1.5 justify-end">
-          <span className="text-[10px] font-mono font-medium text-orange-400 uppercase tracking-wider">Unshield</span>
-          <div className="w-1.5 h-1.5 rounded-full bg-orange-400/70" />
+          <span className="text-[10px] font-mono font-medium text-cipher-orange uppercase tracking-wider">Unshield</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-cipher-orange/70" />
         </div>
 
         {/* Row 2: Amounts + connecting line */}

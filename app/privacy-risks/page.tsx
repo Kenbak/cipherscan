@@ -719,7 +719,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             {pattern.score}/100
           </span>
           {!pattern.isRoundNumber && pattern.batchCount >= 5 && (
-            <span className="text-[10px] font-mono text-orange-400/70 uppercase tracking-wider">non-round</span>
+            <span className="text-[10px] font-mono text-cipher-orange/70 uppercase tracking-wider">non-round</span>
           )}
         </div>
         <span className="text-[11px] text-muted font-mono">
@@ -784,7 +784,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
 
       {/* Footer: expand + score breakdown */}
       <div className="pt-2">
-        <div className="h-px bg-white/[0.04] mb-2" aria-hidden />
+        <div className="h-px bg-glass-4 mb-2" aria-hidden />
         <div className="flex items-center justify-between gap-4">
           <button
             onClick={() => setExpanded(!expanded)}
@@ -807,7 +807,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             <span title="Shield match score">shield +{pattern.breakdown.matchingShield.points}</span>
             <span title="Time clustering score">time +{pattern.breakdown.timeClustering.points}</span>
             {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.points > 0 && (
-              <span title="Address analysis score" className="text-orange-400/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
+              <span title="Address analysis score" className="text-cipher-orange/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
             )}
           </div>
         </div>
@@ -815,7 +815,7 @@ function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
 
       {expanded && (
         <div className="mt-3 pt-3">
-          <div className="h-px bg-white/[0.04] mb-3" aria-hidden />
+          <div className="h-px bg-glass-4 mb-3" aria-hidden />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto">
             {pattern.txids.slice(0, 20).map((txid, i) => (
               <Link

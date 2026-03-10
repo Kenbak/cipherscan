@@ -56,9 +56,9 @@ export function AddressWithLabel({
       case 'foundation':
         return 'bg-cipher-purple/20 border-cipher-purple/40 text-cipher-purple-glow';
       case 'exchange':
-        return 'bg-blue-500/20 border-blue-500/40 text-blue-300';
+        return 'bg-cipher-cyan/20 border-cipher-cyan/40 text-cipher-cyan';
       case 'mining':
-        return 'bg-orange-500/20 border-orange-500/40 text-orange-300';
+        return 'bg-cipher-orange/20 border-cipher-orange/40 text-cipher-orange';
       default:
         return 'bg-cipher-cyan/20 border-cipher-cyan/40 text-cipher-cyan';
     }

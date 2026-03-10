@@ -34,7 +34,7 @@ export function ThemeToggle() {
       {/* Sun icon (light mode) - visible when in light mode */}
       {theme === 'light' && (
         <svg
-          className="w-4 h-4 text-muted group-hover:text-cipher-cyan-dark dark:group-hover:text-cipher-cyan transition-colors duration-150"
+          className="w-4 h-4 text-muted group-hover:text-cipher-cyan transition-colors duration-150"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -51,7 +51,7 @@ export function ThemeToggle() {
       {/* Moon icon (dark mode) - visible when in dark mode */}
       {theme === 'dark' && (
         <svg
-          className="w-4 h-4 text-muted group-hover:text-cipher-cyan-dark dark:group-hover:text-cipher-cyan transition-colors duration-150"
+          className="w-4 h-4 text-muted group-hover:text-cipher-cyan transition-colors duration-150"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

@@ -625,7 +625,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
               <span className="text-muted">Type</span>
               <span className={
                 hoveredTx.type === 'shielded' ? 'text-cipher-purple' :
-                hoveredTx.type === 'mixed' ? 'text-orange-400' :
+                hoveredTx.type === 'mixed' ? 'text-cipher-orange' :
                 'text-cipher-cyan'
               }>
                 {hoveredTx.type.toUpperCase()}
@@ -658,7 +658,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
           <span>Shielded</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-orange-500/40 border border-orange-500/70" />
+          <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
           <span>Mixed</span>
         </div>
         <div className="flex items-center gap-1.5">

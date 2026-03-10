@@ -651,9 +651,9 @@ export default function TransactionPage() {
         {allBridges.length > 0 && (
           <div className="mt-3 space-y-2">
             {allBridges.map((b, i) => (
-              <div key={i} className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+              <div key={i} className="p-3 rounded-lg bg-cipher-cyan/5 border border-cipher-cyan/20">
                 <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-cipher-cyan shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
                   <span className="text-secondary">
@@ -670,7 +670,7 @@ export default function TransactionPage() {
                       href={b.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-auto text-xs text-cyan-400 hover:text-cyan-300 whitespace-nowrap flex items-center gap-1"
+                      className="ml-auto text-xs text-cipher-cyan hover:text-cipher-cyan/80 whitespace-nowrap flex items-center gap-1"
                     >
                       View on {b.otherChain.toUpperCase()}
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1130,7 +1130,7 @@ export default function TransactionPage() {
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
                     }}></div>
                   </div>
 
@@ -1204,7 +1204,7 @@ export default function TransactionPage() {
                 return (
                 <div
                   key={index}
-                  className={`block-tx-row p-4 rounded-lg border transition-all ${matchedBridge ? 'border-cyan-500/40 bg-cyan-500/5' : 'border-cipher-border hover:border-cipher-cyan/50'}`}
+                  className={`block-tx-row p-4 rounded-lg border transition-all ${matchedBridge ? 'border-cipher-cyan/40 bg-cipher-cyan/5' : 'border-cipher-border hover:border-cipher-cyan/50'}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                     <div className="flex items-center gap-2">
@@ -1254,7 +1254,7 @@ export default function TransactionPage() {
                 >
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
                     }}></div>
                   </div>
                   <div className="relative">
@@ -1292,7 +1292,7 @@ export default function TransactionPage() {
                   {/* Decorative pattern */}
                   <div className="absolute inset-0 opacity-5">
                     <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(167, 139, 250, 0.1) 10px, rgba(167, 139, 250, 0.1) 20px)`
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
                     }}></div>
                   </div>
 

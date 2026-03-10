@@ -206,7 +206,7 @@ function WalletIcon({ wallet: w, size = 24 }: { wallet: DetectedWallet; size?: n
     return <img src={w.icon} alt="" className="rounded-full" style={{ width: size, height: size }} />;
   }
   const chainFallback: Record<string, string> = {
-    evm: '/chains/eth.png', solana: '/chains/sol.png', bitcoin: '/chains/btc.png',
+    evm: '/chains/eth.png', solana: '/chains/sol.png', bitcoin: '/chains/btc.png', tron: '/chains/tron.png',
   };
   const fallback = chainFallback[w.type || ''];
   if (fallback) {
@@ -574,13 +574,13 @@ export default function SwapPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
         {/* Header — cypherpunk style, consistent with other pages */}
-        <div className="mb-8 animate-fade-in">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+        <div className="mb-6 sm:mb-8 animate-fade-in">
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-2">
             <span className="opacity-50">{'>'}</span> CROSS_CHAIN_SWAP
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
             <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary">Buy ZEC</h1>
-            <p className="text-sm text-secondary">
+            <p className="text-xs sm:text-sm text-secondary">
               Swap from 15+ chains via{' '}
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
             </p>
@@ -594,7 +594,7 @@ export default function SwapPage() {
             <div className="card p-0 overflow-hidden">
 
               {/* Card header */}
-              <div className="px-6 pt-5 pb-4 border-b border-glass-4">
+              <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-glass-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-muted tracking-wider">&gt; SWAP</span>
 
@@ -613,7 +613,8 @@ export default function SwapPage() {
                       {wallet.connected ? (
                         <>
                           <span className="w-1.5 h-1.5 rounded-full bg-cipher-green" />
-                          <span>{wallet.walletName} · {wallet.address?.slice(0, 6)}...{wallet.address?.slice(-4)}</span>
+                          <span className="hidden sm:inline">{wallet.walletName} · {wallet.address?.slice(0, 6)}...{wallet.address?.slice(-4)}</span>
+                          <span className="sm:hidden">{wallet.address?.slice(0, 4)}...{wallet.address?.slice(-4)}</span>
                         </>
                       ) : (
                         <>
@@ -627,7 +628,7 @@ export default function SwapPage() {
 
                     {/* Wallet picker dropdown */}
                     {showWalletPicker && chainWallets.length > 0 && (
-                      <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] rounded-xl bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                      <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
                         <div className="px-3 py-2.5 border-b border-glass-4 flex items-center justify-between">
                           <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Select wallet</span>
                           {wallet.connected && (
@@ -665,20 +666,20 @@ export default function SwapPage() {
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4 sm:p-5">
 
                 {/* ─── FORM ─── */}
                 {step === 'form' && (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
 
                     {/* From — token selector + amount in one row */}
                     <div>
-                      <div className="flex items-baseline justify-between mb-2">
-                        <label className="text-[11px] font-mono text-muted uppercase tracking-wider">You send</label>
+                      <div className="flex items-baseline justify-between mb-1.5">
+                        <label className="text-[10px] font-mono text-muted uppercase tracking-wider">You send</label>
                         {wallet.connected && nativeBalance && (
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-muted">
-                              Bal: {parseFloat(nativeBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedToken.token}
+                              {parseFloat(nativeBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} {selectedToken.token}
                             </span>
                             <button
                               onClick={() => setAmount(String(parseFloat(nativeBalance) * 0.5))}
@@ -695,7 +696,7 @@ export default function SwapPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex rounded-xl bg-glass-3 border border-glass-6 focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all">
+                      <div className="flex rounded-lg bg-glass-3 border border-glass-6 focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all">
                         {/* Amount input */}
                         <input
                           type="text"
@@ -706,13 +707,13 @@ export default function SwapPage() {
                             if (v === '' || /^\d*\.?\d*$/.test(v)) setAmount(v);
                           }}
                           placeholder="0.00"
-                          className="flex-1 min-w-0 px-4 py-4 bg-transparent text-primary font-mono text-xl placeholder:text-muted/30 focus:outline-none"
+                          className="flex-1 min-w-0 px-4 py-3 bg-transparent text-primary font-mono text-lg placeholder:text-muted/30 focus:outline-none"
                         />
                         {/* Token selector button */}
                         <div className="relative" ref={tokenPickerRef}>
                           <button
                             onClick={() => { setShowTokenPicker(!showTokenPicker); setTokenSearch(''); }}
-                            className="flex items-center gap-2 px-4 py-4 hover:bg-glass-4 transition-colors h-full"
+                            className="flex items-center gap-2 px-3 py-3 hover:bg-glass-4 rounded-r-lg transition-colors h-full"
                           >
                             <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
                             <div className="text-left">
@@ -726,7 +727,9 @@ export default function SwapPage() {
 
                           {/* Token picker dropdown */}
                           {showTokenPicker && (
-                            <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[360px] rounded-xl bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                            <>
+                            <div className="fixed inset-0 bg-black/40 z-40 sm:hidden" onClick={() => { setShowTokenPicker(false); setTokenSearch(''); }} />
+                            <div className="fixed inset-x-4 top-[20vh] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 z-50 sm:w-[280px] max-h-[60vh] sm:max-h-[360px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
                               <div className="p-2 border-b border-glass-4">
                                 <input
                                   type="text"
@@ -737,7 +740,7 @@ export default function SwapPage() {
                                   className="w-full px-3 py-2 rounded-lg bg-glass-4 text-primary font-mono text-sm placeholder:text-muted/40 focus:outline-none"
                                 />
                               </div>
-                              <div className="overflow-y-auto max-h-[340px]">
+                              <div className="overflow-y-auto max-h-[calc(60vh-48px)] sm:max-h-[340px]">
                                 {tokensLoading ? (
                                   <div className="px-3 py-8 text-center">
                                     <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-glass-12 border-t-cipher-cyan animate-spin" />
@@ -778,6 +781,7 @@ export default function SwapPage() {
                                 )}
                               </div>
                             </div>
+                            </>
                           )}
                         </div>
                       </div>
@@ -793,7 +797,7 @@ export default function SwapPage() {
                                 rec.blendingScore === 'high'
                                   ? 'border-cipher-green/30 text-cipher-green hover:bg-cipher-green/10'
                                   : rec.blendingScore === 'medium'
-                                  ? 'border-amber-400/30 text-amber-400 hover:bg-amber-400/10'
+                                  ? 'border-cipher-yellow/30 text-cipher-yellow hover:bg-cipher-yellow/10'
                                   : 'border-glass-12 text-muted hover:bg-glass-6'
                               }`}
                             >
@@ -805,10 +809,10 @@ export default function SwapPage() {
                     </div>
 
                     {/* Arrow divider */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 -my-1">
                       <div className="flex-1 h-px bg-glass-4" />
-                      <div className="w-8 h-8 rounded-full bg-glass-4 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-7 h-7 rounded-full bg-glass-4 flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
                       </div>
@@ -817,38 +821,36 @@ export default function SwapPage() {
 
                     {/* To section */}
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="text-[11px] font-mono text-muted uppercase tracking-wider">You receive</label>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-glass-4">
-                          <TokenChainIcon token="zec" chain="zec" size={14} />
-                          <span className="text-[11px] font-mono text-primary">ZEC</span>
+                      <label className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1.5 block">Your ZEC address</label>
+                      <div className="flex rounded-lg bg-glass-3 border border-glass-6 focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all">
+                        <input
+                          type="text"
+                          value={zecAddress}
+                          onChange={(e) => setZecAddress(e.target.value)}
+                          placeholder="Paste t1 or u1 address"
+                          className="flex-1 min-w-0 px-4 py-3 bg-transparent text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none"
+                        />
+                        <div className="flex items-center gap-1.5 px-3 shrink-0">
+                          <TokenChainIcon token="zec" chain="zec" size={16} />
+                          <span className="text-[10px] font-mono text-muted">ZEC</span>
                         </div>
                       </div>
-                      <input
-                        type="text"
-                        value={zecAddress}
-                        onChange={(e) => setZecAddress(e.target.value)}
-                        placeholder="t1..., t3..., u1..."
-                        className="w-full px-4 py-3.5 rounded-xl bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
-                      />
-                      {zecAddress && zecAddrError ? (
-                        <p className="mt-1.5 text-[10px] text-red-400 font-mono">{zecAddrError}</p>
-                      ) : (
-                        <p className="mt-1.5 text-[10px] text-muted/60 font-mono">Transparent (t1/t3) or shielded (u1/zs) address.</p>
+                      {zecAddress && zecAddrError && (
+                        <p className="mt-1 text-[10px] text-red-400 font-mono">{zecAddrError}</p>
                       )}
                     </div>
 
                     {/* Refund address — collapsed by default, shown if wallet connected or user opts in */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-[11px] font-mono text-muted uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] font-mono text-muted uppercase tracking-wider flex items-center gap-1.5">
                           Refund address
                           {wallet.connected && refundAddress === wallet.address && (
                             <span className="text-[10px] text-cipher-green normal-case tracking-normal">(wallet)</span>
                           )}
                         </label>
                         <button onClick={() => setShowSlippage(!showSlippage)} className="text-[10px] font-mono text-muted hover:text-secondary transition-colors">
-                          {showSlippage ? 'Less options' : 'More options'}
+                          {showSlippage ? 'Less' : 'More options'}
                         </button>
                       </div>
                       <input
@@ -856,7 +858,7 @@ export default function SwapPage() {
                         value={refundAddress}
                         onChange={(e) => setRefundAddress(e.target.value)}
                         placeholder={wallet.connected ? 'Auto-filled from wallet' : `Your ${selectedToken.chainLabel} address (optional)`}
-                        className="w-full px-4 py-3 rounded-xl bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
+                        className="w-full px-4 py-3 rounded-lg bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all"
                       />
                     </div>
 
@@ -884,7 +886,7 @@ export default function SwapPage() {
 
                     {/* Error */}
                     {(error || walletError) && (
-                      <div className="px-4 py-3 rounded-xl bg-red-500/[0.06] border border-red-500/20 text-sm text-red-400">
+                      <div className="px-4 py-3 rounded-lg bg-red-500/[0.06] border border-red-500/20 text-sm text-red-400">
                         {error || walletError}
                       </div>
                     )}
@@ -893,7 +895,7 @@ export default function SwapPage() {
                     <button
                       onClick={getQuote}
                       disabled={ctaDisabled}
-                      className="w-full py-4 rounded-xl font-mono font-semibold text-sm transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-b from-cipher-cyan to-[#00B8E0] text-[#08090F] hover:shadow-[0_4px_20px_rgba(0,212,255,0.25)] hover:-translate-y-[1px] active:translate-y-0 active:shadow-none"
+                      className="w-full py-3.5 rounded-lg font-mono font-semibold text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed bg-cipher-cyan-bright text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-cyan-rgb)_/_0.25)] hover:-translate-y-[1px] active:translate-y-0 active:shadow-none"
                     >
                       {ctaText}
                     </button>
@@ -907,9 +909,9 @@ export default function SwapPage() {
 
                 {/* ─── QUOTE REVIEW ─── */}
                 {step === 'quote' && quote && (
-                  <div className="space-y-6 animate-fade-in">
+                  <div className="space-y-5 animate-fade-in">
                     {/* Summary */}
-                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-5">
+                    <div className="rounded-lg bg-glass-2 border border-glass-4 p-5">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={28} />
@@ -923,7 +925,7 @@ export default function SwapPage() {
                         </svg>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <div className="text-lg font-bold font-mono text-foreground">{estimatedZec || '~'} ZEC</div>
+                            <div className="text-lg font-bold font-mono text-primary">{estimatedZec || '~'} ZEC</div>
                             <div className="text-[11px] text-muted">Estimated</div>
                           </div>
                           <TokenChainIcon token="zec" chain="zec" size={28} />
@@ -944,20 +946,20 @@ export default function SwapPage() {
 
                     {quoteTimeLeft > 0 && (
                       <div className="flex items-center justify-center gap-2 text-xs font-mono">
-                        <div className={`w-1.5 h-1.5 rounded-full ${quoteTimeLeft > 30 ? 'bg-cipher-green' : quoteTimeLeft > 10 ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} />
-                        <span className={quoteTimeLeft > 30 ? 'text-muted' : quoteTimeLeft > 10 ? 'text-yellow-500' : 'text-red-500'}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${quoteTimeLeft > 30 ? 'bg-cipher-green' : quoteTimeLeft > 10 ? 'bg-cipher-yellow' : 'bg-red-500 animate-pulse'}`} />
+                        <span className={quoteTimeLeft > 30 ? 'text-muted' : quoteTimeLeft > 10 ? 'text-cipher-yellow' : 'text-red-500'}>
                           Quote expires in {Math.floor(quoteTimeLeft / 60)}:{(quoteTimeLeft % 60).toString().padStart(2, '0')}
                         </span>
                       </div>
                     )}
 
                     <div className="flex gap-3">
-                      <button onClick={resetSwap} className="flex-1 py-3.5 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
+                      <button onClick={resetSwap} className="flex-1 py-3 rounded-lg font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                         Back
                       </button>
                       <button
                         onClick={() => setStep('waiting')}
-                        className="flex-[2] py-3.5 rounded-xl font-mono font-semibold text-sm bg-gradient-to-b from-cipher-green to-[#00C870] text-[#08090F] hover:shadow-[0_4px_20px_rgba(0,230,118,0.2)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
+                        className="flex-[2] py-3 rounded-lg font-mono font-semibold text-sm bg-cipher-green text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-green-rgb)_/_0.2)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
                       >
                         {wallet.connected ? 'Confirm & Send' : 'Confirm Swap'}
                       </button>
@@ -967,9 +969,9 @@ export default function SwapPage() {
 
                 {/* ─── WAITING FOR DEPOSIT ─── */}
                 {step === 'waiting' && (
-                  <div className="space-y-5 animate-fade-in">
+                  <div className="space-y-4 animate-fade-in">
                     {/* Swap summary row */}
-                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-5">
+                    <div className="rounded-lg bg-glass-2 border border-glass-4 p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
@@ -983,7 +985,7 @@ export default function SwapPage() {
                         </svg>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <div className="text-base font-bold font-mono text-foreground">{estimatedZec || '~'} ZEC</div>
+                            <div className="text-base font-bold font-mono text-primary">{estimatedZec || '~'} ZEC</div>
                             <div className="text-[10px] text-muted">Estimated</div>
                           </div>
                           <TokenChainIcon token="zec" chain="zec" size={24} />
@@ -1004,14 +1006,14 @@ export default function SwapPage() {
                       <button
                         onClick={sendFromWallet}
                         disabled={sendingTx}
-                        className="w-full py-3.5 rounded-xl font-mono font-semibold text-sm bg-gradient-to-b from-cipher-green to-[#00C870] text-[#08090F] hover:shadow-[0_4px_20px_rgba(0,230,118,0.2)] hover:-translate-y-[1px] active:translate-y-0 transition-all disabled:opacity-50"
+                        className="w-full py-3.5 rounded-lg font-mono font-semibold text-sm bg-cipher-green text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-green-rgb)_/_0.2)] hover:-translate-y-[1px] active:translate-y-0 transition-all disabled:opacity-50"
                       >
                         {sendingTx ? 'Confirm in wallet...' : `Send ${amount} ${selectedToken.token}`}
                       </button>
                     )}
 
                     {txHash && (
-                      <div className="rounded-xl bg-glass-2 border border-glass-4 p-4">
+                      <div className="rounded-lg bg-glass-2 border border-glass-4 p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -1059,7 +1061,7 @@ export default function SwapPage() {
                           </div>
                         )}
 
-                        <div className="rounded-xl bg-glass-2 border border-glass-4 p-4">
+                        <div className="rounded-lg bg-glass-2 border border-glass-4 p-4">
                           <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">Deposit address</div>
                           <div className="flex items-center gap-2">
                             <code className="text-[11px] text-secondary break-all font-mono flex-1 leading-relaxed">{depositAddress}</code>
@@ -1088,7 +1090,7 @@ export default function SwapPage() {
                         </button>
                       </div>
                     ) : (
-                      <button onClick={resetSwap} className="w-full py-2.5 rounded-xl text-xs font-mono text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
+                      <button onClick={resetSwap} className="w-full py-2.5 rounded-lg text-xs font-mono text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                         Cancel
                       </button>
                     )}
@@ -1098,7 +1100,7 @@ export default function SwapPage() {
                 {/* ─── COMPLETE ─── */}
                 {step === 'complete' && (
                   <div className="space-y-5 animate-fade-in">
-                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-6">
+                    <div className="rounded-lg bg-glass-2 border border-glass-4 p-6">
                       <div className="flex flex-col items-center text-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-cipher-green/10 border border-cipher-green/20 flex items-center justify-center">
                           <svg className="w-6 h-6 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1106,12 +1108,12 @@ export default function SwapPage() {
                           </svg>
                         </div>
                         <div>
-                          <h2 className="text-lg font-bold font-mono text-foreground mb-1">Swap Complete</h2>
+                          <h2 className="text-lg font-bold font-mono text-primary mb-1">Swap Complete</h2>
                           <p className="text-xs text-muted font-mono">{estimatedZec} ZEC sent to your address</p>
                         </div>
                       </div>
                     </div>
-                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-lg font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                       New Swap
                     </button>
                   </div>
@@ -1120,7 +1122,7 @@ export default function SwapPage() {
                 {/* ─── ERROR ─── */}
                 {step === 'error' && (
                   <div className="space-y-5 animate-fade-in">
-                    <div className="rounded-xl bg-glass-2 border border-glass-4 p-6">
+                    <div className="rounded-lg bg-glass-2 border border-glass-4 p-6">
                       <div className="flex flex-col items-center text-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                           <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1128,12 +1130,12 @@ export default function SwapPage() {
                           </svg>
                         </div>
                         <div>
-                          <h2 className="text-lg font-bold font-mono text-foreground mb-1">Swap Failed</h2>
+                          <h2 className="text-lg font-bold font-mono text-primary mb-1">Swap Failed</h2>
                           <p className="text-xs text-muted font-mono">{error}</p>
                         </div>
                       </div>
                     </div>
-                    <button onClick={resetSwap} className="w-full py-3 rounded-xl font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
+                    <button onClick={resetSwap} className="w-full py-3 rounded-lg font-mono text-sm text-muted hover:text-secondary border border-glass-6 hover:border-glass-12 transition-all">
                       Try Again
                     </button>
                   </div>
@@ -1145,54 +1147,89 @@ export default function SwapPage() {
           {/* ─── Sidebar ─── */}
           <div className="lg:col-span-2 space-y-4">
 
-            {/* Privacy tips */}
-            <div className="card p-0 overflow-hidden">
-              <div className="px-6 pt-5 pb-4 border-b border-glass-4">
-                <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_TIPS</span>
-              </div>
-              <div className="px-6 py-5">
-                {recommendations && recommendations.recommendations.length > 0 ? (
-                  <div>
-                    <p className="text-xs text-muted mb-4 leading-relaxed">
-                      Popular {selectedToken.token} amounts this week. Common amounts make your swap harder to trace.
-                    </p>
-                    <div className="space-y-1">
-                      {recommendations.recommendations.map((rec, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setAmount(String(rec.amount))}
-                          className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-glass-3 transition-all group text-left"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-sm font-mono font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
-                              {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${
-                              rec.blendingScore === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
-                              rec.blendingScore === 'medium' ? 'bg-amber-400/10 text-amber-400' :
-                              'bg-glass-4 text-muted'
-                            }`}>
-                              {rec.blendingScore}
-                            </span>
-                          </div>
-                          <span className="text-[11px] font-mono text-muted">{rec.swapCount} swaps</span>
-                        </button>
-                      ))}
+            {/* Privacy tips — only on form step */}
+            {step === 'form' && (
+              <div className="card p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-glass-4">
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Privacy_tips</span>
+                </div>
+                <div className="px-5 py-4">
+                  {recommendations && recommendations.recommendations.length > 0 ? (
+                    <div>
+                      <p className="text-[11px] text-muted mb-3 leading-relaxed">
+                        Popular {selectedToken.token} amounts this week. Common amounts blend better.
+                      </p>
+                      <div className="space-y-0.5">
+                        {recommendations.recommendations.map((rec, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAmount(String(rec.amount))}
+                            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-glass-3 transition-all group text-left"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
+                                {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
+                              </span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-medium ${
+                                rec.blendingScore === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
+                                rec.blendingScore === 'medium' ? 'bg-cipher-yellow/10 text-cipher-yellow' :
+                                'bg-glass-4 text-muted'
+                              }`}>
+                                {rec.blendingScore}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-muted">{rec.swapCount}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {recommendations.tip && (
+                        <p className="mt-3 text-[10px] text-muted/60 leading-relaxed">{recommendations.tip}</p>
+                      )}
                     </div>
-                    {recommendations.tip && (
-                      <p className="mt-4 text-[11px] text-muted/70 leading-relaxed">{recommendations.tip}</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted text-center py-6">
-                    Privacy recommendations appear once swap data is collected.
-                  </p>
-                )}
+                  ) : (
+                    <p className="text-[11px] text-muted text-center py-4">
+                      Privacy recommendations appear once swap data is collected.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Swap info — shown during quote/waiting/complete */}
+            {step !== 'form' && (
+              <div className="card p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-glass-4">
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Swap_info</span>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted">From</span>
+                    <span className="text-secondary">{amount} {selectedToken.token}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted">To</span>
+                    <span className="text-secondary">{estimatedZec || '~'} ZEC</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted">Chain</span>
+                    <span className="text-secondary">{selectedToken.chainLabel}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-mono">
+                    <span className="text-muted">Slippage</span>
+                    <span className="text-secondary">{slippage / 100}%</span>
+                  </div>
+                  <div className="border-t border-glass-4 pt-3">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span className="text-muted">Destination</span>
+                      <span className="text-secondary truncate ml-3 max-w-[140px]" title={zecAddress}>{zecAddress.slice(0, 8)}...{zecAddress.slice(-4)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="card p-0 overflow-hidden">
-              <Link href="/crosschain" className="block px-6 py-4 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-between">
+              <Link href="/crosschain" className="block px-5 py-3.5 text-[11px] font-mono text-muted hover:text-cipher-cyan transition-colors flex items-center justify-between">
                 <span>View Crosschain Analytics</span>
                 <span>→</span>
               </Link>

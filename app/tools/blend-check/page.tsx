@@ -45,13 +45,13 @@ function formatZec(n: number): string {
 
 function getScoreColor(score: number): string {
   if (score >= 70) return 'text-cipher-green';
-  if (score >= 40) return 'text-amber-400';
+  if (score >= 40) return 'text-cipher-yellow';
   return 'text-red-400';
 }
 
 function getBarColor(score: number): string {
   if (score >= 70) return 'bg-gradient-to-r from-cipher-green/80 to-cipher-green';
-  if (score >= 40) return 'bg-gradient-to-r from-amber-500/80 to-amber-400';
+  if (score >= 40) return 'bg-gradient-to-r from-cipher-yellow/80 to-cipher-yellow';
   return 'bg-gradient-to-r from-red-500/80 to-red-400';
 }
 
@@ -156,7 +156,7 @@ export default function BlendCheckPage() {
                 value={amount}
                 onChange={handleAmountChange}
                 placeholder="0.00"
-                className="w-full px-5 py-4 rounded-xl bg-glass-3 border border-glass-6 text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-purple/40 focus:shadow-[0_0_0_3px_rgba(147,51,234,0.06)] transition-all"
+                className="w-full px-5 py-4 rounded-xl bg-glass-3 border border-glass-6 text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-purple/40 focus:shadow-[0_0_0_3px_rgb(var(--color-purple-rgb)_/_0.06)] transition-all"
                 autoFocus
               />
               <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted/40 font-mono text-lg">

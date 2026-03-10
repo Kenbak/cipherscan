@@ -26,27 +26,26 @@ const config: Config = {
           'surface-light': '#FFFFFF',     // Force light surface
           'border-light': '#E2E8F0',      // Force light border
 
-          // ===== BRAND IDENTITY - CYAN =====
-          cyan: '#00D4FF',         // PRIMARY - Logo, titles, links (dark mode)
-          'cyan-dark': '#0E7490',  // PRIMARY for light mode
-          'cyan-glow': '#00E5FF',  // Glow effects
-          'cyan-muted': '#5EBBCE', // Softer accent
+          // ===== BRAND — theme-aware via RGB channel CSS variables =====
+          cyan: 'rgb(var(--color-cyan-rgb) / <alpha-value>)',
+          'cyan-bright': '#00D4FF',
+          'cyan-glow': '#00E5FF',
+          'cyan-muted': '#5EBBCE',
 
-          // ===== FUNCTIONAL COLORS =====
-          green: '#00E676',        // SUCCESS - Warmer than pure #00FF41
-          'green-dark': '#047857', // Green for light mode
+          green: 'rgb(var(--color-green-rgb) / <alpha-value>)',
+          'green-bright': '#00E676',
 
-          purple: '#A78BFA',       // SHIELDED - Slightly muted for elegance
-          'purple-dark': '#7C3AED',// Purple for light mode
-          'purple-glow': '#C4B5FD',// Purple glow
+          purple: 'rgb(var(--color-purple-rgb) / <alpha-value>)',
+          'purple-bright': '#A78BFA',
+          'purple-glow': '#C4B5FD',
 
-          yellow: '#F4B728',       // ZCASH ACCENT - Secondary brand highlight
-          'yellow-dark': '#D49B00',// Yellow for light mode
-          'yellow-glow': '#FFD060',// Yellow glow
-          'yellow-muted': '#C9A035',// Muted yellow
+          yellow: 'rgb(var(--color-yellow-rgb) / <alpha-value>)',
+          'yellow-bright': '#F4B728',
+          'yellow-glow': '#FFD060',
+          'yellow-muted': '#C9A035',
 
-          orange: '#FF6B35',       // WARNING - Only for alerts
-          'orange-dark': '#C2410C',// Orange for light mode
+          orange: 'rgb(var(--color-orange-rgb) / <alpha-value>)',
+          'orange-bright': '#FF6B35',
 
           // ===== TEXT COLORS =====
           text: {

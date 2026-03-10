@@ -129,7 +129,7 @@ export function Footer() {
                 >
                   {isMainnet ? 'TESTNET' : 'MAINNET'}
                 </a>
-                <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow-dark dark:text-cipher-yellow' : 'text-cipher-cyan'}`}>
+                <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow' : 'text-cipher-cyan'}`}>
                   [ {NETWORK_LABEL} ]
                 </span>
               </div>

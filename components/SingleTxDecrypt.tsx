@@ -229,8 +229,8 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">DECRYPTING.log</span>
               <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-yellow"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-green"></div>
               </div>
             </div>
 
@@ -285,8 +285,8 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               <span className="font-mono text-xs sm:text-sm text-cipher-green truncate">DECRYPTED_MEMO.txt</span>
               <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-yellow"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-green"></div>
               </div>
             </div>
 

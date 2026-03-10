@@ -86,9 +86,9 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
       ? labelInfo.category === 'foundation'
         ? 'bg-cipher-purple/20 border-cipher-purple/50 text-cipher-purple-glow'
         : labelInfo.category === 'exchange'
-        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+        ? 'bg-cipher-cyan/20 border-cipher-cyan/50 text-cipher-cyan'
         : labelInfo.category === 'mining'
-        ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
+        ? 'bg-cipher-orange/20 border-cipher-orange/50 text-cipher-orange'
         : 'bg-cipher-cyan/20 border-cipher-cyan/50 text-cipher-cyan'
       : 'bg-gray-500/20 border-gray-500/50 text-gray-300';
 

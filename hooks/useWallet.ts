@@ -152,6 +152,14 @@ function requestStandardWallets() {
   window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: register }));
 }
 
+const LOCAL_WALLET_ICONS: Record<string, string> = {
+  tronlink: '/wallets/tronlink.jpeg',
+  solflare: '/wallets/solflare.png',
+  unisat: '/wallets/unisat.svg',
+  xverse: '/wallets/xverse.png',
+  leather: '/wallets/leather.svg',
+};
+
 function getIconFromAnySource(name: string): string | undefined {
   // 1. Wallet Standard
   const std = standardWallets.find(sw => sw.name.toLowerCase() === name.toLowerCase());
@@ -160,6 +168,10 @@ function getIconFromAnySource(name: string): string | undefined {
   // 2. EIP-6963 (Phantom registers on both EVM and Solana — reuse its EVM icon)
   const eip = eip6963Providers.find(p => p.info.name.toLowerCase().includes(name.toLowerCase()));
   if (eip?.info.icon) return eip.info.icon;
+
+  // 3. Local fallback icons
+  const local = LOCAL_WALLET_ICONS[name.toLowerCase()];
+  if (local) return local;
 
   return undefined;
 }
@@ -198,9 +210,11 @@ function getBitcoinProviders(): { name: string; icon?: string; key: string; prov
   if (typeof window === 'undefined') return [];
   const results: { name: string; icon?: string; key: string; provider: any }[] = [];
   const unisat = (window as any).unisat;
-  if (unisat) results.push({ name: 'Unisat', icon: (unisat as any).icon, key: 'btc-unisat', provider: unisat });
+  if (unisat) results.push({ name: 'Unisat', icon: (unisat as any).icon || getIconFromAnySource('Unisat'), key: 'btc-unisat', provider: unisat });
   const xverse = (window as any).XverseProviders?.BitcoinProvider;
-  if (xverse) results.push({ name: 'Xverse', key: 'btc-xverse', provider: xverse });
+  if (xverse) results.push({ name: 'Xverse', icon: getIconFromAnySource('Xverse'), key: 'btc-xverse', provider: xverse });
+  const leather = (window as any).LeatherProvider;
+  if (leather) results.push({ name: 'Leather', icon: getIconFromAnySource('Leather'), key: 'btc-leather', provider: leather });
   return results;
 }
 
@@ -328,6 +342,13 @@ export function useWallet(): UseWalletReturn {
           const accounts = await match.provider.requestAccounts();
           setRawProvider(match.provider);
           setState({ connected: true, address: accounts[0], walletType: 'bitcoin', walletName: match.name, chainId: null });
+        } else if (match.key.includes('leather')) {
+          const res = await match.provider.request('getAddresses');
+          const addr = res?.result?.addresses?.find((a: any) => a.type === 'p2wpkh')?.address
+            || res?.result?.addresses?.[0]?.address;
+          if (!addr) throw new Error('Leather: no address returned');
+          setRawProvider(match.provider);
+          setState({ connected: true, address: addr, walletType: 'bitcoin', walletName: match.name, chainId: null });
         } else {
           const resp = await match.provider.connect();
           setRawProvider(match.provider);
@@ -539,9 +560,21 @@ export function useWallet(): UseWalletReturn {
       }
       if (state.walletType === 'bitcoin') {
         if (rawProvider.getBalance) {
-          const sats = await rawProvider.getBalance();
-          const bal = (sats / 1e8).toFixed(8);
-          return bal;
+          const result = await rawProvider.getBalance();
+          const sats = typeof result === 'object' ? (result.total ?? result.confirmed ?? 0) : result;
+          return (Number(sats) / 1e8).toFixed(8);
+        }
+        if (rawProvider.request) {
+          try {
+            const res = await rawProvider.request('getAddresses');
+            const addr = res?.result?.addresses?.[0]?.address;
+            if (addr) {
+              const apiRes = await fetch(`https://mempool.space/api/address/${addr}`);
+              const data = await apiRes.json();
+              const sats = (data?.chain_stats?.funded_txo_sum ?? 0) - (data?.chain_stats?.spent_txo_sum ?? 0);
+              return (sats / 1e8).toFixed(8);
+            }
+          } catch { /* Leather balance fetch failed */ }
         }
       }
     } catch (err) {

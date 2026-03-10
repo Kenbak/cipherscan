@@ -507,7 +507,7 @@ export default function AddressPage() {
         <Card className="mb-6 overflow-hidden relative animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           {/* Atmospheric overlays */}
           <div className="absolute inset-0 bg-gradient-to-br from-cipher-purple/[0.06] via-transparent to-cipher-cyan/[0.02] pointer-events-none" />
-          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(167,139,250,0.015)_10px,rgba(167,139,250,0.015)_20px)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgb(var(--color-purple-rgb)_/_0.015)_10px,rgb(var(--color-purple-rgb)_/_0.015)_20px)] pointer-events-none" />
           {/* Scan line */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-purple/30 to-transparent animate-[scan_4s_ease-in-out_infinite]" style={{ animation: 'scan 4s ease-in-out infinite' }} />
@@ -928,7 +928,7 @@ export default function AddressPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <span className="text-xs font-mono text-muted tracking-wider">&gt; CROSS_CHAIN_ACTIVITY</span>

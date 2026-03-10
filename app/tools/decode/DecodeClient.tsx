@@ -407,7 +407,7 @@ export default function DecodeClient() {
                       {result.size.toLocaleString()}
                     </div>
                     <div className="text-xs text-muted mb-4">bytes total</div>
-                    <div className="h-3 rounded-full overflow-hidden flex" style={{ background: 'var(--color-bg-secondary)' }}>
+                    <div className="h-3 rounded-full overflow-hidden flex" style={{ background: 'var(--color-elevated)' }}>
                       {comp.transparentPct > 0 && (
                         <div
                           className="h-full bg-cipher-cyan/70 transition-all duration-700"

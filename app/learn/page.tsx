@@ -107,9 +107,9 @@ function NetworkToggle({ value, onChange, accentColor = 'cyan' }: {
   accentColor?: 'cyan' | 'purple' | 'default';
 }) {
   const activeClass = accentColor === 'purple'
-    ? 'filter-btn-active !bg-cipher-purple !text-white'
+    ? 'filter-btn-active !bg-cipher-purple !text-white !shadow-none'
     : accentColor === 'cyan'
-      ? 'filter-btn-active !bg-cipher-cyan !text-cipher-bg'
+      ? 'filter-btn-active !bg-cipher-cyan !text-cipher-bg !shadow-none'
       : 'filter-btn-active';
 
   return (
@@ -514,7 +514,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Code className="w-5 h-5 text-orange-400" />
+            <Icons.Code className="w-5 h-5 text-cipher-orange" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} DEVELOPER_RESOURCES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -664,7 +664,7 @@ export default function LearnPage() {
               { href: '/decrypt', icon: Icons.Lock, label: 'Decrypt Memos', desc: 'Decode shielded messages', color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },
               { href: '/privacy', icon: Icons.Shield, label: 'Privacy Dashboard', desc: 'Shielded pool metrics', color: 'text-cipher-cyan', bg: 'bg-cipher-cyan/10' },
               { href: '/network', icon: Icons.Globe, label: 'Network Stats', desc: 'Nodes, hashrate & peers', color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
-              { href: '/docs', icon: Icons.Code, label: 'API Docs', desc: 'Developer reference', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+              { href: '/docs', icon: Icons.Code, label: 'API Docs', desc: 'Developer reference', color: 'text-cipher-orange', bg: 'bg-cipher-orange/10' },
             ].map(item => (
               <Link
                 key={item.href}

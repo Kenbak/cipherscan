@@ -283,7 +283,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           className={`absolute -inset-3 rounded-2xl blur-2xl transition-opacity duration-700 ease-out ${
             isFocused ? 'opacity-100' : 'opacity-0'
           }`}
-          style={{ background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.08) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(ellipse at center, rgb(var(--color-cyan-rgb) / 0.08) 0%, transparent 70%)' }}
         />
 
         {/* Search Input Container */}
@@ -308,7 +308,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               search-input-hero border-2 rounded-xl text-primary
               placeholder:text-muted transition-all duration-300
               ${isFocused
-                ? 'border-cipher-cyan/60 shadow-[0_0_20px_rgba(0,212,255,0.06)]'
+                ? 'border-cipher-cyan/60 shadow-[0_0_20px_rgb(var(--color-cyan-rgb)_/_0.06)]'
                 : 'border-cipher-border hover:border-white/[0.12]'
               }
               focus:outline-none`}
@@ -327,10 +327,9 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               inline-flex items-center justify-center
               px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg
               font-mono font-bold text-xs sm:text-sm
-              bg-gradient-to-b from-cipher-cyan to-[#00B8E0]
-              text-[#08090F]
-              hover:from-[#00E0FF] hover:to-cipher-cyan
-              transition-colors duration-150"
+              bg-cipher-cyan-bright text-[#08090F]
+              hover:opacity-90
+              transition-all duration-150"
           >
             SEARCH
           </button>

@@ -53,7 +53,7 @@ const timeline = [
     date: 'NOV 2025',
     tag: 'ORIGIN',
     tagColor: 'text-cipher-cyan',
-    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgba(0,229,255,0.6)]',
+    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
     title: 'Built at Zypherpunk',
     description:
       "Created at the world's first Zcash privacy hackathon. 300+ projects. Won 4 tracks: Project Tachyon, Gemini, Raybot, and Network State. From zero to a working explorer in days.",
@@ -62,7 +62,7 @@ const timeline = [
     date: 'DEC 2025',
     tag: 'WASM',
     tagColor: 'text-cipher-purple',
-    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgba(167,139,250,0.6)]',
+    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgb(var(--color-purple-rgb)_/_0.6)]',
     title: 'Browser-Native Decryption',
     description:
       'First frontend WASM-powered Zcash transaction decoder. Decrypt shielded memos entirely in-browser — no server, no keys shared, no trust required.',
@@ -80,7 +80,7 @@ const timeline = [
     date: 'JAN 2026',
     tag: 'ANALYTICS',
     tagColor: 'text-cipher-cyan',
-    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgba(0,229,255,0.6)]',
+    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
     title: 'Privacy Risks & Batch Patterns',
     description:
       'Advanced deshielding pattern detection and linkability analysis. Identifying on-chain behaviors that compromise Zcash privacy — and making that data accessible to everyone.',
@@ -89,7 +89,7 @@ const timeline = [
     date: 'FEB 2026',
     tag: 'GRANT',
     tagColor: 'text-cipher-yellow',
-    dotColor: 'bg-cipher-yellow shadow-[0_0_8px_rgba(244,183,40,0.6)]',
+    dotColor: 'bg-cipher-yellow shadow-[0_0_8px_rgb(var(--color-yellow-rgb)_/_0.6)]',
     title: 'ZCG Grant Awarded',
     description:
       'Funded by the Zcash Community Grants program. Community recognition that privacy visibility infrastructure is essential for the ecosystem.',

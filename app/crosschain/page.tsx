@@ -81,7 +81,7 @@ const chainConfig: Record<string, { color: string; symbol: string; name: string;
   usdt: { color: '#26A17B', symbol: 'USDT', name: 'Tether', iconId: 'usdt' },
   doge: { color: '#C2A633', symbol: 'DOGE', name: 'Dogecoin', iconId: 'doge' },
   xrp: { color: '#23292F', symbol: 'XRP', name: 'Ripple', iconId: 'xrp', needsWhiteBg: true },
-  zec: { color: '#F4B728', symbol: 'ZEC', name: 'Zcash', iconId: 'zec' },
+  zec: { color: 'var(--color-yellow)', symbol: 'ZEC', name: 'Zcash', iconId: 'zec' },
   base: { color: '#0052FF', symbol: 'BASE', name: 'Base', iconId: 'base' },
   arb: { color: '#28A0F0', symbol: 'ARB', name: 'Arbitrum', iconId: 'arb' },
   pol: { color: '#8247E5', symbol: 'POL', name: 'Polygon', iconId: 'matic' },
@@ -382,7 +382,7 @@ export default function CrosschainPage() {
         <div className="flex items-center gap-2">
           <TokenChainIcon token={swap.fromSymbol} chain={isInflow ? swap.fromChain : 'zec'} size={24} />
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-mono text-foreground font-semibold truncate">{formatAmount(swap.fromAmount)} {swap.fromSymbol}</span>
+            <span className="text-xs font-mono text-primary font-semibold truncate">{formatAmount(swap.fromAmount)} {swap.fromSymbol}</span>
             <span className="text-[10px] text-muted">{isInflow ? (chainNames[swap.fromChain] || swap.fromChain) : 'Zcash'}</span>
           </div>
         </div>
@@ -390,7 +390,7 @@ export default function CrosschainPage() {
         <div className="flex items-center gap-2">
           <TokenChainIcon token={swap.toSymbol} chain={isInflow ? 'zec' : swap.toChain} size={24} />
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-mono text-foreground font-semibold truncate">{formatAmount(swap.toAmount)} {swap.toSymbol}</span>
+            <span className="text-xs font-mono text-primary font-semibold truncate">{formatAmount(swap.toAmount)} {swap.toSymbol}</span>
             <span className="text-[10px] text-muted">{isInflow ? 'Zcash' : (chainNames[swap.toChain] || swap.toChain)}</span>
           </div>
         </div>
@@ -446,7 +446,7 @@ export default function CrosschainPage() {
                 <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{stat.label}</span>
                 {i === 0 && <Tooltip content="Total USD value of ZEC swapped in the last 24 hours" />}
               </div>
-              <div className={`text-xl sm:text-2xl font-bold font-mono ${stat.accent ? 'text-cipher-cyan' : 'text-foreground'}`}>
+              <div className={`text-xl sm:text-2xl font-bold font-mono ${stat.accent ? 'text-cipher-cyan' : 'text-primary'}`}>
                 {stat.value}
               </div>
             </div>
@@ -535,7 +535,7 @@ export default function CrosschainPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono font-semibold text-foreground">{cg.chainName}</span>
+                              <span className="text-sm font-mono font-semibold text-primary">{cg.chainName}</span>
                               {cg.tokens.length > 1 && (
                                 <span className="relative cursor-help">
                                   <span className="text-[10px] text-muted hover:text-secondary transition-colors">({cg.tokens.length} tokens)</span>
@@ -543,14 +543,14 @@ export default function CrosschainPage() {
                                     {cg.tokens.map(t => (
                                       <div key={t.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
                                         <span className="flex items-center gap-1 text-secondary"><TokenChainIcon token={t.symbol} chain={cg.chain} size={12} />{t.symbol}</span>
-                                        <span className="text-foreground">{formatUSD(t.volume24h)}</span>
+                                        <span className="text-primary">{formatUSD(t.volume24h)}</span>
                                       </div>
                                     ))}
                                   </span>
                                 </span>
                               )}
                             </div>
-                            <span className="text-sm font-mono text-foreground">{formatUSD(cg.totalVolume24h)}</span>
+                            <span className="text-sm font-mono text-primary">{formatUSD(cg.totalVolume24h)}</span>
                           </div>
                           <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
                             <div className="h-full rounded-full transition-all duration-500" style={{ width: totalInflows > 0 ? `${(cg.totalVolume24h / totalInflows) * 100}%` : '0%', backgroundColor: cg.color }} />
@@ -579,7 +579,7 @@ export default function CrosschainPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono font-semibold text-foreground">{cg.chainName}</span>
+                              <span className="text-sm font-mono font-semibold text-primary">{cg.chainName}</span>
                               {cg.tokens.length > 1 && (
                                 <span className="relative cursor-help">
                                   <span className="text-[10px] text-muted hover:text-secondary transition-colors">({cg.tokens.length} tokens)</span>
@@ -587,14 +587,14 @@ export default function CrosschainPage() {
                                     {cg.tokens.map(t => (
                                       <div key={t.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
                                         <span className="flex items-center gap-1 text-secondary"><TokenChainIcon token={t.symbol} chain={cg.chain} size={12} />{t.symbol}</span>
-                                        <span className="text-foreground">{formatUSD(t.volume24h)}</span>
+                                        <span className="text-primary">{formatUSD(t.volume24h)}</span>
                                       </div>
                                     ))}
                                   </span>
                                 </span>
                               )}
                             </div>
-                            <span className="text-sm font-mono text-foreground">{formatUSD(cg.totalVolume24h)}</span>
+                            <span className="text-sm font-mono text-primary">{formatUSD(cg.totalVolume24h)}</span>
                           </div>
                           <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
                             <div className="h-full rounded-full transition-all duration-500" style={{ width: totalOutflows > 0 ? `${(cg.totalVolume24h / totalOutflows) * 100}%` : '0%', backgroundColor: cg.color }} />
@@ -619,7 +619,7 @@ export default function CrosschainPage() {
                   {popularPairs.map((pair, i) => (
                     <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-glass-6 bg-glass-2">
                       <TokenChainIcon token={pair.token} chain={pair.chain} size={20} />
-                      <span className="text-xs font-mono font-semibold text-foreground">{pair.token}</span>
+                      <span className="text-xs font-mono font-semibold text-primary">{pair.token}</span>
                       <span className="text-[10px] font-mono text-muted">{chainNames[pair.chain] || pair.chain}</span>
                       <span className="text-[10px] font-mono text-cipher-purple ml-1">{pair.swapCount.toLocaleString()}</span>
                     </div>
@@ -707,7 +707,7 @@ export default function CrosschainPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-foreground font-mono font-semibold mb-1">How we measure latency</p>
+                  <p className="text-sm text-primary font-mono font-semibold mb-1">How we measure latency</p>
                   <p className="text-xs text-muted leading-relaxed">
                     Median time between swap initiation and ZEC block confirmation, calculated from matched on-chain transactions. Actual user experience may vary based on network congestion.
                   </p>
@@ -730,7 +730,7 @@ export default function CrosschainPage() {
                         <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
                         <span className="text-xs font-mono text-secondary">{l.chainName}</span>
                       </div>
-                      <div className="text-lg font-bold font-mono text-foreground">
+                      <div className="text-lg font-bold font-mono text-primary">
                         {l.medianMinutes < 60 ? `${l.medianMinutes.toFixed(0)}m` : `${(l.medianMinutes / 60).toFixed(1)}h`}
                       </div>
                       <div className="flex items-center justify-between mt-1">
@@ -758,7 +758,7 @@ export default function CrosschainPage() {
                         <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
                         <span className="text-xs font-mono text-secondary">{l.chainName}</span>
                       </div>
-                      <div className="text-lg font-bold font-mono text-foreground">
+                      <div className="text-lg font-bold font-mono text-primary">
                         {l.medianMinutes < 60 ? `${l.medianMinutes.toFixed(0)}m` : `${(l.medianMinutes / 60).toFixed(1)}h`}
                       </div>
                       <div className="flex items-center justify-between mt-1">

@@ -80,31 +80,31 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
       <div
         className="mt-4 rounded-xl border overflow-hidden"
         style={{
-          backgroundColor: 'rgba(0, 230, 118, 0.08)',
-          borderColor: 'rgba(0, 230, 118, 0.3)',
+          backgroundColor: 'rgb(var(--color-green-rgb) / 0.08)',
+          borderColor: 'rgb(var(--color-green-rgb) / 0.3)',
         }}
       >
         {/* Header */}
         <div
           className="px-4 py-3 flex items-center justify-between"
-          style={{ backgroundColor: 'rgba(0, 230, 118, 0.12)' }}
+          style={{ backgroundColor: 'rgb(var(--color-green-rgb) / 0.12)' }}
         >
           <div className="flex items-center gap-3">
             <div
               className="p-1.5 rounded-md"
-              style={{ backgroundColor: 'rgba(0, 230, 118, 0.15)', color: '#00E676' }}
+              style={{ backgroundColor: 'rgb(var(--color-green-rgb) / 0.15)', color: 'var(--color-green)' }}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 className="text-sm font-semibold" style={{ color: '#00E676' }}>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--color-green)' }}>
               No Round-Trip Detected
             </h3>
           </div>
           <span
             className="px-2 py-1 rounded text-xs font-medium"
-            style={{ backgroundColor: 'rgba(0, 230, 118, 0.15)', color: '#00E676' }}
+            style={{ backgroundColor: 'rgb(var(--color-green-rgb) / 0.15)', color: 'var(--color-green)' }}
           >
             Private
           </span>
@@ -145,29 +145,29 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
     ?.replace('1 days', '1 day') || '';
 
   // Use design system colors (from docs/UI-UX/02-COLOR-SYSTEM.md)
-  // Error: #EF4444, Warning: #FF6B35
+  // Error: #EF4444, Warning: var(--color-orange)
 
   return (
     <div
       className="mt-4 rounded-xl border overflow-hidden"
       style={{
-        backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 107, 53, 0.08)',
-        borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 107, 53, 0.2)',
+        backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.08)' : 'rgb(var(--color-orange-rgb) / 0.08)',
+        borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgb(var(--color-orange-rgb) / 0.2)',
       }}
     >
       {/* Header */}
       <div
         className="px-4 py-3 flex items-center justify-between"
         style={{
-          backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.12)' : 'rgba(255, 107, 53, 0.12)',
+          backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.12)' : 'rgb(var(--color-orange-rgb) / 0.12)',
         }}
       >
         <div className="flex items-center gap-3">
           <div
             className="p-1.5 rounded-md"
             style={{
-              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 107, 53, 0.15)',
-              color: isHigh ? '#EF4444' : '#FF6B35',
+              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgb(var(--color-orange-rgb) / 0.15)',
+              color: isHigh ? '#EF4444' : 'var(--color-orange)',
             }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +176,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
           </div>
           <h3
             className="text-sm font-semibold"
-            style={{ color: isHigh ? '#EF4444' : '#FF6B35' }}
+            style={{ color: isHigh ? '#EF4444' : 'var(--color-orange)' }}
           >
             Privacy Alert
           </h3>
@@ -185,8 +185,8 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
           <span
             className="px-2 py-1 rounded text-xs font-medium"
             style={{
-              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 107, 53, 0.15)',
-              color: isHigh ? '#EF4444' : '#FF6B35',
+              backgroundColor: isHigh ? 'rgba(239, 68, 68, 0.15)' : 'rgb(var(--color-orange-rgb) / 0.15)',
+              color: isHigh ? '#EF4444' : 'var(--color-orange)',
             }}
           >
             {isHigh ? 'High Risk' : 'Medium Risk'}
@@ -194,7 +194,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
           <div className="flex items-baseline gap-0.5">
             <span
               className="text-xl font-bold font-mono"
-              style={{ color: isHigh ? '#EF4444' : '#FF6B35' }}
+              style={{ color: isHigh ? '#EF4444' : 'var(--color-orange)' }}
             >
               {data.highestScore}
             </span>
@@ -256,7 +256,7 @@ export function PrivacyRiskInline({ txid }: PrivacyRiskInlineProps) {
         {/* Why is this a risk */}
         <div
           className="pt-3 border-t"
-          style={{ borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 107, 53, 0.2)' }}
+          style={{ borderColor: isHigh ? 'rgba(239, 68, 68, 0.2)' : 'rgb(var(--color-orange-rgb) / 0.2)' }}
         >
           <button
             onClick={() => setShowWhy(!showWhy)}

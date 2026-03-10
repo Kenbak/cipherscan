@@ -94,7 +94,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                     level="H"
                     marginSize={1}
                     bgColor={isDark ? '#08090F' : '#F5F7FA'}
-                    fgColor={isDark ? '#00D4FF' : '#0E7490'}
+                    fgColor="var(--color-cyan)"
                     imageSettings={{
                       src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
                       height: clearZone,
@@ -135,11 +135,11 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
               </div>
               <button
                 onClick={copyAddress}
-                className="flex-shrink-0 p-2 rounded-md text-muted hover:text-cipher-cyan-dark dark:hover:text-cipher-cyan transition-colors"
+                className="flex-shrink-0 p-2 rounded-md text-muted hover:text-cipher-cyan transition-colors"
                 title="Copy address"
               >
                 {copied ? (
-                  <svg className="w-4 h-4 text-cipher-green-dark dark:text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-4 h-4 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (

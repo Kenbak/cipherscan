@@ -251,7 +251,7 @@ export default function PrivacyPage() {
                 <div className="max-w-md mx-auto mb-6">
                   <div className="h-4 privacy-progress-bg rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-cipher-purple to-pink-500 transition-all duration-1000"
+                      className="h-full bg-gradient-to-r from-cipher-purple to-cipher-purple-glow transition-all duration-1000"
                       style={{ width: `${stats.metrics.privacyScore}%` }}
                     />
                   </div>
@@ -559,9 +559,9 @@ export default function PrivacyPage() {
                     <Line
                       type="monotone"
                       dataKey="shieldedPercentage"
-                      stroke="#A78BFA"
+                      stroke="var(--color-purple)"
                       strokeWidth={3}
-                      dot={{ fill: '#A78BFA', r: 3 }}
+                      dot={{ fill: 'var(--color-purple)', r: 3 }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
@@ -583,8 +583,8 @@ export default function PrivacyPage() {
                   <AreaChart data={poolData}>
                     <defs>
                       <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00E676" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#00E676" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--color-green)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--color-green)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
@@ -620,7 +620,7 @@ export default function PrivacyPage() {
                     <Area
                       type="monotone"
                       dataKey="poolSize"
-                      stroke="#00E676"
+                      stroke="var(--color-green)"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorPool)"
@@ -649,7 +649,7 @@ export default function PrivacyPage() {
                       label={{ value: 'Transactions', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
                     />
                     <RechartsTooltip
-                      cursor={{ fill: 'rgba(167, 139, 250, 0.1)' }}
+                      cursor={{ fill: 'rgb(var(--color-purple-rgb) / 0.1)' }}
                       contentStyle={{
                         backgroundColor: chartColors.tooltipBg,
                         border: `1px solid ${chartColors.tooltipBorder}`,
@@ -660,7 +660,7 @@ export default function PrivacyPage() {
                       labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                       labelFormatter={(label) => formatDate(label)}
                       formatter={(value: any, name: string) => {
-                        const color = name === 'shielded' ? '#A78BFA' : chartColors.axis;
+                        const color = name === 'shielded' ? 'var(--color-purple)' : chartColors.axis;
                         const displayName = name === 'shielded' ? 'Shielded' : 'Transparent';
                         return [
                           <span key="v" style={{ color, fontWeight: '600' }}>
@@ -673,16 +673,16 @@ export default function PrivacyPage() {
                     <Legend
                       wrapperStyle={{ color: chartColors.axis }}
                       formatter={(value) => {
-                        const dotColor = value === 'shielded' ? '#A78BFA' : '#6B7280';
+                        const dotColor = value === 'shielded' ? 'var(--color-purple)' : '#6B7280';
                         return <span style={{ color: chartColors.tooltipText }}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: dotColor, marginRight: 6 }} />{value === 'shielded' ? 'Shielded' : 'Transparent'}</span>;
                       }}
                     />
                     <Bar
                       dataKey="shielded"
-                      fill="#A78BFA"
+                      fill="var(--color-purple)"
                       name="shielded"
                       radius={[4, 4, 0, 0]}
-                      activeBar={{ fill: '#8B5CF6' }}
+                      activeBar={{ fill: 'var(--color-purple-glow)' }}
                     />
                     <Bar
                       dataKey="transparent"
@@ -704,8 +704,8 @@ export default function PrivacyPage() {
                     <AreaChart data={[...stats.trends.daily].reverse()}>
                       <defs>
                         <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#A78BFA" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="var(--color-purple)" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="var(--color-purple)" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
@@ -737,9 +737,9 @@ export default function PrivacyPage() {
                           const score = Number(value);
                           let rating = 'Low';
                           let ratingColor = '#EF4444';
-                          if (score >= 70) { rating = 'Excellent'; ratingColor = '#00E676'; }
-                          else if (score >= 50) { rating = 'Good'; ratingColor = '#F4B728'; }
-                          else if (score >= 30) { rating = 'Fair'; ratingColor = '#FB923C'; }
+                          if (score >= 70) { rating = 'Excellent'; ratingColor = 'var(--color-green)'; }
+                          else if (score >= 50) { rating = 'Good'; ratingColor = 'var(--color-yellow)'; }
+                          else if (score >= 30) { rating = 'Fair'; ratingColor = 'var(--color-orange)'; }
                           return [
                             <span key="v" style={{ color: chartColors.tooltipText }}>
                               {score.toFixed(1)} / 100 (<span style={{ color: ratingColor }}>{rating}</span>)
@@ -751,7 +751,7 @@ export default function PrivacyPage() {
                       <Area
                         type="monotone"
                         dataKey="privacyScore"
-                        stroke="#A78BFA"
+                        stroke="var(--color-purple)"
                         strokeWidth={3}
                         fillOpacity={1}
                         fill="url(#colorScore)"

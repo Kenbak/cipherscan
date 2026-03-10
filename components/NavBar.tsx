@@ -130,7 +130,7 @@ export function NavBar() {
                 className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10 object-contain"
               />
               <div>
-                <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan group-hover:text-cipher-yellow transition-colors duration-200">
+                <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
                   CIPHERSCAN
                 </h1>
                 <p className={`text-[10px] sm:text-xs font-mono ${NETWORK_COLOR}`}>[ {NETWORK_LABEL} ]</p>
@@ -165,7 +165,7 @@ export function NavBar() {
               <div className="hidden md:block relative" ref={toolsRef}>
                 <button
                   onClick={() => setToolsOpen(!toolsOpen)}
-                  className="flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan-dark dark:hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
+                  className="flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
                 >
                   <span>Explore</span>
                   <svg
@@ -213,7 +213,7 @@ export function NavBar() {
                             className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
                               !isMainnet
                                 ? 'bg-cipher-cyan/15 text-cipher-cyan'
-                                : 'text-muted hover:text-foreground'
+                                : 'text-muted hover:text-primary'
                             }`}
                           >
                             TESTNET
@@ -222,8 +222,8 @@ export function NavBar() {
                             href={MAINNET_URL}
                             className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
                               isMainnet
-                                ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
-                                : 'text-muted hover:text-foreground'
+                                ? 'bg-cipher-yellow/15 text-cipher-yellow'
+                                : 'text-muted hover:text-primary'
                             }`}
                           >
                             MAINNET
@@ -260,9 +260,9 @@ export function NavBar() {
                 {isMainnet && (
                   <Link
                     href="/swap"
-                    className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow-dark dark:text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
+                    className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
                   >
-                    <span className="text-cipher-yellow-dark/50 dark:text-cipher-yellow/50">&gt;</span>
+                    <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
                   </Link>
                 )}
@@ -290,7 +290,7 @@ export function NavBar() {
           <div className="absolute inset-y-0 right-0 w-full max-w-sm flex flex-col mobile-drawer shadow-2xl animate-slide-in-right">
             {/* Header */}
             <div className="flex items-center justify-between h-16 px-4 border-b navbar-border flex-shrink-0">
-              <span className="text-sm font-bold font-mono text-cipher-cyan">CIPHERSCAN</span>
+              <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 rounded-md text-muted hover:text-cipher-cyan transition-all"
@@ -320,9 +320,9 @@ export function NavBar() {
                   <Link
                     href="/swap"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow-dark dark:text-cipher-yellow"
+                    className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow"
                   >
-                    <span className="text-cipher-yellow-dark/50 dark:text-cipher-yellow/50">&gt;</span>
+                    <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
                   </Link>
                 )}
@@ -385,7 +385,7 @@ export function NavBar() {
                     >
                       {isMainnet ? 'TESTNET' : 'MAINNET'}
                     </a>
-                    <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow-dark dark:text-cipher-yellow' : 'text-cipher-cyan'}`}>
+                    <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow' : 'text-cipher-cyan'}`}>
                       [ {NETWORK_LABEL} ]
                     </span>
                   </div>
