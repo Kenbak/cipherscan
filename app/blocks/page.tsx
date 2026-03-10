@@ -71,8 +71,8 @@ export default function BlocksPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Blocks</h1>
           <span className="text-xs font-mono text-muted">
             {blocks.length > 0
-              ? `#${blocks[blocks.length - 1].height.toLocaleString()} – #${blocks[0].height.toLocaleString()}`
-              : `${pagination.total.toLocaleString()} blocks indexed`}
+              ? `Block #${blocks[0].height.toLocaleString()} to #${blocks[blocks.length - 1].height.toLocaleString()} · ${pagination.total.toLocaleString()} blocks`
+              : `${pagination.total.toLocaleString()} blocks`}
           </span>
         </div>
       </div>
