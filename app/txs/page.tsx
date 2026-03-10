@@ -113,7 +113,7 @@ export default function TransactionsPage() {
           <span className="opacity-50">{'>'}</span> ALL_TRANSACTIONS
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Transactions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Transactions</h1>
           <span className="text-xs font-mono text-muted">
             {pagination.total.toLocaleString()} transactions
           </span>

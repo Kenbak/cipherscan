@@ -68,9 +68,11 @@ export default function BlocksPage() {
           <span className="opacity-50">{'>'}</span> ALL_BLOCKS
         </p>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Blocks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Blocks</h1>
           <span className="text-xs font-mono text-muted">
-            {pagination.total.toLocaleString()} blocks indexed
+            {blocks.length > 0
+              ? `#${blocks[blocks.length - 1].height.toLocaleString()} – #${blocks[0].height.toLocaleString()}`
+              : `${pagination.total.toLocaleString()} blocks indexed`}
           </span>
         </div>
       </div>

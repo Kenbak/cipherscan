@@ -113,7 +113,7 @@ export default function ShieldedTxsPage() {
           <span className="opacity-50">{'>'}</span> SHIELDED_TRANSACTIONS
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Shielded Transactions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Shielded Transactions</h1>
           <span className="text-xs font-mono text-muted">
             {pagination.total.toLocaleString()} shielded txs
           </span>
