@@ -24,9 +24,9 @@ router.use((req, res, next) => {
 // ============================================================================
 
 const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
-const NETWORK_STATS_CACHE_DURATION = 30; // 30 seconds (Redis uses seconds)
+const NETWORK_STATS_CACHE_DURATION = 120; // 2 minutes — network stats don't change fast
 const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
-const NETWORK_HEALTH_CACHE_DURATION = 30;
+const NETWORK_HEALTH_CACHE_DURATION = 60;
 
 // Fallback in-memory cache (if Redis fails)
 let networkStatsCache = null;

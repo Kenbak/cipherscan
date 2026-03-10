@@ -105,30 +105,29 @@ export default function NetworkPage() {
   const fetchData = async () => {
     try {
       const apiUrl = getApiUrl();
-      const [statsRes, healthRes, priceRes] = await Promise.all([
-        fetch(`${apiUrl}/api/network/stats`),
-        fetch(`${apiUrl}/api/network/health`),
-        fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`).catch(() => null),
-      ]);
 
-      if (!statsRes.ok || !healthRes.ok) throw new Error('Failed to fetch network data');
-
+      // Load stats first (critical path) — don't wait for health/price
+      const statsRes = await fetch(`${apiUrl}/api/network/stats`);
+      if (!statsRes.ok) throw new Error('Failed to fetch network data');
       const statsData = await statsRes.json();
-      const healthData = await healthRes.json();
-
-      if (priceRes?.ok) {
-        const priceData = await priceRes.json();
-        setZecPrice(priceData.price);
-      }
-
       setPreviousStats(stats);
       setStats(statsData);
-      setHealth(healthData);
       setError(null);
+      setLoading(false);
+
+      // Load health + price in background (non-blocking)
+      fetch(`${apiUrl}/api/network/health`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setHealth(data); })
+        .catch(() => {});
+
+      fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.price) setZecPrice(data.price); })
+        .catch(() => {});
     } catch (err: any) {
       console.error('Error fetching network data:', err);
       setError(err.message || 'Failed to load network data');
-    } finally {
       setLoading(false);
     }
   };
