@@ -8,9 +8,10 @@ import { ExportButton } from '@/components/ExportButton';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
-import { AddressWithLabel } from '@/components/AddressWithLabel';
+import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { TokenChainIcon } from '@/components/TokenChainIcon';
 
 interface BridgeData {
   direction: 'entry' | 'exit';
@@ -126,10 +127,8 @@ export default function TransactionPage() {
   const [data, setData] = useState<TransactionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [blockFallbackChecked, setBlockFallbackChecked] = useState(false);
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [showInputs, setShowInputs] = useState(false);
-  const [showOutputs, setShowOutputs] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'summary' | 'io'>('summary');
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -314,20 +313,54 @@ export default function TransactionPage() {
       timeZoneName: 'short',
     });
 
-    return `${relative} (${absolute})`;
+    return (
+      <span>
+        {relative} <span className="text-muted">({absolute})</span>
+      </span>
+    );
   };
 
   if (loading) {
+    const Skeleton = ({ className = '' }: { className?: string }) => (
+      <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
+    );
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+        <div className="mb-6">
+          <Skeleton className="h-3 w-20 mb-2" />
+          <Skeleton className="h-5 w-48 sm:w-64 mb-4" />
+          <div className="flex items-center gap-2 mb-4">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+          <Card>
+            <CardBody>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 py-3">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+                <Skeleton className="h-5 w-28" />
+              </div>
+              <Skeleton className="h-4 w-full max-w-md mt-3" />
+              <Skeleton className="h-4 w-3/4 max-w-sm mt-2" />
+            </CardBody>
+          </Card>
+        </div>
+        <div className="flex items-center gap-6 border-b border-cipher-border mb-6">
+          <Skeleton className="h-4 w-20 mb-2" />
+          <Skeleton className="h-4 w-28 mb-2" />
         </div>
         <Card>
-          <CardBody className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
-            <p className="text-secondary ml-4 font-mono text-sm">Loading transaction...</p>
+          <CardBody>
+            <div className="space-y-4">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-4 py-3 border-b border-cipher-border last:border-0">
+                  <Skeleton className="h-4 w-24 sm:w-32" />
+                  <Skeleton className="h-4 flex-1 max-w-xs" />
+                </div>
+              ))}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -339,7 +372,7 @@ export default function TransactionPage() {
     const isChecking = isValidHash && !blockFallbackChecked;
 
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
         <div className="mb-8">
           <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_LOOKUP</span>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h1>
@@ -566,75 +599,137 @@ export default function TransactionPage() {
     </div>
   );
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
-      {/* Header */}
-      <div className="mb-8 animate-fade-in-up">
-        <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
-        <div className="flex items-center justify-between mt-1 mb-2">
-          <div className="flex flex-wrap items-center gap-2 md:gap-4">
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-primary">Transaction Details</h1>
-          {/* Type Badge */}
-          {txType === 'COINBASE' && (
-            <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>
-          )}
-          {(txType === 'ORCHARD' || txType === 'SHIELDED') && (
-            <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-          )}
-          {txType === 'SHIELDING' && (
-            <Badge color="green" icon={<Icons.Shield />}>↓ SHIELDING</Badge>
-          )}
-          {txType === 'UNSHIELDING' && (
-            <Badge color="purple" icon={<Icons.Shield />}>↑ UNSHIELDING</Badge>
-          )}
-          {txType === 'MIXED' && (
-            <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>
-          )}
-          {allBridges.length > 0 && (
-            <Badge color="cyan" icon={
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={allBridges[0].direction === 'entry' ? 'M19 14l-7 7m0 0l-7-7m7 7V3' : 'M5 10l7-7m0 0l7 7m-7-7v18'} />
-              </svg>
-            }>
-              {allBridges[0].direction === 'entry' ? 'BRIDGE ENTRY' : 'BRIDGE EXIT'}
-              {allBridges.length > 1 && ` (${allBridges.length})`}
-            </Badge>
-          )}
+  // Build the visual flow for the hero section
+  const renderHeroFlow = () => {
+    if (allBridges.length > 0) {
+      const b = allBridges[0];
+      if (b.direction === 'entry') {
+        return (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
+              <TokenChainIcon token={b.otherToken} chain={b.otherChain} size={24} />
+              <span className="text-sm font-mono text-primary">{b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken}</span>
+            </div>
+            <span className="text-muted hidden sm:inline">→</span>
+            <span className="text-muted sm:hidden">↓</span>
+            <div className="flex items-center gap-2">
+              <TokenChainIcon token="ZEC" chain="zec" size={24} />
+              <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || '?'} ZEC</span>
+            </div>
           </div>
+        );
+      }
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
+            <TokenChainIcon token="ZEC" chain="zec" size={24} />
+            <span className="text-sm font-mono text-primary">ZEC</span>
+          </div>
+          <span className="text-muted hidden sm:inline">→</span>
+          <span className="text-muted sm:hidden">↓</span>
+          <div className="flex items-center gap-2">
+            <TokenChainIcon token={b.otherToken} chain={b.otherChain} size={24} />
+            <span className="text-sm font-mono text-primary">{b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken}</span>
+          </div>
+        </div>
+      );
+    }
 
-          {/* Export Button - Right aligned */}
+    const FlowArrow = () => (
+      <span className="text-muted hidden sm:inline">→</span>
+    );
+    const FlowArrowDown = () => (
+      <span className="text-muted sm:hidden">↓</span>
+    );
+
+    if (txType === 'ORCHARD' || txType === 'SHIELDED') {
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <Badge color="purple" icon={<Icons.Shield />}>Shielded</Badge>
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-cipher-purple/40 font-mono text-sm">████████ ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          <Badge color="purple" icon={<Icons.Shield />}>Shielded</Badge>
+        </div>
+      );
+    }
+
+    if (txType === 'SHIELDING') {
+      const fromAddr = data.inputs[0]?.address;
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          {fromAddr ? <AddressDisplay address={fromAddr} className="text-xs" /> : <span className="text-sm text-secondary font-mono">Transparent</span>}
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          <Badge color="purple" icon={<Icons.Shield />}>Shielded Pool</Badge>
+        </div>
+      );
+    }
+
+    if (txType === 'UNSHIELDING') {
+      const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <Badge color="purple" icon={<Icons.Shield />}>Shielded Pool</Badge>
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-secondary font-mono">Transparent</span>}
+        </div>
+      );
+    }
+
+    if (isCoinbase) {
+      const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <Badge color="green" icon={<Icons.Currency />}>Block Reward</Badge>
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
+        </div>
+      );
+    }
+
+    // Regular transparent
+    const fromAddr = data.inputs[0]?.address;
+    const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+        {fromAddr ? <AddressDisplay address={fromAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
+        <FlowArrow /><FlowArrowDown />
+        <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} ZEC</span>
+        <FlowArrow /><FlowArrowDown />
+        {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+
+      {/* ================================================================
+          HERO SECTION
+          ================================================================ */}
+      <div className="mb-6 animate-fade-in-up">
+        {/* Row 1: Header + Export */}
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
+            <h1 className="text-sm sm:text-base md:text-lg font-mono text-primary mt-0.5 break-all">{data.txid.slice(0, 12)}...{data.txid.slice(-8)}</h1>
+          </div>
           <ExportButton
             data={{
-              txid: data.txid,
-              blockHeight: data.blockHeight,
-              blockHash: data.blockHash,
-              timestamp: data.timestamp,
-              confirmations: data.confirmations,
-              fee: data.fee,
-              size: data.size,
-              version: data.version,
-              locktime: data.locktime,
-              totalInput: data.totalInput,
-              totalOutput: data.totalOutput,
-              shieldedSpends: data.shieldedSpends,
-              shieldedOutputs: data.shieldedOutputs,
+              txid: data.txid, blockHeight: data.blockHeight, blockHash: data.blockHash,
+              timestamp: data.timestamp, confirmations: data.confirmations, fee: data.fee,
+              size: data.size, version: data.version, locktime: data.locktime,
+              totalInput: data.totalInput, totalOutput: data.totalOutput,
+              shieldedSpends: data.shieldedSpends, shieldedOutputs: data.shieldedOutputs,
               orchardActions: data.orchardActions,
-              valueBalanceSapling: data.valueBalanceSapling,
-              valueBalanceOrchard: data.valueBalanceOrchard,
-              bindingSigSapling: data.bindingSigSapling,
-              inputs: data.inputs.map((i: any) => ({
-                address: i.address || 'shielded',
-                value: i.value,
-                coinbase: i.coinbase || false,
-                prevTxid: i.txid,
-                prevVout: i.vout
-              })),
-              outputs: data.outputs.map((o: any) => ({
-                address: o.scriptPubKey?.addresses?.[0] || 'shielded',
-                value: o.value,
-                index: o.n,
-                spent: o.spent || false
-              }))
+              inputs: data.inputs.map((i: any) => ({ address: i.address || 'shielded', value: i.value, coinbase: i.coinbase || false })),
+              outputs: data.outputs.map((o: any) => ({ address: o.scriptPubKey?.addresses?.[0] || 'shielded', value: o.value, index: o.n, spent: o.spent || false }))
             }}
             filename={`tx-${data.txid.slice(0, 16)}`}
             type="json"
@@ -642,705 +737,388 @@ export default function TransactionPage() {
           />
         </div>
 
-        {/* Human-readable summary */}
-        <p className="text-sm text-secondary leading-relaxed mt-2">
-          {generateTxSummary()}
-        </p>
+        {/* Row 2: Status badges */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <StatusBadge status="confirmed" />
+          {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
+          {(txType === 'ORCHARD' || txType === 'SHIELDED') && <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>}
+          {txType === 'SHIELDING' && <Badge color="green" icon={<Icons.Shield />}>SHIELDING</Badge>}
+          {txType === 'UNSHIELDING' && <Badge color="orange" icon={<Icons.Shield />}>UNSHIELDING</Badge>}
+          {txType === 'MIXED' && <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>}
+          {txType === 'REGULAR' && <Badge color="cyan">TRANSFER</Badge>}
+          {allBridges.length > 0 && (
+            <Badge color="cyan" icon={
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            }>
+              {allBridges[0].direction === 'entry' ? 'BRIDGE IN' : 'BRIDGE OUT'}
+            </Badge>
+          )}
+        </div>
 
-        {/* Cross-chain bridge info */}
-        {allBridges.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {allBridges.map((b, i) => (
-              <div key={i} className="p-3 rounded-lg bg-cipher-cyan/5 border border-cipher-cyan/20">
-                <div className="flex items-center gap-2 text-sm">
-                  <svg className="w-4 h-4 text-cipher-cyan shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                  <span className="text-secondary">
-                    {b.direction === 'entry'
-                      ? `${b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${b.otherToken} bridged from ${b.otherChain.toUpperCase()} to Zcash`
-                      : `ZEC bridged to ${b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${b.otherToken} on ${b.otherChain.toUpperCase()}`
-                    }
-                    {b.zecAmount && b.zecAmount > 0 && (
-                      <span className="text-muted"> ({b.zecAmount.toLocaleString(undefined, { maximumFractionDigits: 6 })} ZEC)</span>
-                    )}
-                  </span>
-                  {b.explorerUrl && (
-                    <a
-                      href={b.explorerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-auto text-xs text-cipher-cyan hover:text-cipher-cyan/80 whitespace-nowrap flex items-center gap-1"
-                    >
-                      View on {b.otherChain.toUpperCase()}
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  )}
-                </div>
+        {/* Hero card: flow + summary + privacy as one unified block */}
+        <Card>
+          <CardBody>
+            <div className="space-y-3">
+              {/* Centered flow */}
+              <div className="flex justify-center">
+                {renderHeroFlow()}
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Privacy Risk Alert - standalone component */}
-        <PrivacyRiskInline txid={data.txid} />
+              {/* Human-readable summary */}
+              <p className="text-sm text-muted leading-relaxed">
+                {generateTxSummary()}
+              </p>
+
+              {/* Bridge explorer links */}
+              {allBridges.length > 0 && (
+                <div>
+                  {allBridges.map((b, i) => (
+                    b.explorerUrl && (
+                      <a key={i} href={b.explorerUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mr-3 text-xs text-cipher-cyan hover:text-cipher-cyan/80 transition-colors font-mono">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        View on {b.otherChain.toUpperCase()}
+                      </a>
+                    )
+                  ))}
+                </div>
+              )}
+
+              {/* Privacy verdict */}
+              <PrivacyRiskInline txid={data.txid} variant="full" embedded />
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Main Transaction Info Card */}
-      <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <CardBody className="space-y-0">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_INFO</span>
-          </div>
+      {/* ================================================================
+          TAB BAR
+          ================================================================ */}
+      <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="flex items-center gap-6 border-b border-cipher-border">
+          {(['summary', 'io'] as const).map((tab) => {
+            const labels = { summary: 'Overview', io: 'Inputs / Outputs' };
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+                  activeTab === tab
+                    ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                    : 'text-muted hover:text-secondary'
+                }`}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* Transaction Hash */}
-          <div className="pb-3 border-b block-info-border">
-            <div className="flex items-center mb-2 text-secondary">
-              <span className="mr-2">
-                <Icons.Hash />
-              </span>
-              <span className="text-sm">Transaction Hash</span>
-              <span className="ml-2">
-                <Tooltip content="Unique identifier for this transaction" />
-              </span>
-            </div>
-            <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit flex items-center">
-              <code className="text-xs text-cipher-cyan break-all block">{data.txid}</code>
-              <CopyButton text={data.txid} label="txhash" />
-            </div>
-          </div>
-
-          {/* Status */}
-          <InfoRow
-            icon={Icons.CheckCircle}
-            label="Status"
-            value={<StatusBadge status="confirmed" />}
-            tooltip="Transaction has been confirmed and included in the blockchain"
-          />
-
-          {/* Block */}
-          <InfoRow
-            icon={Icons.Cube}
-            label="Block"
-            value={
-              <div className="flex items-center gap-2 flex-wrap">
-                <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">
-                  #{data.blockHeight.toLocaleString()}
-                </Link>
-                <span className="text-muted">
-                  ({data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''})
-                </span>
-                {data.finality && (
-                  <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'}>
-                    {data.finality === 'Finalized' ? 'Finalized' : 'Pending Finality'}
-                  </Badge>
-                )}
+      {/* ================================================================
+          SUMMARY TAB
+          ================================================================ */}
+      {activeTab === 'summary' && (
+        <div>
+          <Card className="mb-6">
+            <CardBody className="space-y-0">
+              {/* Transaction Hash */}
+              <div className="pb-3 border-b block-info-border">
+                <div className="flex items-center mb-2 text-secondary">
+                  <span className="mr-2"><Icons.Hash /></span>
+                  <span className="text-sm">Transaction Hash</span>
+                  <span className="ml-2"><Tooltip content="Unique identifier for this transaction" /></span>
+                </div>
+                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border flex items-center max-w-full">
+                  <code className="text-xs text-primary break-all block min-w-0 flex-1">{data.txid}</code>
+                  <CopyButton text={data.txid} label="txhash" />
+                </div>
               </div>
-            }
-            tooltip="The block that includes this transaction"
-          />
 
-          {/* Timestamp */}
-          <InfoRow
-            icon={Icons.Clock}
-            label="Timestamp"
-            value={formatTimestamp(data.timestamp)}
-            tooltip="When this transaction was mined"
-          />
+              <InfoRow icon={Icons.Cube} label="Block" tooltip="The block that includes this transaction" value={
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">#{data.blockHeight.toLocaleString()}</Link>
+                  <span className="text-muted">({data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''})</span>
+                  {data.finality && <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'}>{data.finality === 'Finalized' ? 'Finalized' : 'Pending'}</Badge>}
+                </div>
+              } />
 
-          {/* Transaction Fee */}
-          <InfoRow
-            icon={Icons.Currency}
-            label="Transaction Fee"
-            value={
-              data.fee > 0 ? (
-                <span className="font-semibold text-primary">
-                  {data.fee.toFixed(8)} {CURRENCY}
-                </span>
-              ) : (txType === 'ORCHARD' || txType === 'SHIELDED') ? (
-                <span className="font-semibold text-muted flex items-center gap-2">
-                  0.00000000 {CURRENCY}
-                </span>
-              ) : (
-                <span className="font-semibold text-primary">
-                  {data.fee.toFixed(8)} {CURRENCY}
-                </span>
-              )
-            }
-            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED') && data.fee > 0
-              ? "Fee paid from shielded pool (always public in Zcash)"
-              : "Fee paid to the miner for processing this transaction"
-            }
-          />
+              <InfoRow icon={Icons.Clock} label="Timestamp" value={formatTimestamp(data.timestamp)} tooltip="When this transaction was mined" />
 
-          {/* Value */}
-          <InfoRow
-            icon={Icons.Database}
-            label="Value"
-            value={
-              // Show hidden for fully shielded or shielding (output is shielded)
-              (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING' || txType === 'MIXED') && (hasOrchard || hasSapling) ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-3.5 h-3.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span className="text-cipher-purple/40 font-mono tracking-tight">████████</span>
-                    <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span className="text-secondary text-xs flex items-center gap-1.5 font-mono">
-                      Is this your transaction? Use your viewing key to decrypt.
-                    </span>
-                    <Link
-                      href={`/decrypt?prefill=${data.txid}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-cipher-purple/20 hover:border-cipher-purple/40 hover:bg-cipher-purple/10 text-cipher-purple text-xs font-medium rounded-md transition-colors whitespace-nowrap"
-                    >
+              <InfoRow icon={Icons.Currency} label="Fee" tooltip="Fee paid to the miner" value={
+                <span className="font-semibold text-primary">{data.fee.toFixed(8)} {CURRENCY}</span>
+              } />
+
+              <InfoRow icon={Icons.Database} label="Value" tooltip={
+                (txType === 'ORCHARD' || txType === 'SHIELDED')
+                  ? "Transaction amount is private and encrypted" : "Total amount transferred"
+              } value={
+                (txType === 'ORCHARD' || txType === 'SHIELDED') && (hasOrchard || hasSapling) ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-3.5 h-3.5 text-cipher-purple shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span className="text-cipher-purple/40 font-mono tracking-tight">████████</span>
+                      <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
+                    </div>
+                    <Link href={`/decrypt?prefill=${data.txid}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-cipher-purple/20 hover:border-cipher-purple/40 hover:bg-cipher-purple/10 text-cipher-purple text-xs font-medium rounded-md transition-colors w-fit">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
                       </svg>
-                      Decrypt
+                      Decrypt with viewing key
                     </Link>
                   </div>
+                ) : txType === 'SHIELDING' ? (
+                  <span className="font-semibold text-primary">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
+                ) : txType === 'UNSHIELDING' ? (
+                  <span className="font-semibold text-primary">{data.totalOutput.toFixed(8)} {CURRENCY}</span>
+                ) : (
+                  <span className="font-semibold text-primary">{(data.totalOutput > 0 ? data.totalOutput : data.totalInput).toFixed(8)} {CURRENCY}</span>
+                )
+              } />
+
+              <InfoRow icon={Icons.Database} label="Size" value={`${data.size.toLocaleString()} bytes (${(data.size / 1024).toFixed(2)} KB)`} tooltip="Transaction size in bytes" />
+              <InfoRow icon={Icons.Code} label="Version" value={data.version} tooltip="Transaction version number" />
+              <InfoRow icon={Icons.Clock} label="Lock Time" value={data.locktime} tooltip="Block height or timestamp at which this transaction is unlocked" />
+
+              {data.hasShieldedData && (
+                <>
+                  <InfoRow icon={Icons.Shield} label="Sapling Spends" value={data.shieldedSpends} tooltip="Number of Sapling shielded inputs" valueClass="text-cipher-purple" />
+                  <InfoRow icon={Icons.Shield} label="Sapling Outputs" value={data.shieldedOutputs} tooltip="Number of Sapling shielded outputs" valueClass="text-cipher-purple" />
+                </>
+              )}
+
+              {(data.orchardActions || 0) > 0 && (
+                <InfoRow icon={Icons.Shield} label="Orchard Actions" value={data.orchardActions} tooltip="Number of Orchard actions" valueClass="text-cipher-purple" />
+              )}
+
+              {data.valueBalanceSapling !== undefined && data.valueBalanceSapling !== 0 && (
+                <InfoRow icon={Icons.Currency} label="Sapling Value Balance" value={`${data.valueBalanceSapling.toFixed(8)} ${CURRENCY}`} tooltip="Net value between transparent and Sapling pools" valueClass="text-cipher-purple" />
+              )}
+
+              {data.valueBalanceOrchard !== undefined && data.valueBalanceOrchard !== 0 && (
+                <InfoRow icon={Icons.Currency} label="Orchard Value Balance" value={`${data.valueBalanceOrchard.toFixed(8)} ${CURRENCY}`} tooltip="Net value between transparent and Orchard pools" valueClass="text-cipher-purple" />
+              )}
+
+              {data.bindingSigSapling && (
+                <div className="pt-3 border-t block-info-border mt-3">
+                  <div className="flex items-center mb-2">
+                    <span className="mr-2 text-cipher-purple"><Icons.Shield /></span>
+                    <span className="text-sm text-secondary">Sapling Binding Signature</span>
+                    <span className="ml-2"><Tooltip content="Cryptographic proof that the transaction is balanced" /></span>
+                  </div>
+                  <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
+                    <code className="text-xs text-cipher-purple/60 break-all block">{data.bindingSigSapling}</code>
+                  </div>
                 </div>
-              ) : txType === 'UNSHIELDING' ? (
-                // For unshielding, show the transparent output value
-                <span className="font-semibold text-primary">
-                  {data.totalOutput.toFixed(8)} {CURRENCY}
-                </span>
-              ) : (
-                <span className="font-semibold text-primary">
-                  {data.totalOutput.toFixed(8)} {CURRENCY}
-                </span>
-              )
-            }
-            tooltip={(txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'SHIELDING')
-              ? "Transaction amount is private and encrypted using zero-knowledge proofs"
-              : "Total amount transferred in this transaction"
-            }
-          />
+              )}
 
-          {/* More Details Toggle */}
-        <button
-          onClick={() => setShowMoreDetails(!showMoreDetails)}
-          className="mt-6 text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors flex items-center font-mono"
-        >
-          <svg
-            className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          {showMoreDetails ? 'Hide' : 'Show'} More Details
-        </button>
-
-        {/* Additional Details (Collapsible) */}
-        {showMoreDetails && (
-          <div className="mt-4 pt-4 border-t block-info-border space-y-0">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-mono text-muted tracking-wider">&gt; ADVANCED</span>
-            </div>
-            <InfoRow
-              icon={Icons.Database}
-              label="Size"
-              value={`${data.size.toLocaleString()} bytes (${(data.size / 1024).toFixed(2)} KB)`}
-              tooltip="The size of this transaction in bytes"
-            />
-
-            <InfoRow
-              icon={Icons.Code}
-              label="Version"
-              value={data.version}
-              tooltip="Transaction version number"
-            />
-
-            <InfoRow
-              icon={Icons.Clock}
-              label="Lock Time"
-              value={data.locktime}
-              tooltip="Block height or timestamp at which this transaction is unlocked"
-            />
-
-            {data.hasShieldedData && (
-              <>
-                <InfoRow
-                  icon={Icons.Shield}
-                  label="Sapling Spends"
-                  value={data.shieldedSpends}
-                  tooltip="Number of Sapling shielded inputs (vShieldedSpend) in this transaction. These are private inputs using zero-knowledge proofs."
-                  valueClass="text-cipher-purple"
-                />
-                <InfoRow
-                  icon={Icons.Shield}
-                  label="Sapling Outputs"
-                  value={data.shieldedOutputs}
-                  tooltip="Number of Sapling shielded outputs (vShieldedOutput) in this transaction. These are private outputs using zero-knowledge proofs."
-                  valueClass="text-cipher-purple"
-                />
-              </>
-            )}
-
-            {data.orchardActions !== undefined && data.orchardActions > 0 && (
-              <InfoRow
-                icon={Icons.Shield}
-                label="Orchard Actions"
-                value={data.orchardActions}
-                tooltip="Number of Orchard actions in this transaction. Orchard is the newest shielded pool with improved performance and privacy."
-                valueClass="text-cipher-purple"
-              />
-            )}
-
-            {data.valueBalanceSapling !== undefined && data.valueBalanceSapling !== 0 && (
-              <InfoRow
-                icon={Icons.Currency}
-                label="Sapling Value Balance"
-                value={`${data.valueBalanceSapling.toFixed(8)} ${CURRENCY}`}
-                tooltip="Net value transferred between transparent and Sapling shielded pools. Positive = shielding, Negative = deshielding."
-                valueClass="text-cipher-purple"
-              />
-            )}
-
-            {data.valueBalanceOrchard !== undefined && data.valueBalanceOrchard !== 0 && (
-              <InfoRow
-                icon={Icons.Currency}
-                label="Orchard Value Balance"
-                value={`${data.valueBalanceOrchard.toFixed(8)} ${CURRENCY}`}
-                tooltip="Net value transferred between transparent and Orchard shielded pools. Positive = shielding, Negative = deshielding."
-                valueClass="text-cipher-purple"
-              />
-            )}
-
-            {data.bindingSigSapling && (
               <div className="pt-3 border-t block-info-border mt-3">
-                <div className="flex items-center mb-2">
-                  <span className="mr-2 text-cipher-purple">
-                    <Icons.Shield />
-                  </span>
-                  <span className="text-sm text-secondary">Sapling Binding Signature</span>
-                  <span className="ml-2">
-                    <Tooltip content="Cryptographic proof that the transaction is balanced and all shielded values are valid. This signature binds all Sapling components together." />
-                  </span>
+                <div className="flex items-center mb-2 text-secondary">
+                  <span className="mr-2"><Icons.Hash /></span>
+                  <span className="text-sm">Block Hash</span>
+                  <span className="ml-2"><Tooltip content="Hash of the block containing this transaction" /></span>
                 </div>
-                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
-                  <code className="text-xs text-cipher-purple/60 break-all block">{data.bindingSigSapling}</code>
-                </div>
+                <Link href={`/block/${data.blockHeight}`}>
+                  <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border hover:border-cipher-cyan transition-colors max-w-full">
+                    <code className="text-xs text-secondary hover:text-cipher-cyan break-all block">{data.blockHash}</code>
+                  </div>
+                </Link>
               </div>
-            )}
+            </CardBody>
+          </Card>
 
-            {/* Block Hash */}
-            <div className="pt-3 border-t block-info-border mt-3">
-              <div className="flex items-center mb-2 text-secondary">
-                <span className="mr-2">
-                  <Icons.Hash />
-                </span>
-                <span className="text-sm">Block Hash</span>
-                <span className="ml-2">
-                  <Tooltip content="Hash of the block containing this transaction" />
-                </span>
-              </div>
-              <Link href={`/block/${data.blockHeight}`}>
-                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit hover:border-cipher-cyan transition-colors">
-                  <code className="text-xs text-secondary hover:text-cipher-cyan break-all block">{data.blockHash}</code>
+
+
+        </div>
+      )}
+
+      {/* ================================================================
+          INPUTS / OUTPUTS TAB
+          ================================================================ */}
+      {activeTab === 'io' && (
+        <div>
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+            {/* Inputs */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUTS</span>
+                  <Badge color="muted">{(() => {
+                    let count = data.inputs.length + data.shieldedSpends;
+                    if ((data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.shieldedSpends === 0) {
+                      count += data.orchardActions || 0;
+                    }
+                    return count;
+                  })()}</Badge>
                 </div>
-              </Link>
-            </div>
+                {data.totalInput > 0 && (
+                  <span className="text-xs text-muted font-mono ml-auto">{data.totalInput.toFixed(4)} {CURRENCY}</span>
+                )}
+              </CardHeader>
+              <CardBody>
+                <div className="divide-y divide-cipher-border">
+                  {data.inputs.map((input: any, index: number) => (
+                    <div key={index} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden">
+                      <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        {input.coinbase ? (
+                          <span className="text-xs text-muted font-mono">Block Reward</span>
+                        ) : input.address ? (
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Link href={`/address/${input.address}`} className="min-w-0 block overflow-hidden">
+                              <code className="text-[11px] text-secondary hover:text-cipher-cyan transition-colors font-mono truncate block">{input.address}</code>
+                            </Link>
+                            <CopyButton text={input.address} label={`input-${index}`} />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted font-mono italic">Unknown</span>
+                        )}
+                      </div>
+                      {!input.coinbase && (
+                        <span className="text-[11px] font-mono text-primary shrink-0 tabular-nums">{input.value?.toFixed(8)}</span>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Sapling shielded inputs */}
+                  {data.shieldedSpends > 0 && Array.from({ length: data.shieldedSpends }).map((_, index) => (
+                    <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                      <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.inputs.length + index}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <Badge color="purple" icon={<Icons.Shield />}>SAPLING</Badge>
+                        <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                      </div>
+                      <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                    </div>
+                  ))}
+
+                  {/* Orchard inputs */}
+                  {(data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.shieldedSpends === 0 && (
+                    Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
+                      <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                        <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <Badge color="purple" icon={<Icons.Shield />}>ORCHARD</Badge>
+                          <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                        </div>
+                        <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                      </div>
+                    ))
+                  )}
+
+                  {data.inputs.length === 0 && data.shieldedSpends === 0 && (data.orchardActions || 0) === 0 && (
+                    <p className="text-xs text-muted font-mono py-2 text-center">No inputs</p>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Outputs */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUTS</span>
+                  <Badge color="muted">{(() => {
+                    let count = data.outputs.length;
+                    if (valueBalance < 0) count += 1;
+                    if (data.shieldedOutputs > 0 && valueBalance >= 0) count += data.shieldedOutputs;
+                    if ((data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && valueBalance >= 0) count += data.orchardActions || 0;
+                    return count;
+                  })()}</Badge>
+                </div>
+                {data.totalOutput > 0 && (
+                  <span className="text-xs text-muted font-mono ml-auto">{data.totalOutput.toFixed(4)} {CURRENCY}</span>
+                )}
+              </CardHeader>
+              <CardBody>
+                <div className="divide-y divide-cipher-border">
+                  {data.outputs.map((output: any, index: number) => {
+                    const outputAddr = output.scriptPubKey?.addresses?.[0];
+                    const matchedBridge = outputAddr ? bridgeOutputAddresses.get(outputAddr) : undefined;
+                    return (
+                      <div key={index} className={`flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden ${matchedBridge ? 'bg-cipher-cyan/5 -mx-3 px-3 rounded' : ''}`}>
+                        <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          {outputAddr ? (
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Link href={`/address/${outputAddr}`} className="min-w-0 block overflow-hidden">
+                                <code className="text-[11px] text-secondary hover:text-cipher-cyan transition-colors font-mono truncate block">{outputAddr}</code>
+                              </Link>
+                              <CopyButton text={outputAddr} label={`output-${index}`} />
+                              {matchedBridge && (
+                                <Badge color="cyan" icon={<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>}>
+                                  SWAP
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted font-mono italic">No address</span>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-mono text-primary shrink-0 tabular-nums">{output.value?.toFixed(8)}</span>
+                      </div>
+                    );
+                  })}
+
+                  {/* Shielded output with known value (shielding) */}
+                  {valueBalance < 0 && (
+                    <div className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                      <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.outputs.length}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
+                        <span className="text-[11px] text-cipher-purple font-mono truncate">
+                          {(data.valueBalanceOrchard || 0) < 0 ? 'Orchard' : 'Sapling'} Pool
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono text-cipher-purple font-semibold shrink-0">{Math.abs(valueBalance).toFixed(8)}</span>
+                    </div>
+                  )}
+
+                  {/* Sapling shielded outputs - encrypted */}
+                  {data.shieldedOutputs > 0 && valueBalance >= 0 && Array.from({ length: data.shieldedOutputs }).map((_, index) => (
+                    <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                      <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.outputs.length + index}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <Badge color="purple" icon={<Icons.Shield />}>SAPLING</Badge>
+                        <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                      </div>
+                      <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                    </div>
+                  ))}
+
+                  {/* Orchard outputs */}
+                  {(data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && valueBalance >= 0 && (
+                    Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
+                      <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                        <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <Badge color="purple" icon={<Icons.Shield />}>ORCHARD</Badge>
+                          <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                        </div>
+                        <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                      </div>
+                    ))
+                  )}
+
+                  {data.outputs.length === 0 && data.shieldedOutputs === 0 && (data.orchardActions || 0) === 0 && valueBalance >= 0 && (
+                    <p className="text-xs text-muted font-mono py-2 text-center">No outputs</p>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
           </div>
-        )}
-        </CardBody>
-      </Card>
-
-      {/* Inputs/Outputs Cards */}
-      <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-        {/* Inputs Card */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-primary flex items-center gap-2">
-                <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUTS</span>
-                <Badge color="cyan">{data.inputs.length + data.shieldedSpends + (data.orchardActions || 0)}</Badge>
-              </h3>
-              {data.inputs.length > 0 && (
-                <button
-                  onClick={() => setShowInputs(!showInputs)}
-                  className="text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono"
-                >
-                  {showInputs ? 'Hide' : 'Show'}
-                </button>
-              )}
-            </div>
-            {((data.shieldedSpends > 0 || (data.orchardActions || 0) > 0) && data.totalInput === 0) ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span className="text-cipher-purple/40 font-mono tracking-tight text-lg">████████</span>
-                  <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
-                </div>
-                <span className="text-xs text-muted font-mono">
-                  {(data.orchardActions || 0) > 0
-                    ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
-                    : `Shielded input${data.shieldedSpends > 1 ? 's' : ''}`
-                  }
-                </span>
-              </div>
-            ) : (
-              <div>
-                <div className="text-2xl font-bold font-mono text-primary">{data.totalInput.toFixed(8)}</div>
-                <div className="text-sm text-muted font-mono">{CURRENCY}</div>
-                {data.shieldedSpends > 0 && (
-                  <Badge color="purple" className="mt-2">+ {data.shieldedSpends} shielded (hidden)</Badge>
-                )}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* Outputs Card */}
-        <Card variant="compact">
-          <CardBody>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-primary flex items-center gap-2">
-                <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUTS</span>
-                <Badge color="cyan">{data.outputs.length + data.shieldedOutputs + (data.orchardActions || 0)}</Badge>
-              </h3>
-              {data.outputs.length > 0 && (
-                <button
-                  onClick={() => setShowOutputs(!showOutputs)}
-                  className="text-sm text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono"
-                >
-                  {showOutputs ? 'Hide' : 'Show'}
-                </button>
-              )}
-            </div>
-            {((data.shieldedOutputs > 0 || (data.orchardActions || 0) > 0) && data.totalOutput === 0) ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span className="text-cipher-purple/40 font-mono tracking-tight text-lg">████████</span>
-                  <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
-                </div>
-                <span className="text-xs text-muted font-mono">
-                  {(data.orchardActions || 0) > 0
-                    ? `Orchard action${data.orchardActions !== 1 ? 's' : ''}`
-                    : `Shielded output${data.shieldedOutputs > 1 ? 's' : ''}`
-                  }
-                </span>
-              </div>
-            ) : (
-              <div>
-                <div className="text-2xl font-bold font-mono text-primary">{data.totalOutput.toFixed(8)}</div>
-                <div className="text-sm text-muted font-mono">{CURRENCY}</div>
-                {valueBalance < 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                    <span className="text-sm font-mono text-cipher-purple">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
-                  </div>
-                )}
-                {data.shieldedOutputs > 0 && valueBalance >= 0 && (
-                  <Badge color="purple" className="mt-2">+ {data.shieldedOutputs} shielded (hidden)</Badge>
-                )}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Detailed Inputs */}
-      {showInputs && (
-        <Card className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <CardHeader className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUT_DETAILS</span>
-            <Tooltip content="Sources of funds for this transaction. Each input references a previous transaction output." />
-          </CardHeader>
-          <CardBody>
-            {/* Privacy Notice for Shielded */}
-            {data.shieldedSpends > 0 && (
-              <div className="privacy-alert privacy-alert-success mb-4">
-                <Icons.Shield />
-                <div>
-                  <p className="text-sm font-semibold mb-1">Privacy Protection Active</p>
-                  <p className="text-xs text-secondary">
-                    This transaction includes {data.shieldedSpends} shielded input{data.shieldedSpends > 1 ? 's' : ''}.
-                    Addresses and amounts are encrypted using zero-knowledge proofs.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {data.inputs.map((input, index) => (
-                <div
-                  key={index}
-                  className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
-                >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted font-mono">INPUT #{index}</span>
-                      {input.coinbase ? (
-                        <Badge color="green">COINBASE</Badge>
-                      ) : (
-                        <Badge color="cyan">TRANSPARENT</Badge>
-                      )}
-                    </div>
-                    {!input.coinbase && (
-                      <span className="text-sm font-mono text-primary font-semibold">
-                        {input.value?.toFixed(8)} {CURRENCY}
-                      </span>
-                    )}
-                  </div>
-                {input.address ? (
-                  <div>
-                    <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
-                      From
-                    </label>
-                    <div className="flex items-center">
-                      <Link href={`/address/${input.address}`}>
-                        <code className="text-xs text-secondary hover:text-cipher-cyan break-all block transition-colors">
-                          {input.address}
-                        </code>
-                      </Link>
-                      <CopyButton text={input.address} label={`input-${index}`} />
-                    </div>
-                  </div>
-                ) : input.coinbase ? (
-                  <div className="flex items-center gap-2 text-secondary">
-                    <Icons.Currency />
-                    <span className="text-xs font-mono">Block Reward (newly minted coins)</span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-muted font-mono italic">Shielded Input</span>
-                )}
-              </div>
-            ))}
-
-            {/* Shielded Inputs - More visual */}
-            {data.shieldedSpends > 0 &&
-              Array.from({ length: data.shieldedSpends }).map((_, index) => (
-                <div
-                  key={`shielded-${index}`}
-                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
-                >
-                  {/* Decorative pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
-                    }}></div>
-                  </div>
-
-                  <div className="relative">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted font-mono">INPUT #{data.inputs.length + index}</span>
-                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                      </div>
-                      <div className="flex items-center gap-1 text-cipher-purple">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-xs font-mono">Encrypted</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted">Address:</span>
-                        <span className="text-cipher-purple/60 font-mono">████████████████████████████████████</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted">Amount:</span>
-                        <span className="text-cipher-purple/60 font-mono">█████████</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-cipher-purple/10">
-                      <p className="text-xs text-muted font-mono italic flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        Only visible with viewing key
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
+        </div>
       )}
 
-      {/* Detailed Outputs */}
-      {showOutputs && (
-        <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <CardHeader className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUT_DETAILS</span>
-            <Tooltip content="Destinations where funds are sent. Each output creates new spendable coins at specified addresses." />
-          </CardHeader>
-          <CardBody>
-            {/* Privacy Notice for Shielded */}
-            {data.shieldedOutputs > 0 && (
-              <div className="privacy-alert privacy-alert-success mb-4">
-                <Icons.Shield />
-                <div>
-                  <p className="text-sm font-semibold mb-1">Privacy Protection Active</p>
-                  <p className="text-xs text-secondary">
-                    This transaction includes {data.shieldedOutputs} shielded output{data.shieldedOutputs > 1 ? 's' : ''}.
-                    Addresses and amounts are encrypted using zero-knowledge proofs.
-                  </p>
-                </div>
-              </div>
-            )}
 
-            <div className="space-y-3">
-              {data.outputs.map((output, index) => {
-                const outputAddr = output.scriptPubKey?.addresses?.[0];
-                const matchedBridge = outputAddr ? bridgeOutputAddresses.get(outputAddr) : undefined;
-                return (
-                <div
-                  key={index}
-                  className={`block-tx-row p-4 rounded-lg border transition-all ${matchedBridge ? 'border-cipher-cyan/40 bg-cipher-cyan/5' : 'border-cipher-border hover:border-cipher-cyan/50'}`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted font-mono">OUTPUT #{index}</span>
-                      <Badge color="cyan">TRANSPARENT</Badge>
-                      {matchedBridge && (
-                        <Badge color="cyan" icon={
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                          </svg>
-                        }>
-                          {matchedBridge.direction === 'entry' ? 'SWAP' : 'SWAP'} · {matchedBridge.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} {matchedBridge.otherToken}
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-sm font-mono text-primary font-semibold">
-                      {output.value?.toFixed(8)} {CURRENCY}
-                    </span>
-                  </div>
-                {outputAddr ? (
-                  <div>
-                    <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-1">
-                      To
-                    </label>
-                    <div className="flex items-center">
-                      <Link href={`/address/${outputAddr}`}>
-                        <code className="text-xs text-secondary hover:text-cipher-cyan break-all block transition-colors">
-                          {outputAddr}
-                        </code>
-                      </Link>
-                      <CopyButton text={outputAddr} label={`output-${index}`} />
-                    </div>
-                  </div>
-                ) : (
-                  <code className="text-xs text-muted break-all block">
-                    {output.scriptPubKey?.hex || 'No address'}
-                  </code>
-                )}
-              </div>
-                );
-              })}
 
-            {/* Shielded Output with known value (from value_balance) */}
-            {valueBalance < 0 && (
-                <div
-                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
-                >
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
-                    }}></div>
-                  </div>
-                  <div className="relative">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length}</span>
-                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                      </div>
-                      <span className="text-sm font-mono text-cipher-purple font-semibold">
-                        {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted">To:</span>
-                        <span className="text-cipher-purple font-mono flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                          Shielded Pool ({(data.valueBalanceOrchard || 0) < 0 ? 'Orchard' : 'Sapling'})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            )}
-
-            {/* Shielded Outputs - encrypted (no known value) */}
-            {data.shieldedOutputs > 0 && valueBalance >= 0 &&
-              Array.from({ length: data.shieldedOutputs }).map((_, index) => (
-                <div
-                  key={`shielded-${index}`}
-                  className="relative shielded-input-row p-4 rounded-lg border border-cipher-purple/20 overflow-hidden group hover:border-cipher-purple/40 transition-all"
-                >
-                  {/* Decorative pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute inset-0" style={{
-                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgb(var(--color-purple-rgb) / 0.1) 10px, rgb(var(--color-purple-rgb) / 0.1) 20px)`
-                    }}></div>
-                  </div>
-
-                  <div className="relative">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted font-mono">OUTPUT #{data.outputs.length + index}</span>
-                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                      </div>
-                      <div className="flex items-center gap-1 text-cipher-purple">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-xs font-mono">Encrypted</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted">To:</span>
-                        <span className="text-cipher-purple font-mono flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                          Shielded Output
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted">Amount:</span>
-                        <span className="text-cipher-purple/60 font-mono italic">(amount hidden)</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-cipher-purple/10">
-                      <p className="text-xs text-muted font-mono italic flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        Only visible with viewing key
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-      )}
     </div>
   );
 }
