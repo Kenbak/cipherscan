@@ -234,12 +234,43 @@ export default function BlockPage() {
   };
 
   if (loading) {
+    const Skeleton = ({ className = '' }: { className?: string }) => (
+      <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
+    );
+
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
+        <div className="mb-6">
+          <Skeleton className="h-3 w-28 mb-3" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <Card className="mb-6">
+          <CardBody>
+            <div className="space-y-4">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+              ))}
+              <Skeleton className="h-12 w-full rounded-lg" />
+            </div>
+          </CardBody>
+        </Card>
         <Card>
-          <CardBody className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
-            <p className="text-secondary ml-4 font-mono">Loading block...</p>
+          <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="p-3 rounded-lg border border-cipher-border">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-10" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -293,48 +324,45 @@ export default function BlockPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-fade-in">
-      {/* Header with Inline Navigation */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-2 text-secondary">
-          <Icons.Cube />
-          <h1 className="text-base md:text-lg font-semibold">Block</h1>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link
-              href={`/block/${data.height - 1}`}
-              className={`p-1.5 rounded transition-colors ${
-                data.previousBlockHash
-                  ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                  : 'text-muted cursor-not-allowed'
-              }`}
-              title="Previous Block"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
+      {/* Header */}
+      <div className="mb-6 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
+            <div className="flex items-center gap-3 mt-1">
+              <Link
+                href={`/block/${data.height - 1}`}
+                className={`p-1 rounded transition-colors ${
+                  data.previousBlockHash
+                    ? 'text-secondary hover:text-primary'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title="Previous Block"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
 
-            <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
-              #{data.height.toLocaleString()}
-            </span>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono text-primary">
+                #{data.height.toLocaleString()}
+              </h1>
 
-            <Link
-              href={`/block/${data.height + 1}`}
-              className={`p-1.5 rounded transition-colors ${
-                data.nextBlockHash
-                  ? 'text-cipher-cyan hover:bg-cipher-cyan/10'
-                  : 'text-muted cursor-not-allowed'
-              }`}
-              title="Next Block"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+              <Link
+                href={`/block/${data.height + 1}`}
+                className={`p-1 rounded transition-colors ${
+                  data.nextBlockHash
+                    ? 'text-secondary hover:text-primary'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title="Next Block"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
-
-          {/* Export Button - Right aligned */}
           <ExportButton
             data={{
               height: data.height,
@@ -398,7 +426,7 @@ export default function BlockPage() {
             label="Transactions"
             value={
               <span
-                className="text-cipher-cyan font-semibold cursor-pointer hover:underline"
+                className="text-primary font-semibold cursor-pointer hover:text-cipher-cyan transition-colors"
                 onClick={scrollToTransactions}
                 title="Click to view all transactions"
               >
@@ -483,14 +511,14 @@ export default function BlockPage() {
               </span>
             </div>
             <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
-              <code className="text-xs text-cipher-cyan break-all">{data.hash}</code>
+              <code className="text-xs text-secondary break-all">{data.hash}</code>
             </div>
           </div>
 
           {/* More Details Toggle */}
           <button
             onClick={() => setShowMoreDetails(!showMoreDetails)}
-            className="mt-8 pt-6 border-t block-info-border text-sm text-cipher-cyan hover:text-cipher-green transition-colors flex items-center font-mono w-full"
+            className="mt-8 pt-6 border-t block-info-border text-sm text-secondary hover:text-primary transition-colors flex items-center font-mono w-full"
           >
             <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -560,7 +588,7 @@ export default function BlockPage() {
                   </span>
                 </div>
                 <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
-                  <code className="text-xs text-cipher-purple/60 break-all">{data.finalSaplingRoot}</code>
+                  <code className="text-xs text-secondary break-all">{data.finalSaplingRoot}</code>
                 </div>
               </div>
             )}
@@ -576,7 +604,7 @@ export default function BlockPage() {
             <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
               Transactions
             </h2>
-            <Badge color="cyan">{data.transactionCount}</Badge>
+            <Badge color="muted">{data.transactionCount}</Badge>
           </div>
         </CardHeader>
         <CardBody>

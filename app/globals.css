@@ -220,7 +220,7 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
     padding: var(--space-6);
-    overflow: hidden;
+    overflow: visible;
     min-width: 0;
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.03),
@@ -1163,10 +1163,9 @@
   }
 
   .card-body {
-    /* Flex grow to fill available space */
     flex: 1;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .card-footer {
