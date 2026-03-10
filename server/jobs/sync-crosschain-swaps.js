@@ -730,6 +730,37 @@ function clusterAmounts(amounts) {
 }
 
 // ---------------------------------------------------------------------------
+// Refresh materialized views used by /api/crosschain/* endpoints
+// ---------------------------------------------------------------------------
+
+async function refreshMaterializedViews() {
+  const views = [
+    'mv_crosschain_summary',
+    'mv_crosschain_volume_24h',
+    'mv_crosschain_latency',
+    'mv_crosschain_trends',
+    'mv_crosschain_popular_pairs',
+  ];
+
+  for (const view of views) {
+    try {
+      const exists = await pool.query(
+        "SELECT 1 FROM pg_matviews WHERE matviewname = $1", [view]
+      );
+      if (exists.rows.length === 0) continue;
+      await pool.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
+    } catch (e) {
+      try {
+        await pool.query(`REFRESH MATERIALIZED VIEW ${view}`);
+      } catch (e2) {
+        log(`  ⚠️ Failed to refresh ${view}: ${e2.message}`);
+      }
+    }
+  }
+  log('Materialized views refreshed');
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -766,6 +797,7 @@ async function main() {
     await retryUnmatched();
     await backfillZecAddresses();
     await updateAmountStats();
+    await refreshMaterializedViews();
     await pool.end();
     log('=== Heal complete ===');
     return;
@@ -814,6 +846,9 @@ async function main() {
 
   // Update amount stats
   await updateAmountStats();
+
+  // Refresh materialized views
+  await refreshMaterializedViews();
 
   // Update sync state
   const totalSynced = inflowCount + outflowCount;

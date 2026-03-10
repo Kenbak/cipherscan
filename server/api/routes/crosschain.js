@@ -128,14 +128,23 @@ router.get('/api/crosschain/status', async (req, res) => {
 });
 
 // ============================================================================
-// In-memory cache for expensive DB queries
+// In-memory cache with stale-while-revalidate for expensive DB queries
 // ============================================================================
 const cache = {};
+const refreshing = {};
+
 function getCached(key, ttlMs) {
   const entry = cache[key];
-  if (entry && Date.now() - entry.ts < ttlMs) return entry.data;
+  if (!entry) return null;
+  if (Date.now() - entry.ts < ttlMs) return entry.data;
   return null;
 }
+
+function getStale(key) {
+  const entry = cache[key];
+  return entry ? entry.data : null;
+}
+
 function setCache(key, data) {
   cache[key] = { data, ts: Date.now() };
 }
@@ -146,254 +155,105 @@ function setCache(key, data) {
 
 /**
  * GET /api/crosschain/db-stats
- * Cross-chain stats entirely from PostgreSQL (cross_chain_swaps table).
- * Returns the same shape as /api/crosschain/stats for frontend compatibility.
+ * Reads pre-computed materialized views — instant response.
+ * Views are refreshed every 5 min by the sync-crosschain-swaps.js cron job.
  */
 router.get('/api/crosschain/db-stats', async (req, res) => {
   try {
-    const cached = getCached('db-stats', 60_000);
+    const cached = getCached('db-stats', 30_000);
     if (cached) return res.json(cached);
 
     const pool = req.app.locals.pool;
     if (!pool) {
-      return res.status(503).json({
-        success: false,
-        error: 'Database pool not available',
-      });
+      return res.status(503).json({ success: false, error: 'Database pool not available' });
     }
 
-    const twentyFourHoursAgo = "NOW() - INTERVAL '24 hours'";
-
-    // Run all queries in parallel
-    const [
-      stats24hResult,
-      statsAllTimeResult,
-      inflowsByChainTokenResult,
-      outflowsByChainTokenResult,
-      recentSwapsResult,
-      latencyInflowResult,
-      latencyOutflowResult,
-    ] = await Promise.all([
-      // 1. 24h volume and swap count
+    const [summaryRes, volumeRes, latencyRes, recentRes] = await Promise.all([
+      pool.query('SELECT * FROM mv_crosschain_summary LIMIT 1'),
+      pool.query('SELECT * FROM mv_crosschain_volume_24h'),
+      pool.query('SELECT * FROM mv_crosschain_latency'),
       pool.query(`
-        SELECT
-          COUNT(*)::int as swap_count,
-          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
-        FROM cross_chain_swaps
-        WHERE status = 'SUCCESS'
-          AND swap_created_at >= ${twentyFourHoursAgo}
-      `),
-      // 2. All-time totals
-      pool.query(`
-        SELECT
-          COUNT(*)::int as swap_count,
-          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
-        FROM cross_chain_swaps
-        WHERE status = 'SUCCESS'
-      `),
-      // 3. Inflows grouped by source_chain with token breakdown (24h)
-      pool.query(`
-        SELECT
-          source_chain as chain,
-          source_token as token,
-          COALESCE(SUM(source_amount_usd), 0)::float as volume_usd
-        FROM cross_chain_swaps
-        WHERE status = 'SUCCESS'
-          AND direction = 'inflow'
-          AND swap_created_at >= ${twentyFourHoursAgo}
-          AND source_chain IS NOT NULL
-          AND source_chain != 'zec'
-        GROUP BY source_chain, source_token
-        ORDER BY source_chain, volume_usd DESC
-      `),
-      // 4. Outflows grouped by dest_chain with token breakdown (24h)
-      pool.query(`
-        SELECT
-          dest_chain as chain,
-          dest_token as token,
-          COALESCE(SUM(dest_amount_usd), 0)::float as volume_usd
-        FROM cross_chain_swaps
-        WHERE status = 'SUCCESS'
-          AND direction = 'outflow'
-          AND swap_created_at >= ${twentyFourHoursAgo}
-          AND dest_chain IS NOT NULL
-          AND dest_chain != 'zec'
-        GROUP BY dest_chain, dest_token
-        ORDER BY dest_chain, volume_usd DESC
-      `),
-      // 5. Recent 20 swaps
-      pool.query(`
-        SELECT
-          deposit_address, direction, source_chain, source_token, source_amount, source_amount_usd,
+        SELECT deposit_address, direction, source_chain, source_token, source_amount, source_amount_usd,
           dest_chain, dest_token, dest_amount, dest_amount_usd,
           zec_txid, source_tx_hashes, dest_tx_hashes, status, swap_created_at
-        FROM cross_chain_swaps
-        WHERE status = 'SUCCESS'
-        ORDER BY swap_created_at DESC
-        LIMIT 20
-      `),
-      // 6a. Latency for inflows (time until user receives ZEC)
-      pool.query(`
-        SELECT
-          ccs.source_chain as chain,
-          COUNT(*)::int as swap_count,
-          AVG((t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0)::float as avg_minutes,
-          PERCENTILE_CONT(0.5) WITHIN GROUP (
-            ORDER BY (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0
-          )::float as median_minutes
-        FROM cross_chain_swaps ccs
-        JOIN transactions t ON t.txid = ccs.zec_txid
-        WHERE ccs.status = 'SUCCESS'
-          AND ccs.direction = 'inflow'
-          AND ccs.matched = true
-          AND ccs.zec_txid IS NOT NULL
-          AND ccs.source_chain != 'zec'
-          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) > 0
-          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) < 86400
-        GROUP BY ccs.source_chain
-        ORDER BY swap_count DESC
-      `),
-      // 6b. Latency for outflows (time for ZEC deposit to confirm)
-      pool.query(`
-        SELECT
-          ccs.dest_chain as chain,
-          COUNT(*)::int as swap_count,
-          AVG((t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0)::float as avg_minutes,
-          PERCENTILE_CONT(0.5) WITHIN GROUP (
-            ORDER BY (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) / 60.0
-          )::float as median_minutes
-        FROM cross_chain_swaps ccs
-        JOIN transactions t ON t.txid = ccs.zec_txid
-        WHERE ccs.status = 'SUCCESS'
-          AND ccs.direction = 'outflow'
-          AND ccs.matched = true
-          AND ccs.zec_txid IS NOT NULL
-          AND ccs.dest_chain != 'zec'
-          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) > 0
-          AND (t.block_time - EXTRACT(EPOCH FROM ccs.swap_created_at)) < 86400
-        GROUP BY ccs.dest_chain
-        ORDER BY swap_count DESC
+        FROM cross_chain_swaps WHERE status = 'SUCCESS'
+        ORDER BY swap_created_at DESC LIMIT 20
       `),
     ]);
 
-    const totalVolume24h = parseFloat(stats24hResult.rows[0]?.volume_usd || 0);
-    const totalSwaps24h = parseInt(stats24hResult.rows[0]?.swap_count || 0);
-    const totalSwapsAllTime = parseInt(statsAllTimeResult.rows[0]?.swap_count || 0);
-    const totalVolumeAllTime = parseFloat(statsAllTimeResult.rows[0]?.volume_usd || 0);
+    const s = summaryRes.rows[0] || {};
 
-    // Build inflows: { chain, chainName, totalVolume24h, tokens: [{ symbol, volume24h }] }
-    const inflowsByChain = {};
-    for (const r of inflowsByChainTokenResult.rows) {
-      const chain = r.chain?.toLowerCase() || 'unknown';
-      if (!inflowsByChain[chain]) {
-        const config = CHAIN_CONFIG[chain] || { name: chain, color: '#888' };
-        inflowsByChain[chain] = {
-          chain,
-          chainName: config.name || chain,
-          totalVolume24h: 0,
-          tokens: [],
-        };
+    const buildFlows = (dir) => {
+      const byChain = {};
+      for (const r of volumeRes.rows) {
+        if (r.direction !== dir) continue;
+        const chain = r.chain?.toLowerCase() || 'unknown';
+        if (chain === 'zec') continue;
+        if (!byChain[chain]) {
+          const config = CHAIN_CONFIG[chain] || { name: chain, color: '#888' };
+          byChain[chain] = { chain, chainName: config.name || chain, totalVolume24h: 0, tokens: [] };
+        }
+        byChain[chain].totalVolume24h += parseFloat(r.volume_usd || 0);
+        byChain[chain].tokens.push({ symbol: r.token || 'UNKNOWN', volume24h: parseFloat(r.volume_usd || 0) });
       }
-      inflowsByChain[chain].totalVolume24h += parseFloat(r.volume_usd || 0);
-      inflowsByChain[chain].tokens.push({
-        symbol: r.token || 'UNKNOWN',
-        volume24h: parseFloat(r.volume_usd || 0),
-      });
-    }
-    const inflows = Object.values(inflowsByChain)
-      .sort((a, b) => b.totalVolume24h - a.totalVolume24h)
-      .map((c) => ({
-        ...c,
-        totalVolume24h: parseFloat(c.totalVolume24h.toFixed(2)),
-        volumeUsd: parseFloat(c.totalVolume24h.toFixed(2)), // alias for frontend compatibility
-      }));
+      return Object.values(byChain)
+        .sort((a, b) => b.totalVolume24h - a.totalVolume24h)
+        .map(c => ({ ...c, totalVolume24h: parseFloat(c.totalVolume24h.toFixed(2)), volumeUsd: parseFloat(c.totalVolume24h.toFixed(2)) }));
+    };
 
-    // Build outflows: same shape
-    const outflowsByChain = {};
-    for (const r of outflowsByChainTokenResult.rows) {
-      const chain = r.chain?.toLowerCase() || 'unknown';
-      if (!outflowsByChain[chain]) {
-        const config = CHAIN_CONFIG[chain] || { name: chain, color: '#888' };
-        outflowsByChain[chain] = {
-          chain,
-          chainName: config.name || chain,
-          totalVolume24h: 0,
-          tokens: [],
-        };
-      }
-      outflowsByChain[chain].totalVolume24h += parseFloat(r.volume_usd || 0);
-      outflowsByChain[chain].tokens.push({
-        symbol: r.token || 'UNKNOWN',
-        volume24h: parseFloat(r.volume_usd || 0),
-      });
-    }
-    const outflows = Object.values(outflowsByChain)
-      .sort((a, b) => b.totalVolume24h - a.totalVolume24h)
-      .map((c) => ({
-        ...c,
-        totalVolume24h: parseFloat(c.totalVolume24h.toFixed(2)),
-        volumeUsd: parseFloat(c.totalVolume24h.toFixed(2)), // alias for frontend compatibility
-      }));
-
-    // Format recent swaps
-    const recentSwaps = recentSwapsResult.rows.map((r) => {
+    const formatSwap = (r) => {
       const isInflow = r.direction === 'inflow';
-      const sourceTxHash = Array.isArray(r.source_tx_hashes) && r.source_tx_hashes.length > 0 ? r.source_tx_hashes[0] : null;
-      const destTxHash = Array.isArray(r.dest_tx_hashes) && r.dest_tx_hashes.length > 0 ? r.dest_tx_hashes[0] : r.zec_txid;
+      const srcHash = Array.isArray(r.source_tx_hashes) && r.source_tx_hashes.length > 0 ? r.source_tx_hashes[0] : null;
+      const dstHash = Array.isArray(r.dest_tx_hashes) && r.dest_tx_hashes.length > 0 ? r.dest_tx_hashes[0] : r.zec_txid;
       return {
-        id: r.deposit_address,
-        timestamp: new Date(r.swap_created_at).getTime(),
+        id: r.deposit_address, timestamp: new Date(r.swap_created_at).getTime(),
         direction: isInflow ? 'in' : 'out',
         fromChain: isInflow ? (r.source_chain || 'unknown') : 'zec',
         toChain: isInflow ? 'zec' : (r.dest_chain || 'unknown'),
-        fromAmount: parseFloat(isInflow ? r.source_amount : r.source_amount) || 0,
+        fromAmount: parseFloat(r.source_amount) || 0,
         fromSymbol: isInflow ? (r.source_token || 'UNKNOWN') : 'ZEC',
-        toAmount: parseFloat(isInflow ? r.dest_amount : r.dest_amount) || 0,
+        toAmount: parseFloat(r.dest_amount) || 0,
         toSymbol: isInflow ? 'ZEC' : (r.dest_token || 'UNKNOWN'),
         amountUsd: parseFloat(isInflow ? r.source_amount_usd : r.dest_amount_usd) || 0,
-        status: r.status || 'SUCCESS',
-        zecTxid: r.zec_txid || null,
-        sourceTxHash: isInflow ? sourceTxHash : r.zec_txid,
-        destTxHash: isInflow ? r.zec_txid : destTxHash,
+        status: r.status || 'SUCCESS', zecTxid: r.zec_txid || null,
+        sourceTxHash: isInflow ? srcHash : r.zec_txid,
+        destTxHash: isInflow ? r.zec_txid : dstHash,
       };
-    });
+    };
 
-    const mapLatencyRows = (rows) => rows.map((r) => {
-      const chain = r.chain?.toLowerCase() || 'unknown';
-      const config = CHAIN_CONFIG[chain] || { name: chain };
-      return {
-        chain,
-        chainName: config.name || chain,
-        avgMinutes: parseFloat(parseFloat(r.avg_minutes || 0).toFixed(1)),
-        medianMinutes: parseFloat(parseFloat(r.median_minutes || 0).toFixed(1)),
-        swapCount: parseInt(r.swap_count || 0),
-      };
-    });
-
-    const latencyInflows = mapLatencyRows(latencyInflowResult.rows);
-    const latencyOutflows = mapLatencyRows(latencyOutflowResult.rows);
+    const mapLatency = (dir) => latencyRes.rows
+      .filter(r => r.direction === dir)
+      .map(r => {
+        const chain = r.chain?.toLowerCase() || 'unknown';
+        const config = CHAIN_CONFIG[chain] || { name: chain };
+        return {
+          chain, chainName: config.name || chain,
+          avgMinutes: parseFloat(parseFloat(r.avg_minutes || 0).toFixed(1)),
+          medianMinutes: parseFloat(parseFloat(r.median_minutes || 0).toFixed(1)),
+          swapCount: parseInt(r.swap_count || 0),
+        };
+      });
 
     const result = {
       success: true,
-      totalVolume24h: parseFloat(totalVolume24h.toFixed(2)),
-      totalSwaps24h,
-      totalSwapsAllTime,
-      totalVolumeAllTime: parseFloat(totalVolumeAllTime.toFixed(2)),
-      inflows,
-      outflows,
-      recentSwaps,
-      latencyByChain: latencyInflows,
-      latencyOutflows,
+      totalVolume24h: parseFloat(parseFloat(s.volume_24h || 0).toFixed(2)),
+      totalSwaps24h: parseInt(s.swaps_24h || 0),
+      totalSwapsAllTime: parseInt(s.swaps_all_time || 0),
+      totalVolumeAllTime: parseFloat(parseFloat(s.volume_all_time || 0).toFixed(2)),
+      inflows: buildFlows('inflow'),
+      outflows: buildFlows('outflow'),
+      recentSwaps: recentRes.rows.map(formatSwap),
+      latencyByChain: mapLatency('inflow'),
+      latencyOutflows: mapLatency('outflow'),
       chainConfig: CHAIN_CONFIG,
     };
     setCache('db-stats', result);
     res.json(result);
   } catch (error) {
     console.error('❌ [CROSSCHAIN] db-stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to fetch cross-chain stats from database',
-    });
+    const stale = getStale('db-stats');
+    if (stale) return res.json(stale);
+    res.status(500).json({ success: false, error: error.message || 'Failed to fetch cross-chain stats' });
   }
 });
 
@@ -407,26 +267,28 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
     const period = req.query.period || '30d';
     const granularity = req.query.granularity || 'daily';
     const cacheKey = `trends-${period}-${granularity}`;
-    const cached = getCached(cacheKey, 120_000);
+    const cached = getCached(cacheKey, 300_000);
     if (cached) return res.json(cached);
 
     const pool = req.app.locals.pool;
 
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    const trunc = granularity === 'weekly' ? 'week' : 'day';
+    const granIsWeekly = granularity === 'weekly';
 
-    const { rows } = await pool.query(`
-      SELECT
-        DATE_TRUNC($1, swap_created_at) as period,
-        direction,
-        COUNT(*) as swap_count,
-        COALESCE(SUM(source_amount_usd), 0) as volume_usd
-      FROM cross_chain_swaps
-      WHERE status = 'SUCCESS'
-        AND swap_created_at >= NOW() - ($2 || ' days')::INTERVAL
-      GROUP BY period, direction
-      ORDER BY period
-    `, [trunc, days]);
+    const { rows } = granIsWeekly
+      ? await pool.query(`
+          SELECT DATE_TRUNC('week', day) as period, direction,
+            SUM(swap_count)::int as swap_count, SUM(volume_usd)::float as volume_usd
+          FROM mv_crosschain_trends
+          WHERE day >= (CURRENT_DATE - ($1 || ' days')::INTERVAL)
+          GROUP BY period, direction ORDER BY period
+        `, [days])
+      : await pool.query(`
+          SELECT day as period, direction, swap_count, volume_usd
+          FROM mv_crosschain_trends
+          WHERE day >= (CURRENT_DATE - ($1 || ' days')::INTERVAL)
+          ORDER BY day
+        `, [days]);
 
     // Pivot into { period, inflow_volume, outflow_volume, inflow_count, outflow_count }
     const byPeriod = {};
@@ -460,6 +322,8 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
     res.json(result);
   } catch (error) {
     console.error('Trends error:', error);
+    const stale = getStale(cacheKey);
+    if (stale) return res.json(stale);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -644,20 +508,9 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
     if (cached) return res.json(cached);
 
     const pool = req.app.locals.pool;
-    const { rows } = await pool.query(`
-      SELECT
-        CASE WHEN direction = 'inflow' THEN source_chain ELSE dest_chain END as chain,
-        CASE WHEN direction = 'inflow' THEN source_token ELSE dest_token END as token,
-        COUNT(*) as swap_count
-      FROM cross_chain_swaps
-      WHERE status = 'SUCCESS'
-        AND swap_created_at >= NOW() - INTERVAL '30 days'
-        AND source_token NOT IN ('UNKNOWN_TOKEN', 'UNKNOWN', 'OTHER')
-        AND dest_token NOT IN ('UNKNOWN_TOKEN', 'UNKNOWN', 'OTHER')
-      GROUP BY chain, token
-      ORDER BY swap_count DESC
-      LIMIT 100
-    `);
+    const { rows } = await pool.query(
+      'SELECT chain, token, swap_count FROM mv_crosschain_popular_pairs ORDER BY swap_count DESC'
+    );
 
     const result = {
       success: true,
@@ -671,8 +524,26 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Popular pairs error:', error);
+    const stale = getStale('popular-pairs');
+    if (stale) return res.json(stale);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Pre-warm db-stats cache on startup and refresh every 4 minutes
+// so no user request ever has to wait for the heavy computation
+router._prewarm = function (pool) {
+  if (!pool) return;
+  const refresh = () => {
+    computeDbStats(pool)
+      .then(raw => {
+        setCache('db-stats', buildDbStatsResult(raw));
+        console.log('[CROSSCHAIN] db-stats cache refreshed');
+      })
+      .catch(err => console.error('[CROSSCHAIN] db-stats pre-warm failed:', err.message));
+  };
+  setTimeout(refresh, 5000);
+  setInterval(refresh, 4 * 60 * 1000);
+};
 
 module.exports = router;

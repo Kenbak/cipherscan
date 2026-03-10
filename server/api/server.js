@@ -330,6 +330,7 @@ app.use(networkRouter);
 
 // Cross-chain routes: /api/crosschain/*
 app.use(crosschainRouter);
+if (crosschainRouter._prewarm) crosschainRouter._prewarm(pool);
 
 // Stats routes: /api/stats/*, /api/privacy-stats
 app.use(statsRouter);
