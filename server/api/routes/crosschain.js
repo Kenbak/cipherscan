@@ -530,20 +530,4 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
   }
 });
 
-// Pre-warm db-stats cache on startup and refresh every 4 minutes
-// so no user request ever has to wait for the heavy computation
-router._prewarm = function (pool) {
-  if (!pool) return;
-  const refresh = () => {
-    computeDbStats(pool)
-      .then(raw => {
-        setCache('db-stats', buildDbStatsResult(raw));
-        console.log('[CROSSCHAIN] db-stats cache refreshed');
-      })
-      .catch(err => console.error('[CROSSCHAIN] db-stats pre-warm failed:', err.message));
-  };
-  setTimeout(refresh, 5000);
-  setInterval(refresh, 4 * 60 * 1000);
-};
-
 module.exports = router;
