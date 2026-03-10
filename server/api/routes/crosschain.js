@@ -128,6 +128,19 @@ router.get('/api/crosschain/status', async (req, res) => {
 });
 
 // ============================================================================
+// In-memory cache for expensive DB queries
+// ============================================================================
+const cache = {};
+function getCached(key, ttlMs) {
+  const entry = cache[key];
+  if (entry && Date.now() - entry.ts < ttlMs) return entry.data;
+  return null;
+}
+function setCache(key, data) {
+  cache[key] = { data, ts: Date.now() };
+}
+
+// ============================================================================
 // Historical endpoints (from PostgreSQL cross_chain_swaps table)
 // ============================================================================
 
@@ -138,6 +151,9 @@ router.get('/api/crosschain/status', async (req, res) => {
  */
 router.get('/api/crosschain/db-stats', async (req, res) => {
   try {
+    const cached = getCached('db-stats', 60_000);
+    if (cached) return res.json(cached);
+
     const pool = req.app.locals.pool;
     if (!pool) {
       return res.status(503).json({
@@ -357,7 +373,7 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
     const latencyInflows = mapLatencyRows(latencyInflowResult.rows);
     const latencyOutflows = mapLatencyRows(latencyOutflowResult.rows);
 
-    res.json({
+    const result = {
       success: true,
       totalVolume24h: parseFloat(totalVolume24h.toFixed(2)),
       totalSwaps24h,
@@ -369,7 +385,9 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       latencyByChain: latencyInflows,
       latencyOutflows,
       chainConfig: CHAIN_CONFIG,
-    });
+    };
+    setCache('db-stats', result);
+    res.json(result);
   } catch (error) {
     console.error('❌ [CROSSCHAIN] db-stats error:', error);
     res.status(500).json({
@@ -386,9 +404,13 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
  */
 router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, res) => {
   try {
-    const pool = req.app.locals.pool;
     const period = req.query.period || '30d';
     const granularity = req.query.granularity || 'daily';
+    const cacheKey = `trends-${period}-${granularity}`;
+    const cached = getCached(cacheKey, 120_000);
+    if (cached) return res.json(cached);
+
+    const pool = req.app.locals.pool;
 
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
     const trunc = granularity === 'weekly' ? 'week' : 'day';
@@ -433,7 +455,9 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
       volumeChange = olderVol > 0 ? ((recentVol - olderVol) / olderVol * 100) : 0;
     }
 
-    res.json({ success: true, period, granularity, volumeChange: parseFloat(volumeChange.toFixed(1)), data });
+    const result = { success: true, period, granularity, volumeChange: parseFloat(volumeChange.toFixed(1)), data };
+    setCache(cacheKey, result);
+    res.json(result);
   } catch (error) {
     console.error('Trends error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -616,6 +640,9 @@ router.get('/api/crosschain/address/:address', async (req, res) => {
  */
 router.get('/api/crosschain/popular-pairs', async (req, res) => {
   try {
+    const cached = getCached('popular-pairs', 300_000);
+    if (cached) return res.json(cached);
+
     const pool = req.app.locals.pool;
     const { rows } = await pool.query(`
       SELECT
@@ -632,14 +659,16 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
       LIMIT 100
     `);
 
-    res.json({
+    const result = {
       success: true,
       pairs: rows.map(r => ({
         chain: r.chain,
         token: r.token,
         swapCount: parseInt(r.swap_count),
       })),
-    });
+    };
+    setCache('popular-pairs', result);
+    res.json(result);
   } catch (error) {
     console.error('Popular pairs error:', error);
     res.status(500).json({ success: false, error: error.message });
