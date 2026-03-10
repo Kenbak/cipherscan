@@ -956,21 +956,20 @@ export default function AddressPage() {
       {activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
         <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <Card>
-            <CardBody>
-              {/* Terminal readout */}
-              <div className="px-4 py-2 mb-4 rounded-lg bg-cipher-surface/50 font-mono text-xs">
-                <span className="text-muted">&gt; TOTAL_VOL: </span>
-                <span className="text-primary">${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                <span className="text-muted"> | ENTRIES: </span>
-                <span className="text-cipher-green">{crossChain.entryCount}</span>
-                <span className="text-muted"> | EXITS: </span>
-                <span className="text-red-400">{crossChain.exitCount}</span>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-muted tracking-wider">&gt; CROSS_CHAIN</span>
+                <Badge color="cyan">{crossChain.totalSwaps}</Badge>
               </div>
-
-              {/* Swap table header */}
+              <span className="text-sm text-muted font-normal font-mono ml-auto">
+                VOL: ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} | <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-red-400">{crossChain.exitCount} out</span>
+              </span>
+            </CardHeader>
+            <CardBody>
               <div className="overflow-x-auto -mx-6 px-6">
-                <div className="min-w-[700px] grid grid-cols-12 gap-2 px-3 py-2 mb-2 text-[10px] font-semibold text-muted uppercase tracking-wider border-b block-info-border">
-                  <div className="col-span-1">Dir</div>
+                {/* Table Header */}
+                <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
+                  <div className="col-span-1">Type</div>
                   <div className="col-span-3">From</div>
                   <div className="col-span-1"></div>
                   <div className="col-span-3">To</div>
@@ -979,38 +978,36 @@ export default function AddressPage() {
                   <div className="col-span-2 text-right">ZEC TX</div>
                 </div>
 
-                {/* Swap rows */}
-                <div className="max-h-[600px] overflow-y-auto min-w-[700px] space-y-0">
+                {/* Swap Rows */}
+                <div className="max-h-[600px] overflow-y-auto space-y-2 min-w-[800px]">
                   {crossChain.swaps.map((swap) => {
                     const swapAge = (() => {
                       const diffMs = Date.now() - swap.timestamp;
                       const diffDays = Math.floor(diffMs / 86400000);
                       const diffHours = Math.floor(diffMs / 3600000);
                       const diffMins = Math.floor(diffMs / 60000);
-                      if (diffDays > 0) return `${diffDays}d`;
-                      if (diffHours > 0) return `${diffHours}h`;
-                      if (diffMins > 0) return `${diffMins}m`;
+                      if (diffDays > 0) return `${diffDays}d ago`;
+                      if (diffHours > 0) return `${diffHours}h ago`;
+                      if (diffMins > 0) return `${diffMins}m ago`;
                       return 'now';
                     })();
                     const fromChain = swap.direction === 'inflow' ? swap.sourceChain : 'zec';
                     const toChain = swap.direction === 'inflow' ? 'zec' : swap.destChain;
 
                     return (
-                      <div key={swap.id} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-b border-cipher-border/50 last:border-0 hover:bg-cipher-surface/30 transition-colors">
+                      <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all group">
                         {/* Direction */}
                         <div className="col-span-1">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            swap.direction === 'inflow'
-                              ? 'bg-cipher-green/20 text-cipher-green border border-cipher-green/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}>
-                            {swap.direction === 'inflow' ? 'IN' : 'OUT'}
-                          </span>
+                          {swap.direction === 'inflow' ? (
+                            <Badge color="green" icon={<Icons.ArrowDown />}>IN</Badge>
+                          ) : (
+                            <Badge color="orange" icon={<Icons.ArrowUp />}>OUT</Badge>
+                          )}
                         </div>
 
                         {/* From */}
-                        <div className="col-span-3 flex items-center gap-1.5 min-w-0">
-                          <TokenChainIcon token={swap.sourceToken} chain={fromChain} size={20} />
+                        <div className="col-span-3 flex items-center gap-2 min-w-0">
+                          <TokenChainIcon token={swap.sourceToken} chain={fromChain} size={24} />
                           <div className="min-w-0">
                             <span className="text-xs font-mono text-primary block truncate">
                               {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
@@ -1025,8 +1022,8 @@ export default function AddressPage() {
                         </div>
 
                         {/* To */}
-                        <div className="col-span-3 flex items-center gap-1.5 min-w-0">
-                          <TokenChainIcon token={swap.destToken} chain={toChain} size={20} />
+                        <div className="col-span-3 flex items-center gap-2 min-w-0">
+                          <TokenChainIcon token={swap.destToken} chain={toChain} size={24} />
                           <div className="min-w-0">
                             <span className="text-xs font-mono text-primary block truncate">
                               {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
@@ -1037,22 +1034,22 @@ export default function AddressPage() {
 
                         {/* USD */}
                         <div className="col-span-1 text-right">
-                          <span className="text-[11px] text-muted font-mono">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                          <span className="text-xs text-muted font-mono">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                         </div>
 
                         {/* Age */}
                         <div className="col-span-1">
-                          <span className="text-[11px] text-secondary font-mono">{swapAge}</span>
+                          <span className="text-xs text-secondary">{swapAge}</span>
                         </div>
 
                         {/* ZEC TX */}
                         <div className="col-span-2 text-right">
                           {swap.zecTxid ? (
-                            <Link href={`/tx/${swap.zecTxid}`} className="text-[11px] text-cipher-cyan hover:underline font-mono">
+                            <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline font-mono group-hover:text-cipher-cyan transition-colors">
                               {swap.zecTxid.slice(0, 8)}...
                             </Link>
                           ) : (
-                            <span className="text-[11px] text-muted font-mono">--</span>
+                            <span className="text-xs text-muted font-mono">--</span>
                           )}
                         </div>
                       </div>
