@@ -46,12 +46,15 @@ router.get('/api/transactions/list', async (req, res) => {
       typeCondition = 'AND is_coinbase = true';
     }
 
-    // Get total count (use fast approximation for 'all')
+    // Get total count — use pg_class estimate for unfiltered (instant vs 30s COUNT(*))
     let total;
     if (typeFilter === 'all') {
-      const countResult = await pool.query('SELECT COUNT(*) as count FROM transactions');
-      total = parseInt(countResult.rows[0].count);
+      const countResult = await pool.query(
+        `SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'transactions'`
+      );
+      total = parseInt(countResult.rows[0]?.count) || 0;
     } else {
+      // Filtered counts are much smaller scans thanks to indexes
       const countResult = await pool.query(
         `SELECT COUNT(*) as count FROM transactions WHERE true ${typeCondition}`
       );
@@ -152,12 +155,20 @@ router.get('/api/shielded/list', async (req, res) => {
 
     const whereBase = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    // Get total count
-    const countResult = await pool.query(
-      `SELECT COUNT(*) as count FROM shielded_flows ${whereBase}`,
-      params
-    );
-    const total = parseInt(countResult.rows[0].count);
+    // Get total count — use pg_class estimate for unfiltered
+    let total;
+    if (conditions.length === 0) {
+      const countResult = await pool.query(
+        `SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'shielded_flows'`
+      );
+      total = parseInt(countResult.rows[0]?.count) || 0;
+    } else {
+      const countResult = await pool.query(
+        `SELECT COUNT(*) as count FROM shielded_flows ${whereBase}`,
+        params
+      );
+      total = parseInt(countResult.rows[0].count);
+    }
 
     let result;
     const selectCols = `id, txid, block_height, block_time, flow_type, amount_zat, pool, transparent_addresses`;
