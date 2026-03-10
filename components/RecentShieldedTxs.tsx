@@ -23,6 +23,7 @@ interface ShieldedTx {
 interface RecentShieldedTxsProps {
   nested?: boolean;
   initialTxs?: ShieldedTx[];
+  limit?: number;
 }
 
 function getTxBadge(tx: ShieldedTx) {
@@ -32,7 +33,7 @@ function getTxBadge(tx: ShieldedTx) {
   return <Badge color="orange">MIXED</Badge>;
 }
 
-export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = false, initialTxs = [] }: RecentShieldedTxsProps) {
+export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = false, initialTxs = [], limit = 5 }: RecentShieldedTxsProps) {
   const [txs, setTxs] = useState<ShieldedTx[]>(initialTxs);
   const [loading, setLoading] = useState(initialTxs.length === 0);
   const latestKey = useRef(initialTxs[0]?.txid ?? '');
@@ -42,8 +43,8 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
     const fetchTxs = async () => {
       try {
         const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/tx/shielded?limit=5`
-          : '/api/tx/shielded?limit=5';
+          ? `${getApiUrl()}/api/tx/shielded?limit=${limit}`
+          : `/api/tx/shielded?limit=${limit}`;
 
         const response = await fetch(apiUrl);
         const data = await response.json();

@@ -338,31 +338,23 @@ export default function PrivacyPage() {
           </div>
 
           {/* Right Column: Recent Shielded Activity */}
-          <Card>
-            <CardBody>
+          <Card className="flex flex-col">
+            <CardBody className="flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
                   <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SHIELDED_ACTIVITY</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-cipher-purple rounded-full animate-pulse"></div>
-                  <Badge color="purple">LIVE</Badge>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-cipher-green rounded-full animate-pulse"></div>
+                  <span className="text-xs font-mono text-muted uppercase tracking-wider">Live</span>
                 </div>
               </div>
               <p className="text-xs text-secondary mb-4">
                 Latest shielded transactions. Click to view or decrypt.
               </p>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                <RecentShieldedTxs nested />
-              </div>
-              <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                <Link
-                  href="/txs/shielded"
-                  className="block text-center text-sm text-cipher-purple hover:text-cipher-purple-glow transition-colors font-mono"
-                >
-                  View All Shielded Transactions →
-                </Link>
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px]">
+                <RecentShieldedTxs nested limit={10} />
               </div>
             </CardBody>
           </Card>
