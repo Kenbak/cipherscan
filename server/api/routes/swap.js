@@ -124,8 +124,6 @@ router.post('/api/swap/quote', async (req, res) => {
       depositType: 'ORIGIN_CHAIN',
       destinationAsset,
       amount: String(amount),
-      refundTo: refundTo || recipient,
-      refundType: 'ORIGIN_CHAIN',
       recipient,
       recipientType: 'DESTINATION_CHAIN',
       deadline,
@@ -133,6 +131,10 @@ router.post('/api/swap/quote', async (req, res) => {
       appFees: [{ recipient: AFFILIATE_ADDRESS, fee: AFFILIATE_FEE_BPS }],
       referral: REFERRAL,
     };
+    if (refundTo) {
+      quoteBody.refundTo = refundTo;
+      quoteBody.refundType = 'ORIGIN_CHAIN';
+    }
 
     const quote = await oneClickRequest('POST', '/quote', quoteBody);
 

@@ -487,7 +487,7 @@ export default function SwapPage() {
           destinationAsset: ZEC_ASSET_ID,
           amount: amountSmallest,
           recipient: zecAddress,
-          refundTo: refundAddress || zecAddress,
+          refundTo: refundAddress || wallet.address || undefined,
           slippageBps: slippage,
         }),
       });
