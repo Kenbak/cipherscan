@@ -12,6 +12,7 @@ import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { decodeUnifiedAddress, UnifiedAddressComponents } from '@/lib/wasm-loader';
+import { TokenChainIcon } from '@/components/TokenChainIcon';
 
 interface PriceData {
   price: number;
@@ -113,6 +114,7 @@ export default function AddressPage() {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [crossChain, setCrossChain] = useState<CrossChainActivity | null>(null);
+  const [activeTab, setActiveTab] = useState<'transactions' | 'crosschain'>('transactions');
 
   // Pagination - read from URL
   const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -922,374 +924,434 @@ export default function AddressPage() {
         </Card>
       </div>
 
-      {/* Cross-Chain Activity */}
-      {crossChain && crossChain.totalSwaps > 0 && (
-        <div className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '125ms' }}>
+      {/* Tab Bar */}
+      <div id="transactions-section" className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '125ms' }}>
+        <div className="flex items-center gap-6 border-b border-cipher-border mb-0">
+          <button
+            onClick={() => setActiveTab('transactions')}
+            className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+              activeTab === 'transactions'
+                ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                : 'text-muted hover:text-secondary'
+            }`}
+          >
+            Transactions <span className="ml-1 text-[10px] opacity-70">{totalTxCount}</span>
+          </button>
+          {crossChain && crossChain.totalSwaps > 0 && (
+            <button
+              onClick={() => setActiveTab('crosschain')}
+              className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+                activeTab === 'crosschain'
+                  ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                  : 'text-muted hover:text-secondary'
+              }`}
+            >
+              Cross-Chain <span className="ml-1 text-[10px] opacity-70">{crossChain.totalSwaps}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <span className="text-xs font-mono text-muted tracking-wider">&gt; CROSS_CHAIN_ACTIVITY</span>
-                <Badge color="cyan">{crossChain.totalSwaps}</Badge>
-              </div>
-            </CardHeader>
             <CardBody>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <div className="text-xs text-muted mb-1">Total volume</div>
-                  <div className="text-sm font-mono text-primary">${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              {/* Terminal readout */}
+              <div className="px-4 py-2 mb-4 rounded-lg bg-cipher-surface/50 font-mono text-xs">
+                <span className="text-muted">&gt; TOTAL_VOL: </span>
+                <span className="text-primary">${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                <span className="text-muted"> | ENTRIES: </span>
+                <span className="text-cipher-green">{crossChain.entryCount}</span>
+                <span className="text-muted"> | EXITS: </span>
+                <span className="text-red-400">{crossChain.exitCount}</span>
+              </div>
+
+              {/* Swap table header */}
+              <div className="overflow-x-auto -mx-6 px-6">
+                <div className="min-w-[700px] grid grid-cols-12 gap-2 px-3 py-2 mb-2 text-[10px] font-semibold text-muted uppercase tracking-wider border-b block-info-border">
+                  <div className="col-span-1">Dir</div>
+                  <div className="col-span-3">From</div>
+                  <div className="col-span-1"></div>
+                  <div className="col-span-3">To</div>
+                  <div className="col-span-1 text-right">USD</div>
+                  <div className="col-span-1">Age</div>
+                  <div className="col-span-2 text-right">ZEC TX</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted mb-1">Bridge entries</div>
-                  <div className="text-sm font-mono text-cipher-green">{crossChain.entryCount}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted mb-1">Bridge exits</div>
-                  <div className="text-sm font-mono text-red-400">{crossChain.exitCount}</div>
+
+                {/* Swap rows */}
+                <div className="max-h-[600px] overflow-y-auto min-w-[700px] space-y-0">
+                  {crossChain.swaps.map((swap) => {
+                    const swapAge = (() => {
+                      const diffMs = Date.now() - swap.timestamp;
+                      const diffDays = Math.floor(diffMs / 86400000);
+                      const diffHours = Math.floor(diffMs / 3600000);
+                      const diffMins = Math.floor(diffMs / 60000);
+                      if (diffDays > 0) return `${diffDays}d`;
+                      if (diffHours > 0) return `${diffHours}h`;
+                      if (diffMins > 0) return `${diffMins}m`;
+                      return 'now';
+                    })();
+                    const fromChain = swap.direction === 'inflow' ? swap.sourceChain : 'zec';
+                    const toChain = swap.direction === 'inflow' ? 'zec' : swap.destChain;
+
+                    return (
+                      <div key={swap.id} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-b border-cipher-border/50 last:border-0 hover:bg-cipher-surface/30 transition-colors">
+                        {/* Direction */}
+                        <div className="col-span-1">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            swap.direction === 'inflow'
+                              ? 'bg-cipher-green/20 text-cipher-green border border-cipher-green/30'
+                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          }`}>
+                            {swap.direction === 'inflow' ? 'IN' : 'OUT'}
+                          </span>
+                        </div>
+
+                        {/* From */}
+                        <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+                          <TokenChainIcon token={swap.sourceToken} chain={fromChain} size={20} />
+                          <div className="min-w-0">
+                            <span className="text-xs font-mono text-primary block truncate">
+                              {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
+                            </span>
+                            <span className="text-[10px] text-muted capitalize">{fromChain}</span>
+                          </div>
+                        </div>
+
+                        {/* Arrow */}
+                        <div className="col-span-1 text-center">
+                          <span className="text-muted text-xs">→</span>
+                        </div>
+
+                        {/* To */}
+                        <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+                          <TokenChainIcon token={swap.destToken} chain={toChain} size={20} />
+                          <div className="min-w-0">
+                            <span className="text-xs font-mono text-primary block truncate">
+                              {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
+                            </span>
+                            <span className="text-[10px] text-muted capitalize">{toChain}</span>
+                          </div>
+                        </div>
+
+                        {/* USD */}
+                        <div className="col-span-1 text-right">
+                          <span className="text-[11px] text-muted font-mono">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+
+                        {/* Age */}
+                        <div className="col-span-1">
+                          <span className="text-[11px] text-secondary font-mono">{swapAge}</span>
+                        </div>
+
+                        {/* ZEC TX */}
+                        <div className="col-span-2 text-right">
+                          {swap.zecTxid ? (
+                            <Link href={`/tx/${swap.zecTxid}`} className="text-[11px] text-cipher-cyan hover:underline font-mono">
+                              {swap.zecTxid.slice(0, 8)}...
+                            </Link>
+                          ) : (
+                            <span className="text-[11px] text-muted font-mono">--</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="space-y-2">
-                {crossChain.swaps.slice(0, 5).map((swap) => (
-                  <div key={swap.id} className="flex items-center justify-between py-2 border-b border-cipher-border last:border-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        swap.direction === 'inflow'
-                          ? 'bg-cipher-green/20 text-cipher-green border border-cipher-green/30'
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                      }`}>
-                        {swap.direction === 'inflow' ? 'IN' : 'OUT'}
-                      </span>
-                      <span className="text-sm font-mono text-primary">
-                        {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
-                      </span>
-                      <span className="text-muted">→</span>
-                      <span className="text-sm font-mono text-primary">
-                        {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      {swap.zecTxid && (
-                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline">
-                          {swap.zecTxid.slice(0, 8)}...
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {crossChain.totalSwaps > 5 && (
-                <div className="mt-3 text-center">
-                  <Link href="/crosschain" className="text-xs text-cipher-cyan hover:underline font-mono">
-                    View all {crossChain.totalSwaps} swaps →
-                  </Link>
-                </div>
-              )}
             </CardBody>
           </Card>
         </div>
-      )}
+      ) : (
+        /* Transactions Tab */
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-muted tracking-wider">&gt; TRANSACTIONS</span>
+              <Badge color="cyan">{totalTxCount}</Badge>
+            </div>
+            <span className="text-sm text-muted font-normal font-mono ml-auto">
+              {totalPages > 1 ? `page ${currentPage} of ${totalPages}` : `${totalTxCount} total`}
+            </span>
+          </CardHeader>
+          <CardBody>
 
-      {/* Transactions List */}
-      <div id="transactions-section" className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted tracking-wider">&gt; TRANSACTIONS</span>
-            <Badge color="cyan">{totalTxCount}</Badge>
-          </div>
-          <span className="text-sm text-muted font-normal font-mono ml-auto">
-            {totalPages > 1 ? `page ${currentPage} of ${totalPages}` : `${totalTxCount} total`}
-          </span>
-        </CardHeader>
-        <CardBody>
-
-        {data.transactions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-secondary">No transactions found for this address</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto -mx-6 px-6">
-              {/* Table Header */}
-              <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
-                <div className="col-span-1">Type</div>
-                <div className="col-span-3">Transaction Hash</div>
-                <div className="col-span-1">Block</div>
-                <div className="col-span-2">Age</div>
-                <div className="col-span-3">From → To</div>
-                <div className="col-span-2 text-right">Amount ({CURRENCY})</div>
-              </div>
-
-              {/* Transaction Rows */}
-              <div className="space-y-2 min-w-[800px]">
-              {sortedTxs.map((tx, index) => (
-                <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
-                  <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
-                    {/* Type Column */}
-                    <div className="col-span-1">
-                      {tx.type === 'received' ? (
-                        <Badge color="green" icon={<Icons.ArrowDown />}>IN</Badge>
-                      ) : (
-                        <Badge color="orange" icon={<Icons.ArrowUp />}>OUT</Badge>
-                      )}
-                    </div>
-
-                    {/* Hash Column */}
-                    <div className="col-span-3 flex items-center">
-                      <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono">
-                        {tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}
-                      </code>
-                      <CopyButton text={tx.txid} label={`tx-${index}`} />
-                    </div>
-
-                    {/* Block Column */}
-                    <div className="col-span-1">
-                      {tx.blockHeight ? (
-                        <Link
-                          href={`/block/${tx.blockHeight}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs text-cipher-cyan hover:underline"
-                        >
-                          #{tx.blockHeight}
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted">-</span>
-                      )}
-                    </div>
-
-                    {/* Age Column */}
-                    <div className="col-span-2">
-                      <span className="text-xs text-secondary">
-                        {formatTimestamp(tx.timestamp)}
-                      </span>
-                    </div>
-
-                    {/* From → To Column */}
-                    <div className="col-span-3">
-                      <div className="flex items-center gap-1 text-xs text-secondary font-mono">
-                        {tx.isDeshielding ? (
-                          <>
-                            {/* Deshielding: From shielded, To transparent (visible) */}
-                            <span className="text-cipher-purple flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                              Shielded
-                            </span>
-                            <span className="text-muted">→</span>
-                            <AddressDisplay address={address} className="text-xs truncate" />
-                          </>
-                        ) : tx.isShielding ? (
-                          <>
-                            {/* Shielding: From transparent (visible), To shielded */}
-                            <AddressDisplay address={address} className="text-xs truncate" />
-                            <span className="text-muted">→</span>
-                            <span className="text-cipher-purple flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                              Shielded
-                            </span>
-                          </>
-                        ) : tx.isShielded ? (
-                          <>
-                            <span className="px-1.5 py-0.5 bg-cipher-purple/10 text-cipher-purple text-[10px] rounded font-mono flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                              </svg>
-                              SHIELDED
-                            </span>
-                            <span className="text-muted text-[10px]">Private Transaction</span>
-                          </>
-                        ) : tx.isCoinbase ? (
-                          <>
-                            <span className="text-muted italic">Block Reward</span>
-                            <span className="text-muted">→</span>
-                            <AddressDisplay address={tx.to || address} className="text-xs truncate" />
-                          </>
-                        ) : (
-                          <>
-                            {/* From address */}
-                            {tx.from === 'shielded' ? (
-                              <span className="text-cipher-purple flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                Shielded
-                              </span>
-                            ) : tx.from ? (
-                              <AddressDisplay address={tx.from} className="text-xs truncate" />
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-
-                            <span className="text-muted">→</span>
-
-                            {/* To address */}
-                            {tx.to === 'shielded' ? (
-                              <span className="text-cipher-purple flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                Shielded
-                              </span>
-                            ) : tx.to ? (
-                              <AddressDisplay address={tx.to} className="text-xs truncate" />
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </>
-                        )}
-                  </div>
-                    </div>
-
-                    {/* Amount Column */}
-                    <div className="col-span-2 text-right">
-                      {(tx.isShielded && !tx.isDeshielding && !tx.isShielding) || tx.amount === 0 ? (
-                        <span className="text-xs text-cipher-purple font-mono flex items-center justify-end gap-1">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                          Hidden
-                        </span>
-                      ) : (
-                        <span className={`text-sm font-mono font-semibold ${
-                          tx.type === 'received' ? 'text-cipher-green' : 'text-red-500 dark:text-red-400'
-                        }`}>
-                          {tx.type === 'received' ? '+' : '-'}{Math.abs(tx.amount).toFixed(4)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              </div>
-          </div>
-
-          {/* Pagination Controls - Etherscan style with Links */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border">
-              {/* Page info */}
-              <div className="text-sm text-secondary">
-                Page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
-                <span className="font-semibold text-primary">{totalPages}</span>
-                <span className="text-muted ml-2">
-                  ({((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalTxCount)} of {totalTxCount} txns)
-                </span>
-              </div>
-
-              {/* Page navigation */}
-              <div className="flex items-center gap-1">
-                {/* First page */}
-                {currentPage > 1 ? (
-                  <Link
-                    href={`/address/${address}`}
-                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                    title="First page"
-                  >
-                    ««
-                  </Link>
-                ) : (
-                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">««</span>
-                )}
-
-                {/* Previous page */}
-                {currentPage > 1 ? (
-                  <Link
-                    href={currentPage === 2 ? `/address/${address}` : `/address/${address}?page=${currentPage - 1}`}
-                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                    title="Previous page"
-                  >
-                    «
-                  </Link>
-                ) : (
-                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">«</span>
-                )}
-
-                {/* Page numbers */}
-                <div className="flex items-center gap-1 mx-2">
-                  {(() => {
-                    const pages: (number | string)[] = [];
-                    const maxVisible = 5;
-
-                    if (totalPages <= maxVisible + 2) {
-                      for (let i = 1; i <= totalPages; i++) pages.push(i);
-                    } else {
-                      pages.push(1);
-                      let start = Math.max(2, currentPage - 1);
-                      let end = Math.min(totalPages - 1, currentPage + 1);
-                      if (currentPage <= 3) {
-                        end = Math.min(4, totalPages - 1);
-                      } else if (currentPage >= totalPages - 2) {
-                        start = Math.max(2, totalPages - 3);
-                      }
-                      if (start > 2) pages.push('...');
-                      for (let i = start; i <= end; i++) pages.push(i);
-                      if (end < totalPages - 1) pages.push('...');
-                      pages.push(totalPages);
-                    }
-
-                    return pages.map((p, idx) => (
-                      typeof p === 'number' ? (
-                        p === currentPage ? (
-                          <span
-                            key={idx}
-                            className="px-3 py-1.5 text-sm rounded bg-cipher-cyan text-cipher-bg font-semibold"
-                          >
-                            {p}
-                          </span>
-                        ) : (
-                          <Link
-                            key={idx}
-                            href={p === 1 ? `/address/${address}` : `/address/${address}?page=${p}`}
-                            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                          >
-                            {p}
-                          </Link>
-                        )
-                      ) : (
-                        <span key={idx} className="px-2 text-muted">...</span>
-                      )
-                    ));
-                  })()}
+          {data.transactions.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-secondary">No transactions found for this address</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto -mx-6 px-6">
+                {/* Table Header */}
+                <div className="min-w-[800px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
+                  <div className="col-span-1">Type</div>
+                  <div className="col-span-3">Transaction Hash</div>
+                  <div className="col-span-1">Block</div>
+                  <div className="col-span-2">Age</div>
+                  <div className="col-span-3">From → To</div>
+                  <div className="col-span-2 text-right">Amount ({CURRENCY})</div>
                 </div>
 
-                {/* Next page */}
-                {currentPage < totalPages ? (
-                  <Link
-                    href={`/address/${address}?page=${currentPage + 1}`}
-                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                    title="Next page"
-                  >
-                    »
-                  </Link>
-                ) : (
-                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»</span>
-                )}
+                {/* Transaction Rows */}
+                <div className="space-y-2 min-w-[800px]">
+                {sortedTxs.map((tx, index) => (
+                  <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
+                    <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                      {/* Type Column */}
+                      <div className="col-span-1">
+                        {tx.type === 'received' ? (
+                          <Badge color="green" icon={<Icons.ArrowDown />}>IN</Badge>
+                        ) : (
+                          <Badge color="orange" icon={<Icons.ArrowUp />}>OUT</Badge>
+                        )}
+                      </div>
 
-                {/* Last page */}
-                {currentPage < totalPages ? (
-                  <Link
-                    href={`/address/${address}?page=${totalPages}`}
-                    className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
-                    title="Last page"
-                  >
-                    »»
+                      {/* Hash Column */}
+                      <div className="col-span-3 flex items-center">
+                        <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono">
+                          {tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}
+                        </code>
+                        <CopyButton text={tx.txid} label={`tx-${index}`} />
+                      </div>
+
+                      {/* Block Column */}
+                      <div className="col-span-1">
+                        {tx.blockHeight ? (
+                          <Link
+                            href={`/block/${tx.blockHeight}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-cipher-cyan hover:underline"
+                          >
+                            #{tx.blockHeight}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted">-</span>
+                        )}
+                      </div>
+
+                      {/* Age Column */}
+                      <div className="col-span-2">
+                        <span className="text-xs text-secondary">
+                          {formatTimestamp(tx.timestamp)}
+                        </span>
+                      </div>
+
+                      {/* From → To Column */}
+                      <div className="col-span-3">
+                        <div className="flex items-center gap-1 text-xs text-secondary font-mono">
+                          {tx.isDeshielding ? (
+                            <>
+                              <span className="text-cipher-purple flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Shielded
+                              </span>
+                              <span className="text-muted">→</span>
+                              <AddressDisplay address={address} className="text-xs truncate" />
+                            </>
+                          ) : tx.isShielding ? (
+                            <>
+                              <AddressDisplay address={address} className="text-xs truncate" />
+                              <span className="text-muted">→</span>
+                              <span className="text-cipher-purple flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Shielded
+                              </span>
+                            </>
+                          ) : tx.isShielded ? (
+                            <>
+                              <span className="px-1.5 py-0.5 bg-cipher-purple/10 text-cipher-purple text-[10px] rounded font-mono flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                SHIELDED
+                              </span>
+                              <span className="text-muted text-[10px]">Private Transaction</span>
+                            </>
+                          ) : tx.isCoinbase ? (
+                            <>
+                              <span className="text-muted italic">Block Reward</span>
+                              <span className="text-muted">→</span>
+                              <AddressDisplay address={tx.to || address} className="text-xs truncate" />
+                            </>
+                          ) : (
+                            <>
+                              {tx.from === 'shielded' ? (
+                                <span className="text-cipher-purple flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                  </svg>
+                                  Shielded
+                                </span>
+                              ) : tx.from ? (
+                                <AddressDisplay address={tx.from} className="text-xs truncate" />
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+
+                              <span className="text-muted">→</span>
+
+                              {tx.to === 'shielded' ? (
+                                <span className="text-cipher-purple flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                  </svg>
+                                  Shielded
+                                </span>
+                              ) : tx.to ? (
+                                <AddressDisplay address={tx.to} className="text-xs truncate" />
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </>
+                          )}
+                    </div>
+                      </div>
+
+                      {/* Amount Column */}
+                      <div className="col-span-2 text-right">
+                        {(tx.isShielded && !tx.isDeshielding && !tx.isShielding) || tx.amount === 0 ? (
+                          <span className="text-xs text-cipher-purple font-mono flex items-center justify-end gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Hidden
+                          </span>
+                        ) : (
+                          <span className={`text-sm font-mono font-semibold ${
+                            tx.type === 'received' ? 'text-cipher-green' : 'text-red-500 dark:text-red-400'
+                          }`}>
+                            {tx.type === 'received' ? '+' : '-'}{Math.abs(tx.amount).toFixed(4)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </Link>
-                ) : (
-                  <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»»</span>
-                )}
-              </div>
+                ))}
+                </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 tx-summary-box rounded-lg border border-cipher-border">
+                <div className="text-sm text-secondary">
+                  Page <span className="font-semibold text-primary">{currentPage}</span> of{' '}
+                  <span className="font-semibold text-primary">{totalPages}</span>
+                  <span className="text-muted ml-2">
+                    ({((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalTxCount)} of {totalTxCount} txns)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {currentPage > 1 ? (
+                    <Link
+                      href={`/address/${address}`}
+                      className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                      title="First page"
+                    >
+                      ««
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">««</span>
+                  )}
+
+                  {currentPage > 1 ? (
+                    <Link
+                      href={currentPage === 2 ? `/address/${address}` : `/address/${address}?page=${currentPage - 1}`}
+                      className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                      title="Previous page"
+                    >
+                      «
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">«</span>
+                  )}
+
+                  <div className="flex items-center gap-1 mx-2">
+                    {(() => {
+                      const pages: (number | string)[] = [];
+                      const maxVisible = 5;
+
+                      if (totalPages <= maxVisible + 2) {
+                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                      } else {
+                        pages.push(1);
+                        let start = Math.max(2, currentPage - 1);
+                        let end = Math.min(totalPages - 1, currentPage + 1);
+                        if (currentPage <= 3) {
+                          end = Math.min(4, totalPages - 1);
+                        } else if (currentPage >= totalPages - 2) {
+                          start = Math.max(2, totalPages - 3);
+                        }
+                        if (start > 2) pages.push('...');
+                        for (let i = start; i <= end; i++) pages.push(i);
+                        if (end < totalPages - 1) pages.push('...');
+                        pages.push(totalPages);
+                      }
+
+                      return pages.map((p, idx) => (
+                        typeof p === 'number' ? (
+                          p === currentPage ? (
+                            <span
+                              key={idx}
+                              className="px-3 py-1.5 text-sm rounded bg-cipher-cyan text-cipher-bg font-semibold"
+                            >
+                              {p}
+                            </span>
+                          ) : (
+                            <Link
+                              key={idx}
+                              href={p === 1 ? `/address/${address}` : `/address/${address}?page=${p}`}
+                              className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                            >
+                              {p}
+                            </Link>
+                          )
+                        ) : (
+                          <span key={idx} className="px-2 text-muted">...</span>
+                        )
+                      ));
+                    })()}
+                  </div>
+
+                  {currentPage < totalPages ? (
+                    <Link
+                      href={`/address/${address}?page=${currentPage + 1}`}
+                      className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                      title="Next page"
+                    >
+                      »
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»</span>
+                  )}
+
+                  {currentPage < totalPages ? (
+                    <Link
+                      href={`/address/${address}?page=${totalPages}`}
+                      className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                      title="Last page"
+                    >
+                      »»
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-sm rounded border border-cipher-border opacity-30 cursor-not-allowed">»»</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
           )}
-        </>
-        )}
-        </CardBody>
-      </Card>
-      </div>
+          </CardBody>
+        </Card>
+        </div>
+      )}
     </div>
   );
 }
