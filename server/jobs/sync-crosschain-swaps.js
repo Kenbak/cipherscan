@@ -27,8 +27,20 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  max: 3,
-  idleTimeoutMillis: 30000,
+  max: 2,
+  idleTimeoutMillis: 10000,
+  statement_timeout: 30000,
+});
+
+process.on('SIGINT', async () => {
+  log('SIGINT received — draining pool...');
+  await pool.end();
+  process.exit(0);
+});
+process.on('SIGTERM', async () => {
+  log('SIGTERM received — draining pool...');
+  await pool.end();
+  process.exit(0);
 });
 
 const NEAR_API_BASE = 'https://explorer.near-intents.org/api/v0';
@@ -456,12 +468,12 @@ async function selfHealFromBlockchain() {
   totalFixed += directFixed;
 
   // --- Strategy 2: Amount + time matching for ALL remaining missing swaps ---
-  // Process in batches to avoid memory issues
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 50;
   let offset = 0;
   let amountFixed = 0;
   let ambiguous = 0;
   let noMatch = 0;
+  let timeouts = 0;
 
   while (true) {
     const { rows: batch } = await pool.query(`
@@ -475,8 +487,6 @@ async function selfHealFromBlockchain() {
     if (batch.length === 0) break;
 
     for (const row of batch) {
-      // For outflows: user sent source_amount ZEC
-      // For inflows: user received dest_amount ZEC
       const zecAmount = row.direction === 'outflow'
         ? parseFloat(row.source_amount)
         : parseFloat(row.dest_amount);
@@ -484,45 +494,49 @@ async function selfHealFromBlockchain() {
       if (!zecAmount || zecAmount <= 0) { noMatch++; continue; }
 
       const amountZat = Math.round(zecAmount * 1e8);
-      // Tight tolerance: 0.5% to minimize false positives
       const tolerance = Math.max(Math.round(amountZat * 0.005), 1);
 
       const swapTime = new Date(row.swap_created_at);
-      // For outflows: ZEC tx happens around or slightly before swap_created_at
-      // For inflows: ZEC tx happens after swap_created_at (bridge processing)
-      const windowStart = Math.floor((swapTime.getTime() - 4 * 3600 * 1000) / 1000);
-      const windowEnd = Math.floor((swapTime.getTime() + 48 * 3600 * 1000) / 1000);
+      const windowStart = Math.floor((swapTime.getTime() - 2 * 3600 * 1000) / 1000);
+      const windowEnd = Math.floor((swapTime.getTime() + 6 * 3600 * 1000) / 1000);
 
-      // Find transactions with an output matching this exact amount in the time window
-      const { rows: candidates } = await pool.query(`
-        SELECT DISTINCT o.txid
-        FROM transaction_outputs o
-        JOIN transactions t ON t.txid = o.txid
-        WHERE o.value BETWEEN $1 AND $2
-          AND t.block_time >= $3 AND t.block_time <= $4
-          AND t.is_coinbase = false
-        LIMIT 2
-      `, [amountZat - tolerance, amountZat + tolerance, windowStart, windowEnd]);
+      try {
+        const { rows: candidates } = await pool.query(`
+          SELECT DISTINCT o.txid
+          FROM transaction_outputs o
+          JOIN transactions t ON t.txid = o.txid
+          WHERE o.value BETWEEN $1 AND $2
+            AND t.block_time >= $3 AND t.block_time <= $4
+            AND t.is_coinbase = false
+          LIMIT 2
+        `, [amountZat - tolerance, amountZat + tolerance, windowStart, windowEnd]);
 
-      if (candidates.length === 1) {
-        const zecAddr = await extractZecAddress(candidates[0].txid, row.direction, zecAmount);
-        await pool.query(
-          'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true, zec_address = COALESCE($3, zec_address) WHERE id = $2',
-          [candidates[0].txid, row.id, zecAddr]
-        );
-        amountFixed++;
-      } else if (candidates.length > 1) {
-        ambiguous++;
-      } else {
-        noMatch++;
+        if (candidates.length === 1) {
+          const zecAddr = await extractZecAddress(candidates[0].txid, row.direction, zecAmount);
+          await pool.query(
+            'UPDATE cross_chain_swaps SET zec_txid = $1, matched = true, zec_address = COALESCE($3, zec_address) WHERE id = $2',
+            [candidates[0].txid, row.id, zecAddr]
+          );
+          amountFixed++;
+        } else if (candidates.length > 1) {
+          ambiguous++;
+        } else {
+          noMatch++;
+        }
+      } catch (e) {
+        if (e.message && e.message.includes('statement timeout')) {
+          timeouts++;
+        } else {
+          log(`  Strategy 2 query error: ${e.message}`);
+        }
       }
     }
 
     offset += BATCH_SIZE;
-    log(`  Strategy 2 progress: processed ${offset} swaps (fixed=${amountFixed}, ambiguous=${ambiguous}, no_match=${noMatch})`);
+    log(`  Strategy 2 progress: processed ${offset} swaps (fixed=${amountFixed}, ambiguous=${ambiguous}, no_match=${noMatch}, timeouts=${timeouts})`);
   }
 
-  log(`  Strategy 2 (amount+time): fixed ${amountFixed}, ambiguous ${ambiguous}, no match ${noMatch}`);
+  log(`  Strategy 2 (amount+time): fixed ${amountFixed}, ambiguous ${ambiguous}, no match ${noMatch}, timeouts ${timeouts}`);
   totalFixed += amountFixed;
 
   log(`Self-heal complete: ${totalFixed} total fixed from blockchain data`);
@@ -868,5 +882,5 @@ async function seedTestData() {
 
 main().catch(e => {
   console.error(e);
-  process.exit(1);
+  pool.end().finally(() => process.exit(1));
 });
