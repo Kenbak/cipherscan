@@ -666,7 +666,26 @@ export default function CrosschainPage() {
               </div>
 
               <div className="space-y-1.5">
-                {displayedSwaps.length > 0 ? displayedSwaps.map(renderSwapRow) : (
+                {historyLoading && displayedSwaps.length === 0 ? (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-[60px_60px_1fr_30px_1fr_80px] gap-2 items-center p-3 rounded-lg border border-cipher-border bg-glass-2 animate-pulse">
+                        <div className="h-3 bg-cipher-border rounded w-10 hidden sm:block" />
+                        <div className="h-5 bg-cipher-border rounded w-10" />
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 bg-cipher-border rounded-full" />
+                          <div className="h-3 bg-cipher-border rounded w-20" />
+                        </div>
+                        <div className="hidden sm:block" />
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 bg-cipher-border rounded-full" />
+                          <div className="h-3 bg-cipher-border rounded w-20" />
+                        </div>
+                        <div className="h-3 bg-cipher-border rounded w-12 ml-auto" />
+                      </div>
+                    ))}
+                  </>
+                ) : displayedSwaps.length > 0 ? displayedSwaps.map(renderSwapRow) : (
                   <div className="text-center py-8">
                     <p className="text-muted text-sm font-mono">No swaps found</p>
                   </div>

@@ -453,10 +453,20 @@ export default function TransactionPage() {
     if (allBridges.length > 0) {
       if (allBridges.length === 1) {
         const b = allBridges[0];
+        const addr = b.zecAddress
+          || (b.direction === 'exit' ? data.inputs[0]?.address : null)
+          || (b.direction === 'entry' ? data.outputs[0]?.scriptPubKey?.addresses?.[0] : null);
+        const addrNode = addr
+          ? <AddressDisplay address={addr} className="text-xs inline" />
+          : <span className="text-cipher-purple font-mono">a shielded address</span>;
+        const zecAmt = b.zecAmount
+          ? `${b.zecAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ZEC`
+          : null;
+
         if (b.direction === 'entry') {
           return (
             <>
-              {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} was bridged from {b.otherChain.toUpperCase()} to Zcash via NEAR Intents.
+              {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} was bridged from {b.otherChain.toUpperCase()} to {zecAmt ? <>{zecAmt} on </> : null}{addrNode} via NEAR Intents.
               {b.otherAmountUsd > 0 && (
                 <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
               )}
@@ -465,7 +475,7 @@ export default function TransactionPage() {
         }
         return (
           <>
-            ZEC was bridged out to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
+            {zecAmt || 'ZEC'} was bridged out by {addrNode} to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
             {b.otherAmountUsd > 0 && (
               <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
             )}
@@ -601,6 +611,13 @@ export default function TransactionPage() {
 
   // Build the visual flow for the hero section
   const renderHeroFlow = () => {
+    const FlowArrow = () => (
+      <span className="text-muted hidden sm:inline">→</span>
+    );
+    const FlowArrowDown = () => (
+      <span className="text-muted sm:hidden">↓</span>
+    );
+
     if (allBridges.length > 0) {
       const b = allBridges[0];
       if (b.direction === 'entry') {
@@ -623,7 +640,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <TokenChainIcon token="ZEC" chain="zec" size={24} />
-            <span className="text-sm font-mono text-primary">ZEC</span>
+            <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || ''} ZEC</span>
           </div>
           <span className="text-muted hidden sm:inline">→</span>
           <span className="text-muted sm:hidden">↓</span>
@@ -634,13 +651,6 @@ export default function TransactionPage() {
         </div>
       );
     }
-
-    const FlowArrow = () => (
-      <span className="text-muted hidden sm:inline">→</span>
-    );
-    const FlowArrowDown = () => (
-      <span className="text-muted sm:hidden">↓</span>
-    );
 
     if (txType === 'ORCHARD' || txType === 'SHIELDED') {
       return (
