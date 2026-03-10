@@ -103,10 +103,13 @@ router.post('/api/swap/quote', async (req, res) => {
 
     if (destinationAsset.includes('zec')) {
       const BASE58 = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
-      if (!(recipient.startsWith('t1') || recipient.startsWith('t3')) || recipient.length !== 35 || !BASE58.test(recipient)) {
+      const isTransparent = (recipient.startsWith('t1') || recipient.startsWith('t3')) && recipient.length === 35 && BASE58.test(recipient);
+      const isUnified = (recipient.startsWith('u1') || recipient.startsWith('utest')) && recipient.length >= 80;
+      const isSapling = (recipient.startsWith('zs') || recipient.startsWith('ztestsapling')) && recipient.length >= 70;
+      if (!isTransparent && !isUnified && !isSapling) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid ZEC transparent address. Must be a 35-character t1/t3 address.',
+          error: 'Invalid ZEC address. Must be a t1/t3 transparent, u1 unified, or zs sapling address.',
         });
       }
     }
