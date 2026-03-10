@@ -232,7 +232,8 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
           medianMinutes: parseFloat(parseFloat(r.median_minutes || 0).toFixed(1)),
           swapCount: parseInt(r.swap_count || 0),
         };
-      });
+      })
+      .sort((a, b) => b.swapCount - a.swapCount);
 
     const result = {
       success: true,
