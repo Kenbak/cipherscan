@@ -26,6 +26,8 @@ interface AddressData {
   transactions: Transaction[];
   transactionCount?: number;
   note?: string;
+  firstSeen?: number | null;
+  lastSeen?: number | null;
 }
 
 interface CrossChainSwap {
@@ -227,6 +229,8 @@ export default function AddressPage() {
           transactions: transformedTransactions,
           transactionCount: apiData.txCount || apiData.transactionCount,
           note: apiData.note,
+          firstSeen: apiData.firstSeen,
+          lastSeen: apiData.lastSeen,
         });
       } else {
         setData({
@@ -236,6 +240,8 @@ export default function AddressPage() {
           transactions: apiData.transactions || [],
           transactionCount: apiData.transactionCount,
           note: apiData.note,
+          firstSeen: apiData.firstSeen,
+          lastSeen: apiData.lastSeen,
         });
       }
     } catch (error) {
@@ -738,8 +744,6 @@ export default function AddressPage() {
 
   const typeInfo = getTypeInfo();
   const sortedTxs = [...data.transactions].sort((a, b) => b.timestamp - a.timestamp);
-  const firstTx = sortedTxs[sortedTxs.length - 1];
-  const latestTx = sortedTxs[0];
 
   const totalTxCount = data.transactionCount || data.transactions.length;
 
@@ -877,48 +881,48 @@ export default function AddressPage() {
           </CardBody>
         </Card>
 
-        {/* First Transaction */}
+        {/* First Seen */}
         <Card variant="compact">
           <CardBody>
             <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm">First Transaction</span>
-              {firstTx && <Tooltip content="The first transaction involving this address" />}
+              <span className="text-xs md:text-sm">First Seen</span>
+              <Tooltip content="When this address was first seen on the blockchain" />
             </div>
-            {firstTx ? (
-              <Link href={`/tx/${firstTx.txid}`} className="group block">
-                <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
-                  {firstTx.txid.slice(0, 10)}...{firstTx.txid.slice(-8)}
-                </code>
-                <div className="text-xs text-muted">
-                  {formatTimestamp(firstTx.timestamp)}
+            {data.firstSeen ? (
+              <div>
+                <div className="text-base md:text-lg font-semibold text-primary mb-1">
+                  {formatTimestamp(data.firstSeen)}
                 </div>
-              </Link>
+                <div className="text-xs text-muted font-mono">
+                  {new Date(data.firstSeen * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
             ) : (
-              <div className="text-sm text-muted">No transactions yet</div>
+              <div className="text-sm text-muted">Unknown</div>
             )}
           </CardBody>
         </Card>
 
-        {/* Latest Transaction */}
+        {/* Last Seen */}
         <Card variant="compact">
           <CardBody>
             <div className="flex items-center gap-2 mb-2 text-secondary">
               <Icons.Clock />
-              <span className="text-xs md:text-sm">Latest Transaction</span>
-              {latestTx && <Tooltip content="The most recent transaction involving this address" />}
+              <span className="text-xs md:text-sm">Last Seen</span>
+              <Tooltip content="When this address was last active on the blockchain" />
             </div>
-            {latestTx ? (
-              <Link href={`/tx/${latestTx.txid}`} className="group block">
-                <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono block mb-1">
-                  {latestTx.txid.slice(0, 10)}...{latestTx.txid.slice(-8)}
-                </code>
-                <div className="text-xs text-muted">
-                  {formatTimestamp(latestTx.timestamp)}
+            {data.lastSeen ? (
+              <div>
+                <div className="text-base md:text-lg font-semibold text-primary mb-1">
+                  {formatTimestamp(data.lastSeen)}
                 </div>
-              </Link>
+                <div className="text-xs text-muted font-mono">
+                  {new Date(data.lastSeen * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
             ) : (
-              <div className="text-sm text-muted">No transactions yet</div>
+              <div className="text-sm text-muted">Unknown</div>
             )}
           </CardBody>
         </Card>
@@ -973,8 +977,7 @@ export default function AddressPage() {
                   <div className="col-span-3">From</div>
                   <div className="col-span-1"></div>
                   <div className="col-span-3">To</div>
-                  <div className="col-span-1 text-right">USD</div>
-                  <div className="col-span-1">Age</div>
+                  <div className="col-span-2 text-right">Value</div>
                   <div className="col-span-2 text-right">ZEC TX</div>
                 </div>
 
@@ -1008,12 +1011,9 @@ export default function AddressPage() {
                         {/* From */}
                         <div className="col-span-3 flex items-center gap-2 min-w-0">
                           <TokenChainIcon token={swap.sourceToken} chain={fromChain} size={24} />
-                          <div className="min-w-0">
-                            <span className="text-xs font-mono text-primary block truncate">
-                              {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
-                            </span>
-                            <span className="text-[10px] text-muted capitalize">{fromChain}</span>
-                          </div>
+                          <span className="text-xs font-mono text-primary truncate">
+                            {swap.sourceAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.sourceToken}
+                          </span>
                         </div>
 
                         {/* Arrow */}
@@ -1024,22 +1024,15 @@ export default function AddressPage() {
                         {/* To */}
                         <div className="col-span-3 flex items-center gap-2 min-w-0">
                           <TokenChainIcon token={swap.destToken} chain={toChain} size={24} />
-                          <div className="min-w-0">
-                            <span className="text-xs font-mono text-primary block truncate">
-                              {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
-                            </span>
-                            <span className="text-[10px] text-muted capitalize">{toChain}</span>
-                          </div>
+                          <span className="text-xs font-mono text-primary truncate">
+                            {swap.destAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {swap.destToken}
+                          </span>
                         </div>
 
-                        {/* USD */}
-                        <div className="col-span-1 text-right">
-                          <span className="text-xs text-muted font-mono">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                        </div>
-
-                        {/* Age */}
-                        <div className="col-span-1">
-                          <span className="text-xs text-secondary">{swapAge}</span>
+                        {/* Value + Age */}
+                        <div className="col-span-2 text-right">
+                          <span className="text-xs text-muted font-mono block">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                          <span className="text-[10px] text-muted">{swapAge}</span>
                         </div>
 
                         {/* ZEC TX */}
