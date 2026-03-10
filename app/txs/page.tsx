@@ -70,7 +70,7 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: '50', type: type || typeFilter });
+      const params = new URLSearchParams({ limit: '25', type: type || typeFilter });
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('cursor_idx', String(cursorIdx ?? 0));

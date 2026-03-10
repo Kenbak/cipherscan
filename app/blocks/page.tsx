@@ -36,7 +36,7 @@ export default function BlocksPage() {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: '50' });
+      const params = new URLSearchParams({ limit: '25' });
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('direction', direction || 'next');

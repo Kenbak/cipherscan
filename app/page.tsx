@@ -166,9 +166,15 @@ export default async function Home() {
               </div>
             </div>
             <RecentBlocks initialBlocks={initialBlocks} />
-            <Link href="/blocks" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
-              View All Blocks →
-            </Link>
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <Link href="/blocks" className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+                View All Blocks →
+              </Link>
+              <span className="text-cipher-border">·</span>
+              <Link href="/txs" className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+                View All Transactions →
+              </Link>
+            </div>
           </div>
 
           {/* Recent Shielded TXs */}

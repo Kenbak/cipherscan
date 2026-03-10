@@ -61,7 +61,7 @@ export default function ShieldedTxsPage() {
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
       const params = new URLSearchParams({
-        limit: '50',
+        limit: '25',
         flow_type: flow || flowFilter,
         pool: pool || poolFilter,
       });
@@ -115,7 +115,7 @@ export default function ShieldedTxsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Shielded Transactions</h1>
           <span className="text-xs font-mono text-muted">
-            {pagination.total.toLocaleString()} flows
+            {pagination.total.toLocaleString()} shielded txs
           </span>
         </div>
       </div>
