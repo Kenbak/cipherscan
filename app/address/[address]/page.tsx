@@ -202,7 +202,7 @@ export default function AddressPage() {
     });
   };
 
-  // Fetch transactions for current page (from URL)
+  // Fetch all address data in parallel
   const fetchPageData = useCallback(async () => {
     try {
       setLoading(true);
@@ -211,9 +211,16 @@ export default function AddressPage() {
         ? `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${pageSize}`
         : `/api/address/${address}?page=${currentPage}&limit=${pageSize}`;
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error('Failed to fetch address data');
+      const crossChainUrl = `${API_CONFIG.POSTGRES_API_URL}/api/crosschain/address/${encodeURIComponent(address)}`;
+      const priceUrl = `${API_CONFIG.POSTGRES_API_URL}/api/price`;
 
+      const [response, crossChainRes, priceRes] = await Promise.all([
+        fetch(apiUrl),
+        fetch(crossChainUrl).catch(() => null),
+        fetch(priceUrl).catch(() => null),
+      ]);
+
+      if (!response.ok) throw new Error('Failed to fetch address data');
       const apiData = await response.json();
 
       // Update total pages
@@ -221,7 +228,6 @@ export default function AddressPage() {
 
       if (usePostgresApiClient()) {
         const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
-
         setData({
           address: apiData.address,
           balance: apiData.balance / 100000000,
@@ -244,6 +250,22 @@ export default function AddressPage() {
           lastSeen: apiData.lastSeen,
         });
       }
+
+      // Process cross-chain data
+      if (crossChainRes?.ok) {
+        try {
+          const ccData = await crossChainRes.json();
+          if (ccData.success && ccData.totalSwaps > 0) setCrossChain(ccData);
+        } catch { /* ignore */ }
+      }
+
+      // Process price data
+      if (priceRes?.ok) {
+        try {
+          const pData = await priceRes.json();
+          setPriceData({ price: pData.price, change24h: pData.change24h });
+        } catch { /* ignore */ }
+      }
     } catch (error) {
       console.error('Error fetching address data:', error);
       setData(null);
@@ -256,37 +278,6 @@ export default function AddressPage() {
   useEffect(() => {
     fetchPageData();
   }, [fetchPageData]);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
-        const data = await response.json();
-        setPriceData({
-          price: data.price,
-          change24h: data.change24h,
-        });
-      } catch (error) {
-        console.error('Error fetching price:', error);
-      }
-    };
-    fetchPrice();
-
-    // Fetch cross-chain activity
-    const fetchCrossChain = async () => {
-      try {
-        const apiUrl = `${API_CONFIG.POSTGRES_API_URL}/api/crosschain/address/${encodeURIComponent(address)}`;
-        const res = await fetch(apiUrl);
-        const json = await res.json();
-        if (json.success && json.totalSwaps > 0) {
-          setCrossChain(json);
-        }
-      } catch {
-        // cross_chain_swaps table may not exist yet
-      }
-    };
-    fetchCrossChain();
-  }, [address]);
 
   // Decode unified address to show components
   useEffect(() => {
@@ -329,12 +320,66 @@ export default function AddressPage() {
   };
 
   if (loading) {
+    const Skeleton = ({ className = '' }: { className?: string }) => (
+      <div className={`animate-pulse rounded bg-cipher-surface ${className}`} />
+    );
+
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
+        {/* Header skeleton */}
+        <div className="mb-8">
+          <Skeleton className="h-3 w-32 mb-3" />
+          <Skeleton className="h-9 w-48 mb-4" />
+          <Skeleton className="h-4 w-full max-w-md" />
+        </div>
+
+        {/* Overview cards row 1 */}
+        <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+          {[0, 1, 2].map((i) => (
+            <Card key={i} variant="compact">
+              <CardBody>
+                <Skeleton className="h-3 w-24 mb-3" />
+                <Skeleton className="h-7 w-36" />
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+
+        {/* Overview cards row 2 */}
+        <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          {[0, 1, 2].map((i) => (
+            <Card key={i} variant="compact">
+              <CardBody>
+                <Skeleton className="h-3 w-28 mb-3" />
+                <Skeleton className="h-6 w-32" />
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+
+        {/* Tab bar skeleton */}
+        <div className="flex items-center gap-6 border-b border-cipher-border mb-6 md:mb-8">
+          <Skeleton className="h-4 w-28 mb-2" />
+          <Skeleton className="h-4 w-24 mb-2" />
+        </div>
+
+        {/* Transaction list skeleton */}
         <Card>
-          <CardBody className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent"></div>
-            <p className="text-secondary ml-4 font-mono">Loading address data...</p>
+          <CardHeader>
+            <Skeleton className="h-3 w-32" />
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="p-3 rounded-lg border border-cipher-border">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-10" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -950,7 +995,7 @@ export default function AddressPage() {
                   : 'text-muted hover:text-secondary'
               }`}
             >
-              Cross-Chain <span className="ml-1 text-[10px] opacity-70">{crossChain.totalSwaps}</span>
+              Bridges <span className="ml-1 text-[10px] opacity-70">{crossChain.totalSwaps}</span>
             </button>
           )}
         </div>
@@ -961,13 +1006,15 @@ export default function AddressPage() {
         <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-muted tracking-wider">&gt; CROSS_CHAIN</span>
-                <Badge color="cyan">{crossChain.totalSwaps}</Badge>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; BRIDGES</span>
+                  <Badge color="cyan">{crossChain.totalSwaps}</Badge>
+                </div>
+                <span className="text-xs sm:text-sm text-muted font-normal font-mono sm:ml-auto">
+                  ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol · <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-red-400">{crossChain.exitCount} out</span>
+                </span>
               </div>
-              <span className="text-sm text-muted font-normal font-mono ml-auto">
-                VOL: ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} | <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-red-400">{crossChain.exitCount} out</span>
-              </span>
             </CardHeader>
             <CardBody>
               <div className="overflow-x-auto -mx-6 px-6">
