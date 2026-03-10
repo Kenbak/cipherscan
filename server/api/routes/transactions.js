@@ -25,6 +25,208 @@ router.use((req, res, next) => {
 });
 
 // ============================================================================
+// TRANSACTION LIST (cursor-based pagination for /txs page)
+// ============================================================================
+
+router.get('/api/transactions/list', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
+    const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+    const cursorIdx = req.query.cursor_idx !== undefined ? parseInt(req.query.cursor_idx) : null;
+    const direction = req.query.direction || 'next';
+    const typeFilter = req.query.type || 'all'; // all, shielded, transparent, coinbase
+
+    // Build type filter
+    let typeCondition = '';
+    if (typeFilter === 'shielded') {
+      typeCondition = 'AND (has_sapling = true OR has_orchard = true)';
+    } else if (typeFilter === 'transparent') {
+      typeCondition = 'AND has_sapling = false AND has_orchard = false AND is_coinbase = false';
+    } else if (typeFilter === 'coinbase') {
+      typeCondition = 'AND is_coinbase = true';
+    }
+
+    // Get total count (use fast approximation for 'all')
+    let total;
+    if (typeFilter === 'all') {
+      const countResult = await pool.query('SELECT COUNT(*) as count FROM transactions');
+      total = parseInt(countResult.rows[0].count);
+    } else {
+      const countResult = await pool.query(
+        `SELECT COUNT(*) as count FROM transactions WHERE true ${typeCondition}`
+      );
+      total = parseInt(countResult.rows[0].count);
+    }
+
+    let result;
+    if (cursor === null) {
+      result = await pool.query(
+        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
+                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
+                value_balance_sapling, value_balance_orchard, flow_type
+         FROM transactions
+         WHERE true ${typeCondition}
+         ORDER BY block_height DESC, tx_index DESC
+         LIMIT $1`,
+        [limit]
+      );
+    } else if (direction === 'prev') {
+      result = await pool.query(
+        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
+                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
+                value_balance_sapling, value_balance_orchard, flow_type
+         FROM transactions
+         WHERE (block_height > $1 OR (block_height = $1 AND tx_index > $2)) ${typeCondition}
+         ORDER BY block_height ASC, tx_index ASC
+         LIMIT $3`,
+        [cursor, cursorIdx || 0, limit]
+      );
+      result.rows.reverse();
+    } else {
+      result = await pool.query(
+        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
+                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
+                value_balance_sapling, value_balance_orchard, flow_type
+         FROM transactions
+         WHERE (block_height < $1 OR (block_height = $1 AND tx_index < $2)) ${typeCondition}
+         ORDER BY block_height DESC, tx_index DESC
+         LIMIT $3`,
+        [cursor, cursorIdx || 0, limit]
+      );
+    }
+
+    const rows = result.rows;
+    const totalPages = Math.ceil(total / limit);
+
+    // Compute cursors from first/last rows
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+
+    res.json({
+      success: true,
+      transactions: rows,
+      pagination: {
+        total,
+        totalPages,
+        limit,
+        hasNext: rows.length === limit,
+        hasPrev: cursor !== null,
+        nextCursor: last ? parseInt(last.block_height) : null,
+        nextCursorIdx: last ? (last.tx_index ?? 0) : null,
+        prevCursor: first ? parseInt(first.block_height) : null,
+        prevCursorIdx: first ? (first.tx_index ?? 0) : null,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching transactions list:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
+  }
+});
+
+// ============================================================================
+// SHIELDED FLOWS LIST (cursor-based pagination for /txs/shielded page)
+// ============================================================================
+
+router.get('/api/shielded/list', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
+    const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+    const cursorId = req.query.cursor_id ? parseInt(req.query.cursor_id) : null;
+    const direction = req.query.direction || 'next';
+    const flowType = req.query.flow_type || 'all'; // all, shield, deshield
+    const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, mixed
+
+    // Build filters
+    const conditions = [];
+    const params = [];
+    let paramIdx = 1;
+
+    if (flowType !== 'all') {
+      conditions.push(`flow_type = $${paramIdx++}`);
+      params.push(flowType);
+    }
+    if (poolFilter !== 'all') {
+      conditions.push(`pool = $${paramIdx++}`);
+      params.push(poolFilter);
+    }
+
+    const whereBase = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    // Get total count
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as count FROM shielded_flows ${whereBase}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count);
+
+    let result;
+    const selectCols = `id, txid, block_height, block_time, flow_type, amount_zat, pool, transparent_addresses`;
+
+    if (cursor === null) {
+      result = await pool.query(
+        `SELECT ${selectCols} FROM shielded_flows
+         ${whereBase ? whereBase + ' AND' : 'WHERE'} true
+         ORDER BY block_time DESC, id DESC
+         LIMIT $${paramIdx}`,
+        [...params, limit]
+      );
+    } else if (direction === 'prev') {
+      const cursorCond = `(block_time > $${paramIdx} OR (block_time = $${paramIdx} AND id > $${paramIdx + 1}))`;
+      result = await pool.query(
+        `SELECT ${selectCols} FROM shielded_flows
+         ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
+         ORDER BY block_time ASC, id ASC
+         LIMIT $${paramIdx + 2}`,
+        [...params, cursor, cursorId || 0, limit]
+      );
+      result.rows.reverse();
+    } else {
+      const cursorCond = `(block_time < $${paramIdx} OR (block_time = $${paramIdx} AND id < $${paramIdx + 1}))`;
+      result = await pool.query(
+        `SELECT ${selectCols} FROM shielded_flows
+         ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
+         ORDER BY block_time DESC, id DESC
+         LIMIT $${paramIdx + 2}`,
+        [...params, cursor, cursorId || 0, limit]
+      );
+    }
+
+    const rows = result.rows;
+    const totalPages = Math.ceil(total / limit);
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+
+    res.json({
+      success: true,
+      flows: rows.map(r => ({
+        id: r.id,
+        txid: r.txid,
+        blockHeight: parseInt(r.block_height),
+        blockTime: parseInt(r.block_time),
+        flowType: r.flow_type,
+        amountZec: parseInt(r.amount_zat) / 1e8,
+        pool: r.pool,
+        addresses: r.transparent_addresses || [],
+      })),
+      pagination: {
+        total,
+        totalPages,
+        limit,
+        hasNext: rows.length === limit,
+        hasPrev: cursor !== null,
+        nextCursor: last ? parseInt(last.block_time) : null,
+        nextCursorId: last ? last.id : null,
+        prevCursor: first ? parseInt(first.block_time) : null,
+        prevCursorId: first ? first.id : null,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching shielded flows list:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch shielded flows' });
+  }
+});
+
+// ============================================================================
 // SHIELDED TRANSACTIONS
 // ============================================================================
 

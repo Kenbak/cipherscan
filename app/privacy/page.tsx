@@ -356,6 +356,9 @@ export default function PrivacyPage() {
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px]">
                 <RecentShieldedTxs nested limit={10} />
               </div>
+              <Link href="/txs/shielded" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+                View All Shielded Transactions →
+              </Link>
             </CardBody>
           </Card>
         </div>

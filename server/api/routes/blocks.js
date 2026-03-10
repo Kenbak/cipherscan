@@ -41,6 +41,74 @@ router.get('/api/info', async (req, res) => {
 });
 
 // ============================================================================
+// BLOCK LIST (cursor-based pagination for /blocks page)
+// ============================================================================
+
+router.get('/api/blocks/list', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
+    const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+    const direction = req.query.direction || 'next'; // 'next' = older, 'prev' = newer
+
+    // Get max height for page calculation
+    const maxResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
+    const maxHeight = parseInt(maxResult.rows[0]?.max_height) || 0;
+
+    let result;
+    if (cursor === null) {
+      // First page — newest blocks
+      result = await pool.query(
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+         FROM blocks ORDER BY height DESC LIMIT $1`,
+        [limit]
+      );
+    } else if (direction === 'prev') {
+      // Going to newer blocks
+      result = await pool.query(
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+         FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
+        [cursor, limit]
+      );
+      // Reverse so display order is still DESC
+      result.rows.reverse();
+    } else {
+      // Going to older blocks
+      result = await pool.query(
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+         FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
+        [cursor, limit]
+      );
+    }
+
+    const rows = result.rows;
+    const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
+    const lastHeight = rows.length > 0 ? parseInt(rows[rows.length - 1].height) : null;
+
+    // Calculate page number: page 1 starts at maxHeight
+    const page = firstHeight !== null ? Math.floor((maxHeight - firstHeight) / limit) + 1 : 1;
+    const totalPages = Math.ceil(maxHeight / limit);
+
+    res.json({
+      success: true,
+      blocks: rows,
+      pagination: {
+        page,
+        totalPages,
+        total: maxHeight,
+        limit,
+        hasNext: lastHeight !== null && lastHeight > 1,
+        hasPrev: firstHeight !== null && firstHeight < maxHeight,
+        nextCursor: lastHeight,
+        prevCursor: firstHeight,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching blocks list:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch blocks' });
+  }
+});
+
+// ============================================================================
 // BLOCK ROUTES
 // ============================================================================
 

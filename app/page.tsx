@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
 import { PrivacyWidget, type PrivacyStats, type RiskStats } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
@@ -165,6 +166,9 @@ export default async function Home() {
               </div>
             </div>
             <RecentBlocks initialBlocks={initialBlocks} />
+            <Link href="/blocks" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+              View All Blocks →
+            </Link>
           </div>
 
           {/* Recent Shielded TXs */}
@@ -183,6 +187,9 @@ export default async function Home() {
               </div>
             </div>
             <RecentShieldedTxs initialTxs={initialShieldedTxs} />
+            <Link href="/txs/shielded" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+              View All Shielded Transactions →
+            </Link>
           </div>
         </div>
     </div>
