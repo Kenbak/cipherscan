@@ -62,7 +62,6 @@ export function NavBar() {
     return () => clearInterval(priceInterval);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -72,7 +71,6 @@ export function NavBar() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileMenuOpen]);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
     setToolsOpen(false);
@@ -120,7 +118,7 @@ export function NavBar() {
       <nav className="navbar-container backdrop-blur-xl border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-4">
-            {/* Logo */}
+            {/* Logo — clean, no subtitle */}
             <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
               <Image
                 src={theme === 'light' ? '/logo.png' : '/logo.png'}
@@ -146,12 +144,12 @@ export function NavBar() {
               </div>
             )}
 
-            {/* Right side */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Right side — 5 elements max: Explore, Price, Buy ZEC, hamburger (mobile) */}
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-muted hover:text-cipher-cyan hover:bg-cipher-hover transition-all duration-150"
+                className="md:hidden p-2 rounded-md text-muted hover:text-cipher-cyan transition-all duration-150"
                 aria-label="Menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,11 +161,11 @@ export function NavBar() {
                 </svg>
               </button>
 
-              {/* Explore Dropdown (Desktop) — 2-column */}
+              {/* Explore Dropdown (Desktop) — the "everything drawer" */}
               <div className="hidden md:block relative" ref={toolsRef}>
                 <button
                   onClick={() => setToolsOpen(!toolsOpen)}
-                  className="tools-btn flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-md"
+                  className="flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan-dark dark:hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
                 >
                   <span>Explore</span>
                   <svg
@@ -204,68 +202,70 @@ export function NavBar() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Utility footer — Network, Theme, Donate */}
+                    <div className="border-t border-cipher-border mt-2 pt-2 px-1">
+                      <div className="flex items-center justify-between">
+                        {/* Network switcher */}
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={TESTNET_URL}
+                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
+                              !isMainnet
+                                ? 'bg-cipher-cyan/15 text-cipher-cyan'
+                                : 'text-muted hover:text-foreground'
+                            }`}
+                          >
+                            TESTNET
+                          </a>
+                          <a
+                            href={MAINNET_URL}
+                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
+                              isMainnet
+                                ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
+                                : 'text-muted hover:text-foreground'
+                            }`}
+                          >
+                            MAINNET
+                          </a>
+                        </div>
+
+                        {/* Theme + Donate */}
+                        <div className="flex items-center gap-1">
+                          <ThemeToggle />
+                          <DonateButton compact />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Buy ZEC Button (Desktop) — hidden until swap is fully tested */}
-              {false && isMainnet && (
-                <Link
-                  href="/swap"
-                  className="hidden md:flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1.5 rounded-lg bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow border border-cipher-yellow-dark/30 dark:border-cipher-yellow/30 hover:bg-cipher-yellow-dark/25 dark:hover:bg-cipher-yellow/25 transition-all duration-150"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Buy ZEC
-                </Link>
-              )}
+              {/* Conversion zone — divider + price + Buy ZEC as plain text */}
+              <div className="hidden md:flex items-center gap-3">
+                <div className="w-px h-4 bg-gray-500/30" />
 
-              {/* Price Display */}
-              {priceData && (
-                <div className="hidden lg:flex items-center space-x-2 border-l navbar-border pl-3">
-                  <span className="text-xs font-mono text-muted">ZEC</span>
-                  <span className="text-sm font-bold font-mono price-value">
-                    ${priceData.price.toFixed(2)}
-                  </span>
-                  <span className={`text-xs font-mono ${priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}`}>
-                    {priceData.change24h >= 0 ? '↑' : '↓'} {Math.abs(priceData.change24h).toFixed(1)}%
-                  </span>
-                </div>
-              )}
+                {priceData && (
+                  <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="text-muted">ZEC</span>
+                    <span className="text-muted">${priceData.price.toFixed(2)}</span>
+                    <span className={priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
+                      [{priceData.change24h >= 0 ? '↑' : '↓'}{Math.abs(priceData.change24h).toFixed(1)}%]
+                    </span>
+                  </div>
+                )}
 
-              {/* Network Switcher (Desktop) */}
-              <div className="hidden md:flex items-center border border-cipher-border rounded-lg p-0.5">
-                <a
-                  href={TESTNET_URL}
-                  className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
-                    !isMainnet
-                      ? 'bg-cipher-cyan/15 text-cipher-cyan'
-                      : 'text-muted hover:text-foreground'
-                  }`}
-                >
-                  TESTNET
-                </a>
-                <a
-                  href={MAINNET_URL}
-                  className={`text-[10px] font-mono px-2 py-1 rounded-md transition-all duration-150 ${
-                    isMainnet
-                      ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
-                      : 'text-muted hover:text-foreground'
-                  }`}
-                >
-                  MAINNET
-                </a>
-              </div>
+                {priceData && isMainnet && <div className="hidden lg:block w-px h-4 bg-gray-500/30" />}
 
-              {/* Theme Toggle (Desktop) */}
-              <div className="hidden md:block">
-                <ThemeToggle />
-              </div>
-
-              {/* Donate Button (Desktop) */}
-              <div className="hidden md:block">
-                <DonateButton compact />
+                {isMainnet && (
+                  <Link
+                    href="/swap"
+                    className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow-dark dark:text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
+                  >
+                    <span className="text-cipher-yellow-dark/50 dark:text-cipher-yellow/50">&gt;</span>
+                    Buy ZEC
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -282,20 +282,18 @@ export function NavBar() {
       {/* Mobile Full-Screen Overlay Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Drawer panel */}
           <div className="absolute inset-y-0 right-0 w-full max-w-sm flex flex-col mobile-drawer shadow-2xl animate-slide-in-right">
             {/* Header */}
             <div className="flex items-center justify-between h-16 px-4 border-b navbar-border flex-shrink-0">
               <span className="text-sm font-bold font-mono text-cipher-cyan">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-md text-muted hover:text-cipher-cyan hover:bg-cipher-hover transition-all"
+                className="p-2 rounded-md text-muted hover:text-cipher-cyan transition-all"
                 aria-label="Close menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,25 +304,29 @@ export function NavBar() {
 
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-              {/* Donate + Theme */}
-              <div className="flex items-center justify-between gap-2 px-2.5 pb-3 mb-2 border-b navbar-border">
-                <DonateButton />
-                <ThemeToggle />
+              {/* Market zone — price + Buy ZEC on one line */}
+              <div className="flex items-center mx-2.5 mb-3 pb-3 border-b navbar-border gap-3">
+                {priceData && (
+                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                    <span className="text-muted">ZEC</span>
+                    <span className="text-muted">${priceData.price.toFixed(2)}</span>
+                    <span className={priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
+                      [{priceData.change24h >= 0 ? '↑' : '↓'}{Math.abs(priceData.change24h).toFixed(1)}%]
+                    </span>
+                  </div>
+                )}
+                {priceData && isMainnet && <div className="w-px h-4 bg-gray-500/30" />}
+                {isMainnet && (
+                  <Link
+                    href="/swap"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow-dark dark:text-cipher-yellow"
+                  >
+                    <span className="text-cipher-yellow-dark/50 dark:text-cipher-yellow/50">&gt;</span>
+                    Buy ZEC
+                  </Link>
+                )}
               </div>
-
-              {/* Buy ZEC (Mobile) — hidden until swap is fully tested */}
-              {false && isMainnet && (
-                <Link
-                  href="/swap"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 mx-2.5 mb-3 px-4 py-2.5 rounded-lg bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow border border-cipher-yellow-dark/30 dark:border-cipher-yellow/30 font-mono text-sm font-bold"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Buy ZEC
-                </Link>
-              )}
 
               {/* Analytics */}
               <SectionLabel label="Analytics" />
@@ -372,51 +374,29 @@ export function NavBar() {
                 </Link>
               ))}
 
-              {/* Network Switcher */}
+              {/* Status bar — terminal style */}
               <div className="pt-4 mt-2 border-t navbar-border">
-                <div className="px-2.5 pb-2">
-                  <span className="text-[10px] font-mono text-muted tracking-widest uppercase">Network</span>
-                </div>
-                <div className="flex items-center gap-2 px-2.5">
-                  <a
-                    href={TESTNET_URL}
-                    className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
-                      !isMainnet
-                        ? 'bg-cipher-cyan/15 text-cipher-cyan'
-                        : 'text-muted network-switcher-inactive'
-                    }`}
-                  >
-                    TESTNET
-                  </a>
-                  <a
-                    href={MAINNET_URL}
-                    className={`flex-1 text-center text-xs font-mono px-3 py-2 rounded-md transition-all duration-150 ${
-                      isMainnet
-                        ? 'bg-cipher-yellow-dark/15 text-cipher-yellow-dark dark:bg-cipher-yellow/15 dark:text-cipher-yellow'
-                        : 'text-muted network-switcher-inactive'
-                    }`}
-                  >
-                    MAINNET
-                  </a>
-                </div>
-              </div>
+                <div className="flex items-center justify-between px-2.5">
+                  {/* Network */}
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={isMainnet ? TESTNET_URL : MAINNET_URL}
+                      className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors"
+                    >
+                      {isMainnet ? 'TESTNET' : 'MAINNET'}
+                    </a>
+                    <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow-dark dark:text-cipher-yellow' : 'text-cipher-cyan'}`}>
+                      [ {NETWORK_LABEL} ]
+                    </span>
+                  </div>
 
-              {/* Price Display (Mobile) */}
-              {priceData && (
-                <div className="pt-4 mt-2 border-t navbar-border px-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-muted">ZEC Price</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-bold font-mono price-value">
-                        ${priceData.price.toFixed(2)}
-                      </span>
-                      <span className={`text-xs font-mono ${priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}`}>
-                        {priceData.change24h >= 0 ? '↑' : '↓'} {Math.abs(priceData.change24h).toFixed(1)}%
-                      </span>
-                    </div>
+                  {/* Theme + Donate */}
+                  <div className="flex items-center gap-2">
+                    <DonateButton compact />
+                    <ThemeToggle />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

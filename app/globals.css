@@ -686,12 +686,12 @@
 
   /* ===== THEME TOGGLE ===== */
   .theme-toggle-btn {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background-color: transparent;
+    border: none;
   }
 
   .light .theme-toggle-btn {
-    background-color: var(--color-elevated);
+    background-color: transparent;
   }
 
   /* ===== TEXT UTILITIES ===== */
@@ -736,27 +736,24 @@
 
   /* ===== DONATE BUTTON ===== */
   .donate-btn {
-    color: var(--color-cyan);
-    background-color: rgba(20, 22, 31, 0.5);
-    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    background-color: transparent;
+    border: none;
     transition: all var(--duration-fast) var(--ease-out-expo);
   }
 
   .donate-btn:hover {
-    border-color: var(--color-cyan);
-    color: var(--color-cyan);
-    background-color: rgba(20, 22, 31, 0.7);
+    color: #00D4FF;
   }
 
   .light .donate-btn {
-    color: #0E7490;
-    background-color: var(--color-elevated);
-    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+    background-color: transparent;
+    border: none;
   }
 
   .light .donate-btn:hover {
-    border-color: #0E7490;
-    background-color: #ecfeff;
+    color: #0E7490;
   }
 
   /* ===== SEARCH BAR ===== */

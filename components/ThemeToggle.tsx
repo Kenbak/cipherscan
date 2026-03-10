@@ -9,7 +9,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="relative p-1.5 rounded-lg bg-cipher-surface border border-cipher-border transition-all duration-200"
+        className="relative p-1.5 rounded-lg transition-all duration-200"
         aria-label="Toggle theme"
       >
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,18 +26,15 @@ export function ThemeToggle() {
 
   return (
     <button
-      onClick={() => {
-        console.log('Theme toggle clicked, current theme:', theme);
-        toggleTheme();
-      }}
-      className="relative p-1.5 rounded-lg theme-toggle-btn hover:border-cipher-cyan/50 transition-all duration-200 group"
+      onClick={toggleTheme}
+      className="relative p-1.5 rounded-lg theme-toggle-btn hover:opacity-80 transition-all duration-200 group"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {/* Sun icon (light mode) - visible when in light mode */}
       {theme === 'light' && (
         <svg
-          className="w-4 h-4 text-cipher-yellow"
+          className="w-4 h-4 text-muted group-hover:text-cipher-cyan-dark dark:group-hover:text-cipher-cyan transition-colors duration-150"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -54,7 +51,7 @@ export function ThemeToggle() {
       {/* Moon icon (dark mode) - visible when in dark mode */}
       {theme === 'dark' && (
         <svg
-          className="w-4 h-4 text-cipher-cyan"
+          className="w-4 h-4 text-muted group-hover:text-cipher-cyan-dark dark:group-hover:text-cipher-cyan transition-colors duration-150"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
