@@ -1195,35 +1195,64 @@ export default function SwapPage() {
               </div>
             )}
 
-            {/* Swap info — shown during quote/waiting/complete */}
-            {step !== 'form' && (
+            {/* Estimated time — shown during quote/waiting */}
+            {(step === 'quote' || step === 'waiting') && (
               <div className="card p-0 overflow-hidden">
                 <div className="px-5 pt-4 pb-3 border-b border-glass-4">
-                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Swap_info</span>
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Estimated_time</span>
                 </div>
-                <div className="px-5 py-4 space-y-3">
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-muted">From</span>
-                    <span className="text-secondary">{amount} {selectedToken.token}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-muted">To</span>
-                    <span className="text-secondary">{estimatedZec || '~'} ZEC</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-muted">Chain</span>
-                    <span className="text-secondary">{selectedToken.chainLabel}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-muted">Slippage</span>
-                    <span className="text-secondary">{slippage / 100}%</span>
-                  </div>
-                  <div className="border-t border-glass-4 pt-3">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-muted">Destination</span>
-                      <span className="text-secondary truncate ml-3 max-w-[140px]" title={zecAddress}>{zecAddress.slice(0, 8)}...{zecAddress.slice(-4)}</span>
+                <div className="px-5 py-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cipher-cyan/10 flex items-center justify-center shrink-0">
+                      <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={18} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-mono font-semibold text-primary">
+                        {(() => {
+                          const c = selectedToken.chain;
+                          if (c === 'sol') return '~1-2 min';
+                          if (['near', 'ton', 'sui'].includes(c)) return '~2-5 min';
+                          if (['eth', 'base', 'arb', 'op', 'pol', 'avax', 'bsc', 'gnosis', 'bera', 'scroll'].includes(c)) return '~5-15 min';
+                          if (['tron'].includes(c)) return '~3-10 min';
+                          if (['btc', 'ltc', 'bch', 'doge', 'dash'].includes(c)) return '~20-60 min';
+                          return '~5-30 min';
+                        })()}
+                      </div>
+                      <div className="text-[10px] text-muted">via {selectedToken.chainLabel}</div>
                     </div>
                   </div>
+
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-start gap-2.5">
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${step === 'waiting' && !txHash ? 'bg-cipher-cyan animate-pulse' : 'bg-cipher-green'}`} />
+                      <span className="text-[11px] text-secondary font-mono">Deposit to bridge address</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${step === 'waiting' && txHash ? 'bg-cipher-cyan animate-pulse' : step === 'waiting' && !txHash ? 'bg-glass-12' : 'bg-cipher-green'}`} />
+                      <span className={`text-[11px] font-mono ${step === 'waiting' && txHash ? 'text-secondary' : step === 'waiting' && !txHash ? 'text-muted' : 'text-secondary'}`}>NEAR Intents bridging</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-glass-12" />
+                      <span className="text-[11px] text-muted font-mono">ZEC sent to your address</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-muted/50 leading-relaxed pt-1">
+                    Times depend on {selectedToken.chainLabel} block confirmations and NEAR solver availability.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Complete/error — minimal */}
+            {(step === 'complete' || step === 'error') && (
+              <div className="card p-0 overflow-hidden">
+                <div className="px-5 py-4">
+                  <p className="text-[11px] text-muted font-mono leading-relaxed">
+                    {step === 'complete'
+                      ? 'Your ZEC has arrived. For maximum privacy, shield your balance using a wallet that supports Orchard.'
+                      : 'If your swap failed, funds are returned to your refund address automatically.'}
+                  </p>
                 </div>
               </div>
             )}
