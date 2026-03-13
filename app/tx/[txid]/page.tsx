@@ -131,6 +131,7 @@ export default function TransactionPage() {
   const [activeTab, setActiveTab] = useState<'summary' | 'io'>('summary');
   const [mempoolTx, setMempoolTx] = useState<any>(null);
   const [mempoolChecked, setMempoolChecked] = useState(false);
+  const [mempoolConfirming, setMempoolConfirming] = useState(false);
   const mempoolPollRef = useRef<NodeJS.Timeout | null>(null);
   const [mempoolElapsed, setMempoolElapsed] = useState(0);
   const mempoolTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -327,6 +328,8 @@ export default function TransactionPage() {
       setMempoolElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
 
+    let droppedAt: number | null = null;
+
     const poll = async () => {
       try {
         const apiUrl = usePostgresApiClient()
@@ -334,30 +337,27 @@ export default function TransactionPage() {
           : `/api/tx/${txid}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
-          // Transaction confirmed — reload the page to get full data
           window.location.reload();
           return;
         }
-        // Still in mempool — check if it's still there
+
         const stillInMempool = await checkMempool();
-        if (!stillInMempool) {
-          // Dropped from mempool — might have just confirmed, try once more after delay
-          setTimeout(async () => {
-            const retryUrl = usePostgresApiClient()
-              ? `${getApiUrl()}/api/tx/${txid}`
-              : `/api/tx/${txid}`;
-            const retryRes = await fetch(retryUrl);
-            if (retryRes.ok) {
-              window.location.reload();
-            } else {
-              setMempoolTx(null);
-            }
-          }, 3000);
+        if (!stillInMempool && !droppedAt) {
+          // Tx just left the mempool — it's being confirmed by the indexer
+          droppedAt = Date.now();
+          setMempoolConfirming(true);
+        }
+
+        // If dropped from mempool for over 2 minutes and still not in DB, give up
+        if (droppedAt && Date.now() - droppedAt > 120_000) {
+          setMempoolTx(null);
+          setMempoolConfirming(false);
         }
       } catch {}
     };
 
-    mempoolPollRef.current = setInterval(poll, 10_000);
+    // Poll every 5s for faster detection
+    mempoolPollRef.current = setInterval(poll, 5_000);
 
     return () => {
       if (mempoolPollRef.current) clearInterval(mempoolPollRef.current);
@@ -483,27 +483,43 @@ export default function TransactionPage() {
               <div className="text-center py-8">
                 {/* Pulsing ring animation */}
                 <div className="relative w-20 h-20 mx-auto mb-6">
-                  <div className="absolute inset-0 rounded-full border-2 border-cipher-yellow/30 animate-ping" style={{ animationDuration: '2s' }} />
-                  <div className="absolute inset-1 rounded-full border-2 border-cipher-yellow/20 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.3s' }} />
-                  <div className="absolute inset-0 rounded-full border-2 border-cipher-yellow/40 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-cipher-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                  <div className={`absolute inset-0 rounded-full border-2 animate-ping ${mempoolConfirming ? 'border-cipher-green/30' : 'border-cipher-yellow/30'}`} style={{ animationDuration: '2s' }} />
+                  <div className={`absolute inset-1 rounded-full border-2 animate-ping ${mempoolConfirming ? 'border-cipher-green/20' : 'border-cipher-yellow/20'}`} style={{ animationDuration: '2.5s', animationDelay: '0.3s' }} />
+                  <div className={`absolute inset-0 rounded-full border-2 flex items-center justify-center ${mempoolConfirming ? 'border-cipher-green/40' : 'border-cipher-yellow/40'}`}>
+                    {mempoolConfirming ? (
+                      <svg className="w-8 h-8 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-8 h-8 text-cipher-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
                   </div>
                 </div>
 
-                <h2 className="text-lg font-semibold text-primary mb-2">Pending in Mempool</h2>
+                <h2 className="text-lg font-semibold text-primary mb-2">
+                  {mempoolConfirming ? 'Confirming...' : 'Pending in Mempool'}
+                </h2>
                 <p className="text-sm text-secondary mb-1 max-w-md mx-auto">
-                  This transaction is waiting to be included in a block.
+                  {mempoolConfirming
+                    ? 'This transaction has been included in a block and is being indexed.'
+                    : 'This transaction is waiting to be included in a block.'}
                 </p>
                 <p className="text-xs font-mono text-muted mb-6">
-                  This page will auto-refresh when the transaction confirms.
+                  This page will auto-refresh when the transaction is ready.
                 </p>
 
                 {/* Elapsed timer */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cipher-yellow/5 border border-cipher-yellow/20 mb-8">
-                  <div className="w-2 h-2 rounded-full bg-cipher-yellow animate-pulse" />
-                  <span className="text-xs font-mono text-cipher-yellow">Waiting {formatElapsed(mempoolElapsed)}</span>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg mb-8 ${
+                  mempoolConfirming
+                    ? 'bg-cipher-green/5 border border-cipher-green/20'
+                    : 'bg-cipher-yellow/5 border border-cipher-yellow/20'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${mempoolConfirming ? 'bg-cipher-green' : 'bg-cipher-yellow'}`} />
+                  <span className={`text-xs font-mono ${mempoolConfirming ? 'text-cipher-green' : 'text-cipher-yellow'}`}>
+                    {mempoolConfirming ? 'Indexing...' : `Waiting ${formatElapsed(mempoolElapsed)}`}
+                  </span>
                 </div>
               </div>
             </CardBody>
