@@ -16,10 +16,13 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
 
 const { Pool } = require('pg');
+
+const LOCKFILE = path.join(__dirname, '.sync-crosschain.lock');
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -467,15 +470,20 @@ async function selfHealFromBlockchain() {
   log(`  Strategy 1 (direct address): checked ${outflowsDirect.length}, fixed ${directFixed}`);
   totalFixed += directFixed;
 
-  // --- Strategy 2: Amount + time matching for ALL remaining missing swaps ---
+  // --- Strategy 2: Amount + time matching for remaining missing swaps ---
+  // Uses a CTE to first narrow by time window (few thousand txs in 8h)
+  // then checks values on just those outputs, instead of scanning all 187M.
+  // Limited to 200 swaps per heal run to keep runtime reasonable.
   const BATCH_SIZE = 50;
+  const MAX_HEAL_SWAPS = 200;
   let offset = 0;
   let amountFixed = 0;
   let ambiguous = 0;
   let noMatch = 0;
   let timeouts = 0;
+  let totalProcessed = 0;
 
-  while (true) {
+  while (totalProcessed < MAX_HEAL_SWAPS) {
     const { rows: batch } = await pool.query(`
       SELECT id, direction, source_amount, dest_amount, swap_created_at
       FROM cross_chain_swaps
@@ -502,12 +510,15 @@ async function selfHealFromBlockchain() {
 
       try {
         const { rows: candidates } = await pool.query(`
+          WITH time_window AS (
+            SELECT txid FROM transactions
+            WHERE block_time BETWEEN $3 AND $4
+              AND is_coinbase = false
+          )
           SELECT DISTINCT o.txid
-          FROM transaction_outputs o
-          JOIN transactions t ON t.txid = o.txid
+          FROM time_window tw
+          JOIN transaction_outputs o ON o.txid = tw.txid
           WHERE o.value BETWEEN $1 AND $2
-            AND t.block_time >= $3 AND t.block_time <= $4
-            AND t.is_coinbase = false
           LIMIT 2
         `, [amountZat - tolerance, amountZat + tolerance, windowStart, windowEnd]);
 
@@ -532,8 +543,9 @@ async function selfHealFromBlockchain() {
       }
     }
 
+    totalProcessed += batch.length;
     offset += BATCH_SIZE;
-    log(`  Strategy 2 progress: processed ${offset} swaps (fixed=${amountFixed}, ambiguous=${ambiguous}, no_match=${noMatch}, timeouts=${timeouts})`);
+    log(`  Strategy 2 progress: processed ${totalProcessed} swaps (fixed=${amountFixed}, ambiguous=${ambiguous}, no_match=${noMatch}, timeouts=${timeouts})`);
   }
 
   log(`  Strategy 2 (amount+time): fixed ${amountFixed}, ambiguous ${ambiguous}, no match ${noMatch}, timeouts ${timeouts}`);
@@ -765,6 +777,28 @@ async function refreshMaterializedViews() {
 // ---------------------------------------------------------------------------
 
 async function main() {
+  // Prevent overlapping runs — if another instance is running, exit immediately
+  if (fs.existsSync(LOCKFILE)) {
+    try {
+      const lockData = JSON.parse(fs.readFileSync(LOCKFILE, 'utf8'));
+      const lockAge = Date.now() - lockData.startedAt;
+      // Stale lock (over 2 hours) — remove and proceed
+      if (lockAge > 2 * 60 * 60 * 1000) {
+        log(`Removing stale lockfile (${Math.round(lockAge / 60000)}min old, pid ${lockData.pid})`);
+        fs.unlinkSync(LOCKFILE);
+      } else {
+        log(`Another instance is running (pid ${lockData.pid}, started ${Math.round(lockAge / 60000)}min ago). Exiting.`);
+        process.exit(0);
+      }
+    } catch {
+      fs.unlinkSync(LOCKFILE);
+    }
+  }
+
+  fs.writeFileSync(LOCKFILE, JSON.stringify({ pid: process.pid, startedAt: Date.now() }));
+  const removeLock = () => { try { fs.unlinkSync(LOCKFILE); } catch {} };
+  process.on('exit', removeLock);
+
   log('=== Cross-Chain Swap Sync ===');
 
   if (!API_KEY && !isSeed) {

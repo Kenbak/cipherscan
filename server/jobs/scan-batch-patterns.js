@@ -46,6 +46,8 @@ const pool = new Pool({
   database: process.env.DB_NAME || process.env.POSTGRES_DATABASE || 'zcash_explorer',
   user: process.env.DB_USER || process.env.POSTGRES_USER || 'postgres',
   password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || '',
+  max: 2,
+  idleTimeoutMillis: 10000,
 });
 
 /**
