@@ -28,11 +28,24 @@ function validateZecAddress(addr: string): string | null {
   return null;
 }
 
-interface RecommendedAmount {
-  amount: number;
-  swapCount: number;
-  percentage: number;
-  blendingScore: 'high' | 'medium' | 'low';
+interface CommonAmount {
+  amountZec: number;
+  txCount: number;
+  percentage: string;
+  blendingScore: number;
+  chainSwapCount?: number;
+  sourceAmount?: number | null;
+  sourceToken?: string | null;
+  dualBlendScore?: number;
+}
+
+interface CommonAmountsResponse {
+  success: boolean;
+  period: string;
+  chain: string | null;
+  totalTransactions: number;
+  amounts: CommonAmount[];
+  tip: string;
 }
 
 function formatRecAmount(amount: number, token: string): string {
@@ -47,11 +60,11 @@ function formatRecAmount(amount: number, token: string): string {
   return amount.toFixed(4);
 }
 
-interface Recommendation {
-  chain: string;
-  token: string;
-  recommendations: RecommendedAmount[];
-  tip: string;
+function getBlendingLabel(score: number, dualScore?: number): 'high' | 'medium' | 'low' {
+  const effective = dualScore || score;
+  if (effective >= 30) return 'high';
+  if (effective >= 10) return 'medium';
+  return 'low';
 }
 
 interface QuoteResponse {
@@ -255,7 +268,7 @@ export default function SwapPage() {
   const [swapStatus, setSwapStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [recommendations, setRecommendations] = useState<Recommendation | null>(null);
+  const [recommendations, setRecommendations] = useState<CommonAmountsResponse | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const [sendingTx, setSendingTx] = useState(false);
   const [txHash, setTxHash] = useState('');
@@ -391,13 +404,13 @@ export default function SwapPage() {
     return () => { cancelled = true; };
   }, [wallet.connected, wallet.address, selectedToken, balanceRefresh]);
 
-  // Fetch privacy recommendations
+  // Fetch privacy-preserving amount recommendations (ZEC common amounts cross-referenced with source chain)
   useEffect(() => {
     const fetchRecs = async () => {
       try {
-        const res = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/privacy/recommended-swap-amounts?chain=${selectedToken.chain}&token=${selectedToken.token}`);
+        const res = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/privacy/common-amounts?chain=${selectedToken.chain}&period=30d&limit=10`);
         const data = await res.json();
-        if (data.success) setRecommendations(data);
+        if (data.success && data.amounts?.length > 0) setRecommendations(data);
         else setRecommendations(null);
       } catch {
         setRecommendations(null);
@@ -786,26 +799,37 @@ export default function SwapPage() {
                         </div>
                       </div>
 
-                      {/* Privacy recommendation chips */}
-                      {recommendations && recommendations.recommendations.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2.5">
-                          {recommendations.recommendations.slice(0, 4).map((rec, i) => (
-                            <button
-                              key={i}
-                              onClick={() => setAmount(String(rec.amount))}
-                              className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border ${
-                                rec.blendingScore === 'high'
-                                  ? 'border-cipher-green/30 text-cipher-green hover:bg-cipher-green/10'
-                                  : rec.blendingScore === 'medium'
-                                  ? 'border-cipher-yellow/30 text-cipher-yellow hover:bg-cipher-yellow/10'
-                                  : 'border-glass-12 text-muted hover:bg-glass-6'
-                              }`}
-                            >
-                              {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {/* Privacy recommendation chips — amounts that blend on both source chain and ZEC side */}
+                      {recommendations && recommendations.amounts.length > 0 && (() => {
+                        const chips = recommendations.amounts
+                          .filter(a => a.sourceAmount && a.sourceAmount > 0)
+                          .slice(0, 4);
+                        if (chips.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            {chips.map((rec, i) => {
+                              const label = getBlendingLabel(rec.blendingScore, rec.dualBlendScore);
+                              const token = rec.sourceToken || selectedToken.token;
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => setAmount(String(rec.sourceAmount))}
+                                  className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border ${
+                                    label === 'high'
+                                      ? 'border-cipher-green/30 text-cipher-green hover:bg-cipher-green/10'
+                                      : label === 'medium'
+                                      ? 'border-cipher-yellow/30 text-cipher-yellow hover:bg-cipher-yellow/10'
+                                      : 'border-glass-12 text-muted hover:bg-glass-6'
+                                  }`}
+                                  title={`≈${rec.amountZec} ZEC · ${rec.txCount} shielding txs · ${rec.chainSwapCount || 0} ${selectedToken.chain.toUpperCase()} swaps`}
+                                >
+                                  {formatRecAmount(rec.sourceAmount!, token)} {token}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Arrow divider */}
@@ -1154,39 +1178,53 @@ export default function SwapPage() {
                   <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Privacy_tips</span>
                 </div>
                 <div className="px-5 py-4">
-                  {recommendations && recommendations.recommendations.length > 0 ? (
+                  {recommendations && recommendations.amounts.length > 0 ? (() => {
+                    const withSource = recommendations.amounts.filter(a => a.sourceAmount && a.sourceAmount > 0);
+                    return (
                     <div>
                       <p className="text-[11px] text-muted mb-3 leading-relaxed">
-                        Popular {selectedToken.token} amounts this week. Common amounts blend better.
+                        {withSource.length > 0
+                          ? `Amounts that blend on both ${selectedToken.chain.toUpperCase()} and ZEC sides.`
+                          : 'Common ZEC shielding amounts. Using popular amounts improves privacy.'}
                       </p>
                       <div className="space-y-0.5">
-                        {recommendations.recommendations.map((rec, i) => (
+                        {(withSource.length > 0 ? withSource : recommendations.amounts).slice(0, 5).map((rec, i) => {
+                          const label = getBlendingLabel(rec.blendingScore, rec.dualBlendScore);
+                          const token = rec.sourceToken || selectedToken.token;
+                          const displayAmount = rec.sourceAmount || rec.amountZec;
+                          const displayToken = rec.sourceAmount ? token : 'ZEC';
+                          return (
                           <button
                             key={i}
-                            onClick={() => setAmount(String(rec.amount))}
+                            onClick={() => rec.sourceAmount ? setAmount(String(rec.sourceAmount)) : undefined}
                             className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-glass-3 transition-all group text-left"
+                            title={`≈${rec.amountZec} ZEC · ${rec.txCount} shielding txs`}
                           >
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-mono font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
-                                {formatRecAmount(rec.amount, recommendations.token)} {recommendations.token}
+                                {formatRecAmount(displayAmount, displayToken)} {displayToken}
                               </span>
                               <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-medium ${
-                                rec.blendingScore === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
-                                rec.blendingScore === 'medium' ? 'bg-cipher-yellow/10 text-cipher-yellow' :
+                                label === 'high' ? 'bg-cipher-green/10 text-cipher-green' :
+                                label === 'medium' ? 'bg-cipher-yellow/10 text-cipher-yellow' :
                                 'bg-glass-4 text-muted'
                               }`}>
-                                {rec.blendingScore}
+                                {label}
                               </span>
                             </div>
-                            <span className="text-[10px] font-mono text-muted">{rec.swapCount}</span>
+                            <span className="text-[10px] font-mono text-muted">
+                              {rec.chainSwapCount ? `${rec.chainSwapCount} swaps` : `${rec.txCount} txs`}
+                            </span>
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                       {recommendations.tip && (
                         <p className="mt-3 text-[10px] text-muted/60 leading-relaxed">{recommendations.tip}</p>
                       )}
                     </div>
-                  ) : (
+                    );
+                  })() : (
                     <p className="text-[11px] text-muted text-center py-4">
                       Privacy recommendations appear once swap data is collected.
                     </p>

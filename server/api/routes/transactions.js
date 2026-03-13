@@ -838,6 +838,76 @@ router.get('/api/mempool', async (req, res) => {
 });
 
 // ============================================================================
+// MEMPOOL SINGLE TX LOOKUP
+// ============================================================================
+
+/**
+ * GET /api/mempool/tx/:txid
+ * Check if a specific transaction is in the mempool and return its details.
+ * Used by the tx detail page to show a "pending" state instead of "not found".
+ */
+router.get('/api/mempool/tx/:txid', async (req, res) => {
+  try {
+    const { txid } = req.params;
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
+      return res.status(400).json({ success: false, error: 'Invalid txid' });
+    }
+
+    const mempoolTxids = await callZebraRPC('getrawmempool', []);
+    if (!mempoolTxids.includes(txid)) {
+      return res.json({ success: true, inMempool: false });
+    }
+
+    const tx = await callZebraRPC('getrawtransaction', [txid, 1]);
+
+    const hasShieldedInputs = (tx.vShieldedSpend?.length > 0) ||
+                               (tx.vJoinSplit?.length > 0) ||
+                               (tx.orchard?.actions?.length > 0);
+    const hasShieldedOutputs = (tx.vShieldedOutput?.length > 0) ||
+                                (tx.vJoinSplit?.length > 0) ||
+                                (tx.orchard?.actions?.length > 0);
+    const hasTransparentInputs = tx.vin?.length > 0 && !tx.vin[0]?.coinbase;
+    const hasTransparentOutputs = tx.vout?.length > 0;
+
+    let txType = 'transparent';
+    if (hasShieldedInputs || hasShieldedOutputs) {
+      txType = (hasTransparentInputs || hasTransparentOutputs) ? 'mixed' : 'shielded';
+    }
+
+    const size = tx.hex ? tx.hex.length / 2 : 0;
+
+    const totalOutput = (tx.vout || []).reduce((sum, o) => sum + (o.value || 0), 0);
+
+    res.json({
+      success: true,
+      inMempool: true,
+      transaction: {
+        txid: tx.txid,
+        size,
+        type: txType,
+        version: tx.version,
+        locktime: tx.locktime,
+        firstSeen: Math.floor(Date.now() / 1000),
+        vinCount: tx.vin?.length || 0,
+        voutCount: tx.vout?.length || 0,
+        shieldedSpends: tx.vShieldedSpend?.length || 0,
+        shieldedOutputs: tx.vShieldedOutput?.length || 0,
+        orchardActions: tx.orchard?.actions?.length || 0,
+        totalOutput,
+        outputs: (tx.vout || []).map(o => ({
+          value: o.value || 0,
+          n: o.n,
+          address: o.scriptPubKey?.addresses?.[0] || null,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('Mempool tx lookup error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to check mempool' });
+  }
+});
+
+// ============================================================================
 // BROADCAST RAW TRANSACTION
 // ============================================================================
 

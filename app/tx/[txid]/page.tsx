@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { ExportButton } from '@/components/ExportButton';
@@ -129,6 +129,11 @@ export default function TransactionPage() {
   const [blockFallbackChecked, setBlockFallbackChecked] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'io'>('summary');
+  const [mempoolTx, setMempoolTx] = useState<any>(null);
+  const [mempoolChecked, setMempoolChecked] = useState(false);
+  const mempoolPollRef = useRef<NodeJS.Timeout | null>(null);
+  const [mempoolElapsed, setMempoolElapsed] = useState(0);
+  const mempoolTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -284,6 +289,82 @@ export default function TransactionPage() {
     checkBlock();
   }, [loading, data, txid, blockFallbackChecked, router]);
 
+  // Check mempool if tx not found in confirmed DB
+  const checkMempool = useCallback(async () => {
+    try {
+      const apiUrl = usePostgresApiClient()
+        ? `${getApiUrl()}/api/mempool/tx/${txid}`
+        : `/api/mempool/tx/${txid}`;
+      const res = await fetch(apiUrl);
+      if (!res.ok) return false;
+      const result = await res.json();
+      if (result.success && result.inMempool) {
+        setMempoolTx(result.transaction);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [txid]);
+
+  useEffect(() => {
+    if (loading || data || !blockFallbackChecked || mempoolChecked) return;
+    if (!/^[a-fA-F0-9]{64}$/.test(txid)) return;
+
+    setMempoolChecked(true);
+    checkMempool();
+  }, [loading, data, blockFallbackChecked, txid, mempoolChecked, checkMempool]);
+
+  // Poll for confirmation when tx is in mempool
+  useEffect(() => {
+    if (!mempoolTx || data) return;
+
+    const startTime = Date.now();
+    setMempoolElapsed(0);
+
+    mempoolTimerRef.current = setInterval(() => {
+      setMempoolElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    const poll = async () => {
+      try {
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/tx/${txid}`
+          : `/api/tx/${txid}`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+          // Transaction confirmed — reload the page to get full data
+          window.location.reload();
+          return;
+        }
+        // Still in mempool — check if it's still there
+        const stillInMempool = await checkMempool();
+        if (!stillInMempool) {
+          // Dropped from mempool — might have just confirmed, try once more after delay
+          setTimeout(async () => {
+            const retryUrl = usePostgresApiClient()
+              ? `${getApiUrl()}/api/tx/${txid}`
+              : `/api/tx/${txid}`;
+            const retryRes = await fetch(retryUrl);
+            if (retryRes.ok) {
+              window.location.reload();
+            } else {
+              setMempoolTx(null);
+            }
+          }, 3000);
+        }
+      } catch {}
+    };
+
+    mempoolPollRef.current = setInterval(poll, 10_000);
+
+    return () => {
+      if (mempoolPollRef.current) clearInterval(mempoolPollRef.current);
+      if (mempoolTimerRef.current) clearInterval(mempoolTimerRef.current);
+    };
+  }, [mempoolTx, data, txid, checkMempool]);
+
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     const now = new Date();
@@ -369,7 +450,153 @@ export default function TransactionPage() {
 
   if (!data) {
     const isValidHash = /^[a-fA-F0-9]{64}$/.test(txid);
-    const isChecking = isValidHash && !blockFallbackChecked;
+    const isChecking = isValidHash && (!blockFallbackChecked || (!mempoolChecked && blockFallbackChecked));
+
+    // Mempool pending state
+    if (mempoolTx) {
+      const formatElapsed = (s: number) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+      };
+
+      const txTypeLabel = mempoolTx.type === 'shielded' ? 'SHIELDED' : mempoolTx.type === 'mixed' ? 'MIXED' : 'TRANSPARENT';
+      const txTypeColor = mempoolTx.type === 'shielded' ? 'purple' : mempoolTx.type === 'mixed' ? 'yellow' : 'cyan';
+
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
+          <div className="mb-6">
+            <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
+            <div className="flex items-center gap-3 mt-2">
+              <StatusBadge status="pending" />
+              <Badge color={txTypeColor as any}>{txTypeLabel}</Badge>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <h1 className="text-sm sm:text-base font-mono text-primary break-all">{txid}</h1>
+              <CopyButton text={txid} label="txid" />
+            </div>
+          </div>
+
+          {/* Mempool progress card */}
+          <Card>
+            <CardBody>
+              <div className="text-center py-8">
+                {/* Pulsing ring animation */}
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-full border-2 border-cipher-yellow/30 animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="absolute inset-1 rounded-full border-2 border-cipher-yellow/20 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.3s' }} />
+                  <div className="absolute inset-0 rounded-full border-2 border-cipher-yellow/40 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-cipher-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <h2 className="text-lg font-semibold text-primary mb-2">Pending in Mempool</h2>
+                <p className="text-sm text-secondary mb-1 max-w-md mx-auto">
+                  This transaction is waiting to be included in a block.
+                </p>
+                <p className="text-xs font-mono text-muted mb-6">
+                  This page will auto-refresh when the transaction confirms.
+                </p>
+
+                {/* Elapsed timer */}
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cipher-yellow/5 border border-cipher-yellow/20 mb-8">
+                  <div className="w-2 h-2 rounded-full bg-cipher-yellow animate-pulse" />
+                  <span className="text-xs font-mono text-cipher-yellow">Waiting {formatElapsed(mempoolElapsed)}</span>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Transaction details card */}
+          <Card className="mt-4">
+            <CardHeader>
+              <span className="text-xs font-mono text-muted tracking-wider">&gt; MEMPOOL_DATA</span>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                  <span className="text-xs font-mono text-muted">Type</span>
+                  <Badge color={txTypeColor as any}>{txTypeLabel}</Badge>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                  <span className="text-xs font-mono text-muted">Size</span>
+                  <span className="text-sm font-mono text-primary">{(mempoolTx.size || 0).toLocaleString()} bytes</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                  <span className="text-xs font-mono text-muted">Version</span>
+                  <span className="text-sm font-mono text-primary">{mempoolTx.version}</span>
+                </div>
+                {mempoolTx.vinCount > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Transparent Inputs</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.vinCount}</span>
+                  </div>
+                )}
+                {mempoolTx.voutCount > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Transparent Outputs</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.voutCount}</span>
+                  </div>
+                )}
+                {mempoolTx.shieldedSpends > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Sapling Spends</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.shieldedSpends}</span>
+                  </div>
+                )}
+                {mempoolTx.shieldedOutputs > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Sapling Outputs</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.shieldedOutputs}</span>
+                  </div>
+                )}
+                {mempoolTx.orchardActions > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Orchard Actions</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.orchardActions}</span>
+                  </div>
+                )}
+                {mempoolTx.outputs && mempoolTx.outputs.length > 0 && mempoolTx.totalOutput > 0 && (
+                  <div className="flex items-center justify-between py-2 border-b border-cipher-border">
+                    <span className="text-xs font-mono text-muted">Transparent Value</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.totalOutput.toFixed(8)} ZEC</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-xs font-mono text-muted">Confirmations</span>
+                  <span className="text-sm font-mono text-cipher-yellow">0 (unconfirmed)</span>
+                </div>
+              </div>
+
+              {/* Transparent outputs preview */}
+              {mempoolTx.outputs && mempoolTx.outputs.filter((o: any) => o.address).length > 0 && (
+                <div className="mt-6 pt-4 border-t border-cipher-border">
+                  <span className="text-xs font-mono text-muted tracking-wider">&gt; OUTPUTS</span>
+                  <div className="mt-3 space-y-2">
+                    {mempoolTx.outputs.filter((o: any) => o.address).map((out: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-glass-2">
+                        <Link href={`/address/${out.address}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate max-w-[60%]">
+                          {out.address}
+                        </Link>
+                        <span className="text-xs font-mono text-primary">{out.value.toFixed(8)} ZEC</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          <div className="mt-6 text-center">
+            <Link href="/mempool" className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm">
+              View Mempool &rarr;
+            </Link>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -383,7 +610,7 @@ export default function TransactionPage() {
               {isChecking ? (
                 <>
                   <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent mx-auto mb-5"></div>
-                  <p className="text-sm text-secondary font-mono">Checking if this is a block hash...</p>
+                  <p className="text-sm text-secondary font-mono">Looking up transaction...</p>
                 </>
               ) : (
                 <>

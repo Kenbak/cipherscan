@@ -14,6 +14,7 @@ const { validate } = require('../validation');
 
 // Dependencies injected via app.locals
 let pool;
+let redisClient;
 let calculateLinkabilityScore;
 let formatTimeDelta;
 let getTransparentAddresses;
@@ -23,6 +24,7 @@ let detectBatchForShield;
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
+  redisClient = req.app.locals.redisClient;
   calculateLinkabilityScore = req.app.locals.calculateLinkabilityScore;
   formatTimeDelta = req.app.locals.formatTimeDelta;
   getTransparentAddresses = req.app.locals.getTransparentAddresses;
@@ -568,28 +570,43 @@ router.get('/api/privacy/patterns', async (req, res) => {
  * Users can "blend in" by using popular amounts.
  *
  * Query params:
- *   - period: 24h, 7d, 30d (default 7d)
+ *   - period: 24h, 7d, 30d, 90d (default 7d)
  *   - limit: number of amounts to return (default 10, max 50)
+ *   - chain: optional source chain (btc, eth, sol, etc.) — cross-references
+ *            with cross_chain_swaps to find ZEC amounts that also have common
+ *            source-side amounts, giving dual-chain anonymity.
  */
+
+// Redis cache for cross-referenced results (keyed per chain + period)
+const COMMON_AMOUNTS_CACHE_PREFIX = 'zcash:common_amounts:';
+const COMMON_AMOUNTS_CACHE_TTL = 900; // 15 minutes
+
 router.get('/api/privacy/common-amounts', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
+    const chain = (req.query.chain || '').toLowerCase();
 
-    // Parse period
     const periodMap = {
       '24h': 24 * 3600,
       '7d': 7 * 24 * 3600,
       '30d': 30 * 24 * 3600,
+      '90d': 90 * 24 * 3600,
     };
-    const periodSeconds = periodMap[req.query.period] || periodMap['7d'];
+    const periodKey = req.query.period || '7d';
+    const periodSeconds = periodMap[periodKey] || periodMap['7d'];
     const minTime = Math.floor(Date.now() / 1000) - periodSeconds;
-
-    // Minimum amount to consider (0.01 ZEC = 1,000,000 zatoshis)
-    // This filters out dust and 0-value transactions
     const MIN_AMOUNT_ZAT = 1000000;
 
-    // Round amounts to 2 decimal places (in ZEC) for grouping
-    // This groups 0.501 and 0.502 together as ~0.50
+    // Try Redis cache
+    const cacheKey = `${COMMON_AMOUNTS_CACHE_PREFIX}${chain || 'all'}:${periodKey}`;
+    if (redisClient && redisClient.isOpen) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) return res.json(JSON.parse(cached));
+      } catch {}
+    }
+
+    // Base query: common ZEC shielding amounts from shielded_flows
     const result = await pool.query(`
       SELECT
         ROUND(amount_zat / 100000000.0, 2) as amount_zec,
@@ -603,7 +620,6 @@ router.get('/api/privacy/common-amounts', async (req, res) => {
       LIMIT $3
     `, [minTime, MIN_AMOUNT_ZAT, limit]);
 
-    // Get total transactions in period for percentage calculation
     const totalResult = await pool.query(`
       SELECT COUNT(*) as total
       FROM shielded_flows
@@ -613,22 +629,83 @@ router.get('/api/privacy/common-amounts', async (req, res) => {
 
     const totalTxs = parseInt(totalResult.rows[0]?.total) || 1;
 
-    const commonAmounts = result.rows.map(row => ({
-      amountZec: parseFloat(row.amount_zec),
-      txCount: parseInt(row.tx_count),
-      percentage: ((parseInt(row.tx_count) / totalTxs) * 100).toFixed(1),
-      blendingScore: Math.min(100, Math.round((parseInt(row.tx_count) / totalTxs) * 1000)), // Higher = better for privacy
-    }));
+    // If chain is specified, cross-reference with cross_chain_swaps
+    // to find how many swaps from that chain landed on each ZEC amount
+    let chainSwapCounts = {};
+    let chainSourceAmounts = {};
+    if (chain) {
+      const zecAmounts = result.rows.map(r => parseFloat(r.amount_zec));
+      if (zecAmounts.length > 0) {
+        const crossRef = await pool.query(`
+          SELECT
+            ROUND(dest_amount::numeric, 2) as zec_amount,
+            COUNT(*) as swap_count,
+            ROUND(AVG(source_amount)::numeric, 6) as avg_source_amount,
+            source_token
+          FROM cross_chain_swaps
+          WHERE source_chain = $1
+            AND direction = 'inflow'
+            AND status = 'SUCCESS'
+            AND swap_created_at >= NOW() - INTERVAL '${periodKey === '90d' ? '90 days' : periodKey === '30d' ? '30 days' : periodKey === '24h' ? '1 day' : '7 days'}'
+            AND ROUND(dest_amount::numeric, 2) = ANY($2::numeric[])
+          GROUP BY ROUND(dest_amount::numeric, 2), source_token
+          ORDER BY swap_count DESC
+        `, [chain, zecAmounts]);
 
-    console.log(`✅ [COMMON AMOUNTS] Returning ${commonAmounts.length} amounts for period ${req.query.period || '7d'}`);
+        for (const row of crossRef.rows) {
+          const key = parseFloat(row.zec_amount);
+          chainSwapCounts[key] = (chainSwapCounts[key] || 0) + parseInt(row.swap_count);
+          if (!chainSourceAmounts[key]) {
+            chainSourceAmounts[key] = {
+              avgAmount: parseFloat(row.avg_source_amount),
+              token: row.source_token,
+            };
+          }
+        }
+      }
+    }
 
-    res.json({
+    const commonAmounts = result.rows.map(row => {
+      const amountZec = parseFloat(row.amount_zec);
+      const entry = {
+        amountZec,
+        txCount: parseInt(row.tx_count),
+        percentage: ((parseInt(row.tx_count) / totalTxs) * 100).toFixed(1),
+        blendingScore: Math.min(100, Math.round((parseInt(row.tx_count) / totalTxs) * 1000)),
+      };
+
+      if (chain && chainSwapCounts[amountZec]) {
+        entry.chainSwapCount = chainSwapCounts[amountZec];
+        entry.sourceAmount = chainSourceAmounts[amountZec]?.avgAmount || null;
+        entry.sourceToken = chainSourceAmounts[amountZec]?.token || null;
+        entry.dualBlendScore = entry.blendingScore + Math.min(50, chainSwapCounts[amountZec]);
+      }
+
+      return entry;
+    });
+
+    // When chain is specified, sort by dual blend score (best on both sides first)
+    if (chain) {
+      commonAmounts.sort((a, b) => (b.dualBlendScore || b.blendingScore) - (a.dualBlendScore || a.blendingScore));
+    }
+
+    const response = {
       success: true,
-      period: req.query.period || '7d',
+      period: periodKey,
+      chain: chain || null,
       totalTransactions: totalTxs,
       amounts: commonAmounts,
-      tip: 'Using common amounts helps you blend in with other transactions, making linkability analysis harder.',
-    });
+      tip: chain
+        ? `Amounts that blend in on both the ${chain.toUpperCase()} and Zcash sides for maximum privacy.`
+        : 'Using common amounts helps you blend in with other transactions, making linkability analysis harder.',
+    };
+
+    // Cache in Redis
+    if (redisClient && redisClient.isOpen) {
+      try { await redisClient.setEx(cacheKey, COMMON_AMOUNTS_CACHE_TTL, JSON.stringify(response)); } catch {}
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('❌ [COMMON AMOUNTS] Error:', error);
     res.status(500).json({
