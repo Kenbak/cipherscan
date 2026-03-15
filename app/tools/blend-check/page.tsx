@@ -18,7 +18,7 @@ interface NearbyAmount {
 
 interface CheckResult {
   amount: number;
-  tolerancePercent: number;
+  amountZat: number;
   periods: {
     '24h': PeriodResult;
     '7d': PeriodResult;
@@ -131,7 +131,7 @@ export default function BlendCheckPage() {
     try {
       const [blendRes, splitRes] = await Promise.all([
         fetch(
-          `${API_CONFIG.POSTGRES_API_URL}/api/blend-check?amount=${parsed}&tolerance=2`,
+          `${API_CONFIG.POSTGRES_API_URL}/api/blend-check?amount=${parsed}`,
           { signal: controller.signal }
         ),
         fetch(

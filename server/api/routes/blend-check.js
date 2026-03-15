@@ -109,21 +109,19 @@ function greedySplit(targetZat, denominations, maxPieces) {
 router.get('/api/blend-check', async (req, res) => {
   try {
     const amount = parseFloat(req.query.amount);
-    const tolerance = Math.min(parseFloat(req.query.tolerance) || 2, 10);
 
     if (isNaN(amount) || amount <= 0 || amount > 21000000) {
       return res.status(400).json({ error: 'Invalid amount. Must be > 0 and <= 21M ZEC.' });
     }
 
-    const roundedAmount = parseFloat(amount.toPrecision(6));
-    const cacheKey = `blend:${roundedAmount}:${tolerance}`;
+    const amountZat = Math.round(amount * ZATOSHI);
+    const cacheKey = `blend:${amountZat}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
-    const amountZat = Math.round(roundedAmount * ZATOSHI);
-    const toleranceFrac = tolerance / 100;
-    const lower = Math.round(amountZat * (1 - toleranceFrac));
-    const upper = Math.round(amountZat * (1 + toleranceFrac));
+    // Fixed ±10000 zatoshi tolerance (0.0001 ZEC) — essentially exact match
+    const lower = amountZat - 10000;
+    const upper = amountZat + 10000;
 
     const periods = ['24h', '7d', '30d', 'all'];
     const results = {};
@@ -176,8 +174,8 @@ router.get('/api/blend-check', async (req, res) => {
     }));
 
     const response = {
-      amount: roundedAmount,
-      tolerancePercent: tolerance,
+      amount,
+      amountZat,
       periods: results,
       blendScore,
       blendLabel,
@@ -241,9 +239,8 @@ router.get('/api/blend-check/split', async (req, res) => {
       return b.amountZat - a.amountZat;
     });
 
-    // Compute original score so we can compare
-    const origLower = Math.round(amountZat * 0.98);
-    const origUpper = Math.round(amountZat * 1.02);
+    const origLower = amountZat - 10000;
+    const origUpper = amountZat + 10000;
     const { rows: origRows } = await pool.query(`
       SELECT COUNT(*) AS cnt FROM shielded_flows
       WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
@@ -266,8 +263,8 @@ router.get('/api/blend-check/split', async (req, res) => {
 
       for (const piece of pieces) {
         if (piece.isRemainder) {
-          const lower = Math.round(piece.amountZat * 0.98);
-          const upper = Math.round(piece.amountZat * 1.02);
+          const lower = piece.amountZat - 10000;
+          const upper = piece.amountZat + 10000;
           const { rows } = await pool.query(`
             SELECT COUNT(*) AS cnt FROM shielded_flows
             WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
