@@ -247,22 +247,21 @@ router.get('/api/blend-check/split', async (req, res) => {
       rescoreMap.set(parseInt(r.amt), parseInt(r.cnt));
     }
 
-    const denominations = rawDenoms.map(d => {
-      const count = rescoreMap.get(d.amountZat) || 0;
-      return { ...d, count, blendScore: computeBlendScore(count) };
-    }).filter(d => d.count >= 3)
-      .sort((a, b) => {
-        if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
-        return b.amountZat - a.amountZat;
-      });
-
-    // Original score using same tolerance
+    // Original score using same tolerance (compute first so we can filter)
     const { rows: origRows } = await pool.query(`
       SELECT COUNT(*) AS cnt FROM shielded_flows
       WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
     `, [amountZat - 10000, amountZat + 10000, since30d]);
     const originalCount = parseInt(origRows[0].cnt);
     const originalScore = computeBlendScore(originalCount);
+
+    // Only keep denominations that score better than the original,
+    // sorted largest-first so the greedy split uses fewer, bigger pieces
+    const denominations = rawDenoms.map(d => {
+      const count = rescoreMap.get(d.amountZat) || 0;
+      return { ...d, count, blendScore: computeBlendScore(count) };
+    }).filter(d => d.blendScore > originalScore)
+      .sort((a, b) => b.amountZat - a.amountZat);
 
     const plans = [];
     const seenSigs = new Set();
