@@ -236,7 +236,20 @@ router.get('/api/blend-check/split', async (req, res) => {
         count,
         blendScore: computeBlendScore(count),
       };
-    }).sort((a, b) => b.amountZat - a.amountZat);
+    }).sort((a, b) => {
+      if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
+      return b.amountZat - a.amountZat;
+    });
+
+    // Compute original score so we can compare
+    const origLower = Math.round(amountZat * 0.98);
+    const origUpper = Math.round(amountZat * 1.02);
+    const { rows: origRows } = await pool.query(`
+      SELECT COUNT(*) AS cnt FROM shielded_flows
+      WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
+    `, [origLower, origUpper, since30d]);
+    const originalCount = parseInt(origRows[0].cnt);
+    const originalScore = computeBlendScore(originalCount);
 
     const plans = [];
     const seenSigs = new Set();
@@ -265,6 +278,10 @@ router.get('/api/blend-check/split', async (req, res) => {
       }
 
       const minScore = Math.min(...pieces.map(p => p.blendScore));
+
+      // Only keep plans where the weakest piece beats the original
+      if (minScore <= originalScore) continue;
+
       const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
 
       plans.push({
@@ -289,7 +306,7 @@ router.get('/api/blend-check/split', async (req, res) => {
 
     if (plans.length > 0) plans[0].recommended = true;
 
-    const response = { amount, plans };
+    const response = { amount, originalScore, plans };
     setCache(cacheKey, response);
     res.json(response);
 
