@@ -225,26 +225,42 @@ router.get('/api/blend-check/split', async (req, res) => {
       LIMIT 50
     `, [since30d, amountZat]);
 
-    const denominations = denomRows.map(r => {
-      const amt = parseFloat(r.amount_zec);
-      const count = parseInt(r.cnt);
-      return {
-        amount: amt,
-        amountZat: Math.round(amt * ZATOSHI),
-        count,
-        blendScore: computeBlendScore(count),
-      };
-    }).sort((a, b) => {
-      if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
-      return b.amountZat - a.amountZat;
-    });
+    // Discovery: find popular amounts using 2-decimal grouping
+    const rawDenoms = denomRows.map(r => ({
+      amount: parseFloat(r.amount_zec),
+      amountZat: Math.round(parseFloat(r.amount_zec) * ZATOSHI),
+    }));
 
-    const origLower = amountZat - 10000;
-    const origUpper = amountZat + 10000;
+    // Rescore each denomination with the same ±10000 zatoshi tolerance
+    // the blend check uses, so scores are consistent
+    const denomAmounts = rawDenoms.map(d => d.amountZat);
+    const { rows: rescored } = await pool.query(`
+      SELECT d.amt,
+        (SELECT COUNT(*) FROM shielded_flows
+         WHERE amount_zat BETWEEN d.amt - 10000 AND d.amt + 10000
+           AND block_time >= $1) AS cnt
+      FROM UNNEST($2::bigint[]) AS d(amt)
+    `, [since30d, denomAmounts]);
+
+    const rescoreMap = new Map();
+    for (const r of rescored) {
+      rescoreMap.set(parseInt(r.amt), parseInt(r.cnt));
+    }
+
+    const denominations = rawDenoms.map(d => {
+      const count = rescoreMap.get(d.amountZat) || 0;
+      return { ...d, count, blendScore: computeBlendScore(count) };
+    }).filter(d => d.count >= 3)
+      .sort((a, b) => {
+        if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
+        return b.amountZat - a.amountZat;
+      });
+
+    // Original score using same tolerance
     const { rows: origRows } = await pool.query(`
       SELECT COUNT(*) AS cnt FROM shielded_flows
       WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
-    `, [origLower, origUpper, since30d]);
+    `, [amountZat - 10000, amountZat + 10000, since30d]);
     const originalCount = parseInt(origRows[0].cnt);
     const originalScore = computeBlendScore(originalCount);
 
@@ -254,21 +270,19 @@ router.get('/api/blend-check/split', async (req, res) => {
     for (let maxPieces = 2; maxPieces <= 6; maxPieces++) {
       const pieces = greedySplit(amountZat, denominations, maxPieces);
 
-      if (pieces.length === 0) continue;
-      if (pieces.length === 1 && pieces[0].isRemainder) continue;
+      if (pieces.length <= 1) continue;
 
       const sig = pieces.map(p => p.amountZat).sort((a, b) => b - a).join(',');
       if (seenSigs.has(sig)) continue;
       seenSigs.add(sig);
 
+      // Rescore remainders with same tight tolerance
       for (const piece of pieces) {
         if (piece.isRemainder) {
-          const lower = piece.amountZat - 10000;
-          const upper = piece.amountZat + 10000;
           const { rows } = await pool.query(`
             SELECT COUNT(*) AS cnt FROM shielded_flows
             WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
-          `, [lower, upper, since30d]);
+          `, [piece.amountZat - 10000, piece.amountZat + 10000, since30d]);
           piece.count30d = parseInt(rows[0].cnt);
           piece.blendScore = computeBlendScore(piece.count30d);
         }
@@ -276,7 +290,6 @@ router.get('/api/blend-check/split', async (req, res) => {
 
       const minScore = Math.min(...pieces.map(p => p.blendScore));
 
-      // Only keep plans where the weakest piece beats the original
       if (minScore <= originalScore) continue;
 
       const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
@@ -287,7 +300,7 @@ router.get('/api/blend-check/split', async (req, res) => {
           amount: parseFloat((p.amountZat / ZATOSHI).toFixed(8)),
           blendScore: p.blendScore,
           blendLabel: getBlendLabel(p.blendScore),
-          count30d: p.count30d || 0,
+          count30d: p.count30d || p.count || 0,
           isRemainder: !!p.isRemainder,
         })),
         minBlendScore: minScore,
