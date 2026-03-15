@@ -14,6 +14,7 @@ interface PeriodResult {
 interface NearbyAmount {
   amount: number;
   count: number;
+  blendScore: number;
 }
 
 interface CheckResult {
@@ -184,10 +185,7 @@ export default function BlendCheckPage() {
   const crowd30d = result?.periods['30d'].total ?? 0;
 
   const bestNearby = hasResult && score < 70
-    ? result.nearbyPopular.find(np => {
-        const npScore = np.count >= 1000 ? 75 : np.count >= 500 ? 65 : np.count >= 100 ? 50 : 0;
-        return npScore > score && Math.abs(np.amount - result.amount) / result.amount < 0.5;
-      })
+    ? result.nearbyPopular.find(np => np.blendScore > score && Math.abs(np.amount - result.amount) / result.amount < 0.5)
     : null;
 
   return (
@@ -545,8 +543,6 @@ export default function BlendCheckPage() {
                     <div className="space-y-1">
                       {result.nearbyPopular.slice(0, 8).map((np, i) => {
                         const isSelected = Math.abs(np.amount - result.amount) / result.amount < 0.02;
-                        const maxCount = result.nearbyPopular[0].count;
-                        const barPct = Math.max((np.count / maxCount) * 100, 4);
                         return (
                           <button
                             key={i}
@@ -560,23 +556,21 @@ export default function BlendCheckPage() {
                             <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-cyan font-semibold' : 'text-primary'}`}>
                               {formatZec(np.amount)}
                             </span>
-                            <div className="flex-1 h-1 rounded-full bg-[var(--color-hover)] overflow-hidden">
+                            <div className="flex-1 h-1.5 rounded-full bg-[var(--color-hover)] overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  isSelected ? 'bg-cipher-cyan/60' : 'bg-white/[0.08] group-hover:bg-white/[0.12]'
-                                }`}
-                                style={{ width: `${barPct}%` }}
+                                className={`h-full rounded-full transition-all duration-500 ${getScoreBg(np.blendScore)}`}
+                                style={{ width: `${Math.max(np.blendScore, 4)}%` }}
                               />
                             </div>
-                            <span className="text-xs font-mono text-muted w-14 text-right">
-                              {formatNumber(np.count)}
+                            <span className={`text-xs font-mono w-8 text-right ${getScoreColor(np.blendScore)}`}>
+                              {np.blendScore}
                             </span>
                           </button>
                         );
                       })}
                     </div>
                     <p className="text-[10px] text-muted font-mono mt-3">
-                      Click any amount to check it. Based on 30-day shielded pool data.
+                      Ranked by blend score. Click any amount to check it.
                     </p>
                   </CardBody>
                 </Card>

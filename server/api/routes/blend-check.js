@@ -150,28 +150,51 @@ router.get('/api/blend-check', async (req, res) => {
     const blendScore = computeBlendScore(matches30d);
     const blendLabel = getBlendLabel(blendScore);
 
-    // Nearby popular amounts
+    // Nearby popular amounts — discover via 2-decimal grouping, then rescore
     const rangeLower = Math.round(amountZat * 0.2);
     const rangeUpper = Math.round(amountZat * 5);
+    const since30d = getPeriodStart('30d');
 
     const { rows: popularRows } = await pool.query(`
       SELECT
-        ROUND(amount_zat / 100000000.0, 2) AS amount_zec,
-        COUNT(*) AS cnt
+        ROUND(amount_zat / 100000000.0, 2) AS amount_zec
       FROM shielded_flows
       WHERE amount_zat BETWEEN $1 AND $2
         AND block_time >= $3
         AND amount_zat >= 1000000
       GROUP BY ROUND(amount_zat / 100000000.0, 2)
       HAVING COUNT(*) >= 3
-      ORDER BY cnt DESC
-      LIMIT 10
-    `, [rangeLower, rangeUpper, getPeriodStart('30d')]);
+      ORDER BY COUNT(*) DESC
+      LIMIT 20
+    `, [rangeLower, rangeUpper, since30d]);
 
-    const nearbyPopular = popularRows.map(r => ({
-      amount: parseFloat(r.amount_zec),
-      count: parseInt(r.cnt),
-    }));
+    const nearbyAmounts = popularRows.map(r => Math.round(parseFloat(r.amount_zec) * ZATOSHI));
+
+    // Rescore with tight ±10000 zatoshi tolerance
+    const { rows: nearbyScored } = await pool.query(`
+      SELECT d.amt,
+        (SELECT COUNT(*) FROM shielded_flows
+         WHERE amount_zat BETWEEN d.amt - 10000 AND d.amt + 10000
+           AND block_time >= $1) AS cnt
+      FROM UNNEST($2::bigint[]) AS d(amt)
+    `, [since30d, nearbyAmounts]);
+
+    const nearbyPopular = nearbyScored
+      .map(r => {
+        const zatAmt = parseInt(r.amt);
+        const count = parseInt(r.cnt);
+        return {
+          amount: parseFloat((zatAmt / ZATOSHI).toFixed(4)),
+          count,
+          blendScore: computeBlendScore(count),
+        };
+      })
+      .filter(n => n.count >= 1)
+      .sort((a, b) => {
+        if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
+        return Math.abs(a.amount - amount) - Math.abs(b.amount - amount);
+      })
+      .slice(0, 10);
 
     const response = {
       amount,
