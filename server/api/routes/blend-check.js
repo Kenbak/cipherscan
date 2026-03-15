@@ -51,13 +51,13 @@ function getPeriodStart(period) {
 }
 
 function computeBlendScore(count30d) {
-  if (count30d >= 10000) return 95;
-  if (count30d >= 5000) return 85;
-  if (count30d >= 1000) return 75;
-  if (count30d >= 500) return 65;
-  if (count30d >= 100) return 50;
-  if (count30d >= 50) return 40;
-  if (count30d >= 10) return 25;
+  if (count30d >= 500) return 95;
+  if (count30d >= 200) return 85;
+  if (count30d >= 100) return 75;
+  if (count30d >= 50) return 65;
+  if (count30d >= 25) return 50;
+  if (count30d >= 10) return 40;
+  if (count30d >= 5) return 25;
   if (count30d >= 1) return 10;
   return 0;
 }
