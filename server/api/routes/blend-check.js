@@ -278,57 +278,65 @@ router.get('/api/blend-check/split', async (req, res) => {
     const originalCount = parseInt(origRows[0].cnt);
     const originalScore = computeBlendScore(originalCount);
 
-    // Only keep denominations that score better than the original,
-    // sorted largest-first so the greedy split uses fewer, bigger pieces
-    const denominations = rawDenoms.map(d => {
+    const scoredDenoms = rawDenoms.map(d => {
       const count = rescoreMap.get(d.amountZat) || 0;
       return { ...d, count, blendScore: computeBlendScore(count) };
-    }).filter(d => d.blendScore > originalScore)
-      .sort((a, b) => b.amountZat - a.amountZat);
+    }).filter(d => d.blendScore > originalScore);
+
+    // Two strategies: largest-first (fewer pieces) and smallest-first (best privacy per piece)
+    const denomsByAmountDesc = [...scoredDenoms].sort((a, b) => b.amountZat - a.amountZat);
+    const denomsByScoreDesc = [...scoredDenoms].sort((a, b) => {
+      if (a.blendScore !== b.blendScore) return b.blendScore - a.blendScore;
+      return a.amountZat - b.amountZat;
+    });
 
     const plans = [];
     const seenSigs = new Set();
 
-    for (let maxPieces = 2; maxPieces <= 6; maxPieces++) {
-      const pieces = greedySplit(amountZat, denominations, maxPieces);
+    const maxPiecesLimit = Math.min(Math.ceil(amountZat / (0.1 * ZATOSHI)), 12);
 
-      if (pieces.length <= 1) continue;
+    for (const denominations of [denomsByAmountDesc, denomsByScoreDesc]) {
+      for (let maxPieces = 2; maxPieces <= maxPiecesLimit; maxPieces++) {
+        const pieces = greedySplit(amountZat, denominations, maxPieces);
 
-      const sig = pieces.map(p => p.amountZat).sort((a, b) => b - a).join(',');
-      if (seenSigs.has(sig)) continue;
-      seenSigs.add(sig);
+        if (pieces.length <= 1) continue;
 
-      // Rescore remainders with same tight tolerance
-      for (const piece of pieces) {
-        if (piece.isRemainder) {
-          const { rows } = await pool.query(`
-            SELECT COUNT(*) AS cnt FROM shielded_flows
-            WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
-          `, [piece.amountZat - 10000, piece.amountZat + 10000, since30d]);
-          piece.count30d = parseInt(rows[0].cnt);
-          piece.blendScore = computeBlendScore(piece.count30d);
+        const sig = pieces.map(p => p.amountZat).sort((a, b) => b - a).join(',');
+        if (seenSigs.has(sig)) continue;
+        seenSigs.add(sig);
+
+        // Rescore remainders with same tight tolerance
+        for (const piece of pieces) {
+          if (piece.isRemainder) {
+            const { rows } = await pool.query(`
+              SELECT COUNT(*) AS cnt FROM shielded_flows
+              WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
+            `, [piece.amountZat - 10000, piece.amountZat + 10000, since30d]);
+            piece.count30d = parseInt(rows[0].cnt);
+            piece.blendScore = computeBlendScore(piece.count30d);
+          }
         }
+
+        const minScore = Math.min(...pieces.map(p => p.blendScore));
+
+        if (minScore <= originalScore) continue;
+
+        const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
+
+        plans.push({
+          pieceCount: pieces.length,
+          pieces: pieces.map(p => ({
+            amount: parseFloat((p.amountZat / ZATOSHI).toFixed(8)),
+            blendScore: p.blendScore,
+            blendLabel: getBlendLabel(p.blendScore),
+            count30d: p.count30d || p.count || 0,
+            isRemainder: !!p.isRemainder,
+          })),
+          minBlendScore: minScore,
+          avgBlendScore: Math.round(weightedAvg),
+          overallLabel: getBlendLabel(minScore),
+        });
       }
-
-      const minScore = Math.min(...pieces.map(p => p.blendScore));
-
-      if (minScore <= originalScore) continue;
-
-      const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
-
-      plans.push({
-        pieceCount: pieces.length,
-        pieces: pieces.map(p => ({
-          amount: parseFloat((p.amountZat / ZATOSHI).toFixed(8)),
-          blendScore: p.blendScore,
-          blendLabel: getBlendLabel(p.blendScore),
-          count30d: p.count30d || p.count || 0,
-          isRemainder: !!p.isRemainder,
-        })),
-        minBlendScore: minScore,
-        avgBlendScore: Math.round(weightedAvg),
-        overallLabel: getBlendLabel(minScore),
-      });
     }
 
     plans.sort((a, b) => {
