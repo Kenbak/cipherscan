@@ -77,6 +77,7 @@ export function Footer() {
             </span>
             <div className="flex flex-col gap-1.5">
               <Link href="/learn" className="footer-link text-xs font-mono">Learn Zcash</Link>
+              <Link href="/newsletter" className="footer-link text-xs font-mono">Newsletter</Link>
               <Link href="/about" className="footer-link text-xs font-mono">About</Link>
             </div>
           </div>
