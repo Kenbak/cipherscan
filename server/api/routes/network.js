@@ -563,7 +563,7 @@ router.get('/api/network/nodes', async (req, res) => {
  */
 router.get('/api/network/nodes/stats', async (req, res) => {
   try {
-    const [statsResult, topCountries, versionDist, trends] = await Promise.all([
+    const [statsResult, topCountries, trends] = await Promise.all([
       pool.query(`
         SELECT 
           COUNT(*) FILTER (WHERE is_active) as active_nodes,
@@ -584,14 +584,6 @@ router.get('/api/network/nodes/stats', async (req, res) => {
         WHERE is_active = TRUE
         GROUP BY country_code
         ORDER BY node_count DESC
-        LIMIT 10
-      `),
-      pool.query(`
-        SELECT version, COUNT(*) as count
-        FROM nodes
-        WHERE is_active = TRUE AND version IS NOT NULL AND version != ''
-        GROUP BY version
-        ORDER BY count DESC
         LIMIT 10
       `),
       pool.query(`
@@ -633,10 +625,6 @@ router.get('/api/network/nodes/stats', async (req, res) => {
         change7d: calcChange(trendRow.nodes_7d_ago),
         change30d: calcChange(trendRow.nodes_30d_ago),
       },
-      versionDistribution: versionDist.rows.map(r => ({
-        version: r.version,
-        count: parseInt(r.count),
-      })),
       topCountries: topCountries.rows.map(r => ({
         country: r.country,
         countryCode: r.country_code,

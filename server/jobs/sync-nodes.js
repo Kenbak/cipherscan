@@ -243,7 +243,6 @@ async function syncNodes() {
       const [ip, portStr] = addr.split(':');
       const port = parseInt(portStr) || 8233;
       const pingMs = (peer.pingtime || 0) * 1000;
-      const subver = peer.subver || null;
 
       if (!ip || ip === '0.0.0.0') continue;
 
@@ -261,12 +260,11 @@ async function syncNodes() {
               port = $2,
               inbound = $3,
               ping_ms = $4,
-              version = COALESCE($5, version),
-              is_tor = $6 OR is_tor,
+              is_tor = $5 OR is_tor,
               last_seen = NOW(),
               is_active = TRUE
             WHERE ip = $1
-          `, [ip, port, peer.inbound, pingMs, subver, isOnion]);
+          `, [ip, port, peer.inbound, pingMs, isOnion]);
           updated++;
 
           // Skip GeoIP if we already have location data
@@ -293,8 +291,8 @@ async function syncNodes() {
           } else {
             // Insert new node
             await pool.query(`
-              INSERT INTO nodes (ip, port, country, country_code, city, lat, lon, isp, inbound, ping_ms, version, is_tor)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+              INSERT INTO nodes (ip, port, country, country_code, city, lat, lon, isp, inbound, ping_ms, is_tor)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
               ON CONFLICT (ip) DO UPDATE SET
                 port = $2,
                 country = COALESCE($3, nodes.country),
@@ -305,27 +303,25 @@ async function syncNodes() {
                 isp = COALESCE($8, nodes.isp),
                 inbound = $9,
                 ping_ms = $10,
-                version = COALESCE($11, nodes.version),
-                is_tor = $12 OR nodes.is_tor,
+                is_tor = $11 OR nodes.is_tor,
                 last_seen = NOW(),
                 is_active = TRUE
-            `, [ip, port, geo.country, geo.countryCode, geo.city, geo.lat, geo.lon, geo.isp, peer.inbound, pingMs, subver, isOnion]);
+            `, [ip, port, geo.country, geo.countryCode, geo.city, geo.lat, geo.lon, geo.isp, peer.inbound, pingMs, isOnion]);
             newNodes++;
           }
         } else if (existing.rows.length === 0) {
           // Insert without geo data
           await pool.query(`
-            INSERT INTO nodes (ip, port, inbound, ping_ms, version, is_tor)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO nodes (ip, port, inbound, ping_ms, is_tor)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (ip) DO UPDATE SET
               port = $2,
               inbound = $3,
               ping_ms = $4,
-              version = COALESCE($5, nodes.version),
-              is_tor = $6 OR nodes.is_tor,
+              is_tor = $5 OR nodes.is_tor,
               last_seen = NOW(),
               is_active = TRUE
-          `, [ip, port, peer.inbound, pingMs, subver, isOnion]);
+          `, [ip, port, peer.inbound, pingMs, isOnion]);
           newNodes++;
         }
 
