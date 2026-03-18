@@ -262,25 +262,25 @@ export function NodeMap() {
   return (
     <div className="bg-cipher-card border border-cipher-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-cipher-border">
-        <div className="flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-primary">Network Node Map</h2>
-              <p className="text-xs text-muted">Global distribution of Zcash full nodes</p>
+              <h2 className="text-base sm:text-lg font-bold text-primary">Network Node Map</h2>
+              <p className="text-[10px] sm:text-xs text-muted">Global distribution of Zcash full nodes</p>
             </div>
           </div>
 
           {stats && (
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-5 sm:gap-6">
               <div className="text-center">
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="font-bold text-primary font-mono text-xl">{stats.activeNodes}</span>
+                  <span className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
                   {trends?.change24h !== null && trends?.change24h !== undefined && (
                     <span className={`text-[10px] font-mono font-semibold ${
                       trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-red-400' : 'text-muted'
@@ -292,12 +292,12 @@ export function NodeMap() {
                 <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-primary font-mono text-xl">{stats.countries}</div>
+                <div className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
               </div>
               {stats.torNodes > 0 && (
                 <div className="text-center">
-                  <div className="font-bold text-cipher-purple font-mono text-xl">{stats.torNodes}</div>
+                  <div className="font-bold text-cipher-purple font-mono text-lg sm:text-xl">{stats.torNodes}</div>
                   <div className="text-[10px] text-muted uppercase tracking-wider">Tor</div>
                 </div>
               )}
@@ -509,7 +509,7 @@ export function NodeMap() {
 
       {/* Trends */}
       {trends && (
-        <div className="px-6 py-3 border-t border-cipher-border">
+        <div className="px-4 sm:px-6 py-3 border-t border-cipher-border">
           <div className="flex items-center gap-4">
             <span className="text-[10px] text-muted uppercase tracking-wider font-mono">Trend</span>
             {[
@@ -534,31 +534,31 @@ export function NodeMap() {
 
       {/* Top Countries */}
       {topCountries.length > 0 && (
-        <div className="px-6 py-4 border-t border-cipher-border">
+        <div className="px-4 sm:px-6 py-4 border-t border-cipher-border">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-secondary">Top Countries</h3>
             {stats?.lastUpdated && (
-              <span className="text-[10px] text-muted font-mono">
+              <span className="text-[10px] text-muted font-mono hidden sm:inline">
                 Last sync: {new Date(stats.lastUpdated).toLocaleString()}
               </span>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {topCountries.slice(0, 10).map((country) => {
               const isActive = selectedCountry === country.countryCode;
               return (
                 <button
                   key={country.countryCode}
                   onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition-all ${
                     isActive
                       ? 'bg-cipher-cyan/10 border border-cipher-cyan/30 ring-1 ring-cipher-cyan/20'
                       : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'
                   }`}
                 >
-                  <span className="text-base">{getFlagEmoji(country.countryCode)}</span>
-                  <span className={`text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
-                  <span className="text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
+                  <span className="text-sm sm:text-base">{getFlagEmoji(country.countryCode)}</span>
+                  <span className={`text-[10px] sm:text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
+                  <span className="text-[10px] sm:text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
                     {country.nodeCount}
                   </span>
                 </button>

@@ -200,11 +200,10 @@ export default function NetworkPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> NETWORK_STATUS
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
             Network Overview
           </h1>
-          {/* Node status badge */}
           {health && (
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
@@ -227,16 +226,19 @@ export default function NetworkPage() {
       <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
         <MetricCard
           label="Block Height"
+          mobileLabel="Height"
           value={stats.network.height.toLocaleString()}
           tooltip="The latest block number confirmed on the Zcash blockchain."
         />
         <MetricCard
           label="Transactions (24h)"
+          mobileLabel="TXs (24h)"
           value={stats.blockchain.tx24h.toLocaleString()}
           tooltip="Total number of transactions processed in the last 24 hours."
         />
         <MetricCard
           label="Connected Peers"
+          mobileLabel="Peers"
           value={stats.network.peers.toString()}
           tooltip="Number of Zcash nodes currently connected to this explorer's node."
         />
@@ -392,15 +394,24 @@ export default function NetworkPage() {
 // ==========================================================================
 
 /** Compact top metric card */
-function MetricCard({ label, value, tooltip }: { label: string; value: string; tooltip?: string }) {
+function MetricCard({ label, mobileLabel, value, tooltip }: {
+  label: string; mobileLabel?: string; value: string; tooltip?: string;
+}) {
   return (
     <Card variant="compact">
       <CardBody>
-        <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
-          {label}
+        <div className="text-[10px] sm:text-xs text-muted font-mono uppercase sm:tracking-wider mb-1 flex items-center gap-1 whitespace-nowrap">
+          {mobileLabel ? (
+            <>
+              <span className="sm:hidden">{mobileLabel}</span>
+              <span className="hidden sm:inline">{label}</span>
+            </>
+          ) : (
+            <span>{label}</span>
+          )}
           {tooltip && <Tooltip content={tooltip} />}
         </div>
-        <div className="text-xl sm:text-2xl lg:text-3xl font-bold font-mono text-primary">{value}</div>
+        <div className="text-sm sm:text-2xl lg:text-3xl font-bold font-mono text-primary">{value}</div>
       </CardBody>
     </Card>
   );
@@ -489,7 +500,7 @@ function StatCard({ label, value, subtitle, status, tooltip }: {
           {label}
           {tooltip && <Tooltip content={tooltip} />}
         </div>
-        <div className={`text-lg sm:text-xl font-bold font-mono ${valueColor}`}>{value}</div>
+        <div className={`text-sm sm:text-xl font-bold font-mono ${valueColor} break-all`}>{value}</div>
         {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
       </CardBody>
     </Card>
