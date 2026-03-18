@@ -24,7 +24,19 @@ interface NodeStats {
   countries: number;
   cities: number;
   avgPingMs: number | null;
+  torNodes: number;
   lastUpdated: string;
+}
+
+interface NodeTrends {
+  change24h: number | null;
+  change7d: number | null;
+  change30d: number | null;
+}
+
+interface VersionInfo {
+  version: string;
+  count: number;
 }
 
 interface TopCountry {
@@ -135,6 +147,8 @@ export function NodeMap() {
   const [worldDots, setWorldDots] = useState<DotPosition[]>([]);
   const [locations, setLocations] = useState<NodeLocation[]>([]);
   const [stats, setStats] = useState<NodeStats | null>(null);
+  const [trends, setTrends] = useState<NodeTrends | null>(null);
+  const [versions, setVersions] = useState<VersionInfo[]>([]);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +187,8 @@ export function NodeMap() {
 
         setLocations(nodesData.locations || []);
         setStats(statsData.stats);
+        setTrends(statsData.trends || null);
+        setVersions(statsData.versionDistribution || []);
         setTopCountries(statsData.topCountries || []);
         setError(null);
       } catch (err: any) {
@@ -268,15 +284,30 @@ export function NodeMap() {
           </div>
 
           {stats && (
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="text-center">
-                <div className="font-bold text-primary font-mono text-xl">{stats.activeNodes}</div>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="font-bold text-primary font-mono text-xl">{stats.activeNodes}</span>
+                  {trends?.change24h !== null && trends?.change24h !== undefined && (
+                    <span className={`text-[10px] font-mono font-semibold ${
+                      trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-red-400' : 'text-muted'
+                    }`}>
+                      {trends.change24h > 0 ? '+' : ''}{trends.change24h}%
+                    </span>
+                  )}
+                </div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
               </div>
               <div className="text-center">
                 <div className="font-bold text-primary font-mono text-xl">{stats.countries}</div>
                 <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
               </div>
+              {stats.torNodes > 0 && (
+                <div className="text-center">
+                  <div className="font-bold text-cipher-purple font-mono text-xl">{stats.torNodes}</div>
+                  <div className="text-[10px] text-muted uppercase tracking-wider">Tor</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -482,6 +513,46 @@ export function NodeMap() {
           </div>
         </div>
       </div>
+
+      {/* Trends + Version Distribution */}
+      {(trends || versions.length > 0) && (
+        <div className="px-6 py-3 border-t border-cipher-border flex flex-wrap items-center gap-x-6 gap-y-2">
+          {/* Period trends */}
+          {trends && (
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] text-muted uppercase tracking-wider font-mono">Trend</span>
+              {[
+                { label: '24h', value: trends.change24h },
+                { label: '7d', value: trends.change7d },
+                { label: '30d', value: trends.change30d },
+              ].map(({ label, value }) => (
+                value !== null && value !== undefined ? (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted font-mono">{label}</span>
+                    <span className={`text-xs font-mono font-semibold ${
+                      value > 0 ? 'text-cipher-green' : value < 0 ? 'text-red-400' : 'text-muted'
+                    }`}>
+                      {value > 0 ? '+' : ''}{value}%
+                    </span>
+                  </div>
+                ) : null
+              ))}
+            </div>
+          )}
+
+          {/* Version distribution */}
+          {versions.length > 0 && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-[10px] text-muted uppercase tracking-wider font-mono">Versions</span>
+              {versions.slice(0, 3).map((v) => (
+                <span key={v.version} className="text-[10px] font-mono bg-cipher-bg/50 rounded px-2 py-0.5 text-secondary">
+                  {v.version.replace(/\//g, '')} <span className="text-muted">({v.count})</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Top Countries */}
       {topCountries.length > 0 && (

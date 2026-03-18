@@ -559,46 +559,84 @@ router.get('/api/network/nodes', async (req, res) => {
 
 /**
  * GET /api/network/nodes/stats
- * Get aggregated node statistics
+ * Get aggregated node statistics with Tor count, version distribution, and trends
  */
 router.get('/api/network/nodes/stats', async (req, res) => {
   try {
-    const stats = await pool.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE is_active) as active_nodes,
-        COUNT(*) as total_nodes,
-        COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
-        COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
-        ROUND(AVG(ping_ms) FILTER (WHERE is_active)::numeric, 1) as avg_ping_ms,
-        MAX(last_seen) as last_updated
-      FROM nodes
-    `);
+    const [statsResult, topCountries, versionDist, trends] = await Promise.all([
+      pool.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE is_active) as active_nodes,
+          COUNT(*) as total_nodes,
+          COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
+          COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
+          ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
+          COUNT(*) FILTER (WHERE is_active AND is_tor) as tor_nodes,
+          MAX(last_seen) as last_updated
+        FROM nodes
+      `),
+      pool.query(`
+        SELECT 
+          country_code,
+          MODE() WITHIN GROUP (ORDER BY country) as country,
+          COUNT(*) as node_count
+        FROM nodes 
+        WHERE is_active = TRUE
+        GROUP BY country_code
+        ORDER BY node_count DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT version, COUNT(*) as count
+        FROM nodes
+        WHERE is_active = TRUE AND version IS NOT NULL AND version != ''
+        GROUP BY version
+        ORDER BY count DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT
+          (SELECT active_nodes FROM node_snapshots
+           WHERE snapshot_time >= NOW() - INTERVAL '24 hours'
+           ORDER BY snapshot_time ASC LIMIT 1) as nodes_24h_ago,
+          (SELECT active_nodes FROM node_snapshots
+           WHERE snapshot_time >= NOW() - INTERVAL '7 days'
+           ORDER BY snapshot_time ASC LIMIT 1) as nodes_7d_ago,
+          (SELECT active_nodes FROM node_snapshots
+           WHERE snapshot_time >= NOW() - INTERVAL '30 days'
+           ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
+      `).catch(() => ({ rows: [{}] })),
+    ]);
 
-    // Top countries by node count (group by code to avoid "Netherlands" vs "The Netherlands" dupes)
-    const topCountries = await pool.query(`
-      SELECT 
-        country_code,
-        MODE() WITHIN GROUP (ORDER BY country) as country,
-        COUNT(*) as node_count
-      FROM nodes 
-      WHERE is_active = TRUE
-      GROUP BY country_code
-      ORDER BY node_count DESC
-      LIMIT 10
-    `);
+    const row = statsResult.rows[0];
+    const activeNodes = parseInt(row.active_nodes) || 0;
+    const trendRow = trends.rows[0] || {};
 
-    const row = stats.rows[0];
-    
+    const calcChange = (prev) => {
+      if (!prev || prev === 0) return null;
+      return parseFloat(((activeNodes - prev) / prev * 100).toFixed(1));
+    };
+
     res.json({
       success: true,
       stats: {
-        activeNodes: parseInt(row.active_nodes) || 0,
+        activeNodes,
         totalNodes: parseInt(row.total_nodes) || 0,
         countries: parseInt(row.countries) || 0,
         cities: parseInt(row.cities) || 0,
         avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+        torNodes: parseInt(row.tor_nodes) || 0,
         lastUpdated: row.last_updated,
       },
+      trends: {
+        change24h: calcChange(trendRow.nodes_24h_ago),
+        change7d: calcChange(trendRow.nodes_7d_ago),
+        change30d: calcChange(trendRow.nodes_30d_ago),
+      },
+      versionDistribution: versionDist.rows.map(r => ({
+        version: r.version,
+        count: parseInt(r.count),
+      })),
       topCountries: topCountries.rows.map(r => ({
         country: r.country,
         countryCode: r.country_code,
@@ -611,6 +649,53 @@ router.get('/api/network/nodes/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch node stats',
+    });
+  }
+});
+
+/**
+ * GET /api/network/node-history?period=30d
+ * Get historical node count snapshots for charting
+ */
+router.get('/api/network/node-history', async (req, res) => {
+  try {
+    const period = req.query.period || '30d';
+    const intervalMap = { '24h': '24 hours', '7d': '7 days', '30d': '30 days', '90d': '90 days' };
+    const interval = intervalMap[period] || '30 days';
+
+    const result = await pool.query(`
+      SELECT
+        snapshot_time,
+        active_nodes,
+        tor_nodes,
+        countries,
+        inbound_nodes,
+        outbound_nodes,
+        avg_ping_ms
+      FROM node_snapshots
+      WHERE snapshot_time >= NOW() - INTERVAL '${interval}'
+      ORDER BY snapshot_time ASC
+    `);
+
+    res.json({
+      success: true,
+      period,
+      snapshots: result.rows.map(r => ({
+        time: r.snapshot_time,
+        activeNodes: r.active_nodes,
+        torNodes: r.tor_nodes,
+        countries: r.countries,
+        inboundNodes: r.inbound_nodes,
+        outboundNodes: r.outbound_nodes,
+        avgPingMs: r.avg_ping_ms ? parseFloat(r.avg_ping_ms) : null,
+      })),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('❌ [NODE-HISTORY] Error fetching node history:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch node history',
     });
   }
 });

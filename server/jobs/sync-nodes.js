@@ -163,6 +163,30 @@ async function resolveSeeder(hostname) {
 }
 
 /**
+ * Fetch known Tor exit node IPs from the Tor Project's bulk exit list
+ */
+async function fetchTorExitNodes() {
+  return new Promise((resolve) => {
+    https.get('https://check.torproject.org/torbulkexitlist', (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        const ips = new Set(
+          data.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'))
+        );
+        console.log(`🧅 [NodeSync] Fetched ${ips.size} Tor exit node IPs`);
+        resolve(ips);
+      });
+    }).on('error', (err) => {
+      console.warn(`⚠️  [NodeSync] Could not fetch Tor exit list: ${err.message}`);
+      resolve(new Set());
+    });
+  });
+}
+
+/**
  * Main sync function
  */
 async function syncNodes() {
@@ -214,9 +238,12 @@ async function syncNodes() {
     let geoLookups = 0;
 
     for (const peer of peers) {
-      const [ip, portStr] = (peer.addr || '').split(':');
+      const addr = peer.addr || '';
+      const isOnion = addr.includes('.onion');
+      const [ip, portStr] = addr.split(':');
       const port = parseInt(portStr) || 8233;
-      const pingMs = (peer.pingtime || 0) * 1000; // Convert to ms
+      const pingMs = (peer.pingtime || 0) * 1000;
+      const subver = peer.subver || null;
 
       if (!ip || ip === '0.0.0.0') continue;
 
@@ -234,10 +261,12 @@ async function syncNodes() {
               port = $2,
               inbound = $3,
               ping_ms = $4,
+              version = COALESCE($5, version),
+              is_tor = $6 OR is_tor,
               last_seen = NOW(),
               is_active = TRUE
             WHERE ip = $1
-          `, [ip, port, peer.inbound, pingMs]);
+          `, [ip, port, peer.inbound, pingMs, subver, isOnion]);
           updated++;
 
           // Skip GeoIP if we already have location data
@@ -264,8 +293,8 @@ async function syncNodes() {
           } else {
             // Insert new node
             await pool.query(`
-              INSERT INTO nodes (ip, port, country, country_code, city, lat, lon, isp, inbound, ping_ms)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              INSERT INTO nodes (ip, port, country, country_code, city, lat, lon, isp, inbound, ping_ms, version, is_tor)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
               ON CONFLICT (ip) DO UPDATE SET
                 port = $2,
                 country = COALESCE($3, nodes.country),
@@ -276,23 +305,27 @@ async function syncNodes() {
                 isp = COALESCE($8, nodes.isp),
                 inbound = $9,
                 ping_ms = $10,
+                version = COALESCE($11, nodes.version),
+                is_tor = $12 OR nodes.is_tor,
                 last_seen = NOW(),
                 is_active = TRUE
-            `, [ip, port, geo.country, geo.countryCode, geo.city, geo.lat, geo.lon, geo.isp, peer.inbound, pingMs]);
+            `, [ip, port, geo.country, geo.countryCode, geo.city, geo.lat, geo.lon, geo.isp, peer.inbound, pingMs, subver, isOnion]);
             newNodes++;
           }
         } else if (existing.rows.length === 0) {
           // Insert without geo data
           await pool.query(`
-            INSERT INTO nodes (ip, port, inbound, ping_ms)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO nodes (ip, port, inbound, ping_ms, version, is_tor)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (ip) DO UPDATE SET
               port = $2,
               inbound = $3,
               ping_ms = $4,
+              version = COALESCE($5, nodes.version),
+              is_tor = $6 OR nodes.is_tor,
               last_seen = NOW(),
               is_active = TRUE
-          `, [ip, port, peer.inbound, pingMs]);
+          `, [ip, port, peer.inbound, pingMs, subver, isOnion]);
           newNodes++;
         }
 
@@ -376,14 +409,48 @@ async function syncNodes() {
     `);
     const inactiveCount = inactiveResult.rowCount;
 
-    // 6. Get final stats
+    // 6. Cross-reference with Tor exit node list
+    console.log('🧅 [NodeSync] Checking Tor exit node list...');
+    const torExitIPs = await fetchTorExitNodes();
+    if (torExitIPs.size > 0) {
+      const torResult = await pool.query(`
+        UPDATE nodes SET is_tor = TRUE
+        WHERE ip = ANY($1::varchar[]) AND is_active = TRUE AND is_tor = FALSE
+        RETURNING id
+      `, [[...torExitIPs]]);
+      console.log(`🧅 [NodeSync] Flagged ${torResult.rowCount} additional Tor exit nodes`);
+    }
+
+    // 7. Get final stats + record snapshot for historical tracking
     const stats = await pool.query(`
       SELECT
         COUNT(*) FILTER (WHERE is_active) as active,
         COUNT(*) as total,
-        COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries
+        COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
+        COUNT(*) FILTER (WHERE is_active AND is_tor) as tor,
+        COUNT(*) FILTER (WHERE is_active AND inbound = TRUE) as inbound,
+        COUNT(*) FILTER (WHERE is_active AND (inbound = FALSE OR inbound IS NULL)) as outbound,
+        ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 3) as avg_ping
       FROM nodes
     `);
+
+    const snap = stats.rows[0];
+    try {
+      await pool.query(`
+        INSERT INTO node_snapshots (active_nodes, total_nodes, countries, tor_nodes, inbound_nodes, outbound_nodes, avg_ping_ms)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        parseInt(snap.active), parseInt(snap.total), parseInt(snap.countries),
+        parseInt(snap.tor), parseInt(snap.inbound), parseInt(snap.outbound),
+        snap.avg_ping ? parseFloat(snap.avg_ping) : null,
+      ]);
+
+      // Prune snapshots older than 90 days
+      await pool.query(`DELETE FROM node_snapshots WHERE snapshot_time < NOW() - INTERVAL '90 days'`);
+      console.log(`📸 [NodeSync] Recorded snapshot: ${snap.active} active, ${snap.tor} Tor, ${snap.countries} countries`);
+    } catch (snapErr) {
+      console.warn(`⚠️  [NodeSync] Could not record snapshot (table may not exist yet): ${snapErr.message}`);
+    }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`
@@ -395,9 +462,10 @@ async function syncNodes() {
    - Updated: ${updated}
    - GeoIP lookups: ${geoLookups}
    - Marked inactive: ${inactiveCount}
-   - Active nodes: ${stats.rows[0].active}
-   - Total nodes: ${stats.rows[0].total}
-   - Countries: ${stats.rows[0].countries}
+   - Active nodes: ${snap.active}
+   - Total nodes: ${snap.total}
+   - Countries: ${snap.countries}
+   - Tor nodes: ${snap.tor}
     `);
 
   } catch (error) {
