@@ -477,7 +477,7 @@ export function NodeMap() {
               <span className="font-mono font-bold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
                 {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
               </span>
-              {hoveredNode.avgPingMs && (
+              {hoveredNode.avgPingMs != null && hoveredNode.avgPingMs > 0 && (
                 <span className="text-muted font-mono">{hoveredNode.avgPingMs.toFixed(0)}ms</span>
               )}
             </div>
