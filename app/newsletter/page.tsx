@@ -54,7 +54,7 @@ export default function NewsletterPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       {issue.issue > 0 && (
-                        <span className="text-[10px] font-mono text-cipher-cyan bg-cipher-cyan/10 rounded px-2 py-0.5">
+                        <span className="text-[10px] font-mono text-cipher-yellow bg-cipher-yellow/10 rounded px-2 py-0.5">
                           #{issue.issue}
                         </span>
                       )}

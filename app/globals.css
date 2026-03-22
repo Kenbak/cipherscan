@@ -1524,6 +1524,23 @@
     100% { background-position: 200% 0; }
   }
 
+  /* Newsletter content styles */
+  .newsletter-content .nl-list li {
+    position: relative;
+    padding-left: 1rem;
+  }
+
+  .newsletter-content .nl-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.65em;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(244, 183, 40, 0.5);
+  }
+
   /* Reduced motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,
