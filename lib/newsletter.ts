@@ -101,7 +101,7 @@ export function markdownToHtml(md: string): string {
     const lines = block.split('\n').filter(l => l.startsWith('> ')).map(l => l.slice(2));
     const text = lines.join('\n');
 
-    const attrMatch = text.match(/^(.+)\n— (.+)$/s);
+    const attrMatch = text.match(/^([\s\S]+)\n— (.+)$/);
     if (attrMatch) {
       const quote = attrMatch[1].trim();
       const attribution = attrMatch[2].trim();
