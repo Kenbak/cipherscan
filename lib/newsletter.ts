@@ -88,11 +88,11 @@ export function markdownToHtml(md: string): string {
   // Headings — h2 gets section wrapper with anchor
   html = html.replace(/^#### (.+)$/gm, '<h4 class="text-base font-semibold text-primary mt-8 mb-3 font-mono">$1</h4>');
   html = html.replace(/^### (.+)$/gm, (_m, title) =>
-    `<h3 class="text-[17px] font-semibold text-primary mt-10 mb-4 font-mono flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-cipher-yellow/60 flex-shrink-0"></span>${title}</h3>`
+    `<h3 class="text-[15px] sm:text-[17px] font-semibold text-primary mt-8 sm:mt-10 mb-3 sm:mb-4 font-mono flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-cipher-yellow/60 flex-shrink-0"></span>${title}</h3>`
   );
   html = html.replace(/^## (.+)$/gm, (_m, title) => {
     const id = slugify(title);
-    return `<h2 id="${id}" class="text-xl font-bold text-primary mt-16 mb-6 font-mono flex items-center gap-3 scroll-mt-24 first:mt-0"><span class="text-cipher-yellow/50 text-sm font-normal">//</span>${title}</h2>`;
+    return `<h2 id="${id}" class="text-lg sm:text-xl font-bold text-primary mt-12 sm:mt-16 mb-4 sm:mb-6 font-mono flex items-center gap-2 sm:gap-3 scroll-mt-24 first:mt-0"><span class="text-cipher-yellow/50 text-sm font-normal">//</span>${title}</h2>`;
   });
   html = html.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-primary mt-12 mb-6 font-mono">$1</h1>');
 
@@ -105,7 +105,7 @@ export function markdownToHtml(md: string): string {
     if (attrMatch) {
       const quote = attrMatch[1].trim();
       const attribution = attrMatch[2].trim();
-      return `<blockquote class="rounded-xl p-6 my-6" style="background:var(--glass-3);border:1px solid var(--color-border-subtle)"><p class="text-secondary italic leading-relaxed text-[15px]">${quote}</p><footer class="mt-3 text-sm text-muted font-mono">— ${attribution}</footer></blockquote>`;
+      return `<blockquote class="rounded-xl p-4 sm:p-6 my-6" style="background:var(--glass-3);border:1px solid var(--color-border-subtle)"><p class="text-secondary italic leading-relaxed text-[14px] sm:text-[15px]">${quote}</p><footer class="mt-3 text-xs sm:text-sm text-muted font-mono">— ${attribution}</footer></blockquote>`;
     }
 
     return `<blockquote class="border-l-2 border-cipher-yellow/40 pl-5 my-6"><p class="text-secondary italic leading-relaxed">${text.replace(/\n/g, '<br/>')}</p></blockquote>`;
@@ -126,10 +126,10 @@ export function markdownToHtml(md: string): string {
     const isSeparator = (row: string) => /^\|[\s\-:|]+\|$/.test(row.trim());
     const dataStart = isSeparator(rows[1]) ? 2 : 1;
 
-    let table = '<div class="overflow-x-auto my-6 rounded-xl" style="border:1px solid var(--color-border-subtle);background:var(--glass-2)"><table class="w-full text-sm border-collapse">';
+    let table = '<div class="overflow-x-auto rounded-xl" style="border:1px solid var(--color-border-subtle);background:var(--glass-2);margin:2.5rem 0"><table class="w-full text-sm border-collapse">';
     table += '<thead><tr>';
     headerCells.forEach(cell => {
-      table += `<th class="text-left text-[10px] font-mono text-cipher-yellow/50 uppercase tracking-widest px-5 py-3" style="border-bottom:1px solid var(--color-border-subtle)">${cell}</th>`;
+      table += `<th class="text-left text-[10px] font-mono text-cipher-yellow/50 uppercase tracking-widest px-3 sm:px-5 py-3" style="border-bottom:1px solid var(--color-border-subtle)">${cell}</th>`;
     });
     table += '</tr></thead><tbody>';
 
@@ -138,7 +138,7 @@ export function markdownToHtml(md: string): string {
       const isEven = (i - dataStart) % 2 === 1;
       table += `<tr${isEven ? ' style="background:var(--glass-2)"' : ''}>`;
       cells.forEach(cell => {
-        table += `<td class="px-5 py-2.5 text-secondary">${cell}</td>`;
+        table += `<td class="px-3 sm:px-5 py-2.5 text-secondary text-sm">${cell}</td>`;
       });
       table += '</tr>';
     }
@@ -165,6 +165,10 @@ export function markdownToHtml(md: string): string {
     .map(block => {
       const trimmed = block.trim();
       if (!trimmed) return '';
+      const isLabel = /^<strong[^>]*>[^<]+:<\/strong>$/.test(trimmed);
+      if (isLabel) {
+        return `<p class="text-secondary leading-[1.75] mt-8 mb-2">${trimmed}</p>`;
+      }
       if (trimmed.startsWith('<')) return trimmed;
       return `<p class="text-secondary leading-[1.75] my-4">${trimmed.replace(/\n/g, '<br/>')}</p>`;
     })

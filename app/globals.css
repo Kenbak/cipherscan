@@ -1525,6 +1525,22 @@
   }
 
   /* Newsletter content styles */
+  .newsletter-content {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .newsletter-content img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .newsletter-content pre {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .newsletter-content .nl-list li {
     position: relative;
     padding-left: 1rem;
@@ -1540,6 +1556,13 @@
     border-radius: 50%;
     background: var(--color-yellow);
     opacity: 0.45;
+  }
+
+  @media (max-width: 640px) {
+    .newsletter-content .nl-list li {
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
   }
 
   /* Reduced motion for accessibility */

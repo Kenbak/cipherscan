@@ -74,7 +74,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
 
       {/* Mobile TOC */}
       {sections.length > 3 && (
-        <details className="xl:hidden mb-10 bg-[#0d1117] border border-cipher-border/30 rounded-lg">
+        <details className="xl:hidden mb-10 border rounded-lg" style={{ background: 'var(--glass-2)', borderColor: 'var(--color-border-subtle)' }}>
           <summary className="px-4 py-3 text-sm font-mono text-muted cursor-pointer hover:text-primary transition-colors">
             Jump to section
           </summary>
@@ -83,7 +83,8 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="text-xs font-mono text-secondary hover:text-cipher-cyan transition-colors bg-cipher-border/20 rounded px-2 py-1"
+                className="text-xs font-mono text-secondary hover:text-cipher-cyan transition-colors rounded px-2 py-1"
+                style={{ background: 'var(--glass-3)' }}
               >
                 {s.title}
               </a>
