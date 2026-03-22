@@ -1538,7 +1538,8 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: rgba(244, 183, 40, 0.5);
+    background: var(--color-yellow);
+    opacity: 0.45;
   }
 
   /* Reduced motion for accessibility */

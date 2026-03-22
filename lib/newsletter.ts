@@ -79,11 +79,11 @@ export function markdownToHtml(md: string): string {
 
   // Code blocks
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) =>
-    `<pre class="bg-[var(--color-surface)] rounded-xl p-5 overflow-x-auto text-sm font-mono text-secondary my-6 border border-cipher-border/30"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`
+    `<pre class="rounded-xl p-5 overflow-x-auto text-sm font-mono text-secondary my-6" style="background:var(--glass-3);border:1px solid var(--color-border-subtle)"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`
   );
 
   // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-[var(--color-hover)] rounded px-1.5 py-0.5 text-[13px] font-mono text-cipher-yellow border border-cipher-border/30">$1</code>');
+  html = html.replace(/`([^`]+)`/g, '<code class="rounded px-1.5 py-0.5 text-[13px] font-mono text-cipher-yellow" style="background:var(--glass-4);border:1px solid var(--color-border-subtle)">$1</code>');
 
   // Headings — h2 gets section wrapper with anchor
   html = html.replace(/^#### (.+)$/gm, '<h4 class="text-base font-semibold text-primary mt-8 mb-3 font-mono">$1</h4>');
@@ -105,14 +105,14 @@ export function markdownToHtml(md: string): string {
     if (attrMatch) {
       const quote = attrMatch[1].trim();
       const attribution = attrMatch[2].trim();
-      return `<blockquote class="bg-[var(--color-surface)] border border-cipher-border/30 rounded-xl p-6 my-6"><p class="text-secondary italic leading-relaxed text-[15px]">${quote}</p><footer class="mt-3 text-sm text-muted font-mono">— ${attribution}</footer></blockquote>`;
+      return `<blockquote class="rounded-xl p-6 my-6" style="background:var(--glass-3);border:1px solid var(--color-border-subtle)"><p class="text-secondary italic leading-relaxed text-[15px]">${quote}</p><footer class="mt-3 text-sm text-muted font-mono">— ${attribution}</footer></blockquote>`;
     }
 
     return `<blockquote class="border-l-2 border-cipher-yellow/40 pl-5 my-6"><p class="text-secondary italic leading-relaxed">${text.replace(/\n/g, '<br/>')}</p></blockquote>`;
   });
 
-  // Horizontal rules — section dividers with generous breathing room
-  html = html.replace(/^---$/gm, '<div style="padding:3rem 0"><hr class="border-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" /></div>');
+  // Horizontal rules — section dividers
+  html = html.replace(/^---$/gm, '<div style="padding:3rem 0"><hr style="border:none;height:1px;background:var(--color-border-subtle)" /></div>');
 
   // Tables — card-style containers
   html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (_match) => {
@@ -126,17 +126,17 @@ export function markdownToHtml(md: string): string {
     const isSeparator = (row: string) => /^\|[\s\-:|]+\|$/.test(row.trim());
     const dataStart = isSeparator(rows[1]) ? 2 : 1;
 
-    let table = '<div class="overflow-x-auto my-6 rounded-xl border border-white/[0.04] bg-white/[0.02]"><table class="w-full text-sm border-collapse">';
+    let table = '<div class="overflow-x-auto my-6 rounded-xl" style="border:1px solid var(--color-border-subtle);background:var(--glass-2)"><table class="w-full text-sm border-collapse">';
     table += '<thead><tr>';
     headerCells.forEach(cell => {
-      table += `<th class="text-left text-[10px] font-mono text-cipher-yellow/50 uppercase tracking-widest px-5 py-3 border-b border-white/[0.04]">${cell}</th>`;
+      table += `<th class="text-left text-[10px] font-mono text-cipher-yellow/50 uppercase tracking-widest px-5 py-3" style="border-bottom:1px solid var(--color-border-subtle)">${cell}</th>`;
     });
     table += '</tr></thead><tbody>';
 
     for (let i = dataStart; i < rows.length; i++) {
       const cells = parseRow(rows[i]);
       const isEven = (i - dataStart) % 2 === 1;
-      table += `<tr class="${isEven ? 'bg-white/[0.015]' : ''}">`;
+      table += `<tr${isEven ? ' style="background:var(--glass-2)"' : ''}>`;
       cells.forEach(cell => {
         table += `<td class="px-5 py-2.5 text-secondary">${cell}</td>`;
       });
