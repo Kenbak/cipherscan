@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { detectAddressType } from '@/lib/zcash';
 import { findAddressByLabel, searchAddressesByLabel, fetchOfficialLabels } from '@/lib/address-labels';
 import { isValidName } from 'zcashname-sdk';
+import { isZnsEnabled } from '@/lib/zns';
 
 interface SearchBarProps {
   compact?: boolean; // Mode compact pour la navbar
@@ -139,7 +140,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       const addressByLabel = findAddressByLabel(trimmedQuery);
       if (addressByLabel) {
         router.push(`/address/${encodeURIComponent(addressByLabel)}`);
-      } else if (isValidName(trimmedQuery.toLowerCase())) {
+      } else if (isZnsEnabled() && isValidName(trimmedQuery.toLowerCase())) {
         router.push(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
       } else {
         console.warn('No matching address, transaction, or label found');
@@ -267,7 +268,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => query.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder="Search address, tx hash, block number..."
+            placeholder="Search address, tx, block, or name..."
             className="w-full pl-8 pr-3 py-2 text-sm search-input"
           />
           <SuggestionsDropdown />
@@ -306,7 +307,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               if (query.length >= 2 && suggestions.length > 0) setShowSuggestions(true);
             }}
             onBlur={() => setIsFocused(false)}
-            placeholder="Search address, tx, block, or label..."
+            placeholder="Search address, tx, block, or name..."
             className={`w-full pl-10 sm:pl-12 pr-28 sm:pr-36 py-4 sm:py-5 text-sm sm:text-base font-mono
               search-input-hero border-2 rounded-xl text-primary
               placeholder:text-muted transition-all duration-300
