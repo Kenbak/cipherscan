@@ -200,6 +200,41 @@ export default function NamePage() {
           </div>
         </div>
       </Card>
+
+      {/* Marketplace */}
+      <Card className="mb-6">
+        <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
+          <span className="text-cipher-text-muted opacity-50">{'>'}</span>
+          MARKETPLACE
+        </h2>
+        {resolved.listing ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Badge color="orange">FOR SALE</Badge>
+              <span className="text-lg font-mono font-bold text-cipher-yellow">
+                {(resolved.listing.price / 1e8).toFixed(2)} ZEC
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-cipher-text-muted">Listing Tx</span>
+              <div className="flex items-center">
+                <Link href={`/tx/${resolved.listing.txid}`} className="font-mono text-cipher-cyan hover:underline">
+                  {resolved.listing.txid.slice(0, 16)}...
+                </Link>
+                <CopyButton text={resolved.listing.txid} label="listing-txid" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-cipher-text-muted">Block</span>
+              <Link href={`/block/${resolved.listing.height}`} className="font-mono text-cipher-cyan hover:underline">
+                #{resolved.listing.height.toLocaleString()}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-cipher-text-muted">Not for sale</p>
+        )}
+      </Card>
     </div>
   );
 }
