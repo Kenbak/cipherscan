@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getZnsClient } from '@/lib/zns';
@@ -135,17 +135,8 @@ export default function NamePage() {
     );
   }
 
-  // Invalid name
-  if (!valid) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="flex items-center gap-4 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-mono font-bold break-all">{name}</h1>
-          <Badge color="orange">INVALID</Badge>
-        </div>
-      </div>
-    );
-  }
+  // Invalid name → 404
+  if (!valid) notFound();
 
   // Available name
   if (!resolved) {
