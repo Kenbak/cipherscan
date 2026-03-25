@@ -171,6 +171,35 @@ export default function NamePage() {
           <CopyButton text={resolved.address} label="address" />
         </div>
       </Card>
+
+      {/* Registration Details */}
+      <Card className="mb-6">
+        <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
+          <span className="text-cipher-text-muted opacity-50">{'>'}</span>
+          REGISTRATION
+        </h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-cipher-text-muted">Transaction</span>
+            <div className="flex items-center">
+              <Link href={`/tx/${resolved.txid}`} className="font-mono text-cipher-cyan hover:underline">
+                {resolved.txid.slice(0, 16)}...
+              </Link>
+              <CopyButton text={resolved.txid} label="txid" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-cipher-text-muted">Block</span>
+            <Link href={`/block/${resolved.height}`} className="font-mono text-cipher-cyan hover:underline">
+              #{resolved.height.toLocaleString()}
+            </Link>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-cipher-text-muted">Nonce</span>
+            <span className="font-mono">{resolved.nonce}</span>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
