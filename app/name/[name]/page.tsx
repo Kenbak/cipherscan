@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getZnsClient } from '@/lib/zns';
 import { isValidName } from 'zcashname-sdk';
+import { Badge } from '@/components/ui/Badge';
 import type { ResolveResult, StatusResult, EventsResult } from 'zcashname-sdk';
 
 export default function NamePage() {
@@ -87,7 +88,10 @@ export default function NamePage() {
   if (!valid) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <p>TODO: Invalid state for "{name}"</p>
+        <div className="flex items-center gap-4 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold break-all">{name}</h1>
+          <Badge color="orange">INVALID</Badge>
+        </div>
       </div>
     );
   }
@@ -96,7 +100,10 @@ export default function NamePage() {
   if (!resolved) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <p>TODO: Available state for "{name}"</p>
+        <div className="flex items-center gap-4 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold break-all">{name}</h1>
+          <Badge color="green">AVAILABLE</Badge>
+        </div>
       </div>
     );
   }
@@ -104,7 +111,10 @@ export default function NamePage() {
   // Registered name
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <p>TODO: Registered state for "{name}" → {resolved.address}</p>
+      <div className="flex items-center gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-mono font-bold break-all">{name}</h1>
+        <Badge color="cyan">REGISTERED</Badge>
+      </div>
     </div>
   );
 }
