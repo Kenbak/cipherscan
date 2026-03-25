@@ -9,6 +9,14 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import type { ResolveResult, StatusResult, EventsResult } from 'zcashname-sdk';
 
+const EVENT_COLORS: Record<string, 'green' | 'orange' | 'cyan' | 'purple' | 'muted'> = {
+  CLAIM: 'green',
+  LIST: 'orange',
+  BUY: 'cyan',
+  UPDATE: 'purple',
+  DELIST: 'muted',
+};
+
 function truncateAddress(addr: string): string {
   if (addr.length <= 30) return addr;
   return `${addr.slice(0, 20)}...${addr.slice(-8)}`;
@@ -70,17 +78,21 @@ export default function NamePage() {
     async function fetchData() {
       try {
         const client = await getZnsClient();
-        const [resolveResult, eventsResult, statusResult] = await Promise.all([
+        const [resolveResult, statusResult] = await Promise.all([
           client.resolve(name),
-          client.events({ name }),
           client.status(),
         ]);
 
         if (cancelled) return;
 
         setResolved(resolveResult);
-        setEvents(eventsResult);
         setStatus(statusResult);
+
+        // Events endpoint may not be deployed yet — fail silently
+        try {
+          const eventsResult = await client.events({ name });
+          if (!cancelled) setEvents(eventsResult);
+        } catch {}
       } catch (err) {
         if (cancelled) return;
         setError('Unable to reach ZNS indexer. Please try again.');
@@ -235,6 +247,41 @@ export default function NamePage() {
           <p className="text-sm text-cipher-text-muted">Not for sale</p>
         )}
       </Card>
+
+      {/* Event History */}
+      {events && events.events.length > 0 && (
+        <Card>
+          <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
+            <span className="text-cipher-text-muted opacity-50">{'>'}</span>
+            EVENT_HISTORY
+          </h2>
+          <div className="space-y-3">
+            {events.events.map((event) => (
+              <div key={event.id} className="flex items-center gap-3 text-sm flex-wrap">
+                <Badge color={EVENT_COLORS[event.action] || 'muted'}>
+                  {event.action}
+                </Badge>
+                <Link href={`/tx/${event.txid}`} className="font-mono text-cipher-cyan hover:underline">
+                  {event.txid.slice(0, 12)}...
+                </Link>
+                <Link href={`/block/${event.height}`} className="font-mono text-cipher-text-muted hover:text-cipher-cyan">
+                  #{event.height.toLocaleString()}
+                </Link>
+                {event.action === 'UPDATE' && event.ua && (
+                  <span className="font-mono text-cipher-text-muted text-xs">
+                    → {truncateAddress(event.ua)}
+                  </span>
+                )}
+                {(event.action === 'LIST' || event.action === 'BUY') && event.price != null && (
+                  <span className="font-mono text-cipher-yellow text-xs">
+                    {(event.price / 1e8).toFixed(2)} ZEC
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
