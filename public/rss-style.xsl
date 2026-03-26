@@ -58,7 +58,10 @@
             margin-bottom: 1.5rem;
           }
           .items { display: flex; flex-direction: column; gap: 1px; }
-          .item {
+          .item-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -66,17 +69,14 @@
             margin-bottom: 0.75rem;
             transition: border-color 0.15s;
           }
-          .item:hover { border-color: rgba(0, 212, 170, 0.3); }
+          .item-link:hover { border-color: rgba(0, 212, 170, 0.3); }
           .item-title {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
-          }
-          .item-title a {
             color: var(--primary);
-            text-decoration: none;
           }
-          .item-title a:hover { color: var(--cyan); }
+          .item-link:hover .item-title { color: var(--cyan); }
           .item-date {
             font-size: 0.75rem;
             color: var(--muted);
@@ -108,16 +108,12 @@
 
         <div class="items">
           <xsl:for-each select="/rss/channel/item">
-            <div class="item">
+            <a class="item-link">
+              <xsl:attribute name="href"><xsl:value-of select="link"/></xsl:attribute>
               <div class="item-date"><xsl:value-of select="pubDate"/></div>
-              <div class="item-title">
-                <a>
-                  <xsl:attribute name="href"><xsl:value-of select="link"/></xsl:attribute>
-                  <xsl:value-of select="title"/>
-                </a>
-              </div>
+              <div class="item-title"><xsl:value-of select="title"/></div>
               <div class="item-desc"><xsl:value-of select="description"/></div>
-            </div>
+            </a>
           </xsl:for-each>
         </div>
 

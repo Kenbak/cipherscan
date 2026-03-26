@@ -77,9 +77,12 @@ export const metadata: Metadata = {
   // Manifest for PWA
   manifest: "/manifest.json",
 
-  // Canonical
+  // Canonical + RSS
   alternates: {
     canonical: 'https://cipherscan.app',
+    types: {
+      'application/rss+xml': 'https://cipherscan.app/newsletter/rss',
+    },
   },
 
   // Category
