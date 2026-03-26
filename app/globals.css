@@ -1524,6 +1524,10 @@
     100% { background-position: 200% 0; }
   }
 
+  /* Hide scrollbar for horizontal overflow */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
   /* Newsletter content styles */
   .newsletter-content {
     word-break: break-word;

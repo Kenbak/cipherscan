@@ -9,7 +9,8 @@ import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, MAINNET_URL, TESTNET_URL } from '@/lib/config';
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+
 
 interface PriceData {
   price: number;
@@ -24,6 +25,7 @@ interface MenuItem {
 
 export function NavBar() {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
+  const [mempoolCount, setMempoolCount] = useState<number | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,30 @@ export function NavBar() {
     return () => clearInterval(priceInterval);
   }, []);
 
+  const usePostgresApi = usePostgresApiClient();
+
+  useEffect(() => {
+    const fetchMempoolCount = async () => {
+      try {
+        const apiUrl = usePostgresApi
+          ? `${getApiUrl()}/api/mempool`
+          : '/api/mempool';
+
+        const response = await fetch(apiUrl);
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (result.success) {
+          setMempoolCount(result.count ?? result.transactions?.length ?? 0);
+        }
+      } catch {}
+    };
+
+    fetchMempoolCount();
+    const interval = setInterval(fetchMempoolCount, 15000);
+    return () => clearInterval(interval);
+  }, [usePostgresApi]);
+
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -81,7 +107,6 @@ export function NavBar() {
     { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
     { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
     ...(isMainnet ? [{ href: '/crosschain', label: 'ZEC Crosschain', desc: 'Cross-chain swap analytics' }] : []),
-    { href: '/mempool', label: 'Mempool', desc: 'Pending transactions' },
   ];
 
   const toolsItems: MenuItem[] = [
@@ -161,6 +186,23 @@ export function NavBar() {
                   )}
                 </svg>
               </button>
+
+              {/* Mempool link (Desktop) */}
+              <Link
+                href="/mempool"
+                className="hidden md:flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
+              >
+                {mempoolCount !== null && mempoolCount > 0 && (
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-50"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
+                  </span>
+                )}
+                <span>Mempool</span>
+                {mempoolCount !== null && mempoolCount > 0 && (
+                  <span className="text-secondary">{mempoolCount}</span>
+                )}
+              </Link>
 
               {/* Explore Dropdown (Desktop) — the "everything drawer" */}
               <div className="hidden md:block relative" ref={toolsRef}>
@@ -328,6 +370,26 @@ export function NavBar() {
                   </Link>
                 )}
               </div>
+
+              {/* Mempool — promoted link */}
+              <Link
+                href="/mempool"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150 mb-1"
+              >
+                {mempoolCount !== null && mempoolCount > 0 && (
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-50"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
+                  </span>
+                )}
+                <span className="text-sm font-mono">Mempool</span>
+                {mempoolCount !== null && mempoolCount > 0 && (
+                  <span className="text-[11px] font-mono text-muted">{mempoolCount}</span>
+                )}
+              </Link>
+
+              <div className="border-t navbar-border my-2" />
 
               {/* Analytics */}
               <SectionLabel label="Analytics" />

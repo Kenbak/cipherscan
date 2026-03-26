@@ -3,6 +3,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { PrivacyWidget, type PrivacyStats, type RiskStats } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
+import { RecentMempool } from '@/components/RecentMempool';
 import { API_CONFIG } from '@/lib/api-config';
 
 interface Block {
@@ -198,6 +199,27 @@ export default async function Home() {
             </Link>
           </div>
         </div>
+
+      {/* Pending Mempool */}
+      <div className="mt-8 sm:mt-12 lg:mt-16">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+            <span className="text-muted opacity-50">{'>'}</span>
+            MEMPOOL
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
+            </span>
+            <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
+          </div>
+        </div>
+        <RecentMempool />
+        <Link href="/mempool" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+          View All Pending Transactions →
+        </Link>
+      </div>
     </div>
   );
 }
