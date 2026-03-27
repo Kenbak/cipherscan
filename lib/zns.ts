@@ -4,8 +4,8 @@ import type { Network } from './api-config';
 
 const ZNS_URLS: Record<Network, string | null> = {
   'mainnet':           null,
-  'testnet':           'https://light.zcash.me/zns',
-  'crosslink-testnet': 'https://light.zcash.me/zns',
+  'testnet':           'https://light.zcash.me/zns-testnet',
+  'crosslink-testnet': 'https://light.zcash.me/zns-testnet',
 };
 
 const ZNS_URL = process.env.NEXT_PUBLIC_ZNS_URL || ZNS_URLS[NETWORK];
