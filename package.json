@@ -34,7 +34,7 @@
     "topojson-client": "^3.1.0",
     "typescript": "^5.7.2",
     "viem": "^2.47.0",
-    "zcashname-sdk": "^0.2.3",
+    "zcashname-sdk": "^0.3.0",
     "zod": "^4.3.6"
   }
 }
