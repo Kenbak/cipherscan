@@ -3,11 +3,9 @@
 import { useParams, notFound } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getZnsClient } from '@/lib/zns';
 import { isValidName } from 'zcashname-sdk';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import type { ResolveResult, StatusResult, EventsResult } from 'zcashname-sdk';
 
 const EVENT_COLORS: Record<string, 'green' | 'orange' | 'cyan' | 'purple' | 'muted'> = {
   CLAIM: 'green',
@@ -28,9 +26,8 @@ export default function NamePage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [resolved, setResolved] = useState<ResolveResult | null>(null);
-  const [events, setEvents] = useState<EventsResult | null>(null);
-  const [status, setStatus] = useState<StatusResult | null>(null);
+  const [resolved, setResolved] = useState<any>(null);
+  const [events, setEvents] = useState<any>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   const valid = isValidName(name);
@@ -67,42 +64,13 @@ export default function NamePage() {
     </button>
   );
 
+  // TODO: fetch from /api/zns once the route exists
   useEffect(() => {
     if (!valid) {
       setLoading(false);
       return;
     }
-
-    let cancelled = false;
-
-    async function fetchData() {
-      try {
-        const client = await getZnsClient();
-        const [resolveResult, statusResult] = await Promise.all([
-          client.resolve(name),
-          client.status(),
-        ]);
-
-        if (cancelled) return;
-
-        setResolved(resolveResult);
-        setStatus(statusResult);
-
-        // Events endpoint may not be deployed yet — fail silently
-        try {
-          const eventsResult = await client.events({ name });
-          if (!cancelled) setEvents(eventsResult);
-        } catch {}
-      } catch (err) {
-        if (cancelled) return;
-        setError('Unable to reach ZNS indexer. Please try again.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchData();
-    return () => { cancelled = true; };
+    setLoading(false);
   }, [name, valid]);
 
   // Loading
@@ -238,7 +206,7 @@ export default function NamePage() {
             EVENT_HISTORY
           </h2>
           <div className="space-y-3">
-            {events.events.map((event) => (
+            {events.events.map((event: any) => (
               <div key={event.id} className="flex items-center gap-3 text-sm flex-wrap">
                 <Badge color={EVENT_COLORS[event.action] || 'muted'}>
                   {event.action}
