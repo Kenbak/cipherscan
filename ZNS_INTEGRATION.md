@@ -90,59 +90,54 @@ Zero dependencies, ~7 small files. Provides typed methods for `resolve`, `listin
 
 > **What changed:** The original integration had the browser calling the ZNS indexer directly via the SDK inside a `useEffect`. This was wrong. It caused CORS failures (the indexer is a JSON-RPC service, not a web app — it doesn't serve CORS headers) and broke the pattern every other data source in CipherScan follows.
 >
-> **The fix:** The SDK now lives entirely server-side. A new Next.js API route (`/api/zns`) proxies requests to the indexer. The browser only talks to CipherScan's own API, same as blocks, transactions, and addresses.
+> **The fix:** The SDK now lives entirely server-side. Names are a first-class resource in CipherScan's API — same as blocks, transactions, and addresses.
 >
 > **Before:** `browser → SDK → indexer` (CORS blocked)
-> **After:** `browser → /api/zns → SDK → indexer` (server-to-server, no CORS)
+> **After:** `browser → /api/name/[name] → SDK → indexer` (server-to-server, no CORS)
 
 #### Files changed
 
 ```
-app/api/zns/route.ts               — NEW: API proxy, forwards JSON-RPC to indexer via SDK
-lib/zns.ts                          — CHANGED: server-only, env var renamed to ZNS_URL
-app/name/[name]/page.tsx            — CHANGED: fetches from /api/zns instead of SDK
-app/docs/endpoints.ts               — CHANGED: new "Names" category documenting ZNS endpoints
-.env.example                        — CHANGED: added ZNS_URL (server-only)
+app/api/name/[name]/route.ts       — NEW: GET /api/name/[name] — resolve a name
+app/api/name/[name]/events/route.ts — NEW: GET /api/name/[name]/events — event history
+lib/zns.ts                          — CHANGED: server-only SDK client, per-network env vars
+app/name/[name]/page.tsx            — CHANGED: fetches from /api/name/ instead of SDK
+app/docs/endpoints.ts               — CHANGED: new "Names" category
+components/SearchBar.tsx             — CHANGED: removed isZnsEnabled() guard
 ```
 
-#### `app/api/zns/route.ts` — API proxy
+#### API routes
 
-Accepts POST requests with `{ method, params }`, forwards to the indexer via the SDK client, returns the JSON-RPC result. Follows the same error handling and caching pattern as `/api/tx/`, `/api/block/`, etc.
+Names are a resource, not an action. The API follows the same pattern as every other resource:
 
-Supported methods:
-- `resolve` — resolve a name to its registration + listing
-- `status` — indexer health, registered/listed counts, pricing
-- `events` — event history for a name
+```
+GET /api/name/:name          → registration, address, listing (60s cache)
+GET /api/name/:name/events   → event history (30s cache)
+```
+
+Both routes import `getClient()` from `lib/zns.ts`, call the SDK, and pass through the indexer response as-is. Error responses follow CipherScan conventions: 404 for not found, 502 for indexer failures.
 
 #### `lib/zns.ts` — server-only client
 
-The SDK singleton is now only imported by the API route. The `NEXT_PUBLIC_ZNS_URL` env var was renamed to `ZNS_URL` — no reason to expose the indexer URL to the browser anymore.
-
-`isZnsEnabled()` remains available client-side (it checks the network, not the URL).
+The SDK singleton is only imported by the API routes. Per-network env var overrides:
 
 ```ts
-// Server-only — imported by app/api/zns/route.ts
-const ZNS_URL = process.env.ZNS_URL || ZNS_URLS[NETWORK];
-
-export async function getZnsClient(): Promise<ZNSClient> {
-  if (!ZNS_URL) throw new Error('ZNS is not available on this network');
-  if (!client) {
-    client = await createClient(ZNS_URL);
-  }
-  return client;
-}
+const ZNS_URLS: Record<Network, string> = {
+  'mainnet':           process.env.ZNS_MAINNET_URL || 'https://light.zcash.me/zns-mainnet-test',
+  'testnet':           process.env.ZNS_TESTNET_URL || 'https://light.zcash.me/zns-testnet',
+  'crosslink-testnet': process.env.ZNS_TESTNET_URL || 'https://light.zcash.me/zns-testnet',
+};
 ```
 
 #### `app/name/[name]/page.tsx` — client component
 
-No longer imports the SDK. The `useEffect` now calls CipherScan's own API:
+No longer imports the SDK. The `useEffect` fetches from CipherScan's own API:
 
 ```ts
-const [resolved, status] = await Promise.all([
-  fetch('/api/zns', { method: 'POST', body: JSON.stringify({ method: 'resolve', params: { query: name } }) }),
-  fetch('/api/zns', { method: 'POST', body: JSON.stringify({ method: 'status' }) }),
-]);
+const res = await fetch(`/api/name/${encodeURIComponent(name)}`);
 ```
+
+Events are fetched separately and may fail silently — the page works without them.
 
 ### Search bar integration
 
@@ -151,17 +146,16 @@ In `SearchBar.tsx`, after existing detection logic:
 ```ts
 import { isValidName } from 'zcashname-sdk';
 
-// Pure regex check — no network call, safe on every keystroke
-if (isZnsEnabled() && isValidName(trimmedQuery.toLowerCase())) {
+if (isValidName(trimmedQuery.toLowerCase())) {
   router.push(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
 }
 ```
 
-ZNS name detection is the lowest priority in the search chain: Address > Block height > Tx hash > Block hash > Address label > ZNS name.
+ZNS is enabled on all networks. Name detection is the lowest priority in the search chain: Address > Block height > Tx hash > Block hash > Address label > ZNS name.
 
 ### Name detail page
 
-`page.tsx` is a `'use client'` component that fetches from `/api/zns` and handles all states (loading / error / registered / not found / invalid).
+`page.tsx` is a `'use client'` component that fetches from `/api/name/` and handles all states (loading / error / registered / not found / invalid).
 
 `layout.tsx` is a server component that generates SEO metadata.
 
@@ -209,13 +203,13 @@ Uses existing UI components: `Card`, `Badge`, monospace text for addresses/hashe
 
 The integration is network-aware from day one:
 
-| Network | ZNS URL | Status |
-|---------|---------|--------|
-| Testnet | `https://light.zcash.me/zns-testnet` | Active |
-| Mainnet | `null` (disabled) | When mainnet indexer launches |
-| Crosslink | `https://light.zcash.me/zns-testnet` | Same testnet indexer |
+| Network | ZNS URL | Env Override | Status |
+|---------|---------|--------------|--------|
+| Testnet | `https://light.zcash.me/zns-testnet` | `ZNS_TESTNET_URL` | Active |
+| Mainnet | `https://light.zcash.me/zns-mainnet-test` | `ZNS_MAINNET_URL` | Active |
+| Crosslink | `https://light.zcash.me/zns-testnet` | `ZNS_TESTNET_URL` | Same testnet indexer |
 
-Switching networks is a URL change in `lib/zns.ts`. Override with `ZNS_URL` env var (server-only). The SDK handles UIVK verification per-network.
+Env vars are server-only. The SDK handles UIVK verification per-network.
 
 ---
 

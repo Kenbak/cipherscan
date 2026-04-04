@@ -395,6 +395,76 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       },
       note: 'Zebra 3.0+ health endpoints available'
     }
+  },
+
+  // ============================================================================
+  // NAMES (ZNS — Zcash Name Service)
+  // ============================================================================
+  {
+    id: 'name-resolve',
+    category: 'Names',
+    method: 'GET',
+    path: '/api/name/:name',
+    description: 'Resolve a ZNS name to its registration, address, and marketplace listing',
+    params: [
+      { name: 'name', type: 'string', description: 'ZNS name (e.g., zechariah)' }
+    ],
+    example: `curl ${baseUrl}/api/name/zechariah`,
+    response: {
+      name: 'zechariah',
+      address: 'utest104mqp98n7awydj5ja3vux...',
+      txid: '6f6fbbce9c597f9ae7d5877e...',
+      height: 3932504,
+      nonce: 1,
+      signature: '8PEjZeZDg/v7xkS/...',
+      listing: {
+        name: 'zechariah',
+        price: 10000000000,
+        txid: '7ac64ad08dc8a85d...',
+        height: 3932507,
+        signature: 'eaBfFGlJeGAuL6S6...'
+      }
+    },
+    note: 'Returns 404 if the name is not registered. Listing is null if the name is not for sale. Price is in zatoshi (1 ZEC = 100,000,000 zatoshi).'
+  },
+  {
+    id: 'name-events',
+    category: 'Names',
+    method: 'GET',
+    path: '/api/name/:name/events',
+    description: 'Get the event history for a ZNS name (claims, listings, sales, updates)',
+    params: [
+      { name: 'name', type: 'string', description: 'ZNS name (e.g., zechariah)' }
+    ],
+    example: `curl ${baseUrl}/api/name/zechariah/events`,
+    response: {
+      events: [
+        {
+          id: 7,
+          name: 'zechariah',
+          action: 'LIST',
+          txid: '7ac64ad08dc8a85d...',
+          height: 3932507,
+          ua: 'utest104mqp98n7awydj5ja3vux...',
+          price: 10000000000,
+          nonce: 1,
+          signature: 'eaBfFGlJeGAuL6S6...'
+        },
+        {
+          id: 6,
+          name: 'zechariah',
+          action: 'CLAIM',
+          txid: '6f6fbbce9c597f9ae7d5877e...',
+          height: 3932504,
+          ua: 'utest104mqp98n7awydj5ja3vux...',
+          price: null,
+          nonce: null,
+          signature: '8PEjZeZDg/v7xkS/...'
+        }
+      ],
+      total: 2
+    },
+    note: 'Actions: CLAIM, LIST, DELIST, UPDATE, BUY. Returns events for names that were registered and later released too.'
   }
 ];
 
