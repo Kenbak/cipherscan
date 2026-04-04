@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
-interface WebSocketMessage {
+export interface WebSocketMessage {
   type: string;
   data: any;
 }
@@ -22,7 +22,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<any>(null);
+  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -48,8 +48,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          setLastMessage(message.data);
-          onMessage?.(message.data);
+          setLastMessage(message);
+          onMessage?.(message);
         } catch (error) {
           // Silently ignore parse errors
         }

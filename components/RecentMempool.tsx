@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Badge } from '@/components/ui';
 
 interface MempoolTx {
@@ -24,10 +25,35 @@ function getTypeBadge(type: string) {
   }
 }
 
+function classifyTxType(tx: any): 'shielded' | 'mixed' | 'transparent' {
+  const hasShielded = tx.hasOrchard || tx.hasSapling;
+  const hasTransparent = (tx.inputCount || 0) > 0 || (tx.outputCount || 0) > 0;
+  if (hasShielded && hasTransparent) return 'mixed';
+  if (hasShielded) return 'shielded';
+  return 'transparent';
+}
+
 export const RecentMempool = memo(function RecentMempool() {
   const [txs, setTxs] = useState<MempoolTx[]>([]);
   const [loading, setLoading] = useState(true);
   const usePostgresApi = usePostgresApiClient();
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (msg.type === 'mempool_tx' && msg.data?.txid) {
+      const tx: MempoolTx = {
+        txid: msg.data.txid,
+        size: msg.data.size || 0,
+        type: classifyTxType(msg.data),
+        time: msg.data.time || Math.floor(Date.now() / 1000),
+      };
+      setTxs(prev => [tx, ...prev].slice(0, 5));
+      setLoading(false);
+    } else if (msg.type === 'mempool_removed' && msg.data?.txid) {
+      setTxs(prev => prev.filter(t => t.txid !== msg.data.txid));
+    }
+  }, []);
+
+  useWebSocket({ onMessage: handleWsMessage });
 
   const fetchMempool = async () => {
     try {
@@ -51,7 +77,8 @@ export const RecentMempool = memo(function RecentMempool() {
 
   useEffect(() => {
     fetchMempool();
-    const interval = setInterval(fetchMempool, 15000);
+    // Slower fallback polling — WebSocket handles real-time updates
+    const interval = setInterval(fetchMempool, 30000);
     return () => clearInterval(interval);
   }, [usePostgresApi]);
 

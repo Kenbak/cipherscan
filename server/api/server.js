@@ -42,6 +42,9 @@ const {
   detectBatchForShield,
 } = require('./linkability');
 
+// Import Zebra gRPC client
+const { ZebraGrpcClient } = require('./zebra-grpc');
+
 // PostgreSQL connection pool
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -435,21 +438,81 @@ function broadcastNewBlock(block) {
 }
 
 // ============================================================================
-// BACKGROUND JOBS
+// ZEBRA GRPC STREAMING (real-time mempool + blocks)
 // ============================================================================
 
-// Poll for new blocks every 10 seconds
+let grpcConnected = false;
 let lastKnownHeight = 0;
 
+const zebraGrpc = new ZebraGrpcClient(
+  process.env.ZEBRA_GRPC_URL || null,
+  {
+    onMempoolChange: async (change) => {
+      if (change.type === 'ADDED') {
+        try {
+          const tx = await callZebraRPC('getrawtransaction', [change.txid, 1]);
+          if (tx) {
+            broadcastToAll({
+              type: 'mempool_tx',
+              data: {
+                txid: change.txid,
+                size: tx.size || 0,
+                fee: tx.fee || 0,
+                hasOrchard: (tx.orchard?.actions?.length || 0) > 0,
+                hasSapling: (tx.vShieldedSpend?.length || 0) > 0 || (tx.vShieldedOutput?.length || 0) > 0,
+                inputCount: tx.vin?.length || 0,
+                outputCount: tx.vout?.length || 0,
+                time: Math.floor(Date.now() / 1000),
+              },
+            });
+          }
+        } catch (err) {
+          broadcastToAll({ type: 'mempool_tx', data: { txid: change.txid } });
+        }
+      } else if (change.type === 'MINED') {
+        broadcastToAll({ type: 'mempool_removed', data: { txid: change.txid, reason: 'mined' } });
+      } else if (change.type === 'INVALIDATED') {
+        broadcastToAll({ type: 'mempool_removed', data: { txid: change.txid, reason: 'invalidated' } });
+      }
+    },
+
+    onChainTipChange: async (tip) => {
+      lastKnownHeight = tip.height;
+
+      // Wait briefly for cipherscan-rust indexer to process the block
+      await new Promise(r => setTimeout(r, 500));
+
+      try {
+        const blockResult = await pool.query('SELECT * FROM blocks WHERE height = $1', [tip.height]);
+        if (blockResult.rows.length > 0) {
+          broadcastNewBlock(blockResult.rows[0]);
+        } else {
+          broadcastNewBlock({ height: tip.height, hash: tip.hash });
+        }
+      } catch (err) {
+        broadcastNewBlock({ height: tip.height, hash: tip.hash });
+      }
+    },
+
+    onConnectionChange: (connected) => {
+      grpcConnected = connected;
+    },
+  }
+);
+
+zebraGrpc.start();
+
+// Fallback: poll for new blocks every 10s when gRPC is not connected
 setInterval(async () => {
+  if (grpcConnected) return;
+
   try {
     const result = await pool.query('SELECT MAX(height) as max_height FROM blocks');
     const currentHeight = result.rows[0]?.max_height || 0;
 
     if (currentHeight > lastKnownHeight) {
-      console.log(`📦 New block detected: ${currentHeight}`);
+      console.log(`📦 New block detected (poll fallback): ${currentHeight}`);
 
-      // Fetch the new block details
       const blockResult = await pool.query(
         `SELECT * FROM blocks WHERE height = $1`,
         [currentHeight]
@@ -466,8 +529,13 @@ setInterval(async () => {
   }
 }, 10000);
 
-// Network stats background update moved to routes/network.js
-// The module handles caching internally
+// Expose gRPC status for health checks
+app.get('/api/grpc-status', (req, res) => {
+  res.json({
+    connected: grpcConnected,
+    url: process.env.ZEBRA_GRPC_URL ? 'configured' : 'not configured',
+  });
+});
 
 // ============================================================================
 // ERROR HANDLING

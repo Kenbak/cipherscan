@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { MempoolBubbles } from '@/components/MempoolBubbles';
@@ -66,14 +67,47 @@ export default function MempoolPage() {
     }
   };
 
+  const handleWsMessage = useCallback((msg: any) => {
+    if (msg.type === 'mempool_tx' && msg.data?.txid) {
+      setData(prev => {
+        if (!prev) return prev;
+        const hasShielded = msg.data.hasOrchard || msg.data.hasSapling;
+        const hasTransparent = (msg.data.inputCount || 0) > 0 || (msg.data.outputCount || 0) > 0;
+        const type = hasShielded && hasTransparent ? 'mixed' : hasShielded ? 'shielded' : 'transparent';
+        const newTx: MempoolTransaction = {
+          txid: msg.data.txid,
+          size: msg.data.size || 0,
+          type: type as any,
+          time: msg.data.time || Math.floor(Date.now() / 1000),
+          vin: msg.data.inputCount || 0,
+          vout: msg.data.outputCount || 0,
+          vShieldedSpend: 0,
+          vShieldedOutput: 0,
+          orchardActions: 0,
+        };
+        const txs = [newTx, ...prev.transactions.filter(t => t.txid !== msg.data.txid)];
+        return { ...prev, transactions: txs, count: prev.count + 1, showing: txs.length };
+      });
+    } else if (msg.type === 'mempool_removed' && msg.data?.txid) {
+      setData(prev => {
+        if (!prev) return prev;
+        const txs = prev.transactions.filter(t => t.txid !== msg.data.txid);
+        return { ...prev, transactions: txs, count: Math.max(0, prev.count - 1), showing: txs.length };
+      });
+    }
+  }, []);
+
+  const { isConnected: wsConnected } = useWebSocket({ onMessage: handleWsMessage });
+
   useEffect(() => {
     fetchMempool();
 
     if (autoRefresh) {
-      const interval = setInterval(fetchMempool, 10000);
+      // Slower polling when WebSocket is active
+      const interval = setInterval(fetchMempool, wsConnected ? 30000 : 10000);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh]);
+  }, [autoRefresh, wsConnected]);
 
   const getTypeBadgeColor = (type: string): 'purple' | 'orange' | 'cyan' => {
     switch (type) {
