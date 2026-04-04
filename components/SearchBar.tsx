@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { detectAddressType } from '@/lib/zcash';
 import { findAddressByLabel, searchAddressesByLabel, fetchOfficialLabels } from '@/lib/address-labels';
 import { isValidName } from 'zcashname-sdk';
-import { isZnsEnabled } from '@/lib/zns';
 
 interface SearchBarProps {
   compact?: boolean; // Mode compact pour la navbar
@@ -140,7 +139,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       const addressByLabel = findAddressByLabel(trimmedQuery);
       if (addressByLabel) {
         router.push(`/address/${encodeURIComponent(addressByLabel)}`);
-      } else if (isZnsEnabled() && isValidName(trimmedQuery.toLowerCase())) {
+      } else if (isValidName(trimmedQuery.toLowerCase())) {
         router.push(`/name/${encodeURIComponent(trimmedQuery.toLowerCase())}`);
       } else {
         console.warn('No matching address, transaction, or label found');
