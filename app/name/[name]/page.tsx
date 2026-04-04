@@ -64,13 +64,50 @@ export default function NamePage() {
     </button>
   );
 
-  // TODO: fetch from /api/zns once the route exists
   useEffect(() => {
     if (!valid) {
       setLoading(false);
       return;
     }
-    setLoading(false);
+
+    let cancelled = false;
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`/api/name/${encodeURIComponent(name)}`);
+
+        if (cancelled) return;
+
+        if (res.status === 404) {
+          setLoading(false);
+          return;
+        }
+
+        if (!res.ok) {
+          setError('Unable to reach ZNS indexer. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        setResolved(await res.json());
+
+        // Events may fail — not critical
+        try {
+          const eventsRes = await fetch(`/api/name/${encodeURIComponent(name)}/events`);
+          if (!cancelled && eventsRes.ok) {
+            setEvents(await eventsRes.json());
+          }
+        } catch {}
+      } catch (err) {
+        if (cancelled) return;
+        setError('Unable to reach ZNS indexer. Please try again.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
   }, [name, valid]);
 
   // Loading
