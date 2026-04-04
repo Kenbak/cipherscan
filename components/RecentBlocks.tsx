@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface Block {
   height: number;
@@ -18,11 +19,34 @@ interface RecentBlocksProps {
   initialBlocks?: Block[];
 }
 
+function parseBlock(b: any): Block {
+  return {
+    height: parseInt(b.height ?? b.block_height),
+    hash: b.hash,
+    timestamp: parseInt(b.timestamp ?? b.block_time),
+    transactions: parseInt(b.transaction_count ?? b.transactions ?? 0),
+    size: parseInt(b.size ?? 0),
+  };
+}
+
 export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [loading, setLoading] = useState(initialBlocks.length === 0);
   const latestKey = useRef(initialBlocks[0]?.height ?? 0);
   const loadedOnce = useRef(initialBlocks.length > 0);
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (msg.type === 'new_block' && msg.data?.height) {
+      const newBlock = parseBlock(msg.data);
+      if (newBlock.height > latestKey.current) {
+        latestKey.current = newBlock.height;
+        setBlocks(prev => [newBlock, ...prev].slice(0, 5));
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const { isConnected: wsConnected } = useWebSocket({ onMessage: handleWsMessage });
 
   useEffect(() => {
     const fetchBlocks = async () => {
@@ -37,13 +61,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
           const newTopHeight = parseInt(data.blocks[0]?.height ?? data.blocks[0]?.block_height);
           if (newTopHeight !== latestKey.current) {
             latestKey.current = newTopHeight;
-            setBlocks(data.blocks.map((b: any) => ({
-              height: parseInt(b.height ?? b.block_height),
-              hash: b.hash,
-              timestamp: parseInt(b.timestamp ?? b.block_time),
-              transactions: parseInt(b.transaction_count ?? b.transactions ?? 0),
-              size: parseInt(b.size ?? 0),
-            })));
+            setBlocks(data.blocks.map(parseBlock));
           }
         }
       } catch (error) {
@@ -60,9 +78,9 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
       fetchBlocks();
     }
 
-    const interval = setInterval(fetchBlocks, 10000);
+    const interval = setInterval(fetchBlocks, wsConnected ? 60000 : 10000);
     return () => clearInterval(interval);
-  }, [initialBlocks.length]);
+  }, [initialBlocks.length, wsConnected]);
 
   if (loading) {
     return (
