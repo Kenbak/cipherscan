@@ -357,6 +357,7 @@ app.use(blendCheckRouter);
 // ============================================================================
 
 let clients = new Set();
+let rawMempoolSubscribers = 0;
 
 /**
  * Rate limit WebSocket connections using Redis
@@ -372,57 +373,93 @@ async function checkWebSocketRateLimit(ip) {
     const count = await redisClient.incr(key);
 
     if (count === 1) {
-      // First connection, set 1-minute TTL
       await redisClient.expire(key, 60);
     }
 
-    // Allow max 10 connections per minute per IP
     return count <= 10;
   } catch (err) {
     console.error('Redis rate limit error:', err);
-    return true; // Allow if error
+    return true;
   }
 }
 
 wss.on('connection', async (ws, req) => {
-  // Get client IP
   const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
 
-  // Check rate limit
   const allowed = await checkWebSocketRateLimit(ip);
   if (!allowed) {
     ws.close(1008, 'Rate limit exceeded. Max 10 connections per minute.');
     return;
   }
 
+  // Authenticate service clients via X-Service-Key header on upgrade
+  const serviceKey = req.headers['x-service-key'];
+  ws.isService = !!(serviceKey && SERVICE_API_KEYS.includes(serviceKey));
+  ws.subscriptions = new Set();
+
+  if (ws.isService) {
+    console.log(`🔑 [WS] Service client connected from ${ip}`);
+  }
+
   clients.add(ws);
 
-  ws.on('close', () => {
-    clients.delete(ws);
+  ws.on('message', (raw) => {
+    if (!ws.isService) return;
+    try {
+      const msg = JSON.parse(raw);
+      if (msg.subscribe === 'raw_mempool' && !ws.subscriptions.has('raw_mempool')) {
+        ws.subscriptions.add('raw_mempool');
+        rawMempoolSubscribers++;
+        console.log(`📡 [WS] Service client subscribed to raw_mempool (${rawMempoolSubscribers} total)`);
+        ws.send(JSON.stringify({ type: 'subscribed', channel: 'raw_mempool' }));
+      } else if (msg.unsubscribe === 'raw_mempool' && ws.subscriptions.has('raw_mempool')) {
+        ws.subscriptions.delete('raw_mempool');
+        rawMempoolSubscribers = Math.max(0, rawMempoolSubscribers - 1);
+        console.log(`📡 [WS] Service client unsubscribed from raw_mempool (${rawMempoolSubscribers} total)`);
+        ws.send(JSON.stringify({ type: 'unsubscribed', channel: 'raw_mempool' }));
+      }
+    } catch {}
   });
 
-  ws.on('error', () => {
+  const cleanup = () => {
+    if (ws.subscriptions.has('raw_mempool')) {
+      rawMempoolSubscribers = Math.max(0, rawMempoolSubscribers - 1);
+      console.log(`📡 [WS] raw_mempool subscriber disconnected (${rawMempoolSubscribers} remaining)`);
+    }
     clients.delete(ws);
-  });
+  };
 
-  // Client can call /api/network/stats to get initial data
+  ws.on('close', cleanup);
+  ws.on('error', cleanup);
 });
 
-// Broadcast message to all connected clients (local + Redis Pub/Sub)
-async function broadcastToAll(message) {
-  const messageStr = JSON.stringify(message);
+// Broadcast message to all connected clients (local + Redis Pub/Sub).
+// serviceExtra: optional object merged into data for raw_mempool subscribers only.
+async function broadcastToAll(message, serviceExtra = null) {
+  const regularStr = JSON.stringify(message);
 
-  // Broadcast to local WebSocket clients
+  let serviceStr = null;
+  if (serviceExtra && rawMempoolSubscribers > 0) {
+    serviceStr = JSON.stringify({
+      ...message,
+      data: { ...message.data, ...serviceExtra },
+    });
+  }
+
   clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(messageStr);
+    if (client.readyState !== WebSocket.OPEN) return;
+
+    if (serviceStr && client.isService && client.subscriptions?.has('raw_mempool')) {
+      client.send(serviceStr);
+    } else {
+      client.send(regularStr);
     }
   });
 
-  // Publish to Redis for multi-server support
+  // Publish regular payload to Redis for multi-server support
   try {
     if (redisPub.isOpen) {
-      await redisPub.publish('zcash:broadcast', messageStr);
+      await redisPub.publish('zcash:broadcast', regularStr);
     }
   } catch (err) {
     console.error('Redis publish error:', err);
@@ -452,19 +489,24 @@ const zebraGrpc = new ZebraGrpcClient(
         try {
           const tx = await callZebraRPC('getrawtransaction', [change.txid, 1]);
           if (tx) {
-            broadcastToAll({
-              type: 'mempool_tx',
-              data: {
-                txid: change.txid,
-                size: tx.size || 0,
-                fee: tx.fee || 0,
-                hasOrchard: (tx.orchard?.actions?.length || 0) > 0,
-                hasSapling: (tx.vShieldedSpend?.length || 0) > 0 || (tx.vShieldedOutput?.length || 0) > 0,
-                inputCount: tx.vin?.length || 0,
-                outputCount: tx.vout?.length || 0,
-                time: Math.floor(Date.now() / 1000),
-              },
-            });
+            const data = {
+              txid: change.txid,
+              size: tx.size || 0,
+              fee: tx.fee || 0,
+              hasOrchard: (tx.orchard?.actions?.length || 0) > 0,
+              hasSapling: (tx.vShieldedSpend?.length || 0) > 0 || (tx.vShieldedOutput?.length || 0) > 0,
+              inputCount: tx.vin?.length || 0,
+              outputCount: tx.vout?.length || 0,
+              time: Math.floor(Date.now() / 1000),
+            };
+
+            // tx.hex is included in the verbose response — pass it to
+            // service subscribers without an extra RPC call.
+            const serviceExtra = (rawMempoolSubscribers > 0 && tx.hex)
+              ? { raw_hex: tx.hex }
+              : null;
+
+            broadcastToAll({ type: 'mempool_tx', data }, serviceExtra);
           }
         } catch (err) {
           broadcastToAll({ type: 'mempool_tx', data: { txid: change.txid } });
@@ -529,11 +571,17 @@ setInterval(async () => {
   }
 }, 10000);
 
-// Expose gRPC status for health checks
+// Expose gRPC + WebSocket status for health checks
 app.get('/api/grpc-status', (req, res) => {
+  const serviceClients = [...clients].filter(c => c.isService && c.readyState === WebSocket.OPEN).length;
   res.json({
     connected: grpcConnected,
     url: process.env.ZEBRA_GRPC_URL ? 'configured' : 'not configured',
+    websocket: {
+      clients: [...clients].filter(c => c.readyState === WebSocket.OPEN).length,
+      serviceClients,
+      rawMempoolSubscribers,
+    },
   });
 });
 
