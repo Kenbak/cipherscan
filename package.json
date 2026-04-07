@@ -24,6 +24,7 @@
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.2.3",
     "@types/topojson-client": "^3.1.5",
+    "@xyflow/react": "^12.10.2",
     "autoprefixer": "^10.4.21",
     "bip39": "^3.1.0",
     "geist": "^1.7.0",

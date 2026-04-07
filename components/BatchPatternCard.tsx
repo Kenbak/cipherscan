@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { PrivacyClusterPanel } from '@/components/PrivacyClusterPanel';
-import { PrivacyTimelinePoint } from '@/components/PrivacyTimelineChart';
+import { PrivacyEventRail } from '@/components/PrivacyEventRail';
+import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 
 export interface BatchPattern {
   patternType: string;
@@ -52,87 +52,83 @@ function formatTime(timestamp: number) {
 }
 
 export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
+  const [showGraph, setShowGraph] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isHigh = pattern.warningLevel === 'HIGH';
 
   const clusterPanel = useMemo(() => {
-    const timelinePoints: PrivacyTimelinePoint[] = [
-      ...(pattern.matchingShield
-        ? [{
-            id: pattern.matchingShield.txid,
-            label: 'Anchor shield',
-            timestamp: pattern.matchingShield.blockTime,
-            value: Number(pattern.matchingShield.amountZec.toFixed(4)),
-            score: pattern.score,
-            kind: 'shield',
-          }]
-        : []),
-      ...pattern.txids.map((txid, index) => ({
-        id: txid,
-        label: `Batch member ${index + 1}`,
-        timestamp: pattern.times[index],
-        value: Number(pattern.perTxAmountZec.toFixed(4)),
-        score: pattern.score,
-        kind: 'deshield',
-      })),
-    ];
-
     const graphNodes = [
       ...(pattern.matchingShield
         ? [{
             id: pattern.matchingShield.txid,
             type: 'transaction' as const,
-            label: 'Shield',
+            label: 'Anchor shield',
             amountZec: pattern.matchingShield.amountZec,
             blockTime: pattern.matchingShield.blockTime,
+            subtitle: `${pattern.matchingShield.amountZec.toLocaleString()} ZEC`,
           }]
         : []),
-      ...pattern.txids.map((txid, index) => ({
-        id: txid,
-        type: 'transaction' as const,
-        label: `Deshield ${index + 1}`,
-        amountZec: pattern.perTxAmountZec,
-        blockTime: pattern.times[index],
-      })),
+      {
+        id: `cluster:${pattern.clusterHash || pattern.txids[0]}`,
+        type: 'cluster' as const,
+        label: `${pattern.batchCount} withdrawals`,
+        subtitle: `${pattern.perTxAmountZec.toFixed(4)} ZEC each in ${pattern.timeSpanHours < 24 ? `${Math.round(pattern.timeSpanHours)}h` : `${Math.round(pattern.timeSpanHours / 24)}d`}`,
+      },
       ...(pattern.breakdown.addressAnalysis?.topAddresses || []).slice(0, 3).map((address) => ({
         id: `address:${address}`,
         type: 'address' as const,
         label: address,
+        subtitle: 'Destination address',
       })),
     ];
 
     const graphEdges = [
-      ...(pattern.matchingShield
-        ? pattern.txids.map((txid, index) => ({
-            id: `${pattern.matchingShield?.txid}-${txid}`,
-            source: pattern.matchingShield!.txid,
-            target: txid,
+      ...(pattern.matchingShield ? [{
+            id: `${pattern.matchingShield.txid}-cluster`,
+            source: pattern.matchingShield.txid,
+            target: `cluster:${pattern.clusterHash || pattern.txids[0]}`,
             type: 'BATCH_LINK',
             confidence: pattern.score,
-            label: `${pattern.perTxAmountZec.toFixed(4)} ZEC`,
-          }))
-        : []),
-      ...(pattern.breakdown.addressAnalysis?.topAddresses?.[0]
-        ? pattern.txids.map((txid) => ({
-            id: `${txid}-${pattern.breakdown.addressAnalysis!.topAddresses[0]}`,
-            source: txid,
-            target: `address:${pattern.breakdown.addressAnalysis!.topAddresses[0]}`,
+            label: `${pattern.totalAmountZec.toLocaleString()} ZEC`,
+          }] : []),
+      ...((pattern.breakdown.addressAnalysis?.topAddresses || []).slice(0, 3).map((address, index) => ({
+            id: `cluster-${address}`,
+            source: `cluster:${pattern.clusterHash || pattern.txids[0]}`,
+            target: `address:${address}`,
             type: 'transparent_output',
             confidence: pattern.score,
-            label: 'output',
-          }))
-        : []),
+            label: index === 0 ? 'Recipients' : undefined,
+          }))),
     ];
 
     return {
-      timelinePoints,
       graphNodes,
       graphEdges,
     };
   }, [pattern]);
 
+  const burstPoints = useMemo(() => (
+    pattern.txids.slice(0, 8).map((txid, index) => ({
+      id: txid,
+      title: index === 0 ? 'Burst Starts' : index === pattern.txids.length - 1 ? 'Burst Ends' : `Tx ${index + 1}`,
+      subtitle: `${pattern.perTxAmountZec.toFixed(4)} ZEC`,
+      timestamp: pattern.times[index],
+      tone: 'deshield' as const,
+    }))
+  ), [pattern]);
+
+  const evidenceChips = useMemo(() => {
+    const chips = [];
+    if (pattern.matchingShield) chips.push('Anchor shield found');
+    if (pattern.timeSpanHours <= 2) chips.push('Tight burst window');
+    if (pattern.isRoundNumber) chips.push('Round repeated amount');
+    if ((pattern.sameAddressRatio || 0) >= 50) chips.push('Recipient reuse');
+    if ((pattern.ambiguityScore ?? 0) >= 50) chips.push('Competing explanations');
+    return chips.slice(0, 4);
+  }, [pattern]);
+
   return (
-    <div className="card card-compact">
+    <article className="card card-compact">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,7 +152,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-4 mb-3">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-lg font-bold font-mono text-primary shrink-0">{pattern.batchCount}×</span>
           <div className="min-w-0">
@@ -174,47 +170,82 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
         </div>
       </div>
 
-      {pattern.matchingShield && (
-        <div className="flex items-center gap-2 text-xs bg-cipher-surface/50 rounded-lg px-3 py-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-cipher-green shrink-0" />
-          <span className="text-secondary">Anchor shield:</span>
-          <Link href={`/tx/${pattern.matchingShield.txid}`} className="font-mono text-cipher-cyan hover:underline truncate">
-            {pattern.matchingShield.txid.slice(0, 12)}…
-          </Link>
-          <span className="text-muted shrink-0">
-            ({pattern.matchingShield.amountZec.toLocaleString()} ZEC)
+      <div className="mb-4 flex flex-wrap gap-2">
+        {evidenceChips.map((chip) => (
+          <span key={chip} className="rounded-full border border-cipher-border bg-cipher-surface/40 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-secondary">
+            {chip}
           </span>
+        ))}
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
+        <p className="text-base font-medium leading-relaxed text-primary text-balance">
+          A large shielded amount appears to have been unpacked into {pattern.batchCount} withdrawals of roughly {pattern.perTxAmountZec.toFixed(4)} ZEC.
+        </p>
+        <p className="mt-2 text-sm text-secondary">
+          This is the classic “split the pattern into chunks” move. The model scores whether the chunk size, burst timing, and matching shield still make the sequence attributable.
+        </p>
+      </div>
+
+      {pattern.matchingShield && (
+        <div className="grid gap-3 mb-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-cipher-green">Anchor Shield</p>
+            <p className="mt-1 text-sm text-primary">
+              {pattern.matchingShield.amountZec.toLocaleString()} ZEC entered the pool before this burst.
+            </p>
+            <p className="mt-1 text-xs text-secondary">
+              That conservation match is one of the strongest reasons this pattern stays suspicious.
+            </p>
+          </div>
+          <Link
+            href={`/tx/${pattern.matchingShield.txid}`}
+            className="font-mono text-cipher-cyan hover:underline truncate text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
+          >
+            {pattern.matchingShield.txid.slice(0, 16)}…
+          </Link>
         </div>
       )}
 
-      <p className="text-[11px] text-muted leading-relaxed mb-3">{pattern.explanation}</p>
-
       <div className="mb-3">
-        <PrivacyClusterPanel
-          title="Cluster timeline"
-          subtitle="Withdrawals are plotted in time order so split patterns and anchor timing are easier to see."
-          metrics={[
-            { label: 'Cluster', value: `${pattern.batchCount} txs` },
-            { label: 'Score', value: `${pattern.score}/100` },
-            { label: 'Ambiguity', value: `${pattern.ambiguityScore ?? 0}` },
-            { label: 'Margin', value: `${pattern.confidenceMargin ?? 0}` },
-          ]}
-          timelinePoints={clusterPanel.timelinePoints}
-          graphNodes={clusterPanel.graphNodes}
-          graphEdges={clusterPanel.graphEdges}
-          focusNodeId={pattern.matchingShield?.txid}
-        />
+        <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted">Burst Window</p>
+              <p className="mt-1 text-sm text-primary">
+                {pattern.batchCount} withdrawals over {pattern.timeSpanHours < 24 ? `${pattern.timeSpanHours.toFixed(1)} hours` : `${(pattern.timeSpanHours / 24).toFixed(1)} days`}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-right sm:grid-cols-4">
+              {[
+                { label: 'Score', value: `${pattern.score}` },
+                { label: 'Ambiguity', value: `${pattern.ambiguityScore ?? 0}` },
+                { label: 'Margin', value: `${pattern.confidenceMargin ?? 0}` },
+                { label: 'Recipients', value: `${pattern.addressCount ?? 0}` },
+              ].map((metric) => (
+                <div key={metric.label} className="rounded-xl border border-cipher-border bg-cipher-surface/20 px-3 py-2">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">{metric.label}</p>
+                  <p className="mt-1 text-lg font-mono tabular-nums text-primary">{metric.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <PrivacyEventRail points={burstPoints} mode="relative" />
+          <p className="mt-3 text-xs leading-relaxed text-secondary">{pattern.explanation}</p>
+        </div>
       </div>
 
       <div className="pt-2">
         <div className="h-px bg-glass-4 mb-2" aria-hidden />
         <div className="flex items-center justify-between gap-4">
           <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
+            onClick={() => setShowGraph(!showGraph)}
+            aria-label={showGraph ? 'Hide cluster graph' : 'Show cluster graph'}
+            className="text-xs text-cipher-cyan hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
           >
-            {expanded ? 'Hide' : 'Show'} member transactions
-            <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {showGraph ? 'Hide' : 'Show'} cluster graph
+            <svg className={`w-3 h-3 transition-transform ${showGraph ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -226,6 +257,31 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             <span>time +{pattern.breakdown.timeClustering.points}</span>
           </div>
         </div>
+      </div>
+
+      {showGraph && (
+        <div className="mt-3">
+          <PrivacyLinkGraph
+            nodes={clusterPanel.graphNodes}
+            edges={clusterPanel.graphEdges}
+            focusNodeId={`cluster:${pattern.clusterHash || pattern.txids[0]}`}
+            height={340}
+          />
+        </div>
+      )}
+
+      <div className="pt-2 mt-2">
+        <div className="h-px bg-glass-4 mb-2" aria-hidden />
+        <button
+          onClick={() => setExpanded(!expanded)}
+          aria-label={expanded ? 'Hide member transactions' : 'Show member transactions'}
+          className="text-xs text-cipher-cyan hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
+        >
+          {expanded ? 'Hide' : 'Show'} member transactions
+          <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
 
       {expanded && (
@@ -246,6 +302,6 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
           </div>
         </div>
       )}
-    </div>
+    </article>
   );
 }

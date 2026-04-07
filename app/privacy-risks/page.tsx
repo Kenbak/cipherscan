@@ -2,12 +2,10 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
 import { BatchPatternCard, BatchPattern } from '@/components/BatchPatternCard';
-import { PrivacyTimelineChart, PrivacyTimelinePoint } from '@/components/PrivacyTimelineChart';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
 interface RiskyTransaction {
@@ -271,25 +269,21 @@ function PrivacyRisksContent() {
   };
 
   const currentStats = activeTab === 'roundtrip' ? stats : batchStats;
-  const aggregateTimeline = useMemo<PrivacyTimelinePoint[]>(() => {
+  const spotlightItems = useMemo(() => {
     if (activeTab === 'roundtrip') {
-      return transactions.slice(0, 40).map((tx) => ({
+      return transactions.slice(0, 3).map((tx) => ({
         id: `${tx.shieldTxid}-${tx.deshieldTxid}`,
-        label: `${tx.shieldAmount.toFixed(4)} -> ${tx.deshieldAmount.toFixed(4)} ZEC`,
-        timestamp: tx.deshieldTime,
-        value: tx.score,
-        score: tx.score,
-        kind: tx.warningLevel,
+        title: `${tx.shieldAmount.toFixed(4)} → ${tx.deshieldAmount.toFixed(4)} ZEC`,
+        subtitle: `${tx.timeDelta.replace(' after', ' later')} • score ${tx.score}`,
+        tone: tx.warningLevel,
       }));
     }
 
-    return batchPatterns.slice(0, 40).map((pattern) => ({
+    return batchPatterns.slice(0, 3).map((pattern) => ({
       id: pattern.clusterHash || pattern.txids[0],
-      label: `${pattern.batchCount}x ${pattern.perTxAmountZec.toFixed(4)} ZEC`,
-      timestamp: pattern.firstTime,
-      value: pattern.batchCount,
-      score: pattern.score,
-      kind: pattern.warningLevel,
+      title: `${pattern.batchCount}× ${pattern.perTxAmountZec.toFixed(4)} ZEC`,
+      subtitle: `${pattern.timeSpanHours < 24 ? `${pattern.timeSpanHours.toFixed(1)}h` : `${(pattern.timeSpanHours / 24).toFixed(1)}d`} burst • score ${pattern.score}`,
+      tone: pattern.warningLevel,
     }));
   }, [activeTab, batchPatterns, transactions]);
 
@@ -313,7 +307,7 @@ function PrivacyRisksContent() {
           </div>
         </div>
         <p className="text-sm text-secondary mt-2">
-          Transactions where shielding patterns could reveal address ownership.
+          Transactions where amount, timing, and withdrawal structure can reveal address ownership.
         </p>
       </div>
 
@@ -420,6 +414,78 @@ function PrivacyRisksContent() {
             )}
           </div>
 
+          <div className="grid gap-4 mb-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]">
+            <div className="rounded-3xl border border-cipher-border bg-gradient-to-br from-cipher-surface/60 via-cipher-surface/30 to-cipher-surface/10 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-2xl">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-cipher-cyan">How To Read This</p>
+                  <h2 className="mt-2 text-xl font-semibold text-primary text-balance">
+                    {activeTab === 'roundtrip'
+                      ? 'A result is strong when the amount is distinctive and the same value returns quickly.'
+                      : 'A batch result is strong when a large shield later reappears as many equal withdrawals in one burst.'}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-secondary">
+                    {activeTab === 'roundtrip'
+                      ? 'Each card tells the story in plain language first, then shows the evidence: the two visible legs, their delay, and the scores that pushed the match above the threshold.'
+                      : 'Each card summarizes the anchor shield, the burst window, and whether chunking the amount still leaves a recognizable fingerprint.'}
+                  </p>
+                </div>
+
+                <div className="grid min-w-[220px] flex-1 gap-2 sm:grid-cols-2 xl:max-w-[340px]">
+                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">Detected</p>
+                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">
+                      {activeTab === 'roundtrip' ? (stats?.total || 0) : (batchStats?.filteredTotal || batchStats?.total || 0)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">High Risk</p>
+                    <p className="mt-1 text-2xl font-mono tabular-nums text-red-400">{currentStats?.highRisk || 0}</p>
+                  </div>
+                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">
+                      {activeTab === 'roundtrip' ? 'Average Score' : 'ZEC Flagged'}
+                    </p>
+                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">
+                      {activeTab === 'roundtrip'
+                        ? `${Math.round(stats?.avgScore || 0)}`
+                        : `${Math.round(batchStats?.totalZecFlagged || 0).toLocaleString()}`}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">Period</p>
+                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">{periodFilter}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-cipher-border bg-cipher-surface/20 p-5">
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted">Spotlight</p>
+              <div className="mt-4 space-y-3">
+                {spotlightItems.length > 0 ? spotlightItems.map((item) => (
+                  <div key={item.id} className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-medium text-primary">{item.title}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${
+                        item.tone === 'HIGH'
+                          ? 'bg-red-500/10 text-red-400'
+                          : item.tone === 'MEDIUM'
+                            ? 'bg-cipher-yellow/10 text-cipher-yellow'
+                            : 'bg-cipher-cyan/10 text-cipher-cyan'
+                      }`}>
+                        {item.tone}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-secondary">{item.subtitle}</p>
+                  </div>
+                )) : (
+                  <p className="text-sm text-secondary">Load a time window to see the strongest current examples.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Mobile-only: popular amounts as compact pills */}
           {commonAmounts.length > 0 && (
             <div className="lg:hidden mb-4 flex flex-wrap gap-1.5">
@@ -429,21 +495,6 @@ function PrivacyRisksContent() {
                   {amount.amountZec.toFixed(2)} ZEC
                 </span>
               ))}
-            </div>
-          )}
-
-          {aggregateTimeline.length > 0 && (
-            <div className="mb-4">
-              <div className="card card-compact">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
-                  <span className="opacity-50">{'>'}</span> {activeTab === 'roundtrip' ? 'LINKAGE_TIMELINE' : 'CLUSTER_TIMELINE'}
-                </p>
-                <PrivacyTimelineChart
-                  points={aggregateTimeline}
-                  height={180}
-                  yLabel={activeTab === 'roundtrip' ? 'Score' : 'Members'}
-                />
-              </div>
             </div>
           )}
 
