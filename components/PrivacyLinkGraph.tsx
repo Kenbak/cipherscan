@@ -17,7 +17,7 @@ import {
 
 interface PrivacyGraphNode {
   id: string;
-  type: 'transaction' | 'address' | 'cluster';
+  type: 'transaction' | 'address' | 'cluster' | 'pool';
   label: string;
   amountZec?: number;
   blockTime?: number;
@@ -46,31 +46,60 @@ function truncateLabel(label: string) {
 
 type GraphNodeData = Record<string, unknown> & PrivacyGraphNode & { isFocus: boolean };
 
+const palettes = {
+  txFocus: {
+    border: 'border-cipher-cyan/50',
+    bg: 'bg-cipher-cyan/10',
+    title: 'text-cipher-cyan',
+  },
+  tx: {
+    border: 'border-cipher-cyan-muted/40',
+    bg: 'bg-cipher-cyan/5',
+    title: 'text-cipher-cyan-muted',
+  },
+  cluster: {
+    border: 'border-cipher-green/40',
+    bg: 'bg-cipher-green/10',
+    title: 'text-cipher-green',
+  },
+  address: {
+    border: 'border-cipher-yellow/40',
+    bg: 'bg-cipher-yellow/10',
+    title: 'text-cipher-yellow',
+  },
+  pool: {
+    border: 'border-cipher-purple/30',
+    bg: 'bg-cipher-purple/5',
+    title: 'text-cipher-purple',
+  },
+};
+
 function GraphCardNode({ data }: NodeProps) {
   const node = data as GraphNodeData;
-  const palette = node.type === 'transaction'
-    ? node.isFocus
-      ? {
-          border: 'border-cipher-cyan/50',
-          bg: 'bg-cipher-cyan/10',
-          title: 'text-cipher-cyan',
-        }
-      : {
-          border: 'border-cipher-blue/40',
-          bg: 'bg-cipher-blue/10',
-          title: 'text-cipher-blue',
-        }
-    : node.type === 'cluster'
-      ? {
-          border: 'border-cipher-green/40',
-          bg: 'bg-cipher-green/10',
-          title: 'text-cipher-green',
-        }
-      : {
-          border: 'border-cipher-gold/40',
-          bg: 'bg-[#E8C48D]/10',
-          title: 'text-[#E8C48D]',
-        };
+
+  const palette =
+    node.type === 'pool' ? palettes.pool
+    : node.type === 'transaction' ? (node.isFocus ? palettes.txFocus : palettes.tx)
+    : node.type === 'cluster' ? palettes.cluster
+    : palettes.address;
+
+  if (node.type === 'pool') {
+    return (
+      <div className={`min-w-[180px] rounded-2xl border border-dashed px-5 py-4 ${palette.border} ${palette.bg}`}>
+        <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
+        <div className="flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-cipher-purple/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${palette.title}`}>
+            Shielded Pool
+          </p>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted">Privacy boundary</p>
+        <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
+      </div>
+    );
+  }
 
   return (
     <div className={`min-w-[160px] rounded-2xl border px-4 py-3 shadow-lg ${palette.border} ${palette.bg}`}>
@@ -101,6 +130,7 @@ function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?
   const leftAddresses = nodes.filter((node) => node.type === 'address' && addressSources.has(node.id));
   const rightAddresses = nodes.filter((node) => node.type === 'address' && addressTargets.has(node.id) && !addressSources.has(node.id));
   const clusters = nodes.filter((node) => node.type === 'cluster');
+  const poolNodes = nodes.filter((node) => node.type === 'pool');
   const txNodes = nodes
     .filter((node) => node.type === 'transaction')
     .sort((a, b) => (a.blockTime || 0) - (b.blockTime || 0));
@@ -113,14 +143,33 @@ function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?
   const positionColumn = (columnNodes: PrivacyGraphNode[], x: number, yStart: number, yGap: number) =>
     columnNodes.map((node, index) => [node.id, { x, y: yStart + index * yGap }] as const);
 
+  const hasPool = poolNodes.length > 0;
+  const hasCluster = clusters.length > 0;
+
+  const poolX = 500;
+  const focusX = hasPool ? 250 : 500;
+  const clusterX = hasPool ? 760 : 760;
+  const targetTxX = hasPool ? 760 : (hasCluster ? 1010 : 760);
+  const rightAddrX = hasPool ? 1010 : (hasCluster ? 1260 : 1010);
+
   return new Map([
     ...positionColumn(leftAddresses, 30, 30, 110),
     ...positionColumn(sourceTx, 250, 60, 120),
-    ...positionColumn(focusTx, 500, 150, 120),
-    ...positionColumn(clusters, 760, 150, 120),
-    ...positionColumn(targetTx, clusters.length > 0 ? 1010 : 760, 60, 120),
-    ...positionColumn(rightAddresses, clusters.length > 0 ? 1260 : 1010, 30, 110),
+    ...positionColumn(focusTx, focusX, hasPool ? 60 : 150, 120),
+    ...positionColumn(poolNodes, poolX, 80, 120),
+    ...positionColumn(clusters, clusterX, 150, 120),
+    ...positionColumn(targetTx, targetTxX, 60, 120),
+    ...positionColumn(rightAddresses, rightAddrX, 30, 110),
   ]);
+}
+
+function edgeStroke(type: string): string {
+  switch (type) {
+    case 'PAIR_LINK': return 'var(--color-cyan, #56D4C8)';
+    case 'transparent_output': return 'var(--color-yellow, #E8C48D)';
+    case 'pool_entry': return 'var(--color-purple, #A78BFA)';
+    default: return 'var(--color-blue, #5B9CF6)';
+  }
 }
 
 export function PrivacyLinkGraph({
@@ -133,7 +182,6 @@ export function PrivacyLinkGraph({
     return null;
   }
 
-  const width = 1440;
   const positions = buildLayout(nodes, edges, focusNodeId);
   const flowNodes = useMemo<Node[]>(() => (
     nodes
@@ -164,26 +212,27 @@ export function PrivacyLinkGraph({
         height: 14,
       },
       style: {
-        stroke: edge.type === 'PAIR_LINK' ? '#56D4C8' : edge.type === 'transparent_output' ? '#E8C48D' : '#5B9CF6',
+        stroke: edgeStroke(edge.type),
         strokeOpacity: 0.82,
-        strokeWidth: Math.max(1.6, edge.confidence / 35),
+        strokeWidth: Math.max(2, edge.confidence / 35),
+        ...(edge.type === 'pool_entry' ? { strokeDasharray: '6 3' } : {}),
       },
       labelStyle: {
-        fill: '#94A3B8',
+        fill: 'var(--color-text-secondary, #94A3B8)',
         fontSize: 11,
       },
       labelBgStyle: {
-        fill: '#0b0f1a',
-        fillOpacity: 0.96,
+        fill: 'var(--color-surface, #0b0f1a)',
+        fillOpacity: 0.92,
       },
-      labelBgPadding: [6, 3],
+      labelBgPadding: [6, 3] as [number, number],
       labelBgBorderRadius: 6,
     }))
   ), [edges]);
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface/20">
-      <div className="flex items-center justify-between border-b border-cipher-border/70 px-4 py-3">
+    <div className="privacy-link-graph w-full overflow-hidden rounded-2xl border border-cipher-border" style={{ background: 'var(--glass-2)' }}>
+      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--color-border-subtle)' }}>
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted">Link Graph</p>
           <p className="mt-1 text-xs text-secondary">Drag, pan, and zoom to inspect the relationship.</p>
@@ -202,7 +251,7 @@ export function PrivacyLinkGraph({
           elementsSelectable
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="rgba(148,163,184,0.12)" gap={20} />
+          <Background color="var(--glass-6, rgba(148,163,184,0.12))" gap={20} />
           <Controls showInteractive={false} />
         </ReactFlow>
       </div>

@@ -273,6 +273,7 @@ function PrivacyRisksContent() {
     if (activeTab === 'roundtrip') {
       return transactions.slice(0, 3).map((tx) => ({
         id: `${tx.shieldTxid}-${tx.deshieldTxid}`,
+        anchorId: `risk-${tx.shieldTxid.slice(0, 8)}-${tx.deshieldTxid.slice(0, 8)}`,
         title: `${tx.shieldAmount.toFixed(4)} → ${tx.deshieldAmount.toFixed(4)} ZEC`,
         subtitle: `${tx.timeDelta.replace(' after', ' later')} • score ${tx.score}`,
         tone: tx.warningLevel,
@@ -281,6 +282,7 @@ function PrivacyRisksContent() {
 
     return batchPatterns.slice(0, 3).map((pattern) => ({
       id: pattern.clusterHash || pattern.txids[0],
+      anchorId: `batch-${pattern.txids[0]?.slice(0, 12)}`,
       title: `${pattern.batchCount}× ${pattern.perTxAmountZec.toFixed(4)} ZEC`,
       subtitle: `${pattern.timeSpanHours < 24 ? `${pattern.timeSpanHours.toFixed(1)}h` : `${(pattern.timeSpanHours / 24).toFixed(1)}d`} burst • score ${pattern.score}`,
       tone: pattern.warningLevel,
@@ -414,27 +416,23 @@ function PrivacyRisksContent() {
             )}
           </div>
 
-          <div className="grid gap-4 mb-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-            <div className="card card-compact">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
-                <span className="opacity-50">{'>'}</span> READING_SIGNAL
-              </p>
-              <p className="text-sm leading-relaxed text-secondary">
-                {activeTab === 'roundtrip'
-                  ? 'Stronger round-trip signals combine a distinctive amount, a short delay, and low ambiguity between candidate matches.'
-                  : 'Stronger batch signals combine a matching anchor shield, repeated chunk sizes, and a tight withdrawal burst.'}
-              </p>
-            </div>
-
-            <div className="card card-compact">
+          {/* Spotlight — top risks at a glance */}
+          {spotlightItems.length > 0 && (
+            <div className="mb-5">
               <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
                 <span className="opacity-50">{'>'}</span> SPOTLIGHT
               </p>
-              <div className="mt-4 space-y-3">
-                {spotlightItems.length > 0 ? spotlightItems.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-sm font-medium text-primary">{item.title}</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {spotlightItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      const el = document.getElementById(item.anchorId);
+                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                    className="card card-compact text-left hover:border-cipher-cyan/30 transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${
                         item.tone === 'HIGH'
                           ? 'bg-red-500/10 text-red-400'
@@ -445,20 +443,19 @@ function PrivacyRisksContent() {
                         {item.tone}
                       </span>
                     </div>
+                    <p className="text-sm font-medium text-primary group-hover:text-cipher-cyan transition-colors">{item.title}</p>
                     <p className="mt-1 text-xs text-secondary">{item.subtitle}</p>
-                  </div>
-                )) : (
-                  <p className="text-sm text-secondary">Load a time window to see the strongest current examples.</p>
-                )}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Mobile-only: popular amounts as compact pills */}
+          {/* Popular amounts — inline bar */}
           {commonAmounts.length > 0 && (
-            <div className="lg:hidden mb-4 flex flex-wrap gap-1.5">
-              <span className="text-[10px] text-muted font-mono self-center mr-1">Popular:</span>
-              {commonAmounts.slice(0, 5).map((amount, i) => (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-muted font-mono mr-1">Popular:</span>
+              {commonAmounts.slice(0, 6).map((amount, i) => (
                 <span key={i} className="text-[10px] font-mono text-cipher-purple bg-cipher-purple/10 border border-cipher-purple/20 px-2 py-0.5 rounded-full">
                   {amount.amountZec.toFixed(2)} ZEC
                 </span>
@@ -641,31 +638,17 @@ function PrivacyRisksContent() {
               </div>
             </div>
 
-            {/* Popular Amounts */}
-            {commonAmounts.length > 0 && (
-              <div className="card card-compact">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
-                  <span className="opacity-50">{'>'}</span> POPULAR_AMOUNTS <span className="text-muted/50">({periodFilter})</span>
-                </p>
-                <div className="space-y-1.5">
-                  {commonAmounts.map((amount, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-primary">{amount.amountZec.toFixed(2)} ZEC</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 h-1 rounded-full bg-cipher-surface overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-cipher-purple/50"
-                            style={{ width: `${Math.min(parseFloat(amount.percentage) * 1.5, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-mono text-muted tabular-nums w-10 text-right">{amount.percentage}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted/60 mt-3">Use common amounts to blend in with the crowd.</p>
-              </div>
-            )}
+            {/* How to Read */}
+            <div className="card card-compact">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-2">
+                <span className="opacity-50">{'>'}</span> HOW_TO_READ
+              </p>
+              <p className="text-[11px] text-secondary leading-relaxed">
+                {activeTab === 'roundtrip'
+                  ? 'Stronger signals combine a distinctive amount, short delay, and low ambiguity between candidate matches.'
+                  : 'Stronger signals combine a matching anchor shield, repeated chunk sizes, and a tight withdrawal burst.'}
+              </p>
+            </div>
 
             {/* Privacy Tips */}
             <div className="card card-compact">

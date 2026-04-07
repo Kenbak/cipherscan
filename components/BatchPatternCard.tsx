@@ -55,6 +55,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
   const [showGraph, setShowGraph] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isHigh = pattern.warningLevel === 'HIGH';
+  const cardId = `batch-${pattern.txids[0]?.slice(0, 12)}`;
 
   const clusterPanel = useMemo(() => {
     const graphNodes = [
@@ -128,7 +129,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
   }, [pattern]);
 
   return (
-    <article className="card card-compact">
+    <article id={cardId} className="card card-compact scroll-mt-24">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">

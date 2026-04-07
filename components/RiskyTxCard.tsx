@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddressDisplay } from '@/components/AddressWithLabel';
-import { PrivacyEventRail } from '@/components/PrivacyEventRail';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 
 interface RiskyTransaction {
@@ -70,23 +69,6 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
     ?.replace('1 hours', '1 hour')
     ?.replace('1 days', '1 day') || tx.timeDelta;
 
-  const eventRailPoints = useMemo(() => ([
-    {
-      id: tx.shieldTxid,
-      title: 'Shield',
-      timestamp: tx.shieldTime,
-      subtitle: `${tx.shieldAmount.toFixed(4)} ZEC from ${shieldAddress ? `${shieldAddress.slice(0, 8)}…` : truncateTxid(tx.shieldTxid)}`,
-      tone: 'shield' as const,
-    },
-    {
-      id: tx.deshieldTxid,
-      title: 'Deshield',
-      timestamp: tx.deshieldTime,
-      subtitle: `${tx.deshieldAmount.toFixed(4)} ZEC to ${deshieldAddress ? `${deshieldAddress.slice(0, 8)}…` : truncateTxid(tx.deshieldTxid)}`,
-      tone: 'deshield' as const,
-    },
-  ]), [tx, shieldAddress, deshieldAddress]);
-
   const evidenceChips = useMemo(() => {
     const chips = [];
     if (tx.scoreBreakdown.weirdAmount && tx.scoreBreakdown.weirdAmount >= 12) chips.push('Rare weird amount');
@@ -106,6 +88,12 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       amountZec: tx.shieldAmount,
       blockTime: tx.shieldTime,
       subtitle: 'Transparent source',
+    },
+    {
+      id: 'pool:shielded',
+      type: 'pool' as const,
+      label: 'Shielded Pool',
+      subtitle: 'Privacy boundary',
     },
     {
       id: tx.deshieldTxid,
@@ -136,15 +124,22 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       target: tx.shieldTxid,
       type: 'transparent_input',
       confidence: tx.score,
-      label: 'input',
     }] : []),
     {
-      id: `${tx.shieldTxid}-${tx.deshieldTxid}`,
+      id: `${tx.shieldTxid}-pool`,
       source: tx.shieldTxid,
+      target: 'pool:shielded',
+      type: 'pool_entry',
+      confidence: tx.score,
+      label: 'shield',
+    },
+    {
+      id: `pool-${tx.deshieldTxid}`,
+      source: 'pool:shielded',
       target: tx.deshieldTxid,
       type: 'PAIR_LINK',
       confidence: tx.score,
-      label: `${tx.shieldAmount.toFixed(4)} -> ${tx.deshieldAmount.toFixed(4)}`,
+      label: timeDeltaDisplay,
     },
     ...(deshieldAddress ? [{
       id: `${tx.deshieldTxid}-${deshieldAddress}`,
@@ -152,12 +147,13 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       target: `address:${deshieldAddress}`,
       type: 'transparent_output',
       confidence: tx.score,
-      label: 'output',
     }] : []),
   ]), [tx, shieldAddress, deshieldAddress]);
 
+  const cardId = `risk-${tx.shieldTxid.slice(0, 8)}-${tx.deshieldTxid.slice(0, 8)}`;
+
   return (
-    <article className="card card-compact">
+    <article id={cardId} className="card card-compact scroll-mt-24">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -197,8 +193,6 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
             The amount pattern is {tx.scoreBreakdown.weirdAmount ? 'distinctive' : 'close enough'} and the timing is tight enough that an observer could plausibly link both sides.
           </p>
         </div>
-
-        <PrivacyEventRail points={eventRailPoints} />
       </div>
 
       <div className="grid grid-cols-[auto_1fr_auto] gap-y-0.5 items-center">

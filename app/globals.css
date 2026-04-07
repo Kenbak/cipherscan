@@ -1569,6 +1569,25 @@
     }
   }
 
+  /* React Flow theme overrides for privacy link graph */
+  .privacy-link-graph .react-flow__controls button {
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    color: var(--color-text-secondary);
+  }
+
+  .privacy-link-graph .react-flow__controls button:hover {
+    background: var(--color-hover);
+  }
+
+  .privacy-link-graph .react-flow__controls button svg {
+    fill: var(--color-text-secondary);
+  }
+
+  .light .privacy-link-graph .react-flow__background {
+    opacity: 0.5;
+  }
+
   /* Reduced motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,
