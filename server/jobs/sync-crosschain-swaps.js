@@ -6,7 +6,7 @@
  * in PostgreSQL for historical charts, TX linking, and privacy recommendations.
  *
  * Modes:
- *   node sync-crosschain-swaps.js                          # incremental sync (cron)
+ *   node sync-crosschain-swaps.js                          # incremental sync (cron, fast path)
  *   node sync-crosschain-swaps.js --backfill               # full historical backfill
  *   node sync-crosschain-swaps.js --heal                   # match missing zec_txid from blockchain data
  *   node sync-crosschain-swaps.js --lookup <deposit_addr>  # query NEAR + DB for a specific swap
@@ -1025,19 +1025,16 @@ async function main() {
   const outflowResult = await syncDirection('outflow', startTs);
   log(`  ${outflowResult.count} outflows synced`);
 
-  // Retry unmatched swaps
+  // Retry unmatched swaps that already have a zec_txid.
   await retryUnmatched();
 
-  // Self-heal: find missing zec_txid from our own blockchain data
-  await selfHealFromBlockchain();
-
-  // Backfill zec_address for matched swaps missing it
-  await backfillZecAddresses();
-
-  // Re-fetch swaps missing zec_txid (API may have filled them in)
+  // Re-fetch recent swaps missing zec_txid when NEAR later fills hashes.
   if (!isBackfill) {
     await refetchMissingTxids();
   }
+
+  // Backfill zec_address for matched swaps missing it.
+  await backfillZecAddresses();
 
   // Update amount stats
   await updateAmountStats();
