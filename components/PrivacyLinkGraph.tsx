@@ -51,26 +51,36 @@ const palettes = {
     border: 'border-cipher-cyan/50',
     bg: 'bg-cipher-cyan/10',
     title: 'text-cipher-cyan',
+    label: 'var(--color-cyan-glow, #00E5FF)',
+    amount: 'var(--color-text-primary)',
   },
   tx: {
     border: 'border-cipher-cyan-muted/40',
     bg: 'bg-cipher-cyan/5',
     title: 'text-cipher-cyan-muted',
+    label: 'var(--color-cyan-muted, #5EBBCE)',
+    amount: 'var(--color-text-primary)',
   },
   cluster: {
     border: 'border-cipher-green/40',
     bg: 'bg-cipher-green/10',
     title: 'text-cipher-green',
+    label: 'var(--color-green, #00E676)',
+    amount: 'var(--color-text-primary)',
   },
   address: {
     border: 'border-cipher-yellow/40',
     bg: 'bg-cipher-yellow/10',
     title: 'text-cipher-yellow',
+    label: 'var(--color-yellow, #F4B728)',
+    amount: 'var(--color-text-primary)',
   },
   pool: {
     border: 'border-cipher-purple/30',
     bg: 'bg-cipher-purple/5',
     title: 'text-cipher-purple',
+    label: 'var(--color-purple, #A78BFA)',
+    amount: 'var(--color-text-primary)',
   },
 };
 
@@ -85,34 +95,41 @@ function GraphCardNode({ data }: NodeProps) {
 
   if (node.type === 'pool') {
     return (
-      <div className={`min-w-[180px] rounded-2xl border border-dashed px-5 py-4 ${palette.border} ${palette.bg}`}>
+      <div className={`rounded-xl border border-dashed px-4 py-3 ${palette.border} ${palette.bg}`}>
         <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
-        <div className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-cipher-purple/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex items-center gap-1.5">
+          <svg className="w-3 h-3 text-cipher-purple/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${palette.title}`}>
+          <p className={`text-[9px] font-mono uppercase tracking-[0.15em] ${palette.title}`}>
             Shielded Pool
           </p>
         </div>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted">Privacy boundary</p>
+        <p className="mt-0.5 text-[10px] text-muted">Privacy boundary</p>
         <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
       </div>
     );
   }
 
   return (
-    <div className={`min-w-[160px] rounded-2xl border px-4 py-3 shadow-lg ${palette.border} ${palette.bg}`}>
+    <div className={`max-w-[170px] rounded-xl border px-3 py-2.5 shadow-md ${palette.border} ${palette.bg}`}>
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
-      <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${palette.title}`}>
+      <p className={`text-[9px] font-mono uppercase tracking-[0.15em] ${palette.title}`}>
         {node.type}
       </p>
-      <p className="mt-1 text-sm font-medium text-primary">{truncateLabel(node.label)}</p>
+      <p
+        className="mt-0.5 text-[13px] font-semibold leading-tight font-mono"
+        style={{ color: palette.label }}
+      >
+        {truncateLabel(node.label)}
+      </p>
       {node.amountZec !== undefined && (
-        <p className="mt-1 text-xs font-mono text-secondary">{node.amountZec.toFixed(4)} ZEC</p>
+        <p className="mt-0.5 text-[11px] font-mono" style={{ color: palette.amount }}>
+          {node.amountZec.toFixed(4)} ZEC
+        </p>
       )}
       {node.subtitle && (
-        <p className="mt-1 text-[11px] leading-relaxed text-muted">{node.subtitle}</p>
+        <p className="mt-0.5 text-[10px] leading-snug text-secondary">{node.subtitle}</p>
       )}
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
     </div>
@@ -135,31 +152,42 @@ function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?
     .filter((node) => node.type === 'transaction')
     .sort((a, b) => (a.blockTime || 0) - (b.blockTime || 0));
 
+  const hasPool = poolNodes.length > 0;
+  const hasCluster = clusters.length > 0;
+
+  const positionColumn = (columnNodes: PrivacyGraphNode[], x: number, yStart: number, yGap: number) =>
+    columnNodes.map((node, index) => [node.id, { x, y: yStart + index * yGap }] as const);
+
+  if (hasPool) {
+    // Pool layout: addr -> shieldTx -> pool -> deshieldTx -> addr
+    // Place all txs in time order, split around the pool
+    const shieldTxs = txNodes.filter((n) => edges.some((e) => e.source === n.id && e.target.startsWith('pool:')));
+    const deshieldTxs = txNodes.filter((n) => edges.some((e) => e.target === n.id && e.source.startsWith('pool:')));
+    const otherTxs = txNodes.filter((n) => !shieldTxs.includes(n) && !deshieldTxs.includes(n));
+
+    return new Map([
+      ...positionColumn(leftAddresses, 30, 60, 120),
+      ...positionColumn(shieldTxs, 280, 50, 130),
+      ...positionColumn(otherTxs, 280, 50 + shieldTxs.length * 130, 130),
+      ...positionColumn(poolNodes, 560, 65, 130),
+      ...positionColumn(deshieldTxs, 840, 50, 130),
+      ...positionColumn(rightAddresses, 1100, 60, 120),
+    ]);
+  }
+
+  // Non-pool layout (clusters, batch patterns, etc.)
   const focusIdx = txNodes.findIndex((node) => node.id === focusNodeId);
   const sourceTx = focusIdx > 0 ? txNodes.slice(0, focusIdx) : [];
   const focusTx = focusIdx >= 0 ? [txNodes[focusIdx]] : txNodes.slice(0, 1);
   const targetTx = focusIdx >= 0 ? txNodes.slice(focusIdx + 1) : txNodes.slice(1);
 
-  const positionColumn = (columnNodes: PrivacyGraphNode[], x: number, yStart: number, yGap: number) =>
-    columnNodes.map((node, index) => [node.id, { x, y: yStart + index * yGap }] as const);
-
-  const hasPool = poolNodes.length > 0;
-  const hasCluster = clusters.length > 0;
-
-  const poolX = 500;
-  const focusX = hasPool ? 250 : 500;
-  const clusterX = hasPool ? 760 : 760;
-  const targetTxX = hasPool ? 760 : (hasCluster ? 1010 : 760);
-  const rightAddrX = hasPool ? 1010 : (hasCluster ? 1260 : 1010);
-
   return new Map([
-    ...positionColumn(leftAddresses, 30, 30, 110),
-    ...positionColumn(sourceTx, 250, 60, 120),
-    ...positionColumn(focusTx, focusX, hasPool ? 60 : 150, 120),
-    ...positionColumn(poolNodes, poolX, 80, 120),
-    ...positionColumn(clusters, clusterX, 150, 120),
-    ...positionColumn(targetTx, targetTxX, 60, 120),
-    ...positionColumn(rightAddresses, rightAddrX, 30, 110),
+    ...positionColumn(leftAddresses, 30, 30, 120),
+    ...positionColumn(sourceTx, 280, 60, 130),
+    ...positionColumn(focusTx, 540, 60, 130),
+    ...positionColumn(clusters, 800, 60, 130),
+    ...positionColumn(targetTx, hasCluster ? 1060 : 800, 60, 130),
+    ...positionColumn(rightAddresses, hasCluster ? 1300 : 1060, 30, 120),
   ]);
 }
 
@@ -176,7 +204,7 @@ export function PrivacyLinkGraph({
   nodes,
   edges,
   focusNodeId,
-  height = 320,
+  height = 360,
 }: PrivacyLinkGraphProps) {
   if (nodes.length === 0 || edges.length === 0) {
     return null;
@@ -219,13 +247,14 @@ export function PrivacyLinkGraph({
       },
       labelStyle: {
         fill: 'var(--color-text-secondary, #94A3B8)',
-        fontSize: 11,
+        fontSize: 10,
+        fontWeight: 500,
       },
       labelBgStyle: {
         fill: 'var(--color-surface, #0b0f1a)',
-        fillOpacity: 0.92,
+        fillOpacity: 0.95,
       },
-      labelBgPadding: [6, 3] as [number, number],
+      labelBgPadding: [5, 3] as [number, number],
       labelBgBorderRadius: 6,
     }))
   ), [edges]);
@@ -244,7 +273,7 @@ export function PrivacyLinkGraph({
           edges={flowEdges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.18 }}
+          fitViewOptions={{ padding: 0.3 }}
           minZoom={0.45}
           maxZoom={1.8}
           nodesConnectable={false}

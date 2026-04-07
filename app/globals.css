@@ -1570,18 +1570,31 @@
   }
 
   /* React Flow theme overrides for privacy link graph */
+  .privacy-link-graph .react-flow__controls {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--color-border-subtle) !important;
+  }
+
   .privacy-link-graph .react-flow__controls button {
-    background: var(--color-surface);
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-secondary);
+    background: var(--color-surface) !important;
+    border-color: var(--color-border-subtle) !important;
+    color: var(--color-text-secondary) !important;
+    width: 28px !important;
+    height: 28px !important;
   }
 
   .privacy-link-graph .react-flow__controls button:hover {
-    background: var(--color-hover);
+    background: var(--color-hover) !important;
   }
 
   .privacy-link-graph .react-flow__controls button svg {
-    fill: var(--color-text-secondary);
+    fill: var(--color-text-secondary) !important;
+  }
+
+  .privacy-link-graph .react-flow__controls button svg path {
+    fill: var(--color-text-secondary) !important;
   }
 
   .light .privacy-link-graph .react-flow__background {

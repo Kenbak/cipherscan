@@ -269,7 +269,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
       {showGraph && (
         <div className="mt-3">
-          <PrivacyLinkGraph nodes={graphNodes} edges={graphEdges} focusNodeId={tx.deshieldTxid} height={340} />
+          <PrivacyLinkGraph nodes={graphNodes} edges={graphEdges} focusNodeId={tx.deshieldTxid} height={380} />
         </div>
       )}
     </article>

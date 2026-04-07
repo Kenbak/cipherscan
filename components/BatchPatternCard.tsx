@@ -266,7 +266,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             nodes={clusterPanel.graphNodes}
             edges={clusterPanel.graphEdges}
             focusNodeId={`cluster:${pattern.clusterHash || pattern.txids[0]}`}
-            height={340}
+            height={380}
           />
         </div>
       )}
