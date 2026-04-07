@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
+import { BatchPatternCard, BatchPattern } from '@/components/BatchPatternCard';
+import { PrivacyTimelineChart, PrivacyTimelinePoint } from '@/components/PrivacyTimelineChart';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -29,42 +31,10 @@ interface RiskyTransaction {
     amountSimilarity: number;
     timeProximity: number;
     amountRarity: number;
+    weirdAmount?: number;
   };
-}
-
-interface BatchPattern {
-  patternType: string;
-  perTxAmountZec: number;
-  batchCount: number;
-  totalAmountZec: number;
-  txids: string[];
-  heights: number[];
-  times: number[];
-  addresses?: string[];
-  addressCount?: number;
-  sameAddressRatio?: number;
-  firstTime: number;
-  lastTime: number;
-  timeSpanHours: number;
-  shieldToFirstDeshieldHours?: number | null;
-  isRoundNumber: boolean;
-  matchingShield: {
-    txid: string;
-    amountZec: number;
-    blockHeight: number;
-    blockTime: number;
-  } | null;
-  score: number;
-  warningLevel: 'HIGH' | 'MEDIUM' | 'LOW';
-  explanation: string;
-  breakdown: {
-    batchCount: { count: number; points: number };
-    roundNumber: { amountZec: number; isRound: boolean; points: number };
-    matchingShield: { found: boolean; txid: string | null; points: number };
-    timeClustering: { hours: number; points: number };
-    addressAnalysis?: { totalAddresses: number; uniqueAddresses: number; sameAddressRatio: number; topAddresses: string[]; points: number };
-    shieldTiming?: { hoursAfterShield: number | null; points: number };
-  };
+  ambiguityScore?: number;
+  confidenceMargin?: number;
 }
 
 interface BatchStats {
@@ -301,6 +271,27 @@ function PrivacyRisksContent() {
   };
 
   const currentStats = activeTab === 'roundtrip' ? stats : batchStats;
+  const aggregateTimeline = useMemo<PrivacyTimelinePoint[]>(() => {
+    if (activeTab === 'roundtrip') {
+      return transactions.slice(0, 40).map((tx) => ({
+        id: `${tx.shieldTxid}-${tx.deshieldTxid}`,
+        label: `${tx.shieldAmount.toFixed(4)} -> ${tx.deshieldAmount.toFixed(4)} ZEC`,
+        timestamp: tx.deshieldTime,
+        value: tx.score,
+        score: tx.score,
+        kind: tx.warningLevel,
+      }));
+    }
+
+    return batchPatterns.slice(0, 40).map((pattern) => ({
+      id: pattern.clusterHash || pattern.txids[0],
+      label: `${pattern.batchCount}x ${pattern.perTxAmountZec.toFixed(4)} ZEC`,
+      timestamp: pattern.firstTime,
+      value: pattern.batchCount,
+      score: pattern.score,
+      kind: pattern.warningLevel,
+    }));
+  }, [activeTab, batchPatterns, transactions]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -438,6 +429,21 @@ function PrivacyRisksContent() {
                   {amount.amountZec.toFixed(2)} ZEC
                 </span>
               ))}
+            </div>
+          )}
+
+          {aggregateTimeline.length > 0 && (
+            <div className="mb-4">
+              <div className="card card-compact">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                  <span className="opacity-50">{'>'}</span> {activeTab === 'roundtrip' ? 'LINKAGE_TIMELINE' : 'CLUSTER_TIMELINE'}
+                </p>
+                <PrivacyTimelineChart
+                  points={aggregateTimeline}
+                  height={180}
+                  yLabel={activeTab === 'roundtrip' ? 'Score' : 'Members'}
+                />
+              </div>
             </div>
           )}
 
@@ -688,156 +694,6 @@ function PrivacyRisksContent() {
         ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
       </p>
 
-    </div>
-  );
-}
-
-function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
-  const [expanded, setExpanded] = useState(false);
-  const isHigh = pattern.warningLevel === 'HIGH';
-
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  return (
-    <div className="card card-compact">
-      {/* Header — monospace terminal style */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
-          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`}>
-            {isHigh ? 'High' : 'Med'}
-            <span className="opacity-30 mx-1">·</span>
-            {pattern.score}/100
-          </span>
-          {!pattern.isRoundNumber && pattern.batchCount >= 5 && (
-            <span className="text-[10px] font-mono text-cipher-orange/70 uppercase tracking-wider">non-round</span>
-          )}
-        </div>
-        <span className="text-[11px] text-muted font-mono">
-          {pattern.timeSpanHours < 24
-            ? `${Math.round(pattern.timeSpanHours)}h span`
-            : `${Math.round(pattern.timeSpanHours / 24)}d span`
-          }
-        </span>
-      </div>
-
-      {/* Core pattern info — balanced layout */}
-      <div className="flex items-center justify-between gap-4 mb-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-lg font-bold font-mono text-primary shrink-0">{pattern.batchCount}×</span>
-          <div className="min-w-0">
-            <span className="font-mono text-sm font-semibold text-primary">
-              {pattern.perTxAmountZec.toFixed(4)} ZEC
-            </span>
-            <span className="text-xs text-muted ml-1.5">each</span>
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <span className="font-mono text-sm font-semibold text-primary tabular-nums">
-            {pattern.totalAmountZec.toLocaleString()} ZEC
-          </span>
-          <span className="text-[10px] text-muted block">total</span>
-        </div>
-      </div>
-
-      {/* Matching Shield */}
-      {pattern.matchingShield && (
-        <div className="flex items-center gap-2 text-xs bg-cipher-surface/50 rounded-lg px-3 py-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-cipher-green shrink-0" />
-          <span className="text-secondary">Matches shield:</span>
-          <Link
-            href={`/tx/${pattern.matchingShield.txid}`}
-            className="font-mono text-cipher-cyan hover:underline truncate"
-          >
-            {pattern.matchingShield.txid.slice(0, 12)}…
-          </Link>
-          <span className="text-muted shrink-0">
-            ({pattern.matchingShield.amountZec.toLocaleString()} ZEC)
-          </span>
-        </div>
-      )}
-
-        {/* Explanation */}
-        <p className="text-[11px] text-muted leading-relaxed mb-3">{pattern.explanation}</p>
-
-      {/* Address Warning */}
-      {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.uniqueAddresses === 1 && pattern.batchCount >= 3 && (
-        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/5 border border-red-500/15 rounded-lg px-3 py-2 mb-3">
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span>All {pattern.batchCount} deshields go to</span>
-          <Link href={`/address/${pattern.breakdown.addressAnalysis.topAddresses[0]}`} className="font-mono hover:text-red-300 underline underline-offset-2 transition-colors truncate">
-            {pattern.breakdown.addressAnalysis.topAddresses[0]?.slice(0, 20)}…
-          </Link>
-        </div>
-      )}
-
-      {/* Footer: expand + score breakdown */}
-      <div className="pt-2">
-        <div className="h-px bg-glass-4 mb-2" aria-hidden />
-        <div className="flex items-center justify-between gap-4">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
-          >
-            {expanded ? 'Hide' : 'Show'} {pattern.batchCount} transactions
-            <svg
-              className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <div className="flex flex-wrap gap-3 text-[10px] font-mono text-muted/60">
-            <span title="Batch count score">batch +{pattern.breakdown.batchCount.points}</span>
-            <span title="Round number score">round +{pattern.breakdown.roundNumber.points}</span>
-            <span title="Shield match score">shield +{pattern.breakdown.matchingShield.points}</span>
-            <span title="Time clustering score">time +{pattern.breakdown.timeClustering.points}</span>
-            {pattern.breakdown.addressAnalysis && pattern.breakdown.addressAnalysis.points > 0 && (
-              <span title="Address analysis score" className="text-cipher-orange/70">addr +{pattern.breakdown.addressAnalysis.points}</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="mt-3 pt-3">
-          <div className="h-px bg-glass-4 mb-3" aria-hidden />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto">
-            {pattern.txids.slice(0, 20).map((txid, i) => (
-              <Link
-                key={txid}
-                href={`/tx/${txid}`}
-                className="font-mono text-xs text-muted hover:text-cipher-cyan flex items-center gap-2 py-0.5 transition-colors"
-              >
-                <span className="text-muted/50 w-5 text-right tabular-nums">{i + 1}.</span>
-                <span className="truncate">{txid.slice(0, 16)}…</span>
-                <span className="text-[10px] text-muted/50 shrink-0">
-                  {formatTime(pattern.times[i])}
-                </span>
-              </Link>
-            ))}
-            {pattern.txids.length > 20 && (
-              <p className="text-[10px] text-muted/50 col-span-2 pt-1">
-                …and {pattern.txids.length - 20} more
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 
 // Import detection functions
-const { detectBatchDeshields } = require('../linkability');
+const { detectBatchDeshields } = require('../api/privacy-linkage');
 
 // Parse command line arguments
 const args = process.argv.slice(2).reduce((acc, arg) => {

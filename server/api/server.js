@@ -32,15 +32,17 @@ const swapRouter = require('./routes/swap');
 const addressRouter = require('./routes/address');
 const blendCheckRouter = require('./routes/blend-check');
 
-// Import linkability functions
+// Import privacy linkage functions
 const {
   findLinkedTransactions,
-  calculateLinkabilityScore,
   formatTimeDelta,
   getTransparentAddresses,
   detectBatchDeshields,
   detectBatchForShield,
-} = require('./linkability');
+  queryPrivacyLinkageEdges,
+  queryPrivacyBatchClusters,
+  getPrivacyGraph,
+} = require('./privacy-linkage');
 
 // Import Zebra gRPC client
 const { ZebraGrpcClient } = require('./zebra-grpc');
@@ -315,11 +317,13 @@ app.locals.callZebraRPC = callZebraRPC;
 app.locals.CompactTxStreamer = CompactTxStreamer;
 app.locals.grpc = grpc;
 app.locals.findLinkedTransactions = findLinkedTransactions;
-app.locals.calculateLinkabilityScore = calculateLinkabilityScore;
 app.locals.formatTimeDelta = formatTimeDelta;
 app.locals.getTransparentAddresses = getTransparentAddresses;
 app.locals.detectBatchDeshields = detectBatchDeshields;
 app.locals.detectBatchForShield = detectBatchForShield;
+app.locals.queryPrivacyLinkageEdges = queryPrivacyLinkageEdges;
+app.locals.queryPrivacyBatchClusters = queryPrivacyBatchClusters;
+app.locals.getPrivacyGraph = getPrivacyGraph;
 app.locals.redisClient = redisClient;
 
 // Block routes: /health, /api/info, /api/blocks, /api/block/:height

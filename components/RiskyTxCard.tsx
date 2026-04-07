@@ -1,8 +1,11 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddressDisplay } from '@/components/AddressWithLabel';
+import { PrivacyTimelineChart } from '@/components/PrivacyTimelineChart';
+import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -25,7 +28,10 @@ interface RiskyTransaction {
     amountSimilarity: number;
     timeProximity: number;
     amountRarity: number;
+    weirdAmount?: number;
   };
+  ambiguityScore?: number;
+  confidenceMargin?: number;
 }
 
 interface RiskyTxCardProps {
@@ -47,6 +53,7 @@ function TxLink({ href }: { href: string }) {
 }
 
 export function RiskyTxCard({ tx }: RiskyTxCardProps) {
+  const [showGraph, setShowGraph] = useState(false);
   const isHigh = tx.warningLevel === 'HIGH';
   const shieldAddress = tx.shieldAddresses?.[0];
   const deshieldAddress = tx.deshieldAddresses?.[0];
@@ -57,6 +64,79 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
     ?.replace('1 minutes', '1 minute')
     ?.replace('1 hours', '1 hour')
     ?.replace('1 days', '1 day') || tx.timeDelta;
+
+  const timelinePoints = useMemo(() => ([
+    {
+      id: tx.shieldTxid,
+      label: 'Shield',
+      timestamp: tx.shieldTime,
+      value: Number(tx.shieldAmount.toFixed(4)),
+      score: tx.score,
+      kind: 'shield',
+    },
+    {
+      id: tx.deshieldTxid,
+      label: 'Deshield',
+      timestamp: tx.deshieldTime,
+      value: Number(tx.deshieldAmount.toFixed(4)),
+      score: tx.score,
+      kind: 'deshield',
+    },
+  ]), [tx]);
+
+  const graphNodes = useMemo(() => ([
+    {
+      id: tx.shieldTxid,
+      type: 'transaction' as const,
+      label: 'Shield',
+      amountZec: tx.shieldAmount,
+      blockTime: tx.shieldTime,
+    },
+    {
+      id: tx.deshieldTxid,
+      type: 'transaction' as const,
+      label: 'Deshield',
+      amountZec: tx.deshieldAmount,
+      blockTime: tx.deshieldTime,
+    },
+    ...(shieldAddress ? [{
+      id: `address:${shieldAddress}`,
+      type: 'address' as const,
+      label: shieldAddress,
+    }] : []),
+    ...(deshieldAddress ? [{
+      id: `address:${deshieldAddress}`,
+      type: 'address' as const,
+      label: deshieldAddress,
+    }] : []),
+  ]), [tx, shieldAddress, deshieldAddress]);
+
+  const graphEdges = useMemo(() => ([
+    ...(shieldAddress ? [{
+      id: `${shieldAddress}-${tx.shieldTxid}`,
+      source: `address:${shieldAddress}`,
+      target: tx.shieldTxid,
+      type: 'transparent_input',
+      confidence: tx.score,
+      label: 'input',
+    }] : []),
+    {
+      id: `${tx.shieldTxid}-${tx.deshieldTxid}`,
+      source: tx.shieldTxid,
+      target: tx.deshieldTxid,
+      type: 'PAIR_LINK',
+      confidence: tx.score,
+      label: `${tx.shieldAmount.toFixed(4)} -> ${tx.deshieldAmount.toFixed(4)}`,
+    },
+    ...(deshieldAddress ? [{
+      id: `${tx.deshieldTxid}-${deshieldAddress}`,
+      source: tx.deshieldTxid,
+      target: `address:${deshieldAddress}`,
+      type: 'transparent_output',
+      confidence: tx.score,
+      label: 'output',
+    }] : []),
+  ]), [tx, shieldAddress, deshieldAddress]);
 
   return (
     <div className="card card-compact">
@@ -75,6 +155,10 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         <span className="text-[11px] text-muted font-mono">
           {formatRelativeTime(tx.deshieldTime)}
         </span>
+      </div>
+
+      <div className="mb-3">
+        <PrivacyTimelineChart points={timelinePoints} height={120} compact yLabel="ZEC" />
       </div>
 
       {/* Horizontal flow — 3-column grid for tight blocks */}
@@ -131,6 +215,34 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           ? `${tx.shieldAmount.toFixed(4)} ZEC shielded then sent to a different address ${timeDeltaDisplay}, an observer could link both addresses to the same person.`
           : `${tx.shieldAmount.toFixed(4)} ZEC shielded then unshielded ${timeDeltaDisplay}, the matching amount makes this traceable.`}
       </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] font-mono text-muted/70">
+        <span>amount +{tx.scoreBreakdown.amountSimilarity}</span>
+        <span>time +{tx.scoreBreakdown.timeProximity}</span>
+        <span>rarity +{tx.scoreBreakdown.amountRarity}</span>
+        {tx.scoreBreakdown.weirdAmount ? <span>weird +{tx.scoreBreakdown.weirdAmount}</span> : null}
+        {tx.ambiguityScore !== undefined ? <span>ambiguity {tx.ambiguityScore}</span> : null}
+        {tx.confidenceMargin !== undefined ? <span>margin {tx.confidenceMargin}</span> : null}
+      </div>
+
+      <div className="pt-2 mt-2">
+        <div className="h-px bg-glass-4 mb-2" aria-hidden />
+        <button
+          onClick={() => setShowGraph(!showGraph)}
+          className="text-xs text-cipher-cyan hover:underline flex items-center gap-1"
+        >
+          {showGraph ? 'Hide' : 'Show'} linkage graph
+          <svg className={`w-3 h-3 transition-transform ${showGraph ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {showGraph && (
+        <div className="mt-3">
+          <PrivacyLinkGraph nodes={graphNodes} edges={graphEdges} focusNodeId={tx.shieldTxid} height={210} />
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { AddressDisplay } from '@/components/AddressWithLabel';
+import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 
 interface LinkedTransaction {
   txid: string;
@@ -26,6 +27,25 @@ interface LinkabilityData {
   transparentAddresses?: string[];
 }
 
+interface PrivacyGraphData {
+  success: boolean;
+  nodes: Array<{
+    id: string;
+    type: 'transaction' | 'address';
+    label: string;
+    amountZec?: number;
+    blockTime?: number;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    type: string;
+    confidence: number;
+    label?: string;
+  }>;
+}
+
 interface PrivacyRiskInlineProps {
   txid: string;
   variant?: 'compact' | 'full';
@@ -39,22 +59,31 @@ function truncateTxid(txid: string): string {
 
 export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: PrivacyRiskInlineProps) {
   const [data, setData] = useState<LinkabilityData | null>(null);
+  const [graph, setGraph] = useState<PrivacyGraphData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWhy, setShowWhy] = useState(false);
 
   useEffect(() => {
     const fetchLinkability = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/tx/${txid}/linkability`
-          : `/api/tx/${txid}/linkability`;
+        const baseUrl = usePostgresApiClient() ? getApiUrl() : '';
+        const [linkabilityResponse, graphResponse] = await Promise.all([
+          fetch(baseUrl ? `${baseUrl}/api/tx/${txid}/linkability` : `/api/tx/${txid}/linkability`),
+          fetch(baseUrl ? `${baseUrl}/api/privacy/graph/${txid}` : `/api/privacy/graph/${txid}`),
+        ]);
 
-        const response = await fetch(apiUrl);
-        if (!response.ok) return;
+        if (linkabilityResponse.ok) {
+          const result = await linkabilityResponse.json();
+          if (result.success) {
+            setData(result);
+          }
+        }
 
-        const result = await response.json();
-        if (result.success) {
-          setData(result);
+        if (graphResponse.ok) {
+          const graphResult = await graphResponse.json();
+          if (graphResult.success) {
+            setGraph(graphResult);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch linkability:', error);
@@ -208,6 +237,12 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
           {truncateTxid(topMatch.txid)}
         </Link>
       </div>
+
+      {graph && graph.nodes.length > 0 && graph.edges.length > 0 && (
+        <div className="mt-4">
+          <PrivacyLinkGraph nodes={graph.nodes} edges={graph.edges} focusNodeId={txid} height={220} />
+        </div>
+      )}
 
       {/* Why is this a risk — expandable */}
       <div className="pt-2 mt-1">

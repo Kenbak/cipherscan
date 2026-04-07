@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Unified Pattern Scanner Runner
-# Runs both rule-based (Node.js) and ML-based (Python) pattern detectors
+# Runs the precomputed privacy linkage pipeline plus the ML explorer
 #
 # Cron example (every 10 minutes):
 # */10 * * * * /path/to/server/jobs/run-pattern-scanners.sh >> /var/log/pattern-scanner.log 2>&1
@@ -27,12 +27,17 @@ if [[ "$1" == "--dry-run" ]]; then
 fi
 
 echo ""
-echo "📋 Step 1/2: Rule-Based Scanner (Node.js)"
+echo "📋 Step 1/3: Pair Linkage Edges"
 echo "─────────────────────────────────────────"
-node "$SCRIPT_DIR/scan-batch-patterns.js" $DRY_RUN
+node "$SCRIPT_DIR/build-privacy-linkage-edges.js" $DRY_RUN
 
 echo ""
-echo "🤖 Step 2/2: ML Clustering Scanner (Python)"
+echo "📦 Step 2/3: Batch Clusters"
+echo "─────────────────────────────────────────"
+node "$SCRIPT_DIR/build-privacy-batch-clusters.js" $DRY_RUN
+
+echo ""
+echo "🤖 Step 3/3: ML Clustering Explorer (Python)"
 echo "─────────────────────────────────────────"
 
 # Check if Python dependencies are installed

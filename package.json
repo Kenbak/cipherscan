@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
+    "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",
+    "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js"
   },
   "overrides": {
     "axios": "1.14.0"

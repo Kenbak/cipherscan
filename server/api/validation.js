@@ -99,6 +99,37 @@ const schemas = {
     }),
   },
 
+  // GET /api/privacy/linkage-edges
+  privacyLinkageEdges: {
+    query: z.object({
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+      offset: z.coerce.number().int().min(0).default(0),
+      minScore: z.coerce.number().int().min(0).max(100).default(40),
+      period: periodSchema,
+      riskLevel: z.enum(['ALL', 'HIGH', 'MEDIUM']).default('ALL'),
+      sort: z.enum(['score', 'recent']).default('recent'),
+      txid: txidSchema.optional().or(z.literal('').transform(() => undefined)),
+    }),
+  },
+
+  // GET /api/privacy/batch-risks and /api/privacy/clusters
+  privacyBatchRisks: {
+    query: z.object({
+      limit: z.coerce.number().int().min(1).max(50).default(20),
+      minScore: z.coerce.number().int().min(0).max(100).default(35),
+      period: z.enum(['7d', '30d', '90d']).default('30d'),
+      riskLevel: z.enum(['ALL', 'HIGH', 'MEDIUM']).default('ALL'),
+      sort: z.enum(['score', 'recent']).default('score'),
+      afterScore: z.coerce.number().optional(),
+      afterAmount: z.coerce.number().optional(),
+    }),
+  },
+
+  // GET /api/privacy/graph/:txid
+  privacyGraph: {
+    params: z.object({ txid: txidSchema }),
+  },
+
   // GET /api/tx/:txid/linkability
   txLinkability: {
     params: z.object({ txid: txidSchema }),
