@@ -6,10 +6,11 @@
  * in PostgreSQL for historical charts, TX linking, and privacy recommendations.
  *
  * Modes:
- *   node sync-crosschain-swaps.js              # incremental sync (cron)
- *   node sync-crosschain-swaps.js --backfill   # full historical backfill
- *   node sync-crosschain-swaps.js --heal       # match missing zec_txid from blockchain data
- *   node sync-crosschain-swaps.js --seed       # insert test fixtures (local dev)
+ *   node sync-crosschain-swaps.js                          # incremental sync (cron)
+ *   node sync-crosschain-swaps.js --backfill               # full historical backfill
+ *   node sync-crosschain-swaps.js --heal                   # match missing zec_txid from blockchain data
+ *   node sync-crosschain-swaps.js --lookup <deposit_addr>  # query NEAR + DB for a specific swap
+ *   node sync-crosschain-swaps.js --seed                   # insert test fixtures (local dev)
  *
  * Cron (every 5 min):
  *   star/5 * * * * cd /root/cipherscan/server/jobs && node sync-crosschain-swaps.js >> /var/log/crosschain-sync.log 2>&1
@@ -55,6 +56,8 @@ const MAX_MATCH_ATTEMPTS = 288; // 24h of 5-min retries
 const isBackfill = process.argv.includes('--backfill');
 const isSeed = process.argv.includes('--seed');
 const isHeal = process.argv.includes('--heal');
+const isLookup = process.argv.includes('--lookup');
+const lookupQuery = process.argv[process.argv.indexOf('--lookup') + 1] || null;
 
 // Populated on startup from the 1Click /v0/tokens endpoint
 let TOKEN_MAP = {};
@@ -182,7 +185,7 @@ function transformSwap(tx, direction) {
 
   const zecTxid = zecHashes.length > 0 ? zecHashes[0] : null;
 
-  return {
+  const result = {
     deposit_address: tx.depositAddress,
     direction,
     status: tx.status || 'SUCCESS',
@@ -197,12 +200,22 @@ function transformSwap(tx, direction) {
     dest_amount_usd: parseFloat(tx.amountOutUsd) || 0,
     dest_tx_hashes: direction === 'inflow' ? zecHashes : otherHashes,
     zec_txid: zecTxid,
-    zec_address: null, // populated during matching
+    zec_address: null,
     near_tx_hashes: tx.nearTxHashes || [],
     senders: tx.senders || [],
     recipient: tx.recipient || null,
     swap_created_at: tx.createdAt,
+    raw_origin_asset: tx.originAsset || null,
+    raw_dest_asset: tx.destinationAsset || null,
   };
+
+  // Log suspicious transforms that may indicate misclassification
+  const nonZecSide = direction === 'inflow' ? result.source_token : result.dest_token;
+  if (nonZecSide === 'UNKNOWN' || nonZecSide.startsWith('UNKNOWN_ON_') || nonZecSide === 'OTHER') {
+    log(`⚠ Unclassified token: deposit=${tx.depositAddress} originAsset=${tx.originAsset} destAsset=${tx.destinationAsset} → ${nonZecSide}`);
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,13 +229,15 @@ async function upsertSwap(row) {
       source_chain, source_token, source_amount, source_amount_usd, source_tx_hashes,
       dest_chain, dest_token, dest_amount, dest_amount_usd, dest_tx_hashes,
       zec_txid, zec_address, near_tx_hashes, senders, recipient,
-      matched, match_attempts, swap_created_at
+      matched, match_attempts, swap_created_at,
+      raw_origin_asset, raw_dest_asset
     ) VALUES (
       $1, $2, $3,
       $4, $5, $6, $7, $8,
       $9, $10, $11, $12, $13,
       $14, $15, $16, $17, $18,
-      $19, 0, $20
+      $19, 0, $20,
+      $21, $22
     )
     ON CONFLICT (deposit_address) DO UPDATE SET
       status = EXCLUDED.status,
@@ -230,7 +245,9 @@ async function upsertSwap(row) {
       dest_tx_hashes = EXCLUDED.dest_tx_hashes,
       zec_txid = COALESCE(EXCLUDED.zec_txid, cross_chain_swaps.zec_txid),
       near_tx_hashes = EXCLUDED.near_tx_hashes,
-      matched = CASE WHEN cross_chain_swaps.matched THEN true ELSE EXCLUDED.matched END
+      matched = CASE WHEN cross_chain_swaps.matched THEN true ELSE EXCLUDED.matched END,
+      raw_origin_asset = COALESCE(EXCLUDED.raw_origin_asset, cross_chain_swaps.raw_origin_asset),
+      raw_dest_asset = COALESCE(EXCLUDED.raw_dest_asset, cross_chain_swaps.raw_dest_asset)
     RETURNING id
   `;
 
@@ -242,6 +259,7 @@ async function upsertSwap(row) {
     row.dest_chain, row.dest_token, row.dest_amount, row.dest_amount_usd, row.dest_tx_hashes,
     row.zec_txid, row.zec_address, row.near_tx_hashes, row.senders, row.recipient,
     matched, row.swap_created_at,
+    row.raw_origin_asset || null, row.raw_dest_asset || null,
   ];
 
   return pool.query(q, values);
@@ -334,12 +352,16 @@ async function retryUnmatched() {
 }
 
 // ---------------------------------------------------------------------------
-// Re-fetch swaps missing zec_txid from the API
-// The API might have populated the tx hash field after our initial sync
+// Re-fetch swaps missing zec_txid from the API (bounded recent queue)
+// Uses a time-windowed NEAR query matching the unresolved rows' date range
+// instead of scanning full history from page 1.
 // ---------------------------------------------------------------------------
 
 async function refetchMissingTxids() {
-  // Get breakdown of missing txids by direction
+  const REFETCH_WINDOW_DAYS = 7;
+  const MAX_ROWS = 100;
+  const MAX_PAGES_PER_DIR = 5;
+
   const { rows: missingStats } = await pool.query(`
     SELECT direction, COUNT(*) as cnt
     FROM cross_chain_swaps
@@ -351,34 +373,35 @@ async function refetchMissingTxids() {
   log(`Missing zec_txid totals: inflow=${missingByDir.inflow || 0}, outflow=${missingByDir.outflow || 0}`);
 
   const { rows } = await pool.query(`
-    SELECT deposit_address, direction, source_chain, dest_chain, swap_created_at
+    SELECT deposit_address, direction, swap_created_at
     FROM cross_chain_swaps
     WHERE zec_txid IS NULL AND status = 'SUCCESS'
-      AND swap_created_at >= NOW() - INTERVAL '30 days'
+      AND swap_created_at >= NOW() - INTERVAL '${REFETCH_WINDOW_DAYS} days'
     ORDER BY swap_created_at DESC
-    LIMIT 500
-  `);
+    LIMIT $1
+  `, [MAX_ROWS]);
 
   if (rows.length === 0) {
-    log('No recent swaps missing zec_txid (last 30 days)');
+    log(`No recent swaps missing zec_txid (last ${REFETCH_WINDOW_DAYS} days)`);
     return;
   }
-  log(`Re-checking ${rows.length} recent swaps missing zec_txid...`);
+  log(`Re-checking ${rows.length} recent swaps missing zec_txid (last ${REFETCH_WINDOW_DAYS}d)...`);
 
-  let filled = 0;
-  let apiStillEmpty = 0;
-  let notFoundInApi = 0;
   const depositSet = new Set(rows.map(r => r.deposit_address));
   const directionMap = new Map(rows.map(r => [r.deposit_address, r.direction]));
   const foundInApi = new Set();
+  let filled = 0;
+  let apiStillEmpty = 0;
+
+  // Build a time window from the oldest unresolved row to now
+  const oldestRow = rows[rows.length - 1];
+  const startTs = new Date(oldestRow.swap_created_at).toISOString();
 
   for (const direction of ['inflow', 'outflow']) {
     let page = 1;
-    const maxPages = 20;
-
-    while (page <= maxPages) {
+    while (page <= MAX_PAGES_PER_DIR) {
       try {
-        const data = await fetchSwapPage(direction, page, null);
+        const data = await fetchSwapPage(direction, page, startTs);
         const txs = data.data || [];
         if (txs.length === 0) break;
 
@@ -414,14 +437,8 @@ async function refetchMissingTxids() {
     }
   }
 
-  notFoundInApi = rows.length - foundInApi.size;
-  log(`Refetch summary: filled=${filled}, API still empty=${apiStillEmpty}, not found in API pages=${notFoundInApi}, total checked=${rows.length}`);
-  if (apiStillEmpty > 0) {
-    log(`  → ${apiStillEmpty} swaps exist in NEAR API but ${directionMap.size > 0 ? 'destinationChainTxHashes/originChainTxHashes' : 'tx hashes'} are still empty (NEAR API data gap)`);
-  }
-  if (notFoundInApi > 0) {
-    log(`  → ${notFoundInApi} swaps not found in recent API pages (older than scan window)`);
-  }
+  const notFoundInApi = rows.length - foundInApi.size;
+  log(`Refetch summary: filled=${filled}, API still empty=${apiStillEmpty}, not in API pages=${notFoundInApi}, checked=${rows.length}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -435,17 +452,25 @@ async function refetchMissingTxids() {
 // ---------------------------------------------------------------------------
 
 async function selfHealFromBlockchain() {
-  log('Self-healing missing zec_txid from blockchain data...');
+  const HEAL_WINDOW_DAYS = 7;
+  const MAX_DIRECT_ROWS = 100;
+  const BATCH_SIZE = 30;
+  const MAX_HEAL_SWAPS = 50;
+
+  log(`Self-healing missing zec_txid from blockchain data (last ${HEAL_WINDOW_DAYS}d)...`);
 
   let totalFixed = 0;
 
-  // --- Strategy 1: Outflows with t1 deposit_address (direct lookup) ---
+  // --- Strategy 1: Outflows with t1 deposit_address (direct lookup, recent only) ---
   const { rows: outflowsDirect } = await pool.query(`
     SELECT id, deposit_address, source_amount
     FROM cross_chain_swaps
     WHERE zec_txid IS NULL AND status = 'SUCCESS' AND direction = 'outflow'
       AND deposit_address LIKE 't1%'
-  `);
+      AND swap_created_at >= NOW() - INTERVAL '${HEAL_WINDOW_DAYS} days'
+    ORDER BY swap_created_at DESC
+    LIMIT $1
+  `, [MAX_DIRECT_ROWS]);
 
   let directFixed = 0;
   for (const row of outflowsDirect) {
@@ -470,12 +495,7 @@ async function selfHealFromBlockchain() {
   log(`  Strategy 1 (direct address): checked ${outflowsDirect.length}, fixed ${directFixed}`);
   totalFixed += directFixed;
 
-  // --- Strategy 2: Amount + time matching for remaining missing swaps ---
-  // Uses a CTE to first narrow by time window (few thousand txs in 8h)
-  // then checks values on just those outputs, instead of scanning all 187M.
-  // Limited to 200 swaps per heal run to keep runtime reasonable.
-  const BATCH_SIZE = 50;
-  const MAX_HEAL_SWAPS = 200;
+  // --- Strategy 2: Amount + time matching (recent unresolved queue) ---
   let offset = 0;
   let amountFixed = 0;
   let ambiguous = 0;
@@ -488,6 +508,7 @@ async function selfHealFromBlockchain() {
       SELECT id, direction, source_amount, dest_amount, swap_created_at
       FROM cross_chain_swaps
       WHERE zec_txid IS NULL AND status = 'SUCCESS'
+        AND swap_created_at >= NOW() - INTERVAL '${HEAL_WINDOW_DAYS} days'
       ORDER BY swap_created_at DESC
       LIMIT $1 OFFSET $2
     `, [BATCH_SIZE, offset]);
@@ -565,6 +586,7 @@ async function syncDirection(direction, startTs) {
   let hasMore = true;
   let missingZecTxid = 0;
   let hasZecTxid = 0;
+  let maxCreatedAt = null;
 
   while (hasMore) {
     const data = await fetchSwapPage(direction, page, startTs);
@@ -578,6 +600,12 @@ async function syncDirection(direction, startTs) {
       else missingZecTxid++;
       await upsertSwap(row);
       total++;
+
+      if (tx.createdAt) {
+        if (!maxCreatedAt || tx.createdAt > maxCreatedAt) {
+          maxCreatedAt = tx.createdAt;
+        }
+      }
     }
 
     hasMore = page < (data.totalPages || 1);
@@ -590,7 +618,7 @@ async function syncDirection(direction, startTs) {
   }
 
   log(`  ${direction}: ${total} synced (${hasZecTxid} with zec_txid, ${missingZecTxid} missing — ${total > 0 ? ((missingZecTxid/total)*100).toFixed(1) : 0}% gap from NEAR API)`);
-  return total;
+  return { count: total, maxCreatedAt };
 }
 
 // ---------------------------------------------------------------------------
@@ -773,6 +801,122 @@ async function refreshMaterializedViews() {
 }
 
 // ---------------------------------------------------------------------------
+// Lookup: query NEAR by deposit address, show raw + transformed side-by-side
+// Usage: node sync-crosschain-swaps.js --lookup <deposit_address_or_search_term>
+// ---------------------------------------------------------------------------
+
+async function lookupSwap(query) {
+  log(`LOOKUP MODE: searching NEAR API for "${query}"`);
+
+  const raw = await nearRequest('/transactions-pages', {
+    search: query,
+    perPage: 10,
+    page: 1,
+  });
+
+  const txs = raw.data || [];
+  if (txs.length === 0) {
+    log('No results from NEAR API for this query.');
+    log('Trying broader search without status filter...');
+    const broader = await nearRequest('/transactions-pages', {
+      search: query,
+      perPage: 10,
+      page: 1,
+      statuses: 'FAILED,INCOMPLETE_DEPOSIT,PENDING_DEPOSIT,PROCESSING,REFUNDED,SUCCESS',
+    });
+    const broaderTxs = broader.data || [];
+    if (broaderTxs.length === 0) {
+      log('Still no results. The deposit address may not exist in the NEAR Intents system.');
+      return;
+    }
+    log(`Found ${broaderTxs.length} result(s) with all statuses:`);
+    for (const tx of broaderTxs) {
+      dumpSwapComparison(tx);
+    }
+    return;
+  }
+
+  log(`Found ${txs.length} result(s):`);
+  for (const tx of txs) {
+    dumpSwapComparison(tx);
+  }
+
+  // Also check what we have in DB
+  const { rows } = await pool.query(
+    'SELECT * FROM cross_chain_swaps WHERE deposit_address = $1',
+    [query]
+  );
+  if (rows.length > 0) {
+    log('\n--- DB ROW ---');
+    for (const r of rows) {
+      log(`  id:              ${r.id}`);
+      log(`  direction:       ${r.direction}`);
+      log(`  status:          ${r.status}`);
+      log(`  source:          ${r.source_chain}/${r.source_token} ${r.source_amount}`);
+      log(`  dest:            ${r.dest_chain}/${r.dest_token} ${r.dest_amount}`);
+      log(`  source_usd:      ${r.source_amount_usd}`);
+      log(`  dest_usd:        ${r.dest_amount_usd}`);
+      log(`  zec_txid:        ${r.zec_txid || '(null)'}`);
+      log(`  matched:         ${r.matched}`);
+      log(`  swap_created_at: ${r.swap_created_at}`);
+      log(`  indexed_at:      ${r.indexed_at}`);
+    }
+  } else {
+    log(`\n--- DB ROW: NOT FOUND for deposit_address="${query}" ---`);
+  }
+}
+
+function dumpSwapComparison(tx) {
+  const knownFields = new Set([
+    'status', 'originAsset', 'destinationAsset', 'originChainTxHashes',
+    'destinationChainTxHashes', 'nearTxHashes', 'senders', 'recipient',
+    'depositAddress', 'depositMemo', 'amountInFormatted', 'amountOutFormatted',
+    'createdAt', 'amountIn', 'amountOut', 'amountInUsd', 'amountOutUsd',
+    'intentHashes', 'referral', 'refundTo', 'refundReason', 'refundFee',
+    'refundFeeFormatted', 'appFees', 'createdAtTimestamp',
+    'depositAddressAndMemo',
+  ]);
+
+  log(`\n--- RAW NEAR RECORD: ${tx.depositAddress} ---`);
+  log(`  status:                   ${tx.status}`);
+  log(`  createdAt:                ${tx.createdAt}`);
+  log(`  originAsset:              ${tx.originAsset}`);
+  log(`  destinationAsset:         ${tx.destinationAsset}`);
+  log(`  amountInFormatted:        ${tx.amountInFormatted}`);
+  log(`  amountOutFormatted:       ${tx.amountOutFormatted}`);
+  log(`  amountInUsd:              ${tx.amountInUsd}`);
+  log(`  amountOutUsd:             ${tx.amountOutUsd}`);
+  log(`  originChainTxHashes:      ${JSON.stringify(tx.originChainTxHashes)}`);
+  log(`  destinationChainTxHashes: ${JSON.stringify(tx.destinationChainTxHashes)}`);
+  log(`  nearTxHashes:             ${JSON.stringify(tx.nearTxHashes)}`);
+  log(`  senders:                  ${JSON.stringify(tx.senders)}`);
+  log(`  recipient:                ${tx.recipient}`);
+  log(`  depositMemo:              ${tx.depositMemo || '(null)'}`);
+  log(`  intentHashes:             ${tx.intentHashes || '(null)'}`);
+
+  const extraFields = Object.keys(tx).filter(k => !knownFields.has(k));
+  if (extraFields.length > 0) {
+    log('  --- EXTRA/NEW FIELDS ---');
+    for (const f of extraFields) {
+      const val = tx[f];
+      log(`  ${f}: ${typeof val === 'object' ? JSON.stringify(val) : val}`);
+    }
+  }
+
+  // Show what our transform would produce
+  const destIsZec = (tx.destinationAsset || '').toLowerCase().includes('zec');
+  const originIsZec = (tx.originAsset || '').toLowerCase().includes('zec');
+  const inferredDirection = destIsZec ? 'inflow' : (originIsZec ? 'outflow' : 'unknown');
+
+  const transformed = transformSwap(tx, inferredDirection);
+  log(`\n  --- OUR TRANSFORM (direction=${inferredDirection}) ---`);
+  log(`  source: ${transformed.source_chain}/${transformed.source_token} ${transformed.source_amount}`);
+  log(`  dest:   ${transformed.dest_chain}/${transformed.dest_token} ${transformed.dest_amount}`);
+  log(`  zec_txid: ${transformed.zec_txid || '(null)'}`);
+  log(`  deposit_address: ${transformed.deposit_address}`);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -817,6 +961,18 @@ async function main() {
   // Load token map from 1Click API (assetId → { chain, token })
   TOKEN_MAP = await loadTokenMap();
 
+  // Lookup mode: query NEAR for a specific swap by deposit address
+  if (isLookup) {
+    if (!lookupQuery) {
+      log('Usage: node sync-crosschain-swaps.js --lookup <deposit_address>');
+      await pool.end();
+      return;
+    }
+    await lookupSwap(lookupQuery);
+    await pool.end();
+    return;
+  }
+
   // Seed mode: insert test fixtures
   if (isSeed) {
     await seedTestData();
@@ -847,22 +1003,27 @@ async function main() {
     log('BACKFILL MODE: fetching all historical data');
     lastSync = null;
   } else if (lastSync) {
-    log(`Incremental sync from ${lastSync}`);
+    // Apply a 12-hour overlap window so late-arriving or status-changing
+    // swaps are re-read. Upsert semantics keep this idempotent.
+    const OVERLAP_HOURS = 12;
+    const overlapDate = new Date(new Date(lastSync).getTime() - OVERLAP_HOURS * 3600 * 1000);
+    log(`Incremental sync from ${overlapDate.toISOString()} (watermark ${lastSync} minus ${OVERLAP_HOURS}h overlap)`);
+    lastSync = overlapDate.toISOString();
   }
 
   const startTs = lastSync ? new Date(lastSync).toISOString() : undefined;
 
   // Fetch inflows
   log('Fetching inflows (other → ZEC)...');
-  const inflowCount = await syncDirection('inflow', startTs);
-  log(`  ${inflowCount} inflows synced`);
+  const inflowResult = await syncDirection('inflow', startTs);
+  log(`  ${inflowResult.count} inflows synced`);
 
   await delay(RATE_LIMIT_MS);
 
   // Fetch outflows
   log('Fetching outflows (ZEC → other)...');
-  const outflowCount = await syncDirection('outflow', startTs);
-  log(`  ${outflowCount} outflows synced`);
+  const outflowResult = await syncDirection('outflow', startTs);
+  log(`  ${outflowResult.count} outflows synced`);
 
   // Retry unmatched swaps
   await retryUnmatched();
@@ -884,15 +1045,33 @@ async function main() {
   // Refresh materialized views
   await refreshMaterializedViews();
 
-  // Update sync state
-  const totalSynced = inflowCount + outflowCount;
-  await pool.query(`
-    UPDATE sync_state SET
-      last_sync_timestamp = NOW(),
-      last_sync_count = $1,
-      updated_at = NOW()
-    WHERE job_name = 'crosschain_swaps'
-  `, [totalSynced]);
+  // Update sync state using the newest upstream createdAt we actually saw,
+  // not NOW(). This prevents skipping swaps whose createdAt is earlier than
+  // our local clock but later than our previous watermark.
+  const totalSynced = inflowResult.count + outflowResult.count;
+  const candidates = [inflowResult.maxCreatedAt, outflowResult.maxCreatedAt].filter(Boolean);
+  const maxUpstreamTs = candidates.length > 0
+    ? candidates.reduce((a, b) => a > b ? a : b)
+    : null;
+
+  if (maxUpstreamTs) {
+    await pool.query(`
+      UPDATE sync_state SET
+        last_sync_timestamp = $1::timestamptz,
+        last_sync_count = $2,
+        updated_at = NOW()
+      WHERE job_name = 'crosschain_swaps'
+    `, [maxUpstreamTs, totalSynced]);
+    log(`Watermark advanced to ${maxUpstreamTs} (upstream max createdAt)`);
+  } else {
+    await pool.query(`
+      UPDATE sync_state SET
+        last_sync_count = $1,
+        updated_at = NOW()
+      WHERE job_name = 'crosschain_swaps'
+    `, [totalSynced]);
+    log('No new swaps seen, watermark unchanged');
+  }
 
   log(`=== Done. ${totalSynced} swaps synced ===`);
   await pool.end();
