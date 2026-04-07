@@ -110,6 +110,46 @@ export function PrivacyEventRail({
     );
   }
 
+  if (ordered.length <= 2) {
+    return (
+      <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
+        <div className="relative">
+          <div className="absolute left-4 right-4 top-2 h-px bg-gradient-to-r from-cipher-purple/40 via-cipher-cyan/30 to-cipher-orange/40" />
+          <div className="grid grid-cols-2 gap-6 pt-0">
+            {ordered.map((point, index) => {
+              const classes = toneClasses(point.tone);
+              const isStart = index === 0;
+
+              return (
+                <div
+                  key={point.id}
+                  className={`relative ${isStart ? 'text-left' : 'text-right'}`}
+                >
+                  <div className={`mb-3 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
+                    <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
+                  </div>
+                  <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                    {point.title}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-primary">
+                    {mode === 'relative' && index > 0
+                      ? `+${formatRelative(point.timestamp - minTs)}`
+                      : formatAbsolute(point.timestamp)}
+                  </p>
+                  {point.subtitle && (
+                    <p className={`mt-1 text-[11px] leading-relaxed text-secondary break-words ${isStart ? 'max-w-[10rem]' : 'ml-auto max-w-[10rem]'}`}>
+                      {point.subtitle}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
       <div className="relative min-h-[122px]">
