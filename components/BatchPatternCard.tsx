@@ -231,7 +231,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             </div>
           </div>
 
-          <PrivacyEventRail points={burstPoints} mode="relative" />
+          <PrivacyEventRail points={burstPoints} mode="relative" layout="stacked" />
           <p className="mt-3 text-xs leading-relaxed text-secondary">{pattern.explanation}</p>
         </div>
       </div>

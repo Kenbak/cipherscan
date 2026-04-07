@@ -12,6 +12,7 @@ interface PrivacyEventRailProps {
   points: PrivacyEventPoint[];
   mode?: 'absolute' | 'relative';
   className?: string;
+  layout?: 'timeline' | 'stacked';
 }
 
 function formatAbsolute(timestamp: number) {
@@ -57,6 +58,7 @@ export function PrivacyEventRail({
   points,
   mode = 'absolute',
   className = '',
+  layout = 'timeline',
 }: PrivacyEventRailProps) {
   if (points.length === 0) return null;
 
@@ -64,6 +66,49 @@ export function PrivacyEventRail({
   const minTs = ordered[0].timestamp;
   const maxTs = ordered[ordered.length - 1].timestamp;
   const span = Math.max(maxTs - minTs, 1);
+
+  if (layout === 'stacked') {
+    return (
+      <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
+        <div className="space-y-0">
+          {ordered.map((point, index) => {
+            const classes = toneClasses(point.tone);
+
+            return (
+              <div key={point.id} className="grid grid-cols-[auto_1fr] gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
+                    <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
+                  </div>
+                  {index < ordered.length - 1 && (
+                    <div className="my-1 h-full min-h-8 w-px bg-cipher-border/60" />
+                  )}
+                </div>
+
+                <div className={`pb-4 ${index === ordered.length - 1 ? 'pb-0' : ''}`}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                      {point.title}
+                    </p>
+                    <p className="text-xs font-medium text-primary">
+                      {mode === 'relative' && index > 0
+                        ? `+${formatRelative(point.timestamp - minTs)}`
+                        : formatAbsolute(point.timestamp)}
+                    </p>
+                  </div>
+                  {point.subtitle && (
+                    <p className="mt-1 text-[11px] leading-relaxed text-secondary break-words">
+                      {point.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4 ${className}`}>
@@ -78,7 +123,7 @@ export function PrivacyEventRail({
           return (
             <div
               key={point.id}
-              className="absolute top-0 w-36 -translate-x-1/2"
+              className="absolute top-0 w-32 sm:w-36 -translate-x-1/2"
               style={{ left: `calc(16px + ${left * 100}% * ((100% - 32px) / 100))` }}
             >
               <div className="flex flex-col items-center text-center">
@@ -94,7 +139,7 @@ export function PrivacyEventRail({
                     : formatAbsolute(point.timestamp)}
                 </p>
                 {point.subtitle && (
-                  <p className="mt-1 max-w-[10rem] text-[11px] leading-relaxed text-secondary">
+                  <p className="mt-1 max-w-[9rem] text-[11px] leading-relaxed text-secondary break-words">
                     {point.subtitle}
                   </p>
                 )}

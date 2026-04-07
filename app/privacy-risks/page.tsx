@@ -414,54 +414,22 @@ function PrivacyRisksContent() {
             )}
           </div>
 
-          <div className="grid gap-4 mb-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]">
-            <div className="rounded-3xl border border-cipher-border bg-gradient-to-br from-cipher-surface/60 via-cipher-surface/30 to-cipher-surface/10 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="max-w-2xl">
-                  <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-cipher-cyan">How To Read This</p>
-                  <h2 className="mt-2 text-xl font-semibold text-primary text-balance">
-                    {activeTab === 'roundtrip'
-                      ? 'A result is strong when the amount is distinctive and the same value returns quickly.'
-                      : 'A batch result is strong when a large shield later reappears as many equal withdrawals in one burst.'}
-                  </h2>
-                  <p className="mt-3 text-sm leading-relaxed text-secondary">
-                    {activeTab === 'roundtrip'
-                      ? 'Each card tells the story in plain language first, then shows the evidence: the two visible legs, their delay, and the scores that pushed the match above the threshold.'
-                      : 'Each card summarizes the anchor shield, the burst window, and whether chunking the amount still leaves a recognizable fingerprint.'}
-                  </p>
-                </div>
-
-                <div className="grid min-w-[220px] flex-1 gap-2 sm:grid-cols-2 xl:max-w-[340px]">
-                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
-                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">Detected</p>
-                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">
-                      {activeTab === 'roundtrip' ? (stats?.total || 0) : (batchStats?.filteredTotal || batchStats?.total || 0)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
-                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">High Risk</p>
-                    <p className="mt-1 text-2xl font-mono tabular-nums text-red-400">{currentStats?.highRisk || 0}</p>
-                  </div>
-                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
-                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">
-                      {activeTab === 'roundtrip' ? 'Average Score' : 'ZEC Flagged'}
-                    </p>
-                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">
-                      {activeTab === 'roundtrip'
-                        ? `${Math.round(stats?.avgScore || 0)}`
-                        : `${Math.round(batchStats?.totalZecFlagged || 0).toLocaleString()}`}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
-                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">Period</p>
-                    <p className="mt-1 text-2xl font-mono tabular-nums text-primary">{periodFilter}</p>
-                  </div>
-                </div>
-              </div>
+          <div className="grid gap-4 mb-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+            <div className="card card-compact">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                <span className="opacity-50">{'>'}</span> READING_SIGNAL
+              </p>
+              <p className="text-sm leading-relaxed text-secondary">
+                {activeTab === 'roundtrip'
+                  ? 'Stronger round-trip signals combine a distinctive amount, a short delay, and low ambiguity between candidate matches.'
+                  : 'Stronger batch signals combine a matching anchor shield, repeated chunk sizes, and a tight withdrawal burst.'}
+              </p>
             </div>
 
-            <div className="rounded-3xl border border-cipher-border bg-cipher-surface/20 p-5">
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted">Spotlight</p>
+            <div className="card card-compact">
+              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+                <span className="opacity-50">{'>'}</span> SPOTLIGHT
+              </p>
               <div className="mt-4 space-y-3">
                 {spotlightItems.length > 0 ? spotlightItems.map((item) => (
                   <div key={item.id} className="rounded-2xl border border-cipher-border bg-cipher-surface/20 px-4 py-3">
