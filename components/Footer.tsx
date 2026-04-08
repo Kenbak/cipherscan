@@ -67,6 +67,14 @@ export function Footer() {
               <Link href="/tools/blend-check" className="footer-link text-xs font-mono">Blend Check</Link>
               {isMainnet && <Link href="/swap" className="footer-link text-xs font-mono">Buy ZEC</Link>}
               <Link href="/docs" className="footer-link text-xs font-mono">API Docs</Link>
+              <a
+                href="https://cipherpay.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link text-xs font-mono"
+              >
+                CipherPay
+              </a>
             </div>
           </div>
 
@@ -104,6 +112,14 @@ export function Footer() {
                 className="footer-link text-xs font-mono"
               >
                 GitHub
+              </a>
+              <a
+                href="https://www.youtube.com/@AtmosphereLabsDev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link text-xs font-mono"
+              >
+                YouTube
               </a>
             </div>
           </div>

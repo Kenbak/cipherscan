@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -100,6 +100,105 @@ const Icons = {
   ),
 };
 
+const CopyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+
+const CheckIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-cipher-surface/80 hover:bg-cipher-hover text-muted hover:text-cipher-cyan transition-all opacity-0 group-hover:opacity-100"
+      title="Copy"
+    >
+      {copied ? <CheckIcon className="w-3.5 h-3.5 text-cipher-green" /> : <CopyIcon className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
+function TerminalHero() {
+  const [terminalText, setTerminalText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
+  const [isComplete, setIsComplete] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const lines = [
+      '$ curl api.mainnet.cipherscan.app/api/tx/a3f7c1...',
+      '',
+      '{',
+      '  "txid": "a3f7c1...9e2b",',
+      '  "orchard_actions": 2,',
+      '  "value": "[shielded]",',
+      '  "sender": "[shielded]",',
+      '  "recipient": "[shielded]",',
+      '  "memo": "[encrypted — use viewing key]"',
+      '}',
+    ];
+    const fullText = lines.join('\n');
+    let i = 0;
+
+    const type = () => {
+      if (i <= fullText.length) {
+        setTerminalText(fullText.slice(0, i));
+        i++;
+        const char = fullText[i - 1];
+        const delay = char === '\n' ? 120 : (i < lines[0].length + 1 ? 35 : 15);
+        timeoutRef.current = setTimeout(type, delay);
+      } else {
+        setIsComplete(true);
+      }
+    };
+
+    timeoutRef.current = setTimeout(type, 400);
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => setShowCursor(c => !c), 530);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderText = (text: string) => {
+    return text.split(/(\[shielded\]|\[encrypted — use viewing key\]|"[a-z_]+"(?=:))/).map((part, i) => {
+      if (part === '[shielded]' || part === '[encrypted — use viewing key]')
+        return <span key={i} className="text-cipher-purple">{part}</span>;
+      if (/^"[a-z_]+"$/.test(part))
+        return <span key={i} className="text-cyan-600">{part}</span>;
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  return (
+    <div className="relative rounded-xl border border-cipher-border bg-[#0a0a0f] overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}
+      />
+      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-cipher-border/50 bg-cipher-surface/30">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+        <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+        <span className="text-[10px] font-mono text-muted/40 ml-2">terminal — curl</span>
+      </div>
+      <div className="p-5 sm:p-6 font-mono text-sm leading-relaxed">
+        <pre className="whitespace-pre-wrap text-muted/80">
+          {renderText(terminalText)}
+          <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} text-cipher-cyan transition-opacity duration-100`}>▋</span>
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 // Address network toggle component
 function NetworkToggle({ value, onChange, accentColor = 'cyan' }: {
   value: 'mainnet' | 'testnet';
@@ -157,105 +256,110 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen">
       {/* ═══════════════════════════════════════ */}
-      {/* HERO — matches network page style */}
+      {/* HERO — terminal typing animation */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-b border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
-          <div className="mb-6 animate-fade-in">
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-              <span className="opacity-50">{'>'}</span> LEARN_ZCASH
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-              Learn Zcash
-            </h1>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 py-10 sm:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3 animate-fade-in">
+                <span className="opacity-50">{'>'}</span> LEARN_ZCASH
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-5">
+                Learn Zcash
+              </h1>
+              <p className="text-secondary leading-relaxed mb-6">
+                Zcash is the leading privacy cryptocurrency. Unlike Bitcoin, where every transaction is public,
+                Zcash lets you send and receive money with <strong className="text-primary">encrypted amounts, addresses, and memos</strong> — verified by zero-knowledge proofs without revealing any private data.
+              </p>
 
-          {/* Quick intro */}
-          <p className="text-secondary max-w-3xl leading-relaxed mb-8">
-            Zcash is the leading privacy cryptocurrency. Unlike Bitcoin, where every transaction is public,
-            Zcash lets you send and receive money with <strong className="text-primary">encrypted amounts, addresses, and memos</strong>,all
-            verified by zero-knowledge proofs without revealing any private data.
-          </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://forum.zcashcommunity.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
+                >
+                  <Icons.Users className="w-3.5 h-3.5" />
+                  <span>Join Forum</span>
+                </a>
+                <a
+                  href="https://testnet.zecfaucet.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
+                >
+                  <Icons.Gift className="w-3.5 h-3.5" />
+                  <span>Get Testnet ZEC</span>
+                </a>
+                <a
+                  href="https://discord.gg/THspb5PM"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
+                >
+                  <Icons.Chat className="w-3.5 h-3.5" />
+                  <span>Discord</span>
+                </a>
+              </div>
+            </div>
 
-          {/* CTA buttons */}
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="https://forum.zcashcommunity.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
-            >
-              <Icons.Users className="w-4 h-4" />
-              <span>Join Forum</span>
-            </a>
-            <a
-              href="https://testnet.zecfaucet.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
-            >
-              <Icons.Gift className="w-4 h-4" />
-              <span>Get Testnet ZEC</span>
-            </a>
-            <a
-              href="https://discord.gg/THspb5PM"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
-            >
-              <Icons.Chat className="w-4 h-4" />
-              <span>Discord</span>
-            </a>
+            <div>
+              <TerminalHero />
+            </div>
           </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════ */}
-      {/* KEY CONCEPTS — 3 cards at a glance */}
+      {/* KEY CONCEPTS — 3 feature cards */}
       {/* ═══════════════════════════════════════ */}
       <div className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">{'>'} KEY_CONCEPTS</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Zero-Knowledge Proofs */}
-          <Card variant="glass">
+          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
-                <Icons.Layers className="w-5 h-5 text-cipher-purple" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
+                <Icons.Layers className="w-5 h-5 text-cipher-cyan" />
               </div>
               <h3 className="font-bold text-primary mb-2">Zero-Knowledge Proofs</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                Zcash uses zero-knowledge proofs to mathematically prove a transaction is valid
-                without revealing the sender, receiver, or amount.
+                Mathematically prove a transaction is valid without revealing the sender, receiver, or amount.
+                The cryptographic breakthrough that makes Zcash possible.
               </p>
             </CardBody>
           </Card>
 
           {/* Shielded Pools */}
-          <Card variant="glass">
+          <Card variant="glass" className="border-l-2 border-l-cipher-purple/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <Icons.Database className="w-5 h-5 text-cipher-cyan" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
+                <Icons.Database className="w-5 h-5 text-cipher-purple" />
               </div>
               <h3 className="font-bold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                ZEC lives in two worlds: <strong className="text-cipher-purple">Orchard</strong> (newest, most private)
-                and <strong className="text-cipher-purple">Sapling</strong> pools use encryption, while
-                the transparent pool works like Bitcoin. Always shield your ZEC.
+                <strong className="text-cipher-purple">Orchard</strong> (newest, most private)
+                and <strong className="text-cipher-purple">Sapling</strong> pools use encryption.
+                The transparent pool works like Bitcoin. Always shield your ZEC.
               </p>
+              <Link href="/privacy" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-cipher-cyan mt-3 transition-colors">
+                <span>View Pool Stats</span>
+                <Icons.ChevronRight className="w-3 h-3" />
+              </Link>
             </CardBody>
           </Card>
 
           {/* Encrypted Memos */}
-          <Card variant="glass">
+          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-green/10 flex items-center justify-center mb-4">
-                <Icons.Lock className="w-5 h-5 text-cipher-green" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
+                <Icons.Lock className="w-5 h-5 text-cipher-cyan" />
               </div>
               <h3 className="font-bold text-primary mb-2">Encrypted Memos</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                Every shielded transaction can include a 512-byte encrypted memo, visible only
-                to the recipient. Send messages, payment references, or structured data
-                with complete privacy.
+                Every shielded transaction includes a 512-byte encrypted memo visible only
+                to the recipient. Messages, payment references, or structured data — completely private.
               </p>
               <Link href="/decrypt" className="inline-flex items-center gap-1 text-sm text-cipher-cyan hover:text-cipher-green mt-3 transition-colors">
                 <span>Try the Decrypt Tool</span>
@@ -270,7 +374,7 @@ export default function LearnPage() {
       {/* ADDRESS TYPES */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Key className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ADDRESS_TYPES</h2>
@@ -296,9 +400,12 @@ export default function LearnPage() {
                   Wallets automatically pick the most private option.
                 </p>
                 <NetworkToggle value={unifiedNetwork} onChange={setUnifiedNetwork} accentColor="cyan" />
-                <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
-                  {addressExamples[unifiedNetwork].unified}
-                </code>
+                <div className="relative group mt-3">
+                  <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                    {addressExamples[unifiedNetwork].unified}
+                  </code>
+                  <CopyButton text={addressExamples[unifiedNetwork].unified} />
+                </div>
               </CardBody>
             </Card>
 
@@ -314,9 +421,12 @@ export default function LearnPage() {
                   Still widely supported by exchanges and wallets.
                 </p>
                 <NetworkToggle value={saplingNetwork} onChange={setSaplingNetwork} accentColor="purple" />
-                <code className="text-xs text-cipher-purple break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
-                  {addressExamples[saplingNetwork].sapling}
-                </code>
+                <div className="relative group mt-3">
+                  <code className="text-xs text-cipher-purple break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                    {addressExamples[saplingNetwork].sapling}
+                  </code>
+                  <CopyButton text={addressExamples[saplingNetwork].sapling} />
+                </div>
               </CardBody>
             </Card>
 
@@ -335,9 +445,12 @@ export default function LearnPage() {
                   Use only for exchanges, then shield immediately.
                 </p>
                 <NetworkToggle value={transparentNetwork} onChange={setTransparentNetwork} accentColor="default" />
-                <code className="text-xs text-muted break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
-                  {addressExamples[transparentNetwork].transparent}
-                </code>
+                <div className="relative group mt-3">
+                  <code className="text-xs text-muted break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                    {addressExamples[transparentNetwork].transparent}
+                  </code>
+                  <CopyButton text={addressExamples[transparentNetwork].transparent} />
+                </div>
               </CardBody>
             </Card>
           </div>
@@ -348,9 +461,9 @@ export default function LearnPage() {
       {/* VIEWING KEYS */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Eye className="w-5 h-5 text-cipher-purple" />
+            <Icons.Eye className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} VIEWING_KEYS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -408,7 +521,7 @@ export default function LearnPage() {
                 <h3 className="font-bold text-primary mb-4">How to Export Your Viewing Key</h3>
                 <div className="space-y-3 text-sm">
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
-                    <div className="font-medium text-primary mb-1">Zashi</div>
+                    <div className="font-medium text-primary mb-1">Zodl</div>
                     <div className="text-secondary">More &rarr; Export Private Data</div>
                   </div>
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
@@ -425,9 +538,12 @@ export default function LearnPage() {
                 <div className="mt-4 pt-4 border-t border-cipher-border">
                   <div className="text-xs text-muted font-mono uppercase tracking-wide mb-2">Example Viewing Key</div>
                   <NetworkToggle value={viewingKeyNetwork} onChange={setViewingKeyNetwork} accentColor="cyan" />
-                  <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border mt-3">
-                    {viewingKeyExamples[viewingKeyNetwork]}
-                  </code>
+                  <div className="relative group mt-3">
+                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                      {viewingKeyExamples[viewingKeyNetwork]}
+                    </code>
+                    <CopyButton text={viewingKeyExamples[viewingKeyNetwork]} />
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -439,9 +555,9 @@ export default function LearnPage() {
       {/* WALLETS */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Wallet className="w-5 h-5 text-cipher-green" />
+            <Icons.Wallet className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} WALLETS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -450,22 +566,25 @@ export default function LearnPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Zashi */}
-            <Card variant="compact" className="card-interactive">
+            {/* Zodl */}
+            <Card variant="compact" className="card-interactive border-cipher-cyan/20">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Zashi</h3>
-                  <Badge color="green">OFFICIAL</Badge>
+                  <h3 className="font-bold text-primary text-lg">Zodl</h3>
+                  <Badge color="green">RECOMMENDED</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
-                  Official ECC wallet. Modern UI, full Orchard support, automatic shielding.
+                  Full-featured Zcash wallet by ZODL. Orchard-first, auto-shielding, cross-chain payments via NEAR Intents.
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <a href="https://apps.apple.com/app/zashi-zcash-wallet/id1672822094" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm justify-center">
+                <div className="grid grid-cols-3 gap-2">
+                  <a href="https://apps.apple.com/us/app/zodl-zcash-wallet/id1672392439" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm justify-center">
                     iOS
                   </a>
                   <a href="https://play.google.com/store/apps/details?id=co.electriccoin.zcash" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm justify-center">
                     Android
+                  </a>
+                  <a href="https://zodl.com/download/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm justify-center">
+                    Web
                   </a>
                 </div>
               </CardBody>
@@ -512,9 +631,9 @@ export default function LearnPage() {
       {/* DEVELOPER RESOURCES */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Code className="w-5 h-5 text-cipher-orange" />
+            <Icons.Code className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} DEVELOPER_RESOURCES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -531,30 +650,22 @@ export default function LearnPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">Mainnet Lightwalletd gRPC</div>
-                    <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
-                      lightwalletd.mainnet.cipherscan.app:443
-                    </code>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">Mainnet REST API</div>
-                    <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
-                      https://api.mainnet.cipherscan.app/api/*
-                    </code>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">Testnet Lightwalletd gRPC</div>
-                    <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
-                      lightwalletd.testnet.cipherscan.app:443
-                    </code>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">Testnet REST API</div>
-                    <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
-                      https://api.testnet.cipherscan.app/api/*
-                    </code>
-                  </div>
+                  {[
+                    { label: 'Mainnet Lightwalletd gRPC', value: 'lightwalletd.mainnet.cipherscan.app:443' },
+                    { label: 'Mainnet REST API', value: 'https://api.mainnet.cipherscan.app/api/*' },
+                    { label: 'Testnet Lightwalletd gRPC', value: 'lightwalletd.testnet.cipherscan.app:443' },
+                    { label: 'Testnet REST API', value: 'https://api.testnet.cipherscan.app/api/*' },
+                  ].map(ep => (
+                    <div key={ep.label}>
+                      <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">{ep.label}</div>
+                      <div className="relative group">
+                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
+                          {ep.value}
+                        </code>
+                        <CopyButton text={ep.value} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-cipher-border">
@@ -566,65 +677,96 @@ export default function LearnPage() {
               </CardBody>
             </Card>
 
-            {/* External Resources */}
-            <Card variant="compact">
-              <CardBody>
-                <h3 className="font-bold text-primary mb-5">Documentation & Libraries</h3>
-                <div className="space-y-1">
-                  {[
-                    { href: 'https://zcash.readthedocs.io/', label: 'Protocol Documentation', desc: 'Official Zcash protocol specs' },
-                    { href: 'https://zips.z.cash/', label: 'ZIPs (Improvement Proposals)', desc: 'Technical proposals and standards' },
-                    { href: 'https://github.com/ZcashFoundation/zebra', label: 'Zebra', desc: 'Rust-based Zcash node implementation' },
-                    { href: 'https://github.com/zcash/lightwalletd', label: 'Lightwalletd', desc: 'Light client gRPC server' },
-                    { href: 'https://github.com/zcash/librustzcash', label: 'librustzcash', desc: 'Core Zcash Rust libraries' },
-                    { href: 'https://github.com/zingolabs/zingolib', label: 'Zingolib', desc: 'Wallet library for Zcash' },
-                    { href: 'https://github.com/ChainSafe/WebZjs', label: 'WebZjs', desc: 'Zcash in the browser (WASM)' },
-                    { href: 'https://crates.io/teams/github:zcash:crate-publishers', label: 'Zcash Crates', desc: 'Published Rust crates' },
-                  ].map(item => (
-                    <a
-                      key={item.href}
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-cipher-hover transition-all group"
-                    >
-                      <div>
-                        <div className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}</div>
-                        <div className="text-xs text-muted mt-0.5">{item.desc}</div>
-                      </div>
-                      <Icons.ExternalLink className="w-3.5 h-3.5 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
-                    </a>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+            {/* External Resources — grouped */}
+            <div className="space-y-4">
+              {/* Specs & Standards */}
+              <Card variant="compact">
+                <CardBody>
+                  <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4">Specs & Standards</h3>
+                  <div className="space-y-0.5">
+                    {[
+                      { href: 'https://zcash.readthedocs.io/', label: 'Protocol Documentation' },
+                      { href: 'https://zips.z.cash/', label: 'ZIPs (Improvement Proposals)' },
+                      { href: 'https://crates.io/teams/github:zcash:crate-publishers', label: 'Zcash Crates' },
+                    ].map(item => (
+                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}</span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                      </a>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Nodes & Indexers */}
+              <Card variant="compact">
+                <CardBody>
+                  <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4">Nodes & Indexers</h3>
+                  <div className="space-y-0.5">
+                    {[
+                      { href: 'https://github.com/ZcashFoundation/zebra', label: 'Zebra', desc: 'Rust node' },
+                      { href: 'https://github.com/zingolabs/zaino', label: 'Zaino', desc: 'Z3 indexer' },
+                      { href: 'https://github.com/zcash/lightwalletd', label: 'Lightwalletd', desc: 'gRPC server' },
+                    ].map(item => (
+                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}
+                          <span className="text-xs text-muted ml-2">{item.desc}</span>
+                        </span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                      </a>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Libraries */}
+              <Card variant="compact">
+                <CardBody>
+                  <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4">Libraries</h3>
+                  <div className="space-y-0.5">
+                    {[
+                      { href: 'https://github.com/zcash/librustzcash', label: 'librustzcash', desc: 'Core Rust' },
+                      { href: 'https://github.com/zingolabs/zingolib', label: 'Zingolib', desc: 'Wallet lib' },
+                      { href: 'https://github.com/ChainSafe/WebZjs', label: 'WebZjs', desc: 'WASM' },
+                    ].map(item => (
+                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}
+                          <span className="text-xs text-muted ml-2">{item.desc}</span>
+                        </span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                      </a>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════ */}
-      {/* COMMUNITY & LEARNING */}
+      {/* COMMUNITY — two-tier layout */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Users className="w-5 h-5 text-cipher-green" />
+            <Icons.Users className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} COMMUNITY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Join the Zcash community and dive deeper into privacy technology.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Primary — 4 featured links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
             {[
-              { href: 'https://z.cash/', icon: Icons.Globe, label: 'Z.cash', desc: 'Official website', color: 'text-cipher-cyan' },
-              { href: 'https://forum.zcashcommunity.com/', icon: Icons.Users, label: 'Community Forum', desc: 'Discussions & proposals', color: 'text-cipher-cyan' },
-              { href: 'https://zechub.wiki/', icon: Icons.Book, label: 'ZecHub Wiki', desc: 'Community knowledge base', color: 'text-cipher-cyan' },
-              { href: 'https://www.scifi.money/', icon: Icons.Book, label: 'SciFi Money', desc: 'Interactive guides', color: 'text-cipher-cyan' },
-              { href: 'https://discord.gg/THspb5PM', icon: Icons.Chat, label: 'Developer Discord', desc: 'Real-time chat', color: 'text-cipher-green' },
-              { href: 'https://testnet.zecfaucet.com/', icon: Icons.Gift, label: 'Testnet Faucet', desc: 'Free test ZEC', color: 'text-cipher-green' },
-              { href: 'https://maxdesalle.com/mastering-zcash/', icon: Icons.Book, label: 'Mastering Zcash', desc: 'Deep technical dive', color: 'text-cipher-purple' },
-              { href: 'https://electriccoin.co/', icon: Icons.Zap, label: 'Electric Coin Co.', desc: 'Core development team', color: 'text-cipher-purple' },
+              { href: 'https://z.cash/ecosystem/', icon: Icons.Globe, label: 'Z.cash', desc: 'Official ecosystem directory' },
+              { href: 'https://forum.zcashcommunity.com/', icon: Icons.Users, label: 'Community Forum', desc: 'Discussions & proposals' },
+              { href: 'https://zodl.com/', icon: Icons.Zap, label: 'ZODL', desc: 'Zcash Open Development Lab' },
+              { href: 'https://zechub.wiki/', icon: Icons.Book, label: 'ZecHub Wiki', desc: 'Community knowledge base' },
             ].map(item => (
               <a
                 key={item.href}
@@ -633,7 +775,7 @@ export default function LearnPage() {
                 rel="noopener noreferrer"
                 className="card card-compact card-interactive flex items-start gap-3 !p-4"
               >
-                <span className={`w-8 h-8 rounded-lg bg-cipher-hover flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                <span className="w-8 h-8 rounded-lg bg-cipher-hover flex items-center justify-center flex-shrink-0 text-cipher-cyan">
                   <item.icon className="w-4 h-4" />
                 </span>
                 <div>
@@ -643,11 +785,39 @@ export default function LearnPage() {
               </a>
             ))}
           </div>
+
+          {/* Secondary — compact inline links */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+            <Link
+              href="/newsletter"
+              className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+            >
+              Weekly Newsletter
+            </Link>
+            {[
+              { href: 'https://discord.gg/THspb5PM', label: 'Discord' },
+              { href: 'https://testnet.zecfaucet.com/', label: 'Testnet Faucet' },
+              { href: 'https://bountyzcash.org/', label: 'Bug Bounty' },
+              { href: 'https://www.youtube.com/@AtmosphereLabsDev', label: 'YouTube' },
+              { href: 'https://www.scifi.money/', label: 'SciFi Money' },
+              { href: 'https://maxdesalle.com/mastering-zcash/', label: 'Mastering Zcash' },
+            ].map(item => (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════ */}
-      {/* EXPLORE CIPHERSCAN — bottom CTA */}
+      {/* EXPLORE CIPHERSCAN */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
@@ -655,23 +825,23 @@ export default function LearnPage() {
             <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} EXPLORE_CIPHERSCAN</h2>
           </div>
-          <p className="text-secondary mb-6 max-w-2xl">
-            Put your knowledge to work with CipherScan&apos;s privacy intelligence tools.
+          <p className="text-secondary mb-8 max-w-2xl">
+            Use what you&apos;ve learned — CipherScan gives you live access to Zcash blockchain data.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { href: '/decrypt', icon: Icons.Lock, label: 'Decrypt Memos', desc: 'Decode shielded messages', color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },
-              { href: '/privacy', icon: Icons.Shield, label: 'Privacy Dashboard', desc: 'Shielded pool metrics', color: 'text-cipher-cyan', bg: 'bg-cipher-cyan/10' },
-              { href: '/network', icon: Icons.Globe, label: 'Network Stats', desc: 'Nodes, hashrate & peers', color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
-              { href: '/docs', icon: Icons.Code, label: 'API Docs', desc: 'Developer reference', color: 'text-cipher-orange', bg: 'bg-cipher-orange/10' },
+              { href: '/decrypt', icon: Icons.Lock, label: 'Decrypt Memos', desc: 'Decode shielded messages' },
+              { href: '/privacy', icon: Icons.Shield, label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
+              { href: '/network', icon: Icons.Globe, label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
+              { href: '/docs', icon: Icons.Code, label: 'API Docs', desc: 'Developer reference' },
             ].map(item => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="card card-compact card-interactive flex items-center gap-3 !p-4"
               >
-                <span className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
                   <item.icon className="w-5 h-5" />
                 </span>
                 <div>
