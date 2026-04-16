@@ -8,7 +8,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
-import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, MAINNET_URL, TESTNET_URL } from '@/lib/config';
+import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
 import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 
 
@@ -104,8 +104,12 @@ export function NavBar() {
 
   const analyticsItems: MenuItem[] = [
     { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
-    { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
-    { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
+    ...(isCrosslink
+      ? [{ href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' }]
+      : [
+          { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
+          { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
+        ]),
     ...(isMainnet ? [{ href: '/crosschain', label: 'ZEC Crosschain', desc: 'Cross-chain swap analytics' }] : []),
   ];
 
@@ -254,7 +258,7 @@ export function NavBar() {
                           <a
                             href={TESTNET_URL}
                             className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
-                              !isMainnet
+                              !isMainnet && !isCrosslink
                                 ? 'bg-cipher-cyan/15 text-cipher-cyan'
                                 : 'text-muted hover:text-primary'
                             }`}
@@ -270,6 +274,16 @@ export function NavBar() {
                             }`}
                           >
                             MAINNET
+                          </a>
+                          <a
+                            href={CROSSLINK_URL}
+                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
+                              isCrosslink
+                                ? 'bg-purple-500/15 text-purple-400'
+                                : 'text-muted hover:text-primary'
+                            }`}
+                          >
+                            CROSSLINK
                           </a>
                         </div>
 
@@ -442,15 +456,30 @@ export function NavBar() {
                 <div className="flex items-center justify-between px-2.5">
                   {/* Network */}
                   <div className="flex items-center gap-1.5">
-                    <a
-                      href={isMainnet ? TESTNET_URL : MAINNET_URL}
-                      className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors"
-                    >
-                      {isMainnet ? 'TESTNET' : 'MAINNET'}
-                    </a>
-                    <span className={`text-[10px] font-mono ${isMainnet ? 'text-cipher-yellow' : 'text-cipher-cyan'}`}>
-                      [ {NETWORK_LABEL} ]
-                    </span>
+                    {!isMainnet && !isCrosslink && (
+                      <span className="text-[10px] font-mono text-cipher-cyan">[ TESTNET ]</span>
+                    )}
+                    {isMainnet && (
+                      <span className="text-[10px] font-mono text-cipher-yellow">[ MAINNET ]</span>
+                    )}
+                    {isCrosslink && (
+                      <span className="text-[10px] font-mono text-purple-400">[ CROSSLINK ]</span>
+                    )}
+                    {!isCrosslink && (
+                      <a href={CROSSLINK_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
+                        CROSSLINK
+                      </a>
+                    )}
+                    {!isMainnet && (
+                      <a href={MAINNET_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
+                        MAINNET
+                      </a>
+                    )}
+                    {isMainnet && (
+                      <a href={TESTNET_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
+                        TESTNET
+                      </a>
+                    )}
                   </div>
 
                   {/* Theme + Donate */}

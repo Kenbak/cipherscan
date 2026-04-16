@@ -37,65 +37,23 @@ next-env.d.ts
 wasm/target/
 wasm/pkg/
 
-# WASM compiled output (commit this for deployment)
-# public/wasm/ - DO NOT ignore, we want to commit the compiled WASM
-
-# ========================================
-# 🔐 SECURITY: Never commit sensitive files
-# ========================================
+# secrets
 exit
 exit.pub
 *.pem
 *.key
-*_ENV.md
-*_CREDENTIALS.md
-.env.production.local
 
-# Server config backups
-*rpc*password*
-*credentials*
-MAINNET_SETUP/
-*config-dump*
-
-.cursor/
-!.cursor/skills/
-.agents/
-
-# ========================================
-# 🚫 INTERNAL: Do not commit private files
-# ========================================
-GEMINI_BOUNTY_ROADMAP.md
-*BOUNTY*.md
-*bounty*.md
-*HACKATHON*.md
-*hackathon*.md
-GEMINI_*.md
-ZYPHERPUNK_*.md
-.commit-guidelines.md
-MEMO_DECODER_SUMMARY.md
-docs/IMPLEMENTATION_SUMMARY.md
-test-ufvk-parse/
-app/test-wasm/
-
-# ========================================
-# 🔧 SERVER SETUP: Internal deployment files
-# ========================================
-MAINNET_SETUP/
-
-# Local Netlify folder
+# local config
 .netlify
+server/cache/
 
-# Private drafts - do not commit
-GRANT_DRAFT_DO_NOT_COMMIT.md
-FORUM_POST_DO_NOT_COMMIT.md
-ENDPOINTS_TO_ADD.md
-GrantExample*.md
-
-# Private documentation (local only — never commit anything in docs/)
+# private docs
 /docs/
 server/DEPLOYMENT.md
 
-rust-indexer/
+# test directories
+test-ufvk-parse/
+app/test-wasm/
 
-# Compact block cache (auto-generated)
-server/cache/
+# local tooling
+rust-indexer/

@@ -4,7 +4,10 @@ import { PrivacyWidget, type PrivacyStats, type RiskStats } from '@/components/P
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { RecentMempool } from '@/components/RecentMempool';
-import { API_CONFIG } from '@/lib/api-config';
+import { CrosslinkStats } from '@/components/CrosslinkStats';
+import { StakingDayBanner } from '@/components/StakingDayBanner';
+import { API_CONFIG, isCrosslinkNetwork } from '@/lib/api-config';
+import { isCrosslink } from '@/lib/config';
 
 interface Block {
   height: number;
@@ -108,12 +111,22 @@ async function getRiskStats(): Promise<RiskStats | null> {
   }
 }
 
+const crosslinkMode = isCrosslink;
+
 export const metadata = {
-  title: 'CipherScan - Zcash Blockchain Explorer',
-  description: 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Fast, open-source, and privacy-first.',
+  title: crosslinkMode
+    ? 'CipherScan - Zcash Crosslink Explorer'
+    : 'CipherScan - Zcash Blockchain Explorer',
+  description: crosslinkMode
+    ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks on the hybrid PoW/PoS network.'
+    : 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Fast, open-source, and privacy-first.',
   openGraph: {
-    title: 'CipherScan - Zcash Blockchain Explorer',
-    description: 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health.',
+    title: crosslinkMode
+      ? 'CipherScan - Zcash Crosslink Explorer'
+      : 'CipherScan - Zcash Blockchain Explorer',
+    description: crosslinkMode
+      ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks.'
+      : 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health.',
   },
 };
 
@@ -121,8 +134,8 @@ export default async function Home() {
   const [initialBlocks, initialShieldedTxs, privacyStats, riskStats] = await Promise.all([
     getRecentBlocks(),
     getRecentShieldedTxs(),
-    getPrivacyStats(),
-    getRiskStats(),
+    crosslinkMode ? Promise.resolve(null) : getPrivacyStats(),
+    crosslinkMode ? Promise.resolve(null) : getRiskStats(),
   ]);
 
   return (
@@ -132,7 +145,7 @@ export default async function Home() {
         {/* Tagline - SEO friendly */}
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-6 sm:mb-8 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
-          Zcash Blockchain Explorer
+          {crosslinkMode ? 'Zcash Crosslink Explorer' : 'Zcash Blockchain Explorer'}
         </h1>
 
         {/* Search Section */}
@@ -140,14 +153,24 @@ export default async function Home() {
           <SearchBar />
         </div>
         <p className="text-xs text-muted mt-4 max-w-lg mx-auto leading-relaxed">
-          Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.
+          {crosslinkMode
+            ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
+            : 'Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.'
+          }
         </p>
       </div>
 
-      {/* Privacy Health Module */}
-      <div className="relative z-10">
-        <PrivacyWidget initialStats={privacyStats} initialRiskStats={riskStats} />
-      </div>
+      {/* Crosslink: Network Stats + Staking Day | Standard: Privacy Widget */}
+      {crosslinkMode ? (
+        <div className="relative z-10 space-y-4">
+          <CrosslinkStats />
+          <StakingDayBanner />
+        </div>
+      ) : (
+        <div className="relative z-10">
+          <PrivacyWidget initialStats={privacyStats} initialRiskStats={riskStats} />
+        </div>
+      )}
 
       {/* Recent Blocks & Shielded TXs - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-8 mt-8 sm:mt-12 lg:mt-16">
