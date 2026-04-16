@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   content: string;
@@ -10,65 +11,85 @@ interface TooltipProps {
 export function Tooltip({ content, children }: TooltipProps) {
   const [show, setShow] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [align, setAlign] = useState<'center' | 'left' | 'right'>('center');
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; align: 'center' | 'left' | 'right' } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const adjustPosition = useCallback(() => {
-    if (!tooltipRef.current) return;
-    const rect = tooltipRef.current.getBoundingClientRect();
-    const tooltipWidth = 224; // w-56 = 14rem = 224px
+  const computePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const tooltipWidth = 224;
     const halfWidth = tooltipWidth / 2;
+    const centerX = rect.left + rect.width / 2;
 
-    if (rect.left < halfWidth) {
-      setAlign('left');
-    } else if (window.innerWidth - rect.right < halfWidth) {
-      setAlign('right');
-    } else {
-      setAlign('center');
+    let align: 'center' | 'left' | 'right' = 'center';
+    let left = centerX;
+
+    if (centerX - halfWidth < 8) {
+      align = 'left';
+      left = rect.left;
+    } else if (centerX + halfWidth > window.innerWidth - 8) {
+      align = 'right';
+      left = rect.right;
     }
+
+    setCoords({
+      top: rect.top + window.scrollY,
+      left: left + window.scrollX,
+      align,
+    });
   }, []);
 
   useEffect(() => {
-    if (!show || !isMobile) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+    if (!show) return;
+    const handleDismiss = (e: MouseEvent) => {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+        popoverRef.current && !popoverRef.current.contains(e.target as Node)
+      ) {
         setShow(false);
       }
     };
+    document.addEventListener('mousedown', handleDismiss);
+    return () => document.removeEventListener('mousedown', handleDismiss);
+  }, [show]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [show, isMobile]);
+  useEffect(() => {
+    if (!show) return;
+    const handleScroll = () => computePosition();
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [show, computePosition]);
 
   const handleShow = () => {
-    adjustPosition();
+    computePosition();
     setShow(true);
   };
 
   const handleInteraction = () => {
     if (isMobile) {
-      if (!show) adjustPosition();
+      if (!show) computePosition();
       setShow(!show);
     } else {
       handleShow();
     }
   };
 
-  const alignClasses = {
-    center: 'left-1/2 -translate-x-1/2',
-    left: 'left-0',
-    right: 'right-0',
+  const transformMap = {
+    center: 'translateX(-50%)',
+    left: 'translateX(0)',
+    right: 'translateX(-100%)',
   };
 
   const arrowClasses = {
@@ -78,15 +99,16 @@ export function Tooltip({ content, children }: TooltipProps) {
   };
 
   return (
-    <div className="relative inline-block" ref={tooltipRef}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleInteraction}
         onMouseEnter={() => !isMobile && handleShow()}
         onMouseLeave={() => !isMobile && setShow(false)}
         onFocus={() => !isMobile && handleShow()}
         onBlur={() => !isMobile && setShow(false)}
-        className="text-muted hover:text-cipher-cyan transition-colors cursor-help"
+        className="inline-flex text-muted hover:text-cipher-cyan transition-colors cursor-help"
         aria-label="More information"
       >
         {children || (
@@ -95,14 +117,24 @@ export function Tooltip({ content, children }: TooltipProps) {
           </svg>
         )}
       </button>
-      {show && (
-        <div ref={popoverRef} className={`absolute z-[9999] bottom-full ${alignClasses[align]} mb-2 px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs normal-case tracking-normal`}>
+      {show && coords && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={popoverRef}
+          className="fixed z-[9999] px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs normal-case tracking-normal pointer-events-auto"
+          style={{
+            top: coords.top - window.scrollY,
+            left: coords.left,
+            transform: `${transformMap[coords.align]} translateY(-100%)`,
+            marginTop: -8,
+          }}
+        >
           {content}
-          <div className={`absolute top-full ${arrowClasses[align]} -mt-px`}>
+          <div className={`absolute top-full ${arrowClasses[coords.align]} -mt-px`}>
             <div className="tooltip-arrow"></div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
