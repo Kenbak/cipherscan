@@ -121,6 +121,9 @@ export function NavBar() {
 
   const resourcesItems: MenuItem[] = [
     { href: '/learn', label: 'Learn Zcash', desc: 'Beginner guide' },
+    ...(isCrosslink
+      ? [{ href: '/learn/crosslink', label: 'Learn Crosslink', desc: 'PoW+PoS finality & staking' }]
+      : []),
     { href: '/newsletter', label: 'Newsletter', desc: 'Weekly Zcash intelligence' },
     { href: '/docs', label: 'API Docs', desc: 'Developer reference' },
     { href: '/about', label: 'About', desc: 'Our story & mission' },

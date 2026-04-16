@@ -1,106 +1,42 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, ReactNode } from 'react';
 
 interface TooltipProps {
   content: string;
-  children?: React.ReactNode;
+  children: ReactNode;
 }
 
 export function Tooltip({ content, children }: TooltipProps) {
   const [show, setShow] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [align, setAlign] = useState<'center' | 'left' | 'right'>('center');
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<'top' | 'bottom'>('top');
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const adjustPosition = useCallback(() => {
-    if (!tooltipRef.current) return;
-    const rect = tooltipRef.current.getBoundingClientRect();
-    const tooltipWidth = 224; // w-56 = 14rem = 224px
-    const halfWidth = tooltipWidth / 2;
-
-    if (rect.left < halfWidth) {
-      setAlign('left');
-    } else if (window.innerWidth - rect.right < halfWidth) {
-      setAlign('right');
-    } else {
-      setAlign('center');
+    if (show && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition(rect.top < 100 ? 'bottom' : 'top');
     }
-  }, []);
-
-  useEffect(() => {
-    if (!show || !isMobile) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
-        setShow(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [show, isMobile]);
-
-  const handleShow = () => {
-    adjustPosition();
-    setShow(true);
-  };
-
-  const handleInteraction = () => {
-    if (isMobile) {
-      if (!show) adjustPosition();
-      setShow(!show);
-    } else {
-      handleShow();
-    }
-  };
-
-  const alignClasses = {
-    center: 'left-1/2 -translate-x-1/2',
-    left: 'left-0',
-    right: 'right-0',
-  };
-
-  const arrowClasses = {
-    center: 'left-1/2 -translate-x-1/2',
-    left: 'left-3',
-    right: 'right-3',
-  };
+  }, [show]);
 
   return (
-    <div className="relative inline-block" ref={tooltipRef}>
-      <button
-        type="button"
-        onClick={handleInteraction}
-        onMouseEnter={() => !isMobile && handleShow()}
-        onMouseLeave={() => !isMobile && setShow(false)}
-        onFocus={() => !isMobile && handleShow()}
-        onBlur={() => !isMobile && setShow(false)}
-        className="text-muted hover:text-cipher-cyan transition-colors cursor-help"
-        aria-label="More information"
-      >
-        {children || (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-          </svg>
-        )}
-      </button>
+    <div
+      ref={triggerRef}
+      className="relative inline-flex"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onTouchStart={() => setShow(!show)}
+    >
+      {children}
       {show && (
-        <div ref={popoverRef} className={`absolute z-[9999] bottom-full ${alignClasses[align]} mb-2 px-3 py-2 text-xs leading-relaxed tooltip-content w-56 max-w-xs normal-case tracking-normal`}>
+        <div
+          className={`absolute z-50 px-3 py-2 text-xs font-mono text-primary bg-cipher-surface border border-cipher-border rounded-lg shadow-xl max-w-[240px] w-max leading-relaxed animate-fade-in ${
+            position === 'top'
+              ? 'bottom-full mb-2 left-1/2 -translate-x-1/2'
+              : 'top-full mt-2 left-1/2 -translate-x-1/2'
+          }`}
+        >
           {content}
-          <div className={`absolute top-full ${arrowClasses[align]} -mt-px`}>
-            <div className="tooltip-arrow"></div>
-          </div>
         </div>
       )}
     </div>

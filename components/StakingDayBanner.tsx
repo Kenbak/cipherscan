@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { STAKING_DAY_PERIOD, STAKING_DAY_WINDOW } from '@/lib/config';
+import { Tooltip } from '@/components/Tooltip';
 
 interface StakingDayInfo {
   tipHeight: number;
@@ -68,13 +69,18 @@ export function StakingDayBanner() {
           ) : (
             <span className="inline-flex rounded-full h-2.5 w-2.5 bg-gray-500/50"></span>
           )}
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider">
-            {staking.isStakingOpen ? (
-              <span className="text-cipher-green">Staking Window Open</span>
-            ) : (
-              <span className="text-muted">Staking Window Closed</span>
-            )}
-          </span>
+          <Tooltip content={`Staking actions (stake, unstake, withdraw) are only allowed during "Staking Day" windows. Every ${STAKING_DAY_PERIOD} blocks, a ${STAKING_DAY_WINDOW}-block window opens for staking operations.`}>
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1">
+              {staking.isStakingOpen ? (
+                <span className="text-cipher-green">Staking Window Open</span>
+              ) : (
+                <span className="text-muted">Staking Window Closed</span>
+              )}
+              <svg className="w-3 h-3 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+          </Tooltip>
         </div>
         <span className="text-[10px] font-mono text-muted">
           Period #{staking.periodNumber}
