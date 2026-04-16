@@ -27,15 +27,11 @@ function StatCard({ label, value, sub, color, tooltip }: {
   color?: string;
   tooltip?: string;
 }) {
-  const inner = (
+  return (
     <div className="flex flex-col items-center justify-center p-3 sm:p-4">
       <span className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         {label}
-        {tooltip && (
-          <svg className="w-3 h-3 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )}
+        {tooltip && <Tooltip content={tooltip} />}
       </span>
       <span className={`text-lg sm:text-xl font-mono font-bold ${color || 'text-primary'}`}>
         {value}
@@ -43,11 +39,6 @@ function StatCard({ label, value, sub, color, tooltip }: {
       {sub && <span className="text-[10px] font-mono text-muted mt-0.5">{sub}</span>}
     </div>
   );
-
-  if (tooltip) {
-    return <Tooltip content={tooltip}>{inner}</Tooltip>;
-  }
-  return inner;
 }
 
 export function CrosslinkStats() {
