@@ -1,25 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getCrosslinkStats } from '@/lib/crosslink';
+import { API_CONFIG } from '@/lib/api-config';
 
 export async function GET() {
   try {
-    const stats = await getCrosslinkStats();
+    const apiUrl = API_CONFIG.POSTGRES_API_URL;
+    const response = await fetch(`${apiUrl}/api/crosslink`, {
+      next: { revalidate: 10 },
+    });
 
-    if (!stats) {
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, error: 'Crosslink RPC not configured or unavailable' },
-        { status: 503 }
+        { success: false, error: 'Crosslink API unavailable' },
+        { status: response.status }
       );
     }
 
-    return NextResponse.json(
-      { success: true, ...stats },
-      {
-        headers: {
-          'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=5',
-        },
-      }
-    );
+    const data = await response.json();
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=5',
+      },
+    });
   } catch (error) {
     console.error('Crosslink stats API error:', error);
     return NextResponse.json(
