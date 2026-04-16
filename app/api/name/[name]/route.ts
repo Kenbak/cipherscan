@@ -14,8 +14,8 @@ export async function GET(
 ) {
   try {
     const { name } = await params;
-    const zns = await getClient();
-    const result = await zns.resolve(name);
+    const zns = getClient();
+    const result = await zns.resolveName(name);
 
     if (!result) {
       return NextResponse.json(

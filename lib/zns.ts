@@ -1,4 +1,4 @@
-import { createClient, type ZNSClient } from 'zcashname-sdk';
+import { ZNS } from 'zcashname-sdk';
 import { NETWORK } from './api-config';
 import type { Network } from './api-config';
 
@@ -10,11 +10,20 @@ const ZNS_URLS: Record<Network, string> = {
   'crosslink-testnet': process.env.ZNS_TESTNET_URL || 'https://light.zcash.me/zns-testnet',
 };
 
-let client: ZNSClient | null = null;
+const ZNS_NETWORKS: Record<Network, 'mainnet' | 'testnet'> = {
+  'mainnet': 'mainnet',
+  'testnet': 'testnet',
+  'crosslink-testnet': 'testnet',
+};
 
-export async function getClient(): Promise<ZNSClient> {
+let client: ZNS | null = null;
+
+export function getClient(): ZNS {
   if (!client) {
-    client = await createClient(ZNS_URLS[NETWORK]);
+    client = new ZNS({
+      url: ZNS_URLS[NETWORK],
+      network: ZNS_NETWORKS[NETWORK],
+    });
   }
   return client;
 }
