@@ -6,14 +6,39 @@
 const express = require('express');
 const router = express.Router();
 
-// Pool will be injected via middleware
 let pool;
+let redisClient;
+let callZebraRPC;
 
-// Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
+  redisClient = req.app.locals.redisClient;
+  callZebraRPC = req.app.locals.callZebraRPC;
   next();
 });
+
+const CROSSLINK_CACHE_KEY = 'crosslink:stats';
+
+async function getFinalizedHeight() {
+  if (redisClient && redisClient.isOpen) {
+    try {
+      const cached = await redisClient.get(CROSSLINK_CACHE_KEY);
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (typeof data.finalizedHeight === 'number') return data.finalizedHeight;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  if (typeof callZebraRPC === 'function') {
+    try {
+      const result = await callZebraRPC('get_tfl_final_block_height_and_hash');
+      if (result) return result.height ?? result[0] ?? null;
+    } catch (e) { /* ignore */ }
+  }
+
+  return null;
+}
 
 // ============================================================================
 // HEALTH & INFO
@@ -80,11 +105,16 @@ router.get('/api/blocks/list', async (req, res) => {
       );
     }
 
-    const rows = result.rows;
+    const finalizedHeight = await getFinalizedHeight();
+    const rows = result.rows.map(b => {
+      if (finalizedHeight !== null) {
+        b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
+      }
+      return b;
+    });
     const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
     const lastHeight = rows.length > 0 ? parseInt(rows[rows.length - 1].height) : null;
 
-    // Calculate page number: page 1 starts at maxHeight
     const page = firstHeight !== null ? Math.floor((maxHeight - firstHeight) / limit) + 1 : 1;
     const totalPages = Math.ceil(maxHeight / limit);
 
@@ -134,11 +164,21 @@ router.get('/api/blocks', async (req, res) => {
       [limit, offset]
     );
 
-    const countResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
+    const [countResult, finalizedHeight] = await Promise.all([
+      pool.query('SELECT MAX(height) as max_height FROM blocks'),
+      getFinalizedHeight(),
+    ]);
     const totalBlocks = countResult.rows[0]?.max_height || 0;
 
+    const blocks = result.rows.map(b => {
+      if (finalizedHeight !== null) {
+        b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
+      }
+      return b;
+    });
+
     res.json({
-      blocks: result.rows,
+      blocks,
       pagination: {
         limit,
         offset,
@@ -264,17 +304,25 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       outputs: outputsByTxid[tx.txid] || [],
     }));
 
-    // Calculate confirmations
-    const currentHeightResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
+    const [currentHeightResult, finalizedHeight] = await Promise.all([
+      pool.query('SELECT MAX(height) as max_height FROM blocks'),
+      getFinalizedHeight(),
+    ]);
     const currentHeight = currentHeightResult.rows[0]?.max_height || blockHeight;
     const confirmations = currentHeight - blockHeight + 1;
 
-    res.json({
+    const response = {
       ...block,
       confirmations,
       transactions,
       transactionCount: transactions.length,
-    });
+    };
+
+    if (finalizedHeight !== null) {
+      response.finality_status = blockHeight <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching block:', error);
     res.status(500).json({ error: 'Failed to fetch block' });

@@ -31,7 +31,7 @@ export async function fetchRecentBlocksFromPostgres(limit: number = 10) {
       timestamp: parseInt(block.timestamp),
       transactions: parseInt(block.transaction_count),
       size: parseInt(block.size),
-      finality: null,
+      finality: block.finality_status || null,
     }));
   } catch (error) {
     console.error('Error fetching blocks from PostgreSQL API:', error);
@@ -115,7 +115,7 @@ export async function fetchBlockByHeightFromPostgres(heightOrHash: number | stri
       solution: block.solution,
       totalFees: block.total_fees ? parseInt(block.total_fees) : 0,
       minerAddress: block.miner_address,
-      finality: null,
+      finality: block.finality_status || null,
     };
   } catch (error) {
     console.error('Error fetching block from PostgreSQL API:', error);
