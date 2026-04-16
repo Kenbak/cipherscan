@@ -250,8 +250,10 @@ app.use(helmet());
 const allowedOrigins = [
   'https://testnet.cipherscan.app',
   'https://cipherscan.app',
-  'http://localhost:3000', // For local development
-  'http://localhost:3001', // For local Next.js dev server
+  'https://crosslink.cipherscan.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : []),
 ];
 
 app.use(cors({
