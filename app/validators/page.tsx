@@ -53,29 +53,27 @@ export default function ValidatorsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold font-mono text-primary flex items-center gap-3">
-          <svg className="w-6 h-6 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
+      <div className="mb-8 animate-fade-in">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+          <span className="opacity-50">{'>'}</span> FINALIZER_ROSTER
+        </p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
           Finalizer Roster
         </h1>
-        <p className="text-sm text-muted mt-2 font-mono">
+        <p className="text-sm text-secondary mt-2">
           Active validators securing the Crosslink PoS finality layer
         </p>
       </div>
 
-      {/* Staking Day Banner */}
       <div className="mb-6">
         <StakingDayBanner />
       </div>
 
-      {/* Summary Stats */}
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="card p-4 text-center">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalizers</span>
-            <span className="text-2xl font-mono font-bold text-cipher-purple">{data.finalizerCount}</span>
+            <span className="text-2xl font-mono font-bold text-primary">{data.finalizerCount}</span>
           </div>
           <div className="card p-4 text-center">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Total Stake</span>
@@ -84,16 +82,15 @@ export default function ValidatorsPage() {
           </div>
           <div className="card p-4 text-center">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalized</span>
-            <span className="text-2xl font-mono font-bold text-cipher-green">{data.finalizedHeight.toLocaleString()}</span>
+            <span className="text-2xl font-mono font-bold text-primary">{data.finalizedHeight.toLocaleString()}</span>
           </div>
           <div className="card p-4 text-center">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">PoW Tip</span>
-            <span className="text-2xl font-mono font-bold text-cipher-cyan">{data.tipHeight.toLocaleString()}</span>
+            <span className="text-2xl font-mono font-bold text-primary">{data.tipHeight.toLocaleString()}</span>
           </div>
         </div>
       )}
 
-      {/* Roster Table */}
       {loading ? (
         <div className="card p-0 overflow-hidden">
           <table className="w-full">
@@ -165,7 +162,7 @@ export default function ValidatorsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
                             <div
-                              className="h-full rounded-full bg-cipher-purple"
+                              className="h-full rounded-full bg-cipher-cyan"
                               style={{ width: `${Math.min(share, 100)}%` }}
                             />
                           </div>
@@ -186,25 +183,15 @@ export default function ValidatorsPage() {
             <h3 className="text-xs font-mono font-semibold text-muted uppercase tracking-wider mb-3">
               Voting Power Distribution
             </h3>
-            <div className="flex rounded-full overflow-hidden h-4">
-              {data.roster.map((member, i) => {
+            <div className="flex rounded-full overflow-hidden h-3 bg-cipher-border/30">
+              {data.roster.map((member) => {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
-                const colors = [
-                  'bg-cipher-purple',
-                  'bg-cipher-cyan',
-                  'bg-cipher-green',
-                  'bg-cipher-yellow',
-                  'bg-cipher-orange',
-                  'bg-blue-500',
-                  'bg-pink-500',
-                  'bg-teal-500',
-                ];
                 return (
                   <div
                     key={member.identity}
-                    className={`${colors[i % colors.length]} transition-all duration-300`}
+                    className="bg-cipher-cyan/70 transition-all duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
                     title={`${member.identity.slice(0, 12)}... — ${share.toFixed(1)}%`}
                   />
@@ -212,23 +199,12 @@ export default function ValidatorsPage() {
               })}
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              {data.roster.map((member, i) => {
+              {data.roster.map((member) => {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
-                const colors = [
-                  'bg-cipher-purple',
-                  'bg-cipher-cyan',
-                  'bg-cipher-green',
-                  'bg-cipher-yellow',
-                  'bg-cipher-orange',
-                  'bg-blue-500',
-                  'bg-pink-500',
-                  'bg-teal-500',
-                ];
                 return (
                   <div key={member.identity} className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${colors[i % colors.length]}`} />
                     <span className="text-[10px] font-mono text-muted">
                       {member.identity.slice(0, 8)}... ({share.toFixed(1)}%)
                     </span>

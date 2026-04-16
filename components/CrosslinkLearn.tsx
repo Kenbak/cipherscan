@@ -4,47 +4,48 @@ import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { STAKING_DAY_PERIOD, STAKING_DAY_WINDOW } from '@/lib/config';
 
-const InfoIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const ShieldIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);
-
-const LayersIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-  </svg>
-);
-
-const UsersIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-);
-
-const ZapIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>
-);
-
-const ExternalLinkIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-  </svg>
-);
-
-const ChevronRight = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);
+const Icons = {
+  Shield: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+  Layers: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+    </svg>
+  ),
+  Users: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  Zap: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+  ExternalLink: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  ),
+  ChevronRight: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  ),
+  Info: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Book: ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    </svg>
+  ),
+};
 
 function GlossaryItem({ term, definition }: { term: string; definition: string }) {
   return (
@@ -75,7 +76,7 @@ export function CrosslinkLearn() {
                 as the foundation of consensus.
               </p>
               <p className="text-secondary leading-relaxed mb-6">
-                This is the <strong className="text-cipher-purple">Season 1 Feature Net</strong> — an incentivized
+                This is the <strong className="text-primary">Season 1 Feature Net</strong> — an incentivized
                 testnet where participants earn cTAZ that converts to real ZEC rewards.
               </p>
 
@@ -84,7 +85,7 @@ export function CrosslinkLearn() {
                   href="/validators"
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
                 >
-                  <ShieldIcon className="w-3.5 h-3.5" />
+                  <Icons.Shield className="w-3.5 h-3.5" />
                   <span>View Finalizers</span>
                 </Link>
                 <a
@@ -93,13 +94,13 @@ export function CrosslinkLearn() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
                 >
-                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                  <Icons.ExternalLink className="w-3.5 h-3.5" />
                   <span>Download Desktop App</span>
                 </a>
               </div>
             </div>
 
-            {/* Visual: how it works diagram */}
+            {/* Architecture diagram */}
             <div className="rounded-xl border border-cipher-border bg-[#0a0a0f] overflow-hidden">
               <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-cipher-border/50 bg-cipher-surface/30">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
@@ -142,11 +143,11 @@ export function CrosslinkLearn() {
           <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
             <CardBody>
               <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <ZapIcon className="w-5 h-5 text-cipher-cyan" />
+                <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
               </div>
               <h3 className="font-bold text-primary mb-2">Miner</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                Produce new blocks using Proof-of-Work. Every block earns <strong className="text-cipher-cyan">5 cTAZ</strong> for
+                Produce new blocks using Proof-of-Work. Every block earns <strong className="text-primary">5 cTAZ</strong> for
                 the miner. The desktop app CPU-mines by default.
               </p>
             </CardBody>
@@ -155,7 +156,7 @@ export function CrosslinkLearn() {
           <Card variant="glass" className="border-l-2 border-l-cipher-purple/30">
             <CardBody>
               <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
-                <ShieldIcon className="w-5 h-5 text-cipher-purple" />
+                <Icons.Shield className="w-5 h-5 text-cipher-purple" />
               </div>
               <h3 className="font-bold text-primary mb-2">Finalizer</h3>
               <p className="text-sm text-secondary leading-relaxed">
@@ -164,20 +165,20 @@ export function CrosslinkLearn() {
               </p>
               <Link href="/validators" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-cipher-cyan mt-3 transition-colors">
                 <span>View Active Roster</span>
-                <ChevronRight className="w-3 h-3" />
+                <Icons.ChevronRight className="w-3 h-3" />
               </Link>
             </CardBody>
           </Card>
 
-          <Card variant="glass" className="border-l-2 border-l-cipher-green/30">
+          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-green/10 flex items-center justify-center mb-4">
-                <UsersIcon className="w-5 h-5 text-cipher-green" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
+                <Icons.Users className="w-5 h-5 text-cipher-cyan" />
               </div>
               <h3 className="font-bold text-primary mb-2">Staker (Protocol Guardian)</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Lock cTAZ in a delegation bond to a finalizer. Your stake earns a share of
-                the <strong className="text-cipher-green">5 cTAZ</strong> block reward distributed to stakers.
+                the <strong className="text-primary">5 cTAZ</strong> block reward distributed to stakers.
                 Staking uses shielded funds for privacy.
               </p>
             </CardBody>
@@ -189,7 +190,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <LayersIcon className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Layers className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} STAKING_DAY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -203,21 +204,21 @@ export function CrosslinkLearn() {
                 <h3 className="font-bold text-primary mb-4">How It Works</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-green/10 flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-cipher-green font-bold">1</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">1</span>
                     <div>
                       <div className="font-medium text-primary">Window Opens</div>
                       <div className="text-xs text-secondary mt-0.5">Every <strong>{STAKING_DAY_PERIOD}</strong> blocks, a {STAKING_DAY_WINDOW}-block staking window opens</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-cipher-cyan font-bold">2</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">2</span>
                     <div>
                       <div className="font-medium text-primary">Perform Actions</div>
                       <div className="text-xs text-secondary mt-0.5">Stake, unstake, or withdraw bonds during the open window</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-muted/10 flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">3</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">3</span>
                     <div>
                       <div className="font-medium text-primary">Window Closes</div>
                       <div className="text-xs text-secondary mt-0.5">Wait for the next cycle. Retargeting (moving stake between finalizers) can be done anytime.</div>
@@ -232,11 +233,11 @@ export function CrosslinkLearn() {
                 <h3 className="font-bold text-primary mb-4">Why Staking Days?</h3>
                 <div className="space-y-3 text-sm text-secondary leading-relaxed">
                   <p>
-                    <strong className="text-cipher-purple">Privacy protection:</strong> Grouping staking actions into windows
+                    <strong className="text-primary">Privacy protection:</strong> Grouping staking actions into windows
                     makes it harder to link actions to specific users based on timing.
                   </p>
                   <p>
-                    <strong className="text-cipher-cyan">Security:</strong> Structured periods make the system easier to
+                    <strong className="text-primary">Security:</strong> Structured periods make the system easier to
                     monitor and defend against manipulation.
                   </p>
                   <p>
@@ -254,11 +255,11 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <ZapIcon className="w-5 h-5 text-cipher-yellow" />
+            <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} SEASON_1_REWARDS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
-            Season 1 is allocated <strong className="text-cipher-yellow">25 real ZEC</strong>, distributed pro rata
+            Season 1 is allocated <strong className="text-primary">25 real ZEC</strong>, distributed pro rata
             based on cTAZ earned through mining and staking.
           </p>
 
@@ -271,7 +272,7 @@ export function CrosslinkLearn() {
             </Card>
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-cipher-purple">5 cTAZ</span>
+                <span className="text-2xl font-mono font-bold text-cipher-cyan">5 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to stakers (weighted)</p>
               </CardBody>
             </Card>
@@ -283,15 +284,13 @@ export function CrosslinkLearn() {
             </Card>
           </div>
 
-          <div className="card p-4 border border-cipher-yellow/20 bg-cipher-yellow/5">
-            <div className="flex items-start gap-3">
-              <InfoIcon className="w-5 h-5 text-cipher-yellow flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-secondary leading-relaxed">
-                Only cTAZ earned from block rewards is eligible for ZEC payouts. cTAZ received from faucets, transfers,
-                or other participants does not count. Rewards are based on what you <strong className="text-primary">earn by participating</strong>,
-                not what you hold.
-              </div>
-            </div>
+          <div className="alert alert-info">
+            <Icons.Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-secondary leading-relaxed">
+              Only cTAZ earned from block rewards is eligible for ZEC payouts. cTAZ received from faucets, transfers,
+              or other participants does not count. Rewards are based on what you <strong className="text-primary">earn by participating</strong>,
+              not what you hold.
+            </p>
           </div>
         </div>
       </div>
@@ -300,7 +299,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <InfoIcon className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Book className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GLOSSARY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -335,7 +334,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
-            <ZapIcon className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GET_STARTED</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -350,7 +349,7 @@ export function CrosslinkLearn() {
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
               <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
-                <ExternalLinkIcon className="w-5 h-5" />
+                <Icons.ExternalLink className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-sm font-medium text-primary">Download App</div>
@@ -362,8 +361,8 @@ export function CrosslinkLearn() {
               href="/validators"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center flex-shrink-0 text-cipher-purple">
-                <ShieldIcon className="w-5 h-5" />
+              <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+                <Icons.Shield className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-sm font-medium text-primary">View Finalizers</div>
@@ -375,8 +374,8 @@ export function CrosslinkLearn() {
               href="/"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-green/10 flex items-center justify-center flex-shrink-0 text-cipher-green">
-                <LayersIcon className="w-5 h-5" />
+              <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+                <Icons.Layers className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-sm font-medium text-primary">Explorer</div>
@@ -390,8 +389,8 @@ export function CrosslinkLearn() {
               rel="noopener noreferrer"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-surface flex items-center justify-center flex-shrink-0 text-muted">
-                <ExternalLinkIcon className="w-5 h-5" />
+              <span className="w-10 h-10 rounded-xl bg-cipher-hover flex items-center justify-center flex-shrink-0 text-muted">
+                <Icons.ExternalLink className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-sm font-medium text-primary">Source Code</div>

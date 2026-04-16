@@ -88,20 +88,17 @@ export function CrosslinkStats() {
         <StatCard
           label="PoW Tip"
           value={stats.tipHeight.toLocaleString()}
-          color="text-cipher-cyan"
           tooltip={STAT_TOOLTIPS['PoW Tip']}
         />
         <StatCard
           label="Finalized"
           value={stats.finalizedHeight.toLocaleString()}
-          color="text-cipher-green"
           tooltip={STAT_TOOLTIPS['Finalized']}
         />
         <StatCard
           label="Finality Gap"
           value={stats.finalityGap.toLocaleString()}
           sub="blocks behind"
-          color={stats.finalityGap > 100 ? 'text-cipher-orange' : 'text-primary'}
           tooltip={STAT_TOOLTIPS['Finality Gap']}
         />
         <Link href="/validators" className="hover:bg-[var(--color-hover)] transition-colors">
@@ -109,7 +106,6 @@ export function CrosslinkStats() {
             label="Finalizers"
             value={stats.finalizerCount}
             sub="view roster"
-            color="text-cipher-purple"
             tooltip={STAT_TOOLTIPS['Finalizers']}
           />
         </Link>
