@@ -49,9 +49,9 @@ const Icons = {
 
 function GlossaryItem({ term, definition }: { term: string; definition: string }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-cipher-border/50 last:border-0">
-      <span className="font-mono text-sm font-bold text-cipher-cyan whitespace-nowrap">{term}</span>
-      <span className="text-sm text-secondary leading-relaxed">{definition}</span>
+    <div className="py-3 border-b border-cipher-border last:border-0">
+      <span className="font-mono text-sm font-bold text-cipher-cyan">{term}</span>
+      <p className="text-sm text-secondary leading-relaxed mt-1">{definition}</p>
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function CrosslinkLearn() {
                 <div className="flex items-center gap-3">
                   <span className="w-3 h-3 rounded-full bg-cipher-purple" />
                   <span className="text-cipher-purple">Finality Gadget</span>
-                  <span className="text-muted">finalizers vote via BFT</span>
+                  <span className="text-muted">finalizers vote to confirm</span>
                 </div>
                 <div className="ml-1.5 border-l-2 border-cipher-border/30 h-4" />
                 <div className="flex items-center gap-3">
@@ -160,7 +160,7 @@ export function CrosslinkLearn() {
               </div>
               <h3 className="font-bold text-primary mb-2">Finalizer</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                Run a validator node that participates in BFT consensus to finalize blocks.
+                Run a validator node that votes to finalize blocks.
                 Top 100 finalizers by stake are active. Your node must stay online.
               </p>
               <Link href="/validators" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-cipher-cyan mt-3 transition-colors">
@@ -312,8 +312,8 @@ export function CrosslinkLearn() {
                 <GlossaryItem term="PoW Tip" definition="The latest block mined by Proof-of-Work miners — the chain tip before finality confirmation." />
                 <GlossaryItem term="Finalized" definition="A block that has been confirmed by 2/3+ of finalizer voting power. It can never be reversed or reorganized." />
                 <GlossaryItem term="Finality Gap" definition="The number of blocks between the PoW tip and the last finalized block. A small gap means fast finalization." />
-                <GlossaryItem term="Finalizer" definition="A validator node that participates in BFT consensus to vote on blocks. Runs alongside zebrad." />
-                <GlossaryItem term="BFT" definition="Byzantine Fault Tolerant consensus — finalizers vote on blocks and reach agreement even if some nodes are malicious." />
+                <GlossaryItem term="Finalizer" definition="A validator node that votes on blocks to confirm them as final. Runs alongside the Zebra node software." />
+                <GlossaryItem term="BFT (Byzantine Fault Tolerant)" definition="A consensus protocol where finalizers vote on blocks and reach agreement even if some nodes are offline or acting maliciously. Requires 2/3+ of voting power to finalize." />
               </CardBody>
             </Card>
 
@@ -323,7 +323,7 @@ export function CrosslinkLearn() {
                 <GlossaryItem term="Staking Day" definition={`A recurring ${STAKING_DAY_WINDOW}-block window (every ${STAKING_DAY_PERIOD} blocks) during which staking actions are allowed.`} />
                 <GlossaryItem term="cTAZ" definition="Crosslink TAZ — the native currency of the Crosslink feature net. Earned through mining and staking, converts to ZEC rewards." />
                 <GlossaryItem term="Retarget" definition="Moving an existing delegation bond to a different finalizer. Unlike other staking actions, this can be done at any time." />
-                <GlossaryItem term="Voting Power" definition="A finalizer's influence in BFT consensus, proportional to the total cTAZ staked to it." />
+                <GlossaryItem term="Voting Power" definition="A finalizer's influence when voting on blocks, proportional to the total cTAZ staked to it." />
               </CardBody>
             </Card>
           </div>

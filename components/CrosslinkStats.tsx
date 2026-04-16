@@ -14,9 +14,9 @@ interface CrosslinkData {
 
 const STAT_TOOLTIPS: Record<string, string> = {
   'PoW Tip': 'Latest block mined by Proof-of-Work miners. This is the chain tip before finalization.',
-  'Finalized': 'Highest block confirmed by the BFT finality gadget. Finalized blocks can never be reversed.',
+  'Finalized': 'Highest block confirmed as final by the validator network. Finalized blocks can never be reversed.',
   'Finality Gap': 'Blocks between the PoW tip and the last finalized block. A smaller gap means faster finalization.',
-  'Finalizers': 'Validator nodes that vote on blocks using BFT consensus. More finalizers = stronger security.',
+  'Finalizers': 'Validator nodes that vote on blocks to confirm them as final. More finalizers means stronger security.',
   'Total Stake': 'Total cTAZ locked in delegation bonds across all finalizers. Stake determines voting power.',
 };
 

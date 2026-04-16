@@ -92,23 +92,23 @@ export default function ValidatorsPage() {
       )}
 
       {loading ? (
-        <div className="card p-0 overflow-hidden">
-          <table className="w-full">
+        <div className="card p-0 overflow-x-auto no-scrollbar">
+          <table className="w-full min-w-[480px]">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Rank</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Share</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Rank</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
+                <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake</th>
+                <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Share</th>
               </tr>
             </thead>
             <tbody>
               {[1, 2, 3, 4, 5].map((i) => (
                 <tr key={i} className="animate-pulse">
-                  <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-8 skeleton-bg rounded" /></td>
-                  <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-48 skeleton-bg rounded" /></td>
-                  <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-20 skeleton-bg rounded ml-auto" /></td>
-                  <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-12 skeleton-bg rounded ml-auto" /></td>
+                  <td className="px-3 sm:px-4 py-4 border-b border-cipher-border"><div className="h-4 w-8 skeleton-bg rounded" /></td>
+                  <td className="px-3 sm:px-4 py-4 border-b border-cipher-border"><div className="h-4 w-32 sm:w-48 skeleton-bg rounded" /></td>
+                  <td className="px-3 sm:px-4 py-4 border-b border-cipher-border"><div className="h-4 w-16 sm:w-20 skeleton-bg rounded ml-auto" /></td>
+                  <td className="px-3 sm:px-4 py-4 border-b border-cipher-border"><div className="h-4 w-12 skeleton-bg rounded ml-auto" /></td>
                 </tr>
               ))}
             </tbody>
@@ -121,14 +121,14 @@ export default function ValidatorsPage() {
         </div>
       ) : data && data.roster.length > 0 ? (
         <>
-          <div className="card p-0 overflow-hidden">
-            <table className="w-full">
+          <div className="card p-0 overflow-x-auto no-scrollbar">
+            <table className="w-full min-w-[480px]">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-16">Rank</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-24">Share</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,23 +142,23 @@ export default function ValidatorsPage() {
                       key={member.identity}
                       className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
                     >
-                      <td className="px-4 h-[52px] border-b border-cipher-border">
+                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
                       </td>
-                      <td className="px-4 h-[52px] border-b border-cipher-border">
+                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
                         <span className="font-mono text-xs text-primary break-all">
                           <span className="hidden sm:inline">{member.identity}</span>
                           <span className="sm:hidden">
-                            {member.identity.slice(0, 16)}...{member.identity.slice(-8)}
+                            {member.identity.slice(0, 12)}...{member.identity.slice(-6)}
                           </span>
                         </span>
                       </td>
-                      <td className="px-4 h-[52px] border-b border-cipher-border text-right">
+                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">
                           {(member.stake_zec || 0).toFixed(4)}
                         </span>
                       </td>
-                      <td className="px-4 h-[52px] border-b border-cipher-border text-right">
+                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
                             <div
