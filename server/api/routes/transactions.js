@@ -401,7 +401,11 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         fee,
         total_input,
         total_output,
-        is_coinbase
+        is_coinbase,
+        staking_action_type,
+        staking_bond_key,
+        staking_delegatee,
+        staking_amount_zats
       FROM transactions
       WHERE txid = $1`,
       [txid]
@@ -560,6 +564,13 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       outputCount: outputsResult.rows.length,
       bridge,
       bridges: bridges.length > 0 ? bridges : undefined,
+      stakingAction: tx.staking_action_type ? {
+        type: tx.staking_action_type,
+        bondKey: tx.staking_bond_key,
+        delegatee: tx.staking_delegatee,
+        amountZats: tx.staking_amount_zats ? parseInt(tx.staking_amount_zats) : null,
+        amountZec: tx.staking_amount_zats ? parseInt(tx.staking_amount_zats) / 1e8 : null,
+      } : null,
     });
   } catch (error) {
     console.error('Error fetching transaction:', error);

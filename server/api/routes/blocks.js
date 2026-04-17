@@ -252,7 +252,11 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         has_sapling,
         has_orchard,
         has_sprout,
-        tx_index
+        tx_index,
+        staking_action_type,
+        staking_bond_key,
+        staking_delegatee,
+        staking_amount_zats
       FROM transactions
       WHERE block_height = $1
       ORDER BY tx_index`,
