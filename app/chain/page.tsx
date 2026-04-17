@@ -69,9 +69,9 @@ export default function ChainViewPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Find the index of the first finalized block from the top of the list so we
-  // can draw the PoS/BFT decision marker next to it.
-  const finalizedIndex = stats
+  // Index of the first finalized block (top of the list).
+  // This is where we draw the prominent "Finality frontier" marker.
+  const finalizedFrontierIndex = stats
     ? blocks.findIndex((b) => b.height <= stats.finalizedHeight)
     : -1;
 
@@ -134,8 +134,7 @@ export default function ChainViewPage() {
             <div className="relative py-6 px-4 sm:px-6">
               {blocks.map((b, i) => {
                 const isFinalized = stats ? b.height <= stats.finalizedHeight : false;
-                // Show the finalization marker on the first finalized row only.
-                const showFinalizationMarker = i === finalizedIndex && stats;
+                const isFrontier = i === finalizedFrontierIndex && stats;
 
                 return (
                   <div
@@ -159,50 +158,55 @@ export default function ChainViewPage() {
                         <div className="text-[10px] text-muted font-mono mt-0.5 flex items-center justify-end gap-3">
                           <span>{b.transaction_count} tx</span>
                           <span className="hidden sm:inline">{formatRelativeTime(b.timestamp)}</span>
-                          {isFinalized && (
-                            <span className="text-cipher-green text-[9px] uppercase tracking-wider">
-                              finalized
-                            </span>
-                          )}
                         </div>
                       </div>
                     </Link>
 
-                    {/* Center dot */}
-                    <div className="relative flex items-center justify-center w-6 sm:w-10">
-                      {/* Vertical timeline line */}
+                    {/* Center dot + vertical timeline */}
+                    <div className="relative flex items-center justify-center w-6 sm:w-10 self-stretch">
                       <span
-                        className={`absolute left-1/2 -translate-x-1/2 w-px h-full ${
+                        className={`absolute left-1/2 -translate-x-1/2 w-px ${
                           isFinalized ? 'bg-cipher-green/40' : 'bg-cipher-cyan/40'
                         }`}
                         style={{
-                          top: i === 0 ? '50%' : '-6px',
-                          bottom: i === blocks.length - 1 ? '50%' : '-6px',
-                          height: 'auto',
+                          top: i === 0 ? '50%' : '0',
+                          bottom: i === blocks.length - 1 ? '50%' : '0',
                         }}
                       />
                       <span
-                        className={`relative z-10 block w-2.5 h-2.5 rounded-full border ${
-                          isFinalized
-                            ? 'bg-cipher-green/80 border-cipher-green'
-                            : 'bg-cipher-cyan/70 border-cipher-cyan'
+                        className={`relative z-10 block rounded-full border transition-all ${
+                          isFrontier
+                            ? 'w-3.5 h-3.5 bg-cipher-green border-cipher-green ring-2 ring-cipher-green/30'
+                            : isFinalized
+                            ? 'w-2.5 h-2.5 bg-cipher-green/80 border-cipher-green'
+                            : 'w-2.5 h-2.5 bg-cipher-cyan/70 border-cipher-cyan'
                         }`}
                       />
                     </div>
 
-                    {/* BFT cell — render a marker only next to the first finalized block */}
-                    <div className="relative flex items-center">
-                      {showFinalizationMarker && stats ? (
-                        <FinalizationMarker
-                          finalizedHeight={stats.finalizedHeight}
+                    {/* BFT / finalization indicator (right column) */}
+                    <div className="flex items-center">
+                      {isFrontier && stats ? (
+                        // Prominent marker at the finality frontier (top-most finalized block)
+                        <FrontierMarker
                           finalizerCount={stats.finalizerCount}
                           totalStakeZec={stats.totalStakeZec}
                         />
                       ) : isFinalized ? (
-                        <span className="text-[10px] font-mono text-muted/50">
-                          ↳ finalized
-                        </span>
-                      ) : null}
+                        // Compact "BFT confirmed" indicator for blocks below the frontier
+                        <div className="flex items-center gap-2 text-[10px] font-mono">
+                          <span className="inline-block w-2 h-2 rounded-full bg-cipher-green/70" />
+                          <span className="text-cipher-green/80 uppercase tracking-wider">
+                            bft ✓
+                          </span>
+                        </div>
+                      ) : (
+                        // Not-yet-finalized blocks above the frontier
+                        <div className="flex items-center gap-2 text-[10px] font-mono">
+                          <span className="inline-block w-2 h-2 rounded-full bg-cipher-orange/60 animate-pulse" />
+                          <span className="text-muted uppercase tracking-wider">pending</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -219,31 +223,28 @@ export default function ChainViewPage() {
   );
 }
 
-function FinalizationMarker({
-  finalizedHeight,
+function FrontierMarker({
   finalizerCount,
   totalStakeZec,
 }: {
-  finalizedHeight: number;
   finalizerCount: number;
   totalStakeZec: number;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      {/* Connector line (to the dot on left) */}
-      <span className="block w-6 sm:w-10 h-px bg-cipher-green/40 -ml-3 sm:-ml-5" />
-      <div className="flex items-center gap-2.5 card py-2 px-3 border-cipher-green/40">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cipher-green opacity-60"></span>
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cipher-green"></span>
+    <div className="flex items-center gap-2">
+      <span className="block h-px w-4 sm:w-6 bg-cipher-green/50" />
+      <div className="flex items-center gap-2 py-1.5 px-2.5 rounded border border-cipher-green/40 bg-cipher-green/5">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cipher-green opacity-70"></span>
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-green"></span>
         </span>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-cipher-green">BFT decision</span>
-            <Badge color="green">finalized</Badge>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-cipher-green">Finality Frontier</span>
+            <Badge color="green">BFT</Badge>
           </div>
-          <div className="text-[10px] text-muted font-mono mt-0.5">
-            through #{finalizedHeight.toLocaleString()} · {finalizerCount} finalizers · {totalStakeZec.toFixed(1)} cTAZ
+          <div className="text-[9px] text-muted font-mono mt-0.5">
+            {finalizerCount} finalizers · {totalStakeZec.toFixed(1)} cTAZ staked
           </div>
         </div>
       </div>
