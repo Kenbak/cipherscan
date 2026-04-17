@@ -30,21 +30,38 @@ interface BftTip {
   signatureCount: number;
 }
 
+interface DivergenceEvent {
+  id: number;
+  start_time: number;
+  end_time: number | null;
+  duration_seconds: number | null;
+  is_open: boolean;
+  severity: string;
+  start_tip_height: number;
+  start_finalized_height: number;
+  peak_gap: number;
+  peak_tip_height: number;
+  end_tip_height: number | null;
+  end_finalized_height: number | null;
+}
+
 const BLOCKS_TO_SHOW = 20;
 
 export default function ChainViewPage() {
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [stats, setStats] = useState<CrosslinkStats | null>(null);
   const [bftTip, setBftTip] = useState<BftTip | null>(null);
+  const [divergenceEvents, setDivergenceEvents] = useState<DivergenceEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
       const api = getApiUrl();
-      const [blocksRes, crosslinkRes, bftRes] = await Promise.all([
+      const [blocksRes, crosslinkRes, bftRes, divRes] = await Promise.all([
         fetch(`${api}/api/blocks?limit=${BLOCKS_TO_SHOW}`),
         fetch(`${api}/api/crosslink`),
         fetch(`${api}/api/crosslink/bft-tip`),
+        fetch(`${api}/api/crosslink/divergence-history?limit=10`),
       ]);
 
       if (blocksRes.ok) {
@@ -72,12 +89,18 @@ export default function ChainViewPage() {
           });
         }
       }
+      if (divRes.ok) {
+        const data = await divRes.json();
+        if (data.success) setDivergenceEvents(data.events || []);
+      }
     } catch (err) {
       console.error('Failed to fetch chain view data:', err);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const openDivergence = divergenceEvents.find((e) => e.is_open);
 
   useEffect(() => {
     fetchData();
@@ -131,6 +154,8 @@ export default function ChainViewPage() {
           <TipStat label="Finalizers" value={`${stats.finalizerCount}`} tooltip="Active finalizers participating in BFT consensus" />
         </div>
       )}
+
+      <DivergencePanel openEvent={openDivergence} recentEvents={divergenceEvents} />
 
       {loading && blocks.length === 0 ? (
         <Card>
@@ -315,6 +340,159 @@ function BftVoteMarker({
         </div>
       </div>
     </div>
+  );
+}
+
+function fmtAgo(epoch: number | null): string {
+  if (!epoch) return '—';
+  const diff = Math.floor(Date.now() / 1000 - epoch);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function fmtDuration(secs: number | null): string {
+  if (!secs) return '—';
+  if (secs < 60) return `${secs}s`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+  return `${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m`;
+}
+
+function DivergencePanel({
+  openEvent,
+  recentEvents,
+}: {
+  openEvent?: DivergenceEvent;
+  recentEvents: DivergenceEvent[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const closed = recentEvents.filter((e) => !e.is_open);
+
+  // Hide the panel if we've never had a divergence
+  if (!openEvent && closed.length === 0) return null;
+
+  // Detect repeat pattern: same start_finalized_height across events
+  const repeatedHeights = new Map<number, number>();
+  for (const e of closed) {
+    const h = e.start_finalized_height;
+    repeatedHeights.set(h, (repeatedHeights.get(h) || 0) + 1);
+  }
+  const recurringHeight = [...repeatedHeights.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  return (
+    <Card className={openEvent ? 'mb-8 border-cipher-orange/40' : 'mb-8'}>
+      <CardBody className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-3">
+            <span className={`relative flex h-2.5 w-2.5 mt-1.5 shrink-0`}>
+              <span
+                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
+                  openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                }`}
+              />
+              <span
+                className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                  openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                }`}
+              />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-primary">
+                  {openEvent ? 'Chain divergence in progress' : 'Chain divergence history'}
+                </span>
+                {openEvent?.severity === 'critical' && <Badge color="orange">CRITICAL</Badge>}
+                {!openEvent && closed.length > 0 && (
+                  <Badge color="muted">{closed.length} resolved</Badge>
+                )}
+              </div>
+              <div className="text-xs text-secondary mt-1 leading-relaxed max-w-2xl">
+                {openEvent ? (
+                  <>
+                    Our node&apos;s finality gap is{' '}
+                    <span className="text-cipher-orange font-semibold">{openEvent.peak_gap} blocks</span>.
+                    Started{' '}
+                    <span className="text-primary">{fmtAgo(openEvent.start_time)}</span> at finalized
+                    block <Link href={`/block/${openEvent.start_finalized_height}`} className="text-cipher-cyan hover:underline">
+                      #{openEvent.start_finalized_height.toLocaleString()}
+                    </Link>. Known ShieldedLabs issue — node will recover automatically or a Zebra cache
+                    reset will be required if the gap stays &gt;100 blocks.
+                  </>
+                ) : recurringHeight ? (
+                  <>
+                    We&apos;ve diverged at finalized block{' '}
+                    <Link
+                      href={`/block/${recurringHeight[0]}`}
+                      className="text-cipher-cyan hover:underline"
+                    >
+                      #{recurringHeight[0].toLocaleString()}
+                    </Link>{' '}
+                    <span className="text-primary">{recurringHeight[1]} times</span> — this looks like
+                    a reproducible protocol bug at that height.
+                  </>
+                ) : (
+                  <>Last divergence resolved {fmtAgo(closed[0]?.end_time ?? null)}.</>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {recentEvents.length > 0 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors"
+            >
+              {expanded ? 'hide history' : `history (${recentEvents.length})`}
+            </button>
+          )}
+        </div>
+
+        {expanded && recentEvents.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-cipher-border overflow-x-auto">
+            <table className="w-full text-xs font-mono min-w-[560px]">
+              <thead>
+                <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
+                  <th className="py-2 pr-4">Started</th>
+                  <th className="py-2 pr-4">Diverged at</th>
+                  <th className="py-2 pr-4 text-right">Peak gap</th>
+                  <th className="py-2 pr-4 text-right">Duration</th>
+                  <th className="py-2 pr-4">Severity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentEvents.map((e) => (
+                  <tr key={e.id} className="border-t border-cipher-border/40">
+                    <td className="py-2 pr-4 text-secondary">{fmtAgo(e.start_time)}</td>
+                    <td className="py-2 pr-4">
+                      <Link
+                        href={`/block/${e.start_finalized_height}`}
+                        className="text-cipher-cyan hover:underline"
+                      >
+                        #{e.start_finalized_height.toLocaleString()}
+                      </Link>
+                    </td>
+                    <td className="py-2 pr-4 text-right text-primary">{e.peak_gap}</td>
+                    <td className="py-2 pr-4 text-right text-secondary">
+                      {e.is_open ? 'open' : fmtDuration(e.duration_seconds)}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {e.severity === 'critical' ? (
+                        <Badge color="orange">critical</Badge>
+                      ) : (
+                        <Badge color="muted">warning</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }
 
