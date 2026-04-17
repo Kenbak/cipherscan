@@ -1601,6 +1601,47 @@
     opacity: 0.5;
   }
 
+  /* Crosslink dual-chain graph: override React Flow's native CSS vars so the
+     library's own selectors pick up our theme. Works in both dark & light. */
+  .crosslink-graph {
+    /* PoW card bg — class-scoped so we don't rely on --color-elevated being
+       read "dark" at paint time (some themes default to light on first load). */
+    --crosslink-card-bg: rgba(255, 255, 255, 0.025);
+    --crosslink-card-border: var(--color-border);
+
+    /* React Flow native vars */
+    --xy-background-pattern-color: var(--color-map-dot);
+    --xy-edge-label-background-color: var(--color-surface-solid);
+    --xy-edge-label-color: var(--color-text-primary);
+
+    --xy-minimap-background-color: var(--color-surface-solid);
+    --xy-minimap-mask-background-color: rgba(8, 9, 15, 0.72);
+    --xy-minimap-mask-stroke-color: transparent;
+    --xy-minimap-node-background-color: rgba(148, 163, 184, 0.55);
+
+    --xy-controls-button-background-color: var(--color-surface-solid);
+    --xy-controls-button-background-color-hover: var(--color-hover);
+    --xy-controls-button-color: var(--color-text-secondary);
+    --xy-controls-button-color-hover: var(--color-cyan);
+    --xy-controls-button-border-color: var(--color-border);
+    --xy-controls-box-shadow: none;
+  }
+
+  /* Light mode: swap card bg + mask */
+  .light .crosslink-graph {
+    --crosslink-card-bg: #ffffff;
+    --xy-minimap-mask-background-color: rgba(15, 23, 42, 0.08);
+    --xy-minimap-node-background-color: rgba(71, 85, 105, 0.55);
+  }
+
+  .crosslink-graph .react-flow__controls-button {
+    width: 30px;
+    height: 30px;
+  }
+  .crosslink-graph .react-flow__attribution {
+    display: none;
+  }
+
   /* Reduced motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,

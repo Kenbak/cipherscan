@@ -318,12 +318,13 @@ export default function ValidatorsPage() {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
+                const display = displayPubkey(member.identity);
                 return (
                   <div
                     key={member.identity}
                     className="bg-cipher-cyan/70 transition-all duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
-                    title={`${member.identity.slice(0, 12)}... — ${share.toFixed(1)}%`}
+                    title={`${display.slice(0, 12)}... — ${share.toFixed(1)}%`}
                   />
                 );
               })}
@@ -333,10 +334,11 @@ export default function ValidatorsPage() {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
+                const display = displayPubkey(member.identity);
                 return (
                   <div key={member.identity} className="flex items-center gap-1.5">
                     <span className="text-[10px] font-mono text-muted">
-                      {member.identity.slice(0, 8)}... ({share.toFixed(1)}%)
+                      {display.slice(0, 8)}... ({share.toFixed(1)}%)
                     </span>
                   </div>
                 );

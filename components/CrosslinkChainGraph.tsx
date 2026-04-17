@@ -11,6 +11,7 @@ import {
   Handle,
   Position,
   MarkerType,
+  PanOnScrollMode,
   type Node,
   type Edge,
   type NodeProps,
@@ -18,9 +19,10 @@ import {
 import '@xyflow/react/dist/style.css';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
+import { Tooltip } from '@/components/Tooltip';
 
 // ---------------------------------------------------------------------------
-// Data model
+// Types
 // ---------------------------------------------------------------------------
 
 interface PowBlock {
@@ -44,6 +46,7 @@ interface BftDecision {
 interface BftTip {
   votedBlockHash: string | null;
   signatureCount: number;
+  signers: Array<{ pub_key: string | null }>;
 }
 
 interface CrosslinkStats {
@@ -51,28 +54,37 @@ interface CrosslinkStats {
   finalizedHeight: number;
   finalityGap: number;
   finalizerCount: number;
+  totalStakeZec: number;
 }
 
 // ---------------------------------------------------------------------------
-// Layout math
+// Layout constants
 // ---------------------------------------------------------------------------
 
 const POW_X = 0;
-const BFT_X = 420;
-const ROW_HEIGHT = 92;          // vertical spacing between PoW blocks
-const POW_WIDTH = 320;
-const POW_HEIGHT = 64;
-const BFT_RADIUS = 22;          // visual size of BFT circle
+const BFT_X = 580;
+const ROW_HEIGHT = 100;
+const POW_WIDTH = 360;
+const POW_HEIGHT = 84;
+const BFT_SIZE = 48;
+const BFT_NODE_WIDTH = 260;
 
-/**
- * Log-scaled block size ratio. Coinbase-only blocks are ~1 KB; full blocks
- * can be 60+ KB. Use log so the thin ones don't become invisible bars.
- */
-function sizeScale(size: number, maxSize: number): number {
-  if (maxSize <= 0) return 0.2;
-  const logMax = Math.log10(Math.max(maxSize, 2048));
-  const logS = Math.log10(Math.max(size, 1024));
-  return Math.max(0.15, Math.min(1, logS / logMax));
+// Brand palette
+const COLOR_POW_DIM = 'rgba(86, 212, 200, 0.65)';
+const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
+const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
+const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
+const COLOR_VOTING_EDGE = 'rgba(255, 107, 53, 0.85)';
+const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal
+
+// ---------------------------------------------------------------------------
+// Formatters
+// ---------------------------------------------------------------------------
+
+function fmtBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function fmtAge(epoch: number): string {
@@ -84,139 +96,223 @@ function fmtAge(epoch: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Custom nodes
+// PoW node
 // ---------------------------------------------------------------------------
 
 interface PowNodeData extends Record<string, unknown> {
   block: PowBlock;
-  scale: number;
   state: 'finalized' | 'voting' | 'pending';
+  isTip?: boolean;
 }
 
 function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
-  const { block, scale, state } = data;
+  const { block, state, isTip } = data;
 
-  const ring =
-    state === 'voting'
-      ? 'ring-2 ring-cipher-orange/60 border-cipher-orange/40 animate-pulse'
-      : state === 'finalized'
-      ? 'border-cipher-green/30'
-      : 'border-cipher-cyan/30';
-  const dot =
-    state === 'voting'
-      ? 'bg-cipher-orange animate-pulse'
-      : state === 'finalized'
-      ? 'bg-cipher-green'
-      : 'bg-cipher-cyan/70';
-  const bar =
-    state === 'voting'
-      ? 'bg-cipher-orange/60'
-      : state === 'finalized'
-      ? 'bg-cipher-green/50'
-      : 'bg-cipher-cyan/50';
+  // Priority: TIP > VOTING > FINAL > PENDING
+  let badgeLabel: string;
+  let badgeClass: string;
+  let accentClass: string;
+  let borderClass: string;
+
+  if (isTip) {
+    badgeLabel = 'TIP';
+    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
+    accentClass = 'bg-cipher-cyan';
+    borderClass = 'border-cipher-cyan/50';
+  } else if (state === 'voting') {
+    badgeLabel = 'VOTING';
+    badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
+    accentClass = 'bg-cipher-orange animate-pulse';
+    borderClass = 'border-cipher-orange/50';
+  } else if (state === 'finalized') {
+    badgeLabel = 'FINAL';
+    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-cyan-muted';
+    borderClass = 'border-cipher-border';
+  } else {
+    badgeLabel = 'PENDING';
+    badgeClass = 'border-cipher-border';
+    accentClass = 'bg-cipher-cyan/50';
+    borderClass = 'border-cipher-border';
+  }
 
   return (
-    <Link
-      href={`/block/${block.height}`}
-      className={`group block w-[320px] rounded-lg border bg-cipher-bg/90 backdrop-blur-sm px-3 py-2.5 transition-all hover:border-cipher-cyan hover:bg-cipher-hover/60 ${ring}`}
+    <div
+      className="relative nodrag"
+      style={{ width: POW_WIDTH, height: POW_HEIGHT }}
     >
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="pow"
+        isConnectable={false}
+        className="!bg-transparent !border-0 !w-px !h-px !min-w-0 !min-h-0"
+        style={{ right: 0, top: POW_HEIGHT / 2 }}
+      />
       <Handle
         type="target"
         position={Position.Right}
-        id="pow-target"
-        className="!bg-transparent !border-0 !w-2 !h-2"
+        id="pow-in"
+        isConnectable={false}
+        className="!bg-transparent !border-0 !w-px !h-px !min-w-0 !min-h-0"
+        style={{ right: 0, top: POW_HEIGHT / 2 }}
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${dot}`} />
-          <span className="font-mono text-sm font-semibold text-primary truncate group-hover:text-cipher-cyan transition-colors">
-            #{block.height.toLocaleString()}
-          </span>
-          <code className="font-mono text-[10px] text-muted truncate">
-            {block.hash.slice(0, 10)}…{block.hash.slice(-6)}
-          </code>
-        </div>
-        <span className="text-[10px] font-mono text-muted shrink-0">
-          {fmtAge(block.timestamp)}
-        </span>
-      </div>
+      <Link
+        href={`/block/${block.height}`}
+        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 hover:shadow-[0_0_20px_rgba(0,212,255,0.12)] transition-all`}
+      >
+        <span className={`block w-1 shrink-0 ${accentClass}`} />
 
-      <div className="mt-1.5 flex items-center gap-2">
-        <div className="flex-1 h-[3px] rounded-full bg-cipher-border/40 overflow-hidden">
-          <div
-            className={`h-full rounded-full ${bar} transition-all`}
-            style={{ width: `${scale * 100}%` }}
-          />
+        <div className="flex-1 min-w-0 px-3.5 py-2.5 flex flex-col justify-between gap-1">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="font-mono text-[15px] font-semibold tabular-nums shrink-0 text-black dark:text-white group-hover:text-cipher-cyan transition-colors">
+              #{block.height.toLocaleString()}
+            </span>
+            <span
+              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider ${badgeClass}`}
+            >
+              {badgeLabel}
+            </span>
+          </div>
+
+          <code className="font-mono text-[11px] truncate text-neutral-600 dark:text-neutral-300">
+            {block.hash.slice(0, 10)}…{block.hash.slice(-10)}
+          </code>
+
+          <div className="font-mono text-[11px] flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+            <span className="tabular-nums text-black dark:text-white">
+              {fmtAge(block.timestamp)}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">
+              <span className="text-black dark:text-white">
+                {block.transaction_count}
+              </span>{' '}
+              {block.transaction_count === 1 ? 'tx' : 'txs'}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">{fmtBytes(block.size || 0)}</span>
+          </div>
         </div>
-        <div className="text-[10px] font-mono text-muted whitespace-nowrap">
-          {block.transaction_count} tx · {fmtBytes(block.size)}
-        </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// BFT node
+// ---------------------------------------------------------------------------
 
 interface BftNodeData extends Record<string, unknown> {
   decision: BftDecision;
   finalizerCount: number;
-  compact?: boolean;
+  isVoting?: boolean;
 }
 
 function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
-  const { decision, finalizerCount } = data;
-  const quorumPct = finalizerCount > 0 ? (decision.signature_count / finalizerCount) * 100 : 0;
+  const { decision, finalizerCount, isVoting } = data;
+  const pct =
+    finalizerCount > 0
+      ? (decision.signature_count / finalizerCount) * 100
+      : 0;
+
+  const circleBg = isVoting
+    ? 'bg-cipher-orange/20'
+    : 'bg-[rgba(239,108,96,0.15)]';
+  const circleBorder = isVoting
+    ? 'border-cipher-orange/70'
+    : 'border-[rgba(239,108,96,0.7)]';
+  const numColor = isVoting ? 'text-cipher-orange' : 'text-[#F0826F]';
+  const glow = isVoting
+    ? 'shadow-[0_0_22px_rgba(255,107,53,0.45)]'
+    : 'shadow-[0_0_16px_rgba(239,108,96,0.3)]';
 
   return (
-    <div className="group relative cursor-default">
+    <div
+      className="group relative flex items-center gap-3 overflow-visible"
+      style={{ width: BFT_NODE_WIDTH, height: POW_HEIGHT }}
+    >
+      {/* Handles sit at the very left edge of the node so edges terminate
+          at the circle boundary instead of passing through its center. */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="bft-in"
+        isConnectable={false}
+        className="!bg-transparent !border-0 !w-px !h-px !min-w-0 !min-h-0"
+        style={{ left: 0, top: POW_HEIGHT / 2 }}
+      />
       <Handle
         type="source"
         position={Position.Left}
-        id="bft-source"
-        className="!bg-transparent !border-0 !w-2 !h-2"
+        id="bft-out"
+        isConnectable={false}
+        className="!bg-transparent !border-0 !w-px !h-px !min-w-0 !min-h-0"
+        style={{ left: 0, top: POW_HEIGHT / 2 }}
       />
 
-      {/* The circle */}
       <div
-        className="w-[44px] h-[44px] rounded-full bg-cipher-green/15 border border-cipher-green/50 flex items-center justify-center relative shadow-[0_0_20px_rgba(74,222,128,0.15)] hover:shadow-[0_0_28px_rgba(74,222,128,0.3)] transition-shadow"
+        className={`relative flex items-center justify-center rounded-full border-2 shrink-0 ${circleBg} ${circleBorder} ${glow} transition-shadow hover:shadow-[0_0_28px_rgba(239,108,96,0.5)]`}
+        style={{ width: BFT_SIZE, height: BFT_SIZE }}
       >
-        <span className="font-mono text-[11px] font-semibold text-cipher-green">
+        {isVoting && (
+          <span className="absolute inset-0 rounded-full bg-cipher-orange/30 animate-ping opacity-60" />
+        )}
+        <span
+          className={`relative font-mono text-[13px] font-semibold ${numColor}`}
+        >
           {decision.signature_count}
         </span>
       </div>
 
-      {/* Label to the right */}
-      <div className="absolute left-[52px] top-1/2 -translate-y-1/2 pointer-events-none whitespace-nowrap">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-mono text-cipher-green/90 uppercase tracking-wider">
-            BFT
-          </span>
-          <span className="text-[10px] font-mono text-muted">
-            {decision.signature_count}/{finalizerCount} · {quorumPct.toFixed(0)}%
+      <div className="min-w-0 leading-tight">
+        <div className="font-mono text-[9px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+          {isVoting ? 'voting now' : 'BFT decision'}
+        </div>
+        <div className="text-[12px] font-medium text-black dark:text-white">
+          <span className="tabular-nums">{decision.signature_count}</span>
+          <span className="text-neutral-500 dark:text-neutral-400"> of </span>
+          <span className="tabular-nums">{finalizerCount}</span>
+          <span className="text-neutral-500 dark:text-neutral-400"> signed</span>
+          <span className="text-neutral-500 dark:text-neutral-400"> · </span>
+          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+            {pct.toFixed(0)}%
           </span>
         </div>
-        <div className="text-[9px] font-mono text-muted/70">
-          ref #{decision.last_seen_at_pow_height.toLocaleString()}
-          {decision.pow_blocks_in_decision > 1 &&
-            ` (covers ${decision.pow_blocks_in_decision} blocks)`}
+        <div className="font-mono text-[10px] truncate text-neutral-500 dark:text-neutral-400">
+          {decision.pow_blocks_in_decision > 1
+            ? `confirms ${decision.pow_blocks_in_decision} PoW blocks`
+            : `confirms 1 PoW block`}
+          {` · `}
+          {decision.referenced_hash.slice(0, 6)}…
+          {decision.referenced_hash.slice(-4)}
         </div>
       </div>
 
-      {/* Hover popover with signer list */}
-      <div className="absolute left-[52px] top-[52px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
-        <div className="card p-2.5 min-w-[260px] shadow-xl">
-          <div className="text-[9px] font-mono text-muted uppercase tracking-wider mb-1.5">
-            Signers ({decision.signer_keys.length})
-          </div>
-          <div className="space-y-0.5 max-h-40 overflow-y-auto">
-            {decision.signer_keys.slice(0, 20).map((k) => (
-              <div key={k} className="text-[10px] font-mono text-secondary truncate">
-                {displayPubkey(k).slice(0, 16)}…{displayPubkey(k).slice(-6)}
-              </div>
-            ))}
+      {decision.signer_keys.length > 0 && (
+        <div className="absolute left-[60px] top-[80px] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+          <div className="card p-3 min-w-[280px] max-w-[340px] shadow-xl">
+            <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+              Signers · {decision.signer_keys.length}
+            </div>
+            <div className="space-y-0.5 max-h-56 overflow-y-auto">
+              {decision.signer_keys.slice(0, 24).map((k) => {
+                const pretty = displayPubkey(k);
+                return (
+                  <Link
+                    key={k}
+                    href={`/finalizer/${pretty}`}
+                    className="block text-[10px] font-mono text-secondary hover:text-cipher-cyan truncate"
+                  >
+                    {pretty.slice(0, 14)}…{pretty.slice(-6)}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -226,309 +322,482 @@ const nodeTypes = {
   bft: BftDecisionNode,
 };
 
-function fmtBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
 // ---------------------------------------------------------------------------
-// The graph itself
+// Main component
 // ---------------------------------------------------------------------------
 
 export function CrosslinkChainGraph({
-  blocksToShow = 40,
+  initialBlocksToShow = 25,
 }: {
-  blocksToShow?: number;
+  initialBlocksToShow?: number;
 }) {
+  const [limit, setLimit] = useState(initialBlocksToShow);
   const [blocks, setBlocks] = useState<PowBlock[]>([]);
   const [decisions, setDecisions] = useState<BftDecision[]>([]);
   const [stats, setStats] = useState<CrosslinkStats | null>(null);
   const [bftTip, setBftTip] = useState<BftTip | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const api = getApiUrl();
-      const [blocksRes, bftChainRes, crossRes, bftTipRes] = await Promise.all([
-        fetch(`${api}/api/blocks?limit=${blocksToShow}`),
-        fetch(`${api}/api/crosslink/bft-chain?limit=${blocksToShow}`),
-        fetch(`${api}/api/crosslink`),
-        fetch(`${api}/api/crosslink/bft-tip`),
-      ]);
+  const fetchData = useCallback(
+    async (effectiveLimit: number) => {
+      try {
+        const api = getApiUrl();
+        const [blocksRes, bftChainRes, crossRes, bftTipRes] = await Promise.all(
+          [
+            fetch(`${api}/api/blocks?limit=${effectiveLimit}`),
+            fetch(`${api}/api/crosslink/bft-chain?limit=${effectiveLimit}`),
+            fetch(`${api}/api/crosslink`),
+            fetch(`${api}/api/crosslink/bft-tip`),
+          ],
+        );
 
-      if (blocksRes.ok) {
-        const d = await blocksRes.json();
-        setBlocks(d.blocks || []);
-      }
-      if (bftChainRes.ok) {
-        const d = await bftChainRes.json();
-        if (d.success) setDecisions(d.decisions || []);
-      }
-      if (crossRes.ok) {
-        const d = await crossRes.json();
-        if (d.success) {
-          setStats({
-            tipHeight: d.tipHeight,
-            finalizedHeight: d.finalizedHeight,
-            finalityGap: d.finalityGap,
-            finalizerCount: d.finalizerCount,
-          });
+        if (blocksRes.ok) {
+          const d = await blocksRes.json();
+          const parsed: PowBlock[] = (d.blocks || []).map(
+            (b: Record<string, unknown>) => ({
+              height:
+                typeof b.height === 'string'
+                  ? parseInt(b.height as string, 10)
+                  : (b.height as number),
+              hash: b.hash as string,
+              timestamp:
+                typeof b.timestamp === 'string'
+                  ? parseInt(b.timestamp as string, 10)
+                  : (b.timestamp as number),
+              transaction_count: (b.transaction_count as number) ?? 0,
+              size: (b.size as number) ?? 0,
+              finality_status: (b.finality_status as string | null) ?? null,
+            }),
+          );
+          setBlocks(parsed);
         }
-      }
-      if (bftTipRes.ok) {
-        const d = await bftTipRes.json();
-        if (d.success) {
-          setBftTip({
-            votedBlockHash: d.votedBlockHash,
-            signatureCount: d.signatureCount,
-          });
+        if (bftChainRes.ok) {
+          const d = await bftChainRes.json();
+          if (d.success) setDecisions(d.decisions || []);
         }
+        if (crossRes.ok) {
+          const d = await crossRes.json();
+          if (d.success) {
+            setStats({
+              tipHeight: d.tipHeight,
+              finalizedHeight: d.finalizedHeight,
+              finalityGap: d.finalityGap,
+              finalizerCount: d.finalizerCount,
+              totalStakeZec: d.totalStakeZec,
+            });
+          }
+        }
+        if (bftTipRes.ok) {
+          const d = await bftTipRes.json();
+          if (d.success) {
+            setBftTip({
+              votedBlockHash: d.votedBlockHash,
+              signatureCount: d.signatureCount,
+              signers: Array.isArray(d.signers) ? d.signers : [],
+            });
+          }
+        }
+      } catch (err) {
+        console.error('CrosslinkChainGraph fetch error:', err);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } catch (err) {
-      console.error('ChainGraph fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [blocksToShow]);
+    },
+    [],
+  );
 
   useEffect(() => {
-    fetchData();
-    const id = setInterval(fetchData, 10_000);
+    fetchData(limit);
+    const id = setInterval(() => fetchData(limit), 10_000);
     return () => clearInterval(id);
-  }, [fetchData]);
+  }, [fetchData, limit]);
 
-  // ----- Build react-flow nodes + edges ------------------------------------
+  const loadOlder = useCallback(() => {
+    setLoadingMore(true);
+    setLimit((l) => Math.min(l + 25, 200));
+  }, []);
 
+  // Build RF nodes + edges
   const { nodes, edges } = useMemo<{ nodes: Node[]; edges: Edge[] }>(() => {
     if (blocks.length === 0) return { nodes: [], edges: [] };
 
-    const maxSize = blocks.reduce((m, b) => Math.max(m, b.size || 0), 0);
-    const finalized = stats?.finalizedHeight ?? 0;
-    const votedHash = bftTip?.votedBlockHash;
+    const finalizedHeight = stats?.finalizedHeight ?? 0;
+    const finalizerCount = stats?.finalizerCount ?? 0;
+    const votingHash = bftTip?.votedBlockHash || null;
 
-    // PoW blocks: oldest at the bottom (y increases downward in RF, so newest = smallest y).
-    // Ordering blocks newest-first matches our API response; lay out 0→N downward.
-    const powNodes: Node[] = blocks.map((b, i) => ({
-      id: `pow-${b.hash}`,
-      type: 'pow',
-      position: { x: POW_X, y: i * ROW_HEIGHT },
-      data: {
-        block: b,
-        scale: sizeScale(b.size || 0, maxSize),
-        state:
-          b.hash === votedHash
-            ? 'voting'
-            : b.height <= finalized
-            ? 'finalized'
-            : 'pending',
-      } satisfies PowNodeData,
-      draggable: false,
-    }));
+    const yByHash = new Map<string, number>();
+    const yByHeight = new Map<number, number>();
 
-    // BFT decisions: place each decision vertically aligned with the PoW block it references.
-    // Index blocks by hash so we can look up vertical positions.
-    const posByHash = new Map<string, number>();
-    blocks.forEach((b, i) => posByHash.set(b.hash, i * ROW_HEIGHT));
+    const tipHeight = stats?.tipHeight ?? blocks[0]?.height ?? 0;
+
+    const powNodes: Node[] = blocks.map((b, i) => {
+      const y = i * ROW_HEIGHT;
+      yByHash.set(b.hash, y);
+      yByHeight.set(b.height, y);
+      const state: 'finalized' | 'voting' | 'pending' =
+        b.hash === votingHash
+          ? 'voting'
+          : b.height <= finalizedHeight
+          ? 'finalized'
+          : 'pending';
+      return {
+        id: `pow-${b.hash}`,
+        type: 'pow',
+        position: { x: POW_X, y },
+        data: {
+          block: b,
+          state,
+          isTip: b.height === tipHeight,
+        } satisfies PowNodeData,
+        draggable: false,
+        selectable: false,
+      };
+    });
 
     const bftNodes: Node[] = [];
     const bftEdges: Edge[] = [];
-    for (const d of decisions) {
-      const y = posByHash.get(d.referenced_hash);
-      if (y === undefined) continue; // decision points at a block outside our window
 
-      // Offset BFT circle to center it vertically next to the PoW block
+    for (const d of decisions) {
+      const firstY = yByHeight.get(d.last_seen_at_pow_height);
+      const lastY = yByHeight.get(d.first_seen_at_pow_height);
+      if (firstY === undefined && lastY === undefined) continue;
+      const y0 = firstY ?? lastY ?? 0;
+      const y1 = lastY ?? firstY ?? 0;
+      const centerY = (y0 + y1) / 2 + (POW_HEIGHT - BFT_SIZE) / 2;
+
+      const nodeId = `bft-${d.referenced_hash}`;
       bftNodes.push({
-        id: `bft-${d.referenced_hash}`,
+        id: nodeId,
         type: 'bft',
-        position: {
-          x: BFT_X,
-          y: y + (POW_HEIGHT / 2 - BFT_RADIUS),
-        },
+        position: { x: BFT_X, y: centerY },
         data: {
           decision: d,
-          finalizerCount: stats?.finalizerCount ?? 0,
+          finalizerCount,
         } satisfies BftNodeData,
         draggable: false,
+        selectable: false,
       });
 
-      // Edge from the BFT circle back to the PoW block it references (solid green)
-      bftEdges.push({
-        id: `edge-${d.referenced_hash}`,
-        source: `bft-${d.referenced_hash}`,
-        sourceHandle: 'bft-source',
-        target: `pow-${d.referenced_hash}`,
-        targetHandle: 'pow-target',
-        type: 'smoothstep',
-        animated: false,
-        style: {
-          stroke: 'rgba(74, 222, 128, 0.55)', // cipher-green/55
-          strokeWidth: 1.5,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 14,
-          height: 14,
-          color: 'rgba(74, 222, 128, 0.7)',
-        },
-      });
-    }
-
-    // Extra edge: current BFT vote (if we know what it's voting on)
-    if (bftTip?.votedBlockHash) {
-      const y = posByHash.get(bftTip.votedBlockHash);
-      const alreadyHasBft = decisions.some((d) => d.referenced_hash === bftTip.votedBlockHash);
-      if (y !== undefined && !alreadyHasBft) {
-        const pendingId = 'bft-pending';
-        bftNodes.push({
-          id: pendingId,
-          type: 'bft',
-          position: { x: BFT_X, y: y + (POW_HEIGHT / 2 - BFT_RADIUS) },
-          data: {
-            decision: {
-              referenced_hash: bftTip.votedBlockHash,
-              signature_count: bftTip.signatureCount,
-              pow_blocks_in_decision: 0,
-              first_seen_at_pow_height: 0,
-              last_seen_at_pow_height: 0,
-              signer_keys: [],
-            },
-            finalizerCount: stats?.finalizerCount ?? 0,
-          } satisfies BftNodeData,
-          draggable: false,
-        });
+      // Coral edges: PoW → BFT (fat pointer, many-to-one)
+      for (
+        let h = d.first_seen_at_pow_height;
+        h <= d.last_seen_at_pow_height;
+        h++
+      ) {
+        const block = blocks.find((b) => b.height === h);
+        if (!block) continue;
         bftEdges.push({
-          id: 'edge-pending',
-          source: pendingId,
-          target: `pow-${bftTip.votedBlockHash}`,
-          type: 'smoothstep',
-          animated: true,
+          id: `pow2bft-${block.hash}-${d.referenced_hash}`,
+          source: `pow-${block.hash}`,
+          sourceHandle: 'pow',
+          target: nodeId,
+          targetHandle: 'bft-in',
+          type: 'bezier',
           style: {
-            stroke: 'rgba(251, 146, 60, 0.6)', // cipher-orange
-            strokeWidth: 1.5,
-            strokeDasharray: '4 2',
+            stroke: COLOR_BFT_EDGE,
+            strokeWidth: 1.6,
+          },
+        });
+      }
+
+      // Teal edge: BFT → finalized PoW tip (the specific block this BFT
+      // decision confirmed). Rendered thicker, brighter, with arrow + label.
+      if (yByHash.has(d.referenced_hash)) {
+        bftEdges.push({
+          id: `finalizes-${d.referenced_hash}`,
+          source: nodeId,
+          sourceHandle: 'bft-out',
+          target: `pow-${d.referenced_hash}`,
+          targetHandle: 'pow-in',
+          type: 'smoothstep',
+          style: {
+            stroke: COLOR_FINALIZE,
+            strokeWidth: 2,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 14,
             height: 14,
-            color: 'rgba(251, 146, 60, 0.8)',
+            color: COLOR_FINALIZE,
           },
+          label: 'finalizes',
+          labelStyle: {
+            fill: COLOR_FINALIZE,
+            fontFamily:
+              'var(--font-geist-mono, JetBrains Mono, monospace)',
+            fontSize: 9,
+            letterSpacing: '0.05em',
+          },
+          labelBgStyle: {
+            fill: 'var(--color-surface-solid)',
+          },
+          labelBgPadding: [6, 3],
+          labelBgBorderRadius: 4,
+          zIndex: 10,
         });
       }
+    }
+
+    // Voting pointer: BFT's current live vote
+    if (bftTip?.votedBlockHash && yByHash.has(bftTip.votedBlockHash)) {
+      const y =
+        yByHash.get(bftTip.votedBlockHash)! + (POW_HEIGHT - BFT_SIZE) / 2;
+      const nodeId = 'bft-voting';
+      bftNodes.push({
+        id: nodeId,
+        type: 'bft',
+        position: { x: BFT_X, y },
+        data: {
+          decision: {
+            referenced_hash: bftTip.votedBlockHash,
+            signature_count: bftTip.signatureCount,
+            pow_blocks_in_decision: 1,
+            first_seen_at_pow_height: 0,
+            last_seen_at_pow_height: 0,
+            signer_keys: bftTip.signers
+              .map((s) => s.pub_key)
+              .filter(Boolean) as string[],
+          },
+          finalizerCount,
+          isVoting: true,
+        } satisfies BftNodeData,
+        draggable: false,
+        selectable: false,
+      });
+      bftEdges.push({
+        id: 'voting-ref',
+        source: nodeId,
+        sourceHandle: 'bft-out',
+        target: `pow-${bftTip.votedBlockHash}`,
+        targetHandle: 'pow-in',
+        type: 'smoothstep',
+        animated: true,
+        style: {
+          stroke: COLOR_VOTING_EDGE,
+          strokeWidth: 1.6,
+          strokeDasharray: '4 3',
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 12,
+          height: 12,
+          color: COLOR_VOTING,
+        },
+      });
     }
 
     return { nodes: [...powNodes, ...bftNodes], edges: bftEdges };
   }, [blocks, decisions, stats, bftTip]);
 
+  const openDivergence = stats && stats.finalityGap > 20;
+
   return (
-    <div className="relative w-full h-[calc(100vh-180px)] min-h-[600px] card p-0 overflow-hidden">
-      {loading && nodes.length === 0 ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
-        </div>
-      ) : null}
-
-      {/* Top overlay: live stats + column labels */}
+    <div className="space-y-4">
+      {/* Stats + explanation — part of the page, not a floating overlay */}
       {stats && (
-        <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between pointer-events-none">
-          <div className="bg-cipher-bg/80 backdrop-blur-md border border-cipher-border/60 rounded-lg p-3 pointer-events-auto">
-            <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1">
-              Crosslink dual chain
-            </div>
-            <div className="flex items-center gap-4 text-sm font-mono">
-              <span className="text-primary">
-                <span className="text-muted text-[10px]">tip </span>
-                #{stats.tipHeight.toLocaleString()}
-              </span>
-              <span className="text-cipher-green">
-                <span className="text-muted text-[10px]">final </span>
-                #{stats.finalizedHeight.toLocaleString()}
-              </span>
-              <span
-                className={
-                  stats.finalityGap > 20 ? 'text-cipher-orange' : 'text-muted'
-                }
-              >
-                <span className="text-muted text-[10px]">gap </span>
-                {stats.finalityGap}
-              </span>
-              <span className="text-muted text-[10px] hidden sm:inline">
-                {stats.finalizerCount} finalizers
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden sm:flex gap-3 text-[10px] font-mono uppercase tracking-wider">
-            <span className="px-2 py-1 rounded bg-cipher-bg/80 border border-cipher-cyan/30 text-cipher-cyan">
-              PoW
-            </span>
-            <span className="px-2 py-1 rounded bg-cipher-bg/80 border border-cipher-green/30 text-cipher-green">
-              PoS · BFT
-            </span>
+        <div className="card p-0 overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-cipher-border/60">
+            <HeaderStat
+              label="PoW tip"
+              value={`#${stats.tipHeight.toLocaleString()}`}
+              tooltip="Latest block mined by PoW miners."
+            />
+            <HeaderStat
+              label="Finalized"
+              value={`#${stats.finalizedHeight.toLocaleString()}`}
+              valueClass="text-cipher-green"
+              tooltip="Highest block irreversibly confirmed by BFT consensus."
+            />
+            <HeaderStat
+              label="Finality gap"
+              value={`${stats.finalityGap}`}
+              sub="blocks"
+              valueClass={
+                openDivergence ? 'text-cipher-orange' : 'text-primary'
+              }
+              tooltip="Blocks between PoW tip and last finalized block. Healthy: 0–10."
+            />
+            <HeaderStat
+              label="Finalizers"
+              value={`${stats.finalizerCount}`}
+              sub={
+                stats.totalStakeZec > 0
+                  ? `${stats.totalStakeZec.toFixed(0)} cTAZ`
+                  : undefined
+              }
+              tooltip="Validators signing BFT votes. Quorum ≈ ⅔ of these."
+            />
           </div>
         </div>
       )}
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
-        minZoom={0.3}
-        maxZoom={1.5}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable
-        proOptions={{ hideAttribution: true }}
-        // Avoid react-flow's "background" applying a body style
-        style={{ background: 'transparent' }}
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1}
-          color="rgba(148, 163, 184, 0.08)"
-        />
-        <Controls
-          position="top-right"
-          showInteractive={false}
-          className="!bg-cipher-bg/80 !border !border-cipher-border/60 !rounded-lg !shadow-none"
-        />
-        <MiniMap
-          position="bottom-right"
-          pannable
-          zoomable
-          maskColor="rgba(0,0,0,0.6)"
-          nodeColor={(n) => {
-            const d = n.data as PowNodeData | BftNodeData;
-            if (n.type === 'bft') return 'rgba(74,222,128,0.9)';
-            const state = (d as PowNodeData).state;
-            if (state === 'voting') return 'rgba(251,146,60,0.9)';
-            if (state === 'finalized') return 'rgba(74,222,128,0.7)';
-            return 'rgba(103,232,249,0.6)';
-          }}
-          nodeBorderRadius={4}
-          className="!bg-cipher-bg/80 !border !border-cipher-border/60 !rounded-lg !w-40 !h-28"
-        />
-      </ReactFlow>
-
-      {/* Legend (bottom-left) */}
-      <div className="absolute bottom-3 left-3 z-10 bg-cipher-bg/80 backdrop-blur-md border border-cipher-border/60 rounded-lg p-2.5 flex gap-3 text-[10px] font-mono">
-        <span className="flex items-center gap-1.5">
-          <span className="block w-2 h-2 rounded-full bg-cipher-green" />
-          <span className="text-secondary">finalized</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="block w-2 h-2 rounded-full bg-cipher-orange animate-pulse" />
-          <span className="text-secondary">voting</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="block w-2 h-2 rounded-full bg-cipher-cyan/70" />
-          <span className="text-secondary">pending</span>
-        </span>
+      {/* Legend — explains what you're actually looking at */}
+      <div className="card p-3 sm:p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-x-6 md:gap-y-2 text-xs">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-1 inline-block w-5 h-3 rounded-sm bg-cipher-cyan-muted/25 border border-cipher-cyan-muted/50 shrink-0" />
+            <p className="text-secondary leading-snug">
+              <span className="text-primary font-semibold">Left — PoW blocks.</span>{' '}
+              Produced by miners. Click one to inspect its transactions.
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 inline-block w-4 h-4 rounded-full bg-[rgba(239,108,96,0.15)] border border-[rgba(239,108,96,0.7)] shrink-0" />
+            <p className="text-secondary leading-snug">
+              <span className="text-primary font-semibold">Right — BFT decisions.</span>{' '}
+              The number inside is how many finalizers signed it.
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span
+              className="mt-2 inline-block h-[2px] w-6 shrink-0"
+              style={{ background: COLOR_BFT_EDGE }}
+            />
+            <p className="text-secondary leading-snug">
+              <span className="text-primary font-semibold">Coral lines — fat pointer.</span>{' '}
+              Each PoW block embeds a pointer to the BFT chain tip it observed.
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span
+              className="mt-2 inline-block h-[2px] w-6 shrink-0"
+              style={{ background: COLOR_FINALIZE }}
+            />
+            <p className="text-secondary leading-snug">
+              <span className="text-primary font-semibold">Teal arrow — finalizes.</span>{' '}
+              The PoW block this BFT decision locked in as irreversible.
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Graph canvas */}
+      <div className="crosslink-graph relative w-full h-[calc(100vh-260px)] min-h-[560px] card p-0 overflow-hidden">
+        {loading && nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+          </div>
+        )}
+
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          defaultViewport={{ x: 120, y: 32, zoom: 1 }}
+          fitView={false}
+          minZoom={0.35}
+          maxZoom={2}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnScroll
+          panOnScrollMode={PanOnScrollMode.Vertical}
+          panOnScrollSpeed={0.6}
+          zoomOnPinch
+          zoomOnScroll={false}
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+          style={{ background: 'transparent' }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={24}
+            size={1}
+            color="var(--color-map-dot)"
+          />
+          <Controls
+            position="bottom-right"
+            showInteractive={false}
+            style={{
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              overflow: 'hidden',
+            }}
+          />
+          <MiniMap
+            position="top-right"
+            pannable
+            zoomable
+            nodeColor={(n) => {
+              if (n.type === 'bft') {
+                const d = n.data as BftNodeData;
+                return d.isVoting ? COLOR_VOTING : COLOR_BFT;
+              }
+              const s = (n.data as PowNodeData).state;
+              if (s === 'voting') return COLOR_VOTING;
+              return COLOR_POW_DIM;
+            }}
+            nodeStrokeWidth={0}
+            nodeBorderRadius={3}
+            style={{
+              width: 180,
+              height: 128,
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+            }}
+          />
+        </ReactFlow>
+      </div>
+
+      {/* Load older + showing count */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-xs font-mono text-muted">
+          {blocks.length > 0 &&
+            `Showing ${blocks.length} latest PoW blocks · ${decisions.length} BFT decisions`}
+        </span>
+        <button
+          onClick={loadOlder}
+          disabled={loadingMore || limit >= 200}
+          className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-cipher-cyan disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
+        >
+          {limit >= 200
+            ? 'Maximum history loaded'
+            : loadingMore
+            ? 'Loading…'
+            : 'Load 25 older blocks →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Header stat cell
+// ---------------------------------------------------------------------------
+
+function HeaderStat({
+  label,
+  value,
+  sub,
+  valueClass,
+  tooltip,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueClass?: string;
+  tooltip?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center p-4 sm:p-5">
+      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+        <span>{label}</span>
+        {tooltip && <Tooltip content={tooltip} />}
+      </div>
+      <div
+        className={`text-lg sm:text-xl font-mono font-bold tabular-nums ${
+          valueClass || 'text-primary'
+        }`}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div className="text-[10px] font-mono text-muted mt-0.5 tabular-nums">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

@@ -19,22 +19,21 @@ export type Network = 'mainnet' | 'testnet' | 'crosslink-testnet';
  * Detect network from domain (client-side safe)
  */
 function detectNetwork(): Network {
-  // Server-side: check env var
-  if (typeof window === 'undefined') {
-    return (process.env.NEXT_PUBLIC_NETWORK as Network) || 'testnet';
+  // Explicit env override wins on both server and client (NEXT_PUBLIC_* is
+  // inlined into the client bundle by Next.js). This is how a developer runs
+  // the crosslink build against localhost.
+  const envNetwork = process.env.NEXT_PUBLIC_NETWORK as Network | undefined;
+  if (envNetwork === 'mainnet' || envNetwork === 'testnet' || envNetwork === 'crosslink-testnet') {
+    return envNetwork;
   }
 
-  // Client-side: detect from hostname
+  // Server-side without env fallback → testnet.
+  if (typeof window === 'undefined') return 'testnet';
+
+  // Client-side: detect from hostname.
   const hostname = window.location.hostname;
-
-  if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) {
-    return 'mainnet';
-  }
-
-  if (hostname.includes('crosslink')) {
-    return 'crosslink-testnet';
-  }
-
+  if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) return 'mainnet';
+  if (hostname.includes('crosslink')) return 'crosslink-testnet';
   return 'testnet';
 }
 
