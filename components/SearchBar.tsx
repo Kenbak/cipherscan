@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { detectAddressType } from '@/lib/zcash';
 import { findAddressByLabel, searchAddressesByLabel, fetchOfficialLabels } from '@/lib/address-labels';
-import { isValidName } from 'zcashname-sdk';
+import { isValidName } from '@/lib/zns';
 
 interface SearchBarProps {
   compact?: boolean; // Mode compact pour la navbar
