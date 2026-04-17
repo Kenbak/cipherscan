@@ -1,37 +1,16 @@
 import type { Metadata } from 'next';
-import { getBaseUrl } from '@/lib/seo';
+import { isValidName } from '@/lib/zns';
 
-type Props = {
+export async function generateMetadata({
+  params,
+}: {
   params: Promise<{ name: string }>;
-  children: React.ReactNode;
-};
+}): Promise<Metadata> {
+  const { name: raw } = await params;
+  const name = decodeURIComponent(raw).toLowerCase();
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { name } = await params;
-  const baseUrl = getBaseUrl();
-
-  const title = `${name} — ZNS Name | CipherScan`;
-  const description = `View Zcash Name Service (ZNS) details for "${name}" — resolved address, registration info, event history, and marketplace status on CipherScan.`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: `${baseUrl}/name/${name}`,
-      siteName: 'CipherScan',
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary',
-      title,
-      description,
-    },
-    alternates: {
-      canonical: `${baseUrl}/name/${name}`,
-    },
-  };
+  if (!isValidName(name)) return { title: `${name} — CipherScan` };
+  return { title: `${name} — CipherScan` };
 }
 
 export default function NameLayout({ children }: { children: React.ReactNode }) {

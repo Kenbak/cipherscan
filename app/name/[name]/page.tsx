@@ -1,274 +1,271 @@
-'use client';
-
-import { useParams, notFound } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { isValidName } from 'zcashname-sdk';
+import { notFound } from 'next/navigation';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
+import { getClient, isValidName } from '@/lib/zns';
+import type { Event, EventAction, Registration, Pricing } from 'zcashname-sdk';
 
-const EVENT_COLORS: Record<string, 'green' | 'orange' | 'cyan' | 'purple' | 'muted'> = {
+const ZCASHNAMES_URL = 'https://zcashnames.com';
+
+const ZATS_PER_ZEC = 100_000_000;
+const formatZec = (zats: number): string =>
+  `${(zats / ZATS_PER_ZEC).toLocaleString(undefined, { maximumFractionDigits: 8 })} ZEC`;
+
+const truncate = (s: string): string =>
+  s.length > 20 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
+
+const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' | 'muted'> = {
   CLAIM: 'green',
   LIST: 'orange',
+  SETPRICE: 'orange',
   BUY: 'cyan',
   UPDATE: 'purple',
-  DELIST: 'muted',
+  DELIST: 'orange',
+  RELEASE: 'muted',
 };
 
-function truncateAddress(addr: string): string {
-  if (addr.length <= 30) return addr;
-  return `${addr.slice(0, 20)}...${addr.slice(-8)}`;
+export default async function NamePage({
+  params,
+}: {
+  params: Promise<{ name: string }>;
+}) {
+  const { name: raw } = await params;
+  const name = decodeURIComponent(raw).toLowerCase();
+
+  if (!isValidName(name)) notFound();
+
+  const zns = getClient();
+  const registration = await zns.resolveName(name);
+
+  if (!registration) {
+    const status = await zns.status();
+    return <AvailableView name={name} pricing={status.pricing} />;
+  }
+
+  const eventsResult = await zns.events({ name, limit: 50 });
+  return (
+    <RegisteredView name={name} registration={registration} events={eventsResult.events} />
+  );
 }
 
-export default function NamePage() {
-  const params = useParams();
-  const name = params.name as string;
+function RegisteredView({
+  name,
+  registration,
+  events,
+}: {
+  name: string;
+  registration: Registration;
+  events: Event[];
+}) {
+  const custody = registration.pubkey ? 'Sovereign' : 'Admin-registered';
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [resolved, setResolved] = useState<any>(null);
-  const [events, setEvents] = useState<any>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
-
-  const valid = isValidName(name);
-
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(label);
-      setTimeout(() => setCopiedText(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  const CopyButton = ({ text, label }: { text: string; label: string }) => (
-    <button
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        copyToClipboard(text, label);
-      }}
-      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
-      title="Copy to clipboard"
-    >
-      {copiedText === label ? (
-        <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      )}
-    </button>
-  );
-
-  useEffect(() => {
-    if (!valid) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function fetchData() {
-      try {
-        const res = await fetch(`/api/name/${encodeURIComponent(name)}`);
-
-        if (cancelled) return;
-
-        if (res.status === 404) {
-          setLoading(false);
-          return;
-        }
-
-        if (!res.ok) {
-          setError('Unable to reach ZNS indexer. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        setResolved(await res.json());
-
-        // Events may fail — not critical
-        try {
-          const eventsRes = await fetch(`/api/name/${encodeURIComponent(name)}/events`);
-          if (!cancelled && eventsRes.ok) {
-            setEvents(await eventsRes.json());
-          }
-        } catch {}
-      } catch (err) {
-        if (cancelled) return;
-        setError('Unable to reach ZNS indexer. Please try again.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchData();
-    return () => { cancelled = true; };
-  }, [name, valid]);
-
-  // Loading
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="animate-pulse space-y-6">
-          <div className="h-10 bg-cipher-surface rounded-lg w-48" />
-          <div className="card"><div className="h-24 bg-cipher-hover rounded-lg" /></div>
-          <div className="card"><div className="h-32 bg-cipher-hover rounded-lg" /></div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error
-  if (error) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="card text-center py-8">
-          <p className="text-sm text-cipher-text-secondary mb-4">{error}</p>
-          <button
-            onClick={() => { setError(null); setLoading(true); }}
-            className="btn btn-sm btn-primary"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Invalid name → 404
-  if (!valid) notFound();
-
-  // Name not registered → nothing on-chain to show
-  if (!resolved) notFound();
-
-  // Registered name
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="flex items-center gap-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-mono font-bold break-all">{name}</h1>
-        <Badge color="cyan">REGISTERED</Badge>
-      </div>
-
-      {/* Resolved Address */}
-      <Card className="mb-6">
-        <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
-          <span className="text-cipher-text-muted opacity-50">{'>'}</span>
-          RESOLVED_ADDRESS
-        </h2>
-        <div className="flex items-center">
-          <Link
-            href={`/address/${resolved.address}`}
-            className="font-mono text-sm text-cipher-cyan hover:underline break-all"
-          >
-            {truncateAddress(resolved.address)}
-          </Link>
-          <CopyButton text={resolved.address} label="address" />
-        </div>
-      </Card>
-
-      {/* Registration Details */}
-      <Card className="mb-6">
-        <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
-          <span className="text-cipher-text-muted opacity-50">{'>'}</span>
-          REGISTRATION
-        </h2>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-cipher-text-muted">Transaction</span>
-            <div className="flex items-center">
-              <Link href={`/tx/${resolved.txid}`} className="font-mono text-cipher-cyan hover:underline">
-                {resolved.txid.slice(0, 16)}...
-              </Link>
-              <CopyButton text={resolved.txid} label="txid" />
+    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-3xl font-mono">{name}</h1>
+            <div className="flex gap-2">
+              <Badge color={ACTION_COLOR[registration.last_action]}>
+                {registration.last_action}
+              </Badge>
+              <Badge color={registration.pubkey ? 'purple' : 'muted'}>{custody}</Badge>
             </div>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-cipher-text-muted">Block</span>
-            <Link href={`/block/${resolved.height}`} className="font-mono text-cipher-cyan hover:underline">
-              #{resolved.height.toLocaleString()}
+        </CardHeader>
+        <CardBody>
+          <Field label="Resolves to">
+            <Link
+              href={`/address/${registration.address}`}
+              className="font-mono text-sm hover:text-cipher-cyan transition-colors break-all"
+            >
+              {registration.address}
             </Link>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-cipher-text-muted">Nonce</span>
-            <span className="font-mono">{resolved.nonce}</span>
-          </div>
-        </div>
+          </Field>
+        </CardBody>
       </Card>
 
-      {/* Marketplace */}
-      <Card className="mb-6">
-        <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
-          <span className="text-cipher-text-muted opacity-50">{'>'}</span>
-          MARKETPLACE
-        </h2>
-        {resolved.listing ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Badge color="orange">FOR SALE</Badge>
-              <span className="text-lg font-mono font-bold text-cipher-yellow">
-                {(resolved.listing.price / 1e8).toFixed(2)} ZEC
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-cipher-text-muted">Listing Tx</span>
-              <div className="flex items-center">
-                <Link href={`/tx/${resolved.listing.txid}`} className="font-mono text-cipher-cyan hover:underline">
-                  {resolved.listing.txid.slice(0, 16)}...
-                </Link>
-                <CopyButton text={resolved.listing.txid} label="listing-txid" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-cipher-text-muted">Block</span>
-              <Link href={`/block/${resolved.listing.height}`} className="font-mono text-cipher-cyan hover:underline">
-                #{resolved.listing.height.toLocaleString()}
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-cipher-text-muted">Not for sale</p>
-        )}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold">Last action</h2>
+        </CardHeader>
+        <CardBody>
+          <Field label="Transaction">
+            <Link
+              href={`/tx/${registration.txid}`}
+              className="font-mono text-sm hover:text-cipher-cyan transition-colors"
+            >
+              {truncate(registration.txid)}
+            </Link>
+          </Field>
+          <Field label="Block">
+            <Link
+              href={`/block/${registration.height}`}
+              className="font-mono text-sm hover:text-cipher-cyan transition-colors"
+            >
+              {registration.height.toLocaleString()}
+            </Link>
+          </Field>
+        </CardBody>
       </Card>
 
-      {/* Event History */}
-      {events && events.events.length > 0 && (
+      {registration.listing && (
         <Card>
-          <h2 className="text-sm font-bold font-mono text-cipher-text-secondary mb-4 flex items-center gap-2">
-            <span className="text-cipher-text-muted opacity-50">{'>'}</span>
-            EVENT_HISTORY
-          </h2>
-          <div className="space-y-3">
-            {events.events.map((event: any) => (
-              <div key={event.id} className="flex items-center gap-3 text-sm flex-wrap">
-                <Badge color={EVENT_COLORS[event.action] || 'muted'}>
-                  {event.action}
-                </Badge>
-                <Link href={`/tx/${event.txid}`} className="font-mono text-cipher-cyan hover:underline">
-                  {event.txid.slice(0, 12)}...
-                </Link>
-                <Link href={`/block/${event.height}`} className="font-mono text-cipher-text-muted hover:text-cipher-cyan">
-                  #{event.height.toLocaleString()}
-                </Link>
-                {event.action === 'UPDATE' && event.ua && (
-                  <span className="font-mono text-cipher-text-muted text-xs">
-                    → {truncateAddress(event.ua)}
-                  </span>
-                )}
-                {(event.action === 'LIST' || event.action === 'BUY') && event.price != null && (
-                  <span className="font-mono text-cipher-yellow text-xs">
-                    {(event.price / 1e8).toFixed(2)} ZEC
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Listed for sale</h2>
+              <Badge color="orange">FOR SALE</Badge>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <Field label="Price">
+              <span className="font-mono text-lg">{formatZec(registration.listing.price)}</span>
+            </Field>
+            <a
+              href={ZCASHNAMES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+            >
+              Buy on zcashnames.com →
+            </a>
+          </CardBody>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold">History ({events.length})</h2>
+        </CardHeader>
+        <CardBody>
+          {events.length === 0 ? (
+            <p className="text-muted text-sm">No events.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted border-b border-white/10">
+                    <th className="py-2 pr-4">Action</th>
+                    <th className="py-2 pr-4">Block</th>
+                    <th className="py-2 pr-4">Tx</th>
+                    <th className="py-2">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((e) => (
+                    <tr key={e.id} className="border-b border-white/5">
+                      <td className="py-2 pr-4">
+                        <Badge color={ACTION_COLOR[e.action]}>{e.action}</Badge>
+                      </td>
+                      <td className="py-2 pr-4 font-mono">
+                        <Link
+                          href={`/block/${e.height}`}
+                          className="hover:text-cipher-cyan transition-colors"
+                        >
+                          {e.height.toLocaleString()}
+                        </Link>
+                      </td>
+                      <td className="py-2 pr-4 font-mono">
+                        <Link
+                          href={`/tx/${e.txid}`}
+                          className="hover:text-cipher-cyan transition-colors"
+                        >
+                          {truncate(e.txid)}
+                        </Link>
+                      </td>
+                      <td className="py-2 font-mono">
+                        {e.price != null ? formatZec(e.price) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    </main>
+  );
+}
+
+function AvailableView({
+  name,
+  pricing,
+}: {
+  name: string;
+  pricing: Pricing | null;
+}) {
+  const cost = pricing ? getClient().claimCost(name.length, pricing) : null;
+
+  return (
+    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-3xl font-mono">{name}</h1>
+            <Badge color="green">AVAILABLE</Badge>
+          </div>
+        </CardHeader>
+        <CardBody>
+          {cost != null && (
+            <Field label={`Claim cost (${name.length}-char name)`}>
+              <span className="font-mono text-lg">{formatZec(cost)}</span>
+            </Field>
+          )}
+          <a
+            href={ZCASHNAMES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+          >
+            Claim on zcashnames.com →
+          </a>
+        </CardBody>
+      </Card>
+
+      {pricing && pricing.tiers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Pricing tiers</h2>
+          </CardHeader>
+          <CardBody>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted border-b border-white/10">
+                    <th className="py-2 pr-4">Length</th>
+                    <th className="py-2">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pricing.tiers.map((zats, i) => {
+                    const isLast = i === pricing.tiers.length - 1;
+                    const label = isLast ? `${i + 1}+` : `${i + 1}`;
+                    return (
+                      <tr
+                        key={i}
+                        className={`border-b border-white/5 ${i + 1 === name.length || (isLast && name.length > i + 1) ? 'text-cipher-cyan' : ''}`}
+                      >
+                        <td className="py-2 pr-4 font-mono">{label} chars</td>
+                        <td className="py-2 font-mono">{formatZec(zats)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+    </main>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="py-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+      <span className="text-muted text-sm sm:w-48 shrink-0">{label}</span>
+      <span className="min-w-0">{children}</span>
     </div>
   );
 }
