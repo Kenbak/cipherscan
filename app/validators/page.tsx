@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
+import { CopyButton } from '@/components/CopyButton';
 import { CURRENCY } from '@/lib/config';
 import { displayPubkey } from '@/lib/utils';
+import { getFinalizerLabel } from '@/lib/finalizer-labels';
 
 interface RosterMember {
   identity: string;
@@ -234,16 +236,33 @@ export default function ValidatorsPage() {
                           // users see in their Crosslink desktop app), but keep
                           // URLs + filter using the raw RPC form stored in the DB.
                           const display = displayPubkey(member.identity);
+                          const label = getFinalizerLabel(member.identity);
                           return (
-                            <Link
-                              href={`/finalizer/${member.identity}`}
-                              className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all"
-                            >
-                              <span className="hidden sm:inline">{display}</span>
-                              <span className="sm:hidden">
-                                {display.slice(0, 12)}...{display.slice(-6)}
-                              </span>
-                            </Link>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {label && (
+                                <span
+                                  title={label.description || label.name}
+                                  className="shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[10px] font-mono uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40"
+                                >
+                                  {label.name}
+                                </span>
+                              )}
+                              <Link
+                                href={`/finalizer/${member.identity}`}
+                                className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all min-w-0"
+                              >
+                                <span className="hidden sm:inline">{display}</span>
+                                <span className="sm:hidden">
+                                  {display.slice(0, 12)}...{display.slice(-6)}
+                                </span>
+                              </Link>
+                              <CopyButton
+                                text={display}
+                                label="Copy pubkey"
+                                size="xs"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
+                            </div>
                           );
                         })()}
                       </td>

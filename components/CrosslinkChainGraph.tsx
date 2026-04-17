@@ -19,6 +19,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
+import { getFinalizerLabel } from '@/lib/finalizer-labels';
 import { Tooltip } from '@/components/Tooltip';
 
 // ---------------------------------------------------------------------------
@@ -298,13 +299,21 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
             <div className="space-y-0.5 max-h-56 overflow-y-auto">
               {decision.signer_keys.slice(0, 24).map((k) => {
                 const pretty = displayPubkey(k);
+                const label = getFinalizerLabel(k);
                 return (
                   <Link
                     key={k}
                     href={`/finalizer/${pretty}`}
-                    className="block text-[10px] font-mono text-secondary hover:text-cipher-cyan truncate"
+                    className="flex items-center gap-1.5 text-[10px] font-mono text-secondary hover:text-cipher-cyan truncate"
                   >
-                    {pretty.slice(0, 14)}…{pretty.slice(-6)}
+                    {label && (
+                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-[8px] uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40">
+                        {label.name}
+                      </span>
+                    )}
+                    <span className="truncate">
+                      {pretty.slice(0, 14)}…{pretty.slice(-6)}
+                    </span>
                   </Link>
                 );
               })}

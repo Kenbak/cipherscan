@@ -9,32 +9,8 @@ import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text).catch(() => {});
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      className="p-2 text-muted hover:text-cipher-cyan transition-colors shrink-0"
-      title={copied ? 'Copied!' : 'Copy'}
-      aria-label="Copy to clipboard"
-    >
-      {copied ? (
-        <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      )}
-    </button>
-  );
-}
+import { getFinalizerLabel } from '@/lib/finalizer-labels';
+import { CopyButton } from '@/components/CopyButton';
 
 interface FinalizerDetail {
   pub_key: string;
@@ -209,10 +185,34 @@ export default function FinalizerPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> FINALIZER_DETAIL
         </p>
-        <div className="flex items-start gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
             Finalizer {data.rank ? `#${data.rank}` : ''}
           </h1>
+          {(() => {
+            const label = getFinalizerLabel(data.pub_key);
+            if (!label) return null;
+            const pill = (
+              <span
+                title={label.description || label.name}
+                className="inline-flex items-center px-2 py-0.5 rounded border text-xs font-mono uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40"
+              >
+                {label.name}
+              </span>
+            );
+            return label.url ? (
+              <a
+                href={label.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                {pill}
+              </a>
+            ) : (
+              pill
+            );
+          })()}
           {data.is_active ? (
             <Badge color="green">Active</Badge>
           ) : (
@@ -227,7 +227,7 @@ export default function FinalizerPage() {
           <code className="text-xs sm:text-sm font-mono text-secondary break-all flex-1 block-hash-bg px-3 py-2 rounded border border-cipher-border">
             {displayPubkey(data.pub_key)}
           </code>
-          <CopyButton text={displayPubkey(data.pub_key)} />
+          <CopyButton text={displayPubkey(data.pub_key)} size="md" />
         </div>
         <p className="mt-2 text-[10px] text-muted font-mono">
           Shown in GUI byte order — matches your Crosslink desktop app.
