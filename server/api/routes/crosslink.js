@@ -437,6 +437,106 @@ router.get('/api/finalizer/:pubkey/participation', async (req, res) => {
 });
 
 /**
+ * GET /api/crosslink/participation
+ * Returns ALL active finalizers with their stake, share, and per-block
+ * BFT participation (signed count + rate) over the same observation
+ * window. Single query — perfect for rendering a participation table
+ * without N round trips from the client.
+ *
+ * More accurate than poll-based approaches because bft_signer_keys is
+ * extracted from every PoW block header's fat_pointer_to_bft_block,
+ * not sampled at a fixed interval.
+ *
+ * Response includes a metadata block with the observation window
+ * (first/last block height, count, tracking_since timestamp).
+ */
+router.get('/api/crosslink/participation', async (req, res) => {
+  try {
+    const windowSize = Math.min(Math.max(parseInt(req.query.window) || 500, 1), 5000);
+
+    // 1) The observation window — last N blocks that carry BFT data.
+    // A single CTE shared by the aggregate and per-finalizer queries.
+    const result = await pool.query(
+      `WITH win AS (
+         SELECT height, timestamp, bft_signer_keys
+         FROM blocks
+         WHERE bft_signer_keys IS NOT NULL
+         ORDER BY height DESC
+         LIMIT $1
+       ),
+       win_stats AS (
+         SELECT
+           COALESCE(MIN(height), 0)::bigint  AS first_height,
+           COALESCE(MAX(height), 0)::bigint  AS last_height,
+           COUNT(*)::int                     AS observed_blocks,
+           COALESCE(MIN(timestamp), 0)::bigint AS tracking_since
+         FROM win
+       )
+       SELECT
+         f.pub_key,
+         f.voting_power_zats,
+         f.is_active,
+         f.last_seen_height,
+         (
+           SELECT COUNT(*)
+           FROM win
+           WHERE f.pub_key = ANY(bft_signer_keys)
+         )::int AS signed_blocks,
+         (SELECT observed_blocks FROM win_stats) AS window_size,
+         (SELECT first_height   FROM win_stats) AS window_first_height,
+         (SELECT last_height    FROM win_stats) AS window_last_height,
+         (SELECT tracking_since FROM win_stats) AS tracking_since
+       FROM finalizers f
+       WHERE f.is_active = true
+       ORDER BY f.voting_power_zats DESC`,
+      [windowSize]
+    );
+
+    const rows = result.rows;
+    if (rows.length === 0) {
+      return res.json({
+        success: true,
+        finalizers: [],
+        window: { size: 0, first_height: 0, last_height: 0, tracking_since: 0 },
+      });
+    }
+
+    const total = rows.reduce((s, r) => s + parseInt(r.voting_power_zats), 0);
+    const windowSizeActual = rows[0].window_size || 0;
+
+    res.json({
+      success: true,
+      window: {
+        size: windowSizeActual,
+        first_height: parseInt(rows[0].window_first_height),
+        last_height: parseInt(rows[0].window_last_height),
+        tracking_since: parseInt(rows[0].tracking_since),
+      },
+      total_stake_zats: total,
+      total_stake_zec: total / 1e8,
+      finalizers: rows.map((r, i) => {
+        const vp = parseInt(r.voting_power_zats);
+        return {
+          rank: i + 1,
+          pub_key: r.pub_key,
+          voting_power_zats: vp,
+          voting_power_zec: vp / 1e8,
+          share_pct: total > 0 ? (vp / total) * 100 : 0,
+          signed_blocks: r.signed_blocks,
+          participation_pct: windowSizeActual > 0
+            ? (r.signed_blocks / windowSizeActual) * 100
+            : 0,
+          last_seen_height: r.last_seen_height ? parseInt(r.last_seen_height) : null,
+        };
+      }),
+    });
+  } catch (error) {
+    console.error('Participation overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute participation' });
+  }
+});
+
+/**
  * GET /api/crosslink/bft-chain
  * Returns the historical BFT chain reconstructed from PoW block fat
  * pointers. Groups consecutive PoW blocks by their (referenced_hash,
