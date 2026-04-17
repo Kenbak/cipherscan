@@ -176,6 +176,67 @@ router.get('/api/crosslink/bft-tip', async (req, res) => {
 });
 
 /**
+ * GET /api/crosslink/divergence-history
+ * Returns the history of chain divergences (times our node drifted from the
+ * finalized network tip). Useful for spotting patterns across resets.
+ */
+router.get('/api/crosslink/divergence-history', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
+    const result = await pool.query(
+      `SELECT
+        id,
+        EXTRACT(EPOCH FROM start_time)::bigint AS start_time,
+        start_tip_height,
+        start_finalized_height,
+        start_gap,
+        peak_gap,
+        peak_tip_height,
+        EXTRACT(EPOCH FROM end_time)::bigint AS end_time,
+        end_tip_height,
+        end_finalized_height,
+        severity,
+        notes,
+        CASE WHEN end_time IS NULL
+             THEN NULL
+             ELSE EXTRACT(EPOCH FROM (end_time - start_time))::bigint
+        END AS duration_seconds
+      FROM divergence_events
+      ORDER BY start_time DESC
+      LIMIT $1`,
+      [limit]
+    );
+
+    const events = result.rows.map(r => ({
+      id: parseInt(r.id),
+      start_time: parseInt(r.start_time),
+      end_time: r.end_time ? parseInt(r.end_time) : null,
+      duration_seconds: r.duration_seconds ? parseInt(r.duration_seconds) : null,
+      is_open: r.end_time === null,
+      severity: r.severity,
+      start_tip_height: parseInt(r.start_tip_height),
+      start_finalized_height: parseInt(r.start_finalized_height),
+      start_gap: r.start_gap,
+      peak_gap: r.peak_gap,
+      peak_tip_height: parseInt(r.peak_tip_height),
+      end_tip_height: r.end_tip_height ? parseInt(r.end_tip_height) : null,
+      end_finalized_height: r.end_finalized_height ? parseInt(r.end_finalized_height) : null,
+      notes: r.notes,
+    }));
+
+    res.json({
+      success: true,
+      count: events.length,
+      openEvent: events.find(e => e.is_open) || null,
+      events,
+    });
+  } catch (error) {
+    console.error('Divergence history error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch divergence history' });
+  }
+});
+
+/**
  * GET /api/finalizers
  * List all finalizers (active + historical) from DB, ordered by current voting power desc.
  * Falls back to live RPC if DB is empty.
