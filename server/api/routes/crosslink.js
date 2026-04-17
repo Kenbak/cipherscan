@@ -211,8 +211,11 @@ router.get('/api/crosslink/bootstrap-info', async (req, res) => {
       cache_dir_name: meta.cache_dir_name,
       contents: meta.contents || ['state/', 'pos.chain'],
       excludes: meta.excludes || ['secret.seed', 'zaino/'],
-      download_url: 'https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz',
-      sha256_url: 'https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz.sha256',
+      download_url: process.env.BOOTSTRAP_DOWNLOAD_URL
+        || 'https://api.crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz',
+      sha256_url: process.env.BOOTSTRAP_DOWNLOAD_URL
+        ? `${process.env.BOOTSTRAP_DOWNLOAD_URL}.sha256`
+        : 'https://api.crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz.sha256',
     });
   } catch (error) {
     console.error('bootstrap-info error:', error);

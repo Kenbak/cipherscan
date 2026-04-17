@@ -90,11 +90,25 @@ finalized_hash="$(python3 -c "
 import sys, json
 r = json.loads(sys.argv[1]).get('result')
 if r is None:
-    print(''); exit()
+    print(''); sys.exit()
+
+# The hash field may arrive as:
+#   - A hex string already
+#   - A dict with 'hash' (hex string or byte array)
+#   - A list [height, hash-bytes-array]
+# Normalize to a hex string (display order: bytes reversed).
+def to_hex(val):
+    if isinstance(val, str):
+        return val
+    if isinstance(val, list) and all(isinstance(b, int) for b in val):
+        # zebrad returns 32 bytes in internal byte order; reverse for display
+        return bytes(val[::-1]).hex()
+    return ''
+
 if isinstance(r, dict):
-    print(r.get('hash', ''))
+    print(to_hex(r.get('hash', '')))
 elif isinstance(r, list) and len(r) > 1:
-    print(r[1])
+    print(to_hex(r[1]))
 else:
     print('')
 " "${fin_json}")"
