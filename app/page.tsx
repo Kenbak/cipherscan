@@ -5,6 +5,7 @@ import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
+import { CrosslinkChainView } from '@/components/CrosslinkChainView';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { API_CONFIG, isCrosslinkNetwork } from '@/lib/api-config';
 import { isCrosslink } from '@/lib/config';
@@ -217,26 +218,45 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Recent Shielded TXs */}
-          <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
-                <span className="text-muted opacity-50">{'>'}</span>
-                SHIELDED_ACTIVITY
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
-                </span>
-                <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
+          {/* Second column: Chain View on Crosslink, Shielded Activity on mainnet/testnet */}
+          {crosslinkMode ? (
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+                  <span className="text-muted opacity-50">{'>'}</span>
+                  CHAIN_VIEW
+                </h2>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
+                </div>
               </div>
+              <CrosslinkChainView variant="compact" blocksToShow={8} />
             </div>
-            <RecentShieldedTxs initialTxs={initialShieldedTxs} />
-            <Link href="/txs/shielded" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
-              View All Shielded Transactions →
-            </Link>
-          </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+                  <span className="text-muted opacity-50">{'>'}</span>
+                  SHIELDED_ACTIVITY
+                </h2>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
+                </div>
+              </div>
+              <RecentShieldedTxs initialTxs={initialShieldedTxs} />
+              <Link href="/txs/shielded" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+                View All Shielded Transactions →
+              </Link>
+            </div>
+          )}
         </div>
 
       {/* Pending Mempool */}
