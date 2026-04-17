@@ -63,6 +63,18 @@ const KNOWN_FINALIZERS: Record<string, FinalizerLabel> = {
 };
 
 /**
+ * Deterministic gradient avatar style derived from pubkey hex.
+ * Two hues drive a 135deg gradient -- cheap, vibrant, unique per validator.
+ */
+export function finalizerAvatarStyle(pubkey: string): React.CSSProperties {
+  const h1 = (parseInt(pubkey.slice(0, 2), 16) || 0) * 360 / 256;
+  const h2 = (parseInt(pubkey.slice(2, 4), 16) || 0) * 360 / 256;
+  return {
+    background: `linear-gradient(135deg, hsl(${h1}, 65%, 50%), hsl(${h2}, 65%, 55%))`,
+  };
+}
+
+/**
  * Resolve a label for a finalizer pubkey. Accepts either DB-raw or
  * GUI-display byte order; returns `null` if the pubkey is unknown.
  */

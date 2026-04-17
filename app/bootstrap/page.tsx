@@ -28,9 +28,23 @@ function fmtBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function parseTimestamp(raw?: string): number {
+  if (!raw) return NaN;
+  // The snapshot script writes compact ISO like "20260417T145553Z".
+  // new Date() can't parse that, so normalize to "2026-04-17T14:55:53Z".
+  const m = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  if (m) {
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  }
+  return new Date(raw).getTime();
+}
+
 function fmtAgo(iso?: string): string {
   if (!iso) return '';
-  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  const ms = parseTimestamp(iso);
+  if (isNaN(ms)) return '';
+  const secs = Math.floor((Date.now() - ms) / 1000);
+  if (secs < 0) return 'just now';
   if (secs < 60) return `${secs}s ago`;
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;

@@ -10,9 +10,10 @@
 #   - Only public blockchain data is included (state/v27/ + pos.chain)
 #   - secret.seed and zaino/ are explicitly excluded — those are wallet
 #     files and must never leave this server.
-#   - Only publishes when the node is verifiably on the majority chain
-#     (finality gap <= 5 AND the finalized hash matches a known-good
-#     reference explorer).
+#   - Only publishes when the node is verifiably on the majority chain:
+#     1. Local finality gap <= 2
+#     2. Our finalized height is within ±3 of Frontier's (cross-check)
+#     3. If the reference explorer is unreachable, refuse (fail closed)
 # ------------------------------------------------------------------------
 set -euo pipefail
 
@@ -23,12 +24,14 @@ RPC_URL="${ZEBRA_RPC_URL:-http://127.0.0.1:8232}"
 RPC_COOKIE_FILE="${ZEBRA_RPC_COOKIE_FILE:-/root/.cache/zebra/.cookie}"
 
 # Strict health gate: gap must be this low to consider the node "on the chain"
-HEALTHY_GAP=5
+HEALTHY_GAP=2
 
-# Optional: cross-check our finalized hash against an external reference
-# explorer. Leave empty to skip cross-check (trust self only).
-# Example: "https://ctaz.frontiercompute.cash/api/..."
-CROSS_CHECK_URL="${CROSS_CHECK_URL:-}"
+# Cross-check our finalized height against Frontier's explorer.
+# If unreachable, we fail closed (refuse to publish).
+CROSS_CHECK_URL="${CROSS_CHECK_URL:-https://ctaz.frontiercompute.cash/api/tip}"
+
+# Max allowed divergence between our finalized height and the reference
+CROSS_CHECK_MAX_DRIFT=3
 
 log() {
     logger -t "${LOG_TAG}" -- "$*"
@@ -120,28 +123,37 @@ if (( gap > HEALTHY_GAP )); then
 fi
 
 # -----------------------------------------------------------------------
-# 2) Optional: cross-check our finalized hash against an external reference
+# 2) Cross-check our finalized height against an external reference.
+#    Fail closed: if the reference is unreachable or heights diverge, abort.
 # -----------------------------------------------------------------------
-if [[ -n "${CROSS_CHECK_URL}" ]] && [[ -n "${finalized_hash}" ]]; then
-    if ref_response="$(curl -fsS "${CROSS_CHECK_URL}" 2>/dev/null)"; then
-        # Expect the reference to return JSON with a "finalized_hash" or similar.
-        # Adapt this field name to whatever the reference explorer uses.
-        ref_hash="$(python3 -c "
+if [[ -n "${CROSS_CHECK_URL}" ]]; then
+    if ref_response="$(curl -fsS --max-time 10 "${CROSS_CHECK_URL}" 2>/dev/null)"; then
+        ref_finalized="$(python3 -c "
 import sys, json
 try:
     d = json.loads(sys.argv[1])
-    for k in ['finalized_hash', 'finalizedHash', 'finalized']:
-        if k in d: print(d[k]); sys.exit()
+    for k in ['finalized', 'finalized_height', 'finalizedHeight']:
+        if k in d:
+            print(int(d[k]))
+            sys.exit()
     print('')
 except Exception:
     print('')
 " "${ref_response}")"
-        if [[ -n "${ref_hash}" ]] && [[ "${ref_hash}" != "${finalized_hash}" ]]; then
-            log "Finalized hash mismatch with reference explorer (ours=${finalized_hash} ref=${ref_hash}); refusing to publish"
+        if [[ -z "${ref_finalized}" ]]; then
+            log "Could not parse reference finalized height; refusing to publish (fail closed)"
             exit 0
         fi
+        drift=$(( finalized_height - ref_finalized ))
+        abs_drift=${drift#-}
+        if (( abs_drift > CROSS_CHECK_MAX_DRIFT )); then
+            log "Finalized height drift ${drift} (ours=${finalized_height} ref=${ref_finalized}) exceeds ±${CROSS_CHECK_MAX_DRIFT}; refusing to publish"
+            exit 0
+        fi
+        log "Cross-check OK: ours=${finalized_height} ref=${ref_finalized} drift=${drift}"
     else
-        log "Cross-check URL unreachable; continuing without cross-check"
+        log "Cross-check URL unreachable; refusing to publish (fail closed)"
+        exit 0
     fi
 fi
 
@@ -160,7 +172,7 @@ cache_name="$(basename "${cache_subdir}")"
 #    secret.seed or zaino/ — those are wallet/service files.
 # -----------------------------------------------------------------------
 mkdir -p "${PUBLIC_DIR}"
-ts="$(date -u +%Y%m%dT%H%M%SZ)"
+ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 tmp_archive="${PUBLIC_DIR}/bootstrap.tar.gz.tmp"
 final_archive="${PUBLIC_DIR}/bootstrap.tar.gz"
 sha256_file="${final_archive}.sha256"

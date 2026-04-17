@@ -6,7 +6,8 @@ import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { CopyButton } from '@/components/CopyButton';
 import { CURRENCY } from '@/lib/config';
 import { displayPubkey } from '@/lib/utils';
-import { getFinalizerLabel } from '@/lib/finalizer-labels';
+import { getFinalizerLabel, finalizerAvatarStyle } from '@/lib/finalizer-labels';
+import { getApiUrl } from '@/lib/api-config';
 
 interface RosterMember {
   identity: string;
@@ -46,10 +47,8 @@ export default function ValidatorsPage() {
       });
       setError(null);
 
-      // Fan out participation queries for each roster member (13-17 requests,
-      // cheap and hitting the indexed bft_signer_keys GIN index server-side).
       const roster = json.roster || [];
-      const apiBase = ''; // /api/crosslink shares the same host as participation
+      const apiBase = getApiUrl();
       const results = await Promise.allSettled(
         roster.map((m: RosterMember) =>
           fetch(`${apiBase}/api/finalizer/${m.identity}/participation?window=500`).then((r) =>
@@ -147,14 +146,13 @@ export default function ValidatorsPage() {
         </div>
       ) : data && data.roster.length > 0 ? (
         <>
-          {/* Filter input: search by public key prefix */}
           <div className="mb-4">
             <div className="relative">
               <input
                 type="text"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value.toLowerCase().trim())}
-                placeholder="Filter by public key (paste prefix or full hex)"
+                placeholder="Filter by name or public key"
                 className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted/60 focus:outline-none focus:border-cipher-cyan/60 transition-colors"
               />
               <svg
@@ -182,7 +180,7 @@ export default function ValidatorsPage() {
               <thead>
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
-                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-24 sm:w-28">Voting (500)</th>
@@ -190,16 +188,15 @@ export default function ValidatorsPage() {
               </thead>
               <tbody>
                 {(() => {
-                  // Match against both the raw RPC form and the GUI-style
-                  // display form, so pasting a pubkey from either place finds
-                  // the same finalizer.
                   const filtered = filter
                     ? data.roster
                         .map((m, origIdx) => ({ m, origIdx }))
                         .filter(({ m }) => {
                           const raw = m.identity.toLowerCase();
                           const display = displayPubkey(raw).toLowerCase();
-                          return raw.includes(filter) || display.includes(filter);
+                          const label = getFinalizerLabel(m.identity);
+                          const labelName = label?.name.toLowerCase() ?? '';
+                          return raw.includes(filter) || display.includes(filter) || labelName.includes(filter);
                         })
                     : data.roster.map((m, origIdx) => ({ m, origIdx }));
 
@@ -221,57 +218,58 @@ export default function ValidatorsPage() {
                   const share = data.totalStakeZec > 0
                     ? ((member.stake_zec || 0) / data.totalStakeZec * 100)
                     : 0;
+                  const display = displayPubkey(member.identity);
+                  const label = getFinalizerLabel(member.identity);
+                  const truncated = `${display.slice(0, 10)}...${display.slice(-6)}`;
 
                   return (
                     <tr
                       key={member.identity}
                       className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
                     >
-                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
+                      <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
                       </td>
-                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                        {(() => {
-                          // Display the pubkey in GUI byte order (matches what
-                          // users see in their Crosslink desktop app), but keep
-                          // URLs + filter using the raw RPC form stored in the DB.
-                          const display = displayPubkey(member.identity);
-                          const label = getFinalizerLabel(member.identity);
-                          return (
-                            <div className="flex items-center gap-2 min-w-0">
-                              {label && (
-                                <span
-                                  title={label.description || label.name}
-                                  className="shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[10px] font-mono uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40"
-                                >
+                      <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="shrink-0 w-7 h-7 rounded-lg ring-1 ring-white/10"
+                            style={finalizerAvatarStyle(display)}
+                            aria-hidden
+                          />
+                          <Link
+                            href={`/finalizer/${member.identity}`}
+                            className="min-w-0 group/link"
+                          >
+                            {label ? (
+                              <>
+                                <span className="block text-sm font-semibold text-primary group-hover/link:text-cipher-cyan transition-colors">
                                   {label.name}
                                 </span>
-                              )}
-                              <Link
-                                href={`/finalizer/${member.identity}`}
-                                className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all min-w-0"
-                              >
-                                <span className="hidden sm:inline">{display}</span>
-                                <span className="sm:hidden">
-                                  {display.slice(0, 12)}...{display.slice(-6)}
+                                <span className="block text-[11px] font-mono text-muted leading-tight mt-0.5">
+                                  {truncated}
                                 </span>
-                              </Link>
-                              <CopyButton
-                                text={display}
-                                label="Copy pubkey"
-                                size="xs"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              />
-                            </div>
-                          );
-                        })()}
+                              </>
+                            ) : (
+                              <span className="block text-sm font-mono text-primary group-hover/link:text-cipher-cyan transition-colors">
+                                {truncated}
+                              </span>
+                            )}
+                          </Link>
+                          <CopyButton
+                            text={display}
+                            label="Copy pubkey"
+                            size="xs"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          />
+                        </div>
                       </td>
-                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+                      <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">
                           {(member.stake_zec || 0).toFixed(4)}
                         </span>
                       </td>
-                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+                      <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
                             <div
@@ -284,7 +282,7 @@ export default function ValidatorsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+                      <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border text-right">
                         {(() => {
                           const pct = participation[member.identity.toLowerCase()];
                           if (pct === undefined) {
@@ -337,27 +335,34 @@ export default function ValidatorsPage() {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
+                const label = getFinalizerLabel(member.identity);
                 const display = displayPubkey(member.identity);
+                const name = label?.name ?? `${display.slice(0, 10)}...${display.slice(-6)}`;
                 return (
                   <div
                     key={member.identity}
                     className="bg-cipher-cyan/70 transition-all duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
-                    title={`${display.slice(0, 12)}... — ${share.toFixed(1)}%`}
+                    title={`${name} — ${share.toFixed(1)}%`}
                   />
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-3 mt-3">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
               {data.roster.map((member) => {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100
                   : 0;
+                const label = getFinalizerLabel(member.identity);
                 const display = displayPubkey(member.identity);
                 return (
                   <div key={member.identity} className="flex items-center gap-1.5">
+                    <div
+                      className="w-2 h-2 rounded-sm shrink-0"
+                      style={finalizerAvatarStyle(display)}
+                    />
                     <span className="text-[10px] font-mono text-muted">
-                      {display.slice(0, 8)}... ({share.toFixed(1)}%)
+                      {label?.name ?? `${display.slice(0, 8)}...`} ({share.toFixed(1)}%)
                     </span>
                   </div>
                 );

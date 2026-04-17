@@ -9,20 +9,8 @@ import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
-import { getFinalizerLabel, type FinalizerLabel } from '@/lib/finalizer-labels';
+import { getFinalizerLabel, finalizerAvatarStyle, type FinalizerLabel } from '@/lib/finalizer-labels';
 import { CopyButton } from '@/components/CopyButton';
-
-/**
- * Deterministic gradient avatar derived from the pubkey hex. Two hues drive
- * a 135° gradient — cheap, vibrant, and unique per validator.
- */
-function avatarStyle(pubkey: string): React.CSSProperties {
-  const h1 = (parseInt(pubkey.slice(0, 2), 16) || 0) * 360 / 256;
-  const h2 = (parseInt(pubkey.slice(2, 4), 16) || 0) * 360 / 256;
-  return {
-    background: `linear-gradient(135deg, hsl(${h1}, 65%, 50%), hsl(${h2}, 65%, 55%))`,
-  };
-}
 
 function FinalizerHero({
   pubkey,
@@ -42,6 +30,13 @@ function FinalizerHero({
 
   return (
     <div className="mb-6 animate-fade-in">
+      <Link
+        href="/validators"
+        className="inline-flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors mb-3"
+      >
+        <span>&larr;</span>
+        <span>All finalizers</span>
+      </Link>
       <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
         <span className="opacity-50">{'>'}</span> FINALIZER
         {rank ? ` · #${rank}` : ''}
@@ -51,7 +46,7 @@ function FinalizerHero({
         {/* Deterministic avatar */}
         <div
           className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl ring-1 ring-white/10 shadow-lg"
-          style={avatarStyle(pubkey)}
+          style={finalizerAvatarStyle(pubkey)}
           aria-hidden
         />
 
