@@ -9,8 +9,117 @@ import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
-import { getFinalizerLabel } from '@/lib/finalizer-labels';
+import { getFinalizerLabel, type FinalizerLabel } from '@/lib/finalizer-labels';
 import { CopyButton } from '@/components/CopyButton';
+
+/**
+ * Deterministic gradient avatar derived from the pubkey hex. Two hues drive
+ * a 135° gradient — cheap, vibrant, and unique per validator.
+ */
+function avatarStyle(pubkey: string): React.CSSProperties {
+  const h1 = (parseInt(pubkey.slice(0, 2), 16) || 0) * 360 / 256;
+  const h2 = (parseInt(pubkey.slice(2, 4), 16) || 0) * 360 / 256;
+  return {
+    background: `linear-gradient(135deg, hsl(${h1}, 65%, 50%), hsl(${h2}, 65%, 55%))`,
+  };
+}
+
+function FinalizerHero({
+  pubkey,
+  label,
+  rank,
+  isActive,
+  isSigningNow,
+}: {
+  pubkey: string;
+  label: FinalizerLabel | null;
+  rank: number | null;
+  isActive: boolean;
+  isSigningNow: boolean;
+}) {
+  const [showFullPubkey, setShowFullPubkey] = useState(false);
+  const truncated = `${pubkey.slice(0, 10)}…${pubkey.slice(-10)}`;
+
+  return (
+    <div className="mb-6 animate-fade-in">
+      <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+        <span className="opacity-50">{'>'}</span> FINALIZER
+        {rank ? ` · #${rank}` : ''}
+      </p>
+
+      <div className="flex items-start gap-4 sm:gap-5">
+        {/* Deterministic avatar */}
+        <div
+          className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl ring-1 ring-white/10 shadow-lg"
+          style={avatarStyle(pubkey)}
+          aria-hidden
+        />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+              {label?.name ?? `Finalizer ${rank ? `#${rank}` : ''}`}
+            </h1>
+            {isActive ? (
+              <Badge color="green">Active</Badge>
+            ) : (
+              <Badge color="muted">Inactive</Badge>
+            )}
+            {isSigningNow && <Badge color="orange">Signing now</Badge>}
+          </div>
+
+          {label?.description && (
+            <p className="text-sm text-secondary mt-1">{label.description}</p>
+          )}
+
+          {label?.url && (
+            <a
+              href={label.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-cipher-cyan hover:underline mt-1.5 font-mono"
+            >
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              {label.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+            </a>
+          )}
+
+          {/* Pubkey row */}
+          <div className="mt-3 flex items-center gap-2 max-w-full">
+            <code
+              className="font-mono text-xs sm:text-sm text-secondary block-hash-bg px-3 py-1.5 rounded border border-cipher-border min-w-0 truncate sm:break-all sm:whitespace-normal flex-1"
+              title={pubkey}
+            >
+              {showFullPubkey ? pubkey : truncated}
+            </code>
+            <button
+              onClick={() => setShowFullPubkey((v) => !v)}
+              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-cyan/40 shrink-0"
+            >
+              {showFullPubkey ? 'short' : 'full'}
+            </button>
+            <CopyButton text={pubkey} size="md" label="Copy pubkey" />
+          </div>
+          <p className="mt-1.5 text-[10px] text-muted font-mono">
+            Shown in GUI byte order — matches your Crosslink desktop app.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface FinalizerDetail {
   pub_key: string;
@@ -179,60 +288,21 @@ export default function FinalizerPage() {
     );
   }
 
+  const guiPubkey = displayPubkey(data.pub_key);
+  const label = getFinalizerLabel(data.pub_key);
+  const isSigningNow = bftTip?.signers.some(
+    (s) => s.pub_key?.toLowerCase() === pubkey,
+  );
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="mb-6 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> FINALIZER_DETAIL
-        </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Finalizer {data.rank ? `#${data.rank}` : ''}
-          </h1>
-          {(() => {
-            const label = getFinalizerLabel(data.pub_key);
-            if (!label) return null;
-            const pill = (
-              <span
-                title={label.description || label.name}
-                className="inline-flex items-center px-2 py-0.5 rounded border text-xs font-mono uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40"
-              >
-                {label.name}
-              </span>
-            );
-            return label.url ? (
-              <a
-                href={label.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-80 transition-opacity"
-              >
-                {pill}
-              </a>
-            ) : (
-              pill
-            );
-          })()}
-          {data.is_active ? (
-            <Badge color="green">Active</Badge>
-          ) : (
-            <Badge color="muted">Inactive</Badge>
-          )}
-          {bftTip?.signers.some((s) => s.pub_key?.toLowerCase() === pubkey) && (
-            <Badge color="orange">Signing now</Badge>
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 max-w-full">
-          <code className="text-xs sm:text-sm font-mono text-secondary break-all flex-1 block-hash-bg px-3 py-2 rounded border border-cipher-border">
-            {displayPubkey(data.pub_key)}
-          </code>
-          <CopyButton text={displayPubkey(data.pub_key)} size="md" />
-        </div>
-        <p className="mt-2 text-[10px] text-muted font-mono">
-          Shown in GUI byte order — matches your Crosslink desktop app.
-        </p>
-      </div>
+      <FinalizerHero
+        pubkey={guiPubkey}
+        label={label}
+        rank={data.rank}
+        isActive={data.is_active}
+        isSigningNow={!!isSigningNow}
+      />
 
       {/* Key stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">

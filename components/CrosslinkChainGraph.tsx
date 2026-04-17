@@ -76,6 +76,7 @@ const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
 const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
 const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
 const COLOR_VOTING_EDGE = 'rgba(255, 107, 53, 0.85)';
+const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal — finality frontier
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -336,9 +337,16 @@ const nodeTypes = {
 
 export function CrosslinkChainGraph({
   initialBlocksToShow = 25,
+  variant = 'full',
+  height,
 }: {
   initialBlocksToShow?: number;
+  /** 'full' = standalone /chain page, 'embedded' = drop-in for homepage */
+  variant?: 'full' | 'embedded';
+  /** Override canvas height (px or any CSS length). Defaults to viewport-aware sizing. */
+  height?: string;
 }) {
+  const isEmbedded = variant === 'embedded';
   const [limit, setLimit] = useState(initialBlocksToShow);
   const [blocks, setBlocks] = useState<PowBlock[]>([]);
   const [decisions, setDecisions] = useState<BftDecision[]>([]);
@@ -510,11 +518,56 @@ export function CrosslinkChainGraph({
         });
       }
 
-      // NOTE: per-decision "finalizes" arrow is not drawn here. The data we
-      // have (bft_referenced_hash) is the BFT block's own hash, not a PoW
-      // block hash, so we can't resolve the specific PoW block each decision
-      // committed to. The "FINAL" badge on PoW cards (for height <= stats
-      // .finalizedHeight) communicates the finalization state instead.
+      // NOTE: per-decision "finalizes" arrow needs a backend column
+      // (bft_finalized_pow_height) we don't yet store — bft_referenced_hash
+      // is the BFT block's own hash, not the PoW it commits. We draw a
+      // single global "finality frontier" arrow below instead.
+    }
+
+    // Finality frontier arrow: the most recent committed BFT decision points
+    // back to the PoW block at the global finalized height. This is the only
+    // BFT→PoW relationship we can resolve precisely today (without per-decision
+    // finalized data from the indexer).
+    if (
+      decisions.length > 0 &&
+      stats?.finalizedHeight &&
+      yByHeight.has(stats.finalizedHeight)
+    ) {
+      const latestDecision = decisions[0];
+      const targetBlock = blocks.find((b) => b.height === stats.finalizedHeight);
+      const sourceNodeId = `bft-${latestDecision.referenced_hash}`;
+      const sourceExists = bftNodes.some((n) => n.id === sourceNodeId);
+      if (targetBlock && sourceExists) {
+        bftEdges.push({
+          id: 'finality-frontier',
+          source: sourceNodeId,
+          sourceHandle: 'bft-out',
+          target: `pow-${targetBlock.hash}`,
+          targetHandle: 'pow-in',
+          type: 'smoothstep',
+          style: {
+            stroke: COLOR_FINALIZE,
+            strokeWidth: 2,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 14,
+            height: 14,
+            color: COLOR_FINALIZE,
+          },
+          label: `finalizes through #${stats.finalizedHeight.toLocaleString()}`,
+          labelStyle: {
+            fill: COLOR_FINALIZE,
+            fontFamily: 'var(--font-geist-mono, JetBrains Mono, monospace)',
+            fontSize: 9,
+            letterSpacing: '0.05em',
+          },
+          labelBgStyle: { fill: 'var(--color-surface-solid)' },
+          labelBgPadding: [6, 3],
+          labelBgBorderRadius: 4,
+          zIndex: 10,
+        });
+      }
     }
 
     // Voting pointer: BFT's current live vote
@@ -573,7 +626,7 @@ export function CrosslinkChainGraph({
   return (
     <div className="space-y-4">
       {/* Stats + explanation — part of the page, not a floating overlay */}
-      {stats && (
+      {!isEmbedded && stats && (
         <div className="card p-0 overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-cipher-border/60">
             <HeaderStat
@@ -611,6 +664,7 @@ export function CrosslinkChainGraph({
       )}
 
       {/* Legend — explains what you're actually looking at */}
+      {!isEmbedded && (
       <div className="card p-3 sm:p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-x-6 md:gap-y-2 text-xs">
           <div className="flex items-start gap-2.5">
@@ -638,19 +692,28 @@ export function CrosslinkChainGraph({
             </p>
           </div>
           <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)] shrink-0">
-              FINAL
-            </span>
+            <span
+              className="mt-2 inline-block h-[2px] w-6 shrink-0"
+              style={{ background: COLOR_FINALIZE }}
+            />
             <p className="text-secondary leading-snug">
-              <span className="text-primary font-semibold">Finalized blocks.</span>{' '}
-              PoW blocks confirmed by the BFT chain as irreversible.
+              <span className="text-primary font-semibold">Teal arrow — finality frontier.</span>{' '}
+              The PoW block at which the chain is currently locked in as irreversible.
             </p>
           </div>
         </div>
       </div>
+      )}
 
       {/* Graph canvas */}
-      <div className="crosslink-graph relative w-full h-[calc(100vh-260px)] min-h-[560px] card p-0 overflow-hidden">
+      <div
+        className={`crosslink-graph relative w-full card p-0 overflow-hidden ${
+          isEmbedded
+            ? ''
+            : 'h-[calc(100vh-260px)] min-h-[560px]'
+        }`}
+        style={isEmbedded ? { height: height || '560px' } : undefined}
+      >
         {loading && nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
@@ -692,49 +755,53 @@ export function CrosslinkChainGraph({
               overflow: 'hidden',
             }}
           />
-          <MiniMap
-            position="top-right"
-            pannable
-            zoomable
-            nodeColor={(n) => {
-              if (n.type === 'bft') {
-                const d = n.data as BftNodeData;
-                return d.isVoting ? COLOR_VOTING : COLOR_BFT;
-              }
-              const s = (n.data as PowNodeData).state;
-              if (s === 'voting') return COLOR_VOTING;
-              return COLOR_POW_DIM;
-            }}
-            nodeStrokeWidth={0}
-            nodeBorderRadius={3}
-            style={{
-              width: 180,
-              height: 128,
-              border: '1px solid var(--color-border)',
-              borderRadius: 8,
-            }}
-          />
+          {!isEmbedded && (
+            <MiniMap
+              position="top-right"
+              pannable
+              zoomable
+              nodeColor={(n) => {
+                if (n.type === 'bft') {
+                  const d = n.data as BftNodeData;
+                  return d.isVoting ? COLOR_VOTING : COLOR_BFT;
+                }
+                const s = (n.data as PowNodeData).state;
+                if (s === 'voting') return COLOR_VOTING;
+                return COLOR_POW_DIM;
+              }}
+              nodeStrokeWidth={0}
+              nodeBorderRadius={3}
+              style={{
+                width: 180,
+                height: 128,
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+              }}
+            />
+          )}
         </ReactFlow>
       </div>
 
-      {/* Load older + showing count */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="text-xs font-mono text-muted">
-          {blocks.length > 0 &&
-            `Showing ${blocks.length} latest PoW blocks · ${decisions.length} BFT decisions`}
-        </span>
-        <button
-          onClick={loadOlder}
-          disabled={loadingMore || limit >= 200}
-          className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-cipher-cyan disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
-        >
-          {limit >= 200
-            ? 'Maximum history loaded'
-            : loadingMore
-            ? 'Loading…'
-            : 'Load 25 older blocks →'}
-        </button>
-      </div>
+      {/* Footer: load-more (full mode only) or "open chain view" link (embedded) */}
+      {!isEmbedded ? (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs font-mono text-muted">
+            {blocks.length > 0 &&
+              `Showing ${blocks.length} latest PoW blocks · ${decisions.length} BFT decisions`}
+          </span>
+          <button
+            onClick={loadOlder}
+            disabled={loadingMore || limit >= 200}
+            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-cipher-cyan disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
+          >
+            {limit >= 200
+              ? 'Maximum history loaded'
+              : loadingMore
+              ? 'Loading…'
+              : 'Load 25 older blocks →'}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
