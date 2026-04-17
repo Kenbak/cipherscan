@@ -108,6 +108,7 @@ export function NavBar() {
       ? [
           { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
           { href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' },
+          { href: '/bootstrap', label: 'Node Bootstrap', desc: 'Skip genesis resync' },
         ]
       : [
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },

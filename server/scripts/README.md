@@ -21,12 +21,16 @@ These scripts implement that backup strategy.
 
 ## Files
 
-| File                       | Purpose                                                  |
-| -------------------------- | -------------------------------------------------------- |
-| `zebra-snapshot.sh`        | Tar.gz the Zebra cache, but only when node is healthy    |
-| `zebra-restore.sh`         | Stop services, wipe cache, extract the latest snapshot   |
-| `zebra-snapshot.service`   | systemd unit that runs `zebra-snapshot.sh`               |
-| `zebra-snapshot.timer`     | systemd timer firing the snapshot service hourly         |
+| File                              | Purpose                                                       |
+| --------------------------------- | ------------------------------------------------------------- |
+| `zebra-snapshot.sh`               | Tar.gz the Zebra cache, but only when node is healthy         |
+| `zebra-restore.sh`                | Stop services, wipe cache, extract the latest snapshot        |
+| `zebra-snapshot.service`          | systemd unit that runs `zebra-snapshot.sh`                    |
+| `zebra-snapshot.timer`            | systemd timer firing the snapshot service hourly              |
+| `zebra-public-snapshot.sh`        | Publish a SAFE public bootstrap snapshot for users to download |
+| `zebra-public-snapshot.service`   | systemd unit for the public snapshotter                       |
+| `zebra-public-snapshot.timer`     | systemd timer firing every 6h                                 |
+| `nginx-bootstrap.conf`            | nginx location block that serves the public snapshot          |
 
 ## Install on the server
 
@@ -72,3 +76,53 @@ When the indexer's divergence watcher fires (see the
 This stops zebrad + indexer, wipes the cache, extracts the snapshot,
 and restarts services. Usually 30-60 seconds end-to-end vs. several
 hours for a genesis resync.
+
+## Public bootstrap snapshot
+
+The public snapshotter exposes a sanitized cache at
+`https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz` so other
+operators can skip a genesis resync. It includes ONLY public blockchain
+data (`state/` + `pos.chain`) — never `secret.seed` or `zaino/`.
+
+### Install
+
+```bash
+mkdir -p /var/www/crosslink.cipherscan.app/bootstrap
+install -m 755 zebra-public-snapshot.sh /usr/local/bin/zebra-public-snapshot.sh
+install -m 644 zebra-public-snapshot.service /etc/systemd/system/
+install -m 644 zebra-public-snapshot.timer   /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now zebra-public-snapshot.timer
+```
+
+### Nginx
+
+Add the rate-limit zone to `/etc/nginx/nginx.conf` (inside `http { }`):
+
+```nginx
+limit_req_zone $binary_remote_addr zone=bootstrap_dl:10m rate=6r/m;
+```
+
+Then paste the `location /bootstrap/` block from `nginx-bootstrap.conf`
+into the `server { server_name crosslink.cipherscan.app; ... }` block.
+
+```bash
+nginx -t && systemctl reload nginx
+```
+
+### Verify
+
+```bash
+curl -s https://crosslink.cipherscan.app/bootstrap/bootstrap.json | jq
+curl -I https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz
+```
+
+### What gets published
+
+- `bootstrap.tar.gz`         — the archive (state/ + pos.chain only)
+- `bootstrap.tar.gz.sha256`  — the checksum file
+- `bootstrap.json`           — metadata (tip/finalized heights, sha256, timestamps)
+
+The snapshotter will **refuse to publish** if:
+- The finality gap is > 5 blocks
+- A configured cross-check reference explorer reports a different finalized hash

@@ -1,0 +1,12 @@
+[Unit]
+Description=Publish Zebra Crosslink bootstrap snapshot for public download
+After=zebrad-crosslink.service
+Requires=zebrad-crosslink.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/zebra-public-snapshot.sh
+# Be nice to the disk — the private hourly snapshotter runs the same way
+IOSchedulingClass=idle
+Nice=19

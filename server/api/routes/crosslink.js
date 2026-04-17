@@ -176,6 +176,51 @@ router.get('/api/crosslink/bft-tip', async (req, res) => {
 });
 
 /**
+ * GET /api/crosslink/bootstrap-info
+ * Returns metadata about the currently-published public Zebra cache
+ * snapshot (the "bootstrap" archive that others can download to skip a
+ * genesis resync). Reads /var/www/crosslink.cipherscan.app/bootstrap/bootstrap.json
+ * written by zebra-public-snapshot.sh.
+ */
+router.get('/api/crosslink/bootstrap-info', async (req, res) => {
+  try {
+    const fs = require('fs').promises;
+    const path = process.env.BOOTSTRAP_META_PATH
+      || '/var/www/crosslink.cipherscan.app/bootstrap/bootstrap.json';
+
+    let meta;
+    try {
+      const raw = await fs.readFile(path, 'utf8');
+      meta = JSON.parse(raw);
+    } catch (err) {
+      // File may not exist yet (first publish not done). Return a predictable
+      // "not available" response instead of 500 so the frontend can display
+      // a friendly message.
+      return res.json({ success: true, available: false });
+    }
+
+    res.json({
+      success: true,
+      available: true,
+      generated_at: meta.generated_at,
+      tip_height: meta.tip_height,
+      finalized_height: meta.finalized_height,
+      finalized_hash: meta.finalized_hash,
+      size_bytes: meta.size_bytes,
+      sha256: meta.sha256,
+      cache_dir_name: meta.cache_dir_name,
+      contents: meta.contents || ['state/', 'pos.chain'],
+      excludes: meta.excludes || ['secret.seed', 'zaino/'],
+      download_url: 'https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz',
+      sha256_url: 'https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz.sha256',
+    });
+  } catch (error) {
+    console.error('bootstrap-info error:', error);
+    res.status(500).json({ success: false, error: 'Failed to read bootstrap metadata' });
+  }
+});
+
+/**
  * GET /api/crosslink/divergence-history
  * Returns the history of chain divergences (times our node drifted from the
  * finalized network tip). Useful for spotting patterns across resets.
