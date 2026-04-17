@@ -122,6 +122,60 @@ router.get('/api/crosslink', async (req, res) => {
 });
 
 /**
+ * GET /api/crosslink/bft-tip
+ * Returns the current BFT chain tip pointer: which PoW block is being voted on
+ * and how many finalizers have signed so far. Cached 5s in Redis.
+ */
+router.get('/api/crosslink/bft-tip', async (req, res) => {
+  const CACHE_KEY = 'crosslink:bft-tip';
+  try {
+    if (redisClient && redisClient.isOpen) {
+      try {
+        const cached = await redisClient.get(CACHE_KEY);
+        if (cached) return res.json(JSON.parse(cached));
+      } catch {}
+    }
+
+    const fatPtr = await callZebraRPC('get_tfl_fat_pointer_to_bft_chain_tip').catch(() => null);
+    if (!fatPtr) {
+      return res.status(503).json({ success: false, error: 'BFT tip unavailable' });
+    }
+
+    // Field name varies across serializations; accept either.
+    const voteBytes =
+      fatPtr.vote_for_block_without_finalizer_public_key ??
+      fatPtr.voteForBlockWithoutFinalizerPublicKey ??
+      [];
+    // First 32 bytes are the PoW block hash the BFT is voting on.
+    // Zebra stores hashes in internal byte order; reverse for the display hex.
+    const blockHashInternal = voteBytes.slice(0, 32);
+    const votedBlockHash = Buffer.from(blockHashInternal).reverse().toString('hex');
+    const signatures = Array.isArray(fatPtr.signatures) ? fatPtr.signatures : [];
+
+    const result = {
+      success: true,
+      votedBlockHash: votedBlockHash || null,
+      signatureCount: signatures.length,
+      signers: signatures.map((s) => ({
+        pub_key: Array.isArray(s.pub_key)
+          ? Buffer.from(s.pub_key).toString('hex')
+          : typeof s.pub_key === 'string' ? s.pub_key : null,
+      })),
+      timestamp: Date.now(),
+    };
+
+    if (redisClient && redisClient.isOpen) {
+      try { await redisClient.set(CACHE_KEY, JSON.stringify(result), { EX: 5 }); } catch {}
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('BFT tip error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch BFT tip' });
+  }
+});
+
+/**
  * GET /api/finalizers
  * List all finalizers (active + historical) from DB, ordered by current voting power desc.
  * Falls back to live RPC if DB is empty.

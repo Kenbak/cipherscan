@@ -25,19 +25,26 @@ interface CrosslinkStats {
   totalStakeZec: number;
 }
 
+interface BftTip {
+  votedBlockHash: string | null;
+  signatureCount: number;
+}
+
 const BLOCKS_TO_SHOW = 20;
 
 export default function ChainViewPage() {
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [stats, setStats] = useState<CrosslinkStats | null>(null);
+  const [bftTip, setBftTip] = useState<BftTip | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
       const api = getApiUrl();
-      const [blocksRes, crosslinkRes] = await Promise.all([
+      const [blocksRes, crosslinkRes, bftRes] = await Promise.all([
         fetch(`${api}/api/blocks?limit=${BLOCKS_TO_SHOW}`),
         fetch(`${api}/api/crosslink`),
+        fetch(`${api}/api/crosslink/bft-tip`),
       ]);
 
       if (blocksRes.ok) {
@@ -53,6 +60,15 @@ export default function ChainViewPage() {
             finalityGap: data.finalityGap,
             finalizerCount: data.finalizerCount,
             totalStakeZec: data.totalStakeZec,
+          });
+        }
+      }
+      if (bftRes.ok) {
+        const data = await bftRes.json();
+        if (data.success) {
+          setBftTip({
+            votedBlockHash: data.votedBlockHash,
+            signatureCount: data.signatureCount,
           });
         }
       }
@@ -73,6 +89,11 @@ export default function ChainViewPage() {
   // This is where we draw the prominent "Finality frontier" marker.
   const finalizedFrontierIndex = stats
     ? blocks.findIndex((b) => b.height <= stats.finalizedHeight)
+    : -1;
+
+  // Index of the PoW block the BFT chain is currently voting on (in-progress vote).
+  const votedIndex = bftTip?.votedBlockHash
+    ? blocks.findIndex((b) => b.hash === bftTip.votedBlockHash)
     : -1;
 
   return (
@@ -135,6 +156,7 @@ export default function ChainViewPage() {
               {blocks.map((b, i) => {
                 const isFinalized = stats ? b.height <= stats.finalizedHeight : false;
                 const isFrontier = i === finalizedFrontierIndex && stats;
+                const isVotingOn = i === votedIndex;
 
                 return (
                   <div
@@ -177,16 +199,32 @@ export default function ChainViewPage() {
                         className={`relative z-10 block rounded-full border transition-all ${
                           isFrontier
                             ? 'w-3.5 h-3.5 bg-cipher-green border-cipher-green ring-2 ring-cipher-green/30'
+                            : isVotingOn
+                            ? 'w-3 h-3 bg-cipher-orange border-cipher-orange ring-2 ring-cipher-orange/30 animate-pulse'
                             : isFinalized
                             ? 'w-2.5 h-2.5 bg-cipher-green/80 border-cipher-green'
                             : 'w-2.5 h-2.5 bg-cipher-cyan/70 border-cipher-cyan'
                         }`}
                       />
+                      {/* Horizontal connector into the right column */}
+                      {(isFrontier || isVotingOn) && (
+                        <span
+                          className={`absolute left-1/2 top-1/2 -translate-y-1/2 h-px w-4 sm:w-6 ${
+                            isVotingOn ? 'bg-cipher-orange/50' : 'bg-cipher-green/50'
+                          }`}
+                        />
+                      )}
                     </div>
 
                     {/* BFT / finalization indicator (right column) */}
                     <div className="flex items-center">
-                      {isFrontier && stats ? (
+                      {isVotingOn && bftTip && stats ? (
+                        // In-progress BFT vote marker
+                        <BftVoteMarker
+                          signatureCount={bftTip.signatureCount}
+                          finalizerCount={stats.finalizerCount}
+                        />
+                      ) : isFrontier && stats ? (
                         // Prominent marker at the finality frontier (top-most finalized block)
                         <FrontierMarker
                           finalizerCount={stats.finalizerCount}
@@ -231,8 +269,7 @@ function FrontierMarker({
   totalStakeZec: number;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="block h-px w-4 sm:w-6 bg-cipher-green/50" />
+    <div className="flex items-center">
       <div className="flex items-center gap-2 py-1.5 px-2.5 rounded border border-cipher-green/40 bg-cipher-green/5">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cipher-green opacity-70"></span>
@@ -245,6 +282,35 @@ function FrontierMarker({
           </div>
           <div className="text-[9px] text-muted font-mono mt-0.5">
             {finalizerCount} finalizers · {totalStakeZec.toFixed(1)} cTAZ staked
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BftVoteMarker({
+  signatureCount,
+  finalizerCount,
+}: {
+  signatureCount: number;
+  finalizerCount: number;
+}) {
+  const pct = finalizerCount > 0 ? Math.round((signatureCount / finalizerCount) * 100) : 0;
+  return (
+    <div className="flex items-center">
+      <div className="flex items-center gap-2 py-1.5 px-2.5 rounded border border-cipher-orange/40 bg-cipher-orange/5">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cipher-orange opacity-70"></span>
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-orange"></span>
+        </span>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-cipher-orange">Voting now</span>
+            <Badge color="orange">BFT</Badge>
+          </div>
+          <div className="text-[9px] text-muted font-mono mt-0.5">
+            {signatureCount}/{finalizerCount} signatures · {pct}%
           </div>
         </div>
       </div>
