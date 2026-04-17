@@ -94,6 +94,17 @@ certbot --nginx -d crosslink.cipherscan.app
 cd /root
 git clone https://github.com/ShieldedLabs/crosslink_monolith.git
 cd crosslink_monolith
+git checkout season-1-workshop-1   # pin to the tagged release
+
+# CRITICAL: disable the internal miner.
+# The crosslink fork forcibly enables `internal_miner = true` in
+# zebra-crosslink/zebrad/src/application.rs regardless of user config.
+# For a passive explorer node we MUST NOT mine — it causes the node
+# to fork at ~block 1120 during initial sync (confirmed by ShieldedLabs).
+# A sidechain longer than 100 blocks corrupts the finalizer roster and
+# requires a full cache wipe.
+sed -i 's|c.mining.internal_miner = true;|c.mining.internal_miner = false; // explorer: passive, never mine|' \
+  zebra-crosslink/zebrad/src/application.rs
 
 # Build headless zebrad (no GUI) — ~20-30 min
 cd zebra-crosslink
