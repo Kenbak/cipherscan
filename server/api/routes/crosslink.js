@@ -75,11 +75,14 @@ router.get('/api/crosslink', async (req, res) => {
     }
 
     const parsedRoster = Array.isArray(roster)
-      ? roster.map((m) => ({
-          identity: m.identity || m.pub_key || m.public_key || '',
-          stake_zats: m.stake_zats || m.stake || 0,
-          stake_zec: (m.stake_zats || m.stake || 0) / 1e8,
-        })).sort((a, b) => b.stake_zats - a.stake_zats)
+      ? roster.map((m) => {
+          const stakeZats = m.stake_zats ?? m.stake ?? m.voting_power ?? 0;
+          return {
+            identity: m.identity || m.pub_key || m.public_key || '',
+            stake_zats: stakeZats,
+            stake_zec: stakeZats / 1e8,
+          };
+        }).sort((a, b) => b.stake_zats - a.stake_zats)
       : [];
 
     const totalStakeZats = parsedRoster.reduce((sum, m) => sum + m.stake_zats, 0);
