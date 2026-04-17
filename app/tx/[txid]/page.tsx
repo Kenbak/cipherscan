@@ -12,6 +12,7 @@ import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { StakingActionBadge, stakingActionLabel } from '@/components/StakingActionBadge';
+import { displayPubkey } from '@/lib/utils';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 
 interface BridgeData {
@@ -1149,7 +1150,10 @@ export default function TransactionPage() {
                             href={`/finalizer/${data.stakingAction.delegatee}`}
                             className="text-cipher-cyan hover:underline font-mono"
                           >
-                            {data.stakingAction.delegatee.slice(0, 12)}…{data.stakingAction.delegatee.slice(-6)}
+                            {(() => {
+                              const display = displayPubkey(data.stakingAction.delegatee);
+                              return `${display.slice(0, 12)}…${display.slice(-6)}`;
+                            })()}
                           </Link>
                         </span>
                       )}

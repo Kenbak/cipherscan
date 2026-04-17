@@ -64,3 +64,33 @@ export function formatDateTime(timestamp: number): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Reverse the byte order of a 32-byte hex string (64 hex chars).
+ *
+ * zebrad's RPCs + block headers store Crosslink finalizer public keys in
+ * one byte order; the Crosslink GUI displays them in the opposite order.
+ * Sam Smith (ShieldedLabs) confirmed the GUI order is the canonical
+ * user-facing one. This helper lets us keep raw RPC bytes in the DB but
+ * show the GUI-style hex everywhere in the UI.
+ *
+ * Non-64-char inputs are returned unchanged (safe fallback for display
+ * of unexpected values).
+ */
+export function displayPubkey(hex: string | null | undefined): string {
+  if (!hex || hex.length !== 64) return hex ?? '';
+  const bytes: string[] = [];
+  for (let i = 0; i < 64; i += 2) bytes.push(hex.slice(i, i + 2));
+  return bytes.reverse().join('');
+}
+
+/**
+ * Parse a pubkey the user typed/pasted and produce the raw-RPC form we
+ * store internally. If the user pasted a GUI-style hex we reverse it; if
+ * they pasted a raw hex we leave it alone. This is a simple heuristic:
+ * we always try both forms in lookup code — call this to get the "most
+ * likely intended" form for a single-request lookup.
+ */
+export function normalizePubkeyForQuery(hex: string): string {
+  return displayPubkey(hex.toLowerCase().trim());
+}

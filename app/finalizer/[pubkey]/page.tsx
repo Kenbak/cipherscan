@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { CURRENCY } from '@/lib/config';
 import { getApiUrl } from '@/lib/api-config';
+import { displayPubkey } from '@/lib/utils';
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -224,10 +225,13 @@ export default function FinalizerPage() {
 
         <div className="mt-4 flex items-center gap-2 max-w-full">
           <code className="text-xs sm:text-sm font-mono text-secondary break-all flex-1 block-hash-bg px-3 py-2 rounded border border-cipher-border">
-            {data.pub_key}
+            {displayPubkey(data.pub_key)}
           </code>
-          <CopyButton text={data.pub_key} />
+          <CopyButton text={displayPubkey(data.pub_key)} />
         </div>
+        <p className="mt-2 text-[10px] text-muted font-mono">
+          Shown in GUI byte order — matches your Crosslink desktop app.
+        </p>
       </div>
 
       {/* Key stats */}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { CURRENCY } from '@/lib/config';
+import { displayPubkey } from '@/lib/utils';
 
 interface RosterMember {
   identity: string;
@@ -187,10 +188,17 @@ export default function ValidatorsPage() {
               </thead>
               <tbody>
                 {(() => {
+                  // Match against both the raw RPC form and the GUI-style
+                  // display form, so pasting a pubkey from either place finds
+                  // the same finalizer.
                   const filtered = filter
                     ? data.roster
                         .map((m, origIdx) => ({ m, origIdx }))
-                        .filter(({ m }) => m.identity.toLowerCase().includes(filter))
+                        .filter(({ m }) => {
+                          const raw = m.identity.toLowerCase();
+                          const display = displayPubkey(raw).toLowerCase();
+                          return raw.includes(filter) || display.includes(filter);
+                        })
                     : data.roster.map((m, origIdx) => ({ m, origIdx }));
 
                   if (filtered.length === 0) {
@@ -221,15 +229,23 @@ export default function ValidatorsPage() {
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
                       </td>
                       <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                        <Link
-                          href={`/finalizer/${member.identity}`}
-                          className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all"
-                        >
-                          <span className="hidden sm:inline">{member.identity}</span>
-                          <span className="sm:hidden">
-                            {member.identity.slice(0, 12)}...{member.identity.slice(-6)}
-                          </span>
-                        </Link>
+                        {(() => {
+                          // Display the pubkey in GUI byte order (matches what
+                          // users see in their Crosslink desktop app), but keep
+                          // URLs + filter using the raw RPC form stored in the DB.
+                          const display = displayPubkey(member.identity);
+                          return (
+                            <Link
+                              href={`/finalizer/${member.identity}`}
+                              className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all"
+                            >
+                              <span className="hidden sm:inline">{display}</span>
+                              <span className="sm:hidden">
+                                {display.slice(0, 12)}...{display.slice(-6)}
+                              </span>
+                            </Link>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">

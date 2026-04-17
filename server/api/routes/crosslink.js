@@ -23,6 +23,38 @@ const CROSSLINK_CACHE_DURATION = 10; // 10 seconds
 const STAKING_DAY_PERIOD = 150;
 const STAKING_DAY_WINDOW = 70;
 
+/**
+ * Reverse the byte order of a 64-char hex string. zebrad's fat-pointer
+ * signer pub_keys come through in one byte order; the Crosslink GUI
+ * displays them in the opposite order. Frontend prefers the GUI form.
+ * Non-64-char input is returned unchanged.
+ */
+function reverseHex(hex) {
+  if (typeof hex !== 'string' || hex.length !== 64) return hex;
+  let out = '';
+  for (let i = 62; i >= 0; i -= 2) out += hex.slice(i, i + 2);
+  return out;
+}
+
+/**
+ * Resolve a user-supplied pubkey against our DB. The user may paste a
+ * GUI-form hex or a raw-RPC form; we try both and use whichever one
+ * matches a known finalizer. Returns the form that's actually stored
+ * in the DB (raw form), or null if neither exists.
+ */
+async function resolveFinalizerPubkey(pool, input) {
+  const lower = input.toLowerCase();
+  const candidates = [lower];
+  const reversed = reverseHex(lower);
+  if (reversed !== lower) candidates.push(reversed);
+
+  const r = await pool.query(
+    'SELECT pub_key FROM finalizers WHERE pub_key = ANY($1) LIMIT 1',
+    [candidates]
+  );
+  return r.rows[0]?.pub_key || null;
+}
+
 function computeStakingDay(tipHeight) {
   const periodNumber = Math.floor(tipHeight / STAKING_DAY_PERIOD);
   const positionInPeriod = tipHeight % STAKING_DAY_PERIOD;
@@ -346,10 +378,12 @@ router.get('/api/finalizers', async (req, res) => {
  */
 router.get('/api/finalizer/:pubkey/participation', async (req, res) => {
   try {
-    const pubkey = req.params.pubkey.toLowerCase();
-    if (!/^[a-f0-9]{64}$/.test(pubkey)) {
+    const raw = req.params.pubkey.toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(raw)) {
       return res.status(400).json({ success: false, error: 'Invalid pubkey' });
     }
+    // Accept either byte order from the URL — resolve to the form stored in DB.
+    const pubkey = (await resolveFinalizerPubkey(pool, raw)) || raw;
     const windowSize = Math.min(Math.max(parseInt(req.query.window) || 1000, 1), 5000);
 
     // Window = last N blocks that actually carry BFT data (i.e. bft_signer_keys IS NOT NULL)
@@ -474,12 +508,18 @@ router.get('/api/crosslink/bft-chain', async (req, res) => {
  */
 router.get('/api/finalizer/:pubkey', async (req, res) => {
   try {
-    const pubkey = req.params.pubkey.toLowerCase();
+    const raw = req.params.pubkey.toLowerCase();
 
     // 64 hex chars = 32-byte pubkey
-    if (!/^[a-f0-9]{64}$/.test(pubkey)) {
+    if (!/^[a-f0-9]{64}$/.test(raw)) {
       return res.status(400).json({ success: false, error: 'Invalid finalizer pubkey' });
     }
+
+    // Accept either byte order: try raw, then reversed. The GUI displays
+    // pubkeys in reversed byte order from what zebrad's RPCs return, so
+    // users pasting a pubkey from their desktop wallet must still land
+    // on the right detail page.
+    const pubkey = (await resolveFinalizerPubkey(pool, raw)) || raw;
 
     const finalizerResult = await pool.query(
       `SELECT pub_key, voting_power_zats, first_seen_height, last_seen_height, is_active,
