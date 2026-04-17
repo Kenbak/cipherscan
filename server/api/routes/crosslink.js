@@ -416,25 +416,36 @@ router.get('/api/crosslink/bft-chain', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 30, 1), 200);
 
-    // Walk the recent blocks newest→oldest and group into BFT decisions.
-    // DISTINCT ON in Postgres keeps the first (newest) block per referenced hash.
+    // Each unique bft_referenced_hash is one BFT decision. Use a window
+    // function to pick the newest row per decision (that row has the most
+    // authoritative signer set) and aggregate first/last-seen heights.
+    // NOTE: ARRAY_AGG on variable-size text[] columns fails with
+    // "cannot accumulate arrays of different dimensionality", hence the
+    // window-function approach instead of GROUP BY.
     const result = await pool.query(
-      `WITH recent AS (
-         SELECT height, bft_referenced_hash, bft_signature_count, bft_signer_keys
+      `WITH ranked AS (
+         SELECT
+           height,
+           bft_referenced_hash,
+           bft_signature_count,
+           bft_signer_keys,
+           ROW_NUMBER() OVER (PARTITION BY bft_referenced_hash ORDER BY height DESC) AS rn,
+           COUNT(*) OVER (PARTITION BY bft_referenced_hash)                          AS pow_blocks_in_decision,
+           MIN(height) OVER (PARTITION BY bft_referenced_hash)                        AS first_seen,
+           MAX(height) OVER (PARTITION BY bft_referenced_hash)                        AS last_seen
          FROM blocks
          WHERE bft_referenced_hash IS NOT NULL
-         ORDER BY height DESC
-         LIMIT $1 * 20  -- pull extra to ensure we find $1 distinct decisions
        )
        SELECT
-         bft_referenced_hash                AS referenced_hash,
-         MAX(bft_signature_count)           AS signature_count,
-         MAX(height)::bigint                AS last_seen_at_pow_height,
-         MIN(height)::bigint                AS first_seen_at_pow_height,
-         (ARRAY_AGG(bft_signer_keys ORDER BY height DESC))[1] AS signer_keys
-       FROM recent
-       GROUP BY bft_referenced_hash
-       ORDER BY last_seen_at_pow_height DESC
+         bft_referenced_hash AS referenced_hash,
+         bft_signature_count AS signature_count,
+         bft_signer_keys     AS signer_keys,
+         pow_blocks_in_decision::int,
+         first_seen::bigint  AS first_seen_at_pow_height,
+         last_seen::bigint   AS last_seen_at_pow_height
+       FROM ranked
+       WHERE rn = 1
+       ORDER BY last_seen DESC
        LIMIT $1`,
       [limit]
     );
@@ -445,6 +456,7 @@ router.get('/api/crosslink/bft-chain', async (req, res) => {
       decisions: result.rows.map(r => ({
         referenced_hash: r.referenced_hash,
         signature_count: r.signature_count,
+        pow_blocks_in_decision: r.pow_blocks_in_decision,
         first_seen_at_pow_height: parseInt(r.first_seen_at_pow_height),
         last_seen_at_pow_height: parseInt(r.last_seen_at_pow_height),
         signer_keys: r.signer_keys || [],
