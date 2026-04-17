@@ -24,6 +24,8 @@ export default function ValidatorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  // pubkey (lowercase) -> participation_pct over the last 500 blocks
+  const [participation, setParticipation] = useState<Record<string, number>>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -40,6 +42,25 @@ export default function ValidatorsPage() {
         tipHeight: json.tipHeight || 0,
       });
       setError(null);
+
+      // Fan out participation queries for each roster member (13-17 requests,
+      // cheap and hitting the indexed bft_signer_keys GIN index server-side).
+      const roster = json.roster || [];
+      const apiBase = ''; // /api/crosslink shares the same host as participation
+      const results = await Promise.allSettled(
+        roster.map((m: RosterMember) =>
+          fetch(`${apiBase}/api/finalizer/${m.identity}/participation?window=500`).then((r) =>
+            r.ok ? r.json() : null
+          )
+        )
+      );
+      const next: Record<string, number> = {};
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled' && r.value?.success) {
+          next[roster[i].identity.toLowerCase()] = r.value.participation_pct || 0;
+        }
+      });
+      setParticipation(next);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -161,6 +182,7 @@ export default function ValidatorsPage() {
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-24 sm:w-28">Voting (500)</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,7 +197,7 @@ export default function ValidatorsPage() {
                     return (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={5}
                           className="px-4 py-8 text-center text-sm text-muted font-mono border-b border-cipher-border"
                         >
                           No finalizer matches &ldquo;{filter}&rdquo;
@@ -226,6 +248,41 @@ export default function ValidatorsPage() {
                             {share.toFixed(1)}%
                           </span>
                         </div>
+                      </td>
+                      <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+                        {(() => {
+                          const pct = participation[member.identity.toLowerCase()];
+                          if (pct === undefined) {
+                            return <span className="font-mono text-xs text-muted/60">—</span>;
+                          }
+                          const color = pct >= 95
+                            ? 'bg-cipher-green'
+                            : pct >= 70
+                            ? 'bg-cipher-cyan'
+                            : pct >= 30
+                            ? 'bg-cipher-orange'
+                            : 'bg-red-500';
+                          const textColor = pct >= 95
+                            ? 'text-cipher-green'
+                            : pct >= 70
+                            ? 'text-cipher-cyan'
+                            : pct >= 30
+                            ? 'text-cipher-orange'
+                            : 'text-red-400';
+                          return (
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-16 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
+                                <div
+                                  className={`h-full rounded-full ${color}`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className={`font-mono text-xs ${textColor} w-10 text-right`}>
+                                {pct.toFixed(0)}%
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );

@@ -62,6 +62,15 @@ interface ApiResponse {
   stakeActions: StakeAction[];
 }
 
+interface Participation {
+  window_start: number;
+  window_end: number;
+  window_size: number;
+  signed_blocks: number;
+  participation_pct: number;
+  recent: { height: number; signed: boolean }[];
+}
+
 function timeAgo(epochSecs: number | null): string {
   if (!epochSecs) return '—';
   const diff = Math.floor(Date.now() / 1000 - epochSecs);
@@ -91,15 +100,17 @@ export default function FinalizerPage() {
   const [actions, setActions] = useState<StakeAction[]>([]);
   const [stats, setStats] = useState<CrosslinkStats | null>(null);
   const [bftTip, setBftTip] = useState<BftTip | null>(null);
+  const [participation, setParticipation] = useState<Participation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [finRes, crossRes, bftRes] = await Promise.all([
+      const [finRes, crossRes, bftRes, partRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/finalizer/${pubkey}`),
         fetch(`${getApiUrl()}/api/crosslink`),
         fetch(`${getApiUrl()}/api/crosslink/bft-tip`),
+        fetch(`${getApiUrl()}/api/finalizer/${pubkey}/participation?window=500`),
       ]);
       if (!finRes.ok) {
         if (finRes.status === 404) throw new Error('Finalizer not found');
@@ -128,6 +139,19 @@ export default function FinalizerPage() {
             signatureCount: j.signatureCount,
             signers: j.signers || [],
           });
+      }
+      if (partRes.ok) {
+        const j = await partRes.json();
+        if (j.success) {
+          setParticipation({
+            window_start: j.window_start,
+            window_end: j.window_end,
+            window_size: j.window_size,
+            signed_blocks: j.signed_blocks,
+            participation_pct: j.participation_pct,
+            recent: j.recent || [],
+          });
+        }
       }
       setError(null);
     } catch (err) {
@@ -227,7 +251,7 @@ export default function FinalizerPage() {
       </div>
 
       {/* Activity */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
         <Stat label="Last Updated" value={timeAgo(data.updated_at)} />
         <Stat
           label="Last Seen"
@@ -240,6 +264,11 @@ export default function FinalizerPage() {
           sub="bond keys"
         />
       </div>
+
+      {/* BFT voting participation */}
+      {participation && participation.window_size > 0 && (
+        <ParticipationPanel participation={participation} />
+      )}
 
       {/* Delegators: unique bond keys that have ever staked/retargeted to this finalizer */}
       <DelegatorsPanel actions={actions} />
@@ -306,6 +335,113 @@ export default function FinalizerPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function ParticipationPanel({ participation }: { participation: Participation }) {
+  const { participation_pct, signed_blocks, window_size, window_start, window_end, recent } =
+    participation;
+
+  const accent = participation_pct >= 95
+    ? 'text-cipher-green'
+    : participation_pct >= 70
+    ? 'text-cipher-cyan'
+    : participation_pct >= 30
+    ? 'text-cipher-orange'
+    : 'text-red-400';
+
+  const barColor = participation_pct >= 95
+    ? 'bg-cipher-green'
+    : participation_pct >= 70
+    ? 'bg-cipher-cyan'
+    : participation_pct >= 30
+    ? 'bg-cipher-orange'
+    : 'bg-red-500';
+
+  // Render `recent` oldest → newest so the timeline reads left-to-right.
+  // Each block = ~6-8px wide, stripe color = signed/missed.
+  const ordered = [...recent].reverse();
+
+  return (
+    <Card className="mb-8">
+      <CardBody className="p-4 sm:p-5">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">
+                {'>'}
+              </span>
+              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+                BFT_VOTING_PARTICIPATION
+              </h2>
+            </div>
+            <p className="text-xs text-muted">
+              Extracted from each PoW block&apos;s fat_pointer_to_bft_block signer list. Per
+              ShieldedLabs, these signatures represent ≥67% stake quorum on the referenced PoW
+              block&apos;s finalization.
+            </p>
+          </div>
+          <div className="text-right">
+            <div className={`text-2xl font-mono font-bold ${accent}`}>
+              {participation_pct.toFixed(1)}%
+            </div>
+            <div className="text-[10px] font-mono text-muted">
+              {signed_blocks} / {window_size} blocks
+            </div>
+          </div>
+        </div>
+
+        {/* Participation bar */}
+        <div className="h-2 rounded-full bg-cipher-border/50 overflow-hidden mb-3">
+          <div
+            className={`h-full rounded-full ${barColor} transition-all`}
+            style={{ width: `${Math.min(participation_pct, 100)}%` }}
+          />
+        </div>
+
+        {/* Sparkline of the last ~50 observed BFT-carrying blocks */}
+        {ordered.length > 0 && (
+          <>
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-1">
+              <span>
+                #{Math.min(...ordered.map((r) => r.height)).toLocaleString()}
+              </span>
+              <span>last {ordered.length} blocks</span>
+              <span>
+                #{Math.max(...ordered.map((r) => r.height)).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-end gap-[2px] h-6">
+              {ordered.map((r) => (
+                <span
+                  key={r.height}
+                  title={`#${r.height.toLocaleString()} — ${r.signed ? 'signed' : 'missed'}`}
+                  className={`flex-1 rounded-sm transition-colors ${
+                    r.signed
+                      ? 'bg-cipher-green/60 hover:bg-cipher-green h-full'
+                      : 'bg-red-500/50 hover:bg-red-500 h-2/3'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="mt-3 flex items-center gap-4 text-[10px] font-mono text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="block w-2 h-2 rounded-sm bg-cipher-green/60" />
+            signed
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="block w-2 h-2 rounded-sm bg-red-500/50" />
+            missed
+          </span>
+          <span className="ml-auto text-muted/60">
+            window: #{window_start.toLocaleString()} → #{window_end.toLocaleString()}
+          </span>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
