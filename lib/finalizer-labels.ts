@@ -41,6 +41,25 @@ const KNOWN_FINALIZERS: Record<string, FinalizerLabel> = {
     url: 'https://ctaz.frontiercompute.cash/',
     description: 'Frontier Compute Cash — community Crosslink validator',
   },
+  // OrchardGuardian.
+  // GUI form: fe8734cd0a2e8de4a0cdcc57500dafe8baceaecb9a7a2b53ba878969afd14a03
+  '034ad1af698987ba532b7a9acbaecebae8af0d5057cccda0e48d2e0acd3487fe': {
+    name: 'OrchardGuardian',
+    description: 'Community Crosslink finalizer',
+  },
+  // TomZarebczan.
+  // GUI form: e27c42be55137f8f2016aad25392f3bd60319a30bee0f5cfabec2a292bd26176
+  '7661d22b292aecabcff5e0be309a3160bdf39253d2aa16208f7f1355be427ce2': {
+    name: 'TomZarebczan',
+    description: 'Community Crosslink finalizer',
+  },
+  // ZecHub.
+  // GUI form: 22a05fd8a931a2df6cfd8a3c7e5fd0a321ce656770c4c694441b93f95a015bfe
+  'fe5b015af9931b4494c6c4706765ce21a3d05f7e3c8afd6cdfa231a9d85fa022': {
+    name: 'ZecHub',
+    url: 'https://zechub.wiki/',
+    description: 'Zcash community hub — Crosslink finalizer',
+  },
 };
 
 /**

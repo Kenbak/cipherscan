@@ -562,7 +562,9 @@ export function CrosslinkChainGraph({
             fontSize: 9,
             letterSpacing: '0.05em',
           },
-          labelBgStyle: { fill: 'var(--color-surface-solid)' },
+          // NOTE: hardcoded dark pill. CSS vars don't reliably resolve inside
+          // SVG `fill` attributes across React Flow's label renderer.
+          labelBgStyle: { fill: '#14161F', stroke: 'rgba(94,230,212,0.3)', strokeWidth: 0.5 },
           labelBgPadding: [6, 3],
           labelBgBorderRadius: 4,
           zIndex: 10,
