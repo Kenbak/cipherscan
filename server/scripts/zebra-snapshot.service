@@ -1,0 +1,12 @@
+[Unit]
+Description=Zebra Crosslink cache snapshot (runs via timer)
+After=zebrad-crosslink.service
+Requires=zebrad-crosslink.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/zebra-snapshot.sh
+# Don't hammer the disk — snapshots can be several hundred MB
+IOSchedulingClass=idle
+Nice=19

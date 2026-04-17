@@ -1,0 +1,14 @@
+[Unit]
+Description=Hourly Zebra Crosslink cache snapshot
+
+[Timer]
+# Run once 5 minutes after boot (gives zebrad time to sync a bit), then every hour
+OnBootSec=5min
+OnUnitActiveSec=1h
+# Randomize by up to 60s so we don't all snapshot at the top of the hour
+RandomizedDelaySec=60s
+# If the host was offline when a snapshot was due, run it right after boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target
