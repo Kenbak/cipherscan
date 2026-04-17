@@ -187,7 +187,7 @@ export function CrosslinkChainView({
         <div className="py-4 px-3 sm:px-6">
           {blocks.map((b, i) => {
             const isFinalized = stats ? b.height <= stats.finalizedHeight : false;
-            const isFrontier = i === finalizedFrontierIndex && stats;
+            const isFrontier = i === finalizedFrontierIndex && stats !== null;
             const isVotingOn = i === votedIndex;
             const scale = sizeToScale(b.size || 0, maxSize);
 

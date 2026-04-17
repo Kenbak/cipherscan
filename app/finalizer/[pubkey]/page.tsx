@@ -71,25 +71,64 @@ function timeAgo(epochSecs: number | null): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+interface CrosslinkStats {
+  tipHeight: number;
+  finalizedHeight: number;
+  totalStakeZec: number;
+  finalizerCount: number;
+}
+
+interface BftTip {
+  votedBlockHash: string | null;
+  signatureCount: number;
+  signers: { pub_key: string | null }[];
+}
+
 export default function FinalizerPage() {
   const params = useParams();
   const pubkey = (params.pubkey as string).toLowerCase();
   const [data, setData] = useState<FinalizerDetail | null>(null);
   const [actions, setActions] = useState<StakeAction[]>([]);
+  const [stats, setStats] = useState<CrosslinkStats | null>(null);
+  const [bftTip, setBftTip] = useState<BftTip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/finalizer/${pubkey}`);
-      if (!res.ok) {
-        if (res.status === 404) throw new Error('Finalizer not found');
-        throw new Error(`API error: ${res.status}`);
+      const [finRes, crossRes, bftRes] = await Promise.all([
+        fetch(`${getApiUrl()}/api/finalizer/${pubkey}`),
+        fetch(`${getApiUrl()}/api/crosslink`),
+        fetch(`${getApiUrl()}/api/crosslink/bft-tip`),
+      ]);
+      if (!finRes.ok) {
+        if (finRes.status === 404) throw new Error('Finalizer not found');
+        throw new Error(`API error: ${finRes.status}`);
       }
-      const json: ApiResponse = await res.json();
+      const json: ApiResponse = await finRes.json();
       if (!json.success) throw new Error('API returned failure');
       setData(json.finalizer);
       setActions(json.stakeActions);
+
+      if (crossRes.ok) {
+        const j = await crossRes.json();
+        if (j.success)
+          setStats({
+            tipHeight: j.tipHeight,
+            finalizedHeight: j.finalizedHeight,
+            totalStakeZec: j.totalStakeZec,
+            finalizerCount: j.finalizerCount,
+          });
+      }
+      if (bftRes.ok) {
+        const j = await bftRes.json();
+        if (j.success)
+          setBftTip({
+            votedBlockHash: j.votedBlockHash,
+            signatureCount: j.signatureCount,
+            signers: j.signers || [],
+          });
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -154,6 +193,9 @@ export default function FinalizerPage() {
           ) : (
             <Badge color="muted">Inactive</Badge>
           )}
+          {bftTip?.signers.some((s) => s.pub_key?.toLowerCase() === pubkey) && (
+            <Badge color="orange">Signing now</Badge>
+          )}
         </div>
 
         <div className="mt-4 flex items-center gap-2 max-w-full">
@@ -164,12 +206,43 @@ export default function FinalizerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
+      {/* Key stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <Stat label="Voting Power" value={`${data.voting_power_zec.toFixed(4)}`} sub={CURRENCY} />
         <Stat label="Rank" value={data.rank ? `#${data.rank}` : '—'} />
-        <Stat label="First Seen" value={data.first_seen_height ? `#${data.first_seen_height}` : '—'} sub="block" />
-        <Stat label="Last Updated" value={timeAgo(data.updated_at)} />
+        <Stat
+          label="Share"
+          value={
+            stats && stats.totalStakeZec > 0
+              ? `${((data.voting_power_zec / stats.totalStakeZec) * 100).toFixed(1)}%`
+              : '—'
+          }
+          sub="of total stake"
+        />
+        <Stat
+          label="First Seen"
+          value={data.first_seen_height ? `#${data.first_seen_height}` : '—'}
+          sub="block"
+        />
       </div>
+
+      {/* Activity */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
+        <Stat label="Last Updated" value={timeAgo(data.updated_at)} />
+        <Stat
+          label="Last Seen"
+          value={data.last_seen_height ? `#${data.last_seen_height}` : '—'}
+          sub="block"
+        />
+        <Stat
+          label="Unique Delegators"
+          value={`${new Set(actions.filter((a) => a.bond_key).map((a) => a.bond_key)).size}`}
+          sub="bond keys"
+        />
+      </div>
+
+      {/* Delegators: unique bond keys that have ever staked/retargeted to this finalizer */}
+      <DelegatorsPanel actions={actions} />
 
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
@@ -245,5 +318,107 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
       <span className="text-lg sm:text-2xl font-mono font-bold text-primary">{value}</span>
       {sub && <span className="ml-1 text-xs text-muted">{sub}</span>}
     </div>
+  );
+}
+
+/**
+ * Group the staking actions by bond_key to build a "delegators" view.
+ * Each bond is a unique delegation; its current status depends on the most
+ * recent action for that bond (stake / unstake / withdraw / retarget).
+ */
+interface DelegatorRow {
+  bondKey: string;
+  lastAction: string;
+  lastActionHeight: number;
+  lastActionTime: number | null;
+  stakedAmountZec: number; // from the most recent CreateNewDelegationBond we've seen
+  lastTxid: string;
+}
+
+function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
+  const byBond = new Map<string, DelegatorRow>();
+
+  // Actions come newest-first from the API. Walk newest→oldest; the first
+  // action we see for a given bond is its most recent status.
+  for (const a of actions) {
+    if (!a.bond_key) continue;
+    const existing = byBond.get(a.bond_key);
+    if (!existing) {
+      byBond.set(a.bond_key, {
+        bondKey: a.bond_key,
+        lastAction: a.action_type,
+        lastActionHeight: a.block_height,
+        lastActionTime: a.block_time,
+        stakedAmountZec: a.amount_zec ?? 0,
+        lastTxid: a.txid,
+      });
+    } else if (a.action_type === 'CreateNewDelegationBond' && existing.stakedAmountZec === 0) {
+      // Pull the stake amount from the original CreateNewDelegationBond action
+      // if the most recent action didn't have an amount (e.g. a retarget).
+      existing.stakedAmountZec = a.amount_zec ?? 0;
+    }
+  }
+
+  const delegators = Array.from(byBond.values()).sort(
+    (a, b) => b.stakedAmountZec - a.stakedAmountZec
+  );
+
+  if (delegators.length === 0) return null;
+
+  return (
+    <>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+          DELEGATORS
+        </h2>
+        <span className="text-xs text-muted ml-1">({delegators.length} bonds)</span>
+      </div>
+
+      <Card className="mb-8">
+        <CardBody className="p-0">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-cipher-border text-[10px] text-muted font-mono uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 py-3 text-left">Bond Key</th>
+                  <th className="px-3 sm:px-4 py-3 text-right">Amount ({CURRENCY})</th>
+                  <th className="px-3 sm:px-4 py-3 text-left">Last Action</th>
+                  <th className="px-3 sm:px-4 py-3 text-left">Block</th>
+                </tr>
+              </thead>
+              <tbody>
+                {delegators.map((d) => (
+                  <tr
+                    key={d.bondKey}
+                    className="border-b border-cipher-border/50 hover:bg-cipher-hover/40 transition-colors"
+                  >
+                    <td className="px-3 sm:px-4 py-3">
+                      <code className="font-mono text-xs text-secondary">
+                        {d.bondKey.slice(0, 12)}…{d.bondKey.slice(-6)}
+                      </code>
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 text-right font-mono text-primary">
+                      {d.stakedAmountZec > 0 ? d.stakedAmountZec.toFixed(4) : '—'}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3">
+                      <StakingActionBadge type={d.lastAction} compact />
+                    </td>
+                    <td className="px-3 sm:px-4 py-3">
+                      <Link
+                        href={`/block/${d.lastActionHeight}`}
+                        className="text-cipher-cyan hover:underline font-mono"
+                      >
+                        #{d.lastActionHeight.toLocaleString()}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardBody>
+      </Card>
+    </>
   );
 }

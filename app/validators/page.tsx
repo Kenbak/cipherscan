@@ -23,6 +23,7 @@ export default function ValidatorsPage() {
   const [data, setData] = useState<ValidatorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -122,6 +123,36 @@ export default function ValidatorsPage() {
         </div>
       ) : data && data.roster.length > 0 ? (
         <>
+          {/* Filter input: search by public key prefix */}
+          <div className="mb-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value.toLowerCase().trim())}
+                placeholder="Filter by public key (paste prefix or full hex)"
+                className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted/60 focus:outline-none focus:border-cipher-cyan/60 transition-colors"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2M10 18a8 8 0 100-16 8 8 0 000 16z" />
+              </svg>
+              {filter && (
+                <button
+                  onClick={() => setFilter('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-primary text-xs font-mono"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="card p-0 overflow-x-auto no-scrollbar">
             <table className="w-full min-w-[480px]">
               <thead>
@@ -133,7 +164,28 @@ export default function ValidatorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.roster.map((member, i) => {
+                {(() => {
+                  const filtered = filter
+                    ? data.roster
+                        .map((m, origIdx) => ({ m, origIdx }))
+                        .filter(({ m }) => m.identity.toLowerCase().includes(filter))
+                    : data.roster.map((m, origIdx) => ({ m, origIdx }));
+
+                  if (filtered.length === 0) {
+                    return (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-4 py-8 text-center text-sm text-muted font-mono border-b border-cipher-border"
+                        >
+                          No finalizer matches &ldquo;{filter}&rdquo;
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return filtered.map(({ m: member, origIdx }) => {
+                  const i = origIdx;
                   const share = data.totalStakeZec > 0
                     ? ((member.stake_zec || 0) / data.totalStakeZec * 100)
                     : 0;
@@ -177,7 +229,8 @@ export default function ValidatorsPage() {
                       </td>
                     </tr>
                   );
-                })}
+                  });
+                })()}
               </tbody>
             </table>
           </div>
