@@ -331,6 +331,132 @@ router.get('/api/finalizers', async (req, res) => {
 });
 
 /**
+ * GET /api/finalizer/:pubkey/participation
+ * Per-finalizer BFT participation over the last N blocks. Reads
+ * `blocks.bft_signer_keys` (populated by the Rust indexer from each PoW
+ * block's fat_pointer_to_bft_block) and counts how many blocks in the
+ * window include this pubkey.
+ *
+ * Response:
+ *   {
+ *     pubkey, window_start, window_end, window_size,
+ *     signed_blocks, participation_pct,
+ *     recent: [{ height, signed: true|false }, ...]  // for sparkline
+ *   }
+ */
+router.get('/api/finalizer/:pubkey/participation', async (req, res) => {
+  try {
+    const pubkey = req.params.pubkey.toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(pubkey)) {
+      return res.status(400).json({ success: false, error: 'Invalid pubkey' });
+    }
+    const windowSize = Math.min(Math.max(parseInt(req.query.window) || 1000, 1), 5000);
+
+    // Window = last N blocks that actually carry BFT data (i.e. bft_signer_keys IS NOT NULL)
+    const result = await pool.query(
+      `WITH win AS (
+         SELECT height, bft_signer_keys, bft_signature_count
+         FROM blocks
+         WHERE bft_signer_keys IS NOT NULL
+         ORDER BY height DESC
+         LIMIT $2
+       )
+       SELECT
+         COALESCE(MIN(height), 0)::bigint AS window_start,
+         COALESCE(MAX(height), 0)::bigint AS window_end,
+         COUNT(*)::int AS window_size,
+         COUNT(*) FILTER (WHERE $1 = ANY(bft_signer_keys))::int AS signed_blocks
+       FROM win`,
+      [pubkey, windowSize]
+    );
+    const row = result.rows[0];
+    const signed = row.signed_blocks || 0;
+    const total = row.window_size || 0;
+
+    // For a sparkline: which of the last 50 blocks did this pubkey sign?
+    const recentResult = await pool.query(
+      `SELECT height, ($1 = ANY(bft_signer_keys)) AS signed
+       FROM blocks
+       WHERE bft_signer_keys IS NOT NULL
+       ORDER BY height DESC
+       LIMIT 50`,
+      [pubkey]
+    );
+
+    res.json({
+      success: true,
+      pubkey,
+      window_start: parseInt(row.window_start),
+      window_end: parseInt(row.window_end),
+      window_size: total,
+      signed_blocks: signed,
+      participation_pct: total > 0 ? (signed / total) * 100 : 0,
+      recent: recentResult.rows.map(r => ({
+        height: parseInt(r.height),
+        signed: r.signed,
+      })),
+    });
+  } catch (error) {
+    console.error('Finalizer participation error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute participation' });
+  }
+});
+
+/**
+ * GET /api/crosslink/bft-chain
+ * Returns the historical BFT chain reconstructed from PoW block fat
+ * pointers. Groups consecutive PoW blocks by their (referenced_hash,
+ * signer_set) so each row is one unique BFT decision with the range of
+ * PoW blocks that observed it.
+ *
+ * This is what makes the /chain dual-chain graph actually show history
+ * instead of just a single current-tip node.
+ */
+router.get('/api/crosslink/bft-chain', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 30, 1), 200);
+
+    // Walk the recent blocks newest→oldest and group into BFT decisions.
+    // DISTINCT ON in Postgres keeps the first (newest) block per referenced hash.
+    const result = await pool.query(
+      `WITH recent AS (
+         SELECT height, bft_referenced_hash, bft_signature_count, bft_signer_keys
+         FROM blocks
+         WHERE bft_referenced_hash IS NOT NULL
+         ORDER BY height DESC
+         LIMIT $1 * 20  -- pull extra to ensure we find $1 distinct decisions
+       )
+       SELECT
+         bft_referenced_hash                AS referenced_hash,
+         MAX(bft_signature_count)           AS signature_count,
+         MAX(height)::bigint                AS last_seen_at_pow_height,
+         MIN(height)::bigint                AS first_seen_at_pow_height,
+         (ARRAY_AGG(bft_signer_keys ORDER BY height DESC))[1] AS signer_keys
+       FROM recent
+       GROUP BY bft_referenced_hash
+       ORDER BY last_seen_at_pow_height DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      decisions: result.rows.map(r => ({
+        referenced_hash: r.referenced_hash,
+        signature_count: r.signature_count,
+        first_seen_at_pow_height: parseInt(r.first_seen_at_pow_height),
+        last_seen_at_pow_height: parseInt(r.last_seen_at_pow_height),
+        signer_keys: r.signer_keys || [],
+      })),
+    });
+  } catch (error) {
+    console.error('BFT chain history error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch BFT chain' });
+  }
+});
+
+/**
  * GET /api/finalizer/:pubkey
  * Get finalizer detail: current state + staking action history (who delegated).
  */
