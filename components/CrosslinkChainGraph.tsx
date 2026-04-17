@@ -75,7 +75,6 @@ const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
 const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
 const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
 const COLOR_VOTING_EDGE = 'rgba(255, 107, 53, 0.85)';
-const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -502,42 +501,11 @@ export function CrosslinkChainGraph({
         });
       }
 
-      // Teal edge: BFT → finalized PoW tip (the specific block this BFT
-      // decision confirmed). Rendered thicker, brighter, with arrow + label.
-      if (yByHash.has(d.referenced_hash)) {
-        bftEdges.push({
-          id: `finalizes-${d.referenced_hash}`,
-          source: nodeId,
-          sourceHandle: 'bft-out',
-          target: `pow-${d.referenced_hash}`,
-          targetHandle: 'pow-in',
-          type: 'smoothstep',
-          style: {
-            stroke: COLOR_FINALIZE,
-            strokeWidth: 2,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 14,
-            height: 14,
-            color: COLOR_FINALIZE,
-          },
-          label: 'finalizes',
-          labelStyle: {
-            fill: COLOR_FINALIZE,
-            fontFamily:
-              'var(--font-geist-mono, JetBrains Mono, monospace)',
-            fontSize: 9,
-            letterSpacing: '0.05em',
-          },
-          labelBgStyle: {
-            fill: 'var(--color-surface-solid)',
-          },
-          labelBgPadding: [6, 3],
-          labelBgBorderRadius: 4,
-          zIndex: 10,
-        });
-      }
+      // NOTE: per-decision "finalizes" arrow is not drawn here. The data we
+      // have (bft_referenced_hash) is the BFT block's own hash, not a PoW
+      // block hash, so we can't resolve the specific PoW block each decision
+      // committed to. The "FINAL" badge on PoW cards (for height <= stats
+      // .finalizedHeight) communicates the finalization state instead.
     }
 
     // Voting pointer: BFT's current live vote
@@ -661,13 +629,12 @@ export function CrosslinkChainGraph({
             </p>
           </div>
           <div className="flex items-start gap-2.5">
-            <span
-              className="mt-2 inline-block h-[2px] w-6 shrink-0"
-              style={{ background: COLOR_FINALIZE }}
-            />
+            <span className="mt-0.5 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)] shrink-0">
+              FINAL
+            </span>
             <p className="text-secondary leading-snug">
-              <span className="text-primary font-semibold">Teal arrow — finalizes.</span>{' '}
-              The PoW block this BFT decision locked in as irreversible.
+              <span className="text-primary font-semibold">Finalized blocks.</span>{' '}
+              PoW blocks confirmed by the BFT chain as irreversible.
             </p>
           </div>
         </div>

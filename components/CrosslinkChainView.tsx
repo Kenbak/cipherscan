@@ -27,6 +27,14 @@ interface BftTip {
   signatureCount: number;
 }
 
+interface BftDecision {
+  referenced_hash: string;
+  signature_count: number;
+  pow_blocks_in_decision: number;
+  first_seen_at_pow_height: number;
+  last_seen_at_pow_height: number;
+}
+
 interface DivergenceEvent {
   id: number;
   start_time: number;
@@ -88,16 +96,18 @@ export function CrosslinkChainView({
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [stats, setStats] = useState<CrosslinkStats | null>(null);
   const [bftTip, setBftTip] = useState<BftTip | null>(null);
+  const [decisions, setDecisions] = useState<BftDecision[]>([]);
   const [divergenceEvents, setDivergenceEvents] = useState<DivergenceEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
       const api = getApiUrl();
-      const [blocksRes, crosslinkRes, bftRes, divRes] = await Promise.all([
+      const [blocksRes, crosslinkRes, bftRes, bftChainRes, divRes] = await Promise.all([
         fetch(`${api}/api/blocks?limit=${blocksToShow}`),
         fetch(`${api}/api/crosslink`),
         fetch(`${api}/api/crosslink/bft-tip`),
+        fetch(`${api}/api/crosslink/bft-chain?limit=${blocksToShow}`),
         variant === 'full'
           ? fetch(`${api}/api/crosslink/divergence-history?limit=10`)
           : Promise.resolve(null),
@@ -127,6 +137,10 @@ export function CrosslinkChainView({
             signatureCount: data.signatureCount,
           });
         }
+      }
+      if (bftChainRes.ok) {
+        const data = await bftChainRes.json();
+        if (data.success) setDecisions(data.decisions || []);
       }
       if (divRes && divRes.ok) {
         const data = await divRes.json();
@@ -176,64 +190,62 @@ export function CrosslinkChainView({
         <DivergencePanel openEvent={openDivergence} recentEvents={divergenceEvents} />
       )}
 
-      <div className="card overflow-hidden">
-        {/* Column headers */}
-        <div className="grid grid-cols-[1fr_auto_minmax(7rem,1fr)] gap-3 sm:gap-4 px-4 sm:px-6 py-3 border-b border-cipher-border/60 text-[10px] font-mono uppercase tracking-wider text-muted">
-          <div>PoW Chain</div>
-          <div className="w-4 sm:w-8" />
-          <div className="text-right">PoS / BFT</div>
-        </div>
+      <div className="space-y-1.5">
+        {blocks.map((b, i) => {
+          const isFinalized = stats ? b.height <= stats.finalizedHeight : false;
+          const isFrontier = i === finalizedFrontierIndex && stats !== null;
+          const isVotingOn = i === votedIndex;
+          const isTip = stats ? b.height === stats.tipHeight : i === 0;
+          const scale = sizeToScale(b.size || 0, maxSize);
+          const decision = decisions.find(
+            (d) =>
+              b.height >= d.first_seen_at_pow_height &&
+              b.height <= d.last_seen_at_pow_height,
+          );
 
-        <div className="py-4 px-3 sm:px-6">
-          {blocks.map((b, i) => {
-            const isFinalized = stats ? b.height <= stats.finalizedHeight : false;
-            const isFrontier = i === finalizedFrontierIndex && stats !== null;
-            const isVotingOn = i === votedIndex;
-            const scale = sizeToScale(b.size || 0, maxSize);
-
-            return (
-              <ChainRow
-                key={b.hash}
-                block={b}
-                scale={scale}
-                isFinalized={isFinalized}
-                isFrontier={isFrontier}
-                isVotingOn={isVotingOn}
-                stats={stats}
-                bftTip={bftTip}
-                isFirst={i === 0}
-                isLast={i === blocks.length - 1}
-                variant={variant}
-              />
-            );
-          })}
-        </div>
-
-        {variant === 'compact' && (
-          <div className="px-4 sm:px-6 py-3 border-t border-cipher-border/60 flex items-center justify-between text-[11px] font-mono">
-            <span className="text-muted">
-              {stats && `Finalized through #${stats.finalizedHeight.toLocaleString()} · gap ${stats.finalityGap}`}
-            </span>
-            <Link href="/chain" className="text-cipher-cyan hover:underline">
-              Open Chain View →
-            </Link>
-          </div>
-        )}
+          return (
+            <ChainRow
+              key={b.hash}
+              block={b}
+              scale={scale}
+              isFinalized={isFinalized}
+              isFrontier={isFrontier}
+              isVotingOn={isVotingOn}
+              isTip={isTip}
+              stats={stats}
+              bftTip={bftTip}
+              decision={decision ?? null}
+              isFirst={i === 0}
+              isLast={i === blocks.length - 1}
+              variant={variant}
+            />
+          );
+        })}
       </div>
+
+      {variant === 'compact' && (
+        <div className="mt-3 flex items-center justify-between text-[11px] font-mono">
+          <span className="text-muted">
+            {stats &&
+              `Finalized through #${stats.finalizedHeight.toLocaleString()} · gap ${stats.finalityGap}`}
+          </span>
+          <Link href="/chain" className="text-cipher-cyan hover:underline">
+            Open Chain View →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
 
 function ChainRow({
   block,
-  scale,
   isFinalized,
-  isFrontier,
   isVotingOn,
+  isTip,
   stats,
   bftTip,
-  isFirst,
-  isLast,
+  decision,
   variant,
 }: {
   block: BlockRow;
@@ -241,107 +253,168 @@ function ChainRow({
   isFinalized: boolean;
   isFrontier: boolean;
   isVotingOn: boolean;
+  isTip: boolean;
   stats: CrosslinkStats | null;
   bftTip: BftTip | null;
+  decision: BftDecision | null;
   isFirst: boolean;
   isLast: boolean;
   variant: 'full' | 'compact';
 }) {
-  // Card width scales with block size (min 55%, max 100%).
-  // A bigger block literally takes more visual space on the row.
-  const widthPct = 55 + scale * 45;
+  let badgeLabel: string;
+  let badgeClass: string;
+  let accentClass: string;
+  let borderClass: string;
 
-  const borderColor = isVotingOn
-    ? 'border-cipher-orange/50'
-    : isFinalized
-    ? 'border-cipher-green/40'
-    : 'border-cipher-border';
-
-  const dotClasses = isFrontier
-    ? 'w-3.5 h-3.5 bg-cipher-green border-cipher-green ring-2 ring-cipher-green/30'
-    : isVotingOn
-    ? 'w-3 h-3 bg-cipher-orange border-cipher-orange ring-2 ring-cipher-orange/30 animate-pulse'
-    : isFinalized
-    ? 'w-2.5 h-2.5 bg-cipher-green/80 border-cipher-green'
-    : 'w-2.5 h-2.5 bg-cipher-cyan/70 border-cipher-cyan';
+  if (isTip) {
+    badgeLabel = 'TIP';
+    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
+    accentClass = 'bg-cipher-cyan';
+    borderClass = 'border-cipher-cyan/50';
+  } else if (isVotingOn) {
+    badgeLabel = 'VOTING';
+    badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
+    accentClass = 'bg-cipher-orange animate-pulse';
+    borderClass = 'border-cipher-orange/50';
+  } else if (isFinalized) {
+    badgeLabel = 'FINAL';
+    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-cyan-muted';
+    borderClass = 'border-cipher-border';
+  } else {
+    badgeLabel = 'PENDING';
+    badgeClass = 'text-neutral-500 dark:text-neutral-400 border-cipher-border';
+    accentClass = 'bg-cipher-cyan/50';
+    borderClass = 'border-cipher-border';
+  }
 
   return (
-    <div className="grid grid-cols-[1fr_auto_minmax(7rem,1fr)] gap-3 sm:gap-4 items-center py-2 group">
-      {/* PoW block card — width proportional to size */}
-      <div className="flex justify-end min-w-0">
-        <Link
-          href={`/block/${block.height}`}
-          className={`block rounded-md border ${borderColor} bg-cipher-bg/40 hover:bg-cipher-hover/60 transition-all px-3 py-2 min-w-0`}
-          style={{ width: `${widthPct}%` }}
-        >
-          <div className="flex items-center justify-between gap-3 min-w-0">
-            <span className="font-mono text-sm text-primary group-hover:text-cipher-cyan transition-colors truncate">
+    <Link
+      href={`/block/${block.height}`}
+      className={`group flex items-stretch rounded-md border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 transition-colors`}
+    >
+      <span className={`block w-1 shrink-0 ${accentClass}`} />
+
+      <div className="flex-1 min-w-0 px-3 py-2 flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-mono text-[13px] font-semibold tabular-nums text-black dark:text-white group-hover:text-cipher-cyan transition-colors shrink-0">
               #{block.height.toLocaleString()}
             </span>
-            <code className="hidden sm:inline text-[10px] font-mono text-muted truncate">
+            <span
+              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider ${badgeClass}`}
+            >
+              {badgeLabel}
+            </span>
+            <code className="hidden sm:inline text-[10px] font-mono text-neutral-600 dark:text-neutral-300 truncate">
               {block.hash.slice(0, 8)}…{block.hash.slice(-6)}
             </code>
           </div>
-          {/* Size bar */}
-          <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1 rounded-full bg-cipher-border/40 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  isVotingOn
-                    ? 'bg-cipher-orange/70'
-                    : isFinalized
-                    ? 'bg-cipher-green/60'
-                    : 'bg-cipher-cyan/70'
-                }`}
-                style={{ width: `${scale * 100}%` }}
-              />
-            </div>
-            <div className="shrink-0 text-[10px] font-mono text-muted whitespace-nowrap">
-              {block.transaction_count} tx · {fmtBytes(block.size || 0)} · {fmtAge(block.timestamp)}
-            </div>
+          <div className="mt-0.5 font-mono text-[10px] flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+            <span className="tabular-nums text-black dark:text-white">
+              {fmtAge(block.timestamp)}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">
+              <span className="text-black dark:text-white">
+                {block.transaction_count}
+              </span>{' '}
+              {block.transaction_count === 1 ? 'tx' : 'txs'}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">{fmtBytes(block.size || 0)}</span>
           </div>
-        </Link>
-      </div>
+        </div>
 
-      {/* Center timeline */}
-      <div className="relative flex items-center justify-center w-4 sm:w-8 self-stretch shrink-0">
-        <span
-          className={`absolute left-1/2 -translate-x-1/2 w-px ${
-            isFinalized ? 'bg-cipher-green/40' : 'bg-cipher-cyan/30'
-          }`}
-          style={{
-            top: isFirst ? '50%' : '0',
-            bottom: isLast ? '50%' : '0',
-          }}
-        />
-        <span className={`relative z-10 block rounded-full border transition-all ${dotClasses}`} />
+        {/* Right side: actual BFT decision info when available */}
+        <div className="shrink-0">
+          {isVotingOn && bftTip && stats ? (
+            <BftChip
+              count={bftTip.signatureCount}
+              total={stats.finalizerCount}
+              state="voting"
+            />
+          ) : decision && stats ? (
+            <BftChip
+              count={decision.signature_count}
+              total={stats.finalizerCount}
+              state="signed"
+              blocksInDecision={decision.pow_blocks_in_decision}
+            />
+          ) : isFinalized ? (
+            <BftChip count={0} total={0} state="final" />
+          ) : (
+            <BftChip count={0} total={0} state="pending" />
+          )}
+        </div>
       </div>
+    </Link>
+  );
+}
 
-      {/* Right column: BFT status */}
-      <div className="flex items-center min-w-0">
-        {isVotingOn && bftTip && stats ? (
-          <BftVoteMarker
-            signatureCount={bftTip.signatureCount}
-            finalizerCount={stats.finalizerCount}
-            compact={variant === 'compact'}
-          />
-        ) : isFrontier && stats ? (
-          <FrontierMarker
-            finalizerCount={stats.finalizerCount}
-            totalStakeZec={stats.totalStakeZec}
-            compact={variant === 'compact'}
-          />
-        ) : isFinalized ? (
-          <div className="flex items-center gap-2 text-[10px] font-mono">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-green/70" />
-            <span className="text-cipher-green/80 uppercase tracking-wider">bft ✓</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-[10px] font-mono">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-orange/60 animate-pulse" />
-            <span className="text-muted uppercase tracking-wider">pending</span>
-          </div>
+function BftChip({
+  count,
+  total,
+  state,
+  blocksInDecision,
+}: {
+  count: number;
+  total: number;
+  state: 'voting' | 'signed' | 'final' | 'pending';
+  blocksInDecision?: number;
+}) {
+  if (state === 'pending') {
+    return (
+      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-orange/60 animate-pulse" />
+        <span className="text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+          pending
+        </span>
+      </div>
+    );
+  }
+
+  if (state === 'final') {
+    return (
+      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-cyan-muted" />
+        <span className="text-cipher-cyan-muted uppercase tracking-wider">
+          bft ✓
+        </span>
+      </div>
+    );
+  }
+
+  // signed or voting → show a mini circle with sig count + "of N"
+  const isVoting = state === 'voting';
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  const circleColor = isVoting
+    ? 'border-cipher-orange/70 bg-cipher-orange/15 text-cipher-orange'
+    : 'border-[rgba(239,108,96,0.7)] bg-[rgba(239,108,96,0.15)] text-[#F0826F]';
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className={`relative inline-flex items-center justify-center w-6 h-6 rounded-full border ${circleColor}`}
+      >
+        {isVoting && (
+          <span className="absolute inset-0 rounded-full bg-cipher-orange/30 animate-ping opacity-60" />
         )}
+        <span className="relative font-mono text-[10px] font-semibold tabular-nums">
+          {count}
+        </span>
+      </span>
+      <div className="text-[10px] font-mono leading-tight">
+        <div className="text-black dark:text-white tabular-nums">
+          {isVoting ? 'voting' : `of ${total}`}
+        </div>
+        <div className="text-neutral-500 dark:text-neutral-400 tabular-nums">
+          {isVoting
+            ? `${count}/${total}`
+            : blocksInDecision && blocksInDecision > 1
+            ? `${pct}% · ${blocksInDecision}b`
+            : `${pct}%`}
+        </div>
       </div>
     </div>
   );
