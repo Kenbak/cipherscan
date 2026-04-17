@@ -10,6 +10,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { StakingActionBadge } from '@/components/StakingActionBadge';
 
 interface BlockData {
   height: number;
@@ -663,7 +664,9 @@ export default function BlockPage() {
 
                       {/* Type Column */}
                       <div className="col-span-1">
-                        {isCoinbase ? (
+                        {tx.staking_action_type ? (
+                          <StakingActionBadge type={tx.staking_action_type} compact />
+                        ) : isCoinbase ? (
                           <Badge color="green">COINBASE</Badge>
                         ) : isShielded ? (
                           <Badge color="purple">SHIELDED</Badge>

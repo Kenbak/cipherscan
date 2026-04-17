@@ -11,6 +11,7 @@ import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
 import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { StakingActionBadge, stakingActionLabel } from '@/components/StakingActionBadge';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 
 interface BridgeData {
@@ -59,6 +60,13 @@ interface TransactionData {
   finality?: string | null;
   bridge?: BridgeData | null;
   bridges?: BridgeData[];
+  stakingAction?: {
+    type: string;
+    bondKey: string | null;
+    delegatee: string | null;
+    amountZats: number | null;
+    amountZec: number | null;
+  } | null;
 }
 
 // Icon components (same as block page)
@@ -181,6 +189,19 @@ export default function TransactionPage() {
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
+          // If this is a 64-char hex string and not a tx, it might be a finalizer pubkey.
+          // Probe /api/finalizer/ and redirect if it matches. (Crosslink-only.)
+          if (response.status === 404 && /^[a-fA-F0-9]{64}$/.test(txid)) {
+            try {
+              const finalizerRes = await fetch(`${getApiUrl()}/api/finalizer/${txid.toLowerCase()}`);
+              if (finalizerRes.ok) {
+                router.replace(`/finalizer/${txid.toLowerCase()}`);
+                return;
+              }
+            } catch {
+              /* fall through to not-found */
+            }
+          }
           throw new Error('Transaction not found');
         }
 
@@ -238,6 +259,7 @@ export default function TransactionPage() {
             finality: txData.finality || null,
             bridge: txData.bridge || null,
             bridges: txData.bridges || [],
+            stakingAction: txData.stakingAction || null,
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
@@ -1108,6 +1130,33 @@ export default function TransactionPage() {
                   {data.finality && <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'}>{data.finality === 'Finalized' ? 'Finalized' : 'Pending'}</Badge>}
                 </div>
               } />
+
+              {data.stakingAction && (
+                <InfoRow icon={Icons.Shield} label="Crosslink Action"
+                  tooltip="Crosslink staking action encoded in this transaction"
+                  value={
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StakingActionBadge type={data.stakingAction.type} />
+                      {data.stakingAction.amountZec !== null && (
+                        <span className="font-semibold text-primary">
+                          {data.stakingAction.amountZec.toFixed(4)} {CURRENCY}
+                        </span>
+                      )}
+                      {data.stakingAction.delegatee && (
+                        <span className="text-xs text-muted">
+                          to{' '}
+                          <Link
+                            href={`/finalizer/${data.stakingAction.delegatee}`}
+                            className="text-cipher-cyan hover:underline font-mono"
+                          >
+                            {data.stakingAction.delegatee.slice(0, 12)}…{data.stakingAction.delegatee.slice(-6)}
+                          </Link>
+                        </span>
+                      )}
+                    </div>
+                  }
+                />
+              )}
 
               <InfoRow icon={Icons.Clock} label="Timestamp" value={formatTimestamp(data.timestamp)} tooltip="When this transaction was mined" />
 

@@ -13,6 +13,7 @@ interface Block {
   transaction_count: number;
   size: number;
   difficulty: number;
+  finality_status?: string | null;
 }
 
 interface PaginationState {
@@ -101,32 +102,57 @@ export default function BlocksPage() {
                     <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
                   </tr>
                 ))
-              ) : blocks.map((block, i) => (
-                <tr
-                  key={block.height}
-                  className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
-                >
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-cipher-cyan transition-colors">
-                      {block.height.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
-                    <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
-                      {block.hash}
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="font-mono text-sm text-primary">{block.transaction_count}</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
-                    <span className="font-mono text-xs text-muted">{(block.size / 1024).toFixed(1)} KB</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
-                  </td>
-                </tr>
-              ))}
+              ) : (() => {
+                const maxSize = Math.max(1, ...blocks.map(b => b.size || 0));
+                return blocks.map((block) => {
+                  const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
+                  const isFinalized = block.finality_status === 'Finalized';
+                  return (
+                    <tr
+                      key={block.height}
+                      className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
+                    >
+                      <td className="px-4 h-[44px] border-b border-cipher-border">
+                        <div className="flex items-center gap-2">
+                          <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-cipher-cyan transition-colors">
+                            {block.height.toLocaleString()}
+                          </Link>
+                          {isFinalized && (
+                            <span
+                              className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-green/70"
+                              title="Finalized"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
+                        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
+                          {block.hash}
+                        </Link>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-right">
+                        <span className="font-mono text-sm text-primary">{block.transaction_count}</span>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border/40 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-cipher-cyan/60 group-hover:bg-cipher-cyan transition-colors"
+                              style={{ width: `${sizePct}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-xs text-muted w-16 text-right">
+                            {(block.size / 1024).toFixed(1)} KB
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-right">
+                        <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>

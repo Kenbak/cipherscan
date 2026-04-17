@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { CURRENCY } from '@/lib/config';
 
@@ -146,12 +147,15 @@ export default function ValidatorsPage() {
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
                       </td>
                       <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                        <span className="font-mono text-xs text-primary break-all">
+                        <Link
+                          href={`/finalizer/${member.identity}`}
+                          className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors break-all"
+                        >
                           <span className="hidden sm:inline">{member.identity}</span>
                           <span className="sm:hidden">
                             {member.identity.slice(0, 12)}...{member.identity.slice(-6)}
                           </span>
-                        </span>
+                        </Link>
                       </td>
                       <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">

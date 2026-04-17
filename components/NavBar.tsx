@@ -105,7 +105,10 @@ export function NavBar() {
   const analyticsItems: MenuItem[] = [
     { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
     ...(isCrosslink
-      ? [{ href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' }]
+      ? [
+          { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
+          { href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' },
+        ]
       : [
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
           { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
