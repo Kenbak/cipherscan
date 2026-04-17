@@ -6,8 +6,12 @@ import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/Tooltip';
+import { isCrosslink } from '@/lib/config';
 
 const NodeMap = lazy(() => import('@/components/NodeMap'));
+const BlockActivityChart = lazy(() =>
+  import('@/components/BlockActivityChart').then((m) => ({ default: m.BlockActivityChart }))
+);
 
 const UPGRADE_URLS: Record<string, string> = {
   'NU6': 'https://z.cash/upgrade/nu6/',
@@ -244,14 +248,15 @@ export default function NetworkPage() {
         />
       </div>
 
-      {/* Node Map - lazy loaded, doesn't block initial render */}
+      {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
+          On mainnet/testnet: show the geographic node map. */}
       <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <Suspense fallback={
           <div className="card p-8 flex items-center justify-center min-h-[300px]">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
           </div>
         }>
-          <NodeMap />
+          {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap />}
         </Suspense>
       </div>
 
