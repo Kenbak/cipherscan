@@ -50,8 +50,12 @@ export function StakingDayBanner() {
 
   if (!staking) return null;
 
-  const progressPercent = (staking.positionInPeriod / STAKING_DAY_PERIOD) * 100;
-  const windowPercent = (STAKING_DAY_WINDOW / STAKING_DAY_PERIOD) * 100;
+  // When the window is open the bar shows progress within the window
+  // (e.g. 69/70 = ~99%). When closed it shows how far through the
+  // cooldown until the next window opens.
+  const progressPercent = staking.isStakingOpen
+    ? (staking.positionInPeriod / STAKING_DAY_WINDOW) * 100
+    : ((staking.positionInPeriod - STAKING_DAY_WINDOW) / (STAKING_DAY_PERIOD - STAKING_DAY_WINDOW)) * 100;
 
   return (
     <div className={`card p-4 border ${
@@ -85,22 +89,18 @@ export function StakingDayBanner() {
 
       {/* Progress bar */}
       <div className="relative h-2 rounded-full bg-cipher-border/50 overflow-hidden mb-2">
-        {/* Window zone indicator */}
-        <div
-          className="absolute top-0 left-0 h-full bg-cipher-green/15 rounded-l-full"
-          style={{ width: `${windowPercent}%` }}
-        />
-        {/* Current position */}
         <div
           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
             staking.isStakingOpen ? 'bg-cipher-green' : 'bg-gray-500'
           }`}
-          style={{ width: `${progressPercent}%` }}
+          style={{ width: `${Math.min(progressPercent, 100)}%` }}
         />
       </div>
 
       <div className="flex items-center justify-between text-[10px] font-mono text-muted">
-        <span>Block {staking.positionInPeriod}/{STAKING_DAY_PERIOD}</span>
+        <span>
+          Block {staking.positionInPeriod}/{staking.isStakingOpen ? STAKING_DAY_WINDOW : STAKING_DAY_PERIOD}
+        </span>
         {staking.isStakingOpen ? (
           <span className="text-cipher-green">
             {staking.blocksRemaining} blocks remaining

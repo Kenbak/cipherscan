@@ -274,9 +274,10 @@ mv ~/crosslink-seed.backup ~/.cache/zebra/${info.cache_dir_name}/secret.seed`}</
               <h3 className="text-sm font-semibold text-primary mb-2">Trust &amp; verification</h3>
               <div className="text-xs text-secondary space-y-2 leading-relaxed">
                 <p>
-                  This snapshot is only published when our node has been on the majority chain
-                  with a finality gap ≤ 5 blocks and its finalized block hash matches a reference
-                  explorer. If any check fails, no new snapshot is written.
+                  This snapshot is only published when our node has a finality gap ≤ 2 blocks
+                  and our finalized height is within ±3 of a reference explorer
+                  (ctaz.frontiercompute.cash). If either check fails, or the reference is
+                  unreachable, no new snapshot is written.
                 </p>
                 <p>
                   You are still trusting CipherScan to host an honest snapshot. For maximum
