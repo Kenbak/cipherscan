@@ -27,7 +27,9 @@ interface PaginationState {
 }
 
 export default function BlocksPage() {
+  const PAGE_SIZE = 25;
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [trailingBlock, setTrailingBlock] = useState<Block | null>(null);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1, totalPages: 0, total: 0, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null,
@@ -37,7 +39,7 @@ export default function BlocksPage() {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: '25' });
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('direction', direction || 'next');
@@ -45,7 +47,14 @@ export default function BlocksPage() {
       const res = await fetch(`${base}/api/blocks/list?${params}`);
       const json = await res.json();
       if (json.success) {
-        setBlocks(json.blocks);
+        const all: Block[] = json.blocks;
+        if (all.length > PAGE_SIZE) {
+          setTrailingBlock(all[PAGE_SIZE]);
+          setBlocks(all.slice(0, PAGE_SIZE));
+        } else {
+          setTrailingBlock(null);
+          setBlocks(all);
+        }
         setPagination(json.pagination);
       }
     } catch (err) {
@@ -121,7 +130,7 @@ export default function BlocksPage() {
                 return blocks.map((block, idx) => {
                   const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
                   const isFinalized = block.finality_status === 'Finalized';
-                  const nextBlock = blocks[idx + 1];
+                  const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
                   const gap = nextBlock ? block.timestamp - nextBlock.timestamp : null;
                   const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
                   const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
