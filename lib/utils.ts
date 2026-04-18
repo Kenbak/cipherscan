@@ -32,6 +32,33 @@ export function formatRelativeTime(timestamp: number): string {
 }
 
 /**
+ * Zcash target block interval in seconds (75s post-Blossom).
+ */
+const ZCASH_TARGET_INTERVAL = 75;
+
+/**
+ * Format a block-to-block time gap and return a severity class.
+ * Returns { label, level } where level drives colour in the UI:
+ *   "fast"   — ≤ 0.5× target (≤37s)
+ *   "normal" — 0.5×–2× target (38–150s)
+ *   "slow"   — 2×–4× target   (151–300s)
+ *   "very-slow" — >4× target  (>300s)
+ */
+export function formatBlockInterval(seconds: number): { label: string; level: 'fast' | 'normal' | 'slow' | 'very-slow' } {
+  const t = ZCASH_TARGET_INTERVAL;
+  let level: 'fast' | 'normal' | 'slow' | 'very-slow';
+  if (seconds <= t * 0.5) level = 'fast';
+  else if (seconds <= t * 2) level = 'normal';
+  else if (seconds <= t * 4) level = 'slow';
+  else level = 'very-slow';
+
+  if (seconds < 60) return { label: `${seconds}s`, level };
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return { label: s > 0 ? `${m}m ${s}s` : `${m}m`, level };
+}
+
+/**
  * Format a number with commas (e.g., 3851472 → "3,851,472").
  * Pure string manipulation — identical output on server and client.
  */

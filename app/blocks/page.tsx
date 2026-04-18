@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/utils';
+import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 
@@ -88,6 +88,7 @@ export default function BlocksPage() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Txs</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Size</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Interval</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
               </tr>
             </thead>
@@ -99,14 +100,31 @@ export default function BlocksPage() {
                     <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-40 bg-cipher-border rounded" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-8 bg-cipher-border rounded ml-auto" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border hidden md:table-cell"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
+                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-12 bg-cipher-border rounded ml-auto" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
                   </tr>
                 ))
               ) : (() => {
                 const maxSize = Math.max(1, ...blocks.map(b => b.size || 0));
-                return blocks.map((block) => {
+                const intervalColors = {
+                  'fast':      'text-cipher-cyan',
+                  'normal':    'text-cipher-green',
+                  'slow':      'text-amber-400',
+                  'very-slow': 'text-red-400',
+                };
+                const barColors = {
+                  'fast':      'bg-cipher-cyan/50',
+                  'normal':    'bg-cipher-green/50',
+                  'slow':      'bg-amber-400/50',
+                  'very-slow': 'bg-red-400/50',
+                };
+                return blocks.map((block, idx) => {
                   const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
                   const isFinalized = block.finality_status === 'Finalized';
+                  const nextBlock = blocks[idx + 1];
+                  const gap = nextBlock ? block.timestamp - nextBlock.timestamp : null;
+                  const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
+                  const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
                   return (
                     <tr
                       key={block.height}
@@ -145,6 +163,23 @@ export default function BlocksPage() {
                             {(block.size / 1024).toFixed(1)} KB
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden lg:table-cell">
+                        {interval ? (
+                          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>
+                            <div className="w-12 h-1 rounded-full bg-cipher-border/40 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${barColors[interval.level]} transition-colors`}
+                                style={{ width: `${barPct}%` }}
+                              />
+                            </div>
+                            <span className={`font-mono text-xs ${intervalColors[interval.level]} w-14 text-right`}>
+                              {interval.label}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-xs text-muted/40">--</span>
+                        )}
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border text-right">
                         <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
