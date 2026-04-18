@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
+import { ChainSyncBanner } from "@/components/ChainSyncBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 
@@ -119,6 +120,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
       />
       <MaintenanceBanner />
+      <ChainSyncBanner />
       <NavBar />
       <main className="min-h-screen">{children}</main>
       <Footer />
