@@ -15,7 +15,7 @@ export async function GET(
   try {
     const { name } = await params;
     const zns = getClient();
-    const result = await zns.events({ name });
+    const result = await zns.events({ name, limit: 50 });
 
     return NextResponse.json(result, {
       headers: {
