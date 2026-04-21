@@ -18,9 +18,10 @@ export async function GET(
     const result = await zns.resolveName(name);
 
     if (!result) {
+      const status = await zns.status();
       return NextResponse.json(
-        { error: 'Name not found' },
-        { status: 404 }
+        { pricing: status.pricing },
+        { status: 200 }
       );
     }
 
