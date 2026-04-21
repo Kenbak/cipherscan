@@ -32,7 +32,7 @@ The SDK's own `network` field controls action-URI generation (write paths). It m
 
 ## SDK usage
 
-Dependency: `zcashname-sdk@^0.6.0` (npm). Transitive deps: `@noble/ed25519`, `bech32`.
+Dependency: `zcashname-sdk@^0.7.2` (npm). Transitive deps: `@noble/ed25519`, `bech32`.
 
 The SDK is touched in exactly one cipherscan file: `lib/zns.ts`. It exports two things:
 
@@ -57,7 +57,7 @@ This mirrors the `lib/api-config.ts` pattern: one file, both scopes.
 
 ZNS names appear in the chain as a peer to the other format checks, not as a fallthrough. Garbage input does not route anywhere.
 
-ZNS does **not** appear in the search dropdown's autocomplete suggestions. The label autocomplete works because all official labels are pulled in one bulk fetch and filtered client-side. The SDK exposes no equivalent "list all names" method, and we are not adding the indexer feature for this PR. Names are submit-only.
+ZNS does **not** appear in the search dropdown's autocomplete suggestions. The label autocomplete works because all official labels are pulled in one bulk fetch and filtered client-side. The SDK v0.7.2+ does expose `listAllRegistrations()` and `listings()` methods, but we're not using them for autocomplete — names are submit-only.
 
 ---
 
@@ -78,16 +78,15 @@ Cache headers are set per route in `app/api/name/...`.
 
 ## Name page (`/name/[name]`)
 
-> **Status: under rewrite.** The previous client-component implementation has been deleted. The new shape is a Next.js async server component.
+Client component that fetches data from API routes. Shows:
+- **Registered names**: ownership info, resolved address, last action, marketplace status
+- **Available names**: claim cost, pricing tiers, link to zcashnames.com to claim
 
-Target architecture:
-- Server component calls `getClient().resolveName(name)` and `events({name})` in parallel
-- Renders fully populated HTML on first paint — no spinner, no waterfall
-- Three branches: registered / available / error (via Next.js `error.tsx`)
-- Only interactive widgets (e.g. copy button) are client components
-- `generateMetadata` in `layout.tsx` resolves the name once to set a data-aware document title
-
-Decisions bound for the rewrite:
+Features:
+- Loading skeletons during fetch
+- Copy buttons for address, txid, and block height
+- Event history table (last 50 events)
+- Badges for action type and custody (sovereign vs admin-registered)
 
 - **Registered view** renders identity (name + resolved address + custody), last-action provenance (txid, block), and marketplace status (listing + price, link to zcashnames.com to buy). No `nonce` in UI — it's protocol state, not user information. Last action surfaces as the page's status badge (CLAIM / BUY / UPDATE / DELIST). Custody (sovereign vs admin-registered, derived from `pubkey`) surfaces as a secondary badge.
 - **Available view** renders the name + an "Available" badge, the claim cost for that length, and the full pricing tier table. The CTA is a link to zcashnames.com — cipherscan does not render claim URIs or memo strings (footgun risk we don't own a recovery path for).
