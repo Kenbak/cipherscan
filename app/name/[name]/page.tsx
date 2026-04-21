@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { getClient, isValidName } from '@/lib/zns';
+import { isValidName } from '@/lib/zns';
 import type { Event, EventAction, Registration, Pricing } from 'zcashname-sdk';
 
 const ZCASHNAMES_URL = 'https://zcashnames.com';
@@ -24,27 +27,108 @@ const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' |
   RELEASE: 'muted',
 };
 
-export default async function NamePage({
-  params,
-}: {
-  params: Promise<{ name: string }>;
-}) {
-  const { name: raw } = await params;
+export default function NamePage() {
+  const params = useParams();
+  const raw = params.name as string;
   const name = decodeURIComponent(raw).toLowerCase();
 
-  if (!isValidName(name)) notFound();
+  const [loading, setLoading] = useState(true);
+  const [registration, setRegistration] = useState<Registration | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [pricing, setPricing] = useState<Pricing | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const zns = getClient();
-  const registration = await zns.resolveName(name);
+  useEffect(() => {
+    if (!isValidName(name)) {
+      notFound();
+      return;
+    }
 
-  if (!registration) {
-    const status = await zns.status();
-    return <AvailableView name={name} pricing={status.pricing} />;
+    async function fetchData() {
+      try {
+        const [res, eventsRes] = await Promise.all([
+          fetch(`/api/name/${name}`),
+          fetch(`/api/name/${name}/events`).catch(() => null),
+        ]);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.address) {
+            setRegistration(data);
+            if (eventsRes?.ok) {
+              const eventsData = await eventsRes.json();
+              setEvents(eventsData.events || []);
+            }
+          } else {
+            setPricing(data.pricing || null);
+          }
+        } else {
+          notFound();
+        }
+      } catch (error) {
+        console.error('Error fetching name:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [name]);
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(label);
+      setTimeout(() => setCopiedText(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const CopyButton = ({ text, label }: { text: string; label: string }) => (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        copyToClipboard(text, label);
+      }}
+      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
+      title="Copy to clipboard"
+    >
+      {copiedText === label ? (
+        <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )}
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-cipher-border rounded w-48" />
+          <div className="h-24 bg-cipher-border rounded" />
+          <div className="h-24 bg-cipher-border rounded" />
+        </div>
+      </div>
+    );
   }
 
-  const eventsResult = await zns.events({ name, limit: 50 });
+  if (!registration && !pricing) {
+    return null;
+  }
+
+  if (!registration) {
+    return <AvailableView name={name} pricing={pricing} CopyButton={CopyButton} />;
+  }
+
   return (
-    <RegisteredView name={name} registration={registration} events={eventsResult.events} />
+    <RegisteredView name={name} registration={registration} events={events} CopyButton={CopyButton} />
   );
 }
 
@@ -52,10 +136,12 @@ function RegisteredView({
   name,
   registration,
   events,
+  CopyButton,
 }: {
   name: string;
   registration: Registration;
   events: Event[];
+  CopyButton: ({ text, label }: { text: string; label: string }) => React.ReactElement;
 }) {
   const custody = registration.pubkey ? 'Sovereign' : 'Admin-registered';
 
@@ -75,12 +161,15 @@ function RegisteredView({
         </CardHeader>
         <CardBody>
           <Field label="Resolves to">
-            <Link
-              href={`/address/${registration.address}`}
-              className="font-mono text-sm hover:text-cipher-cyan transition-colors break-all"
-            >
-              {registration.address}
-            </Link>
+            <div className="flex items-center">
+              <Link
+                href={`/address/${registration.address}`}
+                className="font-mono text-sm hover:text-cipher-cyan transition-colors break-all"
+              >
+                {registration.address}
+              </Link>
+              <CopyButton text={registration.address} label="address" />
+            </div>
           </Field>
         </CardBody>
       </Card>
@@ -91,20 +180,26 @@ function RegisteredView({
         </CardHeader>
         <CardBody>
           <Field label="Transaction">
-            <Link
-              href={`/tx/${registration.txid}`}
-              className="font-mono text-sm hover:text-cipher-cyan transition-colors"
-            >
-              {truncate(registration.txid)}
-            </Link>
+            <div className="flex items-center">
+              <Link
+                href={`/tx/${registration.txid}`}
+                className="font-mono text-sm hover:text-cipher-cyan transition-colors"
+              >
+                {truncate(registration.txid)}
+              </Link>
+              <CopyButton text={registration.txid} label="txid" />
+            </div>
           </Field>
           <Field label="Block">
-            <Link
-              href={`/block/${registration.height}`}
-              className="font-mono text-sm hover:text-cipher-cyan transition-colors"
-            >
-              {registration.height.toLocaleString()}
-            </Link>
+            <div className="flex items-center">
+              <Link
+                href={`/block/${registration.height}`}
+                className="font-mono text-sm hover:text-cipher-cyan transition-colors"
+              >
+                {registration.height.toLocaleString()}
+              </Link>
+              <CopyButton text={registration.height.toString()} label="block" />
+            </div>
           </Field>
         </CardBody>
       </Card>
@@ -191,11 +286,13 @@ function RegisteredView({
 function AvailableView({
   name,
   pricing,
+  CopyButton,
 }: {
   name: string;
   pricing: Pricing | null;
+  CopyButton: ({ text, label }: { text: string; label: string }) => React.ReactElement;
 }) {
-  const cost = pricing ? getClient().claimCost(name.length, pricing) : null;
+  const cost = pricing ? calculateClaimCost(name.length, pricing) : null;
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
@@ -259,6 +356,14 @@ function AvailableView({
       )}
     </main>
   );
+}
+
+function calculateClaimCost(nameLength: number, pricing: Pricing): number {
+  const lastTier = pricing.tiers[pricing.tiers.length - 1];
+  if (nameLength >= pricing.tiers.length) {
+    return lastTier;
+  }
+  return pricing.tiers[nameLength - 1] || lastTier;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
