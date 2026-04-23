@@ -14,6 +14,21 @@ let CompactTxStreamer;
 let grpc;
 let findLinkedTransactions;
 
+let hasStakingColumns = null;
+async function checkStakingColumns(db) {
+  if (hasStakingColumns !== null) return hasStakingColumns;
+  try {
+    const result = await db.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'transactions' AND column_name = 'staking_action_type'`
+    );
+    hasStakingColumns = result.rows.length > 0;
+  } catch {
+    hasStakingColumns = false;
+  }
+  return hasStakingColumns;
+}
+
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
@@ -401,11 +416,9 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         fee,
         total_input,
         total_output,
-        is_coinbase,
-        staking_action_type,
-        staking_bond_key,
-        staking_delegatee,
-        staking_amount_zats
+        is_coinbase${(await checkStakingColumns(pool))
+          ? ', staking_action_type, staking_bond_key, staking_delegatee, staking_amount_zats'
+          : ''}
       FROM transactions
       WHERE txid = $1`,
       [txid]

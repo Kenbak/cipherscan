@@ -19,6 +19,21 @@ router.use((req, res, next) => {
 
 const CROSSLINK_CACHE_KEY = 'crosslink:stats';
 
+let hasStakingColumns = null;
+async function checkStakingColumns(db) {
+  if (hasStakingColumns !== null) return hasStakingColumns;
+  try {
+    const result = await db.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'transactions' AND column_name = 'staking_action_type'`
+    );
+    hasStakingColumns = result.rows.length > 0;
+  } catch {
+    hasStakingColumns = false;
+  }
+  return hasStakingColumns;
+}
+
 async function getFinalizedHeight() {
   if (redisClient && redisClient.isOpen) {
     try {
@@ -236,27 +251,16 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const blockHeight = parseInt(block.height);
 
     // Get transactions for this block
+    const staking = await checkStakingColumns(pool);
+    const stakingCols = staking
+      ? ', staking_action_type, staking_bond_key, staking_delegatee, staking_amount_zats'
+      : '';
     const txResult = await pool.query(
       `SELECT
-        txid,
-        block_height,
-        block_time,
-        size,
-        version,
-        locktime,
-        vin_count,
-        vout_count,
-        value_balance,
-        value_balance_sapling,
-        value_balance_orchard,
-        has_sapling,
-        has_orchard,
-        has_sprout,
-        tx_index,
-        staking_action_type,
-        staking_bond_key,
-        staking_delegatee,
-        staking_amount_zats
+        txid, block_height, block_time, size, version, locktime,
+        vin_count, vout_count, value_balance, value_balance_sapling,
+        value_balance_orchard, has_sapling, has_orchard, has_sprout,
+        tx_index${stakingCols}
       FROM transactions
       WHERE block_height = $1
       ORDER BY tx_index`,
