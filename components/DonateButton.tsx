@@ -35,10 +35,24 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
     return () => { document.body.style.overflow = ''; };
   }, [showModal]);
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(DONATION_ADDRESS);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyAddress = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(DONATION_ADDRESS);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = DONATION_ADDRESS;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const qrSize = 180;
