@@ -227,7 +227,7 @@ function getAllProviders() {
   };
 }
 
-function chainToWalletType(chainId: string): WalletType {
+export function chainToWalletType(chainId: string): WalletType {
   if (['eth', 'base', 'arb', 'pol', 'op', 'avax', 'bnb', 'bsc'].includes(chainId)) return 'evm';
   if (chainId === 'sol') return 'solana';
   if (chainId === 'btc') return 'bitcoin';
@@ -306,10 +306,12 @@ export function useWallet(): UseWalletReturn {
         if (!match) throw new Error(`${wallet.name} not found. Is the extension enabled?`);
 
         const resp = await match.provider.connect();
+        const pubKey = resp?.publicKey ?? match.provider.publicKey;
+        if (!pubKey) throw new Error(`${wallet.name}: no public key returned. Is the wallet unlocked?`);
         setRawProvider(match.provider);
         setState({
           connected: true,
-          address: resp.publicKey.toString(),
+          address: pubKey.toString(),
           walletType: 'solana',
           walletName: match.name,
           chainId: null,

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { isMainnet } from '@/lib/config';
 import { API_CONFIG } from '@/lib/api-config';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
-import { useWallet, type DetectedWallet } from '@/hooks/useWallet';
+import { useWallet, chainToWalletType, type DetectedWallet } from '@/hooks/useWallet';
 
 const BASE58_CHARS = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
 
@@ -76,7 +76,7 @@ interface QuoteResponse {
   error?: string;
 }
 
-type SwapStep = 'form' | 'quote' | 'waiting' | 'complete' | 'error';
+type SwapStep = 'connect' | 'form' | 'quote' | 'waiting' | 'complete' | 'error';
 
 const PENDING_SWAP_KEY = 'cipherscan_pending_swap';
 
@@ -239,6 +239,7 @@ function ctaLabel(state: {
   zecAddress: string;
   refundAddress: string;
   walletConnected: boolean;
+  hasWallets: boolean;
   switching: boolean;
   insufficientBalance: boolean;
 }): string {
@@ -249,12 +250,15 @@ function ctaLabel(state: {
   if (!state.zecAddress) return 'Enter ZEC address';
   const addrErr = validateZecAddress(state.zecAddress);
   if (addrErr) return 'Invalid ZEC address';
-  if (!state.refundAddress) return 'Enter refund address';
+  if (!state.refundAddress) {
+    return state.hasWallets ? 'Connect wallet to continue' : 'Enter your sending address';
+  }
   return 'Get Quote';
 }
 
 export default function SwapPage() {
-  const [step, setStep] = useState<SwapStep>('form');
+  const [step, setStep] = useState<SwapStep>('connect');
+  const [manualMode, setManualMode] = useState(false);
   const [availableTokens, setAvailableTokens] = useState<SourceToken[]>(FALLBACK_TOKENS);
   const [tokensLoading, setTokensLoading] = useState(true);
   const [selectedToken, setSelectedToken] = useState<SourceToken>(FALLBACK_TOKENS[0]);
@@ -285,6 +289,30 @@ export default function SwapPage() {
   const wallet = useWallet();
   const pickerRef = useRef<HTMLDivElement>(null);
   const tokenPickerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-advance past connect step if wallet already connected or no wallets detected
+  useEffect(() => {
+    if (step !== 'connect') return;
+    if (wallet.connected) {
+      setStep('form');
+    } else if (wallet.allWallets.length === 0) {
+      // Wait a beat for wallet detection to complete before deciding
+      const t = setTimeout(() => {
+        if (!wallet.connected && wallet.allWallets.length === 0) {
+          setManualMode(true);
+          setStep('form');
+        }
+      }, 2500);
+      return () => clearTimeout(t);
+    }
+  }, [step, wallet.connected, wallet.allWallets.length]);
+
+  // When wallet connects from the connect step, move to form
+  useEffect(() => {
+    if (wallet.connected && step === 'connect') {
+      setStep('form');
+    }
+  }, [wallet.connected, step]);
 
   // Restore pending swap from localStorage on mount
   useEffect(() => {
@@ -355,14 +383,22 @@ export default function SwapPage() {
     else setTokensLoading(false);
   }, []);
 
-  // Sync refund address with connected wallet
+  // Sync refund address with connected wallet + auto-select compatible token
   useEffect(() => {
     if (wallet.connected && wallet.address) {
       setRefundAddress(wallet.address);
+      // If current token isn't compatible with connected wallet, switch to first compatible one
+      if (!manualMode && chainToWalletType(selectedToken.chain) !== wallet.walletType) {
+        const firstCompatible = availableTokens.find(t => chainToWalletType(t.chain) === wallet.walletType);
+        if (firstCompatible) {
+          setSelectedToken(firstCompatible);
+          setAmount('');
+        }
+      }
     } else {
       setRefundAddress('');
     }
-  }, [wallet.connected, wallet.address]);
+  }, [wallet.connected, wallet.address, wallet.walletType]);
 
   // Quote countdown timer
   useEffect(() => {
@@ -482,7 +518,12 @@ export default function SwapPage() {
 
   const chainWallets = wallet.getWalletsForChain(selectedToken.chain);
 
-  const filteredTokens = availableTokens.filter(t => {
+  // When wallet is connected, only show tokens from compatible chains
+  const compatibleTokens = wallet.connected && !manualMode
+    ? availableTokens.filter(t => chainToWalletType(t.chain) === wallet.walletType)
+    : availableTokens;
+
+  const filteredTokens = compatibleTokens.filter(t => {
     if (!tokenSearch) return true;
     const q = tokenSearch.toLowerCase();
     return t.token.toLowerCase().includes(q) || t.chainLabel.toLowerCase().includes(q) || t.chain.includes(q);
@@ -562,7 +603,7 @@ export default function SwapPage() {
   const insufficientBalance = !!(wallet.connected && nativeBalance && amount && parseFloat(amount) > parseFloat(nativeBalance));
   const zecAddrError = validateZecAddress(zecAddress);
   const ctaDisabled = loading || !amount || !zecAddress || !!zecAddrError || !effectiveRefundAddress || wallet.switching || insufficientBalance;
-  const ctaText = ctaLabel({ loading, amount, zecAddress, refundAddress: effectiveRefundAddress, walletConnected: wallet.connected, switching: wallet.switching, insufficientBalance });
+  const ctaText = ctaLabel({ loading, amount, zecAddress, refundAddress: effectiveRefundAddress, walletConnected: wallet.connected, hasWallets: chainWallets.length > 0, switching: wallet.switching, insufficientBalance });
 
   // -- Testnet fallback --
   if (!isMainnet) {
@@ -615,17 +656,26 @@ export default function SwapPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-muted tracking-wider">&gt; SWAP</span>
 
-                  {/* Wallet pill / picker */}
+                  {/* Wallet pill / picker — hidden during connect step */}
+                  {step !== 'connect' && (
                   <div className="relative" ref={pickerRef}>
                     <button
-                      onClick={() => setShowWalletPicker(!showWalletPicker)}
-                      disabled={wallet.switching || chainWallets.length === 0}
+                      onClick={() => {
+                        if (manualMode && !wallet.connected && wallet.allWallets.length > 0) {
+                          setStep('connect');
+                          setManualMode(false);
+                        } else {
+                          setShowWalletPicker(!showWalletPicker);
+                        }
+                      }}
+                      disabled={wallet.switching}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono transition-all disabled:opacity-40 ${
                         wallet.connected
                           ? 'bg-cipher-green/8 hover:bg-glass-6 text-secondary'
-                          : 'text-muted hover:text-cipher-cyan'
+                          : chainWallets.length === 0
+                            ? 'text-muted hover:text-muted/80'
+                            : 'text-muted hover:text-cipher-cyan'
                       }`}
-                      title={chainWallets.length === 0 ? 'No wallet detected for this chain' : undefined}
                     >
                       {wallet.connected ? (
                         <>
@@ -638,19 +688,19 @@ export default function SwapPage() {
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          <span>{wallet.switching ? 'Connecting...' : chainWallets.length === 0 ? 'No wallet' : 'Connect'}</span>
+                          <span>{wallet.switching ? 'Connecting...' : chainWallets.length === 0 ? `No ${selectedToken.chainLabel} wallet detected` : 'Connect'}</span>
                         </>
                       )}
                     </button>
 
-                    {/* Wallet picker dropdown */}
+                    {/* Wallet picker dropdown — wallets available */}
                     {showWalletPicker && chainWallets.length > 0 && (
                       <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
                         <div className="px-3 py-2.5 border-b border-glass-4 flex items-center justify-between">
                           <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Select wallet</span>
                           {wallet.connected && (
                             <button
-                              onClick={() => { wallet.disconnect(); setShowWalletPicker(false); }}
+                              onClick={() => { wallet.disconnect(); setShowWalletPicker(false); setManualMode(false); setStep('connect'); }}
                               className="text-[10px] font-mono text-red-400 hover:text-red-300 transition-colors"
                             >
                               Disconnect
@@ -679,20 +729,243 @@ export default function SwapPage() {
                         ))}
                       </div>
                     )}
+
+                    {/* No wallet info panel */}
+                    {showWalletPicker && chainWallets.length === 0 && (
+                      <div className="absolute right-0 top-full mt-2 z-50 w-[260px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                        <div className="px-4 py-3 border-b border-glass-4">
+                          <span className="text-[10px] font-mono text-muted uppercase tracking-wider">No {selectedToken.chainLabel} wallet</span>
+                        </div>
+                        <div className="px-4 py-3 space-y-3">
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-5 h-5 rounded-full bg-cipher-cyan/10 flex items-center justify-center shrink-0 mt-0.5">
+                              <svg className="w-3 h-3 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                            <p className="text-[11px] text-secondary leading-relaxed">
+                              <span className="text-primary font-medium">No wallet needed.</span>{' '}
+                              Fill in the form and you&apos;ll get a deposit address to send funds manually.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-5 h-5 rounded-full bg-glass-6 flex items-center justify-center shrink-0 mt-0.5">
+                              <svg className="w-3 h-3 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <p className="text-[11px] text-muted leading-relaxed">
+                              For auto-send, install a {selectedToken.chainLabel} wallet extension
+                              {(() => {
+                                const chain = selectedToken.chain;
+                                if (['eth', 'base', 'arb', 'op', 'pol', 'avax', 'bsc', 'gnosis', 'bera', 'scroll'].includes(chain))
+                                  return <> like <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">MetaMask</a></>;
+                                if (chain === 'sol')
+                                  return <> like <a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">Phantom</a></>;
+                                if (chain === 'tron')
+                                  return <> like <a href="https://www.tronlink.org" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">TronLink</a></>;
+                                return null;
+                              })()}
+                              .
+                            </p>
+                          </div>
+                        </div>
+                        <div className="px-4 pb-3">
+                          <button
+                            onClick={() => setShowWalletPicker(false)}
+                            className="w-full py-2 rounded-lg text-[11px] font-mono text-cipher-cyan bg-cipher-cyan/8 hover:bg-cipher-cyan/12 transition-colors"
+                          >
+                            Got it
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  )}
                 </div>
               </div>
 
               <div className="p-4 sm:p-5">
 
+                {/* ─── CONNECT WALLET (gate step) ─── */}
+                {step === 'connect' && (
+                  <div className="space-y-6 py-4 animate-fade-in">
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-full bg-cipher-cyan/10 flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <h2 className="text-lg font-bold font-mono text-primary mb-1">Connect Wallet</h2>
+                      <p className="text-xs text-muted max-w-xs mx-auto">
+                        Connect your wallet to see supported tokens, auto-fill addresses, and send directly.
+                      </p>
+                    </div>
+
+                    {wallet.allWallets.length > 0 ? (
+                      <div className="space-y-4">
+                        {(() => {
+                          const typeMap = new Map<string, DetectedWallet[]>();
+                          for (const w of wallet.allWallets) {
+                            if (!w.type) continue;
+                            const arr = typeMap.get(w.type) || [];
+                            arr.push(w);
+                            typeMap.set(w.type, arr);
+                          }
+                          const chainLabels: Record<string, string> = {
+                            evm: 'EVM Chains',
+                            solana: 'Solana',
+                            tron: 'Tron',
+                            bitcoin: 'Bitcoin',
+                          };
+                          return Array.from(typeMap.entries()).map(([type, wallets]) => (
+                            <div key={type}>
+                              <div className="text-[9px] font-mono text-muted/50 uppercase tracking-wider mb-2">{chainLabels[type] || type}</div>
+                              <div className="flex flex-wrap gap-2">
+                                {wallets.map(w => (
+                                  <button
+                                    key={w.providerKey}
+                                    onClick={async () => {
+                                      setWalletError('');
+                                      try {
+                                        await wallet.connect(w);
+                                      } catch (err: any) {
+                                        setWalletError(err.message || 'Connection failed');
+                                      }
+                                    }}
+                                    disabled={wallet.switching}
+                                    className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-glass-3 border border-glass-6 hover:border-cipher-cyan/30 hover:bg-glass-4 transition-all disabled:opacity-50"
+                                  >
+                                    <WalletIcon wallet={w} size={20} />
+                                    <span className="text-xs font-mono text-primary">{w.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-glass-12 border-t-cipher-cyan animate-spin" />
+                        <p className="text-[11px] text-muted font-mono">Detecting wallets...</p>
+                      </div>
+                    )}
+
+                    {walletError && (
+                      <div className="px-4 py-3 rounded-lg bg-red-500/[0.06] border border-red-500/20 text-sm text-red-400">
+                        {walletError}
+                      </div>
+                    )}
+
+                    <div className="text-center pt-2">
+                      <button
+                        onClick={() => { setManualMode(true); setStep('form'); }}
+                        className="text-[11px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+                      >
+                        Continue without connecting a wallet
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ─── FORM ─── */}
                 {step === 'form' && (
                   <div className="space-y-5">
 
-                    {/* From — token selector + amount in one row */}
+                    {/* Step guide */}
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted/50">
+                      <span className={`transition-colors ${!amount ? 'text-cipher-cyan' : 'text-secondary'}`}>1. Pick asset</span>
+                      <span>{'>'}</span>
+                      <span className={`transition-colors ${amount && (!zecAddress || !effectiveRefundAddress) ? 'text-cipher-cyan' : amount ? 'text-secondary' : 'text-muted/50'}`}>2. Amount & addresses</span>
+                      <span>{'>'}</span>
+                      <span className={`transition-colors ${amount && zecAddress && effectiveRefundAddress ? 'text-cipher-cyan' : 'text-muted/50'}`}>3. Get quote</span>
+                    </div>
+
+                    {/* From — asset selector (prominent first row) */}
+                    <div>
+                      <label className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1.5 block">You send</label>
+                      <div className="relative" ref={tokenPickerRef}>
+                        <button
+                          onClick={() => { setShowTokenPicker(!showTokenPicker); setTokenSearch(''); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-glass-3 border border-glass-6 hover:border-cipher-cyan/30 transition-all"
+                        >
+                          <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={28} />
+                          <div className="flex-1 text-left">
+                            <div className="text-sm font-mono font-semibold text-primary leading-tight">{selectedToken.token}</div>
+                            <div className="text-[10px] text-muted leading-tight">{selectedToken.chainLabel}</div>
+                          </div>
+                          <span className="text-[10px] font-mono text-muted/60 mr-1">Change</span>
+                          <svg className="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {/* Token picker dropdown */}
+                        {showTokenPicker && (
+                          <>
+                          <div className="fixed inset-0 bg-black/40 z-40 sm:hidden" onClick={() => { setShowTokenPicker(false); setTokenSearch(''); }} />
+                          <div className="fixed inset-x-4 top-[20vh] sm:absolute sm:inset-auto sm:left-0 sm:top-full sm:mt-1 z-50 sm:w-[320px] max-h-[60vh] sm:max-h-[360px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
+                            <div className="p-2 border-b border-glass-4">
+                              <input
+                                type="text"
+                                value={tokenSearch}
+                                onChange={(e) => setTokenSearch(e.target.value)}
+                                placeholder="Search token or chain..."
+                                autoFocus
+                                className="w-full px-3 py-2 rounded-lg bg-glass-4 text-primary font-mono text-sm placeholder:text-muted/40 focus:outline-none"
+                              />
+                            </div>
+                            <div className="overflow-y-auto max-h-[calc(60vh-48px)] sm:max-h-[340px]">
+                              {tokensLoading ? (
+                                <div className="px-3 py-8 text-center">
+                                  <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-glass-12 border-t-cipher-cyan animate-spin" />
+                                  <div className="text-[11px] text-muted font-mono">Loading tokens...</div>
+                                </div>
+                              ) : filteredTokens.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-xs text-muted">No tokens found</div>
+                              ) : (
+                                filteredTokens.map(t => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => {
+                                      setSelectedToken(t);
+                                      setAmount('');
+                                      setShowTokenPicker(false);
+                                      setTokenSearch('');
+                                      setShowWalletPicker(false);
+                                      const newWallets = wallet.getWalletsForChain(t.chain);
+                                      const sameType = newWallets.some(w => w.type === wallet.walletType);
+                                      if (wallet.connected && !sameType) wallet.disconnect();
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                                      selectedToken.id === t.id ? 'bg-glass-6' : 'hover:bg-glass-3'
+                                    }`}
+                                  >
+                                    <TokenChainIcon token={t.token} chain={t.chain} size={28} />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-mono text-primary">{t.token}</div>
+                                      <div className="text-[10px] text-muted">{t.chainLabel}</div>
+                                    </div>
+                                    {selectedToken.id === t.id && (
+                                      <svg className="w-4 h-4 text-cipher-cyan shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Amount input (own row) */}
                     <div>
                       <div className="flex items-baseline justify-between mb-1.5">
-                        <label className="text-[10px] font-mono text-muted uppercase tracking-wider">You send</label>
+                        <label className="text-[10px] font-mono text-muted uppercase tracking-wider">Amount</label>
                         {wallet.connected && nativeBalance && (
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-muted">
@@ -714,7 +987,6 @@ export default function SwapPage() {
                         )}
                       </div>
                       <div className="flex rounded-lg bg-glass-3 border border-glass-6 focus-within:border-cipher-cyan/40 focus-within:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all">
-                        {/* Amount input */}
                         <input
                           type="text"
                           inputMode="decimal"
@@ -726,80 +998,9 @@ export default function SwapPage() {
                           placeholder="0.00"
                           className="flex-1 min-w-0 px-4 py-3 bg-transparent text-primary font-mono text-lg placeholder:text-muted/30 focus:outline-none"
                         />
-                        {/* Token selector button */}
-                        <div className="relative" ref={tokenPickerRef}>
-                          <button
-                            onClick={() => { setShowTokenPicker(!showTokenPicker); setTokenSearch(''); }}
-                            className="flex items-center gap-2 px-3 py-3 hover:bg-glass-4 rounded-r-lg transition-colors h-full"
-                          >
-                            <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={24} />
-                            <div className="text-left">
-                              <div className="text-sm font-mono font-semibold text-primary leading-tight">{selectedToken.token}</div>
-                              <div className="text-[10px] text-muted leading-tight">{selectedToken.chainLabel}</div>
-                            </div>
-                            <svg className="w-3.5 h-3.5 text-muted ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-
-                          {/* Token picker dropdown */}
-                          {showTokenPicker && (
-                            <>
-                            <div className="fixed inset-0 bg-black/40 z-40 sm:hidden" onClick={() => { setShowTokenPicker(false); setTokenSearch(''); }} />
-                            <div className="fixed inset-x-4 top-[20vh] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 z-50 sm:w-[280px] max-h-[60vh] sm:max-h-[360px] rounded-lg bg-[var(--color-surface-solid)] border border-glass-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in">
-                              <div className="p-2 border-b border-glass-4">
-                                <input
-                                  type="text"
-                                  value={tokenSearch}
-                                  onChange={(e) => setTokenSearch(e.target.value)}
-                                  placeholder="Search token or chain..."
-                                  autoFocus
-                                  className="w-full px-3 py-2 rounded-lg bg-glass-4 text-primary font-mono text-sm placeholder:text-muted/40 focus:outline-none"
-                                />
-                              </div>
-                              <div className="overflow-y-auto max-h-[calc(60vh-48px)] sm:max-h-[340px]">
-                                {tokensLoading ? (
-                                  <div className="px-3 py-8 text-center">
-                                    <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-glass-12 border-t-cipher-cyan animate-spin" />
-                                    <div className="text-[11px] text-muted font-mono">Loading tokens...</div>
-                                  </div>
-                                ) : filteredTokens.length === 0 ? (
-                                  <div className="px-3 py-6 text-center text-xs text-muted">No tokens found</div>
-                                ) : (
-                                  filteredTokens.map(t => (
-                                    <button
-                                      key={t.id}
-                                      onClick={() => {
-                                        setSelectedToken(t);
-                                        setAmount('');
-                                        setShowTokenPicker(false);
-                                        setTokenSearch('');
-                                        setShowWalletPicker(false);
-                                        const newWallets = wallet.getWalletsForChain(t.chain);
-                                        const sameType = newWallets.some(w => w.type === wallet.walletType);
-                                        if (wallet.connected && !sameType) wallet.disconnect();
-                                      }}
-                                      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                                        selectedToken.id === t.id ? 'bg-glass-6' : 'hover:bg-glass-3'
-                                      }`}
-                                    >
-                                      <TokenChainIcon token={t.token} chain={t.chain} size={28} />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-mono text-primary">{t.token}</div>
-                                        <div className="text-[10px] text-muted">{t.chainLabel}</div>
-                                      </div>
-                                      {selectedToken.id === t.id && (
-                                        <svg className="w-4 h-4 text-cipher-cyan shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                      )}
-                                    </button>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                            </>
-                          )}
+                        <div className="flex items-center gap-1.5 px-3 shrink-0">
+                          <TokenChainIcon token={selectedToken.token} chain={selectedToken.chain} size={16} />
+                          <span className="text-[10px] font-mono text-muted">{selectedToken.token}</span>
                         </div>
                       </div>
 
@@ -807,6 +1008,7 @@ export default function SwapPage() {
                       {recommendations && recommendations.amounts.length > 0 && (() => {
                         const chips = recommendations.amounts
                           .filter(a => a.sourceAmount && a.sourceAmount > 0)
+                          .filter(a => !a.sourceToken || a.sourceToken.toUpperCase() === selectedToken.token.toUpperCase())
                           .slice(0, 4);
                         if (chips.length === 0) return null;
                         return (
@@ -868,27 +1070,41 @@ export default function SwapPage() {
                       )}
                     </div>
 
-                    {/* Refund address — collapsed by default, shown if wallet connected or user opts in */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] font-mono text-muted uppercase tracking-wider flex items-center gap-1.5">
-                          Refund address
-                          {wallet.connected && refundAddress === wallet.address && (
-                            <span className="text-[10px] text-cipher-green normal-case tracking-normal">(wallet)</span>
-                          )}
-                        </label>
+                    {/* Return address — hidden when wallet connected, shown as fallback for manual users */}
+                    {wallet.connected ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cipher-green" />
+                          Returns to {wallet.address?.slice(0, 6)}...{wallet.address?.slice(-4)} if swap fails
+                        </div>
                         <button onClick={() => setShowSlippage(!showSlippage)} className="text-[10px] font-mono text-muted hover:text-secondary transition-colors">
                           {showSlippage ? 'Less' : 'More options'}
                         </button>
                       </div>
-                      <input
-                        type="text"
-                        value={refundAddress}
-                        onChange={(e) => setRefundAddress(e.target.value)}
-                        placeholder={wallet.connected ? 'Auto-filled from wallet' : `Your ${selectedToken.chainLabel} address (required)`}
-                        className="w-full px-4 py-3 rounded-lg bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all"
-                      />
-                    </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                            Your {selectedToken.chainLabel} address
+                          </label>
+                          <button onClick={() => setShowSlippage(!showSlippage)} className="text-[10px] font-mono text-muted hover:text-secondary transition-colors">
+                            {showSlippage ? 'Less' : 'More options'}
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={refundAddress}
+                          onChange={(e) => setRefundAddress(e.target.value)}
+                          placeholder={`The address you're sending from`}
+                          className="w-full px-4 py-3 rounded-lg bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all"
+                        />
+                        {!refundAddress && (
+                          <p className="mt-1.5 text-[10px] text-muted/70 leading-relaxed">
+                            Paste the {selectedToken.chainLabel} address you&apos;ll send from. Funds return here if the swap can&apos;t complete.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Slippage (expandable) */}
                     {showSlippage && (
@@ -920,13 +1136,22 @@ export default function SwapPage() {
                     )}
 
                     {/* CTA — smart contextual button */}
-                    <button
-                      onClick={getQuote}
-                      disabled={ctaDisabled}
-                      className="w-full py-3.5 rounded-lg font-mono font-semibold text-sm transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed bg-cipher-cyan-bright text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-cyan-rgb)_/_0.25)] hover:-translate-y-[1px] active:translate-y-0 active:shadow-none"
-                    >
-                      {ctaText}
-                    </button>
+                    {(() => {
+                      const needsWallet = !wallet.connected && chainWallets.length > 0 && amount && zecAddress && !zecAddrError && !effectiveRefundAddress;
+                      return (
+                        <button
+                          onClick={needsWallet ? () => setShowWalletPicker(true) : getQuote}
+                          disabled={needsWallet ? false : ctaDisabled}
+                          className={`w-full py-3.5 rounded-lg font-mono font-semibold text-sm transition-all duration-150 ${
+                            needsWallet
+                              ? 'bg-cipher-cyan-bright text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-cyan-rgb)_/_0.25)] hover:-translate-y-[1px] active:translate-y-0 active:shadow-none'
+                              : 'disabled:opacity-30 disabled:cursor-not-allowed bg-cipher-cyan-bright text-[#08090F] hover:shadow-[0_4px_20px_rgb(var(--color-cyan-rgb)_/_0.25)] hover:-translate-y-[1px] active:translate-y-0 active:shadow-none'
+                          }`}
+                        >
+                          {ctaText}
+                        </button>
+                      );
+                    })()}
 
                     {/* Fee note */}
                     <p className="text-center text-[10px] font-mono text-muted/60">
@@ -1175,6 +1400,30 @@ export default function SwapPage() {
           {/* ─── Sidebar ─── */}
           <div className="lg:col-span-2 space-y-4">
 
+            {/* Why connect — only on connect step */}
+            {step === 'connect' && (
+              <div className="card p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-glass-4">
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">&gt; Why_connect</span>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  {[
+                    { label: 'Filtered tokens', desc: 'Only see assets your wallet supports' },
+                    { label: 'Auto-fill addresses', desc: 'No copy-pasting needed for refunds' },
+                    { label: 'One-click send', desc: 'Send directly from CipherScan' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-start gap-2.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cipher-cyan mt-1.5 shrink-0" />
+                      <div>
+                        <div className="text-[11px] font-medium text-primary">{item.label}</div>
+                        <div className="text-[10px] text-muted">{item.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Privacy tips — only on form step */}
             {step === 'form' && (
               <div className="card p-0 overflow-hidden">
@@ -1183,12 +1432,14 @@ export default function SwapPage() {
                 </div>
                 <div className="px-5 py-4">
                   {recommendations && recommendations.amounts.length > 0 ? (() => {
-                    const withSource = recommendations.amounts.filter(a => a.sourceAmount && a.sourceAmount > 0);
+                    const withSource = recommendations.amounts
+                      .filter(a => a.sourceAmount && a.sourceAmount > 0)
+                      .filter(a => !a.sourceToken || a.sourceToken.toUpperCase() === selectedToken.token.toUpperCase());
                     return (
                     <div>
                       <p className="text-[11px] text-muted mb-3 leading-relaxed">
                         {withSource.length > 0
-                          ? `Amounts that blend on both ${selectedToken.chain.toUpperCase()} and ZEC sides.`
+                          ? `Amounts that blend in on both the ${selectedToken.chain.toUpperCase()} and Zcash sides for maximum privacy.`
                           : 'Common ZEC shielding amounts. Using popular amounts improves privacy.'}
                       </p>
                       <div className="space-y-0.5">
