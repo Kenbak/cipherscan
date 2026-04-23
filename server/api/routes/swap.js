@@ -94,10 +94,10 @@ router.post('/api/swap/quote', async (req, res) => {
 
     const { originAsset, destinationAsset, amount, recipient, refundTo, slippageBps } = req.body;
 
-    if (!originAsset || !destinationAsset || !amount || !recipient) {
+    if (!originAsset || !destinationAsset || !amount || !recipient || !refundTo) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: originAsset, destinationAsset, amount, recipient',
+        error: 'Missing required fields: originAsset, destinationAsset, amount, recipient, refundTo',
       });
     }
 
@@ -130,11 +130,9 @@ router.post('/api/swap/quote', async (req, res) => {
       quoteWaitingTimeMs: 3000,
       appFees: [{ recipient: AFFILIATE_ADDRESS, fee: AFFILIATE_FEE_BPS }],
       referral: REFERRAL,
+      refundTo,
+      refundType: 'ORIGIN_CHAIN',
     };
-    if (refundTo) {
-      quoteBody.refundTo = refundTo;
-      quoteBody.refundType = 'ORIGIN_CHAIN';
-    }
 
     const quote = await oneClickRequest('POST', '/quote', quoteBody);
 

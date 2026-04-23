@@ -237,6 +237,7 @@ function ctaLabel(state: {
   loading: boolean;
   amount: string;
   zecAddress: string;
+  refundAddress: string;
   walletConnected: boolean;
   switching: boolean;
   insufficientBalance: boolean;
@@ -248,6 +249,7 @@ function ctaLabel(state: {
   if (!state.zecAddress) return 'Enter ZEC address';
   const addrErr = validateZecAddress(state.zecAddress);
   if (addrErr) return 'Invalid ZEC address';
+  if (!state.refundAddress) return 'Enter refund address';
   return 'Get Quote';
 }
 
@@ -486,8 +488,10 @@ export default function SwapPage() {
     return t.token.toLowerCase().includes(q) || t.chainLabel.toLowerCase().includes(q) || t.chain.includes(q);
   });
 
+  const effectiveRefundAddress = refundAddress || wallet.address || '';
+
   const getQuote = async () => {
-    if (!amount || !zecAddress || validateZecAddress(zecAddress)) return;
+    if (!amount || !zecAddress || validateZecAddress(zecAddress) || !effectiveRefundAddress) return;
     setLoading(true);
     setError('');
     try {
@@ -500,7 +504,7 @@ export default function SwapPage() {
           destinationAsset: ZEC_ASSET_ID,
           amount: amountSmallest,
           recipient: zecAddress,
-          refundTo: refundAddress || wallet.address || undefined,
+          refundTo: refundAddress || wallet.address,
           slippageBps: slippage,
         }),
       });
@@ -557,8 +561,8 @@ export default function SwapPage() {
 
   const insufficientBalance = !!(wallet.connected && nativeBalance && amount && parseFloat(amount) > parseFloat(nativeBalance));
   const zecAddrError = validateZecAddress(zecAddress);
-  const ctaDisabled = loading || !amount || !zecAddress || !!zecAddrError || wallet.switching || insufficientBalance;
-  const ctaText = ctaLabel({ loading, amount, zecAddress, walletConnected: wallet.connected, switching: wallet.switching, insufficientBalance });
+  const ctaDisabled = loading || !amount || !zecAddress || !!zecAddrError || !effectiveRefundAddress || wallet.switching || insufficientBalance;
+  const ctaText = ctaLabel({ loading, amount, zecAddress, refundAddress: effectiveRefundAddress, walletConnected: wallet.connected, switching: wallet.switching, insufficientBalance });
 
   // -- Testnet fallback --
   if (!isMainnet) {
@@ -881,7 +885,7 @@ export default function SwapPage() {
                         type="text"
                         value={refundAddress}
                         onChange={(e) => setRefundAddress(e.target.value)}
-                        placeholder={wallet.connected ? 'Auto-filled from wallet' : `Your ${selectedToken.chainLabel} address (optional)`}
+                        placeholder={wallet.connected ? 'Auto-filled from wallet' : `Your ${selectedToken.chainLabel} address (required)`}
                         className="w-full px-4 py-3 rounded-lg bg-glass-3 border border-glass-6 text-primary font-mono text-sm placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgb(var(--color-cyan-rgb)_/_0.06)] transition-all"
                       />
                     </div>
