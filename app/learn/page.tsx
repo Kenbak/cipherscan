@@ -458,6 +458,113 @@ export default function LearnPage() {
       </div>
 
       {/* ═══════════════════════════════════════ */}
+      {/* ZCASH NAMES (ZNS) */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="border-t border-cipher-border">
+        <div className="max-w-6xl mx-auto px-4 py-14">
+          <div className="flex items-center gap-3 mb-2">
+            <Icons.Globe className="w-5 h-5 text-cipher-cyan" />
+            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ZCASH_NAMES</h2>
+          </div>
+          <p className="text-secondary mb-8 max-w-2xl">
+            The <strong className="text-primary">Zcash Name System (ZNS)</strong> maps human-readable names to Zcash Unified Addresses.
+            Instead of sharing a 200-character address, you can share a name like <code className="text-cipher-cyan font-mono text-sm">alice</code>.
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card variant="compact">
+              <CardBody>
+                <h3 className="font-bold text-primary mb-4">How It Works</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">1</span>
+                    <div>
+                      <div className="font-medium text-primary text-sm">Claim a name</div>
+                      <div className="text-xs text-secondary mt-0.5">Register a name at zcashnames.com. Shorter names cost more (1-char = 6 ZEC, 7+ chars = 0.25 ZEC).</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">2</span>
+                    <div>
+                      <div className="font-medium text-primary text-sm">Link to your address</div>
+                      <div className="text-xs text-secondary mt-0.5">Your name resolves to a Unified Address. Update it anytime without losing the name.</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">3</span>
+                    <div>
+                      <div className="font-medium text-primary text-sm">Share it</div>
+                      <div className="text-xs text-secondary mt-0.5">Anyone can search your name on CipherScan or resolve it in a wallet to find your address.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-cipher-border">
+                  <div className="text-xs text-muted mb-3">Names are permanent (no renewal fees), on-chain, and Orchard-only (fully shielded).</div>
+                  <a
+                    href="https://zcashnames.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm"
+                  >
+                    Claim a Name
+                    <Icons.ExternalLink className="w-3 h-3 ml-1" />
+                  </a>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card variant="compact">
+              <CardBody>
+                <h3 className="font-bold text-primary mb-4">Try It on CipherScan</h3>
+                <p className="text-sm text-secondary mb-4 leading-relaxed">
+                  Search any ZNS name in the search bar to see its resolved address, registration details,
+                  marketplace status, and full event history.
+                </p>
+
+                <div className="space-y-2 mb-5">
+                  {[
+                    { name: 'sacrebleu', desc: 'Registered + listed' },
+                    { name: 'james', desc: 'Listed for sale' },
+                    { name: 'str4d', desc: 'Sovereign (self-custody)' },
+                  ].map(ex => (
+                    <Link
+                      key={ex.name}
+                      href={`/name/${ex.name}`}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-cipher-bg/50 border border-cipher-border hover:border-cipher-cyan/30 transition-all group"
+                    >
+                      <div>
+                        <code className="text-sm text-cipher-cyan font-mono group-hover:text-cipher-green transition-colors">{ex.name}</code>
+                        <span className="text-xs text-muted ml-2">{ex.desc}</span>
+                      </div>
+                      <Icons.ChevronRight className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t border-cipher-border">
+                  <h4 className="text-xs font-mono text-muted uppercase tracking-wide mb-3">For Developers</h4>
+                  <div className="space-y-0.5">
+                    {[
+                      { href: 'https://zcashnames.com/docs/zns-developer-guide', label: 'ZNS Developer Guide' },
+                      { href: 'https://www.npmjs.com/package/zcashname-sdk', label: 'zcashname-sdk on npm' },
+                      { href: 'https://github.com/zcashme/ZNS', label: 'ZNS Protocol (GitHub)' },
+                    ].map(item => (
+                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}</span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
       {/* VIEWING KEYS */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
