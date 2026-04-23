@@ -789,16 +789,11 @@ export default function SwapPage() {
 
                 {/* ─── CONNECT WALLET (gate step) ─── */}
                 {step === 'connect' && (
-                  <div className="space-y-6 py-4 animate-fade-in">
-                    <div className="text-center">
-                      <div className="w-12 h-12 rounded-full bg-cipher-cyan/10 flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-6 h-6 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-lg font-bold font-mono text-primary mb-1">Connect Wallet</h2>
-                      <p className="text-xs text-muted max-w-xs mx-auto">
-                        Connect your wallet to see supported tokens, auto-fill addresses, and send directly.
+                  <div className="space-y-5 py-2 animate-fade-in">
+                    <div>
+                      <h2 className="text-sm font-bold font-mono text-primary mb-1">Connect Wallet</h2>
+                      <p className="text-[11px] text-muted">
+                        Select a wallet to auto-fill addresses and send directly.
                       </p>
                     </div>
 
