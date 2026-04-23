@@ -432,7 +432,7 @@ export function CrosslinkChainGraph({
 
   const loadOlder = useCallback(() => {
     setLoadingMore(true);
-    setLimit((l) => Math.min(l + 25, 200));
+    setLimit((l) => Math.min(l + 50, 500));
   }, []);
 
   // Build RF nodes + edges
@@ -524,20 +524,33 @@ export function CrosslinkChainGraph({
       // single global "finality frontier" arrow below instead.
     }
 
-    // Finality frontier arrow: the most recent committed BFT decision points
-    // back to the PoW block at the global finalized height. This is the only
-    // BFT→PoW relationship we can resolve precisely today (without per-decision
-    // finalized data from the indexer).
-    if (
-      decisions.length > 0 &&
-      stats?.finalizedHeight &&
-      yByHeight.has(stats.finalizedHeight)
-    ) {
+    // Finality frontier arrow: draw from the most recent BFT decision back
+    // to the finalized PoW block. If the exact finalized block is below the
+    // loaded range, target the lowest visible finalized block instead and
+    // annotate the label so the user knows the real height.
+    if (decisions.length > 0 && stats?.finalizedHeight) {
       const latestDecision = decisions[0];
-      const targetBlock = blocks.find((b) => b.height === stats.finalizedHeight);
       const sourceNodeId = `bft-${latestDecision.referenced_hash}`;
       const sourceExists = bftNodes.some((n) => n.id === sourceNodeId);
+
+      // Find the best target: exact finalized block, or lowest visible finalized block
+      let targetBlock: PowBlock | undefined;
+      let isBelowView = false;
+      if (yByHeight.has(stats.finalizedHeight)) {
+        targetBlock = blocks.find((b) => b.height === stats.finalizedHeight);
+      } else {
+        // Finalized block isn't loaded — pick the lowest visible block that is finalized
+        const finalized = blocks.filter((b) => b.height <= stats.finalizedHeight);
+        if (finalized.length > 0) {
+          targetBlock = finalized[finalized.length - 1];
+          isBelowView = true;
+        }
+      }
+
       if (targetBlock && sourceExists) {
+        const label = isBelowView
+          ? `finalizes through #${stats.finalizedHeight.toLocaleString()} (below view)`
+          : `finalizes through #${stats.finalizedHeight.toLocaleString()}`;
         bftEdges.push({
           id: 'finality-frontier',
           source: sourceNodeId,
@@ -555,15 +568,13 @@ export function CrosslinkChainGraph({
             height: 14,
             color: COLOR_FINALIZE,
           },
-          label: `finalizes through #${stats.finalizedHeight.toLocaleString()}`,
+          label,
           labelStyle: {
             fill: COLOR_FINALIZE,
             fontFamily: 'var(--font-geist-mono, JetBrains Mono, monospace)',
             fontSize: 9,
             letterSpacing: '0.05em',
           },
-          // NOTE: hardcoded dark pill. CSS vars don't reliably resolve inside
-          // SVG `fill` attributes across React Flow's label renderer.
           labelBgStyle: { fill: '#14161F', stroke: 'rgba(94,230,212,0.3)', strokeWidth: 0.5 },
           labelBgPadding: [6, 3],
           labelBgBorderRadius: 4,
@@ -622,6 +633,17 @@ export function CrosslinkChainGraph({
 
     return { nodes: [...powNodes, ...bftNodes], edges: bftEdges };
   }, [blocks, decisions, stats, bftTip]);
+
+  // Clamp panning so users can't scroll into empty space
+  const translateExtent = useMemo<[[number, number], [number, number]]>(() => {
+    if (blocks.length === 0) return [[-Infinity, -Infinity], [Infinity, Infinity]];
+    const padding = 80;
+    const minX = POW_X - padding;
+    const minY = -padding;
+    const maxX = BFT_X + BFT_NODE_WIDTH + padding;
+    const maxY = (blocks.length - 1) * ROW_HEIGHT + POW_HEIGHT + padding;
+    return [[minX, minY], [maxX, maxY]];
+  }, [blocks.length]);
 
   const openDivergence = stats && stats.finalityGap > 20;
 
@@ -728,6 +750,7 @@ export function CrosslinkChainGraph({
           nodeTypes={nodeTypes}
           defaultViewport={{ x: 120, y: 32, zoom: 1 }}
           fitView={false}
+          translateExtent={translateExtent}
           minZoom={0.35}
           maxZoom={2}
           nodesDraggable={false}
@@ -796,11 +819,11 @@ export function CrosslinkChainGraph({
             disabled={loadingMore || limit >= 200}
             className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-cipher-cyan disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
           >
-            {limit >= 200
+            {limit >= 500
               ? 'Maximum history loaded'
               : loadingMore
               ? 'Loading…'
-              : 'Load 25 older blocks →'}
+              : 'Load 50 older blocks →'}
           </button>
         </div>
       ) : null}

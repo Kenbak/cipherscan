@@ -207,7 +207,7 @@ export default async function Home() {
             </div>
             <CrosslinkChainGraph
               variant="embedded"
-              initialBlocksToShow={10}
+              initialBlocksToShow={15}
               height="540px"
             />
           </div>

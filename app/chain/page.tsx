@@ -29,7 +29,7 @@ export default function ChainViewPage() {
         </div>
       </div>
 
-      <CrosslinkChainGraph initialBlocksToShow={25} />
+      <CrosslinkChainGraph initialBlocksToShow={40} />
     </div>
   );
 }
