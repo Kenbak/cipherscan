@@ -35,8 +35,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
     return () => { document.body.style.overflow = ''; };
   }, [showModal]);
 
-  const copyAddress = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const copyAddress = async () => {
     try {
       await navigator.clipboard.writeText(DONATION_ADDRESS);
       setCopied(true);
@@ -62,11 +61,12 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
   const modalContent = showModal ? (
     <div
       className="fixed inset-0 modal-backdrop backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
-      onClick={() => setShowModal(false)}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) setShowModal(false);
+      }}
     >
       <div
         className="modal-content max-w-sm w-full animate-scale-in relative overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Scan line effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
