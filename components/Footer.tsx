@@ -129,11 +129,15 @@ export function Footer() {
         <div className="mt-8 pt-5">
           <div className="h-px footer-border border-t mb-5" aria-hidden />
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            {/* Left — copyright + powered by */}
+            {/* Left — copyright + powered by + legal */}
             <div className="flex items-center gap-2 text-[10px] font-mono text-muted/30">
               <span>© {new Date().getFullYear()} CipherScan</span>
               <span className="text-muted/20">|</span>
               <span>Powered by <span className="text-muted/50">Zebrad</span></span>
+              <span className="text-muted/20">|</span>
+              <Link href="/privacy-policy" className="hover:text-muted/60 transition-colors">Privacy</Link>
+              <span className="text-muted/20">·</span>
+              <Link href="/terms" className="hover:text-muted/60 transition-colors">Terms</Link>
             </div>
 
             {/* Right — terminal status toggles */}
