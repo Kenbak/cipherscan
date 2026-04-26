@@ -153,8 +153,8 @@ export default function RichListPage() {
               <div className="text-2xl font-bold text-primary font-mono">
                 {concentration.top10Pct.toFixed(1)}%
               </div>
-              <div className="text-xs text-muted mt-0.5">
-                {formatZec(concentration.top10)} ZEC
+              <div className="text-[10px] text-muted mt-0.5">
+                {formatZec(concentration.top10)} of {formatZec(concentration.totalTransparent)} transparent ZEC
               </div>
             </CardBody>
           </Card>
@@ -167,8 +167,8 @@ export default function RichListPage() {
               <div className="text-2xl font-bold text-primary font-mono">
                 {concentration.top100Pct.toFixed(1)}%
               </div>
-              <div className="text-xs text-muted mt-0.5">
-                {formatZec(concentration.top100)} ZEC
+              <div className="text-[10px] text-muted mt-0.5">
+                {formatZec(concentration.top100)} of {formatZec(concentration.totalTransparent)} transparent ZEC
               </div>
             </CardBody>
           </Card>
@@ -201,7 +201,7 @@ export default function RichListPage() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Address</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Label</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Balance</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">% Supply</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">% Transparent</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Txs</th>
               </tr>
             </thead>
