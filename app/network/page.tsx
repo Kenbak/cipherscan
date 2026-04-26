@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, lazy, Suspense } from 'react';
+import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -94,6 +95,7 @@ export default function NetworkPage() {
   const [error, setError] = useState<string | null>(null);
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
+  const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
 
   // WebSocket for real-time updates
   const { isConnected } = useWebSocket({
@@ -128,6 +130,11 @@ export default function NetworkPage() {
       fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`)
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.price) setZecPrice(data.price); })
+        .catch(() => {});
+
+      fetch(`${apiUrl}/api/supply/transparent-breakdown`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.success) setBreakdown(data); })
         .catch(() => {});
     } catch (err: any) {
       console.error('Error fetching network data:', err);
@@ -308,6 +315,51 @@ export default function NetworkPage() {
                     isSmall
                   />
                 </div>
+
+                {/* Transparent Breakdown */}
+                {breakdown && breakdown.categories.length > 0 && (
+                  <div className="border-t border-cipher-border pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-muted font-mono uppercase tracking-wider">Transparent Breakdown</span>
+                      <Link href="/rich-list" className="text-xs font-mono text-cipher-cyan hover:underline">
+                        View Rich List &rarr;
+                      </Link>
+                    </div>
+                    <div className="h-3 bg-cipher-bg rounded-full overflow-hidden flex mb-3">
+                      {breakdown.categories.filter(c => c.category !== 'unlabeled').map(c => (
+                        <div
+                          key={c.category}
+                          className={`h-full ${breakdownColor(c.category)}`}
+                          style={{ width: `${c.percentage}%` }}
+                          title={`${c.category}: ${c.percentage.toFixed(1)}%`}
+                        />
+                      ))}
+                      {(() => {
+                        const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
+                        return unlabeled ? (
+                          <div className="h-full bg-gray-600" style={{ width: `${unlabeled.percentage}%` }} title={`Unlabeled: ${unlabeled.percentage.toFixed(1)}%`} />
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {breakdown.categories.filter(c => c.category !== 'unlabeled' && c.percentage >= 0.1).map(c => (
+                        <div key={c.category} className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${breakdownColor(c.category)}`} />
+                          <span className="text-[10px] font-mono text-muted capitalize">{c.category} {c.percentage.toFixed(1)}%</span>
+                        </div>
+                      ))}
+                      {(() => {
+                        const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
+                        return unlabeled ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-gray-600" />
+                            <span className="text-[10px] font-mono text-muted">Unlabeled {unlabeled.percentage.toFixed(1)}%</span>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>
@@ -392,6 +444,15 @@ export default function NetworkPage() {
       </div>
     </div>
   );
+}
+
+function breakdownColor(category: string): string {
+  const c = category.toLowerCase();
+  if (c === 'exchange') return 'bg-cipher-cyan';
+  if (c === 'mining' || c === 'mining_pool') return 'bg-cipher-yellow';
+  if (c === 'defi' || c === 'bridge') return 'bg-cipher-green';
+  if (c === 'custodian' || c === 'fund') return 'bg-cipher-purple';
+  return 'bg-gray-500';
 }
 
 // ==========================================================================

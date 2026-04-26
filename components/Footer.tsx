@@ -49,6 +49,7 @@ export function Footer() {
             </span>
             <div className="flex flex-col gap-1.5">
               <Link href="/network" className="footer-link text-xs font-mono">Network</Link>
+              <Link href="/rich-list" className="footer-link text-xs font-mono">Rich List</Link>
               <Link href="/privacy" className="footer-link text-xs font-mono">Privacy</Link>
               <Link href="/privacy-risks" className="footer-link text-xs font-mono">Privacy Risks</Link>
               {isMainnet && <Link href="/crosschain" className="footer-link text-xs font-mono">ZEC Crosschain</Link>}

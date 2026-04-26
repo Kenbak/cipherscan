@@ -418,6 +418,66 @@ router.get('/api/network/peers', async (req, res) => {
 });
 
 // ============================================================================
+// TRANSPARENT SUPPLY BREAKDOWN
+// ============================================================================
+
+const BREAKDOWN_CACHE_KEY = 'zcash:transparent_breakdown';
+const BREAKDOWN_CACHE_DURATION = 600; // 10 minutes
+
+router.get('/api/supply/transparent-breakdown', async (req, res) => {
+  try {
+    const cached = await getFromRedisCache(BREAKDOWN_CACHE_KEY);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const [categoryResult, blockchainInfo] = await Promise.all([
+      pool.query(
+        `SELECT COALESCE(l.category, 'unlabeled') AS category,
+                COUNT(*)::int AS address_count,
+                COALESCE(SUM(a.balance), 0) AS total_balance
+         FROM addresses a
+         LEFT JOIN address_labels l ON a.address = l.address
+         WHERE a.balance > 0
+         GROUP BY COALESCE(l.category, 'unlabeled')
+         ORDER BY total_balance DESC`
+      ),
+      callZebraRPC('getblockchaininfo').catch(() => null),
+    ]);
+
+    const transparentZat = blockchainInfo?.valuePools?.find(p => p.id === 'transparent')?.chainValueZat || 0;
+    const transparentTotal = transparentZat / 1e8;
+
+    let labeledTotal = 0;
+    const categories = categoryResult.rows.map(row => {
+      const balance = parseFloat(row.total_balance) / 1e8;
+      if (row.category !== 'unlabeled') labeledTotal += balance;
+      return {
+        category: row.category,
+        addressCount: row.address_count,
+        totalBalance: balance,
+        percentage: transparentTotal > 0 ? (balance / transparentTotal) * 100 : 0,
+      };
+    });
+
+    const result = {
+      success: true,
+      categories,
+      transparentTotal,
+      labeledTotal,
+      labeledPercentage: transparentTotal > 0 ? (labeledTotal / transparentTotal) * 100 : 0,
+      timestamp: Date.now(),
+    };
+
+    await setInRedisCache(BREAKDOWN_CACHE_KEY, result, BREAKDOWN_CACHE_DURATION);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching transparent breakdown:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch transparent breakdown' });
+  }
+});
+
+// ============================================================================
 // SUPPLY & BLOCKCHAIN INFO APIs
 // ============================================================================
 
