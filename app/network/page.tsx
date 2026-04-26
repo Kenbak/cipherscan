@@ -317,49 +317,72 @@ export default function NetworkPage() {
                 </div>
 
                 {/* Transparent Breakdown */}
-                {breakdown && breakdown.categories.length > 0 && (
-                  <div className="border-t border-cipher-border pt-4 mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-muted font-mono uppercase tracking-wider">Transparent Breakdown</span>
-                      <Link href="/rich-list" className="text-xs font-mono text-cipher-cyan hover:underline">
-                        View Rich List &rarr;
-                      </Link>
-                    </div>
-                    <div className="h-3 bg-cipher-bg rounded-full overflow-hidden flex mb-3">
-                      {breakdown.categories.filter(c => c.category !== 'unlabeled').map(c => (
-                        <div
-                          key={c.category}
-                          className={`h-full ${breakdownColor(c.category)}`}
-                          style={{ width: `${c.percentage}%` }}
-                          title={`${c.category}: ${c.percentage.toFixed(1)}%`}
-                        />
-                      ))}
-                      {(() => {
-                        const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
-                        return unlabeled ? (
-                          <div className="h-full bg-gray-600" style={{ width: `${unlabeled.percentage}%` }} title={`Unlabeled: ${unlabeled.percentage.toFixed(1)}%`} />
-                        ) : null;
-                      })()}
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1">
-                      {breakdown.categories.filter(c => c.category !== 'unlabeled' && c.percentage >= 0.1).map(c => (
-                        <div key={c.category} className="flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full ${breakdownColor(c.category)}`} />
-                          <span className="text-[10px] font-mono text-muted capitalize">{c.category} {c.percentage.toFixed(1)}%</span>
+                {breakdown && breakdown.categories.length > 0 && (() => {
+                  const labeled = breakdown.categories.filter(c => c.category !== 'unlabeled');
+                  const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
+                  const maxLabeled = Math.max(...labeled.map(c => c.totalBalance), 1);
+                  return (
+                    <div className="border-t border-cipher-border pt-4 mt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs text-muted font-mono uppercase tracking-wider">Transparent Breakdown</span>
+                        <Link href="/rich-list" className="text-xs font-mono text-muted hover:text-primary transition-colors">
+                          View Rich List &rarr;
+                        </Link>
+                      </div>
+
+                      {/* Summary bar: labeled vs unlabeled */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
+                          {labeled.map(c => (
+                            <div
+                              key={c.category}
+                              className={`h-full ${breakdownColor(c.category)}`}
+                              style={{ width: `${c.percentage}%` }}
+                            />
+                          ))}
                         </div>
-                      ))}
-                      {(() => {
-                        const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
-                        return unlabeled ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-gray-600" />
-                            <span className="text-[10px] font-mono text-muted">Unlabeled {unlabeled.percentage.toFixed(1)}%</span>
+                        <span className="text-xs font-mono text-primary whitespace-nowrap">
+                          {breakdown.labeledPercentage.toFixed(1)}% labeled
+                        </span>
+                      </div>
+
+                      {/* Per-category rows */}
+                      <div className="space-y-2">
+                        {labeled.filter(c => c.percentage >= 0.1).map(c => (
+                          <div key={c.category} className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${breakdownColor(c.category)}`} />
+                            <span className="text-[11px] font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
+                            <div className="flex-1 h-1.5 bg-gray-700/30 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${breakdownColor(c.category)}`}
+                                style={{ width: `${(c.totalBalance / maxLabeled) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-mono text-primary text-right w-24 tabular-nums">
+                              {c.totalBalance >= 1000 ? `${(c.totalBalance / 1000).toFixed(1)}K` : c.totalBalance.toFixed(0)} ZEC
+                            </span>
+                            <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                              {c.percentage.toFixed(1)}%
+                            </span>
                           </div>
-                        ) : null;
-                      })()}
+                        ))}
+                        {unlabeled && (
+                          <div className="flex items-center gap-2 pt-1 border-t border-cipher-border/50">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
+                            <span className="text-[11px] font-mono text-muted w-20">Unlabeled</span>
+                            <div className="flex-1" />
+                            <span className="text-[11px] font-mono text-muted text-right w-24 tabular-nums">
+                              {unlabeled.totalBalance >= 1000 ? `${(unlabeled.totalBalance / 1000).toFixed(1)}K` : unlabeled.totalBalance.toFixed(0)} ZEC
+                            </span>
+                            <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                              {unlabeled.percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </CardBody>
             </Card>
           </div>
