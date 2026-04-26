@@ -111,6 +111,7 @@ export function NavBar() {
           { href: '/bootstrap', label: 'Node Bootstrap', desc: 'Skip genesis resync' },
         ]
       : [
+          { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
           { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
         ]),
