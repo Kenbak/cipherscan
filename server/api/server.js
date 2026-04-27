@@ -137,23 +137,18 @@ const https = require('https');
  * Call Zebra RPC
  * Reads cookie authentication from file (like the indexer does)
  */
-const rpcAgent = new (require('http').Agent)({
-  keepAlive: true,
-  maxSockets: 4,
-  maxFreeSockets: 2,
-  timeout: 10000,
-});
-
 async function callZebraRPC(method, params = []) {
   const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
   const cookieFile = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
 
+  // Read cookie from file (format: __cookie__:password)
   let auth = '';
   try {
     const cookie = fs.readFileSync(cookieFile, 'utf8').trim();
     auth = Buffer.from(cookie).toString('base64');
   } catch (err) {
     console.warn('⚠️  Could not read Zebra cookie file:', err.message);
+    // Fallback to env vars if cookie file not found
   const rpcUser = process.env.ZCASH_RPC_USER || '__cookie__';
   const rpcPassword = process.env.ZCASH_RPC_PASSWORD || '';
     auth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
@@ -173,8 +168,6 @@ async function callZebraRPC(method, params = []) {
       port: url.port,
       path: url.pathname,
       method: 'POST',
-      agent: rpcAgent,
-      timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': requestBody.length,
