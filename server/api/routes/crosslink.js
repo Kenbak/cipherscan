@@ -95,10 +95,11 @@ router.get('/api/crosslink', async (req, res) => {
       } catch (e) { /* ignore cache miss */ }
     }
 
-    const [tipHeight, finalityInfo, roster] = await Promise.all([
+    const [tipHeight, finalityInfo, roster, peerInfo] = await Promise.all([
       callZebraRPC('getblockcount').catch(() => null),
       callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
       callZebraRPC('get_tfl_roster_zats').catch(() => []),
+      callZebraRPC('getpeerinfo').catch(() => []),
     ]);
 
     if (tipHeight === null) {
@@ -122,6 +123,8 @@ router.get('/api/crosslink', async (req, res) => {
     const totalStakeZats = parsedRoster.reduce((sum, m) => sum + m.stake_zats, 0);
     const finalizedHeight = finalityInfo?.height ?? finalityInfo?.[0] ?? 0;
 
+    const peerCount = Array.isArray(peerInfo) ? peerInfo.length : 0;
+
     const result = {
       success: true,
       tipHeight,
@@ -130,6 +133,7 @@ router.get('/api/crosslink', async (req, res) => {
       finalizerCount: parsedRoster.length,
       totalStakeZats,
       totalStakeZec: totalStakeZats / 1e8,
+      peerCount,
       stakingDay: computeStakingDay(tipHeight),
       roster: parsedRoster,
     };

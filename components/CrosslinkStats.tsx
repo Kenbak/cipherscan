@@ -10,6 +10,7 @@ interface CrosslinkData {
   finalityGap: number;
   finalizerCount: number;
   totalStakeZec: number;
+  peerCount: number;
 }
 
 const STAT_TOOLTIPS: Record<string, string> = {
@@ -18,6 +19,7 @@ const STAT_TOOLTIPS: Record<string, string> = {
   'Finality Gap': 'Blocks between the PoW tip and the last finalized block. A smaller gap means faster finalization.',
   'Finalizers': 'Validator nodes that vote on blocks to confirm them as final. More finalizers means stronger security.',
   'Total Stake': 'Total cTAZ locked in delegation bonds across all finalizers. Stake determines voting power.',
+  'Peers': 'Number of network peers connected to the CipherScan node. More peers means better network visibility.',
 };
 
 function StatCard({ label, value, sub, color, tooltip }: {
@@ -56,6 +58,7 @@ export function CrosslinkStats() {
           finalityGap: data.finalityGap,
           finalizerCount: data.finalizerCount,
           totalStakeZec: data.totalStakeZec,
+          peerCount: data.peerCount ?? 0,
         });
       }
     } catch {}
@@ -70,8 +73,8 @@ export function CrosslinkStats() {
   if (!stats) {
     return (
       <div className="card p-0 overflow-hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-cipher-border">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-cipher-border">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="flex flex-col items-center justify-center p-4 animate-pulse">
               <div className="h-3 w-12 skeleton-bg rounded mb-2" />
               <div className="h-6 w-16 skeleton-bg rounded" />
@@ -84,7 +87,7 @@ export function CrosslinkStats() {
 
   return (
     <div className="card p-0 overflow-hidden">
-      <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-cipher-border">
+      <div className="grid grid-cols-2 sm:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-cipher-border">
         <StatCard
           label="PoW Tip"
           value={stats.tipHeight.toLocaleString()}
@@ -100,6 +103,13 @@ export function CrosslinkStats() {
           value={stats.finalityGap.toLocaleString()}
           sub="blocks behind"
           tooltip={STAT_TOOLTIPS['Finality Gap']}
+        />
+        <StatCard
+          label="Peers"
+          value={stats.peerCount}
+          sub="connected"
+          color={stats.peerCount < 5 ? 'text-red-400' : 'text-primary'}
+          tooltip={STAT_TOOLTIPS['Peers']}
         />
         <Link href="/validators" className="hover:bg-[var(--color-hover)] transition-colors">
           <StatCard
