@@ -240,11 +240,13 @@ router.get('/api/crosslink/bootstrap-info', async (req, res) => {
       available: true,
       generated_at: meta.generated_at,
       tip_height: meta.tip_height,
+      tip_hash: meta.tip_hash,
       finalized_height: meta.finalized_height,
       finalized_hash: meta.finalized_hash,
       size_bytes: meta.size_bytes,
       sha256: meta.sha256,
       cache_dir_name: meta.cache_dir_name,
+      reference_hashes: meta.reference_hashes || [],
       contents: meta.contents || ['state/', 'pos.chain'],
       excludes: meta.excludes || ['secret.seed', 'zaino/'],
       download_url: process.env.BOOTSTRAP_DOWNLOAD_URL

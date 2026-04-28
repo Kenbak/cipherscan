@@ -5,16 +5,23 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { getApiUrl } from '@/lib/api-config';
 
+interface ReferenceHash {
+  height: number;
+  hash: string;
+}
+
 interface BootstrapInfo {
   success: boolean;
   available: boolean;
   generated_at?: string;
   tip_height?: number;
+  tip_hash?: string;
   finalized_height?: number;
   finalized_hash?: string;
   size_bytes?: number;
   sha256?: string;
   cache_dir_name?: string;
+  reference_hashes?: ReferenceHash[];
   contents?: string[];
   excludes?: string[];
   download_url?: string;
@@ -146,15 +153,56 @@ export default function BootstrapPage() {
                   </div>
                   <code className="block font-mono text-secondary break-all">{info.sha256}</code>
                 </div>
+                {info.tip_hash && (
+                  <div>
+                    <div className="text-muted font-mono uppercase tracking-wider text-[10px] mb-1">
+                      Tip block hash (h{info.tip_height?.toLocaleString()})
+                    </div>
+                    <code className="block font-mono text-secondary break-all">{info.tip_hash}</code>
+                  </div>
+                )}
                 <div>
                   <div className="text-muted font-mono uppercase tracking-wider text-[10px] mb-1">
-                    Finalized block hash
+                    Finalized block hash (h{info.finalized_height?.toLocaleString()})
                   </div>
                   <code className="block font-mono text-secondary break-all">{info.finalized_hash}</code>
                 </div>
               </div>
             </CardBody>
           </Card>
+
+          {/* Branch verification */}
+          {info.reference_hashes && info.reference_hashes.length > 0 && (
+            <Card className="mb-6">
+              <CardBody className="p-4 sm:p-5">
+                <h3 className="text-sm font-semibold text-primary mb-1">Branch verification</h3>
+                <p className="text-xs text-muted mb-4">
+                  Compare these block hashes against your own node to confirm you&apos;re on the same
+                  PoW branch. If your hashes match at finalized height but diverge above it, your
+                  node is on a different unfinalised branch.
+                </p>
+                <div className="space-y-2">
+                  {info.reference_hashes.map((ref) => (
+                    <div key={ref.height} className="flex items-baseline gap-2 text-xs">
+                      <span className="font-mono text-muted shrink-0 w-16 text-right">
+                        h{ref.height.toLocaleString()}
+                      </span>
+                      <span className="text-muted shrink-0">&raquo;</span>
+                      <code className="font-mono text-secondary break-all">{ref.hash}</code>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 p-3 block-hash-bg border border-cipher-border rounded">
+                  <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2">
+                    Verify on your node
+                  </p>
+                  <code className="text-[11px] font-mono text-secondary">
+                    zebra-cli getblockhash {info.reference_hashes[0]?.height}
+                  </code>
+                </div>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Contents notice */}
           <Card className="mb-6">
