@@ -352,7 +352,7 @@ export default function BlockPage() {
               <Link
                 href={`/block/${data.height + 1}`}
                 className={`p-1 rounded transition-colors ${
-                  data.nextBlockHash
+                  data.confirmations > 1
                     ? 'text-secondary hover:text-primary'
                     : 'text-muted cursor-not-allowed pointer-events-none'
                 }`}
@@ -601,11 +601,42 @@ export default function BlockPage() {
       {/* Transactions Section */}
       <Card ref={txSectionRef}>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
-              Transactions
-            </h2>
-            <Badge color="muted">{data.transactionCount}</Badge>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                Transactions
+              </h2>
+              <Badge color="muted">{data.transactionCount}</Badge>
+            </div>
+            <div className="flex items-center gap-1">
+              <Link
+                href={`/block/${data.height - 1}`}
+                className={`p-1.5 rounded transition-colors ${
+                  data.previousBlockHash
+                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title={`Block #${(data.height - 1).toLocaleString()}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <span className="text-xs font-mono text-muted">#{data.height.toLocaleString()}</span>
+              <Link
+                href={`/block/${data.height + 1}`}
+                className={`p-1.5 rounded transition-colors ${
+                  data.confirmations > 1
+                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title={`Block #${(data.height + 1).toLocaleString()}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <CardBody>
@@ -669,7 +700,11 @@ export default function BlockPage() {
                         ) : isCoinbase ? (
                           <Badge color="green">COINBASE</Badge>
                         ) : isShielded ? (
-                          <Badge color="purple">SHIELDED</Badge>
+                          tx.has_orchard || tx.orchard?.actions?.length > 0 ? (
+                            <Badge color="green">ORCHARD</Badge>
+                          ) : (
+                            <Badge color="purple">SAPLING</Badge>
+                          )
                         ) : (
                           <Badge color="muted">Regular</Badge>
                         )}
@@ -691,11 +726,11 @@ export default function BlockPage() {
                             {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className="text-xs text-cipher-purple font-mono flex items-center gap-1">
+                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
-                            Shielded
+                            {(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
                           </span>
                         ) : (
                           <span className="text-xs text-muted font-mono">—</span>
@@ -709,11 +744,11 @@ export default function BlockPage() {
                             {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className="text-xs text-cipher-purple font-mono flex items-center gap-1">
+                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
-                            Shielded
+                            {(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
                           </span>
                         ) : (
                           <span className="text-xs text-muted font-mono">—</span>
@@ -723,7 +758,7 @@ export default function BlockPage() {
                       {/* Inputs Column */}
                       <div className="col-span-1 text-center">
                         {isShielded && inputCount === 0 ? (
-                          <span className="text-cipher-purple" title="Shielded inputs">
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} inputs`}>
                             <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -738,7 +773,7 @@ export default function BlockPage() {
                       {/* Outputs Column */}
                       <div className="col-span-1 text-center">
                         {isShielded && outputCount === 0 ? (
-                          <span className="text-cipher-purple" title="Shielded outputs">
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} outputs`}>
                             <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -763,13 +798,26 @@ export default function BlockPage() {
                           <div className="text-xs font-mono text-primary font-semibold">
                             {totalOutput.toFixed(4)}
                           </div>
-                        ) : isShielded ? (
-                          <span className="text-cipher-purple flex items-center justify-end gap-1" title="Amount hidden (shielded)">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                          </span>
-                        ) : null}
+                        ) : isShielded ? (() => {
+                          const vbSapling = parseInt(tx.value_balance_sapling || 0);
+                          const vbOrchard = parseInt(tx.value_balance_orchard || 0);
+                          const vb = vbSapling + vbOrchard;
+                          if (vb !== 0) {
+                            const amountZec = Math.abs(vb) / 1e8;
+                            return (
+                              <div className="text-xs font-mono text-primary font-semibold" title={`${amountZec.toFixed(8)} ZEC (publicly visible)`}>
+                                {amountZec.toFixed(4)}
+                              </div>
+                            );
+                          }
+                          return (
+                            <span className={`flex items-center justify-end gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`} title="Amount hidden (shielded)">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            </span>
+                          );
+                        })() : null}
                       </div>
                     </div>
                   </Link>
