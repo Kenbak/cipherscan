@@ -1204,17 +1204,17 @@ export default function TransactionPage() {
 
               {data.hasShieldedData && (
                 <>
-                  <InfoRow icon={Icons.Shield} label="Sapling Spends" value={data.shieldedSpends} tooltip="Number of Sapling shielded inputs" valueClass="text-cipher-purple" />
-                  <InfoRow icon={Icons.Shield} label="Sapling Outputs" value={data.shieldedOutputs} tooltip="Number of Sapling shielded outputs" valueClass="text-cipher-purple" />
+                  <InfoRow icon={Icons.Shield} label="Sapling Spends" value={data.shieldedSpends} tooltip="Number of Sapling shielded inputs" valueClass="text-cipher-cyan" />
+                  <InfoRow icon={Icons.Shield} label="Sapling Outputs" value={data.shieldedOutputs} tooltip="Number of Sapling shielded outputs" valueClass="text-cipher-cyan" />
                 </>
               )}
 
               {(data.orchardActions || 0) > 0 && (
-                <InfoRow icon={Icons.Shield} label="Orchard Actions" value={data.orchardActions} tooltip="Number of Orchard actions" valueClass="text-cipher-green" />
+                <InfoRow icon={Icons.Shield} label="Orchard Actions" value={data.orchardActions} tooltip="Number of Orchard actions" valueClass="text-cipher-purple" />
               )}
 
               {data.valueBalanceSapling !== undefined && data.valueBalanceSapling !== 0 && (
-                <InfoRow icon={Icons.Currency} label="Sapling Value Balance" tooltip="Net value flow for the Sapling shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-purple" value={
+                <InfoRow icon={Icons.Currency} label="Sapling Value Balance" tooltip="Net value flow for the Sapling shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-cyan" value={
                   <span className="flex items-center gap-2">
                     <span>{data.valueBalanceSapling < 0 ? '+' : '-'}{Math.abs(data.valueBalanceSapling).toFixed(8)} {CURRENCY}</span>
                     <span className="text-[10px] text-muted font-mono">{data.valueBalanceSapling < 0 ? '→ Sapling Pool' : '← Sapling Pool'}</span>
@@ -1223,7 +1223,7 @@ export default function TransactionPage() {
               )}
 
               {data.valueBalanceOrchard !== undefined && data.valueBalanceOrchard !== 0 && (
-                <InfoRow icon={Icons.Currency} label="Orchard Value Balance" tooltip="Net value flow for the Orchard shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-green" value={
+                <InfoRow icon={Icons.Currency} label="Orchard Value Balance" tooltip="Net value flow for the Orchard shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-purple" value={
                   <span className="flex items-center gap-2">
                     <span>{data.valueBalanceOrchard < 0 ? '+' : '-'}{Math.abs(data.valueBalanceOrchard).toFixed(8)} {CURRENCY}</span>
                     <span className="text-[10px] text-muted font-mono">{data.valueBalanceOrchard < 0 ? '→ Orchard Pool' : '← Orchard Pool'}</span>

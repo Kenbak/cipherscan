@@ -701,9 +701,9 @@ export default function BlockPage() {
                           <Badge color="green">COINBASE</Badge>
                         ) : isShielded ? (
                           tx.has_orchard || tx.orchard?.actions?.length > 0 ? (
-                            <Badge color="green">ORCHARD</Badge>
+                            <Badge color="purple">ORCHARD</Badge>
                           ) : (
-                            <Badge color="purple">SAPLING</Badge>
+                            <Badge color="cyan">SAPLING</Badge>
                           )
                         ) : (
                           <Badge color="muted">Regular</Badge>
@@ -726,7 +726,7 @@ export default function BlockPage() {
                             {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`}>
+                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -744,7 +744,7 @@ export default function BlockPage() {
                             {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`}>
+                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -758,7 +758,7 @@ export default function BlockPage() {
                       {/* Inputs Column */}
                       <div className="col-span-1 text-center">
                         {isShielded && inputCount === 0 ? (
-                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} inputs`}>
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} inputs`}>
                             <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -773,7 +773,7 @@ export default function BlockPage() {
                       {/* Outputs Column */}
                       <div className="col-span-1 text-center">
                         {isShielded && outputCount === 0 ? (
-                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} outputs`}>
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} outputs`}>
                             <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -811,7 +811,7 @@ export default function BlockPage() {
                             );
                           }
                           return (
-                            <span className={`flex items-center justify-end gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-green' : 'text-cipher-purple'}`} title="Amount hidden (shielded)">
+                            <span className={`flex items-center justify-end gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`} title="Amount hidden (shielded)">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
