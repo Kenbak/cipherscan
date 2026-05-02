@@ -230,7 +230,7 @@
   }
 
   /* Subtle shadow enhancement on hover - no transform (that's for .card-interactive) */
-  .card:hover {
+  .card:hover:not(.card-static) {
     box-shadow:
       0 0 0 1px rgba(0, 212, 255, 0.06),
       0 4px 8px rgba(0, 0, 0, 0.06),
@@ -245,7 +245,7 @@
     box-shadow: none;
   }
 
-  .light .card:hover {
+  .light .card:hover:not(.card-static) {
     border-color: #CBD5E1;
     box-shadow: none;
   }

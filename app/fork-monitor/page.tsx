@@ -166,7 +166,7 @@ function MatchIcon({ match }: { match: boolean | null }) {
 function NodeCard({ label, node, color }: { label: string; node: NodeRef | null; color: 'green' | 'orange' | 'red' }) {
   if (!node) {
     return (
-      <div className="card p-4 flex-1 min-w-0">
+      <div className="block-hash-bg border border-cipher-border/40 rounded-lg p-4 flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-3">
           <StatusDot color="red" />
           <span className="text-xs font-mono text-muted uppercase tracking-wider">{label}</span>
@@ -176,7 +176,7 @@ function NodeCard({ label, node, color }: { label: string; node: NodeRef | null;
     );
   }
   return (
-    <div className="card p-4 flex-1 min-w-0">
+    <div className="block-hash-bg border border-cipher-border/40 rounded-lg p-4 flex-1 min-w-0">
       <div className="flex items-center gap-2 mb-3">
         <StatusDot color={color} />
         <span className="text-xs font-mono text-muted uppercase tracking-wider">{label}</span>
@@ -241,7 +241,7 @@ function ForkTimeline({ data }: { data: ForkMonitorData }) {
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 p-0 card-static">
       <CardBody className="p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <div>
@@ -253,7 +253,7 @@ function ForkTimeline({ data }: { data: ForkMonitorData }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center text-[10px] font-mono uppercase tracking-wider rounded border border-cipher-border overflow-hidden">
+            <div className="hidden sm:flex items-center text-[10px] font-mono uppercase tracking-wider rounded border border-cipher-border/40 overflow-hidden">
               <button
                 type="button"
                 onClick={() => setScale('even')}
@@ -438,7 +438,7 @@ function RecommendedActions({ data, inline }: { data: ForkMonitorData; inline?: 
   );
 
   if (inline) {
-    return <div className="mt-3 pt-3 border-t border-cipher-border">{content}</div>;
+    return <div className="mt-3 pt-3 border-t border-cipher-border/40">{content}</div>;
   }
 
   return (
@@ -474,7 +474,7 @@ export default function ForkMonitorPage() {
   const [reportMining, setReportMining] = useState(false);
   const [reportSamples, setReportSamples] = useState('');
   const [reportStatus, setReportStatus] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'anchors' | 'checker' | 'registry'>('anchors');
+  const [activeTab, setActiveTab] = useState<'anchors' | 'checker'>('anchors');
 
   const fetchData = useCallback(async () => {
     try {
@@ -621,11 +621,11 @@ export default function ForkMonitorPage() {
       </div>
 
       {loading ? (
-        <Card>
+        <Card className="p-0">
           <CardBody className="py-10 text-center text-muted text-sm">Loading fork monitor...</CardBody>
         </Card>
       ) : error ? (
-        <Card>
+        <Card className="p-0">
           <CardBody className="py-10 text-center text-muted text-sm">Error: {error}</CardBody>
         </Card>
       ) : data ? (
@@ -633,7 +633,7 @@ export default function ForkMonitorPage() {
           {/* ============================================================== */}
           {/* Tier 1: At-a-glance dashboard                                 */}
           {/* ============================================================== */}
-          <Card className="mb-4">
+          <Card className="mb-4 p-0 card-static">
             <CardBody className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
@@ -665,9 +665,9 @@ export default function ForkMonitorPage() {
           {/* ============================================================== */}
           {/* Tier 2: Tabbed tools                                          */}
           {/* ============================================================== */}
-          <Card className="mb-4">
-            <div className="border-b border-cipher-border flex">
-              {(['anchors', 'checker', 'registry'] as const).map((t) => (
+          <Card className="mb-4 p-0 card-static">
+            <div className="border-b border-cipher-border/40 flex">
+              {(['anchors', 'checker'] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -678,7 +678,7 @@ export default function ForkMonitorPage() {
                       : 'text-muted hover:text-primary'
                   }`}
                 >
-                  {t === 'anchors' ? `Anchors (${data.anchors.length})` : t === 'checker' ? 'Check Your Chain' : `Nodes (${data.nodes.length})`}
+                  {t === 'anchors' ? `Anchors (${data.anchors.length})` : 'Check Your Chain'}
                 </button>
               ))}
             </div>
@@ -693,7 +693,7 @@ export default function ForkMonitorPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-cipher-border">
+                        <tr className="border-b border-cipher-border/40">
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Height</th>
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Label</th>
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">CipherScan</th>
@@ -776,7 +776,7 @@ export default function ForkMonitorPage() {
                     )}
                   </div>
 
-                  <div className="border-t border-cipher-border pt-4">
+                  <div className="border-t border-cipher-border/40 pt-4">
                     <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">Bulk Compare</div>
                     <p className="text-[11px] text-muted mb-2">
                       Paste <code className="text-cipher-cyan">height hash</code> lines -- compared client-side against loaded anchors.
@@ -826,159 +826,164 @@ export default function ForkMonitorPage() {
                 </div>
               )}
 
-              {/* --- Tab: Node Registry --- */}
-              {activeTab === 'registry' && (
+            </CardBody>
+          </Card>
+
+          {/* ============================================================== */}
+          {/* Node Registry — always visible                                 */}
+          {/* ============================================================== */}
+          <Card className="mb-4 p-0 card-static">
+            <CardBody className="p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div>
-                  <p className="text-xs text-muted mb-3">
-                    Report your node so other operators can see which branch you&apos;re on. Nothing is uploaded automatically. Reports expire after 1 hour.
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+                    Node Registry
+                  </h2>
+                  <p className="text-xs text-muted mt-1">
+                    Report your node so operators can see which branch you&apos;re on. Reports expire after 1 hour.
                   </p>
+                </div>
+                {data.nodes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(groupedNodes).map(([branch, nodes]) =>
+                      nodes.length > 0 ? (
+                        <Badge key={branch} color={branchBadgeColor(branch)}>
+                          {branchLabel(branch)}: {nodes.length}
+                        </Badge>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </div>
 
-                  <details className="mb-4 group">
-                    <summary className="text-[11px] font-mono text-cipher-cyan cursor-pointer hover:underline">
-                      Report your node
-                    </summary>
-                    <div className="block-hash-bg border border-cipher-border rounded p-4 mt-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] font-mono text-muted block mb-1">Node Name *</label>
-                          <input
-                            type="text"
-                            value={reportName}
-                            onChange={(e) => setReportName(e.target.value)}
-                            placeholder="e.g. My Mac Mini"
-                            maxLength={32}
-                            className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-mono text-muted block mb-1">Tip Height *</label>
-                          <input
-                            type="number"
-                            value={reportTip}
-                            onChange={(e) => setReportTip(e.target.value)}
-                            placeholder="e.g. 41898"
-                            className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-mono text-muted block mb-1">Tip Hash</label>
-                          <input
-                            type="text"
-                            value={reportHash}
-                            onChange={(e) => setReportHash(e.target.value)}
-                            placeholder="64-char hex"
-                            maxLength={64}
-                            className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-mono text-muted block mb-1">Peer Count</label>
-                          <input
-                            type="number"
-                            value={reportPeers}
-                            onChange={(e) => setReportPeers(e.target.value)}
-                            placeholder="e.g. 12"
-                            className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 mt-3">
-                        <label className="flex items-center gap-2 text-xs font-mono text-muted cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={reportMining}
-                            onChange={(e) => setReportMining(e.target.checked)}
-                            className="rounded border-cipher-border"
-                          />
-                          Mining on
-                        </label>
-                        <button
-                          onClick={handleReport}
-                          disabled={!reportName || !reportTip}
-                          className="px-4 py-2 text-xs font-mono bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30 rounded hover:bg-cipher-cyan/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          Report
-                        </button>
-                        {reportStatus && (
-                          <span className="text-[11px] font-mono text-muted">{reportStatus}</span>
-                        )}
-                      </div>
-                      <div className="mt-3">
-                        <label className="text-[10px] font-mono text-muted block mb-1">
-                          Anchor Hashes (recommended)
-                        </label>
-                        <p className="text-[11px] text-muted mb-2">
-                          Paste lines like <code className="text-cipher-cyan">39574 006e0a...</code> to auto-classify your branch.
-                        </p>
-                        <textarea
-                          value={reportSamples}
-                          onChange={(e) => setReportSamples(e.target.value)}
-                          placeholder={"39573 00228574fad9f6b8d88e8ad...\n39574 006e0a84682c81d539965fd..."}
-                          className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/50 resize-y"
-                          rows={2}
-                          spellCheck={false}
-                        />
-                        <div className="text-[10px] text-muted mt-1 font-mono">
-                          Parsed {parseHeightHashLines(reportSamples).length}/12 anchor hashes.
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-
-                  {data.nodes.length > 0 ? (
-                    <>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {Object.entries(groupedNodes).map(([branch, nodes]) =>
-                          nodes.length > 0 ? (
-                            <Badge key={branch} color={branchBadgeColor(branch)}>
-                              {branchLabel(branch)}: {nodes.length}
-                            </Badge>
-                          ) : null
-                        )}
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="border-b border-cipher-border">
-                              <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Node</th>
-                              <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Tip</th>
-                              <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Hash</th>
-                              <th className="text-center py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Peers</th>
-                              <th className="text-center py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Mining</th>
-                              <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Branch</th>
-                              <th className="text-right py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Seen</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {data.nodes.map((n) => {
-                              const stale = Date.now() - n.reported_at > 15 * 60 * 1000;
-                              return (
-                                <tr key={n.name} className={`border-b border-cipher-border/50 ${stale ? 'opacity-50' : ''}`}>
-                                  <td className="py-2 px-2 font-mono text-primary">{n.name}</td>
-                                  <td className="py-2 px-2 font-mono text-secondary">h{n.tip.toLocaleString()}</td>
-                                  <td className="py-2 px-2 font-mono text-secondary">{truncHash(n.tip_hash, 8)}</td>
-                                  <td className="py-2 px-2 text-center font-mono text-secondary">{n.peers ?? '-'}</td>
-                                  <td className="py-2 px-2 text-center font-mono">
-                                    {n.mining === true ? <span className="text-cipher-orange">on</span> : n.mining === false ? <span className="text-muted">off</span> : '-'}
-                                  </td>
-                                  <td className="py-2 px-2">
-                                    <Badge color={branchBadgeColor(n.branch)}>
-                                      {branchLabel(n.branch)}
-                                    </Badge>
-                                  </td>
-                                  <td className="py-2 px-2 text-right font-mono text-muted">{fmtAgo(n.reported_at)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-muted text-center py-4">
-                      No nodes reported yet. Use the form above to report your chain state.
-                    </div>
+              <div className="block-hash-bg border border-cipher-border rounded p-4 mb-4">
+                <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-3">Report Your Node</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono text-muted block mb-1">Node Name *</label>
+                    <input
+                      type="text"
+                      value={reportName}
+                      onChange={(e) => setReportName(e.target.value)}
+                      placeholder="e.g. My Mac Mini"
+                      maxLength={32}
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted block mb-1">Tip Height *</label>
+                    <input
+                      type="number"
+                      value={reportTip}
+                      onChange={(e) => setReportTip(e.target.value)}
+                      placeholder="e.g. 41898"
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted block mb-1">Tip Hash</label>
+                    <input
+                      type="text"
+                      value={reportHash}
+                      onChange={(e) => setReportHash(e.target.value)}
+                      placeholder="64-char hex"
+                      maxLength={64}
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-muted block mb-1">Peer Count</label>
+                    <input
+                      type="number"
+                      value={reportPeers}
+                      onChange={(e) => setReportPeers(e.target.value)}
+                      placeholder="e.g. 12"
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/50"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mt-3">
+                  <label className="flex items-center gap-2 text-xs font-mono text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reportMining}
+                      onChange={(e) => setReportMining(e.target.checked)}
+                      className="rounded border-cipher-border"
+                    />
+                    Mining on
+                  </label>
+                  <button
+                    onClick={handleReport}
+                    disabled={!reportName || !reportTip}
+                    className="px-4 py-2 text-xs font-mono bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30 rounded hover:bg-cipher-cyan/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Report
+                  </button>
+                  {reportStatus && (
+                    <span className="text-[11px] font-mono text-muted">{reportStatus}</span>
                   )}
+                </div>
+                <details className="mt-3">
+                  <summary className="text-[10px] font-mono text-cipher-cyan cursor-pointer hover:underline">
+                    Advanced: paste anchor hashes for branch classification
+                  </summary>
+                  <div className="mt-2">
+                    <textarea
+                      value={reportSamples}
+                      onChange={(e) => setReportSamples(e.target.value)}
+                      placeholder={"39573 00228574fad9f6b8d88e8ad...\n39574 006e0a84682c81d539965fd..."}
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/50 resize-y"
+                      rows={2}
+                      spellCheck={false}
+                    />
+                    <div className="text-[10px] text-muted mt-1 font-mono">
+                      Parsed {parseHeightHashLines(reportSamples).length}/12 anchor hashes.
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              {data.nodes.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-cipher-border/40">
+                        <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Node</th>
+                        <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Tip</th>
+                        <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Hash</th>
+                        <th className="text-center py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Peers</th>
+                        <th className="text-center py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Mining</th>
+                        <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Branch</th>
+                        <th className="text-right py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Seen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.nodes.map((n) => {
+                        const stale = Date.now() - n.reported_at > 15 * 60 * 1000;
+                        return (
+                          <tr key={n.name} className={`border-b border-cipher-border/50 ${stale ? 'opacity-50' : ''}`}>
+                            <td className="py-2 px-2 font-mono text-primary">{n.name}</td>
+                            <td className="py-2 px-2 font-mono text-secondary">h{n.tip.toLocaleString()}</td>
+                            <td className="py-2 px-2 font-mono text-secondary">{truncHash(n.tip_hash, 8)}</td>
+                            <td className="py-2 px-2 text-center font-mono text-secondary">{n.peers ?? '-'}</td>
+                            <td className="py-2 px-2 text-center font-mono">
+                              {n.mining === true ? <span className="text-cipher-orange">on</span> : n.mining === false ? <span className="text-muted">off</span> : '-'}
+                            </td>
+                            <td className="py-2 px-2">
+                              <Badge color={branchBadgeColor(n.branch)}>
+                                {branchLabel(n.branch)}
+                              </Badge>
+                            </td>
+                            <td className="py-2 px-2 text-right font-mono text-muted">{fmtAgo(n.reported_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-xs text-muted text-center py-4">
+                  No nodes reported yet. Be the first to report your chain state above.
                 </div>
               )}
             </CardBody>
@@ -988,7 +993,7 @@ export default function ForkMonitorPage() {
           {/* Tier 3: Reference material (side-by-side on desktop)          */}
           {/* ============================================================== */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            <Card className="p-0 card-static">
               <CardBody className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
@@ -1006,7 +1011,7 @@ export default function ForkMonitorPage() {
                 </pre>
               </CardBody>
             </Card>
-            <Card>
+            <Card className="p-0 card-static">
               <CardBody className="p-4 sm:p-5">
                 <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider mb-3">
                   Diagnostic Hints
