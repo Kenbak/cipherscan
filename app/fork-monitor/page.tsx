@@ -32,6 +32,7 @@ interface RegisteredNode {
   sample_hashes?: { height: number; hash: string }[];
   peers: number | null;
   mining: boolean | null;
+  ttl?: '1h' | '24h';
   branch: string;
   reported_at: number;
 }
@@ -473,6 +474,7 @@ export default function ForkMonitorPage() {
   const [reportPeers, setReportPeers] = useState('');
   const [reportMining, setReportMining] = useState(false);
   const [reportSamples, setReportSamples] = useState('');
+  const [reportTtl, setReportTtl] = useState<'1h' | '24h'>('24h');
   const [reportStatus, setReportStatus] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'anchors' | 'checker'>('anchors');
 
@@ -560,6 +562,7 @@ export default function ForkMonitorPage() {
         name: reportName,
         tip: parseInt(reportTip),
         mining: reportMining,
+        ttl: reportTtl,
       };
       if (reportHash) body.tip_hash = reportHash;
       if (reportPeers) body.peers = parseInt(reportPeers);
@@ -578,6 +581,7 @@ export default function ForkMonitorPage() {
         setReportPeers('');
         setReportMining(false);
         setReportSamples('');
+        setReportTtl('24h');
         fetchData();
       } else {
         setReportStatus(json.error || 'Failed');
@@ -840,7 +844,7 @@ export default function ForkMonitorPage() {
                     Node Registry
                   </h2>
                   <p className="text-xs text-muted mt-1">
-                    Report your node so operators can see which branch you&apos;re on. Reports expire after 1 hour.
+                    Report your node so operators can see which branch you&apos;re on. Choose 1h for quick tests or 24h for debugging.
                   </p>
                 </div>
                 {data.nodes.length > 0 && (
@@ -912,6 +916,22 @@ export default function ForkMonitorPage() {
                     />
                     Mining on
                   </label>
+                  <div className="flex items-center rounded border border-cipher-border/40 overflow-hidden text-[10px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setReportTtl('1h')}
+                      className={`px-2 py-1 transition-colors ${reportTtl === '1h' ? 'bg-cipher-cyan/10 text-cipher-cyan' : 'text-muted hover:text-primary'}`}
+                    >
+                      1h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReportTtl('24h')}
+                      className={`px-2 py-1 transition-colors ${reportTtl === '24h' ? 'bg-cipher-cyan/10 text-cipher-cyan' : 'text-muted hover:text-primary'}`}
+                    >
+                      24h
+                    </button>
+                  </div>
                   <button
                     onClick={handleReport}
                     disabled={!reportName || !reportTip}
@@ -959,7 +979,8 @@ export default function ForkMonitorPage() {
                     </thead>
                     <tbody>
                       {data.nodes.map((n) => {
-                        const stale = Date.now() - n.reported_at > 15 * 60 * 1000;
+                        const nodeTtlMs = n.ttl === '1h' ? 3_600_000 : 86_400_000;
+                        const stale = Date.now() - n.reported_at > nodeTtlMs * 0.75;
                         return (
                           <tr key={n.name} className={`border-b border-cipher-border/50 ${stale ? 'opacity-50' : ''}`}>
                             <td className="py-2 px-2 font-mono text-primary">{n.name}</td>
@@ -974,7 +995,10 @@ export default function ForkMonitorPage() {
                                 {branchLabel(n.branch)}
                               </Badge>
                             </td>
-                            <td className="py-2 px-2 text-right font-mono text-muted">{fmtAgo(n.reported_at)}</td>
+                            <td className="py-2 px-2 text-right font-mono text-muted">
+                              {fmtAgo(n.reported_at)}
+                              <span className="text-[9px] ml-1 opacity-60">{n.ttl || '1h'}</span>
+                            </td>
                           </tr>
                         );
                       })}

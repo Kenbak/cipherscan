@@ -27,7 +27,8 @@ const FORK_MONITOR_CACHE_KEY = 'crosslink:fork-monitor';
 const FORK_MONITOR_CACHE_DURATION = 15;
 const CTAZ_CACHE_KEY = 'crosslink:ctaz-fork-map';
 const CTAZ_CACHE_DURATION = 30;
-const NODE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const NODE_TTL_OPTIONS = { '1h': 60 * 60 * 1000, '24h': 24 * 60 * 60 * 1000 };
+const DEFAULT_TTL = '24h';
 const MAX_REGISTERED_NODES = 100;
 const REPORT_COOLDOWN_MS = 30 * 1000;
 const MAX_REPORT_SAMPLES = 12;
@@ -61,7 +62,8 @@ function normalizeHash(hash) {
 function pruneStaleNodes() {
   const now = Date.now();
   for (const [name, node] of nodeRegistry) {
-    if (now - node.reported_at > NODE_TTL_MS) nodeRegistry.delete(name);
+    const ttlMs = NODE_TTL_OPTIONS[node.ttl] || NODE_TTL_OPTIONS[DEFAULT_TTL];
+    if (now - node.reported_at > ttlMs) nodeRegistry.delete(name);
   }
 }
 
@@ -983,11 +985,11 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
 
 /**
  * POST /api/crosslink/fork-monitor/report
- * Voluntary node registration. Stored in-memory with 1-hour TTL.
+ * Voluntary node registration. Stored in-memory with configurable TTL (1h or 24h).
  */
 router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
   try {
-    const { name, tip, tip_hash, sample_hashes, peers, mining } = req.body || {};
+    const { name, tip, tip_hash, sample_hashes, peers, mining, ttl } = req.body || {};
 
     const cleanName = typeof name === 'string' ? name.trim() : '';
     if (!NODE_NAME_RE.test(cleanName)) {
@@ -1022,6 +1024,8 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       }
     }
 
+    const validTtl = ttl && NODE_TTL_OPTIONS[ttl] ? ttl : DEFAULT_TTL;
+
     // Rate limit per name
     const lastReport = reportTimestamps.get(cleanName);
     if (lastReport && Date.now() - lastReport < REPORT_COOLDOWN_MS) {
@@ -1051,6 +1055,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       })),
       peers: Number.isInteger(peers) ? peers : null,
       mining: typeof mining === 'boolean' ? mining : null,
+      ttl: validTtl,
       reported_at: Date.now(),
     });
     reportTimestamps.set(cleanName, Date.now());
