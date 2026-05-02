@@ -34,6 +34,10 @@ const MAX_REPORT_SAMPLES = 12;
 const MAX_TIP_HEIGHT = 100_000_000;
 const MAX_PEER_COUNT = 10_000;
 const NODE_NAME_RE = /^[a-zA-Z0-9_. -]{1,32}$/;
+const CTAZ_FORK_MAP_URLS = [
+  'https://ctaz.zat-explorer.cash/api/fork-map',
+  'https://frontiercompute.io/ctaz/api/fork-map',
+];
 
 const nodeRegistry = new Map();
 const reportTimestamps = new Map();
@@ -67,24 +71,25 @@ async function fetchCtazForkMap(redisClient) {
       if (cached) return JSON.parse(cached);
     } catch {}
   }
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const resp = await fetch('https://ctaz.zat-explorer.cash/api/fork-map', {
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    if (redisClient && redisClient.isOpen) {
-      try {
-        await redisClient.set(CTAZ_CACHE_KEY, JSON.stringify(data), { EX: CTAZ_CACHE_DURATION });
-      } catch {}
+  for (const url of CTAZ_FORK_MAP_URLS) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const resp = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (redisClient && redisClient.isOpen) {
+        try {
+          await redisClient.set(CTAZ_CACHE_KEY, JSON.stringify(data), { EX: CTAZ_CACHE_DURATION });
+        } catch {}
+      }
+      return data;
+    } catch {
+      // Try the next mirror.
     }
-    return data;
-  } catch {
-    return null;
   }
+  return null;
 }
 
 const STAKING_DAY_PERIOD = 150;
