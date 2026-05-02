@@ -215,14 +215,35 @@ function NodeCard({ label, node, color }: { label: string; node: NodeRef | null;
 }
 
 function ForkTimeline({ data }: { data: ForkMonitorData }) {
+  const [hoveredAnchor, setHoveredAnchor] = useState<number | null>(null);
+  const [copiedAnchor, setCopiedAnchor] = useState<number | null>(null);
+  const [scale, setScale] = useState<'even' | 'linear'>('even');
+
   const anchors = data.anchors;
-  const first = anchors[0]?.height ?? data.cipherscan.finalized;
-  const last = Math.max(data.cipherscan.tip, data.ctaz?.tip ?? 0, anchors[anchors.length - 1]?.height ?? 0);
-  const span = Math.max(last - first, 1);
+
+  const positions = useMemo(() => {
+    if (anchors.length === 0) return [];
+    if (anchors.length === 1) return [50];
+    if (scale === 'even') {
+      return anchors.map((_, i) => 5 + (i / (anchors.length - 1)) * 90);
+    }
+    const first = anchors[0].height;
+    const last = anchors[anchors.length - 1].height;
+    const span = Math.max(last - first, 1);
+    return anchors.map((a) => 5 + ((a.height - first) / span) * 90);
+  }, [anchors, scale]);
+
   const branchCounts = data.nodes.reduce<Record<string, number>>((acc, node) => {
     acc[node.branch] = (acc[node.branch] || 0) + 1;
     return acc;
   }, {});
+
+  const copyAnchor = (height: number, hash: string | null) => {
+    if (!hash) return;
+    navigator.clipboard.writeText(`${height} ${hash}`).catch(() => {});
+    setCopiedAnchor(height);
+    setTimeout(() => setCopiedAnchor((current) => (current === height ? null : current)), 1200);
+  };
 
   return (
     <Card className="mb-6">
@@ -233,31 +254,151 @@ function ForkTimeline({ data }: { data: ForkMonitorData }) {
               Fork Timeline
             </h2>
             <p className="text-xs text-muted mt-1">
-              Anchors are fixed-height observations. Node reports are self-reported and expire after 1 hour.
+              Hover an anchor for hashes. Click to copy <code className="text-cipher-cyan">height hash</code>.
             </p>
           </div>
-          <Badge color={data.status === 'aligned' ? 'green' : 'orange'}>
-            {data.status === 'aligned' ? 'NO KNOWN SPLIT' : 'SPLIT VISIBLE'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center text-[10px] font-mono uppercase tracking-wider rounded border border-cipher-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setScale('even')}
+                className={`px-2 py-1 transition-colors ${scale === 'even' ? 'bg-cipher-cyan/10 text-cipher-cyan' : 'text-muted hover:text-primary'}`}
+              >
+                Even
+              </button>
+              <button
+                type="button"
+                onClick={() => setScale('linear')}
+                className={`px-2 py-1 transition-colors ${scale === 'linear' ? 'bg-cipher-cyan/10 text-cipher-cyan' : 'text-muted hover:text-primary'}`}
+              >
+                Linear
+              </button>
+            </div>
+            <Badge color={data.status === 'aligned' ? 'green' : 'orange'}>
+              {data.status === 'aligned' ? 'NO KNOWN SPLIT' : 'SPLIT VISIBLE'}
+            </Badge>
+          </div>
         </div>
 
-        <div className="relative h-24 mt-5 mb-4">
-          <div className="absolute left-0 right-0 top-11 h-px bg-cipher-border" />
-          {anchors.map((anchor) => {
-            const left = `${Math.max(0, Math.min(100, ((anchor.height - first) / span) * 100))}%`;
-            const color = anchor.match === false ? 'bg-red-500' : anchor.match === true ? 'bg-cipher-green' : 'bg-muted';
+        <div className="relative h-44 sm:h-40 mt-2 mb-4 select-none">
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-cipher-border" />
+
+          {anchors.map((anchor, i) => {
+            const left = `${positions[i]}%`;
+            const above = i % 2 === 0;
+            const color =
+              anchor.match === false
+                ? 'bg-red-500'
+                : anchor.match === true
+                  ? 'bg-cipher-green'
+                  : 'bg-muted';
+            const ringColor =
+              anchor.match === false
+                ? 'ring-red-500/40'
+                : anchor.match === true
+                  ? 'ring-cipher-green/40'
+                  : 'ring-cipher-border';
+            const isHovered = hoveredAnchor === anchor.height;
+            const isDivergence = data.first_divergence === anchor.height;
+
             return (
-              <div key={anchor.height} className="absolute top-7 -translate-x-1/2" style={{ left }}>
-                <div className={`w-2.5 h-2.5 rounded-full ${color} mx-auto mb-2`} />
-                <div className="text-[10px] font-mono text-primary whitespace-nowrap">h{anchor.height.toLocaleString()}</div>
-                <div className="text-[9px] text-muted whitespace-nowrap max-w-[90px] truncate">{anchor.label}</div>
+              <div
+                key={anchor.height}
+                className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                style={{ left }}
+              >
+                {isDivergence && (
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-12 text-[9px] font-mono uppercase tracking-wider text-red-500 whitespace-nowrap">
+                    First split
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onMouseEnter={() => setHoveredAnchor(anchor.height)}
+                  onMouseLeave={() => setHoveredAnchor((h) => (h === anchor.height ? null : h))}
+                  onFocus={() => setHoveredAnchor(anchor.height)}
+                  onBlur={() => setHoveredAnchor((h) => (h === anchor.height ? null : h))}
+                  onClick={() => copyAnchor(anchor.height, anchor.cipherscan_hash || anchor.ctaz_hash)}
+                  className={`block w-3 h-3 rounded-full ${color} ring-2 ${ringColor} transition-transform hover:scale-150 focus:outline-none`}
+                  aria-label={`Anchor h${anchor.height}, ${anchor.label}`}
+                />
+
+                <div
+                  className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none ${
+                    above ? 'bottom-4 mb-1' : 'top-4 mt-1'
+                  }`}
+                >
+                  <div className="text-[10px] font-mono text-primary">h{anchor.height.toLocaleString()}</div>
+                  <div className="text-[9px] text-muted truncate max-w-[110px]">{anchor.label}</div>
+                </div>
+
+                {isHovered && (
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 z-20 bg-cipher-bg border border-cipher-border rounded p-2 shadow-xl min-w-[260px] ${
+                      above ? 'bottom-12' : 'top-12'
+                    }`}
+                  >
+                    <div className="text-[11px] font-mono text-primary font-bold mb-1.5">
+                      h{anchor.height.toLocaleString()} <span className="text-muted font-normal">— {anchor.label}</span>
+                    </div>
+                    <div className="space-y-1 text-[10px] font-mono">
+                      <div className="flex gap-2">
+                        <span className="text-muted shrink-0 w-12">CS</span>
+                        <code className="text-secondary break-all">{anchor.cipherscan_hash || '—'}</code>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-muted shrink-0 w-12">cTAZ</span>
+                        <code className="text-secondary break-all">{anchor.ctaz_hash || '—'}</code>
+                      </div>
+                    </div>
+                    <div className="text-[10px] mt-1.5 flex items-center justify-between gap-2">
+                      {anchor.match === true ? (
+                        <span className="text-cipher-green font-mono">MATCH</span>
+                      ) : anchor.match === false ? (
+                        <span className="text-red-500 font-mono">MISMATCH</span>
+                      ) : (
+                        <span className="text-muted font-mono">UNKNOWN</span>
+                      )}
+                      <span className="text-muted font-mono">
+                        {copiedAnchor === anchor.height ? 'copied' : 'click dot to copy'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 text-xs">
+          <div className="block-hash-bg border border-cipher-border rounded p-2 flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-wider">CipherScan tip</div>
+              <div className="font-mono text-primary mt-0.5">h{data.cipherscan.tip.toLocaleString()}</div>
+            </div>
+            <code className="text-[10px] font-mono text-secondary truncate max-w-[140px]">
+              {truncHash(data.cipherscan.tip_hash, 12)}
+            </code>
+          </div>
+          {data.ctaz ? (
+            <div className="block-hash-bg border border-cipher-border rounded p-2 flex items-center justify-between gap-2">
+              <div>
+                <div className="text-[10px] font-mono text-muted uppercase tracking-wider">cTAZ tip</div>
+                <div className="font-mono text-primary mt-0.5">h{data.ctaz.tip.toLocaleString()}</div>
+              </div>
+              <code className="text-[10px] font-mono text-secondary truncate max-w-[140px]">
+                {truncHash(data.ctaz.tip_hash, 12)}
+              </code>
+            </div>
+          ) : (
+            <div className="block-hash-bg border border-cipher-border rounded p-2 text-[10px] font-mono text-muted">
+              cTAZ tip unavailable
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {['reference', 'cipherscan', 'ctaz', 'other'].map((branch) => (
+          {(['reference', 'cipherscan', 'ctaz', 'other'] as const).map((branch) => (
             <div key={branch} className="block-hash-bg border border-cipher-border rounded p-2">
               <div className="text-[10px] font-mono text-muted uppercase tracking-wider">
                 {branchLabel(branch)}
