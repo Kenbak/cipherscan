@@ -3,7 +3,7 @@
 import { Card, CardBody } from '@/components/ui/Card';
 
 function SkeletonLine({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-cipher-border/40 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-cipher-border-alpha/40 ${className}`} />;
 }
 
 export default function ForkMonitorLoading() {

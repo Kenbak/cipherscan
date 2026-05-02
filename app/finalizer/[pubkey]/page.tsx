@@ -377,7 +377,7 @@ export default function FinalizerPage() {
                   {actions.map((a) => (
                     <tr
                       key={`${a.txid}-${a.action_type}`}
-                      className="border-b border-cipher-border/50 hover:bg-cipher-hover/40 transition-colors"
+                      className="border-b border-cipher-border-alpha/50 hover:bg-cipher-hover/40 transition-colors"
                     >
                       <td className="px-3 sm:px-4 py-3">
                         <StakingActionBadge type={a.action_type} compact />
@@ -461,7 +461,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
         </div>
 
         {/* Participation bar */}
-        <div className="h-2 rounded-full bg-cipher-border/50 overflow-hidden mb-3">
+        <div className="h-2 rounded-full bg-cipher-border-alpha/50 overflow-hidden mb-3">
           <div
             className={`h-full rounded-full ${barColor} transition-all`}
             style={{ width: `${Math.min(participation_pct, 100)}%` }}
@@ -596,7 +596,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
                 {delegators.map((d) => (
                   <tr
                     key={d.bondKey}
-                    className="border-b border-cipher-border/50 hover:bg-cipher-hover/40 transition-colors"
+                    className="border-b border-cipher-border-alpha/50 hover:bg-cipher-hover/40 transition-colors"
                   >
                     <td className="px-3 sm:px-4 py-3">
                       <code className="font-mono text-xs text-secondary">

@@ -652,7 +652,7 @@ export function CrosslinkChainGraph({
       {/* Stats + explanation — part of the page, not a floating overlay */}
       {!isEmbedded && stats && (
         <div className="card p-0 overflow-hidden">
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-cipher-border/60">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-cipher-border-alpha/60">
             <HeaderStat
               label="PoW tip"
               value={`#${stats.tipHeight.toLocaleString()}`}

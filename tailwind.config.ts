@@ -18,6 +18,7 @@ const config: Config = {
           hover: 'var(--color-hover)',
           active: 'var(--color-active)',
           border: 'var(--color-border)',
+          'border-alpha': 'rgb(var(--color-border-rgb) / <alpha-value>)',
 
           // ===== STATIC COLORS (for specific use cases) =====
           'bg-dark': '#08090F',           // Force dark background

@@ -162,7 +162,7 @@ export default function BlocksPage() {
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border/40 overflow-hidden">
+                          <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
                             <div
                               className="h-full rounded-full bg-cipher-cyan/60 group-hover:bg-cipher-cyan transition-colors"
                               style={{ width: `${sizePct}%` }}
@@ -176,7 +176,7 @@ export default function BlocksPage() {
                       <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden lg:table-cell">
                         {interval ? (
                           <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>
-                            <div className="w-12 h-1 rounded-full bg-cipher-border/40 overflow-hidden">
+                            <div className="w-12 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${barColors[interval.level]} transition-colors`}
                                 style={{ width: `${barPct}%` }}

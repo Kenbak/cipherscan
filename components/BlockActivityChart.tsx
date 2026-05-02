@@ -154,7 +154,7 @@ export function BlockActivityChart({
             </div>
 
             {/* Bars */}
-            <div className="ml-12 flex items-end gap-[2px] sm:gap-[3px] h-44 overflow-x-auto no-scrollbar border-b border-cipher-border/50 pb-0.5">
+            <div className="ml-12 flex items-end gap-[2px] sm:gap-[3px] h-44 overflow-x-auto no-scrollbar border-b border-cipher-border-alpha/50 pb-0.5">
               {ordered.map((b) => {
                 const isFinalized =
                   finalizedHeight !== null ? b.height <= finalizedHeight : false;

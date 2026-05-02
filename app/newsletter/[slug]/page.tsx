@@ -134,7 +134,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
             <p className="text-[11px] font-mono text-muted uppercase tracking-wider mb-3">
               In this issue
             </p>
-            <nav className="space-y-1.5 border-l border-cipher-border/40 pl-3">
+            <nav className="space-y-1.5 border-l border-cipher-border-alpha/40 pl-3">
               {sections.map((s) => (
                 <a
                   key={s.id}
@@ -146,7 +146,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
               ))}
             </nav>
 
-            <div className="mt-8 pt-6 border-t border-cipher-border/30">
+            <div className="mt-8 pt-6 border-t border-cipher-border-alpha/30">
               <a
                 href="/newsletter/rss"
                 className="flex items-center gap-2 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors"

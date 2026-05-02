@@ -102,7 +102,7 @@ export function CrosslinkLearn() {
 
             {/* Architecture diagram */}
             <div className="rounded-xl border border-cipher-border bg-[#0a0a0f] overflow-hidden">
-              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-cipher-border/50 bg-cipher-surface/30">
+              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-cipher-border-alpha/50 bg-cipher-surface/30">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
@@ -114,19 +114,19 @@ export function CrosslinkLearn() {
                   <span className="text-cipher-cyan">PoW Chain</span>
                   <span className="text-muted">miners produce blocks</span>
                 </div>
-                <div className="ml-1.5 border-l-2 border-cipher-border/30 h-4" />
+                <div className="ml-1.5 border-l-2 border-cipher-border-alpha/30 h-4" />
                 <div className="flex items-center gap-3">
                   <span className="w-3 h-3 rounded-full bg-cipher-purple" />
                   <span className="text-cipher-purple">Finality Gadget</span>
                   <span className="text-muted">finalizers vote to confirm</span>
                 </div>
-                <div className="ml-1.5 border-l-2 border-cipher-border/30 h-4" />
+                <div className="ml-1.5 border-l-2 border-cipher-border-alpha/30 h-4" />
                 <div className="flex items-center gap-3">
                   <span className="w-3 h-3 rounded-full bg-cipher-green" />
                   <span className="text-cipher-green">Finalized Block</span>
                   <span className="text-muted">irreversible, no reorgs</span>
                 </div>
-                <div className="mt-4 pt-4 border-t border-cipher-border/30 text-muted text-xs leading-relaxed">
+                <div className="mt-4 pt-4 border-t border-cipher-border-alpha/30 text-muted text-xs leading-relaxed">
                   Stakers delegate cTAZ to finalizers, who gain voting power.
                   Once 2/3+ of stake agrees, a block becomes finalized.
                 </div>

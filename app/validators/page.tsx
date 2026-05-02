@@ -271,7 +271,7 @@ export default function ValidatorsPage() {
                       </td>
                       <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-12 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
+                          <div className="w-12 h-1.5 rounded-full bg-cipher-border-alpha/50 overflow-hidden hidden sm:block">
                             <div
                               className="h-full rounded-full bg-cipher-cyan"
                               style={{ width: `${Math.min(share, 100)}%` }}
@@ -304,7 +304,7 @@ export default function ValidatorsPage() {
                             : 'text-red-400';
                           return (
                             <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-1.5 rounded-full bg-cipher-border/50 overflow-hidden hidden sm:block">
+                              <div className="w-16 h-1.5 rounded-full bg-cipher-border-alpha/50 overflow-hidden hidden sm:block">
                                 <div
                                   className={`h-full rounded-full ${color}`}
                                   style={{ width: `${Math.min(pct, 100)}%` }}
@@ -330,7 +330,7 @@ export default function ValidatorsPage() {
             <h3 className="text-xs font-mono font-semibold text-muted uppercase tracking-wider mb-3">
               Voting Power Distribution
             </h3>
-            <div className="flex rounded-full overflow-hidden h-3 bg-cipher-border/30">
+            <div className="flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
               {data.roster.map((member) => {
                 const share = data.totalStakeZec > 0
                   ? (member.stake_zec || 0) / data.totalStakeZec * 100

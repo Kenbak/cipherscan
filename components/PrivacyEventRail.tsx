@@ -81,7 +81,7 @@ export function PrivacyEventRail({
                     <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
                   </div>
                   {index < ordered.length - 1 && (
-                    <div className="my-1 h-full min-h-8 w-px bg-cipher-border/60" />
+                    <div className="my-1 h-full min-h-8 w-px bg-cipher-border-alpha/60" />
                   )}
                 </div>
 

@@ -41,6 +41,7 @@
   --color-active: #22252F;
   --color-border: rgba(30, 41, 59, 0.6);
   --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-rgb: 30 41 59;
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-cyan-rgb: 0 212 255;
@@ -123,6 +124,7 @@
   --color-active: #E2E8F0;
   --color-border: #D8DEE6;
   --color-border-subtle: #ECEEF2;
+  --color-border-rgb: 216 222 230;
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-cyan-rgb: 0 151 178;

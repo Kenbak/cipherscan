@@ -172,7 +172,7 @@ export function StakingDayBanner() {
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-2 rounded-full bg-cipher-border/50 overflow-hidden mb-2">
+      <div className="relative h-2 rounded-full bg-cipher-border-alpha/50 overflow-hidden mb-2">
         <div
           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${
             staking.isStakingOpen ? 'bg-cipher-green' : 'bg-gray-500'

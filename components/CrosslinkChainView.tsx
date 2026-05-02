@@ -658,7 +658,7 @@ function DivergencePanel({
             </thead>
             <tbody>
               {recentEvents.map((e) => (
-                <tr key={e.id} className="border-t border-cipher-border/40">
+                <tr key={e.id} className="border-t border-cipher-border-alpha/40">
                   <td className="py-2 pr-4 text-secondary">{fmtAgo(e.start_time)}</td>
                   <td className="py-2 pr-4">
                     <Link

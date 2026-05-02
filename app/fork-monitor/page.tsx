@@ -167,7 +167,7 @@ function MatchIcon({ match }: { match: boolean | null }) {
 function NodeCard({ label, node, color }: { label: string; node: NodeRef | null; color: 'green' | 'orange' | 'red' }) {
   if (!node) {
     return (
-      <div className="block-hash-bg border border-cipher-border/40 rounded-lg p-4 flex-1 min-w-0">
+      <div className="block-hash-bg border border-cipher-border-alpha/40 rounded-lg p-4 flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-3">
           <StatusDot color="red" />
           <span className="text-xs font-mono text-muted uppercase tracking-wider">{label}</span>
@@ -177,7 +177,7 @@ function NodeCard({ label, node, color }: { label: string; node: NodeRef | null;
     );
   }
   return (
-    <div className="block-hash-bg border border-cipher-border/40 rounded-lg p-4 flex-1 min-w-0">
+    <div className="block-hash-bg border border-cipher-border-alpha/40 rounded-lg p-4 flex-1 min-w-0">
       <div className="flex items-center gap-2 mb-3">
         <StatusDot color={color} />
         <span className="text-xs font-mono text-muted uppercase tracking-wider">{label}</span>
@@ -254,7 +254,7 @@ function ForkTimeline({ data }: { data: ForkMonitorData }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center text-[10px] font-mono uppercase tracking-wider rounded border border-cipher-border/40 overflow-hidden">
+            <div className="hidden sm:flex items-center text-[10px] font-mono uppercase tracking-wider rounded border border-cipher-border-alpha/40 overflow-hidden">
               <button
                 type="button"
                 onClick={() => setScale('even')}
@@ -439,7 +439,7 @@ function RecommendedActions({ data, inline }: { data: ForkMonitorData; inline?: 
   );
 
   if (inline) {
-    return <div className="mt-3 pt-3 border-t border-cipher-border/40">{content}</div>;
+    return <div className="mt-3 pt-3 border-t border-cipher-border-alpha/40">{content}</div>;
   }
 
   return (
@@ -670,7 +670,7 @@ export default function ForkMonitorPage() {
           {/* Tier 2: Tabbed tools                                          */}
           {/* ============================================================== */}
           <Card className="mb-4 p-0 card-static">
-            <div className="border-b border-cipher-border/40 flex">
+            <div className="border-b border-cipher-border-alpha/40 flex">
               {(['anchors', 'checker'] as const).map((t) => (
                 <button
                   key={t}
@@ -697,7 +697,7 @@ export default function ForkMonitorPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-cipher-border/40">
+                        <tr className="border-b border-cipher-border-alpha/40">
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Height</th>
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Label</th>
                           <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">CipherScan</th>
@@ -707,7 +707,7 @@ export default function ForkMonitorPage() {
                       </thead>
                       <tbody>
                         {data.anchors.map((a) => (
-                          <tr key={a.height} className="border-b border-cipher-border/50 hover:bg-[var(--color-hover)] transition-colors">
+                          <tr key={a.height} className="border-b border-cipher-border-alpha/30 hover:bg-[var(--color-hover)] transition-colors">
                             <td className="py-2 px-2 font-mono text-primary">h{a.height.toLocaleString()}</td>
                             <td className="py-2 px-2 text-muted">{a.label}</td>
                             <td className="py-2 px-2">
@@ -780,7 +780,7 @@ export default function ForkMonitorPage() {
                     )}
                   </div>
 
-                  <div className="border-t border-cipher-border/40 pt-4">
+                  <div className="border-t border-cipher-border-alpha/40 pt-4">
                     <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">Bulk Compare</div>
                     <p className="text-[11px] text-muted mb-2">
                       Paste <code className="text-cipher-cyan">height hash</code> lines -- compared client-side against loaded anchors.
@@ -916,7 +916,7 @@ export default function ForkMonitorPage() {
                     />
                     Mining on
                   </label>
-                  <div className="flex items-center rounded border border-cipher-border/40 overflow-hidden text-[10px] font-mono">
+                  <div className="flex items-center rounded border border-cipher-border-alpha/40 overflow-hidden text-[10px] font-mono">
                     <button
                       type="button"
                       onClick={() => setReportTtl('1h')}
@@ -967,7 +967,7 @@ export default function ForkMonitorPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-cipher-border/40">
+                      <tr className="border-b border-cipher-border-alpha/40">
                         <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Node</th>
                         <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Tip</th>
                         <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Hash</th>
@@ -982,7 +982,7 @@ export default function ForkMonitorPage() {
                         const nodeTtlMs = n.ttl === '1h' ? 3_600_000 : 86_400_000;
                         const stale = Date.now() - n.reported_at > nodeTtlMs * 0.75;
                         return (
-                          <tr key={n.name} className={`border-b border-cipher-border/50 ${stale ? 'opacity-50' : ''}`}>
+                          <tr key={n.name} className={`border-b border-cipher-border-alpha/30 ${stale ? 'opacity-50' : ''}`}>
                             <td className="py-2 px-2 font-mono text-primary">{n.name}</td>
                             <td className="py-2 px-2 font-mono text-secondary">h{n.tip.toLocaleString()}</td>
                             <td className="py-2 px-2 font-mono text-secondary">{truncHash(n.tip_hash, 8)}</td>

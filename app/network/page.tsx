@@ -156,7 +156,7 @@ export default function NetworkPage() {
           <div className="h-3 w-32 bg-cipher-border rounded animate-pulse mb-3" />
           <div className="h-8 w-48 bg-cipher-border rounded animate-pulse" />
         </div>
-        <div className="mb-8 h-[300px] bg-cipher-border/30 rounded-lg animate-pulse" />
+        <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="card p-4">
@@ -367,7 +367,7 @@ export default function NetworkPage() {
                           </div>
                         ))}
                         {unlabeled && (
-                          <div className="flex items-center gap-2 pt-1 border-t border-cipher-border/50">
+                          <div className="flex items-center gap-2 pt-1 border-t border-cipher-border-alpha/50">
                             <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
                             <span className="text-[11px] font-mono text-muted w-20">Unlabeled</span>
                             <div className="flex-1" />
