@@ -41,7 +41,6 @@ const CTAZ_FORK_MAP_URLS = [
   'https://frontiercompute.io/ctaz/api/fork-map',
 ];
 
-const nodeRegistry = new Map();
 const reportTimestamps = new Map();
 
 const ANCHOR_HEIGHTS = [
@@ -59,12 +58,25 @@ function normalizeHash(hash) {
     : null;
 }
 
-function pruneStaleNodes() {
-  const now = Date.now();
-  for (const [name, node] of nodeRegistry) {
-    const ttlMs = NODE_TTL_OPTIONS[node.ttl] || NODE_TTL_OPTIONS[DEFAULT_TTL];
-    if (now - node.reported_at > ttlMs) nodeRegistry.delete(name);
-  }
+/** Prune expired rows by TTL, then return all remaining nodes. */
+async function pruneAndFetchNodes() {
+  if (!pool) return [];
+  await pool.query(
+    `DELETE FROM fork_monitor_nodes
+     WHERE (ttl = '1h'  AND reported_at < $1)
+        OR (ttl = '24h' AND reported_at < $2)
+        OR (ttl IS NULL AND reported_at < $2)`,
+    [Date.now() - NODE_TTL_OPTIONS['1h'], Date.now() - NODE_TTL_OPTIONS['24h']]
+  );
+  const { rows } = await pool.query(
+    `SELECT name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at
+     FROM fork_monitor_nodes ORDER BY reported_at DESC`
+  );
+  return rows.map((r) => ({
+    ...r,
+    sample_hashes: r.sample_hashes || [],
+    reported_at: Number(r.reported_at),
+  }));
 }
 
 async function fetchCtazForkMap(redisClient) {
@@ -855,10 +867,9 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
       firstDivergence = mismatches[0].height;
     }
 
-    // Registered nodes
-    pruneStaleNodes();
-    const nodes = [];
-    for (const [name, node] of nodeRegistry) {
+    // Registered nodes (from DB, with TTL pruning)
+    const dbNodes = await pruneAndFetchNodes();
+    const nodes = dbNodes.map((node) => {
       let branch = 'unknown';
       if (node.sample_hashes && node.sample_hashes.length > 0) {
         const csMatch = node.sample_hashes.every((s) => {
@@ -891,8 +902,8 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
       ) {
         branch = 'ctaz';
       }
-      nodes.push({ name, ...node, branch });
-    }
+      return { ...node, branch };
+    });
 
     const result = {
       generated_at: new Date().toISOString(),
@@ -985,7 +996,7 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
 
 /**
  * POST /api/crosslink/fork-monitor/report
- * Voluntary node registration. Stored in-memory with configurable TTL (1h or 24h).
+ * Voluntary node registration. Persisted to PostgreSQL with configurable TTL.
  */
 router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
   try {
@@ -1026,38 +1037,51 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
 
     const validTtl = ttl && NODE_TTL_OPTIONS[ttl] ? ttl : DEFAULT_TTL;
 
-    // Rate limit per name
+    // Rate limit per name (still in-memory — ephemeral by design)
     const lastReport = reportTimestamps.get(cleanName);
     if (lastReport && Date.now() - lastReport < REPORT_COOLDOWN_MS) {
       const wait = Math.ceil((REPORT_COOLDOWN_MS - (Date.now() - lastReport)) / 1000);
       return res.status(429).json({ success: false, error: `wait ${wait}s before reporting again` });
     }
 
-    // Evict oldest if at capacity
-    if (nodeRegistry.size >= MAX_REGISTERED_NODES && !nodeRegistry.has(cleanName)) {
-      let oldestKey = null;
-      let oldestTime = Infinity;
-      for (const [k, v] of nodeRegistry) {
-        if (v.reported_at < oldestTime) {
-          oldestTime = v.reported_at;
-          oldestKey = k;
-        }
-      }
-      if (oldestKey) nodeRegistry.delete(oldestKey);
+    // Evict oldest if at capacity (DB-based)
+    const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
+    const existing = await pool.query('SELECT 1 FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
+    if (countRows[0].cnt >= MAX_REGISTERED_NODES && existing.rows.length === 0) {
+      await pool.query(
+        `DELETE FROM fork_monitor_nodes WHERE name = (
+           SELECT name FROM fork_monitor_nodes ORDER BY reported_at ASC LIMIT 1
+         )`
+      );
     }
 
-    nodeRegistry.set(cleanName, {
-      tip,
-      tip_hash: tip_hash ? normalizeHash(tip_hash) : null,
-      sample_hashes: (sample_hashes || []).map((s) => ({
-        height: s.height,
-        hash: normalizeHash(s.hash),
-      })),
-      peers: Number.isInteger(peers) ? peers : null,
-      mining: typeof mining === 'boolean' ? mining : null,
-      ttl: validTtl,
-      reported_at: Date.now(),
-    });
+    const cleanSamples = (sample_hashes || []).map((s) => ({
+      height: s.height,
+      hash: normalizeHash(s.hash),
+    }));
+
+    await pool.query(
+      `INSERT INTO fork_monitor_nodes (name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (name) DO UPDATE SET
+         tip = EXCLUDED.tip,
+         tip_hash = EXCLUDED.tip_hash,
+         sample_hashes = EXCLUDED.sample_hashes,
+         peers = EXCLUDED.peers,
+         mining = EXCLUDED.mining,
+         ttl = EXCLUDED.ttl,
+         reported_at = EXCLUDED.reported_at`,
+      [
+        cleanName,
+        tip,
+        tip_hash ? normalizeHash(tip_hash) : null,
+        JSON.stringify(cleanSamples),
+        Number.isInteger(peers) ? peers : null,
+        typeof mining === 'boolean' ? mining : null,
+        validTtl,
+        Date.now(),
+      ]
+    );
     reportTimestamps.set(cleanName, Date.now());
 
     // Invalidate fork-monitor cache so fresh GET picks up new node
@@ -1065,7 +1089,8 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       try { await redisClient.del(FORK_MONITOR_CACHE_KEY); } catch {}
     }
 
-    res.json({ success: true, registered: cleanName, node_count: nodeRegistry.size });
+    const { rows: nodeCount } = await pool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
+    res.json({ success: true, registered: cleanName, node_count: nodeCount[0].cnt });
   } catch (error) {
     console.error('Fork monitor report error:', error);
     res.status(500).json({ success: false, error: 'Failed to register node' });
