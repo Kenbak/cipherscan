@@ -761,10 +761,9 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
       } catch {}
     }
 
-    const [tipHeight, finalityInfo, peerInfo, ctaz] = await Promise.all([
+    // Fetch base stats + cTAZ in parallel (only 2 RPC calls + 1 HTTP)
+    const [tipHeight, ctaz] = await Promise.all([
       callZebraRPC('getblockcount').catch(() => null),
-      callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
-      callZebraRPC('getpeerinfo').catch(() => []),
       fetchCtazForkMap(redisClient),
     ]);
 
@@ -772,22 +771,26 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
       return res.status(503).json({ success: false, error: 'Crosslink RPC unavailable' });
     }
 
+    // Sequential RPC calls to avoid overwhelming zebrad
+    const finalityInfo = await callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null);
+    const peerInfo = await callZebraRPC('getpeerinfo').catch(() => []);
+
     const finalizedHeight = finalityInfo?.height ?? finalityInfo?.[0] ?? 0;
     const peerCount = Array.isArray(peerInfo) ? peerInfo.length : 0;
 
-    // Fetch our hashes at anchor heights (parallel)
-    const anchorChecks = await Promise.all(
-      ANCHOR_HEIGHTS.filter((a) => a.height <= tipHeight).map(async (a) => {
-        const block = await callZebraRPC('getblock', [String(a.height), 1]).catch(() => null);
-        return {
-          height: a.height,
-          label: a.label,
-          cipherscan_hash: block?.hash || null,
-        };
-      })
-    );
+    // Fetch anchor hashes sequentially to avoid "Too many connections"
+    const eligible = ANCHOR_HEIGHTS.filter((a) => a.height <= tipHeight);
+    const anchorChecks = [];
+    for (const a of eligible) {
+      const block = await callZebraRPC('getblock', [String(a.height), 1]).catch(() => null);
+      anchorChecks.push({
+        height: a.height,
+        label: a.label,
+        cipherscan_hash: block?.hash || null,
+      });
+    }
 
-    // Also fetch our tip hash
+    // Fetch our tip hash
     const tipBlock = await callZebraRPC('getblock', [String(tipHeight), 1]).catch(() => null);
     const tipHash = tipBlock?.hash || null;
 
@@ -923,19 +926,18 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
       ctazAnchors[ctaz.reference.tip] = ctaz.reference.tip_hash;
     }
 
-    const results = await Promise.all(
-      parsed.map(async (height) => {
-        const block = await callZebraRPC('getblock', [String(height), 1]).catch(() => null);
-        const csHash = block?.hash || null;
-        const ctazHash = ctazAnchors[height] || null;
-        return {
-          height,
-          cipherscan_hash: csHash,
-          ctaz_hash: ctazHash,
-          match: csHash && ctazHash ? csHash === ctazHash : null,
-        };
-      })
-    );
+    const results = [];
+    for (const height of parsed) {
+      const block = await callZebraRPC('getblock', [String(height), 1]).catch(() => null);
+      const csHash = block?.hash || null;
+      const ctazHash = ctazAnchors[height] || null;
+      results.push({
+        height,
+        cipherscan_hash: csHash,
+        ctaz_hash: ctazHash,
+        match: csHash && ctazHash ? csHash === ctazHash : null,
+      });
+    }
 
     res.json({ success: true, results });
   } catch (error) {
