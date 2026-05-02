@@ -137,22 +137,36 @@ const https = require('https');
  * Call Zebra RPC
  * Reads cookie authentication from file (like the indexer does)
  */
-async function callZebraRPC(method, params = []) {
-  const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
-  const cookieFile = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
+// Shared HTTP agent: reuses TCP connections to zebrad instead of
+// opening a new socket per RPC call. maxSockets caps concurrency
+// so we never hit zebrad's "Too many connections" limit.
+const zebraAgent = new (require('http').Agent)({
+  keepAlive: true,
+  maxSockets: 4,
+  maxFreeSockets: 2,
+  timeout: 10000,
+});
 
-  // Read cookie from file (format: __cookie__:password)
-  let auth = '';
+let _zebraAuth = null;
+function getZebraAuth() {
+  if (_zebraAuth !== null) return _zebraAuth;
+  const cookieFile = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
   try {
     const cookie = fs.readFileSync(cookieFile, 'utf8').trim();
-    auth = Buffer.from(cookie).toString('base64');
-  } catch (err) {
-    console.warn('⚠️  Could not read Zebra cookie file:', err.message);
-    // Fallback to env vars if cookie file not found
+    if (cookie) {
+      _zebraAuth = Buffer.from(cookie).toString('base64');
+      return _zebraAuth;
+    }
+  } catch {}
   const rpcUser = process.env.ZCASH_RPC_USER || '__cookie__';
   const rpcPassword = process.env.ZCASH_RPC_PASSWORD || '';
-    auth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
-  }
+  _zebraAuth = Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64');
+  return _zebraAuth;
+}
+
+async function callZebraRPC(method, params = []) {
+  const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
+  const auth = getZebraAuth();
 
   const requestBody = JSON.stringify({
     jsonrpc: '1.0',
@@ -163,44 +177,40 @@ async function callZebraRPC(method, params = []) {
   const url = new URL(rpcUrl);
 
   return new Promise((resolve, reject) => {
-    const options = {
-      hostname: url.hostname,
-      port: url.port,
-      path: url.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': requestBody.length,
-        'Authorization': `Basic ${auth}`,
+    const req = require('http').request(
+      {
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        method: 'POST',
+        agent: zebraAgent,
+        timeout: 8000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(requestBody),
+          'Authorization': `Basic ${auth}`,
+        },
       },
-    };
-
-    const protocol = url.protocol === 'https:' ? https : require('http');
-    const req = protocol.request(options, (res) => {
-      let data = '';
-
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data);
-          if (response.error) {
-            reject(new Error(response.error.message || 'RPC error'));
-          } else {
-            resolve(response.result);
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(data);
+            if (response.error) {
+              reject(new Error(response.error.message || 'RPC error'));
+            } else {
+              resolve(response.result);
+            }
+          } catch (error) {
+            reject(new Error(`Failed to parse RPC response: ${data.slice(0, 120)}`));
           }
-        } catch (error) {
-          reject(new Error(`Failed to parse RPC response: ${error.message}`));
-        }
-      });
-    });
+        });
+      }
+    );
 
-    req.on('error', (error) => {
-      reject(new Error(`RPC request failed: ${error.message}`));
-    });
-
+    req.on('timeout', () => { req.destroy(new Error('RPC timeout')); });
+    req.on('error', (error) => { reject(new Error(`RPC request failed: ${error.message}`)); });
     req.write(requestBody);
     req.end();
   });
