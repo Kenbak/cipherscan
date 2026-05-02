@@ -109,6 +109,7 @@ export function NavBar() {
           { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
           { href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' },
           { href: '/bootstrap', label: 'Node Bootstrap', desc: 'Skip genesis resync' },
+          { href: '/fork-monitor', label: 'Fork Monitor', desc: 'Chain forks & node health' },
         ]
       : [
           { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },

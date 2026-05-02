@@ -20,6 +20,63 @@ router.use((req, res, next) => {
 const CROSSLINK_CACHE_KEY = 'crosslink:stats';
 const CROSSLINK_CACHE_DURATION = 10; // 10 seconds
 
+// ---------------------------------------------------------------------------
+// Fork Monitor — in-memory node registry
+// ---------------------------------------------------------------------------
+const FORK_MONITOR_CACHE_KEY = 'crosslink:fork-monitor';
+const FORK_MONITOR_CACHE_DURATION = 15;
+const CTAZ_CACHE_KEY = 'crosslink:ctaz-fork-map';
+const CTAZ_CACHE_DURATION = 30;
+const NODE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REGISTERED_NODES = 100;
+const REPORT_COOLDOWN_MS = 30 * 1000;
+
+const nodeRegistry = new Map();
+const reportTimestamps = new Map();
+
+const ANCHOR_HEIGHTS = [
+  { height: 19138, label: 'BFT finalized' },
+  { height: 37657, label: 'fixed branch check' },
+  { height: 39573, label: 'pre-split marker' },
+  { height: 39574, label: 'split marker' },
+  { height: 40665, label: 'CipherScan indexed match' },
+  { height: 41898, label: 'May 2 tip split marker' },
+];
+
+function pruneStaleNodes() {
+  const now = Date.now();
+  for (const [name, node] of nodeRegistry) {
+    if (now - node.reported_at > NODE_TTL_MS) nodeRegistry.delete(name);
+  }
+}
+
+async function fetchCtazForkMap(redisClient) {
+  if (redisClient && redisClient.isOpen) {
+    try {
+      const cached = await redisClient.get(CTAZ_CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const resp = await fetch('https://ctaz.zat-explorer.cash/api/fork-map', {
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (redisClient && redisClient.isOpen) {
+      try {
+        await redisClient.set(CTAZ_CACHE_KEY, JSON.stringify(data), { EX: CTAZ_CACHE_DURATION });
+      } catch {}
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 const STAKING_DAY_PERIOD = 150;
 const STAKING_DAY_WINDOW = 70;
 
@@ -684,6 +741,284 @@ router.get('/api/finalizer/:pubkey', async (req, res) => {
   } catch (error) {
     console.error('Finalizer detail error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch finalizer' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Fork Monitor endpoints
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/crosslink/fork-monitor
+ * Aggregated chain health: our node vs cTAZ, anchor comparisons, registered nodes.
+ */
+router.get('/api/crosslink/fork-monitor', async (req, res) => {
+  try {
+    if (redisClient && redisClient.isOpen) {
+      try {
+        const cached = await redisClient.get(FORK_MONITOR_CACHE_KEY);
+        if (cached) return res.json(JSON.parse(cached));
+      } catch {}
+    }
+
+    const [tipHeight, finalityInfo, peerInfo, ctaz] = await Promise.all([
+      callZebraRPC('getblockcount').catch(() => null),
+      callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
+      callZebraRPC('getpeerinfo').catch(() => []),
+      fetchCtazForkMap(redisClient),
+    ]);
+
+    if (tipHeight === null) {
+      return res.status(503).json({ success: false, error: 'Crosslink RPC unavailable' });
+    }
+
+    const finalizedHeight = finalityInfo?.height ?? finalityInfo?.[0] ?? 0;
+    const peerCount = Array.isArray(peerInfo) ? peerInfo.length : 0;
+
+    // Fetch our hashes at anchor heights (parallel)
+    const anchorChecks = await Promise.all(
+      ANCHOR_HEIGHTS.filter((a) => a.height <= tipHeight).map(async (a) => {
+        const block = await callZebraRPC('getblock', [String(a.height), 1]).catch(() => null);
+        return {
+          height: a.height,
+          label: a.label,
+          cipherscan_hash: block?.hash || null,
+        };
+      })
+    );
+
+    // Also fetch our tip hash
+    const tipBlock = await callZebraRPC('getblock', [String(tipHeight), 1]).catch(() => null);
+    const tipHash = tipBlock?.hash || null;
+
+    // Build cTAZ reference from their API
+    let ctazRef = null;
+    let ctazAnchors = {};
+    if (ctaz && ctaz.reference) {
+      ctazRef = {
+        tip: ctaz.reference.tip,
+        tip_hash: ctaz.reference.tip_hash,
+        peers: ctaz.reference.peers,
+        finalized: ctaz.reference.finalized ?? 0,
+        finality_gap: ctaz.reference.finality_gap ?? 0,
+      };
+      if (Array.isArray(ctaz.anchors)) {
+        for (const a of ctaz.anchors) {
+          ctazAnchors[a.height] = a.observed_hash || a.expected_hash;
+        }
+      }
+    }
+
+    // Compare anchors
+    const anchors = anchorChecks.map((a) => ({
+      height: a.height,
+      label: a.label,
+      cipherscan_hash: a.cipherscan_hash,
+      ctaz_hash: ctazAnchors[a.height] || null,
+      match:
+        a.cipherscan_hash && ctazAnchors[a.height]
+          ? a.cipherscan_hash === ctazAnchors[a.height]
+          : null,
+    }));
+
+    // Determine overall alignment
+    const mismatches = anchors.filter((a) => a.match === false);
+    let status = 'aligned';
+    let firstDivergence = null;
+    if (!ctaz) {
+      status = 'ctaz_unavailable';
+    } else if (mismatches.length > 0) {
+      status = 'diverged';
+      firstDivergence = mismatches[0].height;
+    }
+
+    // Registered nodes
+    pruneStaleNodes();
+    const nodes = [];
+    for (const [name, node] of nodeRegistry) {
+      let branch = 'unknown';
+      if (node.sample_hashes && node.sample_hashes.length > 0) {
+        const csMatch = node.sample_hashes.every((s) => {
+          const anchor = anchors.find((a) => a.height === s.height);
+          return !anchor || !anchor.cipherscan_hash || anchor.cipherscan_hash === s.hash;
+        });
+        const ctazMatch =
+          ctazRef &&
+          node.sample_hashes.every((s) => {
+            return !ctazAnchors[s.height] || ctazAnchors[s.height] === s.hash;
+          });
+        if (csMatch && ctazMatch) branch = 'reference';
+        else if (csMatch) branch = 'cipherscan';
+        else if (ctazMatch) branch = 'ctaz';
+        else branch = 'other';
+      }
+      nodes.push({ name, ...node, branch });
+    }
+
+    const result = {
+      generated_at: new Date().toISOString(),
+      cipherscan: {
+        tip: tipHeight,
+        tip_hash: tipHash,
+        peers: peerCount,
+        finalized: finalizedHeight,
+        finality_gap: tipHeight - finalizedHeight,
+      },
+      ctaz: ctazRef,
+      status,
+      first_divergence: firstDivergence,
+      anchors,
+      nodes,
+      split_hints: [
+        'If h39573 matches and h39574 differs, your node is on an earlier observed split.',
+        'If h40665 matches but h41898 differs, the node split later near the current tip.',
+        'If a node is mining every block, treat it as partition risk until peers and tip hash match.',
+        'Peer count alone does not determine correctness. Longest chain with valid PoW wins above finalized height.',
+      ],
+    };
+
+    if (redisClient && redisClient.isOpen) {
+      try {
+        await redisClient.set(FORK_MONITOR_CACHE_KEY, JSON.stringify(result), {
+          EX: FORK_MONITOR_CACHE_DURATION,
+        });
+      } catch {}
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Fork monitor error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch fork monitor data' });
+  }
+});
+
+/**
+ * POST /api/crosslink/fork-monitor/check
+ * Live hash lookup at arbitrary heights. Accepts { heights: [number] },
+ * returns our hash + cTAZ hash for each.
+ */
+router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
+  try {
+    const { heights } = req.body || {};
+    if (!Array.isArray(heights) || heights.length === 0) {
+      return res.status(400).json({ success: false, error: 'heights must be a non-empty array' });
+    }
+    if (heights.length > 10) {
+      return res.status(400).json({ success: false, error: 'max 10 heights per request' });
+    }
+
+    const parsed = heights.map((h) => parseInt(h)).filter((h) => !isNaN(h) && h >= 0);
+    if (parsed.length === 0) {
+      return res.status(400).json({ success: false, error: 'no valid heights provided' });
+    }
+
+    const ctaz = await fetchCtazForkMap(redisClient);
+    const ctazAnchors = {};
+    if (ctaz && Array.isArray(ctaz.anchors)) {
+      for (const a of ctaz.anchors) {
+        ctazAnchors[a.height] = a.observed_hash || a.expected_hash;
+      }
+    }
+    if (ctaz && ctaz.reference) {
+      ctazAnchors[ctaz.reference.tip] = ctaz.reference.tip_hash;
+    }
+
+    const results = await Promise.all(
+      parsed.map(async (height) => {
+        const block = await callZebraRPC('getblock', [String(height), 1]).catch(() => null);
+        const csHash = block?.hash || null;
+        const ctazHash = ctazAnchors[height] || null;
+        return {
+          height,
+          cipherscan_hash: csHash,
+          ctaz_hash: ctazHash,
+          match: csHash && ctazHash ? csHash === ctazHash : null,
+        };
+      })
+    );
+
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Fork monitor check error:', error);
+    res.status(500).json({ success: false, error: 'Failed to check hashes' });
+  }
+});
+
+/**
+ * POST /api/crosslink/fork-monitor/report
+ * Voluntary node registration. Stored in-memory with 1-hour TTL.
+ */
+router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
+  try {
+    const { name, tip, tip_hash, sample_hashes, peers, mining } = req.body || {};
+
+    if (!name || typeof name !== 'string' || name.length < 1 || name.length > 32) {
+      return res.status(400).json({ success: false, error: 'name must be 1-32 characters' });
+    }
+    if (typeof tip !== 'number' || tip < 0) {
+      return res.status(400).json({ success: false, error: 'tip must be a non-negative number' });
+    }
+    if (tip_hash && (typeof tip_hash !== 'string' || !/^[a-f0-9]{64}$/i.test(tip_hash))) {
+      return res.status(400).json({ success: false, error: 'tip_hash must be a 64-char hex string' });
+    }
+    if (sample_hashes && !Array.isArray(sample_hashes)) {
+      return res.status(400).json({ success: false, error: 'sample_hashes must be an array' });
+    }
+    if (sample_hashes) {
+      for (const s of sample_hashes) {
+        if (typeof s.height !== 'number' || typeof s.hash !== 'string' || !/^[a-f0-9]{64}$/i.test(s.hash)) {
+          return res.status(400).json({ success: false, error: 'each sample_hash needs { height: number, hash: 64-char hex }' });
+        }
+      }
+    }
+
+    const cleanName = name.trim().replace(/[^a-zA-Z0-9_\-. ]/g, '');
+    if (!cleanName) {
+      return res.status(400).json({ success: false, error: 'name contains no valid characters' });
+    }
+
+    // Rate limit per name
+    const lastReport = reportTimestamps.get(cleanName);
+    if (lastReport && Date.now() - lastReport < REPORT_COOLDOWN_MS) {
+      const wait = Math.ceil((REPORT_COOLDOWN_MS - (Date.now() - lastReport)) / 1000);
+      return res.status(429).json({ success: false, error: `wait ${wait}s before reporting again` });
+    }
+
+    // Evict oldest if at capacity
+    if (nodeRegistry.size >= MAX_REGISTERED_NODES && !nodeRegistry.has(cleanName)) {
+      let oldestKey = null;
+      let oldestTime = Infinity;
+      for (const [k, v] of nodeRegistry) {
+        if (v.reported_at < oldestTime) {
+          oldestTime = v.reported_at;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey) nodeRegistry.delete(oldestKey);
+    }
+
+    nodeRegistry.set(cleanName, {
+      tip,
+      tip_hash: tip_hash ? tip_hash.toLowerCase() : null,
+      sample_hashes: (sample_hashes || []).map((s) => ({
+        height: s.height,
+        hash: s.hash.toLowerCase(),
+      })),
+      peers: typeof peers === 'number' ? peers : null,
+      mining: typeof mining === 'boolean' ? mining : null,
+      reported_at: Date.now(),
+    });
+    reportTimestamps.set(cleanName, Date.now());
+
+    // Invalidate fork-monitor cache so fresh GET picks up new node
+    if (redisClient && redisClient.isOpen) {
+      try { await redisClient.del(FORK_MONITOR_CACHE_KEY); } catch {}
+    }
+
+    res.json({ success: true, registered: cleanName, node_count: nodeRegistry.size });
+  } catch (error) {
+    console.error('Fork monitor report error:', error);
+    res.status(500).json({ success: false, error: 'Failed to register node' });
   }
 });
 
