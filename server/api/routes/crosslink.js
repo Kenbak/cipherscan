@@ -34,6 +34,7 @@ const MAX_REPORT_SAMPLES = 12;
 const MAX_TIP_HEIGHT = 100_000_000;
 const MAX_PEER_COUNT = 10_000;
 const NODE_NAME_RE = /^[a-zA-Z0-9_. -]{1,32}$/;
+const CTAZ_FETCH_TIMEOUT_MS = 2500;
 const CTAZ_FORK_MAP_URLS = [
   'https://ctaz.zat-explorer.cash/api/fork-map',
   'https://frontiercompute.io/ctaz/api/fork-map',
@@ -74,7 +75,7 @@ async function fetchCtazForkMap(redisClient) {
   for (const url of CTAZ_FORK_MAP_URLS) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const timer = setTimeout(() => ctrl.abort(), CTAZ_FETCH_TIMEOUT_MS);
       const resp = await fetch(url, { signal: ctrl.signal });
       clearTimeout(timer);
       if (!resp.ok) continue;
