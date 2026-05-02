@@ -30,6 +30,10 @@ const CTAZ_CACHE_DURATION = 30;
 const NODE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_REGISTERED_NODES = 100;
 const REPORT_COOLDOWN_MS = 30 * 1000;
+const MAX_REPORT_SAMPLES = 12;
+const MAX_TIP_HEIGHT = 100_000_000;
+const MAX_PEER_COUNT = 10_000;
+const NODE_NAME_RE = /^[a-zA-Z0-9_. -]{1,32}$/;
 
 const nodeRegistry = new Map();
 const reportTimestamps = new Map();
@@ -42,6 +46,12 @@ const ANCHOR_HEIGHTS = [
   { height: 40665, label: 'CipherScan indexed match' },
   { height: 41898, label: 'May 2 tip split marker' },
 ];
+
+function normalizeHash(hash) {
+  return typeof hash === 'string' && /^[a-f0-9]{64}$/i.test(hash)
+    ? hash.toLowerCase()
+    : null;
+}
 
 function pruneStaleNodes() {
   const now = Date.now();
@@ -778,21 +788,23 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
     const finalizedHeight = finalityInfo?.height ?? finalityInfo?.[0] ?? 0;
     const peerCount = Array.isArray(peerInfo) ? peerInfo.length : 0;
 
-    // Fetch anchor hashes sequentially to avoid "Too many connections"
+    // Fetch anchor hashes sequentially to avoid "Too many connections".
+    // getblockhash is much cheaper than getblock and returns exactly what we need.
     const eligible = ANCHOR_HEIGHTS.filter((a) => a.height <= tipHeight);
     const anchorChecks = [];
     for (const a of eligible) {
-      const block = await callZebraRPC('getblock', [String(a.height), 1]).catch(() => null);
+      const hash = await callZebraRPC('getblockhash', [a.height]).catch(() => null);
       anchorChecks.push({
         height: a.height,
         label: a.label,
-        cipherscan_hash: block?.hash || null,
+        cipherscan_hash: normalizeHash(hash),
       });
     }
 
     // Fetch our tip hash
-    const tipBlock = await callZebraRPC('getblock', [String(tipHeight), 1]).catch(() => null);
-    const tipHash = tipBlock?.hash || null;
+    const tipHash = normalizeHash(
+      await callZebraRPC('getblockhash', [tipHeight]).catch(() => null)
+    );
 
     // Build cTAZ reference from their API
     let ctazRef = null;
@@ -800,14 +812,14 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
     if (ctaz && ctaz.reference) {
       ctazRef = {
         tip: ctaz.reference.tip,
-        tip_hash: ctaz.reference.tip_hash,
+        tip_hash: normalizeHash(ctaz.reference.tip_hash),
         peers: ctaz.reference.peers,
         finalized: ctaz.reference.finalized ?? 0,
         finality_gap: ctaz.reference.finality_gap ?? 0,
       };
       if (Array.isArray(ctaz.anchors)) {
         for (const a of ctaz.anchors) {
-          ctazAnchors[a.height] = a.observed_hash || a.expected_hash;
+          ctazAnchors[a.height] = normalizeHash(a.observed_hash || a.expected_hash);
         }
       }
     }
@@ -854,6 +866,22 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
         else if (csMatch) branch = 'cipherscan';
         else if (ctazMatch) branch = 'ctaz';
         else branch = 'other';
+      } else if (
+        node.tip_hash &&
+        node.tip === tipHeight &&
+        tipHash &&
+        node.tip_hash === tipHash
+      ) {
+        branch = ctazRef && ctazRef.tip === tipHeight && ctazRef.tip_hash === tipHash
+          ? 'reference'
+          : 'cipherscan';
+      } else if (
+        node.tip_hash &&
+        ctazRef &&
+        node.tip === ctazRef.tip &&
+        node.tip_hash === ctazRef.tip_hash
+      ) {
+        branch = 'ctaz';
       }
       nodes.push({ name, ...node, branch });
     }
@@ -919,17 +947,18 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
     const ctazAnchors = {};
     if (ctaz && Array.isArray(ctaz.anchors)) {
       for (const a of ctaz.anchors) {
-        ctazAnchors[a.height] = a.observed_hash || a.expected_hash;
+        ctazAnchors[a.height] = normalizeHash(a.observed_hash || a.expected_hash);
       }
     }
     if (ctaz && ctaz.reference) {
-      ctazAnchors[ctaz.reference.tip] = ctaz.reference.tip_hash;
+      ctazAnchors[ctaz.reference.tip] = normalizeHash(ctaz.reference.tip_hash);
     }
 
     const results = [];
     for (const height of parsed) {
-      const block = await callZebraRPC('getblock', [String(height), 1]).catch(() => null);
-      const csHash = block?.hash || null;
+      const csHash = normalizeHash(
+        await callZebraRPC('getblockhash', [height]).catch(() => null)
+      );
       const ctazHash = ctazAnchors[height] || null;
       results.push({
         height,
@@ -954,29 +983,37 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
   try {
     const { name, tip, tip_hash, sample_hashes, peers, mining } = req.body || {};
 
-    if (!name || typeof name !== 'string' || name.length < 1 || name.length > 32) {
-      return res.status(400).json({ success: false, error: 'name must be 1-32 characters' });
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    if (!NODE_NAME_RE.test(cleanName)) {
+      return res.status(400).json({
+        success: false,
+        error: 'name must be 1-32 chars: letters, numbers, spaces, _, -, .',
+      });
     }
-    if (typeof tip !== 'number' || tip < 0) {
+    if (!Number.isInteger(tip) || tip < 0 || tip > MAX_TIP_HEIGHT) {
       return res.status(400).json({ success: false, error: 'tip must be a non-negative number' });
     }
-    if (tip_hash && (typeof tip_hash !== 'string' || !/^[a-f0-9]{64}$/i.test(tip_hash))) {
+    if (tip_hash && !normalizeHash(tip_hash)) {
       return res.status(400).json({ success: false, error: 'tip_hash must be a 64-char hex string' });
+    }
+    if (peers !== undefined && peers !== null && (!Number.isInteger(peers) || peers < 0 || peers > MAX_PEER_COUNT)) {
+      return res.status(400).json({ success: false, error: 'peers must be a non-negative integer' });
+    }
+    if (mining !== undefined && mining !== null && typeof mining !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'mining must be boolean' });
     }
     if (sample_hashes && !Array.isArray(sample_hashes)) {
       return res.status(400).json({ success: false, error: 'sample_hashes must be an array' });
     }
     if (sample_hashes) {
+      if (sample_hashes.length > MAX_REPORT_SAMPLES) {
+        return res.status(400).json({ success: false, error: `max ${MAX_REPORT_SAMPLES} sample hashes` });
+      }
       for (const s of sample_hashes) {
-        if (typeof s.height !== 'number' || typeof s.hash !== 'string' || !/^[a-f0-9]{64}$/i.test(s.hash)) {
+        if (!Number.isInteger(s.height) || s.height < 0 || s.height > MAX_TIP_HEIGHT || !normalizeHash(s.hash)) {
           return res.status(400).json({ success: false, error: 'each sample_hash needs { height: number, hash: 64-char hex }' });
         }
       }
-    }
-
-    const cleanName = name.trim().replace(/[^a-zA-Z0-9_\-. ]/g, '');
-    if (!cleanName) {
-      return res.status(400).json({ success: false, error: 'name contains no valid characters' });
     }
 
     // Rate limit per name
@@ -1001,12 +1038,12 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
 
     nodeRegistry.set(cleanName, {
       tip,
-      tip_hash: tip_hash ? tip_hash.toLowerCase() : null,
+      tip_hash: tip_hash ? normalizeHash(tip_hash) : null,
       sample_hashes: (sample_hashes || []).map((s) => ({
         height: s.height,
-        hash: s.hash.toLowerCase(),
+        hash: normalizeHash(s.hash),
       })),
-      peers: typeof peers === 'number' ? peers : null,
+      peers: Number.isInteger(peers) ? peers : null,
       mining: typeof mining === 'boolean' ? mining : null,
       reported_at: Date.now(),
     });
