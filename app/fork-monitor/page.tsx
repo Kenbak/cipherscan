@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { getApiUrl } from '@/lib/api-config';
@@ -29,6 +29,7 @@ interface RegisteredNode {
   name: string;
   tip: number;
   tip_hash: string | null;
+  sample_hashes?: { height: number; hash: string }[];
   peers: number | null;
   mining: boolean | null;
   branch: string;
@@ -69,6 +70,59 @@ function fmtAgo(ms: number): string {
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
   return `${Math.floor(secs / 86400)}d ago`;
+}
+
+function parseHeightHashLines(input: string): { height: number; hash: string }[] {
+  const pairs: { height: number; hash: string }[] = [];
+  const seen = new Set<string>();
+  for (const match of input.matchAll(/(\d+)\s+([0-9a-fA-F]{64})/g)) {
+    const height = parseInt(match[1]);
+    const hash = match[2].toLowerCase();
+    const key = `${height}:${hash}`;
+    if (!seen.has(key)) {
+      pairs.push({ height, hash });
+      seen.add(key);
+    }
+  }
+  return pairs.slice(0, 12);
+}
+
+function branchLabel(branch: string): string {
+  if (branch === 'reference') return 'Reference branch';
+  if (branch === 'cipherscan') return 'CipherScan branch';
+  if (branch === 'ctaz') return 'cTAZ branch';
+  if (branch === 'other') return 'Other branch';
+  return 'Unknown branch';
+}
+
+function branchBadgeColor(branch: string): 'green' | 'orange' | 'muted' {
+  if (branch === 'reference') return 'green';
+  if (branch === 'other') return 'orange';
+  return 'muted';
+}
+
+function makeCommunityReport(data: ForkMonitorData): string {
+  const cs = data.cipherscan;
+  const ct = data.ctaz;
+  const lines = [
+    `CipherScan fork monitor: ${data.status}`,
+    `CipherScan: h${cs.tip} ${cs.tip_hash || 'no-tip-hash'} peers=${cs.peers} finalized=${cs.finalized}`,
+  ];
+  if (ct) {
+    lines.push(`cTAZ: h${ct.tip} ${ct.tip_hash || 'no-tip-hash'} peers=${ct.peers} finalized=${ct.finalized}`);
+  }
+  const matched = data.anchors
+    .filter((a) => a.match === true)
+    .map((a) => `h${a.height}`)
+    .join(', ');
+  const mismatched = data.anchors
+    .filter((a) => a.match === false)
+    .map((a) => `h${a.height}`)
+    .join(', ');
+  lines.push(`Anchors matched: ${matched || 'none'}`);
+  if (mismatched) lines.push(`Anchors mismatched: ${mismatched}`);
+  lines.push('Reminder: peer count shows connectivity, not fork correctness.');
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +214,99 @@ function NodeCard({ label, node, color }: { label: string; node: NodeRef | null;
   );
 }
 
+function ForkTimeline({ data }: { data: ForkMonitorData }) {
+  const anchors = data.anchors;
+  const first = anchors[0]?.height ?? data.cipherscan.finalized;
+  const last = Math.max(data.cipherscan.tip, data.ctaz?.tip ?? 0, anchors[anchors.length - 1]?.height ?? 0);
+  const span = Math.max(last - first, 1);
+  const branchCounts = data.nodes.reduce<Record<string, number>>((acc, node) => {
+    acc[node.branch] = (acc[node.branch] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <Card className="mb-6">
+      <CardBody className="p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div>
+            <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              Fork Timeline
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Anchors are fixed-height observations. Node reports are self-reported and expire after 1 hour.
+            </p>
+          </div>
+          <Badge color={data.status === 'aligned' ? 'green' : 'orange'}>
+            {data.status === 'aligned' ? 'NO KNOWN SPLIT' : 'SPLIT VISIBLE'}
+          </Badge>
+        </div>
+
+        <div className="relative h-24 mt-5 mb-4">
+          <div className="absolute left-0 right-0 top-11 h-px bg-cipher-border" />
+          {anchors.map((anchor) => {
+            const left = `${Math.max(0, Math.min(100, ((anchor.height - first) / span) * 100))}%`;
+            const color = anchor.match === false ? 'bg-red-500' : anchor.match === true ? 'bg-cipher-green' : 'bg-muted';
+            return (
+              <div key={anchor.height} className="absolute top-7 -translate-x-1/2" style={{ left }}>
+                <div className={`w-2.5 h-2.5 rounded-full ${color} mx-auto mb-2`} />
+                <div className="text-[10px] font-mono text-primary whitespace-nowrap">h{anchor.height.toLocaleString()}</div>
+                <div className="text-[9px] text-muted whitespace-nowrap max-w-[90px] truncate">{anchor.label}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {['reference', 'cipherscan', 'ctaz', 'other'].map((branch) => (
+            <div key={branch} className="block-hash-bg border border-cipher-border rounded p-2">
+              <div className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                {branchLabel(branch)}
+              </div>
+              <div className="text-sm font-mono text-primary mt-1">{branchCounts[branch] || 0} nodes</div>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function RecommendedActions({ data }: { data: ForkMonitorData }) {
+  const actions: string[] = [];
+  if (data.cipherscan.finalized === 0) {
+    actions.push('PoS finality RPC is unavailable. Treat fork status as degraded until finalized height returns.');
+  } else if (data.cipherscan.finality_gap > 1000) {
+    actions.push(`PoS finality is stale at h${data.cipherscan.finalized.toLocaleString()}. Compare PoW anchors, not just tip height.`);
+  }
+  if (data.status === 'diverged') {
+    actions.push(`First visible mismatch is h${data.first_divergence?.toLocaleString()}. Nodes should check that height before resyncing.`);
+  } else {
+    actions.push('Known anchors match between CipherScan and cTAZ. Nodes that differ should restart/reconnect before wiping cache.');
+  }
+  if (data.cipherscan.peers < 5) {
+    actions.push('CipherScan peer count is low. Peer count is connectivity only, but low peers increase partition risk.');
+  }
+  actions.push('If your node is mining every block, turn mining off until peers and fixed-height hashes line up.');
+
+  return (
+    <Card className="mb-6">
+      <CardBody className="p-4 sm:p-5">
+        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider mb-3">
+          Recommended Actions
+        </h2>
+        <ul className="space-y-2">
+          {actions.map((action) => (
+            <li key={action} className="text-xs text-secondary leading-relaxed flex gap-2">
+              <span className="text-cipher-cyan shrink-0">&gt;</span>
+              <span>{action}</span>
+            </li>
+          ))}
+        </ul>
+      </CardBody>
+    </Card>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -184,6 +331,7 @@ export default function ForkMonitorPage() {
   const [reportHash, setReportHash] = useState('');
   const [reportPeers, setReportPeers] = useState('');
   const [reportMining, setReportMining] = useState(false);
+  const [reportSamples, setReportSamples] = useState('');
   const [reportStatus, setReportStatus] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -265,6 +413,7 @@ export default function ForkMonitorPage() {
   const handleReport = async () => {
     setReportStatus(null);
     try {
+      const sample_hashes = parseHeightHashLines(reportSamples);
       const body: Record<string, unknown> = {
         name: reportName,
         tip: parseInt(reportTip),
@@ -272,6 +421,7 @@ export default function ForkMonitorPage() {
       };
       if (reportHash) body.tip_hash = reportHash;
       if (reportPeers) body.peers = parseInt(reportPeers);
+      if (sample_hashes.length > 0) body.sample_hashes = sample_hashes;
       const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -285,6 +435,7 @@ export default function ForkMonitorPage() {
         setReportHash('');
         setReportPeers('');
         setReportMining(false);
+        setReportSamples('');
         fetchData();
       } else {
         setReportStatus(json.error || 'Failed');
@@ -296,6 +447,20 @@ export default function ForkMonitorPage() {
 
   const csColor = data ? (data.status === 'aligned' ? 'green' as const : data.status === 'diverged' ? 'red' as const : 'orange' as const) : 'orange' as const;
   const ctazColor = data?.ctaz ? csColor : 'red' as const;
+  const groupedNodes = useMemo(() => {
+    const groups: Record<string, RegisteredNode[]> = {
+      reference: [],
+      cipherscan: [],
+      ctaz: [],
+      other: [],
+      unknown: [],
+    };
+    for (const node of data?.nodes || []) {
+      (groups[node.branch] || groups.unknown).push(node);
+    }
+    return groups;
+  }, [data?.nodes]);
+  const communityReport = useMemo(() => (data ? makeCommunityReport(data) : ''), [data]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -349,6 +514,9 @@ export default function ForkMonitorPage() {
               </p>
             </CardBody>
           </Card>
+
+          <RecommendedActions data={data} />
+          <ForkTimeline data={data} />
 
           {/* ---------------------------------------------------------------- */}
           {/* Section 2: Reference Anchors */}
@@ -587,6 +755,39 @@ export default function ForkMonitorPage() {
                     <span className="text-[11px] font-mono text-muted">{reportStatus}</span>
                   )}
                 </div>
+                <div className="mt-3">
+                  <label className="text-[10px] font-mono text-muted block mb-1">
+                    Anchor Hashes (recommended)
+                  </label>
+                  <p className="text-[11px] text-muted mb-2">
+                    Paste fixed-height checks like <code className="text-cipher-cyan">39574 006e0a...</code>.
+                    This lets CipherScan classify your branch instead of showing unknown.
+                  </p>
+                  <textarea
+                    value={reportSamples}
+                    onChange={(e) => setReportSamples(e.target.value)}
+                    placeholder={"39573 00228574fad9f6b8d88e8ad1edcee00565eb86cffa0439d5e7ca57b974f3f14c\n39574 006e0a84682c81d539965fd0f3698e0d61bbd3bfc98dea74638029edd3ec2555"}
+                    className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/50 resize-y"
+                    rows={3}
+                    spellCheck={false}
+                  />
+                  <div className="text-[10px] text-muted mt-1 font-mono">
+                    Parsed {parseHeightHashLines(reportSamples).length}/12 anchor hashes.
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-4">
+                {Object.entries(groupedNodes).map(([branch, nodes]) => (
+                  <div key={branch} className="block-hash-bg border border-cipher-border rounded p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                        {branchLabel(branch)}
+                      </span>
+                      <Badge color={branchBadgeColor(branch)}>{nodes.length}</Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Node table */}
@@ -617,8 +818,8 @@ export default function ForkMonitorPage() {
                               {n.mining === true ? <span className="text-cipher-orange">on</span> : n.mining === false ? <span className="text-muted">off</span> : '-'}
                             </td>
                             <td className="py-2 px-2">
-                              <Badge color={n.branch === 'reference' ? 'green' : n.branch === 'other' ? 'orange' : 'muted'}>
-                                {n.branch}
+                              <Badge color={branchBadgeColor(n.branch)}>
+                                {branchLabel(n.branch)}
                               </Badge>
                             </td>
                             <td className="py-2 px-2 text-right font-mono text-muted">{fmtAgo(n.reported_at)}</td>
@@ -633,6 +834,30 @@ export default function ForkMonitorPage() {
                   No nodes reported yet. Be the first to report your chain state.
                 </div>
               )}
+            </CardBody>
+          </Card>
+
+          <Card className="mb-6">
+            <CardBody className="p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <div>
+                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+                    Community Report
+                  </h2>
+                  <p className="text-xs text-muted mt-1">
+                    Copy this into chat when coordinating forks. It separates PoW branch checks from PoS finality.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(communityReport).catch(() => {})}
+                  className="px-3 py-1.5 text-xs font-mono bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30 rounded hover:bg-cipher-cyan/20 transition-colors"
+                >
+                  Copy report
+                </button>
+              </div>
+              <pre className="block-hash-bg border border-cipher-border rounded p-3 text-xs font-mono text-secondary overflow-x-auto whitespace-pre-wrap">
+                {communityReport}
+              </pre>
             </CardBody>
           </Card>
 
