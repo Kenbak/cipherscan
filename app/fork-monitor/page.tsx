@@ -591,6 +591,16 @@ export default function ForkMonitorPage() {
     }
   };
 
+  const handleDeleteNode = async (name: string) => {
+    if (!confirm(`Remove "${name}" from the registry?`)) return;
+    try {
+      const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/report/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      if (resp.ok) {
+        setData((prev) => prev ? { ...prev, nodes: prev.nodes.filter((n) => n.name !== name) } : prev);
+      }
+    } catch {}
+  };
+
   const csColor = data ? (data.status === 'aligned' ? 'green' as const : data.status === 'diverged' ? 'red' as const : 'orange' as const) : 'orange' as const;
   const ctazColor = data?.ctaz ? csColor : 'red' as const;
   const groupedNodes = useMemo(() => {
@@ -975,6 +985,7 @@ export default function ForkMonitorPage() {
                         <th className="text-center py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Mining</th>
                         <th className="text-left py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Branch</th>
                         <th className="text-right py-2 px-2 font-mono text-muted uppercase tracking-wider text-[10px]">Seen</th>
+                        <th className="w-8"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -998,6 +1009,15 @@ export default function ForkMonitorPage() {
                             <td className="py-2 px-2 text-right font-mono text-muted">
                               {fmtAgo(n.reported_at)}
                               <span className="text-[9px] ml-1 opacity-60">{n.ttl || '1h'}</span>
+                            </td>
+                            <td className="py-1 px-1 text-center">
+                              <button
+                                onClick={() => handleDeleteNode(n.name)}
+                                className="text-muted hover:text-red-400 transition-colors text-xs opacity-40 hover:opacity-100"
+                                title={`Remove ${n.name}`}
+                              >
+                                ✕
+                              </button>
                             </td>
                           </tr>
                         );

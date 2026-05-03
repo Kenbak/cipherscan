@@ -1097,4 +1097,35 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/crosslink/fork-monitor/report/:name
+ * Remove a node report by name.
+ */
+router.delete('/api/crosslink/fork-monitor/report/:name', async (req, res) => {
+  try {
+    const cleanName = typeof req.params.name === 'string' ? req.params.name.trim() : '';
+    if (!NODE_NAME_RE.test(cleanName)) {
+      return res.status(400).json({ success: false, error: 'Invalid node name' });
+    }
+
+    const { rowCount } = await pool.query(
+      'DELETE FROM fork_monitor_nodes WHERE name = $1',
+      [cleanName]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Node not found' });
+    }
+
+    if (redisClient && redisClient.isOpen) {
+      try { await redisClient.del(FORK_MONITOR_CACHE_KEY); } catch {}
+    }
+
+    res.json({ success: true, deleted: cleanName });
+  } catch (error) {
+    console.error('Fork monitor delete error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete node' });
+  }
+});
+
 module.exports = router;
