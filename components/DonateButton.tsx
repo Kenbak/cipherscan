@@ -67,6 +67,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
     >
       <div
         className="modal-content max-w-sm w-full animate-scale-in relative overflow-hidden"
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Scan line effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
@@ -136,35 +137,36 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
             </div>
           </div>
 
-          {/* Truncated address + copy */}
-          <div className="modal-inner-card rounded-lg px-4 py-3 mb-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1">
-                  Shielded · Unified Address
-                </p>
-                <code className="text-xs font-mono text-secondary">
-                  {truncateAddress(DONATION_ADDRESS)}
-                </code>
-              </div>
-              <button
-                onClick={copyAddress}
-                className="flex-shrink-0 p-2 rounded-md text-muted hover:text-cipher-cyan transition-colors"
-                title="Copy address"
-              >
+          {/* Address + copy */}
+          <button
+            onClick={copyAddress}
+            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-cyan/30 transition-all"
+          >
+            <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
+              <span>Shielded · Unified Address</span>
+              <span className="flex items-center gap-1 text-cipher-cyan">
                 {copied ? (
-                  <svg className="w-4 h-4 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <>
+                    <svg className="w-3 h-3 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-cipher-green">Copied!</span>
+                  </>
                 ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
+                  <>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                    <span>Copy</span>
+                  </>
                 )}
-              </button>
-            </div>
-          </div>
+              </span>
+            </p>
+            <code className="text-[10px] font-mono text-secondary break-all leading-relaxed">
+              {DONATION_ADDRESS}
+            </code>
+          </button>
 
           {/* Footer note */}
           <p className="text-[11px] text-muted text-center font-mono">
