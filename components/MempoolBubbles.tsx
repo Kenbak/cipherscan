@@ -357,26 +357,39 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
         b.bobPhase += 0.008 + (i % 5) * 0.001; // Slightly different bob speed per bubble
 
         if (b.state !== 'popping') {
-          // Gentle pull toward the canvas center so bubbles cluster naturally
+          // Per-bubble wander — each bubble drifts in its own slowly rotating
+          // direction so they feel like individual entities, not a clump.
+          // The phase/bobPhase seeds were assigned at creation so directions differ.
+          const wanderAngle = b.phase * 0.4 + b.bobPhase * 0.7;
+          const wanderStrength = 0.015;
+          b.vx += Math.cos(wanderAngle) * wanderStrength;
+          b.vy += Math.sin(wanderAngle) * wanderStrength;
+
+          // Very gentle pull toward the canvas center — only kicks in when a
+          // bubble has drifted far from the middle, otherwise it's negligible.
           const cx = w / 2;
           const cy = h / 2;
           const toCenterX = cx - b.x;
           const toCenterY = cy - b.y;
           const distToCenter = Math.sqrt(toCenterX * toCenterX + toCenterY * toCenterY) || 1;
-          // Stronger pull when bubble is far from center, weaker when near
-          const pullStrength = 0.0015 * Math.min(distToCenter / 100, 1);
-          b.vx += toCenterX * pullStrength;
-          b.vy += toCenterY * pullStrength;
+          const safeRadius = Math.min(w, h) * 0.28;
+          if (distToCenter > safeRadius) {
+            const excess = (distToCenter - safeRadius) / safeRadius;
+            const pullStrength = 0.0008 * Math.min(excess, 1.5);
+            b.vx += (toCenterX / distToCenter) * pullStrength * distToCenter;
+            b.vy += (toCenterY / distToCenter) * pullStrength * distToCenter;
+          }
 
-          // Strong damping — settle quickly and stay still
-          b.vx *= 0.9;
-          b.vy *= 0.9;
+          // Light damping — preserves individual drift without runaway speed
+          b.vx *= 0.96;
+          b.vy *= 0.96;
 
-          // Speed cap (much lower than before)
+          // Soft speed cap so motion stays calm
           const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-          if (speed > 0.4) {
-            b.vx = (b.vx / speed) * 0.4;
-            b.vy = (b.vy / speed) * 0.4;
+          const maxSpeed = 0.6;
+          if (speed > maxSpeed) {
+            b.vx = (b.vx / speed) * maxSpeed;
+            b.vy = (b.vy / speed) * maxSpeed;
           }
 
           b.x += b.vx;
