@@ -53,6 +53,14 @@ const ANCHOR_HEIGHTS = [
   { height: 57352, label: 'May 7 last match' },
 ];
 
+// Verified reference hashes for heights cTAZ's API doesn't cover.
+// Source: community cross-checks (Zk_nd3r, OrchardGuardian) + CipherScan RPC.
+const KNOWN_REFERENCE_HASHES = {
+  54777: '00ca9de28f9833038781a91c27a6a61870a46fd54632f4d4b49e454c6c956113',
+  57298: '0002b61601c22263ee80c3c8c15c8aea2cfb9e585d6729359d885bdd1caa0ba5',
+  57352: '00fca2639b6bda9466e425e05fdde428038133e5aee06381900c45771af6fc5c',
+};
+
 function normalizeHash(hash) {
   return typeof hash === 'string' && /^[a-f0-9]{64}$/i.test(hash)
     ? hash.toLowerCase()
@@ -827,9 +835,9 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
       await callZebraRPC('getblockhash', [tipHeight]).catch(() => null)
     );
 
-    // Build cTAZ reference from their API
+    // Build cTAZ reference from their API, with verified fallbacks
     let ctazRef = null;
-    let ctazAnchors = {};
+    let ctazAnchors = { ...KNOWN_REFERENCE_HASHES };
     if (ctaz && ctaz.reference) {
       ctazRef = {
         tip: ctaz.reference.tip,
@@ -964,7 +972,7 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
     }
 
     const ctaz = await fetchCtazForkMap(redisClient);
-    const ctazAnchors = {};
+    const ctazAnchors = { ...KNOWN_REFERENCE_HASHES };
     if (ctaz && Array.isArray(ctaz.anchors)) {
       for (const a of ctaz.anchors) {
         ctazAnchors[a.height] = normalizeHash(a.observed_hash || a.expected_hash);
