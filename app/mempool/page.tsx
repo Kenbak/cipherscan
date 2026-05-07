@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { MempoolBubbles } from '@/components/MempoolBubbles';
 
@@ -19,6 +19,10 @@ interface MempoolTransaction {
   vShieldedSpend: number;
   vShieldedOutput: number;
   orchardActions?: number;
+  totalOutput?: number;
+  valueBalanceSapling?: number;
+  valueBalanceOrchard?: number;
+  version?: number;
 }
 
 interface MempoolStats {
@@ -41,7 +45,7 @@ export default function MempoolPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [showTable, setShowTable] = useState(false);
+  const [showTable, setShowTable] = useState(true);
   const usePostgresApi = usePostgresApiClient();
 
   const fetchMempool = async () => {
@@ -84,6 +88,7 @@ export default function MempoolPage() {
           vShieldedSpend: 0,
           vShieldedOutput: 0,
           orchardActions: 0,
+          totalOutput: msg.data.totalOutput,
         };
         const txs = [newTx, ...prev.transactions.filter(t => t.txid !== msg.data.txid)];
         return { ...prev, transactions: txs, count: prev.count + 1, showing: txs.length };
@@ -212,7 +217,7 @@ export default function MempoolPage() {
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <div className="mb-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <Card className="overflow-hidden">
           <CardBody className="!p-0">
             <MempoolBubbles
@@ -223,87 +228,125 @@ export default function MempoolPage() {
         </Card>
       </div>
 
-      {/* Transaction Table - Collapsible */}
+      {/* Caption explaining the visualization */}
+      <div className="mb-8 flex items-start gap-2 text-xs text-muted px-1">
+        <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="10" />
+          <path strokeLinecap="round" d="M12 16v-4M12 8h.01" />
+        </svg>
+        <p className="leading-relaxed">
+          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-cyan font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open.
+        </p>
+      </div>
+
+      {/* Transaction Table */}
       {data && data.count > 0 && (
         <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-          <button
-            onClick={() => setShowTable(!showTable)}
-            className="flex items-center gap-2 mb-4 text-sm text-secondary hover:text-primary transition-colors font-mono"
-          >
-            <svg
-              className={`w-4 h-4 transition-transform ${showTable ? 'rotate-90' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {/* Section header */}
+          <div className="flex items-center justify-between mb-4 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+              <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">PENDING_TRANSACTIONS</h3>
+              <Badge color="cyan">{data.showing} of {data.count}</Badge>
+            </div>
+            <button
+              onClick={() => setShowTable(!showTable)}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors font-mono"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {showTable ? 'Hide' : 'Show'} Transaction Table
-            <Badge color="cyan">{data.showing} of {data.count}</Badge>
-          </button>
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showTable ? 'rotate-90' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              {showTable ? 'Hide' : 'Show'}
+            </button>
+          </div>
 
           {showTable && (
-            <Card>
-              <CardBody>
-                <div className="overflow-x-auto -mx-6">
-                  <table className="w-full min-w-[800px]">
-                    <thead>
-                      <tr className="border-b border-cipher-border">
-                        <th className="text-left py-3 px-6 text-xs font-medium text-muted uppercase tracking-wide">Type</th>
-                        <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wide">Transaction Hash</th>
-                        <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wide">Inputs</th>
-                        <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wide">Outputs</th>
-                        <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wide">Size</th>
-                        <th className="text-left py-3 px-6 text-xs font-medium text-muted uppercase tracking-wide">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.transactions.map((tx) => (
-                        <tr key={tx.txid} className="border-b border-cipher-border hover:bg-cipher-hover/50 transition-colors">
-                          <td className="py-3 px-6">
+            <div className="card p-0 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Value</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Inputs</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Outputs</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.transactions.map((tx, i) => {
+                      const totalOut = tx.totalOutput ?? 0;
+                      return (
+                        <tr
+                          key={tx.txid}
+                          className="group transition-colors duration-100 hover:bg-[var(--color-hover)] animate-fade-in-up"
+                          style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
+                        >
+                          <td className="px-4 h-[44px] border-b border-cipher-border">
+                            <Link
+                              href={`/tx/${tx.txid}`}
+                              className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors truncate block max-w-[120px] sm:max-w-[180px]"
+                            >
+                              <span className="sm:hidden">{tx.txid.slice(0, 8)}...{tx.txid.slice(-4)}</span>
+                              <span className="hidden sm:inline">{tx.txid.slice(0, 12)}...{tx.txid.slice(-6)}</span>
+                            </Link>
+                          </td>
+                          <td className="px-4 h-[44px] border-b border-cipher-border">
                             <Badge color={getTypeBadgeColor(tx.type)}>
                               {tx.type.toUpperCase()}
                             </Badge>
                           </td>
-                          <td className="py-3 px-4">
-                            <Link
-                              href={`/tx/${tx.txid}`}
-                              className="font-mono text-sm text-cipher-cyan hover:text-cipher-cyan-glow transition-colors"
-                            >
-                              {tx.txid.slice(0, 8)}...{tx.txid.slice(-8)}
-                            </Link>
-                          </td>
-                          <td className="py-3 px-4 font-mono text-sm">
-                            {tx.orchardActions && tx.orchardActions > 0 ? (
-                              <span className="text-cipher-purple">{tx.orchardActions} Orchard</span>
-                            ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
-                              <span className="text-cipher-purple">{tx.vShieldedSpend} Sapling</span>
+                          <td className="px-4 h-[44px] border-b border-cipher-border text-right">
+                            {tx.type === 'shielded' ? (
+                              <span className="text-xs text-muted italic" title="Values are encrypted in fully shielded transactions">
+                                encrypted
+                              </span>
+                            ) : totalOut > 0 ? (
+                              <span className="font-mono text-xs text-primary">
+                                {totalOut.toFixed(4)}<span className="text-muted ml-1">ZEC</span>
+                              </span>
                             ) : (
-                              <span className="text-muted">{tx.vin} t-in</span>
+                              <span className="text-muted">—</span>
                             )}
                           </td>
-                          <td className="py-3 px-4 font-mono text-sm">
+                          <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
                             {tx.orchardActions && tx.orchardActions > 0 ? (
-                              <span className="text-cipher-purple">{tx.orchardActions} Orchard</span>
-                            ) : tx.type === 'shielded' || tx.type === 'mixed' ? (
-                              <span className="text-cipher-purple">{tx.vShieldedOutput} Sapling</span>
+                              <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
+                            ) : tx.vShieldedSpend > 0 ? (
+                              <span className="font-mono text-xs text-cipher-purple">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
-                              <span className="text-muted">{tx.vout} t-out</span>
+                              <span className="font-mono text-xs text-muted">{tx.vin}</span>
                             )}
                           </td>
-                          <td className="py-3 px-4 font-mono text-sm text-muted">
-                            {(tx.size / 1024).toFixed(2)} KB
+                          <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
+                            {tx.orchardActions && tx.orchardActions > 0 ? (
+                              <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
+                            ) : tx.vShieldedOutput > 0 ? (
+                              <span className="font-mono text-xs text-cipher-purple">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
+                            ) : (
+                              <span className="font-mono text-xs text-muted">{tx.vout}</span>
+                            )}
                           </td>
-                          <td className="py-3 px-6 text-sm text-muted">
-                            {formatRelativeTime(tx.time)}
+                          <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden sm:table-cell">
+                            <span className="font-mono text-xs text-muted">{(tx.size / 1024).toFixed(1)} KB</span>
+                          </td>
+                          <td className="px-4 h-[44px] border-b border-cipher-border text-right">
+                            <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(tx.time)}</span>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardBody>
-            </Card>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       )}

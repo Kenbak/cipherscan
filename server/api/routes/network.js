@@ -155,7 +155,14 @@ async function fetchNetworkStatsOptimized() {
     const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
     const difficultyNum = parseFloat(difficulty || 0);
     const networkHashrate = difficultyNum / avgBlockTime;
-    const hashrateInTH = (networkHashrate / 1e12).toFixed(2);
+
+    function formatHashrate(h) {
+      if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TH/s`;
+      if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
+      if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
+      if (h >= 1e3) return `${(h / 1e3).toFixed(2)} KH/s`;
+      return `${h.toFixed(2)} H/s`;
+    }
 
     // Calculate daily mining revenue
     const blockReward = 3.125; // Current ZEC block reward
@@ -164,7 +171,7 @@ async function fetchNetworkStatsOptimized() {
     return {
       success: true,
       mining: {
-        networkHashrate: `${hashrateInTH} TH/s`,
+        networkHashrate: formatHashrate(networkHashrate),
         networkHashrateRaw: networkHashrate,
         difficulty: difficultyNum,
         avgBlockTime, // in seconds

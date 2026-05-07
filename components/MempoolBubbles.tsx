@@ -42,26 +42,76 @@ interface MempoolBubblesProps {
   className?: string;
 }
 
-const COLORS = {
-  shielded: {
-    fill: 'rgba(167, 139, 250, 0.25)',
-    stroke: 'rgba(167, 139, 250, 0.7)',
-    glow: 'rgba(167, 139, 250, 0.12)',
-    pop: 'rgba(167, 139, 250, 0.5)',
-  },
-  mixed: {
-    fill: 'rgba(255, 107, 53, 0.2)',
-    stroke: 'rgba(255, 107, 53, 0.65)',
-    glow: 'rgba(255, 107, 53, 0.1)',
-    pop: 'rgba(255, 107, 53, 0.4)',
-  },
-  transparent: {
-    fill: 'rgba(0, 212, 255, 0.12)',
-    stroke: 'rgba(0, 212, 255, 0.4)',
-    glow: 'rgba(0, 212, 255, 0.06)',
-    pop: 'rgba(0, 212, 255, 0.3)',
-  },
+// Resolve theme-aware colors from CSS variables at runtime so bubbles
+// adapt to light/dark mode (brand colors differ between themes).
+function readThemeColors() {
+  if (typeof window === 'undefined') {
+    return {
+      cyan: '0 212 255',
+      purple: '167 139 250',
+      orange: '255 107 53',
+      isLight: false,
+      labelText: 'rgba(255, 255, 255, 0.95)',
+      labelShadow: 'rgba(0, 0, 0, 0.45)',
+    };
+  }
+  const root = getComputedStyle(document.documentElement);
+  const isLight = document.documentElement.classList.contains('light');
+  return {
+    cyan: root.getPropertyValue('--color-cyan-rgb').trim() || '0 212 255',
+    purple: root.getPropertyValue('--color-purple-rgb').trim() || '167 139 250',
+    orange: root.getPropertyValue('--color-orange-rgb').trim() || '255 107 53',
+    isLight,
+    labelText: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.92)',
+    labelShadow: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.45)',
+  };
+}
+
+type TypeColors = {
+  fill: string;
+  stroke: string;
+  glow: string;
+  pop: string;
+  label: string;
 };
+
+function buildColors(theme: ReturnType<typeof readThemeColors>): Record<'transparent' | 'mixed' | 'shielded', TypeColors> {
+  // In light mode bubbles need stronger fill/stroke alphas because the brand
+  // colors are darker and the canvas sits on a near-white surface.
+  const fillA = theme.isLight ? 0.42 : 0.32;
+  const strokeA = theme.isLight ? 0.95 : 0.85;
+  const glowA = theme.isLight ? 0.22 : 0.18;
+  const popA = theme.isLight ? 0.7 : 0.6;
+  return {
+    shielded: {
+      fill: `rgba(${theme.purple.replace(/ /g, ', ')}, ${fillA})`,
+      stroke: `rgba(${theme.purple.replace(/ /g, ', ')}, ${strokeA})`,
+      glow: `rgba(${theme.purple.replace(/ /g, ', ')}, ${glowA})`,
+      pop: `rgba(${theme.purple.replace(/ /g, ', ')}, ${popA})`,
+      label: theme.labelText,
+    },
+    mixed: {
+      fill: `rgba(${theme.orange.replace(/ /g, ', ')}, ${fillA - 0.04})`,
+      stroke: `rgba(${theme.orange.replace(/ /g, ', ')}, ${strokeA - 0.05})`,
+      glow: `rgba(${theme.orange.replace(/ /g, ', ')}, ${glowA - 0.02})`,
+      pop: `rgba(${theme.orange.replace(/ /g, ', ')}, ${popA - 0.1})`,
+      label: theme.labelText,
+    },
+    transparent: {
+      fill: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${fillA - 0.12})`,
+      stroke: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
+      glow: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${glowA - 0.06})`,
+      pop: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${popA - 0.15})`,
+      label: theme.labelText,
+    },
+  };
+}
+
+const TYPE_LABEL = {
+  transparent: 'T',
+  mixed: 'M',
+  shielded: 'S',
+} as const;
 
 function sizeToRadius(size: number): number {
   const minR = 10;
@@ -71,32 +121,6 @@ function sizeToRadius(size: number): number {
   return minR + Math.min(normalized / range, 1) * (maxR - minR);
 }
 
-function drawShieldIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const s = size * 0.5;
-  ctx.beginPath();
-  ctx.moveTo(x, y - s);
-  ctx.quadraticCurveTo(x + s * 0.9, y - s * 0.7, x + s, y - s * 0.2);
-  ctx.quadraticCurveTo(x + s * 0.85, y + s * 0.5, x, y + s);
-  ctx.quadraticCurveTo(x - s * 0.85, y + s * 0.5, x - s, y - s * 0.2);
-  ctx.quadraticCurveTo(x - s * 0.9, y - s * 0.7, x, y - s);
-  ctx.closePath();
-}
-
-function drawMixedIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const s = size * 0.3;
-  // Two arrows crossing
-  ctx.beginPath();
-  ctx.moveTo(x - s, y - s * 0.3);
-  ctx.lineTo(x + s, y - s * 0.3);
-  ctx.moveTo(x + s * 0.4, y - s * 0.8);
-  ctx.lineTo(x + s, y - s * 0.3);
-  ctx.lineTo(x + s * 0.4, y + s * 0.2);
-  ctx.moveTo(x + s, y + s * 0.3);
-  ctx.lineTo(x - s, y + s * 0.3);
-  ctx.moveTo(x - s * 0.4, y - s * 0.2);
-  ctx.lineTo(x - s, y + s * 0.3);
-  ctx.lineTo(x - s * 0.4, y + s * 0.8);
-}
 
 export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -105,9 +129,23 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
   const hoveredRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<number>(0);
+  const themeRef = useRef(readThemeColors());
+  const colorsRef = useRef(buildColors(themeRef.current));
   const [hoveredTx, setHoveredTx] = useState<MempoolTransaction | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const router = useRouter();
+
+  // Watch for theme changes (light/dark class on <html>)
+  useEffect(() => {
+    const refresh = () => {
+      themeRef.current = readThemeColors();
+      colorsRef.current = buildColors(themeRef.current);
+    };
+    refresh();
+    const observer = new MutationObserver(refresh);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Sync transactions to bubbles
   useEffect(() => {
@@ -129,17 +167,24 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       }
     }
 
-    // Add new bubbles with entrance animation
+    // Add new bubbles with entrance animation, drifting in from the edges toward the center
     for (const tx of transactions) {
       if (!existingIds.has(tx.txid)) {
         const targetRadius = sizeToRadius(tx.size);
-        const padding = targetRadius + 10;
+        const padding = targetRadius + 8;
+        // Spawn from a random edge so they "flow in" toward the center
+        const angle = Math.random() * Math.PI * 2;
+        const spawnRadius = Math.max(w, h) * 0.6;
+        const cx = w / 2;
+        const cy = h / 2;
+        const spawnX = cx + Math.cos(angle) * spawnRadius;
+        const spawnY = cy + Math.sin(angle) * spawnRadius;
         bubblesRef.current.push({
           id: tx.txid,
-          x: padding + Math.random() * Math.max(10, w - padding * 2),
-          y: padding + Math.random() * Math.max(10, h - padding * 2),
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: (Math.random() - 0.5) * 0.8,
+          x: Math.max(padding, Math.min(w - padding, spawnX)),
+          y: Math.max(padding, Math.min(h - padding, spawnY)),
+          vx: 0,
+          vy: 0,
           radius: 0,
           targetRadius,
           type: tx.type,
@@ -197,25 +242,37 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       timeRef.current += 1;
       const t = timeRef.current;
       const bubbles = bubblesRef.current;
+      const theme = themeRef.current;
+      const cyanRgb = theme.cyan.replace(/ /g, ', ');
+      const purpleRgb = theme.purple.replace(/ /g, ', ');
+      // In light mode, the canvas sits on a near-white surface; ambient effects
+      // use dark tints, grid lines use black, hex chars use brand cyan at low alpha.
+      const tintRgb = theme.isLight ? '15, 23, 42' : '255, 255, 255';
+      const gridLineAlpha = theme.isLight ? 0.03 : 0.02;
+      const gridDotAlpha = theme.isLight ? 0.06 : 0.04;
+      const hexCharAlpha = theme.isLight ? 0.07 : 0.04;
+      const ambientCyanAlpha = theme.isLight ? 0.05 : 0.03;
+      const ambientPurpleAlpha = theme.isLight ? 0.04 : 0.025;
+      const scanAlpha = theme.isLight ? 0.05 : 0.03;
 
-      // === BACKGROUND LAYER ===
+      // === BACKGROUND LAYER (cypherpunk vibe) ===
 
       // Radial gradient atmosphere (cyan/purple corners)
       const bgGrad1 = ctx.createRadialGradient(w * 0.15, h * 0.2, 0, w * 0.15, h * 0.2, w * 0.5);
-      bgGrad1.addColorStop(0, 'rgba(0, 212, 255, 0.03)');
+      bgGrad1.addColorStop(0, `rgba(${cyanRgb}, ${ambientCyanAlpha})`);
       bgGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = bgGrad1;
       ctx.fillRect(0, 0, w, h);
 
       const bgGrad2 = ctx.createRadialGradient(w * 0.85, h * 0.8, 0, w * 0.85, h * 0.8, w * 0.5);
-      bgGrad2.addColorStop(0, 'rgba(167, 139, 250, 0.025)');
+      bgGrad2.addColorStop(0, `rgba(${purpleRgb}, ${ambientPurpleAlpha})`);
       bgGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = bgGrad2;
       ctx.fillRect(0, 0, w, h);
 
       // Grid lines
       const gridSpacing = 50;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+      ctx.strokeStyle = `rgba(${tintRgb}, ${gridLineAlpha})`;
       ctx.lineWidth = 0.5;
       for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
         ctx.beginPath();
@@ -231,7 +288,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       }
 
       // Grid intersection dots
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.fillStyle = `rgba(${tintRgb}, ${gridDotAlpha})`;
       for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
         for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
           ctx.beginPath();
@@ -241,8 +298,8 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       }
 
       // Floating hex characters (faint, drifting slowly)
-      ctx.font = '10px monospace';
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.04)';
+      ctx.font = '10px ui-monospace, "SF Mono", Menlo, monospace';
+      ctx.fillStyle = `rgba(${cyanRgb}, ${hexCharAlpha})`;
       const hexChars = '0123456789abcdef';
       const seed = t * 0.3;
       for (let i = 0; i < 20; i++) {
@@ -256,33 +313,11 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       // Scan line
       const scanY = (t * 0.5) % (h + 40) - 20;
       const scanGrad = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 15);
-      scanGrad.addColorStop(0, 'rgba(0, 212, 255, 0)');
-      scanGrad.addColorStop(0.5, 'rgba(0, 212, 255, 0.03)');
-      scanGrad.addColorStop(1, 'rgba(0, 212, 255, 0)');
+      scanGrad.addColorStop(0, `rgba(${cyanRgb}, 0)`);
+      scanGrad.addColorStop(0.5, `rgba(${cyanRgb}, ${scanAlpha})`);
+      scanGrad.addColorStop(1, `rgba(${cyanRgb}, 0)`);
       ctx.fillStyle = scanGrad;
       ctx.fillRect(0, scanY - 15, w, 30);
-
-      // === CONNECTION LINES between nearby bubbles ===
-      const aliveBubbles = bubblesRef.current.filter(b => b.state === 'alive' || b.state === 'entering');
-      for (let i = 0; i < aliveBubbles.length; i++) {
-        for (let j = i + 1; j < aliveBubbles.length; j++) {
-          const a = aliveBubbles[i];
-          const b2 = aliveBubbles[j];
-          const dx = b2.x - a.x;
-          const dy = b2.y - a.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 160;
-          if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * 0.08 * Math.min(a.opacity, b2.opacity);
-            ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b2.x, b2.y);
-            ctx.stroke();
-          }
-        }
-      }
 
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
@@ -322,32 +357,32 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
         b.bobPhase += 0.008 + (i % 5) * 0.001; // Slightly different bob speed per bubble
 
         if (b.state !== 'popping') {
-          // Organic swimming motion — sine waves at different frequencies
-          const swimX = Math.sin(b.bobPhase) * 0.06 + Math.sin(b.bobPhase * 0.7 + 1.3) * 0.035;
-          const swimY = Math.cos(b.bobPhase * 0.9) * 0.05 + Math.cos(b.bobPhase * 0.5 + 2.1) * 0.04;
+          // Gentle pull toward the canvas center so bubbles cluster naturally
+          const cx = w / 2;
+          const cy = h / 2;
+          const toCenterX = cx - b.x;
+          const toCenterY = cy - b.y;
+          const distToCenter = Math.sqrt(toCenterX * toCenterX + toCenterY * toCenterY) || 1;
+          // Stronger pull when bubble is far from center, weaker when near
+          const pullStrength = 0.0015 * Math.min(distToCenter / 100, 1);
+          b.vx += toCenterX * pullStrength;
+          b.vy += toCenterY * pullStrength;
 
-          b.vx += swimX;
-          b.vy += swimY;
+          // Strong damping — settle quickly and stay still
+          b.vx *= 0.9;
+          b.vy *= 0.9;
 
-          // Random nudges
-          b.vx += (Math.random() - 0.5) * 0.015;
-          b.vy += (Math.random() - 0.5) * 0.015;
-
-          // Damping to keep speed reasonable
-          b.vx *= 0.97;
-          b.vy *= 0.97;
-
-          // Speed cap
+          // Speed cap (much lower than before)
           const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-          if (speed > 0.7) {
-            b.vx = (b.vx / speed) * 0.7;
-            b.vy = (b.vy / speed) * 0.7;
+          if (speed > 0.4) {
+            b.vx = (b.vx / speed) * 0.4;
+            b.vy = (b.vy / speed) * 0.4;
           }
 
           b.x += b.vx;
           b.y += b.vy;
 
-          // Soft wall repulsion (not hard bounce)
+          // Soft wall repulsion to keep bubbles inside
           const margin = b.radius + 4;
           if (b.x < margin) { b.vx += (margin - b.x) * 0.05; }
           if (b.x > w - margin) { b.vx -= (b.x - (w - margin)) * 0.05; }
@@ -393,7 +428,7 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
 
         // --- Drawing ---
         const isHovered = hoveredRef.current === b.id;
-        const colors = COLORS[b.type];
+        const colors = colorsRef.current[b.type];
         const glowPulse = 0.5 + 0.5 * Math.sin(b.phase);
         const breathe = 1 + Math.sin(b.phase * 1.3) * 0.015; // Subtle size breathing
 
@@ -431,10 +466,10 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
           ctx.globalAlpha = b.opacity;
         }
 
-        // Outer glow
+        // Outer glow (softer, more atmospheric)
         {
-          const glowR = drawRadius * (1.8 + glowPulse * 0.4);
-          const grad = ctx.createRadialGradient(b.x, b.y, drawRadius * 0.3, b.x, b.y, glowR);
+          const glowR = drawRadius * (1.6 + glowPulse * 0.25);
+          const grad = ctx.createRadialGradient(b.x, b.y, drawRadius * 0.4, b.x, b.y, glowR);
           grad.addColorStop(0, colors.glow);
           grad.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.fillStyle = grad;
@@ -443,55 +478,76 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
           ctx.fill();
         }
 
-        // Main bubble body
+        // Main bubble body — radial gradient for a glassy depth
         const bodyGrad = ctx.createRadialGradient(
-          b.x - drawRadius * 0.3, b.y - drawRadius * 0.3, 0,
+          b.x - drawRadius * 0.35, b.y - drawRadius * 0.35, 0,
           b.x, b.y, drawRadius
         );
-        bodyGrad.addColorStop(0, colors.fill.replace(/[\d.]+\)$/, `${parseFloat(colors.fill.match(/[\d.]+\)$/)?.[0] || '0.2') * 1.5})`));
-        bodyGrad.addColorStop(1, colors.fill);
+        const baseAlpha = parseFloat(colors.fill.match(/[\d.]+\)$/)?.[0] || '0.2');
+        bodyGrad.addColorStop(0, colors.fill.replace(/[\d.]+\)$/, `${baseAlpha * 1.8})`));
+        bodyGrad.addColorStop(0.7, colors.fill);
+        bodyGrad.addColorStop(1, colors.fill.replace(/[\d.]+\)$/, `${baseAlpha * 0.6})`));
         ctx.fillStyle = isHovered ? colors.stroke : bodyGrad;
         ctx.beginPath();
         ctx.arc(b.x, b.y, drawRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Border
+        // Border (refined — thinner default, prominent on hover)
         ctx.strokeStyle = colors.stroke;
-        ctx.lineWidth = isHovered ? 2 : 1;
+        ctx.lineWidth = isHovered ? 1.8 : 0.8;
         ctx.beginPath();
         ctx.arc(b.x, b.y, drawRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Specular highlight (glass effect)
+        // Specular highlight (subtle glass shine — top-left)
+        // In light mode the white sheen is barely visible; tone it down further.
         const specGrad = ctx.createRadialGradient(
-          b.x - drawRadius * 0.25, b.y - drawRadius * 0.3, 0,
-          b.x - drawRadius * 0.1, b.y - drawRadius * 0.1, drawRadius * 0.6
+          b.x - drawRadius * 0.4, b.y - drawRadius * 0.45, 0,
+          b.x - drawRadius * 0.2, b.y - drawRadius * 0.25, drawRadius * 0.7
         );
-        specGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+        const specStart = theme.isLight ? 0.28 : 0.18;
+        const specMid = theme.isLight ? 0.08 : 0.05;
+        specGrad.addColorStop(0, `rgba(255,255,255,${specStart})`);
+        specGrad.addColorStop(0.4, `rgba(255,255,255,${specMid})`);
         specGrad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = specGrad;
         ctx.beginPath();
         ctx.arc(b.x, b.y, drawRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Icon inside — only for bigger bubbles
-        if (drawRadius > 14 && b.state !== 'popping') {
-          ctx.globalAlpha = b.opacity * (0.35 + glowPulse * 0.15);
-          if (b.type === 'shielded') {
-            // Draw shield path
-            ctx.strokeStyle = colors.stroke;
-            ctx.lineWidth = 1.5;
-            drawShieldIcon(ctx, b.x, b.y, drawRadius * 0.7);
-            ctx.stroke();
-          } else if (b.type === 'mixed') {
-            // Draw crossing arrows
-            ctx.strokeStyle = colors.stroke;
-            ctx.lineWidth = 1.5;
-            ctx.lineCap = 'round';
-            drawMixedIcon(ctx, b.x, b.y, drawRadius * 0.7);
-            ctx.stroke();
-          }
+        // Bottom rim shadow for depth
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, drawRadius, 0, Math.PI * 2);
+        ctx.clip();
+        const rimGrad = ctx.createRadialGradient(
+          b.x, b.y + drawRadius * 0.5, 0,
+          b.x, b.y + drawRadius * 0.5, drawRadius
+        );
+        const rimAlpha = theme.isLight ? 0.18 : 0.15;
+        rimGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        rimGrad.addColorStop(1, `rgba(0,0,0,${rimAlpha})`);
+        ctx.fillStyle = rimGrad;
+        ctx.fillRect(b.x - drawRadius, b.y - drawRadius, drawRadius * 2, drawRadius * 2);
+        ctx.restore();
+
+        // Type letter inside — only for medium-large bubbles
+        if (drawRadius > 13 && b.state !== 'popping') {
+          const letter = TYPE_LABEL[b.type];
+          const fontSize = Math.max(11, Math.min(drawRadius * 0.7, 22));
+          ctx.font = `600 ${fontSize}px ui-monospace, "SF Mono", Menlo, monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          // Soft drop shadow for legibility on lighter bubbles
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.globalAlpha = b.opacity * 0.6;
+          ctx.fillText(letter, b.x, b.y + 1);
+          // Letter
+          ctx.fillStyle = colors.label;
           ctx.globalAlpha = b.opacity;
+          ctx.fillText(letter, b.x, b.y);
+          ctx.textAlign = 'start';
+          ctx.textBaseline = 'alphabetic';
         }
 
         // Hover ring
@@ -539,12 +595,6 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
     if (found) {
       hoveredRef.current = found.id;
       canvas.style.cursor = 'pointer';
-      // Give the hovered bubble a tiny push away from cursor
-      const dx = found.x - mx;
-      const dy = found.y - my;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      found.vx += (dx / dist) * 0.15;
-      found.vy += (dy / dist) * 0.15;
 
       const tx = transactions.find(t => t.txid === found!.id);
       if (tx) {
@@ -604,7 +654,10 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
       </div>
 
       {/* Top-right timestamp */}
-      <div className="absolute top-4 right-6 font-mono text-[9px] text-white/15 tracking-wider pointer-events-none select-none">
+      <div
+        className="absolute top-4 right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none"
+        style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}
+      >
         {new Date().toISOString().slice(11, 19)} UTC
       </div>
 
@@ -617,53 +670,67 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
             top: Math.max(8, tooltipPos.y - 90),
           }}
         >
-          <div className="bg-[#14161F]/95 backdrop-blur-sm border border-cipher-cyan/15 rounded-lg px-3 py-2 shadow-xl text-xs min-w-[200px]">
-            <div className="font-mono text-cipher-cyan mb-1 truncate text-[10px]">
+          <div
+            className="rounded-lg px-3 py-2 shadow-xl text-xs min-w-[210px] border"
+            style={{
+              background: 'var(--color-surface-solid)',
+              borderColor: 'var(--color-border)',
+            }}
+          >
+            <div className="font-mono text-cipher-cyan mb-1.5 truncate text-[10px] tracking-wider">
               &gt; {hoveredTx.txid.slice(0, 16)}...{hoveredTx.txid.slice(-8)}
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted">Type</span>
-              <span className={
-                hoveredTx.type === 'shielded' ? 'text-cipher-purple' :
-                hoveredTx.type === 'mixed' ? 'text-cipher-orange' :
-                'text-cipher-cyan'
-              }>
-                {hoveredTx.type.toUpperCase()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted">Size</span>
-              <span className="text-primary font-mono">{(hoveredTx.size / 1024).toFixed(2)} KB</span>
-            </div>
-            {hoveredTx.orchardActions ? (
+            <div className="space-y-0.5">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-muted">Orchard</span>
-                <span className="text-cipher-purple font-mono">{hoveredTx.orchardActions} actions</span>
+                <span className="text-muted">Type</span>
+                <span className={
+                  hoveredTx.type === 'shielded' ? 'text-cipher-purple font-mono' :
+                  hoveredTx.type === 'mixed' ? 'text-cipher-orange font-mono' :
+                  'text-cipher-cyan font-mono'
+                }>
+                  {hoveredTx.type.toUpperCase()}
+                </span>
               </div>
-            ) : hoveredTx.vShieldedSpend > 0 || hoveredTx.vShieldedOutput > 0 ? (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-muted">Sapling</span>
-                <span className="text-cipher-purple font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
+                <span className="text-muted">Size</span>
+                <span className="text-primary font-mono">{(hoveredTx.size / 1024).toFixed(2)} KB</span>
               </div>
-            ) : null}
-            <div className="text-[10px] text-muted mt-1 border-t border-white/5 pt-1">Click to view transaction</div>
+              {hoveredTx.orchardActions ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted">Orchard</span>
+                  <span className="text-cipher-purple font-mono">{hoveredTx.orchardActions} actions</span>
+                </div>
+              ) : hoveredTx.vShieldedSpend > 0 || hoveredTx.vShieldedOutput > 0 ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted">Sapling</span>
+                  <span className="text-cipher-purple font-mono">{hoveredTx.vShieldedSpend}s → {hoveredTx.vShieldedOutput}o</span>
+                </div>
+              ) : null}
+            </div>
+            <div className="text-[10px] text-muted mt-1.5 pt-1.5 border-t border-cipher-border">Click to view transaction</div>
           </div>
         </div>
       )}
 
       {/* Legend */}
-      <div className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-muted font-mono bg-[#14161F]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/5">
+      <div
+        className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
+        style={{
+          background: 'var(--color-surface)',
+          borderColor: 'var(--color-border)',
+        }}
+      >
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/60 border border-cipher-purple/80" />
-          <span>Shielded</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/40 border border-cipher-cyan/70" />
+          <span>T · Transparent</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
-          <span>Mixed</span>
+          <span>M · Mixed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/30 border border-cipher-cyan/50" />
-          <span>Transparent</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/50 border border-cipher-purple/80" />
+          <span>S · Shielded</span>
         </div>
       </div>
 
@@ -675,7 +742,12 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>
-            <p className="text-white/10 font-mono text-[10px] mt-1">awaiting pending transactions</p>
+            <p
+              className="font-mono text-[10px] mt-1"
+              style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}
+            >
+              awaiting pending transactions
+            </p>
           </div>
         </div>
       )}

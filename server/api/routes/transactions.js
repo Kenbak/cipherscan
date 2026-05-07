@@ -809,6 +809,13 @@ router.get('/api/mempool', async (req, res) => {
           // Calculate size
           const size = tx.hex ? tx.hex.length / 2 : 0;
 
+          // Sum transparent output value (shielded values are encrypted)
+          const totalOutput = (tx.vout || []).reduce((sum, o) => sum + (o.value || 0), 0);
+
+          // Sapling/Orchard value balance — tells us net flow into/out of shielded pool
+          const valueBalanceSapling = tx.valueBalance ?? 0;
+          const valueBalanceOrchard = tx.orchard?.valueBalance ?? 0;
+
           return {
             txid: tx.txid,
             size,
@@ -819,6 +826,10 @@ router.get('/api/mempool', async (req, res) => {
             vShieldedSpend: tx.vShieldedSpend?.length || 0,
             vShieldedOutput: tx.vShieldedOutput?.length || 0,
             orchardActions: tx.orchard?.actions?.length || 0,
+            totalOutput,
+            valueBalanceSapling,
+            valueBalanceOrchard,
+            version: tx.version,
           };
         } catch (error) {
           console.error(`Error fetching tx ${txid}:`, error.message);
