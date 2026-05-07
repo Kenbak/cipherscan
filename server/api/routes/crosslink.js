@@ -46,10 +46,11 @@ const reportTimestamps = new Map();
 const ANCHOR_HEIGHTS = [
   { height: 19138, label: 'BFT finalized' },
   { height: 37657, label: 'fixed branch check' },
-  { height: 39573, label: 'pre-split marker' },
   { height: 39574, label: 'split marker' },
-  { height: 40665, label: 'CipherScan indexed match' },
-  { height: 41898, label: 'May 2 tip split marker' },
+  { height: 41898, label: 'May 2 split' },
+  { height: 54777, label: 'OG fork point' },
+  { height: 57298, label: 'Roman drift' },
+  { height: 57352, label: 'May 7 last match' },
 ];
 
 function normalizeHash(hash) {
