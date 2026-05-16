@@ -179,6 +179,9 @@ function computeStakingDay(tipHeight) {
   };
 }
 
+// In-flight dedup for the heavy /api/crosslink endpoint
+let crosslinkInflight = null;
+
 router.get('/api/crosslink', async (req, res) => {
   try {
     // Check cache
@@ -191,6 +194,14 @@ router.get('/api/crosslink', async (req, res) => {
       } catch (e) { /* ignore cache miss */ }
     }
 
+    // Dedup: if another request is already fetching, wait for it
+    if (crosslinkInflight) {
+      const result = await crosslinkInflight;
+      return res.json(result);
+    }
+
+    crosslinkInflight = (async () => {
+
     const [tipHeight, finalityInfo, roster, peerInfo] = await Promise.all([
       callZebraRPC('getblockcount').catch(() => null),
       callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
@@ -199,10 +210,7 @@ router.get('/api/crosslink', async (req, res) => {
     ]);
 
     if (tipHeight === null) {
-      return res.status(503).json({
-        success: false,
-        error: 'Crosslink RPC unavailable',
-      });
+      return { success: false, error: 'Crosslink RPC unavailable', _status: 503 };
     }
 
     // Slow RPC (~5s) -- call sequentially after fast ones complete
@@ -282,8 +290,19 @@ router.get('/api/crosslink', async (req, res) => {
       } catch (e) { /* ignore cache write failure */ }
     }
 
-    res.json(result);
+    return result;
+    })();
+
+    try {
+      const result = await crosslinkInflight;
+      const status = result._status || 200;
+      delete result._status;
+      res.status(status).json(result);
+    } finally {
+      crosslinkInflight = null;
+    }
   } catch (error) {
+    crosslinkInflight = null;
     console.error('Crosslink stats error:', error);
     res.status(500).json({
       success: false,
