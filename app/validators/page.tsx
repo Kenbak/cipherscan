@@ -13,6 +13,18 @@ interface RosterMember {
   identity: string;
   stake_zats: number;
   stake_zec?: number;
+  voted?: boolean | null;
+  highest_round?: number | null;
+}
+
+interface LivenessData {
+  bftHeight: number | null;
+  bftRound: number | null;
+  onlineCount: number;
+  offlineCount: number;
+  onlineStakeZec: number;
+  offlineStakeZec: number;
+  onlinePercent: number;
 }
 
 interface ValidatorData {
@@ -21,6 +33,7 @@ interface ValidatorData {
   totalStakeZec: number;
   finalizedHeight: number;
   tipHeight: number;
+  liveness?: LivenessData;
 }
 
 export default function ValidatorsPage() {
@@ -44,6 +57,7 @@ export default function ValidatorsPage() {
         totalStakeZec: json.totalStakeZec || 0,
         finalizedHeight: json.finalizedHeight || 0,
         tipHeight: json.tipHeight || 0,
+        liveness: json.liveness || undefined,
       });
       setError(null);
 
@@ -116,6 +130,37 @@ export default function ValidatorsPage() {
         </div>
       )}
 
+      {data?.liveness && (
+        <div className="card p-4 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-mono text-muted uppercase tracking-wider">Finalizer Liveness</h3>
+            <span className="text-[10px] font-mono text-muted">
+              BFT height {data.liveness.bftHeight?.toLocaleString()} &middot; round {data.liveness.bftRound}
+            </span>
+          </div>
+          <div className="flex rounded-full overflow-hidden h-4 bg-cipher-border-alpha/30 mb-2">
+            <div
+              className="bg-emerald-500 transition-all duration-500"
+              style={{ width: `${data.liveness.onlinePercent}%` }}
+              title={`Online: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
+            />
+            <div
+              className="bg-red-500/60 transition-all duration-500"
+              style={{ width: `${100 - data.liveness.onlinePercent}%` }}
+              title={`Offline: ${data.liveness.offlineCount} finalizers (${data.liveness.offlineStakeZec.toFixed(2)} ${CURRENCY})`}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono">
+            <span className="text-emerald-400">
+              {data.liveness.onlineCount} voted ({data.liveness.onlinePercent}% stake)
+            </span>
+            <span className="text-red-400/80">
+              {data.liveness.offlineCount} silent
+            </span>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="card p-0 overflow-x-auto no-scrollbar">
           <table className="w-full min-w-[480px]">
@@ -180,6 +225,7 @@ export default function ValidatorsPage() {
               <thead>
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
+                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10">Live</th>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
@@ -204,7 +250,7 @@ export default function ValidatorsPage() {
                     return (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-4 py-8 text-center text-sm text-muted font-mono border-b border-cipher-border"
                         >
                           No finalizer matches &ldquo;{filter}&rdquo;
@@ -229,6 +275,15 @@ export default function ValidatorsPage() {
                     >
                       <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
+                      </td>
+                      <td className="px-2 h-[60px] border-b border-cipher-border text-center">
+                        {member.voted === true ? (
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" title="Voted at current height" />
+                        ) : member.voted === false ? (
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60" title="Silent" />
+                        ) : (
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-cipher-border-alpha/40" title="Unknown" />
+                        )}
                       </td>
                       <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
                         <div className="flex items-center gap-3 min-w-0">

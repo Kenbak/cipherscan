@@ -191,11 +191,12 @@ router.get('/api/crosslink', async (req, res) => {
       } catch (e) { /* ignore cache miss */ }
     }
 
-    const [tipHeight, finalityInfo, roster, peerInfo] = await Promise.all([
+    const [tipHeight, finalityInfo, roster, peerInfo, tflRecency] = await Promise.all([
       callZebraRPC('getblockcount').catch(() => null),
       callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
       callZebraRPC('get_tfl_roster_zats').catch(() => []),
       callZebraRPC('getpeerinfo').catch(() => []),
+      callZebraRPC('get_tfl_recency_status').catch(() => null),
     ]);
 
     if (tipHeight === null) {
@@ -216,6 +217,38 @@ router.get('/api/crosslink', async (req, res) => {
         }).sort((a, b) => b.stake_zats - a.stake_zats)
       : [];
 
+    // Merge TFL recency/liveness data into roster
+    const livenessMap = {};
+    let bftHeight = null;
+    let bftRound = null;
+    let onlineCount = 0;
+    let onlineStake = 0;
+    if (tflRecency && Array.isArray(tflRecency.finalizer_statuses)) {
+      bftHeight = tflRecency.my_height;
+      bftRound = tflRecency.my_round;
+      for (const [pk, status] of tflRecency.finalizer_statuses) {
+        const votes = status.no_yes_votes_in_my_height || [[0,0],[0,0]];
+        const prevoteYes = votes[0]?.[1] || 0;
+        const precommitYes = votes[1]?.[1] || 0;
+        const voted = prevoteYes > 0 || precommitYes > 0;
+        livenessMap[pk] = {
+          voted,
+          highest_round: status.highest_round_vote || 0,
+          prevote: { no: votes[0]?.[0] || 0, yes: prevoteYes },
+          precommit: { no: votes[1]?.[0] || 0, yes: precommitYes },
+        };
+      }
+    }
+    for (const f of parsedRoster) {
+      const liveness = livenessMap[f.identity];
+      f.voted = liveness?.voted ?? null;
+      f.highest_round = liveness?.highest_round ?? null;
+      if (f.voted) {
+        onlineCount++;
+        onlineStake += f.stake_zats;
+      }
+    }
+
     const totalStakeZats = parsedRoster.reduce((sum, m) => sum + m.stake_zats, 0);
     const finalizedHeight = finalityInfo?.height ?? finalityInfo?.[0] ?? 0;
 
@@ -231,6 +264,15 @@ router.get('/api/crosslink', async (req, res) => {
       totalStakeZec: totalStakeZats / 1e8,
       peerCount,
       stakingDay: computeStakingDay(tipHeight),
+      liveness: {
+        bftHeight: bftHeight,
+        bftRound: bftRound,
+        onlineCount,
+        offlineCount: parsedRoster.length - onlineCount,
+        onlineStakeZec: onlineStake / 1e8,
+        offlineStakeZec: (totalStakeZats - onlineStake) / 1e8,
+        onlinePercent: totalStakeZats > 0 ? Math.round((onlineStake / totalStakeZats) * 100) : 0,
+      },
       roster: parsedRoster,
     };
 
