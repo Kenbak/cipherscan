@@ -209,46 +209,41 @@ router.get('/api/crosslink', async (req, res) => {
     const tflRecency = await callZebraRPC('get_tfl_recency_status', [], { timeout: 15000 }).catch(() => null);
 
     const parsedRoster = Array.isArray(roster)
-      ? roster.map((m) => {
+      ? roster.map((m, idx) => {
           const stakeZats = m.stake_zats ?? m.stake ?? m.voting_power ?? 0;
           return {
             identity: m.identity || m.pub_key || m.public_key || '',
             stake_zats: stakeZats,
             stake_zec: stakeZats / 1e8,
+            _rosterIdx: idx,
           };
         }).sort((a, b) => b.stake_zats - a.stake_zats)
       : [];
 
-    // Merge TFL recency/liveness data into roster
-    const livenessMap = {};
-    let bftHeight = null;
-    let bftRound = null;
+    // Positional match: roster[i] corresponds to recency.finalizer_statuses[i]
+    const statuses = tflRecency?.finalizer_statuses || [];
+    let bftHeight = tflRecency?.my_height ?? null;
+    let bftRound = tflRecency?.my_round ?? null;
     let onlineCount = 0;
     let onlineStake = 0;
-    if (tflRecency && Array.isArray(tflRecency.finalizer_statuses)) {
-      bftHeight = tflRecency.my_height;
-      bftRound = tflRecency.my_round;
-      for (const [pk, status] of tflRecency.finalizer_statuses) {
+    for (const f of parsedRoster) {
+      const entry = statuses[f._rosterIdx];
+      if (entry) {
+        const [, status] = entry;
         const votes = status.no_yes_votes_in_my_height || [[0,0],[0,0]];
         const prevoteYes = votes[0]?.[1] || 0;
         const precommitYes = votes[1]?.[1] || 0;
-        const voted = prevoteYes > 0 || precommitYes > 0;
-        livenessMap[pk] = {
-          voted,
-          highest_round: status.highest_round_vote || 0,
-          prevote: { no: votes[0]?.[0] || 0, yes: prevoteYes },
-          precommit: { no: votes[1]?.[0] || 0, yes: precommitYes },
-        };
+        f.voted = prevoteYes > 0 || precommitYes > 0;
+        f.highest_round = status.highest_round_vote || 0;
+      } else {
+        f.voted = null;
+        f.highest_round = null;
       }
-    }
-    for (const f of parsedRoster) {
-      const liveness = livenessMap[f.identity];
-      f.voted = liveness?.voted ?? null;
-      f.highest_round = liveness?.highest_round ?? null;
       if (f.voted) {
         onlineCount++;
         onlineStake += f.stake_zats;
       }
+      delete f._rosterIdx;
     }
 
     const totalStakeZats = parsedRoster.reduce((sum, m) => sum + m.stake_zats, 0);
