@@ -18,7 +18,7 @@ router.use((req, res, next) => {
 });
 
 const CROSSLINK_CACHE_KEY = 'crosslink:stats';
-const CROSSLINK_CACHE_DURATION = 10; // 10 seconds
+const CROSSLINK_CACHE_DURATION = 30; // 30 seconds (includes slow recency RPC)
 
 // ---------------------------------------------------------------------------
 // Fork Monitor — in-memory node registry
@@ -191,12 +191,11 @@ router.get('/api/crosslink', async (req, res) => {
       } catch (e) { /* ignore cache miss */ }
     }
 
-    const [tipHeight, finalityInfo, roster, peerInfo, tflRecency] = await Promise.all([
+    const [tipHeight, finalityInfo, roster, peerInfo] = await Promise.all([
       callZebraRPC('getblockcount').catch(() => null),
       callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
       callZebraRPC('get_tfl_roster_zats').catch(() => []),
       callZebraRPC('getpeerinfo').catch(() => []),
-      callZebraRPC('get_tfl_recency_status').catch(() => null),
     ]);
 
     if (tipHeight === null) {
@@ -205,6 +204,9 @@ router.get('/api/crosslink', async (req, res) => {
         error: 'Crosslink RPC unavailable',
       });
     }
+
+    // Slow RPC (~5s) -- call sequentially after fast ones complete
+    const tflRecency = await callZebraRPC('get_tfl_recency_status', [], { timeout: 15000 }).catch(() => null);
 
     const parsedRoster = Array.isArray(roster)
       ? roster.map((m) => {

@@ -164,7 +164,7 @@ function getZebraAuth() {
   return _zebraAuth;
 }
 
-async function callZebraRPC(method, params = []) {
+async function callZebraRPC(method, params = [], { timeout = 8000 } = {}) {
   const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
   const auth = getZebraAuth();
 
@@ -184,7 +184,7 @@ async function callZebraRPC(method, params = []) {
         path: url.pathname,
         method: 'POST',
         agent: zebraAgent,
-        timeout: 8000,
+        timeout: timeout,
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(requestBody),
