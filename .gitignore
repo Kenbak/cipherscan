@@ -57,3 +57,7 @@ app/test-wasm/
 
 # local tooling
 rust-indexer/
+
+# Cursor IDE
+.cursor/
+.agents/

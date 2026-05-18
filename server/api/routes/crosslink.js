@@ -181,10 +181,12 @@ function computeStakingDay(tipHeight) {
 
 // In-flight dedup for the heavy /api/crosslink endpoint
 let crosslinkInflight = null;
+const CROSSLINK_FALLBACK_KEY = 'crosslink:stats:lastgood';
+const CROSSLINK_FALLBACK_TTL = 600; // 10 minutes fallback
 
 router.get('/api/crosslink', async (req, res) => {
   try {
-    // Check cache
+    // Check fresh cache
     if (redisClient && redisClient.isOpen) {
       try {
         const cached = await redisClient.get(CROSSLINK_CACHE_KEY);
@@ -202,19 +204,17 @@ router.get('/api/crosslink', async (req, res) => {
 
     crosslinkInflight = (async () => {
 
-    const [tipHeight, finalityInfo, roster, peerInfo] = await Promise.all([
-      callZebraRPC('getblockcount').catch(() => null),
-      callZebraRPC('get_tfl_final_block_height_and_hash').catch(() => null),
-      callZebraRPC('get_tfl_roster_zats').catch(() => []),
-      callZebraRPC('getpeerinfo').catch(() => []),
-    ]);
-
+    // Fast RPCs sequentially -- zebrad is single-threaded for RPC under load
+    const tipHeight = await callZebraRPC('getblockcount', [], { timeout: 12000 }).catch(() => null);
     if (tipHeight === null) {
-      return { success: false, error: 'Crosslink RPC unavailable', _status: 503 };
+      return { success: false, error: 'Crosslink RPC unavailable', _status: 503, _degraded: true };
     }
+    const finalityInfo = await callZebraRPC('get_tfl_final_block_height_and_hash', [], { timeout: 12000 }).catch(() => null);
+    const roster = await callZebraRPC('get_tfl_roster_zats', [], { timeout: 12000 }).catch(() => []);
+    const peerInfo = await callZebraRPC('getpeerinfo', [], { timeout: 12000 }).catch(() => []);
 
     // Slow RPC (~5s) -- call sequentially after fast ones complete
-    const tflRecency = await callZebraRPC('get_tfl_recency_status', [], { timeout: 15000 }).catch(() => null);
+    const tflRecency = await callZebraRPC('get_tfl_recency_status', [], { timeout: 20000 }).catch(() => null);
 
     const parsedRoster = Array.isArray(roster)
       ? roster.map((m, idx) => {
