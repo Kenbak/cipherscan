@@ -33,8 +33,6 @@ export default function FaucetClient() {
   // STUB: status will come from /api/faucet/status once backend lands
   const stubStatus = {
     balanceTAZ: 812.4,
-    lastDripTxid: '4f3b9c129a87d10e4d3fa1b2c5e6f0d2e8a9b3c4d5e6f708192a3b4c5d6e7f80a',
-    lastDripAgoMin: 2,
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -88,36 +86,18 @@ export default function FaucetClient() {
           </p>
         </div>
 
-        <div className="hidden sm:flex flex-col items-end gap-1 text-right font-mono text-[11px] text-muted flex-shrink-0">
-          <div>
-            balance{' '}
-            <span className="text-cipher-green">{stubStatus.balanceTAZ.toFixed(1)} TAZ</span>
-          </div>
-          <div>
-            last drip{' '}
-            <Link
-              href={`/tx/${stubStatus.lastDripTxid}`}
-              className="text-cipher-cyan hover:underline"
-            >
-              {stubStatus.lastDripTxid.slice(0, 8)}…
-            </Link>{' '}
-            · {stubStatus.lastDripAgoMin}m ago
-          </div>
+        <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
+          balance{' '}
+          <span className="text-cipher-green ml-1.5">
+            {stubStatus.balanceTAZ.toFixed(1)} TAZ
+          </span>
         </div>
       </div>
 
-      {/* Mobile status strip */}
-      <div className="sm:hidden font-mono text-[11px] text-muted flex justify-between">
-        <span>
-          balance{' '}
-          <span className="text-cipher-green">{stubStatus.balanceTAZ.toFixed(1)} TAZ</span>
-        </span>
-        <span>
-          last drip{' '}
-          <Link href={`/tx/${stubStatus.lastDripTxid}`} className="text-cipher-cyan">
-            {stubStatus.lastDripTxid.slice(0, 6)}…
-          </Link>
-        </span>
+      {/* Mobile balance */}
+      <div className="sm:hidden font-mono text-[11px] text-muted">
+        balance{' '}
+        <span className="text-cipher-green">{stubStatus.balanceTAZ.toFixed(1)} TAZ</span>
       </div>
 
       {/* Form / Result */}
@@ -302,9 +282,6 @@ export default function FaucetClient() {
         </CardBody>
       </Card>
 
-      <p className="text-[10px] font-mono text-muted/60 text-center">
-        ui preview · backend wiring next
-      </p>
     </div>
   );
 }
