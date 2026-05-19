@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/api-config';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 const FALLBACK_DISPENSE_TAZ = 0.5;
 // STUB: real address comes from env once wallet is provisioned
@@ -47,8 +50,11 @@ export default function FaucetClient() {
   const [copied, setCopied] = useState(false);
   const [addrCopied, setAddrCopied] = useState(false);
   const [status, setStatus] = useState<FaucetStatus | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
   const isDark = theme === 'dark';
+  const captchaRequired = !!TURNSTILE_SITE_KEY;
 
   const dispenseAmount = status?.dispenseAmountTaz ?? FALLBACK_DISPENSE_TAZ;
   const cooldownEnabled = (status?.cooldownSeconds ?? 0) > 0;
@@ -78,13 +84,17 @@ export default function FaucetClient() {
       setState({ kind: 'invalid' });
       return;
     }
+    if (captchaRequired && !captchaToken) {
+      setState({ kind: 'error', message: 'complete the captcha first' });
+      return;
+    }
     setState({ kind: 'submitting' });
 
     try {
       const res = await fetch(`${getApiUrl()}/api/faucet/dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: trimmed }),
+        body: JSON.stringify({ address: trimmed, captchaToken }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -92,6 +102,11 @@ export default function FaucetClient() {
         setState({ kind: 'success', txid: data.txid });
         return;
       }
+
+      // Any non-success response invalidates the captcha token — reset the widget
+      // so the user gets a fresh one for the next attempt.
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
 
       switch (data.error) {
         case 'invalid address':
@@ -116,6 +131,8 @@ export default function FaucetClient() {
           });
       }
     } catch (err) {
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
       setState({
         kind: 'error',
         message: err instanceof Error ? err.message : 'network error',
@@ -272,9 +289,30 @@ export default function FaucetClient() {
                 )}
               </div>
 
+              {captchaRequired && (
+                <div className="flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken(null)}
+                    onError={() => setCaptchaToken(null)}
+                    options={{
+                      theme: isDark ? 'dark' : 'light',
+                      size: 'normal',
+                    }}
+                  />
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting || !address.trim() || state.kind === 'drained'}
+                disabled={
+                  isSubmitting ||
+                  !address.trim() ||
+                  state.kind === 'drained' ||
+                  (captchaRequired && !captchaToken)
+                }
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
