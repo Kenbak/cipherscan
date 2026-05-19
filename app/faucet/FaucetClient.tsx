@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const DISPENSE_AMOUNT_TAZ = 0.5;
 const COOLDOWN_HOURS = 24;
+// STUB: real address comes from env once wallet is provisioned
+const FAUCET_DONATE_ADDRESS = 'tm9zNbDx7K2pVcRfYqWxJ8mE4hT3nL6Aoq5';
 
 type SubmitState =
   | { kind: 'idle' }
@@ -22,6 +26,9 @@ export default function FaucetClient() {
   const [address, setAddress] = useState('');
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
   const [copied, setCopied] = useState(false);
+  const [addrCopied, setAddrCopied] = useState(false);
+  const { theme, mounted: themeMounted } = useTheme();
+  const isDark = theme === 'dark';
 
   // STUB: status will come from /api/faucet/status once backend lands
   const stubStatus = {
@@ -56,6 +63,12 @@ export default function FaucetClient() {
     await navigator.clipboard.writeText(txid);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function copyDonateAddress() {
+    await navigator.clipboard.writeText(FAUCET_DONATE_ADDRESS);
+    setAddrCopied(true);
+    setTimeout(() => setAddrCopied(false), 2000);
   }
 
   const isSubmitting = state.kind === 'submitting';
@@ -238,6 +251,54 @@ export default function FaucetClient() {
             <li>· transparent (tm…) addresses only · shielded support coming</li>
             <li>· this is testnet ZEC — it has no monetary value, don&apos;t try</li>
           </ul>
+        </CardBody>
+      </Card>
+
+      {/* Donate card */}
+      <Card variant="glass">
+        <CardBody>
+          <h3 className="text-xs font-mono text-muted mb-3 uppercase tracking-widest">
+            <span className="opacity-50">{'>'}</span> SUPPORT_THE_FAUCET
+          </h3>
+          <p className="text-xs text-secondary mb-4">
+            Faucet running low? Send TAZ to keep it pouring.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            {/* QR */}
+            <div className="bg-white/95 dark:bg-black/40 border border-cipher-border rounded-md p-2 flex-shrink-0 self-center sm:self-start">
+              {themeMounted && (
+                <QRCodeSVG
+                  value={FAUCET_DONATE_ADDRESS}
+                  size={96}
+                  level="M"
+                  bgColor={isDark ? '#08090F' : '#F5F7FA'}
+                  fgColor="var(--color-cyan)"
+                />
+              )}
+            </div>
+
+            {/* Address + copy */}
+            <div className="flex-1 min-w-0 w-full">
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1.5">
+                <span className="opacity-50">{'>'}</span> ADDRESS
+              </div>
+              <div className="flex items-center gap-2 font-mono text-xs text-primary break-all">
+                <span>{FAUCET_DONATE_ADDRESS}</span>
+                <button
+                  type="button"
+                  onClick={copyDonateAddress}
+                  className="text-muted hover:text-cipher-cyan flex-shrink-0 font-mono"
+                  aria-label="Copy donate address"
+                >
+                  {addrCopied ? '✓' : '⎘'}
+                </button>
+              </div>
+              <p className="text-[10px] font-mono text-muted/70 mt-2">
+                transparent only · shielded donations coming
+              </p>
+            </div>
+          </div>
         </CardBody>
       </Card>
 
