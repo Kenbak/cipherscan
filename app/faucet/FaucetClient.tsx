@@ -1,22 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getApiUrl } from '@/lib/api-config';
 
-const DISPENSE_AMOUNT_TAZ = 0.5;
-const COOLDOWN_HOURS = 24;
+const FALLBACK_DISPENSE_TAZ = 0.5;
 // STUB: real address comes from env once wallet is provisioned
 const FAUCET_DONATE_ADDRESS = 'tm9zNbDx7K2pVcRfYqWxJ8mE4hT3nL6Aoq5';
+
+interface FaucetStatus {
+  balanceTaz: number;
+  dispenseAmountTaz: number;
+  cooldownSeconds: number;
+  captchaEnabled: boolean;
+}
 
 type SubmitState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
   | { kind: 'success'; txid: string }
-  | { kind: 'invalid' };
+  | { kind: 'invalid' }
+  | { kind: 'cooldown'; retryAfterSeconds: number }
+  | { kind: 'drained' }
+  | { kind: 'error'; message: string };
+
+function formatRetry(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.ceil(seconds / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
+}
 
 function isValidTestnetTransparentAddress(addr: string): boolean {
   return /^tm[a-zA-Z0-9]{32,40}$/.test(addr.trim());
@@ -27,13 +46,30 @@ export default function FaucetClient() {
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
   const [copied, setCopied] = useState(false);
   const [addrCopied, setAddrCopied] = useState(false);
+  const [status, setStatus] = useState<FaucetStatus | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
   const isDark = theme === 'dark';
 
-  // STUB: status will come from /api/faucet/status once backend lands
-  const stubStatus = {
-    balanceTAZ: 812.4,
-  };
+  const dispenseAmount = status?.dispenseAmountTaz ?? FALLBACK_DISPENSE_TAZ;
+  const cooldownEnabled = (status?.cooldownSeconds ?? 0) > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStatus() {
+      try {
+        const res = await fetch(`${getApiUrl()}/api/faucet/status`);
+        if (!res.ok) return;
+        const data: FaucetStatus = await res.json();
+        if (!cancelled) setStatus(data);
+      } catch {}
+    }
+    loadStatus();
+    const interval = setInterval(loadStatus, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,12 +79,48 @@ export default function FaucetClient() {
       return;
     }
     setState({ kind: 'submitting' });
-    // STUB: simulate a 1.5s dispense
-    await new Promise((r) => setTimeout(r, 1500));
-    setState({
-      kind: 'success',
-      txid: '4f3b9c129a87d10e4d3fa1b2c5e6f0d2e8a9b3c4d5e6f708192a3b4c5d6e7f80a',
-    });
+
+    try {
+      const res = await fetch(`${getApiUrl()}/api/faucet/dispense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.txid) {
+        setState({ kind: 'success', txid: data.txid });
+        return;
+      }
+
+      switch (data.error) {
+        case 'invalid address':
+          setState({ kind: 'invalid' });
+          break;
+        case 'cooldown':
+          setState({
+            kind: 'cooldown',
+            retryAfterSeconds: data.retryAfterSeconds ?? 86400,
+          });
+          break;
+        case 'drained':
+          setState({ kind: 'drained' });
+          break;
+        case 'captcha failed':
+          setState({ kind: 'error', message: 'captcha verification failed' });
+          break;
+        default:
+          setState({
+            kind: 'error',
+            message: data.error || data.detail || 'something broke, try again',
+          });
+      }
+    } catch (err) {
+      setState({
+        kind: 'error',
+        message: err instanceof Error ? err.message : 'network error',
+      });
+    }
   }
 
   function reset() {
@@ -82,14 +154,15 @@ export default function FaucetClient() {
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Get free testnet ZEC</h1>
           <p className="text-sm text-secondary mt-2">
-            {DISPENSE_AMOUNT_TAZ} TAZ per address, every {COOLDOWN_HOURS}h. Don&apos;t be a dick.
+            {dispenseAmount} TAZ per address
+            {cooldownEnabled && `, every ${formatRetry(status!.cooldownSeconds)}`}. Don&apos;t be a dick.
           </p>
         </div>
 
         <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
           balance{' '}
           <span className="text-cipher-green ml-1.5">
-            {stubStatus.balanceTAZ.toFixed(1)} TAZ
+            {status ? `${status.balanceTaz.toFixed(1)} TAZ` : '…'}
           </span>
         </div>
       </div>
@@ -97,7 +170,9 @@ export default function FaucetClient() {
       {/* Mobile balance */}
       <div className="sm:hidden font-mono text-[11px] text-muted">
         balance{' '}
-        <span className="text-cipher-green">{stubStatus.balanceTAZ.toFixed(1)} TAZ</span>
+        <span className="text-cipher-green">
+          {status ? `${status.balanceTaz.toFixed(1)} TAZ` : '…'}
+        </span>
       </div>
 
       {/* Form / Result */}
@@ -107,7 +182,7 @@ export default function FaucetClient() {
             <div className="flex items-center gap-2 mb-4">
               <Badge color="green">SENT</Badge>
               <span className="text-sm text-secondary">
-                {DISPENSE_AMOUNT_TAZ} TAZ dispatched to your address
+                {dispenseAmount} TAZ dispatched to your address
               </span>
             </div>
 
@@ -165,7 +240,9 @@ export default function FaucetClient() {
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value);
-                    if (state.kind === 'invalid') setState({ kind: 'idle' });
+                    if (state.kind !== 'idle' && state.kind !== 'submitting' && state.kind !== 'success') {
+                      setState({ kind: 'idle' });
+                    }
                   }}
                   placeholder="tm..."
                   spellCheck={false}
@@ -178,16 +255,26 @@ export default function FaucetClient() {
                     invalid testnet address — expected <span className="text-primary">tm…</span>
                   </p>
                 )}
-              </div>
-
-              {/* Captcha placeholder */}
-              <div className="border border-dashed border-cipher-border rounded-md p-4 flex items-center justify-center text-xs font-mono text-muted bg-black/20">
-                [ Turnstile widget · stub ]
+                {state.kind === 'cooldown' && (
+                  <p className="text-xs text-cipher-orange font-mono mt-2">
+                    cooldown active — try again in {formatRetry(state.retryAfterSeconds)}
+                  </p>
+                )}
+                {state.kind === 'drained' && (
+                  <p className="text-xs text-cipher-orange font-mono mt-2">
+                    faucet is dry — mining the next refill, check back later
+                  </p>
+                )}
+                {state.kind === 'error' && (
+                  <p className="text-xs text-cipher-orange font-mono mt-2">
+                    {state.message}
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmitting || !address.trim()}
+                disabled={isSubmitting || !address.trim() || state.kind === 'drained'}
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -207,11 +294,11 @@ export default function FaucetClient() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                       />
                     </svg>
-                    Sending {DISPENSE_AMOUNT_TAZ} TAZ…
+                    Sending {dispenseAmount} TAZ…
                   </>
                 ) : (
                   <>
-                    <span className="opacity-60">{'>'}</span> Send {DISPENSE_AMOUNT_TAZ} TAZ
+                    <span className="opacity-60">{'>'}</span> Send {dispenseAmount} TAZ
                   </>
                 )}
               </button>
@@ -227,7 +314,10 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> RULES_OF_ENGAGEMENT
           </h3>
           <ul className="space-y-2 text-xs text-secondary font-mono">
-            <li>· {DISPENSE_AMOUNT_TAZ} TAZ per testnet address, max one per {COOLDOWN_HOURS}h</li>
+            <li>
+              · {dispenseAmount} TAZ per testnet address
+              {cooldownEnabled && `, max one per ${formatRetry(status!.cooldownSeconds)}`}
+            </li>
             <li>· transparent (tm…) addresses only · shielded support coming</li>
             <li>· this is testnet ZEC — it has no monetary value, don&apos;t try</li>
           </ul>
