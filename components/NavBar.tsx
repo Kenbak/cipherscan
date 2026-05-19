@@ -8,7 +8,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
-import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
+import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, isTestnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
 import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 
 
@@ -321,7 +321,7 @@ export function NavBar() {
                   </div>
                 )}
 
-                {priceData && isMainnet && <div className="hidden lg:block w-px h-4 bg-gray-500/30" />}
+                {priceData && (isMainnet || isTestnet) && <div className="hidden lg:block w-px h-4 bg-gray-500/30" />}
 
                 {isMainnet && (
                   <Link
@@ -330,6 +330,16 @@ export function NavBar() {
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
+                  </Link>
+                )}
+
+                {isTestnet && (
+                  <Link
+                    href="/faucet"
+                    className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
+                  >
+                    <span className="text-cipher-yellow/50">&gt;</span>
+                    Get TAZ
                   </Link>
                 )}
               </div>
@@ -381,7 +391,7 @@ export function NavBar() {
                     </span>
                   </div>
                 )}
-                {priceData && isMainnet && <div className="w-px h-4 bg-gray-500/30" />}
+                {priceData && (isMainnet || isTestnet) && <div className="w-px h-4 bg-gray-500/30" />}
                 {isMainnet && (
                   <Link
                     href="/swap"
@@ -390,6 +400,16 @@ export function NavBar() {
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
+                  </Link>
+                )}
+                {isTestnet && (
+                  <Link
+                    href="/faucet"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow"
+                  >
+                    <span className="text-cipher-yellow/50">&gt;</span>
+                    Get TAZ
                   </Link>
                 )}
               </div>
