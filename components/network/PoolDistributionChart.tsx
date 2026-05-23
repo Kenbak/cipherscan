@@ -50,6 +50,15 @@ export function PoolDistributionChart() {
     shieldedPct: p.shieldedSupplyPct,
   }));
 
+  const breakdownPoints = chartData.filter(
+    (d) => d.orchard > 0 || d.sapling > 0 || d.transparent > 0
+  );
+  // Stacked pools only when most of the window has per-pool data (not just today)
+  const useStackedBreakdown =
+    hasBreakdown &&
+    breakdownPoints.length > 0 &&
+    breakdownPoints.length >= Math.max(7, Math.ceil(chartData.length * 0.25));
+
   const pctValues = chartData.map((d) => d.shieldedPct).filter((v): v is number => v != null && v > 0);
   const yMin = pctValues.length ? Math.max(0, Math.floor(Math.min(...pctValues) - 2)) : 0;
   const yMax = pctValues.length ? Math.ceil(Math.max(...pctValues) + 2) : 100;
@@ -78,7 +87,7 @@ export function PoolDistributionChart() {
         }
       >
         <ResponsiveContainer width="100%" height={320}>
-          {hasBreakdown && chartData.some((d) => d.orchard > 0 || d.sapling > 0) ? (
+          {useStackedBreakdown ? (
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis dataKey="dateLabel" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} interval="preserveStartEnd" />
@@ -108,8 +117,10 @@ export function PoolDistributionChart() {
         </ResponsiveContainer>
       </ChartCard>
       <p className="text-xs text-muted leading-relaxed -mt-2">
-        Share of all mined ZEC held in shielded pools (Sprout + Sapling + Orchard).
-        Not transaction volume — see the Privacy page for tx adoption.
+        {useStackedBreakdown
+          ? 'Daily ZEC in each value pool (Sprout, Sapling, Orchard, Transparent).'
+          : 'Share of all mined ZEC held in shielded pools (Sprout + Sapling + Orchard). Per-pool breakdown fills in as daily snapshots accumulate.'}
+        {' '}Not transaction volume — see the Privacy page for tx adoption.
       </p>
     </div>
   );
