@@ -47,7 +47,11 @@ interface NetworkStats {
     avgBlockTime: number;
     blocks24h: number;
     blockReward: number;
+    minerReward: number;
+    fundingStreams: number;
+    lockbox: number;
     dailyRevenue: number;
+    dailyMinerRevenue: number;
   };
   network: {
     peers: number;
@@ -450,7 +454,12 @@ export default function NetworkPage() {
             tooltip="Average time between blocks over the last 24 hours. Green means close to the 75s target."
           />
           <StatCard label="Blocks (24h)" value={stats.mining.blocks24h.toLocaleString()} tooltip="Number of blocks mined in the last 24 hours." />
-          <StatCard label="Block Reward" value={`${stats.mining.blockReward} ZEC`} tooltip="ZEC paid to miners for each new block." />
+          <StatCard
+            label="Block Reward"
+            value={`${stats.mining.blockReward} ZEC`}
+            subtitle={`Miner: ${stats.mining.minerReward} ZEC`}
+            tooltip={`Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams} ZEC, Lockbox: ${stats.mining.lockbox} ZEC.`}
+          />
           <StatCard
             label="TX/Block"
             value={(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}
@@ -461,7 +470,7 @@ export default function NetworkPage() {
             label="Daily Revenue"
             value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
             subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
-            tooltip="Total ZEC paid to miners in the last 24 hours (blocks × block reward)."
+            tooltip={`Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`}
           />
         </div>
       </div>

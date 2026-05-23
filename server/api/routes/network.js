@@ -101,10 +101,11 @@ async function fetchNetworkStatsOptimized() {
 
     const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
 
-    const [networkInfo, peerInfo, blockchainInfo] = await Promise.all([
+    const [networkInfo, peerInfo, blockchainInfo, blockSubsidy] = await Promise.all([
       callZebraRPC('getnetworkinfo').catch(() => null),
       callZebraRPC('getpeerinfo').catch(() => []),
       callZebraRPC('getblockchaininfo').catch(() => null),
+      callZebraRPC('getblocksubsidy').catch(() => null),
     ]);
 
     // Extract peer count and network details
@@ -164,9 +165,13 @@ async function fetchNetworkStatsOptimized() {
       return `${h.toFixed(2)} H/s`;
     }
 
-    // Calculate daily mining revenue
-    const blockReward = 3.125; // Current ZEC block reward
-    const dailyRevenue = blocks24h * blockReward;
+    // Block subsidy from Zebra RPC (dynamic, adjusts at halvings)
+    const totalBlockSubsidy = blockSubsidy?.totalblocksubsidy ?? 1.5625;
+    const minerReward = blockSubsidy?.miner ?? totalBlockSubsidy;
+    const fundingStreamsTotal = blockSubsidy?.fundingstreamstotal ?? 0;
+    const lockboxTotal = blockSubsidy?.lockboxtotal ?? 0;
+    const dailyRevenue = blocks24h * totalBlockSubsidy;
+    const dailyMinerRevenue = blocks24h * minerReward;
 
     return {
       success: true,
@@ -176,8 +181,12 @@ async function fetchNetworkStatsOptimized() {
         difficulty: difficultyNum,
         avgBlockTime, // in seconds
         blocks24h,
-        blockReward,
+        blockReward: totalBlockSubsidy,
+        minerReward,
+        fundingStreams: fundingStreamsTotal,
+        lockbox: lockboxTotal,
         dailyRevenue,
+        dailyMinerRevenue,
       },
       network: {
         peers: peerCount,

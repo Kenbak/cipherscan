@@ -336,8 +336,12 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         difficulty: 1.0,
         avgBlockTime: 75,
         blocks24h: 1152,
-        blockReward: 3.125,
-        dailyRevenue: 3600
+        blockReward: 1.5625,
+        minerReward: 1.25,
+        fundingStreams: 0.125,
+        lockbox: 0.1875,
+        dailyRevenue: 1800,
+        dailyMinerRevenue: 1440
       },
       network: {
         peers: 8,
