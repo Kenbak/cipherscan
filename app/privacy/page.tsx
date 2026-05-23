@@ -522,7 +522,8 @@ export default function PrivacyPage() {
 
               {/* Chart Content */}
               <div className="relative overflow-hidden rounded-lg">
-                <ChartWatermark />
+                <ChartWatermark variant="chart" />
+                <div className="relative z-[1]">
               {activeTab === 'adoption' && (
                 <ResponsiveContainer width="100%" height={350}>
                   <LineChart data={[...stats.trends.daily].reverse()}>
@@ -758,6 +759,7 @@ export default function PrivacyPage() {
                   </ResponsiveContainer>
                 </div>
               )}
+                </div>
               </div>
               </CardBody>
             </Card>

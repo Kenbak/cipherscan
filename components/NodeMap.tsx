@@ -309,7 +309,7 @@ export function NodeMap() {
 
       {/* Dot Matrix Map */}
       <div className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <ChartWatermark />
+        <ChartWatermark variant="map" />
         {/* Active filter indicator */}
         {selectedCountryData && (
           <button
@@ -326,7 +326,7 @@ export function NodeMap() {
 
         <svg
           viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-          className="w-full h-auto"
+          className="relative z-[1] w-full h-auto"
           style={{ maxHeight: '520px' }}
           onMouseLeave={() => setHoveredNode(null)}
         >

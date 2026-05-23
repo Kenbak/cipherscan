@@ -24,8 +24,8 @@ export function ChartCard({ title, children, controls, className = '', height = 
           {controls}
         </div>
         <div className="relative overflow-hidden rounded-lg" style={{ minHeight: height }}>
-          <ChartWatermark />
-          {children}
+          <ChartWatermark variant="chart" />
+          <div className="relative z-[1]">{children}</div>
         </div>
       </CardBody>
     </Card>
