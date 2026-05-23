@@ -32,6 +32,25 @@ function periodToInterval(period) {
   return map[period] || '90 days';
 }
 
+/** True when per-pool columns hold real chain-state history (not flat ratio estimates). */
+async function hasVerifiedPerPoolBreakdown(pool) {
+  const result = await pool.query(`
+    SELECT orchard_pool_size, pool_size
+    FROM privacy_trends_daily
+    WHERE orchard_pool_size > 0 AND pool_size > 0
+      AND date >= CURRENT_DATE - INTERVAL '365 days'
+  `);
+  if (result.rows.length < 7) return false;
+
+  const ratios = result.rows.map((r) => {
+    const orchard = Number(r.orchard_pool_size) || 0;
+    const shielded = Number(r.pool_size) || 0;
+    return shielded > 0 ? orchard / shielded : 0;
+  });
+
+  return Math.max(...ratios) - Math.min(...ratios) > 0.01;
+}
+
 /** Shielded supply % = shielded ZEC / total chain supply. Never use tx-adoption %. */
 function computeShieldedSupplyPct({ shieldedZat, chainSupplyZat, sproutZat, saplingZat, orchardZat, transparentZat }) {
   if (chainSupplyZat > 0 && shieldedZat > 0) {
@@ -333,19 +352,14 @@ function registerNetworkAnalyticsRoutes(router) {
         };
       });
 
-      const orchardRatios = points
-        .filter((p) => p.shielded > 0 && p.orchard > 0)
-        .map((p) => p.orchard / p.shielded);
-      const hasVerifiedPerPoolBreakdown =
-        orchardRatios.length >= 7 &&
-        Math.max(...orchardRatios) - Math.min(...orchardRatios) > 0.01;
+      const verifiedPerPool = hasPoolCols ? await hasVerifiedPerPoolBreakdown(pool) : false;
 
       res.json({
         success: true,
         period,
         points,
         hasPoolBreakdown: hasPoolCols,
-        hasVerifiedPerPoolBreakdown,
+        hasVerifiedPerPoolBreakdown: verifiedPerPool,
       });
     } catch (error) {
       console.error('❌ [POOL-HISTORY] Error:', error);

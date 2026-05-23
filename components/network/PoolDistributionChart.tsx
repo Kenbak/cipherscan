@@ -58,9 +58,11 @@ export function PoolDistributionChart() {
   const yMin = pctValues.length ? Math.max(0, Math.floor(Math.min(...pctValues) - 2)) : 0;
   const yMax = pctValues.length ? Math.ceil(Math.max(...pctValues) + 2) : 100;
 
+  const canShowPools = hasPerPoolHistory || points.some((p) => p.orchard > 0);
+
   const viewOptions: { key: View; label: string }[] = [
     { key: 'composition', label: 'ZEC' },
-    ...(hasPerPoolHistory ? [{ key: 'pools' as View, label: 'Pools' }] : []),
+    ...(canShowPools ? [{ key: 'pools' as View, label: 'Pools' }] : []),
     { key: 'share', label: '%' },
   ];
 
@@ -102,7 +104,7 @@ export function PoolDistributionChart() {
         }
       >
         <ResponsiveContainer width="100%" height={320}>
-          {view === 'pools' && hasPerPoolHistory ? (
+          {view === 'pools' && canShowPools ? (
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis dataKey="dateLabel" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} interval="preserveStartEnd" />
