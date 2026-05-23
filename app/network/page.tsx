@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Tooltip } from '@/components/Tooltip';
 import { isCrosslink } from '@/lib/config';
 
 import { formatHashrate } from '@/lib/format-numbers';
@@ -202,15 +201,9 @@ export default function NetworkPage() {
           <div className="h-3 w-32 bg-cipher-border rounded animate-pulse mb-3" />
           <div className="h-8 w-48 bg-cipher-border rounded animate-pulse" />
         </div>
-        <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="card p-4">
-              <div className="h-2 w-16 bg-cipher-border rounded animate-pulse mb-3" />
-              <div className="h-6 w-24 bg-cipher-border rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
+        <div className="mb-6 h-28 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
+        <div className="mb-6 h-8 w-full max-w-xl bg-cipher-border-alpha/20 rounded animate-pulse" />
+        <div className="mb-8 h-[280px] sm:h-[320px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="card p-6 min-h-[200px]">
@@ -261,21 +254,6 @@ export default function NetworkPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
             Network Overview
           </h1>
-          {health && (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-cipher-orange'
-                }`}></span>
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  health.zebra.healthy ? 'bg-cipher-green' : 'bg-cipher-orange'
-                }`}></span>
-              </span>
-              <span className="text-xs text-muted font-mono">
-                Zebra {stats.network.subversion}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -283,36 +261,29 @@ export default function NetworkPage() {
 
       {/* ── OVERVIEW ── */}
       <section id="network-overview" className="scroll-mt-36 mb-16">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-          <MetricCard
-            label="Block Height"
-            mobileLabel="Height"
-            value={stats.network.height.toLocaleString()}
-            tooltip="The latest block number confirmed on the Zcash blockchain."
-          />
-          <MetricCard
-            label="Transactions (24h)"
-            mobileLabel="TXs (24h)"
-            value={stats.blockchain.tx24h.toLocaleString()}
-            tooltip="Total number of transactions processed in the last 24 hours."
-          />
-          <MetricCard
-            label="Connected Peers"
-            mobileLabel="Peers"
-            value={stats.network.peers.toString()}
-            tooltip="Number of Zcash nodes currently connected to this explorer's node."
-          />
-          <MetricCard
-            label="Network Hashrate"
-            mobileLabel="Hashrate"
-            value={formatHashrate(stats.mining.networkHashrateRaw)}
-            tooltip="Combined computing power securing the Zcash network."
-          />
-        </div>
+        <OverviewHeroStrip
+          height={stats.network.height}
+          healthy={health?.zebra.healthy ?? null}
+          subversion={stats.network.subversion}
+          shieldedSupplyPct={
+            stats.supply && stats.supply.chainSupply > 0
+              ? (stats.supply.totalShielded / stats.supply.chainSupply) * 100
+              : null
+          }
+        />
+
+        <SecondaryMetricsStrip
+          tx24h={stats.blockchain.tx24h}
+          peers={stats.network.peers}
+          hashrate={formatHashrate(stats.mining.networkHashrateRaw)}
+        />
 
         {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
             On mainnet/testnet: show the geographic node map. */}
-        <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div
+          className="mb-6 animate-fade-in-up [&_.relative.overflow-hidden]:max-h-[280px] sm:[&_.relative.overflow-hidden]:max-h-[340px] [&_.relative.overflow-hidden]:overflow-hidden"
+          style={{ animationDelay: '100ms' }}
+        >
           <Suspense fallback={
             <div className="card p-8 flex items-center justify-center min-h-[300px]">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
@@ -352,8 +323,8 @@ export default function NetworkPage() {
       {stats.supply && (
         <>
           {/* ── SUPPLY ── */}
-          <section id="network-supply" className="scroll-mt-36 mb-16">
-            <SectionHeading title="Supply" />
+          <section id="network-supply" className="scroll-mt-36 mb-16 pt-2">
+            <SectionHeading title="Supply" subtitle="Pool distribution and chain supply history" />
 
             <Card className="mb-6 animate-fade-in-up">
               <CardBody>
@@ -467,8 +438,8 @@ export default function NetworkPage() {
           </section>
 
           {/* ── MINING ── */}
-          <section id="network-mining" className="scroll-mt-36">
-            <SectionHeading title="Mining" />
+          <section id="network-mining" className="scroll-mt-36 pt-2">
+            <SectionHeading title="Mining" subtitle="Hashrate, difficulty, and block economics" />
 
             <div className="mb-6 animate-fade-in-up">
               <Suspense fallback={<div className="card h-96 animate-pulse" />}>
@@ -505,8 +476,8 @@ export default function NetworkPage() {
       )}
 
       {!stats.supply && (
-        <section id="network-mining" className="scroll-mt-36">
-          <SectionHeading title="Mining" />
+        <section id="network-mining" className="scroll-mt-36 pt-2">
+          <SectionHeading title="Mining" subtitle="Hashrate, difficulty, and block economics" />
           <div className="mb-6">
             <Suspense fallback={<div className="card h-96 animate-pulse" />}>
               <MiningMetricsChart />
@@ -531,11 +502,124 @@ function breakdownColor(category: string): string {
 // SUB-COMPONENTS
 // ==========================================================================
 
-function SectionHeading({ title }: { title: string }) {
+function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="flex items-center gap-2 mb-6">
-      <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-      <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">{title}</h2>
+    <div
+      className="mb-8 pt-6 border-t"
+      style={{ borderColor: 'var(--color-border-subtle)' }}
+    >
+      <h2 className="text-lg sm:text-xl font-bold font-mono text-primary uppercase tracking-wider">{title}</h2>
+      {subtitle && <p className="text-xs text-muted font-mono mt-1.5 normal-case tracking-normal">{subtitle}</p>}
+    </div>
+  );
+}
+
+function HoverTip({ tip, children, className = '' }: { tip?: string; children: ReactNode; className?: string }) {
+  if (!tip) return <>{children}</>;
+  return (
+    <div className={`group relative ${className}`} title={tip}>
+      {children}
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-[10px] leading-snug text-secondary rounded-md border opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
+        style={{ backgroundColor: 'var(--color-surface-solid)', borderColor: 'var(--color-border-subtle)' }}
+      >
+        {tip}
+      </div>
+    </div>
+  );
+}
+
+function OverviewHeroStrip({
+  height,
+  healthy,
+  subversion,
+  shieldedSupplyPct,
+}: {
+  height: number;
+  healthy: boolean | null;
+  subversion: string;
+  shieldedSupplyPct: number | null;
+}) {
+  const isHealthy = healthy !== false;
+
+  return (
+    <Card className="mb-4 animate-fade-in-up">
+      <CardBody className="py-5 sm:py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 items-center">
+          <div>
+            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
+            <p className="text-3xl sm:text-4xl font-bold font-mono text-primary tabular-nums">
+              {height.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="sm:text-center">
+            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1.5">Chain status</p>
+            <div className="flex sm:justify-center items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                {isHealthy && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75" />
+                )}
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isHealthy ? 'bg-cipher-green' : 'bg-cipher-orange'}`} />
+              </span>
+              <span className="text-sm font-mono text-secondary truncate">
+                Zebra {subversion}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted font-mono mt-1">
+              {healthy == null ? 'Checking node…' : isHealthy ? 'Synced & healthy' : 'Node degraded'}
+            </p>
+          </div>
+
+          <div className="sm:text-right">
+            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
+            {shieldedSupplyPct != null ? (
+              <>
+                <p className="text-3xl sm:text-4xl font-bold font-mono text-cipher-yellow tabular-nums">
+                  {shieldedSupplyPct.toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-muted font-mono mt-1">of total chain supply</p>
+              </>
+            ) : (
+              <p className="text-2xl font-bold font-mono text-muted">—</p>
+            )}
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function SecondaryMetricsStrip({
+  tx24h,
+  peers,
+  hashrate,
+}: {
+  tx24h: number;
+  peers: number;
+  hashrate: string;
+}) {
+  const items = [
+    { label: 'TX (24h)', value: tx24h.toLocaleString(), tip: 'Transactions processed in the last 24 hours.' },
+    { label: 'Peers', value: peers.toString(), tip: 'Nodes connected to this explorer.' },
+    { label: 'Hashrate', value: hashrate, tip: 'Combined mining power securing the network.' },
+  ];
+
+  return (
+    <div
+      className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs font-mono animate-fade-in-up"
+      style={{ animationDelay: '60ms' }}
+    >
+      {items.map((item, i) => (
+        <span key={item.label} className="inline-flex items-center gap-4">
+          {i > 0 && <span className="hidden sm:inline text-muted/30" aria-hidden>·</span>}
+          <HoverTip tip={item.tip} className="cursor-help">
+            <span className="text-muted">{item.label}</span>
+            <span className="text-primary font-semibold ml-1.5">{item.value}</span>
+          </HoverTip>
+        </span>
+      ))}
     </div>
   );
 }
@@ -572,19 +656,18 @@ function ChainInfoStrip({
         subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
         tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
       />
-      <div className="card p-3">
-        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
-          Network upgrade
-          <Tooltip content="The currently active Zcash network upgrade." />
-        </div>
-        {upgradeUrl ? (
-          <a href={upgradeUrl} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
+      <HoverTip tip="The currently active Zcash network upgrade.">
+        <div className="card p-3 h-full cursor-help">
+          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Network upgrade</div>
+          {upgradeUrl ? (
+            <a href={upgradeUrl} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
+              <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
+            </a>
+          ) : (
             <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
-          </a>
-        ) : (
-          <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
-        )}
-      </div>
+          )}
+        </div>
+      </HoverTip>
     </div>
   );
 }
@@ -593,44 +676,34 @@ function ChainInfoChip({ label, value, subtitle, tooltip }: {
   label: string; value: string; subtitle?: string; tooltip?: string;
 }) {
   return (
-    <Card variant="compact">
-      <CardBody>
-        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
-          {label}
-          {tooltip && <Tooltip content={tooltip} />}
-        </div>
-        <div className="text-sm font-bold font-mono text-primary">{value}</div>
-        {subtitle && <p className="text-[10px] mt-0.5 text-muted font-mono">{subtitle}</p>}
-      </CardBody>
-    </Card>
+    <HoverTip tip={tooltip}>
+      <Card variant="compact" className="h-full cursor-help">
+        <CardBody>
+          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">{label}</div>
+          <div className="text-sm font-bold font-mono text-primary">{value}</div>
+          {subtitle && <p className="text-[10px] mt-0.5 text-muted font-mono">{subtitle}</p>}
+        </CardBody>
+      </Card>
+    </HoverTip>
   );
 }
 
-/** Compact top metric card */
-function MetricCard({ label, mobileLabel, value, tooltip }: {
-  label: string; mobileLabel?: string; value: string; tooltip?: string;
+/** Small stat card for mining extras */
+function StatCard({ label, value, subtitle, tooltip }: {
+  label: string; value: string; subtitle?: string; tooltip?: string;
 }) {
   return (
-    <Card variant="compact">
-      <CardBody>
-        <div className="text-[10px] sm:text-xs text-muted font-mono uppercase sm:tracking-wider mb-1 flex items-center gap-1 whitespace-nowrap">
-          {mobileLabel ? (
-            <>
-              <span className="sm:hidden">{mobileLabel}</span>
-              <span className="hidden sm:inline">{label}</span>
-            </>
-          ) : (
-            <span>{label}</span>
-          )}
-          {tooltip && <Tooltip content={tooltip} />}
-        </div>
-        <div className="text-sm sm:text-2xl lg:text-3xl font-bold font-mono text-primary">{value}</div>
-      </CardBody>
-    </Card>
+    <HoverTip tip={tooltip}>
+      <Card variant="compact" className="h-full cursor-help">
+        <CardBody>
+          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2">{label}</div>
+          <div className="text-sm sm:text-lg font-bold font-mono text-primary whitespace-nowrap truncate">{value}</div>
+          {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
+        </CardBody>
+      </Card>
+    </HoverTip>
   );
 }
-
-/** Pool breakdown card */
 function PoolCard({ name, amount, color, zecPrice, isSmall }: {
   name: string; amount: number; color: string; zecPrice: number | null; isSmall?: boolean;
 }) {
@@ -662,23 +735,5 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
         {name}
       </div>
     </div>
-  );
-}
-
-/** Small stat card for mining extras */
-function StatCard({ label, value, subtitle, tooltip }: {
-  label: string; value: string; subtitle?: string; tooltip?: string;
-}) {
-  return (
-    <Card variant="compact">
-      <CardBody>
-        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2 flex items-center gap-1">
-          {label}
-          {tooltip && <Tooltip content={tooltip} />}
-        </div>
-        <div className="text-sm sm:text-lg font-bold font-mono text-primary whitespace-nowrap truncate">{value}</div>
-        {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
-      </CardBody>
-    </Card>
   );
 }
