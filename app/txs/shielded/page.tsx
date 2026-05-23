@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
+import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
+import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge } from '@/components/ui';
 
 type FlowFilter = 'all' | 'shield' | 'deshield';
@@ -33,9 +35,7 @@ interface PaginationState {
 }
 
 function getFlowBadge(flowType: string) {
-  if (flowType === 'shield') return <Badge color="green">↓ SHIELDING</Badge>;
-  if (flowType === 'deshield') return <Badge color="orange">↑ UNSHIELDING</Badge>;
-  return <Badge color="muted">{flowType}</Badge>;
+  return <ShieldFlowBadge type={resolveShieldFlowType({ flowType })} variant="compact" />;
 }
 
 function getPoolBadge(pool: string) {
@@ -202,6 +202,7 @@ export default function ShieldedTxsPage() {
             </tbody>
           </table>
         </div>
+        <ShieldFlowLegend />
       </div>
 
       {/* Pagination */}

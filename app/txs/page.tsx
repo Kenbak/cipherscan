@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
+import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
+import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge } from '@/components/ui';
 
 type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';
@@ -48,12 +50,9 @@ function getTxBadge(tx: Transaction) {
 
 function getFlowBadge(tx: Transaction) {
   if (tx.is_coinbase) return null;
-  const ft = tx.flow_type;
-  if (ft === 'shielding') return <Badge color="green">↓ SHIELD</Badge>;
-  if (ft === 'deshielding') return <Badge color="orange">↑ UNSHIELD</Badge>;
-  if (ft === 'mixed') return <Badge color="orange">MIXED</Badge>;
-  if (ft === 'fully_shielded') return <Badge color="purple">SHIELDED</Badge>;
-  return null;
+  const type = resolveShieldFlowType({ flowType: tx.flow_type });
+  if (type === 'mixed' && !tx.flow_type) return null;
+  return <ShieldFlowBadge type={type} variant="compact" />;
 }
 
 export default function TransactionsPage() {

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, memo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { Badge } from '@/components/ui';
+import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
+import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 
 interface ShieldedTx {
   txid: string;
@@ -24,16 +25,15 @@ interface RecentShieldedTxsProps {
   nested?: boolean;
   initialTxs?: ShieldedTx[];
   limit?: number;
+  showLegend?: boolean;
 }
 
-function getTxBadge(tx: ShieldedTx) {
-  if (tx.type === 'fully-shielded') return <Badge color="purple">SHIELDED</Badge>;
-  if (tx.vinCount > 0 && tx.voutCount === 0) return <Badge color="green">↓ SHIELDING</Badge>;
-  if (tx.vinCount === 0 && tx.voutCount > 0) return <Badge color="orange">↑ UNSHIELDING</Badge>;
-  return <Badge color="orange">MIXED</Badge>;
-}
-
-export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = false, initialTxs = [], limit = 5 }: RecentShieldedTxsProps) {
+export const RecentShieldedTxs = memo(function RecentShieldedTxs({
+  nested = false,
+  initialTxs = [],
+  limit = 5,
+  showLegend = true,
+}: RecentShieldedTxsProps) {
   const [txs, setTxs] = useState<ShieldedTx[]>(initialTxs);
   const [loading, setLoading] = useState(initialTxs.length === 0);
   const latestKey = useRef(initialTxs[0]?.txid ?? '');
@@ -71,7 +71,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
 
     const interval = setInterval(fetchTxs, 10000);
     return () => clearInterval(interval);
-  }, [initialTxs.length]);
+  }, [initialTxs.length, limit]);
 
   if (loading) {
     return (
@@ -89,7 +89,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i} className="animate-pulse">
                 <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-28 skeleton-bg rounded" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-20 skeleton-bg rounded" /></td>
+                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-5 skeleton-bg rounded" /></td>
                 <td className="px-4 py-4 border-b border-cipher-border hidden sm:table-cell"><div className="h-3 w-16 skeleton-bg rounded ml-auto" /></td>
                 <td className="px-4 py-4 border-b border-cipher-border"><div className="h-3 w-14 skeleton-bg rounded ml-auto" /></td>
               </tr>
@@ -101,12 +101,12 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
   }
 
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className={nested ? '' : 'card p-0 overflow-hidden'}>
       <table className="w-full">
         <thead>
           <tr>
             <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Type</th>
             <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
             <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
           </tr>
@@ -125,7 +125,14 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
                 </Link>
               </td>
               <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                {getTxBadge(tx)}
+                <ShieldFlowBadge
+                  type={resolveShieldFlowType({
+                    type: tx.type,
+                    vinCount: tx.vinCount,
+                    voutCount: tx.voutCount,
+                  })}
+                  variant="compact"
+                />
               </td>
               <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right hidden sm:table-cell">
                 <span className="font-mono text-xs text-muted">#{tx.blockHeight.toLocaleString()}</span>
@@ -137,6 +144,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({ nested = fals
           ))}
         </tbody>
       </table>
+      {showLegend && <ShieldFlowLegend />}
     </div>
   );
 });
