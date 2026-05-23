@@ -333,7 +333,20 @@ function registerNetworkAnalyticsRoutes(router) {
         };
       });
 
-      res.json({ success: true, period, points, hasPoolBreakdown: hasPoolCols });
+      const orchardRatios = points
+        .filter((p) => p.shielded > 0 && p.orchard > 0)
+        .map((p) => p.orchard / p.shielded);
+      const hasVerifiedPerPoolBreakdown =
+        orchardRatios.length >= 7 &&
+        Math.max(...orchardRatios) - Math.min(...orchardRatios) > 0.01;
+
+      res.json({
+        success: true,
+        period,
+        points,
+        hasPoolBreakdown: hasPoolCols,
+        hasVerifiedPerPoolBreakdown,
+      });
     } catch (error) {
       console.error('❌ [POOL-HISTORY] Error:', error);
       res.status(500).json({ success: false, error: error.message || 'Failed to fetch pool history' });

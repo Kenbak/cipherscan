@@ -59,7 +59,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
           </div>
           <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-yellow transition-all duration-700"
+              className="h-full bg-cipher-yellow transition-all duration-700"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -68,12 +68,12 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="bg-cipher-bg/50 rounded-lg p-3">
             <p className="text-[10px] text-muted font-mono uppercase mb-1">Current subsidy</p>
-            <p className="font-mono font-bold text-primary">{halving.currentSubsidy} ZEC</p>
+            <p className="font-mono font-bold text-cipher-yellow">{halving.currentSubsidy} ZEC</p>
             <p className="text-[10px] text-muted font-mono mt-0.5">Miner: {halving.minerReward} ZEC</p>
           </div>
           <div className="bg-cipher-bg/50 rounded-lg p-3">
             <p className="text-[10px] text-muted font-mono uppercase mb-1">Next subsidy</p>
-            <p className="font-mono font-bold text-cipher-cyan">
+            <p className="font-mono font-bold text-cipher-yellow">
               {halving.nextSubsidy != null ? `${halving.nextSubsidy} ZEC` : '—'}
             </p>
             {halving.nextMinerReward != null && (
@@ -116,7 +116,7 @@ export function SupplyEmissionPanel({
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <p className="text-[10px] text-muted font-mono uppercase mb-1">Circulating</p>
-            <p className="text-xl font-bold font-mono text-primary">{formatZecCompact(circulating)} ZEC</p>
+            <p className="text-xl font-bold font-mono text-cipher-yellow">{formatZecCompact(circulating)} ZEC</p>
             <p className="text-[10px] text-muted font-mono">{circulatingPct.toFixed(1)}% of {formatZecCompact(maxSupply)}</p>
           </div>
           <div>
@@ -130,7 +130,7 @@ export function SupplyEmissionPanel({
 
         <div className="h-2 bg-cipher-bg rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green"
+            className="h-full bg-cipher-yellow transition-all duration-700"
             style={{ width: `${Math.min(circulatingPct, 100)}%` }}
           />
         </div>
