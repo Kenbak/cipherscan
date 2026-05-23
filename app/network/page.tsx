@@ -201,9 +201,8 @@ export default function NetworkPage() {
           <div className="h-3 w-32 bg-cipher-border rounded animate-pulse mb-3" />
           <div className="h-8 w-48 bg-cipher-border rounded animate-pulse" />
         </div>
-        <div className="mb-6 h-28 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
-        <div className="mb-6 h-8 w-full max-w-xl bg-cipher-border-alpha/20 rounded animate-pulse" />
-        <div className="mb-8 h-[280px] sm:h-[320px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
+        <div className="mb-6 h-24 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
+        <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="card p-6 min-h-[200px]">
@@ -270,9 +269,6 @@ export default function NetworkPage() {
               ? (stats.supply.totalShielded / stats.supply.chainSupply) * 100
               : null
           }
-        />
-
-        <SecondaryMetricsStrip
           tx24h={stats.blockchain.tx24h}
           peers={stats.network.peers}
           hashrate={formatHashrate(stats.mining.networkHashrateRaw)}
@@ -280,10 +276,7 @@ export default function NetworkPage() {
 
         {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
             On mainnet/testnet: show the geographic node map. */}
-        <div
-          className="mb-6 animate-fade-in-up [&_.relative.overflow-hidden]:max-h-[280px] sm:[&_.relative.overflow-hidden]:max-h-[340px] [&_.relative.overflow-hidden]:overflow-hidden"
-          style={{ animationDelay: '100ms' }}
-        >
+        <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           <Suspense fallback={
             <div className="card p-8 flex items-center justify-center min-h-[300px]">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
@@ -530,97 +523,94 @@ function HoverTip({ tip, children, className = '' }: { tip?: string; children: R
   );
 }
 
+function formatNodeVersion(subversion: string): string {
+  return subversion.replace(/^\/Zebra:?/i, '').replace(/\/$/, '').trim() || subversion;
+}
+
 function OverviewHeroStrip({
   height,
   healthy,
   subversion,
   shieldedSupplyPct,
+  tx24h,
+  peers,
+  hashrate,
 }: {
   height: number;
   healthy: boolean | null;
   subversion: string;
   shieldedSupplyPct: number | null;
-}) {
-  const isHealthy = healthy !== false;
-
-  return (
-    <Card className="mb-4 animate-fade-in-up">
-      <CardBody className="py-5 sm:py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 items-center">
-          <div>
-            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
-            <p className="text-3xl sm:text-4xl font-bold font-mono text-primary tabular-nums">
-              {height.toLocaleString()}
-            </p>
-          </div>
-
-          <div className="sm:text-center">
-            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1.5">Chain status</p>
-            <div className="flex sm:justify-center items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                {isHealthy && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75" />
-                )}
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isHealthy ? 'bg-cipher-green' : 'bg-cipher-orange'}`} />
-              </span>
-              <span className="text-sm font-mono text-secondary truncate">
-                Zebra {subversion}
-              </span>
-            </div>
-            <p className="text-[10px] text-muted font-mono mt-1">
-              {healthy == null ? 'Checking node…' : isHealthy ? 'Synced & healthy' : 'Node degraded'}
-            </p>
-          </div>
-
-          <div className="sm:text-right">
-            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
-            {shieldedSupplyPct != null ? (
-              <>
-                <p className="text-3xl sm:text-4xl font-bold font-mono text-cipher-yellow tabular-nums">
-                  {shieldedSupplyPct.toFixed(1)}%
-                </p>
-                <p className="text-[10px] text-muted font-mono mt-1">of total chain supply</p>
-              </>
-            ) : (
-              <p className="text-2xl font-bold font-mono text-muted">—</p>
-            )}
-          </div>
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
-
-function SecondaryMetricsStrip({
-  tx24h,
-  peers,
-  hashrate,
-}: {
   tx24h: number;
   peers: number;
   hashrate: string;
 }) {
-  const items = [
+  const isHealthy = healthy !== false;
+  const version = formatNodeVersion(subversion);
+
+  const secondary = [
     { label: 'TX (24h)', value: tx24h.toLocaleString(), tip: 'Transactions processed in the last 24 hours.' },
     { label: 'Peers', value: peers.toString(), tip: 'Nodes connected to this explorer.' },
     { label: 'Hashrate', value: hashrate, tip: 'Combined mining power securing the network.' },
   ];
 
   return (
-    <div
-      className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-xs font-mono animate-fade-in-up"
-      style={{ animationDelay: '60ms' }}
-    >
-      {items.map((item, i) => (
-        <span key={item.label} className="inline-flex items-center gap-4">
-          {i > 0 && <span className="hidden sm:inline text-muted/30" aria-hidden>·</span>}
-          <HoverTip tip={item.tip} className="cursor-help">
-            <span className="text-muted">{item.label}</span>
-            <span className="text-primary font-semibold ml-1.5">{item.value}</span>
-          </HoverTip>
-        </span>
-      ))}
-    </div>
+    <Card className="mb-6 animate-fade-in-up">
+      <CardBody className="py-4 sm:py-5">
+        <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-4">
+          <div>
+            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-primary tabular-nums">
+              {height.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="text-right">
+            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
+            {shieldedSupplyPct != null ? (
+              <>
+                <p className="text-2xl sm:text-3xl font-bold font-mono text-cipher-yellow tabular-nums">
+                  {shieldedSupplyPct.toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-muted font-mono mt-0.5">of chain supply</p>
+              </>
+            ) : (
+              <p className="text-2xl font-bold font-mono text-muted">—</p>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t text-xs font-mono"
+          style={{ borderColor: 'var(--color-border-subtle)' }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+              {isHealthy && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isHealthy ? 'bg-cipher-green' : 'bg-cipher-orange'}`} />
+            </span>
+            <span className="text-secondary truncate">
+              {healthy == null ? 'Checking node…' : isHealthy ? 'Synced' : 'Degraded'}
+            </span>
+            <span className="text-muted/40" aria-hidden>·</span>
+            <span className="text-muted truncate">Zebra {version}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {secondary.map((item, i) => (
+              <span key={item.label} className="inline-flex items-center gap-4">
+                {i > 0 && <span className="hidden sm:inline text-muted/30" aria-hidden>·</span>}
+                <HoverTip tip={item.tip} className="cursor-help">
+                  <span className="text-muted">{item.label}</span>
+                  <span className="text-primary font-semibold ml-1">{item.value}</span>
+                </HoverTip>
+              </span>
+            ))}
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
