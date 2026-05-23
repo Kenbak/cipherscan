@@ -61,7 +61,7 @@ export function MiningMetricsChart() {
         ))}
       </div>
 
-      <ChartCard title="MINING_TRENDS" height={280} watermarkSize="lg">
+      <ChartCard title={`${metric.label.toUpperCase().replace(/\s+/g, '_')}_TREND`} height={280} watermarkSize="lg">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={points}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
