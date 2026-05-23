@@ -41,10 +41,7 @@ function computeShieldedSupplyPct({ shieldedZat, chainSupplyZat, sproutZat, sapl
   if (poolTotalZat > 0 && shieldedZat > 0) {
     return (shieldedZat / poolTotalZat) * 100;
   }
-  // pool_size is tracked but chain_supply not backfilled — estimate (~stable on mainnet)
-  if (shieldedZat > 0) {
-    return 30.8;
-  }
+  // pool_size is tracked but chain_supply not backfilled — omit (do not guess from shielded pool)
   return null;
 }
 
@@ -143,6 +140,21 @@ async function columnExists(pool, tableName, columnName) {
     [tableName, columnName]
   );
   return r.rows.length > 0;
+}
+
+/** Chain supply never decreases — enforce before charting. */
+function enforceMonotonicSupply(points) {
+  if (points.length === 0) return points;
+  const out = [{ ...points[0] }];
+  for (let i = 1; i < points.length; i++) {
+    const prev = out[i - 1].circulating;
+    const curr = points[i].circulating;
+    out.push({
+      ...points[i],
+      circulating: curr != null && curr >= prev ? curr : prev,
+    });
+  }
+  return out;
 }
 
 function registerNetworkAnalyticsRoutes(router) {
@@ -337,6 +349,10 @@ function registerNetworkAnalyticsRoutes(router) {
           supplyPoints = fromTrends;
         }
       }
+
+      supplyPoints = enforceMonotonicSupply(
+        supplyPoints.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      );
 
       const dailyEmission = [];
       for (let i = 1; i < trends.rows.length; i++) {
