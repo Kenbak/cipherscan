@@ -56,10 +56,14 @@ async function callZebraRPC(method, params = []) {
 }
 
 function poolZat(entry) {
-  if (!entry) return 0;
-  if (entry.chainValueZat != null) return parseInt(entry.chainValueZat, 10) || 0;
-  if (entry.chainValue != null) return Math.round(parseFloat(entry.chainValue) * 1e8);
-  return 0;
+  if (!entry) return '0';
+  if (entry.chainValueZat != null) return String(entry.chainValueZat);
+  if (entry.chainValue != null) return String(Math.round(parseFloat(entry.chainValue) * 1e8));
+  return '0';
+}
+
+function zatSum(...parts) {
+  return parts.reduce((sum, p) => sum + BigInt(p || '0'), 0n).toString();
 }
 
 async function main() {
@@ -100,31 +104,30 @@ async function main() {
       const sapling = poolZat(byId.sapling);
       const orchard = poolZat(byId.orchard);
       const transparent = poolZat(byId.transparent);
-      const shielded = sprout + sapling + orchard;
-      const chainSupply = transparent + shielded + poolZat(byId.lockbox);
+      const shielded = zatSum(sprout, sapling, orchard);
+      const chainSupply = zatSum(transparent, shielded, poolZat(byId.lockbox));
 
       await pool.query(
         `UPDATE privacy_trends_daily SET
-          pool_size = $2,
-          sprout_pool_size = $3,
-          sapling_pool_size = $4,
-          orchard_pool_size = $5,
-          transparent_pool_size = $6,
-          chain_supply = CASE WHEN $7 > 0 THEN $7 ELSE chain_supply END
+          pool_size = $2::bigint,
+          sprout_pool_size = $3::bigint,
+          sapling_pool_size = $4::bigint,
+          orchard_pool_size = $5::bigint,
+          transparent_pool_size = $6::bigint,
+          chain_supply = COALESCE(NULLIF($7::bigint, 0), chain_supply)
         WHERE date = $1`,
         [dateStr, shielded, sprout, sapling, orchard, transparent, chainSupply]
       );
       updated += 1;
 
       if (updated % 25 === 0) {
-        log(`  ${updated}/${rows.length} — latest ${dateStr} h=${height} O=${(orchard / 1e8).toFixed(0)}M S=${(sapling / 1e8).toFixed(0)}M`);
+        log(`  ${updated}/${rows.length} — latest ${dateStr} h=${height} O=${(Number(orchard) / 1e8).toFixed(0)}M S=${(Number(sapling) / 1e8).toFixed(0)}M`);
       }
     } catch (err) {
       failed += 1;
       if (failed <= 5) log(`  WARN ${dateStr} h~${height}: ${err.message}`);
     }
 
-    // Gentle pacing for local Zebra
     if (updated % 10 === 0) await sleep(50);
   }
 
@@ -132,8 +135,8 @@ async function main() {
 
   const sample = await pool.query(`
     SELECT date,
-      ROUND(orchard_pool_size / NULLIF(pool_size, 0) * 100, 1) AS orchard_pct,
-      ROUND(sapling_pool_size / NULLIF(pool_size, 0) * 100, 1) AS sapling_pct
+      ROUND(orchard_pool_size::numeric / NULLIF(pool_size, 0) * 100, 1) AS orchard_pct,
+      ROUND(sapling_pool_size::numeric / NULLIF(pool_size, 0) * 100, 1) AS sapling_pct
     FROM privacy_trends_daily
     WHERE orchard_pool_size > 0
     ORDER BY date ASC
@@ -141,8 +144,8 @@ async function main() {
   `);
   const recent = await pool.query(`
     SELECT date,
-      ROUND(orchard_pool_size / NULLIF(pool_size, 0) * 100, 1) AS orchard_pct,
-      ROUND(sapling_pool_size / NULLIF(pool_size, 0) * 100, 1) AS sapling_pct
+      ROUND(orchard_pool_size::numeric / NULLIF(pool_size, 0) * 100, 1) AS orchard_pct,
+      ROUND(sapling_pool_size::numeric / NULLIF(pool_size, 0) * 100, 1) AS sapling_pct
     FROM privacy_trends_daily
     WHERE orchard_pool_size > 0
     ORDER BY date DESC
