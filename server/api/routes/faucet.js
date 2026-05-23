@@ -1,18 +1,26 @@
 /**
- * Testnet Faucet
- * GET  /api/faucet/status     → wallet balance + dispense amount
- * POST /api/faucet/dispense   → send TAZ to a transparent address
+ * Testnet Faucet — proxy to the taps wallet daemon
  *
- * Captcha (Turnstile) and per-address cooldown are both feature-flagged
- * via env vars — see .env.example. Unset = disabled, no code change needed
- * to enable.
+ * GET  /api/faucet/status     → balance, dispense amount, cooldown, captcha
+ * POST /api/faucet/dispense   → send TAZ to a testnet Unified Address
+ *
+ * Taps (https://github.com/zcashme/taps — separate repo) runs on the same VPS,
+ * listens on loopback only, and holds the Orchard spending key. We sit in
+ * front of it for Turnstile + per-address cooldown.
  */
 
 const express = require('express');
 const router = express.Router();
 
-const DEFAULT_DISPENSE_TAZ = 0.5;
-const ADDRESS_REGEX = /^tm[a-zA-Z0-9]{32,40}$/;
+const DEFAULT_DISPENSE_TAZ = 1;
+const DEFAULT_TAPS_URL = 'http://127.0.0.1:3000';
+// Loose testnet Unified Address check: bech32m charset, utest1 prefix.
+// Strict parsing happens in taps.
+const UA_REGEX = /^utest1[02-9ac-hj-np-z]{40,}$/;
+
+function tapsUrl() {
+  return (process.env.TAPS_URL || DEFAULT_TAPS_URL).replace(/\/$/, '');
+}
 
 function dispenseAmountTaz() {
   const raw = parseFloat(process.env.FAUCET_DISPENSE_AMOUNT_TAZ);
@@ -45,16 +53,32 @@ async function verifyTurnstile(token, remoteIp) {
   }
 }
 
-router.get('/api/faucet/status', async (req, res) => {
-  const callWalletRPC = req.app.locals.callWalletRPC;
-  if (!callWalletRPC) {
-    return res.status(503).json({ error: 'wallet RPC not configured' });
-  }
+async function tapsStatus() {
+  const res = await fetch(`${tapsUrl()}/status`);
+  if (!res.ok) throw new Error(`taps /status ${res.status}`);
+  return res.json();
+}
 
+async function tapsSend({ recipient, amountTaz }) {
+  const apiKey = process.env.TAPS_API_KEY || '';
+  const res = await fetch(`${tapsUrl()}/send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': apiKey,
+    },
+    body: JSON.stringify({ recipient, amount: amountTaz }),
+  });
+  const body = await res.json().catch(() => ({}));
+  return { status: res.status, body };
+}
+
+router.get('/api/faucet/status', async (_req, res) => {
   try {
-    const balance = await callWalletRPC('getbalance', []);
+    const taps = await tapsStatus();
+    const orchard = taps?.balances?.orchard;
     res.json({
-      balanceTaz: typeof balance === 'number' ? balance : parseFloat(balance) || 0,
+      balanceTaz: typeof orchard === 'number' ? orchard : 0,
       dispenseAmountTaz: dispenseAmountTaz(),
       cooldownSeconds: cooldownSeconds(),
       captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
@@ -66,15 +90,10 @@ router.get('/api/faucet/status', async (req, res) => {
 });
 
 router.post('/api/faucet/dispense', express.json(), async (req, res) => {
-  const callWalletRPC = req.app.locals.callWalletRPC;
   const redisClient = req.app.locals.redisClient;
-  if (!callWalletRPC) {
-    return res.status(503).json({ error: 'wallet RPC not configured' });
-  }
-
   const { address, captchaToken } = req.body || {};
 
-  if (!address || typeof address !== 'string' || !ADDRESS_REGEX.test(address.trim())) {
+  if (!address || typeof address !== 'string' || !UA_REGEX.test(address.trim())) {
     return res.status(400).json({ error: 'invalid address' });
   }
   const addr = address.trim();
@@ -101,37 +120,42 @@ router.post('/api/faucet/dispense', express.json(), async (req, res) => {
     }
   }
 
-  const amount = dispenseAmountTaz();
+  const amountTaz = dispenseAmountTaz();
 
-  let balance;
+  let result;
   try {
-    balance = await callWalletRPC('getbalance', []);
+    result = await tapsSend({ recipient: addr, amountTaz });
   } catch (err) {
-    console.error('[faucet] balance check failed:', err.message);
+    console.error('[faucet] taps /send failed:', err.message);
     return res.status(502).json({ error: 'wallet unreachable' });
   }
-  if (typeof balance === 'number' && balance < amount) {
-    return res.status(503).json({ error: 'drained', balanceTaz: balance });
-  }
 
-  let txid;
-  try {
-    txid = await callWalletRPC('sendtoaddress', [addr, amount]);
-  } catch (err) {
-    console.error('[faucet] sendtoaddress failed:', err.message);
-    return res.status(502).json({ error: 'send failed', detail: err.message });
-  }
-
-  if (cdSec > 0 && redisClient) {
-    try {
-      await redisClient.set(`faucet:cooldown:${addr}`, '1', { EX: cdSec });
-    } catch (err) {
-      console.error('[faucet] cooldown set failed:', err.message);
+  if (result.status === 200 && result.body?.txid) {
+    if (cdSec > 0 && redisClient) {
+      try {
+        await redisClient.set(`faucet:cooldown:${addr}`, '1', { EX: cdSec });
+      } catch (err) {
+        console.error('[faucet] cooldown set failed:', err.message);
+      }
     }
+    console.log(`[faucet] dispensed ${amountTaz} TAZ to ${addr.slice(0, 12)}… txid=${result.body.txid}`);
+    return res.json({ txid: result.body.txid, amountTaz });
   }
 
-  console.log(`[faucet] dispensed ${amount} TAZ to ${addr.slice(0, 10)}… txid=${txid}`);
-  res.json({ txid, amountTaz: amount });
+  // Map taps errors → cipherscan UI shapes
+  const tapsErr = result.body?.error || '';
+  if (tapsErr === 'invalid address') {
+    return res.status(400).json({ error: 'invalid address' });
+  }
+  if (tapsErr === 'insufficient balance') {
+    return res.status(503).json({ error: 'drained' });
+  }
+  if (result.status === 401) {
+    console.error('[faucet] taps rejected api key — check TAPS_API_KEY');
+    return res.status(502).json({ error: 'wallet auth' });
+  }
+  console.error(`[faucet] taps /send ${result.status}:`, tapsErr);
+  return res.status(502).json({ error: 'send failed', detail: tapsErr });
 });
 
 module.exports = router;

@@ -165,85 +165,6 @@ function getZebraAuth() {
   return _zebraAuth;
 }
 
-// Wallet RPC (zcashd or Zallet) — same JSON-RPC shape as Zebra but
-// targets a wallet daemon. Used by the faucet for sendtoaddress/getbalance.
-const walletAgent = new (require('http').Agent)({
-  keepAlive: true,
-  maxSockets: 4,
-  maxFreeSockets: 2,
-  timeout: 10000,
-});
-
-let _walletAuth = null;
-function getWalletAuth() {
-  if (_walletAuth !== null) return _walletAuth;
-  const cookieFile = process.env.WALLET_RPC_COOKIE_FILE;
-  if (cookieFile) {
-    try {
-      const cookie = fs.readFileSync(cookieFile, 'utf8').trim();
-      if (cookie) {
-        _walletAuth = Buffer.from(cookie).toString('base64');
-        return _walletAuth;
-      }
-    } catch {}
-  }
-  const user = process.env.WALLET_RPC_USER || '';
-  const password = process.env.WALLET_RPC_PASSWORD || '';
-  _walletAuth = Buffer.from(`${user}:${password}`).toString('base64');
-  return _walletAuth;
-}
-
-async function callWalletRPC(method, params = [], { timeout = 30000 } = {}) {
-  const rpcUrl = process.env.WALLET_RPC_URL || 'http://127.0.0.1:18232';
-  const auth = getWalletAuth();
-  const requestBody = JSON.stringify({
-    jsonrpc: '1.0',
-    id: 'cipherscan-wallet',
-    method,
-    params,
-  });
-  const url = new URL(rpcUrl);
-
-  return new Promise((resolve, reject) => {
-    const req = require('http').request(
-      {
-        hostname: url.hostname,
-        port: url.port,
-        path: url.pathname,
-        method: 'POST',
-        agent: walletAgent,
-        timeout,
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(requestBody),
-          'Authorization': `Basic ${auth}`,
-        },
-      },
-      (res) => {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const response = JSON.parse(data);
-            if (response.error) {
-              reject(new Error(response.error.message || 'wallet RPC error'));
-            } else {
-              resolve(response.result);
-            }
-          } catch (error) {
-            reject(new Error(`Failed to parse wallet RPC response: ${data.slice(0, 120)}`));
-          }
-        });
-      }
-    );
-
-    req.on('timeout', () => { req.destroy(new Error('wallet RPC timeout')); });
-    req.on('error', (error) => { reject(new Error(`wallet RPC request failed: ${error.message}`)); });
-    req.write(requestBody);
-    req.end();
-  });
-}
-
 async function callZebraRPC(method, params = [], { timeout = 8000 } = {}) {
   const rpcUrl = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:18232';
   const auth = getZebraAuth();
@@ -407,7 +328,6 @@ app.use((req, res, next) => {
 
 // Make additional dependencies available to routes
 app.locals.callZebraRPC = callZebraRPC;
-app.locals.callWalletRPC = callWalletRPC;
 app.locals.CompactTxStreamer = CompactTxStreamer;
 app.locals.grpc = grpc;
 app.locals.findLinkedTransactions = findLinkedTransactions;
