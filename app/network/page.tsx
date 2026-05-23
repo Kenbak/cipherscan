@@ -9,10 +9,18 @@ import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/Tooltip';
 import { isCrosslink } from '@/lib/config';
 
+import { formatDifficulty, formatHashrate } from '@/lib/format-numbers';
+
 const NodeMap = lazy(() => import('@/components/NodeMap'));
 const BlockActivityChart = lazy(() =>
   import('@/components/BlockActivityChart').then((m) => ({ default: m.BlockActivityChart }))
 );
+const HalvingPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.HalvingPanel })));
+const SupplyEmissionPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.SupplyEmissionPanel })));
+const MiningMetricsChart = lazy(() => import('@/components/network/MiningMetricsChart').then((m) => ({ default: m.MiningMetricsChart })));
+const PoolDistributionChart = lazy(() => import('@/components/network/PoolDistributionChart').then((m) => ({ default: m.PoolDistributionChart })));
+const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then((m) => ({ default: m.NetworkHistoryCharts })));
+const RecentBlocksTable = lazy(() => import('@/components/network/RecentBlocksTable').then((m) => ({ default: m.RecentBlocksTable })));
 
 const UPGRADE_URLS: Record<string, string> = {
   'NU6': 'https://z.cash/upgrade/nu6/',
@@ -29,13 +37,25 @@ function getUpgradeUrl(name: string | null): string | undefined {
   return UPGRADE_URLS[name];
 }
 
-// Format hashrate with appropriate unit
-function formatHashrate(hashrate: number): string {
-  if (hashrate >= 1e12) return `${(hashrate / 1e12).toFixed(2)} TH/s`;
-  if (hashrate >= 1e9) return `${(hashrate / 1e9).toFixed(2)} GH/s`;
-  if (hashrate >= 1e6) return `${(hashrate / 1e6).toFixed(2)} MH/s`;
-  if (hashrate >= 1e3) return `${(hashrate / 1e3).toFixed(2)} KH/s`;
-  return `${hashrate.toFixed(2)} H/s`;
+// Format hashrate with appropriate unit — see lib/format-numbers.ts
+
+interface HalvingInfo {
+  halvingBlock: number | null;
+  blocksRemaining: number | null;
+  eraProgress?: number;
+  currentSubsidy: number;
+  nextSubsidy: number | null;
+  minerReward: number;
+  nextMinerReward: number | null;
+  estimatedDate: string | null;
+  estimatedSeconds: number | null;
+}
+
+interface EmissionInfo {
+  circulating: number;
+  remaining: number;
+  circulatingPct: number;
+  dailyEmissionEstimate: number | null;
 }
 
 interface NetworkStats {
@@ -100,6 +120,8 @@ export default function NetworkPage() {
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
   const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
+  const [halving, setHalving] = useState<HalvingInfo | null>(null);
+  const [emission, setEmission] = useState<EmissionInfo | null>(null);
 
   // WebSocket for real-time updates
   const { isConnected } = useWebSocket({
@@ -139,6 +161,25 @@ export default function NetworkPage() {
       fetch(`${apiUrl}/api/supply/transparent-breakdown`)
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.success) setBreakdown(data); })
+        .catch(() => {});
+
+      fetch(`${apiUrl}/api/network/halving`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.success) setHalving(data); })
+        .catch(() => {});
+
+      fetch(`${apiUrl}/api/network/emission?period=1y`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.success) {
+            setEmission({
+              circulating: data.circulating,
+              remaining: data.remaining,
+              circulatingPct: data.circulatingPct,
+              dailyEmissionEstimate: data.dailyEmissionEstimate,
+            });
+          }
+        })
         .catch(() => {});
     } catch (err: any) {
       console.error('Error fetching network data:', err);
@@ -271,11 +312,25 @@ export default function NetworkPage() {
         </Suspense>
       </div>
 
-      {/* Supply Distribution + Chain Stats */}
+      {/* Supply + Halving */}
       {stats.supply && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
-          {/* Supply Distribution */}
-          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '120ms' }}>
+            <Suspense fallback={<div className="card h-48 animate-pulse" />}>
+              <SupplyEmissionPanel
+                circulating={emission?.circulating ?? stats.supply.chainSupply}
+                remaining={emission?.remaining ?? Math.max(0, 21_000_000 - stats.supply.chainSupply)}
+                circulatingPct={emission?.circulatingPct ?? (stats.supply.chainSupply / 21_000_000) * 100}
+                dailyEmission={emission?.dailyEmissionEstimate ?? stats.mining.dailyRevenue}
+              />
+            </Suspense>
+            <Suspense fallback={<div className="card h-48 animate-pulse" />}>
+              <HalvingPanel halving={halving} />
+            </Suspense>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <div className="lg:col-span-2">
             <Card>
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
@@ -389,10 +444,10 @@ export default function NetworkPage() {
                 })()}
               </CardBody>
             </Card>
-          </div>
+            </div>
 
           {/* Chain Stats */}
-          <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div>
             <Card>
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
@@ -435,17 +490,34 @@ export default function NetworkPage() {
             </Card>
           </div>
         </div>
+
+          <div className="space-y-6 mb-8 animate-fade-in-up" style={{ animationDelay: '180ms' }}>
+            <Suspense fallback={<div className="card h-80 animate-pulse" />}>
+              <PoolDistributionChart />
+            </Suspense>
+            <Suspense fallback={<div className="card h-64 animate-pulse" />}>
+              <NetworkHistoryCharts />
+            </Suspense>
+          </div>
+        </>
       )}
 
-      {/* Mining & Performance */}
+      {/* Mining charts + stats */}
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '220ms' }}>
+        <Suspense fallback={<div className="card h-96 animate-pulse mb-6" />}>
+          <MiningMetricsChart />
+        </Suspense>
+      </div>
+
+      {/* Mining summary cards */}
       <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">MINING_PERFORMANCE</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} tooltip="Combined computing power securing the Zcash network." />
-          <StatCard label="Difficulty" value={stats.mining.difficulty.toFixed(1)} tooltip="How hard it is to mine a new block. Adjusts automatically to maintain ~75s block times." />
+          <StatCard label="Difficulty" value={formatDifficulty(stats.mining.difficulty)} tooltip="How hard it is to mine a new block. Adjusts automatically to maintain ~75s block times." />
           <StatCard
             label="Block Time"
             value={`${stats.mining.avgBlockTime}s`}
@@ -477,6 +549,12 @@ export default function NetworkPage() {
               : `Total ZEC emitted in the last 24 hours (blocks × block reward).`}
           />
         </div>
+      </div>
+
+      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '280ms' }}>
+        <Suspense fallback={<div className="card h-64 animate-pulse" />}>
+          <RecentBlocksTable />
+        </Suspense>
       </div>
     </div>
   );
@@ -602,7 +680,7 @@ function StatCard({ label, value, subtitle, status, tooltip }: {
           {label}
           {tooltip && <Tooltip content={tooltip} />}
         </div>
-        <div className={`text-sm sm:text-xl font-bold font-mono ${valueColor} break-all`}>{value}</div>
+        <div className={`text-sm sm:text-lg font-bold font-mono ${valueColor} whitespace-nowrap truncate`}>{value}</div>
         {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
       </CardBody>
     </Card>

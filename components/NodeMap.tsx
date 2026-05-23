@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { getApiUrl } from '@/lib/api-config';
+import { ChartWatermark } from '@/components/ChartWatermark';
 import { feature } from 'topojson-client';
 
 // ==========================================================================
@@ -307,7 +308,8 @@ export function NodeMap() {
       </div>
 
       {/* Dot Matrix Map */}
-      <div className="relative" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <ChartWatermark />
         {/* Active filter indicator */}
         {selectedCountryData && (
           <button

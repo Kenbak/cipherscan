@@ -5,8 +5,9 @@
 
 const express = require('express');
 const router = express.Router();
+const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
 
-// Dependencies will be injected via middleware
+// Dependencies injected via middleware
 let pool;
 let callZebraRPC;
 let redisClient;
@@ -802,5 +803,7 @@ router.get('/api/price', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch price' });
   }
 });
+
+registerNetworkAnalyticsRoutes(router);
 
 module.exports = router;

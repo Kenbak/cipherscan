@@ -10,6 +10,7 @@ import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { ChartWatermark } from '@/components/ChartWatermark';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -520,6 +521,8 @@ export default function PrivacyPage() {
               </div>
 
               {/* Chart Content */}
+              <div className="relative overflow-hidden rounded-lg">
+                <ChartWatermark />
               {activeTab === 'adoption' && (
                 <ResponsiveContainer width="100%" height={350}>
                   <LineChart data={[...stats.trends.daily].reverse()}>
@@ -755,6 +758,7 @@ export default function PrivacyPage() {
                   </ResponsiveContainer>
                 </div>
               )}
+              </div>
               </CardBody>
             </Card>
           </div>

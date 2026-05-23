@@ -251,17 +251,40 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
   });
 
   if (existing.rows.length > 0) {
-    await pool.query(`
-      UPDATE privacy_trends_daily SET
-        shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
-        pool_size = $5, privacy_score = $6, created_at = NOW()
-      WHERE date = $1
-    `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore]);
+    try {
+      await pool.query(`
+        UPDATE privacy_trends_daily SET
+          shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
+          pool_size = $5, privacy_score = $6,
+          sprout_pool_size = $7, sapling_pool_size = $8, orchard_pool_size = $9,
+          transparent_pool_size = $10, chain_supply = $11,
+          created_at = NOW()
+        WHERE date = $1
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+    } catch {
+      await pool.query(`
+        UPDATE privacy_trends_daily SET
+          shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
+          pool_size = $5, privacy_score = $6, created_at = NOW()
+        WHERE date = $1
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore]);
+    }
   } else {
-    await pool.query(`
-      INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-    `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore]);
+    try {
+      await pool.query(`
+        INSERT INTO privacy_trends_daily (
+          date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score,
+          sprout_pool_size, sapling_pool_size, orchard_pool_size, transparent_pool_size, chain_supply, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+    } catch {
+      await pool.query(`
+        INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore]);
+    }
   }
 
   log(`  ${today}: ${shieldedPercentage.toFixed(1)}% shielded | Score: ${privacyScore}`);
