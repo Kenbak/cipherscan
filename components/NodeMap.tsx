@@ -309,7 +309,7 @@ export function NodeMap() {
 
       {/* Dot Matrix Map */}
       <div className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <ChartWatermark variant="map" />
+        <ChartWatermark size="map" />
         {/* Active filter indicator */}
         {selectedCountryData && (
           <button

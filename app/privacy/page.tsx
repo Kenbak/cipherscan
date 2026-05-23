@@ -522,7 +522,7 @@ export default function PrivacyPage() {
 
               {/* Chart Content */}
               <div className="relative overflow-hidden rounded-lg">
-                <ChartWatermark variant="chart" />
+                <ChartWatermark size="lg" />
                 <div className="relative z-[1]">
               {activeTab === 'adoption' && (
                 <ResponsiveContainer width="100%" height={350}>

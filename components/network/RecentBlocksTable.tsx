@@ -44,7 +44,10 @@ export function RecentBlocksTable() {
 
   return (
     <div className="card overflow-hidden">
-      <div className="px-4 sm:px-6 py-4 border-b border-cipher-border flex items-center justify-between">
+      <div
+        className="px-4 sm:px-6 py-4 border-b flex items-center justify-between"
+        style={{ borderColor: 'var(--color-border-subtle)' }}
+      >
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">RECENT_BLOCKS</h2>
@@ -56,7 +59,10 @@ export function RecentBlocksTable() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[10px] font-mono text-muted uppercase border-b border-cipher-border">
+            <tr
+              className="text-[10px] font-mono text-muted uppercase border-b"
+              style={{ borderColor: 'var(--color-border-subtle)' }}
+            >
               <th className="text-left px-4 py-3">Block</th>
               <th className="text-right px-4 py-3">Miner reward</th>
               <th className="text-right px-4 py-3">Txs</th>
@@ -64,9 +70,9 @@ export function RecentBlocksTable() {
               <th className="text-right px-4 py-3">Time</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[var(--color-border-subtle)]">
             {blocks.map((b) => (
-              <tr key={b.height} className="border-b border-cipher-border/50 hover:bg-cipher-bg/30 transition-colors">
+              <tr key={b.height} className="hover:bg-cipher-bg/30 transition-colors">
                 <td className="px-4 py-2.5">
                   <Link href={`/block/${b.height}`} className="font-mono text-cipher-cyan hover:underline">
                     {b.height.toLocaleString()}

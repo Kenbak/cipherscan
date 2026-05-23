@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
-import { ChartWatermark } from '@/components/ChartWatermark';
+import { ChartWatermark, WatermarkSize } from '@/components/ChartWatermark';
 
 interface ChartCardProps {
   title: string;
@@ -10,9 +10,17 @@ interface ChartCardProps {
   controls?: ReactNode;
   className?: string;
   height?: number;
+  watermarkSize?: WatermarkSize;
 }
 
-export function ChartCard({ title, children, controls, className = '', height = 320 }: ChartCardProps) {
+export function ChartCard({
+  title,
+  children,
+  controls,
+  className = '',
+  height = 320,
+  watermarkSize = 'md',
+}: ChartCardProps) {
   return (
     <Card className={className}>
       <CardBody>
@@ -24,7 +32,7 @@ export function ChartCard({ title, children, controls, className = '', height = 
           {controls}
         </div>
         <div className="relative overflow-hidden rounded-lg" style={{ minHeight: height }}>
-          <ChartWatermark variant="chart" />
+          <ChartWatermark size={watermarkSize} />
           <div className="relative z-[1]">{children}</div>
         </div>
       </CardBody>

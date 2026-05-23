@@ -54,6 +54,7 @@ export function PoolDistributionChart() {
     <ChartCard
       title="VALUE_POOL_DISTRIBUTION"
       height={320}
+      watermarkSize="lg"
       controls={
         <div className="flex gap-1">
           {(['30d', '90d', '1y'] as Period[]).map((p) => (

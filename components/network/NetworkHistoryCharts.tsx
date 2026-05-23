@@ -44,7 +44,7 @@ export function NetworkHistoryCharts() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartCard title="CIRCULATING_SUPPLY" height={260}>
+      <ChartCard title="CIRCULATING_SUPPLY" height={260} watermarkSize="sm">
         {supplyPoints.length > 0 ? (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={supplyPoints}>
@@ -65,7 +65,7 @@ export function NetworkHistoryCharts() {
         )}
       </ChartCard>
 
-      <ChartCard title="BLOCKCHAIN_SIZE" height={260}>
+      <ChartCard title="BLOCKCHAIN_SIZE" height={260} watermarkSize="sm">
         {sizePoints.length > 0 ? (
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={sizePoints}>
