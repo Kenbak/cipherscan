@@ -11,8 +11,8 @@ import { getApiUrl } from '@/lib/api-config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
-const FALLBACK_DISPENSE_TAZ = 0.5;
-// STUB: real address comes from env once wallet is provisioned
+const FALLBACK_DISPENSE_TAZ = 1;
+// STUB: real address comes from env once taps wallet is provisioned
 const FAUCET_DONATE_ADDRESS = 'tm9zNbDx7K2pVcRfYqWxJ8mE4hT3nL6Aoq5';
 
 interface FaucetStatus {
@@ -40,8 +40,10 @@ function formatRetry(seconds: number): string {
   return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
 }
 
-function isValidTestnetTransparentAddress(addr: string): boolean {
-  return /^tm[a-zA-Z0-9]{32,40}$/.test(addr.trim());
+// Loose testnet Unified Address check (bech32m charset). Strict parsing
+// happens server-side in taps.
+function isValidTestnetUnifiedAddress(addr: string): boolean {
+  return /^utest1[02-9ac-hj-np-z]{40,}$/.test(addr.trim());
 }
 
 export default function FaucetClient() {
@@ -80,7 +82,7 @@ export default function FaucetClient() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = address.trim();
-    if (!isValidTestnetTransparentAddress(trimmed)) {
+    if (!isValidTestnetUnifiedAddress(trimmed)) {
       setState({ kind: 'invalid' });
       return;
     }
@@ -172,7 +174,7 @@ export default function FaucetClient() {
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Get free testnet ZEC</h1>
           <p className="text-sm text-secondary mt-2">
             {dispenseAmount} TAZ per address
-            {cooldownEnabled && `, every ${formatRetry(status!.cooldownSeconds)}`}. Don&apos;t be a dick.
+            {cooldownEnabled && `, every ${formatRetry(status!.cooldownSeconds)}`}.
           </p>
         </div>
 
@@ -261,7 +263,7 @@ export default function FaucetClient() {
                       setState({ kind: 'idle' });
                     }
                   }}
-                  placeholder="tm..."
+                  placeholder="utest1..."
                   spellCheck={false}
                   autoComplete="off"
                   disabled={isSubmitting}
@@ -269,7 +271,7 @@ export default function FaucetClient() {
                 />
                 {state.kind === 'invalid' && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
-                    invalid testnet address — expected <span className="text-primary">tm…</span>
+                    invalid testnet address — expected <span className="text-primary">utest1…</span>
                   </p>
                 )}
                 {state.kind === 'cooldown' && (
@@ -356,8 +358,7 @@ export default function FaucetClient() {
               · {dispenseAmount} TAZ per testnet address
               {cooldownEnabled && `, max one per ${formatRetry(status!.cooldownSeconds)}`}
             </li>
-            <li>· transparent (tm…) addresses only · shielded support coming</li>
-            <li>· this is testnet ZEC — it has no monetary value, don&apos;t try</li>
+            <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
         </CardBody>
       </Card>
