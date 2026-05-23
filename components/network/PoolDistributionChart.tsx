@@ -53,11 +53,10 @@ export function PoolDistributionChart() {
   const breakdownPoints = chartData.filter(
     (d) => d.orchard > 0 || d.sapling > 0 || d.transparent > 0
   );
-  // Stacked pools only when most of the window has per-pool data (not just today)
+  // Stacked pools when enough days have per-pool breakdown
   const useStackedBreakdown =
     hasBreakdown &&
-    breakdownPoints.length > 0 &&
-    breakdownPoints.length >= Math.max(7, Math.ceil(chartData.length * 0.25));
+    breakdownPoints.length >= Math.min(14, Math.ceil(chartData.length * 0.5));
 
   const pctValues = chartData.map((d) => d.shieldedPct).filter((v): v is number => v != null && v > 0);
   const yMin = pctValues.length ? Math.max(0, Math.floor(Math.min(...pctValues) - 2)) : 0;

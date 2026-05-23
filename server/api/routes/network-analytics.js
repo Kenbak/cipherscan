@@ -157,6 +157,38 @@ function enforceMonotonicSupply(points) {
   return out;
 }
 
+/** Fill missing calendar days so charts don't show vertical steps across gaps. */
+function densifyDailySupply(points) {
+  if (points.length < 2) return points;
+  const sorted = [...points].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  const out = [{ ...sorted[0] }];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    const prevDate = new Date(prev.date);
+    const currDate = new Date(curr.date);
+    const dayGap = Math.round((currDate.getTime() - prevDate.getTime()) / 86400000);
+
+    if (dayGap > 1) {
+      const supplyStep = (curr.circulating - prev.circulating) / dayGap;
+      for (let d = 1; d < dayGap; d++) {
+        const dt = new Date(prevDate);
+        dt.setUTCDate(dt.getUTCDate() + d);
+        out.push({
+          date: dt.toISOString(),
+          circulating: prev.circulating + supplyStep * d,
+          height: prev.height,
+        });
+      }
+    }
+    out.push({ ...curr });
+  }
+  return out;
+}
+
 function registerNetworkAnalyticsRoutes(router) {
   router.get('/api/network/halving', async (req, res) => {
     try {
@@ -351,7 +383,9 @@ function registerNetworkAnalyticsRoutes(router) {
       }
 
       supplyPoints = enforceMonotonicSupply(
-        supplyPoints.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        densifyDailySupply(
+          supplyPoints.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        )
       );
 
       const dailyEmission = [];

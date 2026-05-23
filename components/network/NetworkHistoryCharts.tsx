@@ -28,7 +28,7 @@ export function NetworkHistoryCharts() {
   useEffect(() => {
     Promise.all([
       fetch(`${getApiUrl()}/api/network/emission?period=1y`).then((r) => (r.ok ? r.json() : null)),
-      fetch(`${getApiUrl()}/api/network/chain-size-history?period=90d`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`${getApiUrl()}/api/network/chain-size-history?period=1y`).then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([emission, size]) => {
         if (emission?.supplyHistory?.length) {
