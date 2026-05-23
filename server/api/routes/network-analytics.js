@@ -274,6 +274,7 @@ function registerNetworkAnalyticsRoutes(router) {
   router.get('/api/network/emission', async (req, res) => {
     try {
       const pool = req.app.locals.pool;
+      const callZebraRPC = req.app.locals.callZebraRPC;
       const period = req.query.period || '1y';
       const interval = periodToInterval(period);
 
@@ -298,6 +299,19 @@ function registerNetworkAnalyticsRoutes(router) {
          WHERE date >= CURRENT_DATE - INTERVAL '${interval}'
          ORDER BY date ASC`
       );
+
+      // Fall back to daily privacy trends when snapshots are new or sparse
+      if (supplyPoints.length < 2) {
+        const fromTrends = trends.rows
+          .filter((r) => (parseInt(r.chain_supply, 10) || 0) > 0)
+          .map((r) => ({
+            date: r.date,
+            circulating: parseInt(r.chain_supply, 10) / 1e8,
+          }));
+        if (fromTrends.length > supplyPoints.length) {
+          supplyPoints = fromTrends;
+        }
+      }
 
       const dailyEmission = [];
       for (let i = 1; i < trends.rows.length; i++) {
@@ -327,7 +341,8 @@ function registerNetworkAnalyticsRoutes(router) {
         dailyEmissionEstimate: dailyEstimate,
         supplyHistory: supplyPoints,
         dailyEmission,
-        hasChainSnapshots: supplyPoints.length > 0,
+        hasChainSnapshots: await tableExists(pool, 'chain_snapshots'),
+        supplyHistorySource: supplyPoints.length >= 2 ? 'history' : supplyPoints.length === 1 ? 'partial' : 'none',
       });
     } catch (error) {
       console.error('❌ [EMISSION] Error:', error);
