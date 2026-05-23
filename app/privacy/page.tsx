@@ -312,12 +312,12 @@ export default function PrivacyPage() {
                     }`}>
                       {trendIcon}
                     </div>
-                    <h3 className="text-xs font-semibold text-secondary uppercase">Adoption Trend</h3>
+                    <h3 className="text-xs font-semibold text-secondary uppercase">Tx Adoption Trend</h3>
                   </div>
                   <div className={`text-2xl font-bold capitalize ${trendColor}`}>
                     {stats.metrics.adoptionTrend}
                   </div>
-                  <p className="text-xs text-muted mt-1">7d avg</p>
+                  <p className="text-xs text-muted mt-1">7d shielded tx share</p>
                 </CardBody>
               </Card>
 
@@ -501,7 +501,7 @@ export default function PrivacyPage() {
               {/* Pill Tabs */}
               <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
                 {([
-                  { key: 'adoption', label: 'Adoption' },
+                  { key: 'adoption', label: 'Tx Adoption' },
                   { key: 'pool', label: 'Pool Growth' },
                   { key: 'activity', label: 'Daily Activity' },
                   { key: 'score', label: 'Privacy Score' },
@@ -519,6 +519,15 @@ export default function PrivacyPage() {
                   </button>
                 ))}
               </div>
+
+              <p className="text-xs text-muted mb-4 leading-relaxed">
+                {activeTab === 'adoption' && (
+                  <>Share of non-coinbase transactions that touch Sapling or Orchard each day. This is <strong className="text-secondary font-normal">transaction volume</strong>, not ZEC in shielded pools — see Supply Shielded above.</>
+                )}
+                {activeTab === 'pool' && 'Total ZEC held in shielded pools (Sprout, Sapling, Orchard).'}
+                {activeTab === 'activity' && 'Raw count of shielded vs transparent transactions per day (coinbase excluded from transparent).'}
+                {activeTab === 'score' && 'Composite privacy score from tx adoption, fully shielded usage, and pool size.'}
+              </p>
 
               {/* Chart Content */}
               <div className="relative overflow-hidden rounded-lg">
@@ -540,7 +549,7 @@ export default function PrivacyPage() {
                     <YAxis
                       stroke={chartColors.axis}
                       tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      label={{ value: 'Shielded %', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                      label={{ value: 'Shielded tx share %', angle: -90, position: 'insideLeft', fill: chartColors.axis, style: { fontSize: 11 } }}
                     />
                     <RechartsTooltip
                       contentStyle={{
@@ -552,7 +561,7 @@ export default function PrivacyPage() {
                       labelFormatter={(label) => formatDate(label)}
                       formatter={(value: any) => [
                         <span key="v" style={{ color: chartColors.tooltipText }}>{Number(value).toFixed(2)}%</span>,
-                        'Shielded'
+                        'Shielded tx share'
                       ]}
                     />
                     <Line
@@ -781,8 +790,13 @@ export default function PrivacyPage() {
                 providing a larger anonymity set.
               </p>
               <p>
-                <strong className="text-primary">Adoption Trend:</strong> Compares the last 7 days to the previous 7 days.
-                Growing if +10%, declining if -10%, otherwise stable.
+                <strong className="text-primary">Tx Adoption chart:</strong> Daily percentage of non-coinbase transactions
+                that include Sapling or Orchard. Distinct from <strong className="text-primary">Supply Shielded</strong>,
+                which measures ZEC sitting in shielded pools.
+              </p>
+              <p>
+                <strong className="text-primary">Tx Adoption Trend:</strong> Compares shielded tx share over the last 7 days
+                vs the previous 7 days. Growing if +10%, declining if -10%, otherwise stable.
               </p>
               <p className="text-xs text-muted mt-4 pt-4 border-t border-cipher-border">
                 Stats calculated from {stats.totals.blocks.toLocaleString()} blocks. Updates automatically every 10 blocks.

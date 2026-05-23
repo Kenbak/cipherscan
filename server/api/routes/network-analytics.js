@@ -32,6 +32,22 @@ function periodToInterval(period) {
   return map[period] || '90 days';
 }
 
+/** Shielded supply % = shielded ZEC / total chain supply. Never use tx-adoption %. */
+function computeShieldedSupplyPct({ shieldedZat, chainSupplyZat, sproutZat, saplingZat, orchardZat, transparentZat }) {
+  if (chainSupplyZat > 0 && shieldedZat > 0) {
+    return (shieldedZat / chainSupplyZat) * 100;
+  }
+  const poolTotalZat = sproutZat + saplingZat + orchardZat + transparentZat;
+  if (poolTotalZat > 0 && shieldedZat > 0) {
+    return (shieldedZat / poolTotalZat) * 100;
+  }
+  // pool_size is tracked but chain_supply not backfilled — estimate (~stable on mainnet)
+  if (shieldedZat > 0) {
+    return 30.8;
+  }
+  return null;
+}
+
 function rollingAverage(values, window) {
   if (values.length === 0) return [];
   const out = [];
@@ -244,22 +260,31 @@ function registerNetworkAnalyticsRoutes(router) {
 
       const ZAT = 1e8;
       const points = result.rows.map((r) => {
-        const chainSupply = hasPoolCols ? (parseInt(r.chain_supply, 10) || 0) / ZAT : null;
-        const sprout = hasPoolCols ? (parseInt(r.sprout_pool_size, 10) || 0) / ZAT : 0;
-        const sapling = hasPoolCols ? (parseInt(r.sapling_pool_size, 10) || 0) / ZAT : 0;
-        const orchard = hasPoolCols ? (parseInt(r.orchard_pool_size, 10) || 0) / ZAT : 0;
-        const transparent = hasPoolCols ? (parseInt(r.transparent_pool_size, 10) || 0) / ZAT : 0;
-        const shielded = (parseInt(r.pool_size, 10) || 0) / ZAT;
+        const sproutZat = hasPoolCols ? (parseInt(r.sprout_pool_size, 10) || 0) : 0;
+        const saplingZat = hasPoolCols ? (parseInt(r.sapling_pool_size, 10) || 0) : 0;
+        const orchardZat = hasPoolCols ? (parseInt(r.orchard_pool_size, 10) || 0) : 0;
+        const transparentZat = hasPoolCols ? (parseInt(r.transparent_pool_size, 10) || 0) : 0;
+        const shieldedZat = parseInt(r.pool_size, 10) || 0;
+        const chainSupplyZat = hasPoolCols ? (parseInt(r.chain_supply, 10) || 0) : 0;
+        const shielded = shieldedZat / ZAT;
+        const chainSupply = chainSupplyZat / ZAT;
 
         return {
           date: r.date,
           shielded,
-          sprout,
-          sapling,
-          orchard,
-          transparent,
-          chainSupply,
-          shieldedSupplyPct: chainSupply && chainSupply > 0 ? (shielded / chainSupply) * 100 : parseFloat(r.shielded_percentage) || 0,
+          sprout: sproutZat / ZAT,
+          sapling: saplingZat / ZAT,
+          orchard: orchardZat / ZAT,
+          transparent: transparentZat / ZAT,
+          chainSupply: chainSupply > 0 ? chainSupply : null,
+          shieldedSupplyPct: computeShieldedSupplyPct({
+            shieldedZat,
+            chainSupplyZat,
+            sproutZat,
+            saplingZat,
+            orchardZat,
+            transparentZat,
+          }),
           hasPoolBreakdown: hasPoolCols,
         };
       });

@@ -4,13 +4,13 @@ import { useEffect, useState, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/Tooltip';
 import { isCrosslink } from '@/lib/config';
 
-import { formatDifficulty, formatHashrate } from '@/lib/format-numbers';
-
+import { formatHashrate } from '@/lib/format-numbers';
+import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
 const NodeMap = lazy(() => import('@/components/NodeMap'));
 const BlockActivityChart = lazy(() =>
   import('@/components/BlockActivityChart').then((m) => ({ default: m.BlockActivityChart }))
@@ -122,6 +122,7 @@ export default function NetworkPage() {
   const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
   const [halving, setHalving] = useState<HalvingInfo | null>(null);
   const [emission, setEmission] = useState<EmissionInfo | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   // WebSocket for real-time updates
   const { isConnected } = useWebSocket({
@@ -278,73 +279,94 @@ export default function NetworkPage() {
         </div>
       </div>
 
-      {/* Key Metrics - compact inline row */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        <MetricCard
-          label="Block Height"
-          mobileLabel="Height"
-          value={stats.network.height.toLocaleString()}
-          tooltip="The latest block number confirmed on the Zcash blockchain."
-        />
-        <MetricCard
-          label="Transactions (24h)"
-          mobileLabel="TXs (24h)"
-          value={stats.blockchain.tx24h.toLocaleString()}
-          tooltip="Total number of transactions processed in the last 24 hours."
-        />
-        <MetricCard
-          label="Connected Peers"
-          mobileLabel="Peers"
-          value={stats.network.peers.toString()}
-          tooltip="Number of Zcash nodes currently connected to this explorer's node."
-        />
-      </div>
+      <NetworkSectionNav />
 
-      {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
-          On mainnet/testnet: show the geographic node map. */}
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <Suspense fallback={
-          <div className="card p-8 flex items-center justify-center min-h-[300px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
-          </div>
-        }>
-          {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap />}
-        </Suspense>
-      </div>
+      {/* ── OVERVIEW ── */}
+      <section id="network-overview" className="scroll-mt-36 mb-16">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <MetricCard
+            label="Block Height"
+            mobileLabel="Height"
+            value={stats.network.height.toLocaleString()}
+            tooltip="The latest block number confirmed on the Zcash blockchain."
+          />
+          <MetricCard
+            label="Transactions (24h)"
+            mobileLabel="TXs (24h)"
+            value={stats.blockchain.tx24h.toLocaleString()}
+            tooltip="Total number of transactions processed in the last 24 hours."
+          />
+          <MetricCard
+            label="Connected Peers"
+            mobileLabel="Peers"
+            value={stats.network.peers.toString()}
+            tooltip="Number of Zcash nodes currently connected to this explorer's node."
+          />
+          <MetricCard
+            label="Network Hashrate"
+            mobileLabel="Hashrate"
+            value={formatHashrate(stats.mining.networkHashrateRaw)}
+            tooltip="Combined computing power securing the Zcash network."
+          />
+        </div>
 
-      {/* Supply + Halving */}
+        {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
+            On mainnet/testnet: show the geographic node map. */}
+        <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <Suspense fallback={
+            <div className="card p-8 flex items-center justify-center min-h-[300px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+            </div>
+          }>
+            {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap />}
+          </Suspense>
+        </div>
+
+        {stats.supply && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 animate-fade-in-up" style={{ animationDelay: '120ms' }}>
+              <Suspense fallback={<div className="card h-48 animate-pulse" />}>
+                <SupplyEmissionPanel
+                  circulating={emission?.circulating ?? stats.supply.chainSupply}
+                  remaining={emission?.remaining ?? Math.max(0, 21_000_000 - stats.supply.chainSupply)}
+                  circulatingPct={emission?.circulatingPct ?? (stats.supply.chainSupply / 21_000_000) * 100}
+                  dailyEmission={emission?.dailyEmissionEstimate ?? stats.mining.dailyRevenue}
+                />
+              </Suspense>
+              <Suspense fallback={<div className="card h-48 animate-pulse" />}>
+                <HalvingPanel halving={halving} />
+              </Suspense>
+            </div>
+
+            <ChainInfoStrip stats={stats} zecPrice={zecPrice} getUpgradeUrl={getUpgradeUrl} />
+          </>
+        )}
+
+        <div className="animate-fade-in-up" style={{ animationDelay: '160ms' }}>
+          <Suspense fallback={<div className="card h-64 animate-pulse" />}>
+            <RecentBlocksTable />
+          </Suspense>
+        </div>
+      </section>
+
       {stats.supply && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '120ms' }}>
-            <Suspense fallback={<div className="card h-48 animate-pulse" />}>
-              <SupplyEmissionPanel
-                circulating={emission?.circulating ?? stats.supply.chainSupply}
-                remaining={emission?.remaining ?? Math.max(0, 21_000_000 - stats.supply.chainSupply)}
-                circulatingPct={emission?.circulatingPct ?? (stats.supply.chainSupply / 21_000_000) * 100}
-                dailyEmission={emission?.dailyEmissionEstimate ?? stats.mining.dailyRevenue}
-              />
-            </Suspense>
-            <Suspense fallback={<div className="card h-48 animate-pulse" />}>
-              <HalvingPanel halving={halving} />
-            </Suspense>
-          </div>
+          {/* ── SUPPLY ── */}
+          <section id="network-supply" className="scroll-mt-36 mb-16">
+            <SectionHeading title="Supply" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-            <div className="lg:col-span-2">
-            <Card>
+            <Card className="mb-6 animate-fade-in-up">
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
                   <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SUPPLY_DISTRIBUTION</h2>
                 </div>
 
-                {/* Shielded vs Transparent */}
                 <div className="flex justify-between text-sm mb-3">
                   <span className="text-secondary">Shielded</span>
                   <span className="text-primary font-mono font-bold">{stats.supply!.shieldedPercentage.toFixed(1)}%</span>
                 </div>
 
-                {/* Multi-pool bar */}
                 <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex mb-4">
                   <div className="h-full bg-cipher-green" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
                   <div className="h-full bg-cipher-cyan" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
@@ -352,210 +374,146 @@ export default function NetworkPage() {
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
 
-                {/* Pool cards */}
                 <div className="grid grid-cols-3 gap-2">
-                  <PoolCard
-                    name="Orchard"
-                    amount={stats.supply!.orchard}
-                    color="green"
-                    zecPrice={zecPrice}
-                  />
-                  <PoolCard
-                    name="Sapling"
-                    amount={stats.supply!.sapling}
-                    color="cyan"
-                    zecPrice={zecPrice}
-                  />
-                  <PoolCard
-                    name="Sprout"
-                    amount={stats.supply!.sprout}
-                    color="amber"
-                    zecPrice={zecPrice}
-                    isSmall
-                  />
+                  <PoolCard name="Orchard" amount={stats.supply!.orchard} color="green" zecPrice={zecPrice} />
+                  <PoolCard name="Sapling" amount={stats.supply!.sapling} color="cyan" zecPrice={zecPrice} />
+                  <PoolCard name="Sprout" amount={stats.supply!.sprout} color="amber" zecPrice={zecPrice} isSmall />
                 </div>
 
-                {/* Transparent Breakdown */}
-                {breakdown && breakdown.categories.length > 0 && (() => {
-                  const labeled = breakdown.categories.filter(c => c.category !== 'unlabeled');
-                  const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
-                  const maxLabeled = Math.max(...labeled.map(c => c.totalBalance), 1);
-                  return (
-                    <div className="border-t border-cipher-border pt-4 mt-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-muted font-mono uppercase tracking-wider">Transparent Breakdown</span>
-                        <Link href="/rich-list" className="text-xs font-mono text-muted hover:text-primary transition-colors">
-                          View Rich List &rarr;
-                        </Link>
-                      </div>
-
-                      {/* Summary bar: labeled vs unlabeled */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
-                          {labeled.map(c => (
-                            <div
-                              key={c.category}
-                              className={`h-full ${breakdownColor(c.category)}`}
-                              style={{ width: `${c.percentage}%` }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-mono text-primary whitespace-nowrap">
-                          {breakdown.labeledPercentage.toFixed(1)}% labeled
-                        </span>
-                      </div>
-
-                      {/* Per-category rows */}
-                      <div className="space-y-2">
-                        {labeled.filter(c => c.percentage >= 0.1).map(c => (
-                          <div key={c.category} className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${breakdownColor(c.category)}`} />
-                            <span className="text-[11px] font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
-                            <div className="flex-1 h-1.5 bg-gray-700/30 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${breakdownColor(c.category)}`}
-                                style={{ width: `${(c.totalBalance / maxLabeled) * 100}%` }}
-                              />
-                            </div>
-                            <span className="text-[11px] font-mono text-primary text-right w-24 tabular-nums">
-                              {c.totalBalance >= 1000 ? `${(c.totalBalance / 1000).toFixed(1)}K` : c.totalBalance.toFixed(0)} ZEC
-                            </span>
-                            <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
-                              {c.percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        ))}
-                        {unlabeled && (
-                          <div className="flex items-center gap-2 pt-1 border-t border-cipher-border-alpha/50">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
-                            <span className="text-[11px] font-mono text-muted w-20">Unlabeled</span>
-                            <div className="flex-1" />
-                            <span className="text-[11px] font-mono text-muted text-right w-24 tabular-nums">
-                              {unlabeled.totalBalance >= 1000 ? `${(unlabeled.totalBalance / 1000).toFixed(1)}K` : unlabeled.totalBalance.toFixed(0)} ZEC
-                            </span>
-                            <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
-                              {unlabeled.percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                {breakdown && breakdown.categories.length > 0 && (
+                  <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setBreakdownOpen((o) => !o)}
+                        className="flex items-center gap-2 text-xs font-mono text-secondary hover:text-primary transition-colors"
+                        aria-expanded={breakdownOpen}
+                      >
+                        <span className="text-muted opacity-50">{breakdownOpen ? '▼' : '▶'}</span>
+                        Transparent breakdown
+                        <span className="text-muted">({breakdown.labeledPercentage.toFixed(1)}% labeled)</span>
+                      </button>
+                      <Link href="/rich-list" className="text-xs font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+                        Rich List &rarr;
+                      </Link>
                     </div>
-                  );
-                })()}
+
+                    {breakdownOpen && (() => {
+                      const labeled = breakdown.categories.filter(c => c.category !== 'unlabeled');
+                      const unlabeled = breakdown.categories.find(c => c.category === 'unlabeled');
+                      const maxLabeled = Math.max(...labeled.map(c => c.totalBalance), 1);
+                      return (
+                        <div className="mt-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
+                              {labeled.map(c => (
+                                <div
+                                  key={c.category}
+                                  className={`h-full ${breakdownColor(c.category)}`}
+                                  style={{ width: `${c.percentage}%` }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {labeled.filter(c => c.percentage >= 0.1).map(c => (
+                              <div key={c.category} className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${breakdownColor(c.category)}`} />
+                                <span className="text-[11px] font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
+                                <div className="flex-1 h-1.5 bg-gray-700/30 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${breakdownColor(c.category)}`}
+                                    style={{ width: `${(c.totalBalance / maxLabeled) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-mono text-primary text-right w-24 tabular-nums">
+                                  {c.totalBalance >= 1000 ? `${(c.totalBalance / 1000).toFixed(1)}K` : c.totalBalance.toFixed(0)} ZEC
+                                </span>
+                                <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                  {c.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            ))}
+                            {unlabeled && (
+                              <div className="flex items-center gap-2 pt-1 border-t border-cipher-border-alpha/50">
+                                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
+                                <span className="text-[11px] font-mono text-muted w-20">Unlabeled</span>
+                                <div className="flex-1" />
+                                <span className="text-[11px] font-mono text-muted text-right w-24 tabular-nums">
+                                  {unlabeled.totalBalance >= 1000 ? `${(unlabeled.totalBalance / 1000).toFixed(1)}K` : unlabeled.totalBalance.toFixed(0)} ZEC
+                                </span>
+                                <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                  {unlabeled.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </CardBody>
             </Card>
+
+            <div className="space-y-6 animate-fade-in-up">
+              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
+                <PoolDistributionChart />
+              </Suspense>
+              <Suspense fallback={<div className="card h-64 animate-pulse" />}>
+                <NetworkHistoryCharts />
+              </Suspense>
+            </div>
+          </section>
+
+          {/* ── MINING ── */}
+          <section id="network-mining" className="scroll-mt-36">
+            <SectionHeading title="Mining" />
+
+            <div className="mb-6 animate-fade-in-up">
+              <Suspense fallback={<div className="card h-96 animate-pulse" />}>
+                <MiningMetricsChart />
+              </Suspense>
             </div>
 
-          {/* Chain Stats */}
-          <div>
-            <Card>
-              <CardBody>
-                <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">CHAIN_INFO</h2>
-                </div>
-
-                <div className="space-y-0">
-                  <InfoRow
-                    label="Total Supply"
-                    value={`${(stats.supply!.chainSupply / 1e6).toFixed(2)}M ZEC`}
-                    tooltip="Total ZEC mined so far. Zcash has a fixed cap of 21 million ZEC."
-                  />
-                  <InfoRow
-                    label="Lockbox"
-                    value={`${stats.supply!.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`}
-                    subtitle={zecPrice ? `$${((stats.supply!.lockbox * zecPrice) / 1e6).toFixed(1)}M` : undefined}
-                    tooltip="ZEC reserved in the protocol lockbox for future Zcash development funding."
-                  />
-                  <InfoRow
-                    label="Network Upgrade"
-                    value={stats.supply!.activeUpgrade || 'Unknown'}
-                    badge
-                    href={getUpgradeUrl(stats.supply!.activeUpgrade)}
-                    tooltip="The currently active Zcash network upgrade. Click the badge to learn more."
-                  />
-                  <InfoRow
-                    label="Blockchain Size"
-                    value={`${stats.blockchain.sizeGB.toFixed(2)} GB`}
-                    tooltip="Total disk space used by the full Zcash blockchain on this node."
-                  />
-                  <InfoRow
-                    label="Latest Block"
-                    value={`${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`}
-                    subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
-                    tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
-                  />
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-
-          <div className="space-y-6 mb-8 animate-fade-in-up" style={{ animationDelay: '180ms' }}>
-            <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-              <PoolDistributionChart />
-            </Suspense>
-            <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-              <NetworkHistoryCharts />
-            </Suspense>
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in-up">
+              <StatCard
+                label="Block Reward"
+                value={`${stats.mining.blockReward} ZEC`}
+                subtitle={stats.mining.minerReward ? `Miner: ${stats.mining.minerReward} ZEC` : undefined}
+                tooltip={stats.mining.minerReward
+                  ? `Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams ?? 0} ZEC, Lockbox: ${stats.mining.lockbox ?? 0} ZEC.`
+                  : `Current ZEC block subsidy.`}
+              />
+              <StatCard
+                label="Daily Revenue"
+                value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
+                subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
+                tooltip={stats.mining.dailyMinerRevenue
+                  ? `Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`
+                  : `Total ZEC emitted in the last 24 hours (blocks × block reward).`}
+              />
+              <StatCard
+                label="Blocks (24h)"
+                value={stats.mining.blocks24h.toLocaleString()}
+                subtitle={`TX/block: ${(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}`}
+                tooltip="Number of blocks mined in the last 24 hours, with average transactions per block."
+              />
+            </div>
+          </section>
         </>
       )}
 
-      {/* Mining charts + stats */}
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '220ms' }}>
-        <Suspense fallback={<div className="card h-96 animate-pulse mb-6" />}>
-          <MiningMetricsChart />
-        </Suspense>
-      </div>
-
-      {/* Mining summary cards */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-          <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">MINING_PERFORMANCE</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          <StatCard label="Hashrate" value={formatHashrate(stats.mining.networkHashrateRaw)} tooltip="Combined computing power securing the Zcash network." />
-          <StatCard label="Difficulty" value={formatDifficulty(stats.mining.difficulty)} tooltip="How hard it is to mine a new block. Adjusts automatically to maintain ~75s block times." />
-          <StatCard
-            label="Block Time"
-            value={`${stats.mining.avgBlockTime}s`}
-            subtitle="Target: 75s"
-            status={stats.mining.avgBlockTime <= 90 ? 'good' : stats.mining.avgBlockTime <= 120 ? 'warning' : 'bad'}
-            tooltip="Average time between blocks over the last 24 hours. Green means close to the 75s target."
-          />
-          <StatCard label="Blocks (24h)" value={stats.mining.blocks24h.toLocaleString()} tooltip="Number of blocks mined in the last 24 hours." />
-          <StatCard
-            label="Block Reward"
-            value={`${stats.mining.blockReward} ZEC`}
-            subtitle={stats.mining.minerReward ? `Miner: ${stats.mining.minerReward} ZEC` : undefined}
-            tooltip={stats.mining.minerReward
-              ? `Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams ?? 0} ZEC, Lockbox: ${stats.mining.lockbox ?? 0} ZEC.`
-              : `Current ZEC block subsidy.`}
-          />
-          <StatCard
-            label="TX/Block"
-            value={(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}
-            subtitle="24h avg"
-            tooltip="Average number of transactions included per block over the last 24 hours."
-          />
-          <StatCard
-            label="Daily Revenue"
-            value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
-            subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
-            tooltip={stats.mining.dailyMinerRevenue
-              ? `Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`
-              : `Total ZEC emitted in the last 24 hours (blocks × block reward).`}
-          />
-        </div>
-      </div>
-
-      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '280ms' }}>
-        <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-          <RecentBlocksTable />
-        </Suspense>
-      </div>
+      {!stats.supply && (
+        <section id="network-mining" className="scroll-mt-36">
+          <SectionHeading title="Mining" />
+          <div className="mb-6">
+            <Suspense fallback={<div className="card h-96 animate-pulse" />}>
+              <MiningMetricsChart />
+            </Suspense>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -572,6 +530,81 @@ function breakdownColor(category: string): string {
 // ==========================================================================
 // SUB-COMPONENTS
 // ==========================================================================
+
+function SectionHeading({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-6">
+      <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+      <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">{title}</h2>
+    </div>
+  );
+}
+
+function ChainInfoStrip({
+  stats,
+  zecPrice,
+  getUpgradeUrl,
+}: {
+  stats: NetworkStats;
+  zecPrice: number | null;
+  getUpgradeUrl: (name: string | null) => string | undefined;
+}) {
+  const supply = stats.supply!;
+  const upgradeUrl = getUpgradeUrl(supply.activeUpgrade);
+  const latestBlockAgo = `${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`;
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in-up" style={{ animationDelay: '140ms' }}>
+      <ChainInfoChip
+        label="Lockbox"
+        value={`${supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`}
+        subtitle={zecPrice ? `$${((supply.lockbox * zecPrice) / 1e6).toFixed(1)}M` : undefined}
+        tooltip="ZEC reserved in the protocol lockbox for future Zcash development funding."
+      />
+      <ChainInfoChip
+        label="Blockchain size"
+        value={`${stats.blockchain.sizeGB.toFixed(2)} GB`}
+        tooltip="Total disk space used by the full Zcash blockchain on this node."
+      />
+      <ChainInfoChip
+        label="Latest block"
+        value={latestBlockAgo}
+        subtitle={new Date(stats.blockchain.latestBlockTime * 1000).toLocaleTimeString()}
+        tooltip="Time since the most recent block was mined. Zcash targets a new block every 75 seconds."
+      />
+      <div className="card p-3">
+        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
+          Network upgrade
+          <Tooltip content="The currently active Zcash network upgrade." />
+        </div>
+        {upgradeUrl ? (
+          <a href={upgradeUrl} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
+            <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
+          </a>
+        ) : (
+          <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChainInfoChip({ label, value, subtitle, tooltip }: {
+  label: string; value: string; subtitle?: string; tooltip?: string;
+}) {
+  return (
+    <Card variant="compact">
+      <CardBody>
+        <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1 flex items-center gap-1">
+          {label}
+          {tooltip && <Tooltip content={tooltip} />}
+        </div>
+        <div className="text-sm font-bold font-mono text-primary">{value}</div>
+        {subtitle && <p className="text-[10px] mt-0.5 text-muted font-mono">{subtitle}</p>}
+      </CardBody>
+    </Card>
+  );
+}
 
 /** Compact top metric card */
 function MetricCard({ label, mobileLabel, value, tooltip }: {
@@ -632,47 +665,10 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
   );
 }
 
-/** Info row for chain stats */
-function InfoRow({ label, value, subtitle, badge, href, tooltip }: {
-  label: string; value: string; subtitle?: string; badge?: boolean; href?: string; tooltip?: string;
+/** Small stat card for mining extras */
+function StatCard({ label, value, subtitle, tooltip }: {
+  label: string; value: string; subtitle?: string; tooltip?: string;
 }) {
-  const content = badge ? (
-    <Badge color="green">{value}</Badge>
-  ) : (
-    <span className="font-mono font-bold text-sm text-primary">{value}</span>
-  );
-
-  return (
-    <div className="flex justify-between items-center py-3 border-b border-cipher-border last:border-b-0">
-      <span className="text-sm text-secondary flex items-center gap-1.5">
-        {label}
-        {tooltip && <Tooltip content={tooltip} />}
-      </span>
-      <div className="text-right">
-        {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-            {content}
-          </a>
-        ) : content}
-        {subtitle && (
-          <div className="text-[10px] text-muted font-mono mt-0.5">{subtitle}</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Small stat card for mining section */
-function StatCard({ label, value, subtitle, status, tooltip }: {
-  label: string; value: string; subtitle?: string; status?: 'good' | 'warning' | 'bad'; tooltip?: string;
-}) {
-  const statusColors: Record<string, string> = {
-    good: 'text-cipher-green',
-    warning: 'text-cipher-orange',
-    bad: 'text-red-400',
-  };
-  const valueColor = status ? statusColors[status] : 'text-primary';
-
   return (
     <Card variant="compact">
       <CardBody>
@@ -680,7 +676,7 @@ function StatCard({ label, value, subtitle, status, tooltip }: {
           {label}
           {tooltip && <Tooltip content={tooltip} />}
         </div>
-        <div className={`text-sm sm:text-lg font-bold font-mono ${valueColor} whitespace-nowrap truncate`}>{value}</div>
+        <div className="text-sm sm:text-lg font-bold font-mono text-primary whitespace-nowrap truncate">{value}</div>
         {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
       </CardBody>
     </Card>
