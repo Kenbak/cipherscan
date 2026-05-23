@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { ChartCard } from './ChartCard';
+
+const MAX_ZEC_SUPPLY = 21_000_000;
 
 function ChartEmptyState({ message }: { message: string }) {
   return (
@@ -62,10 +64,32 @@ export function NetworkHistoryCharts() {
             <AreaChart data={supplyPoints}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis dataKey="date" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${formatZecCompact(v)}`} domain={['auto', 'auto']} />
+              <YAxis
+                stroke={colors.axis}
+                tick={{ fill: colors.axis, fontSize: 10 }}
+                tickFormatter={(v) => `${formatZecCompact(v)}`}
+                domain={[0, MAX_ZEC_SUPPLY]}
+                ticks={[0, 5_000_000, 10_000_000, 15_000_000, 21_000_000]}
+                width={48}
+              />
+              <ReferenceLine
+                y={MAX_ZEC_SUPPLY}
+                stroke={colors.axis}
+                strokeDasharray="4 4"
+                strokeOpacity={0.35}
+                label={{
+                  value: '21M cap',
+                  position: 'insideTopRight',
+                  fill: colors.axis,
+                  fontSize: 10,
+                }}
+              />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(v: number) => [`${(v / 1e6).toFixed(2)}M ZEC`, 'Circulating']}
+                formatter={(v: number) => [
+                  `${(v / 1e6).toFixed(2)}M ZEC (${((v / MAX_ZEC_SUPPLY) * 100).toFixed(1)}% of max)`,
+                  'Circulating',
+                ]}
               />
               <Area type="monotone" dataKey="circulating" stroke={colors.cyan} fill={colors.cyan} fillOpacity={0.2} />
             </AreaChart>
