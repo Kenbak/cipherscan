@@ -70,9 +70,9 @@ async function main() {
 
   const result = await pool.query(`
     UPDATE privacy_trends_daily SET
-      sprout_pool_size = ROUND(pool_size * $1),
-      sapling_pool_size = ROUND(pool_size * $2),
-      orchard_pool_size = ROUND(pool_size * $3),
+      sprout_pool_size = ROUND((pool_size::numeric * $1::numeric))::bigint,
+      sapling_pool_size = ROUND((pool_size::numeric * $2::numeric))::bigint,
+      orchard_pool_size = ROUND((pool_size::numeric * $3::numeric))::bigint,
       transparent_pool_size = GREATEST(chain_supply - pool_size, 0)
     WHERE pool_size > 0
       AND chain_supply > 0
