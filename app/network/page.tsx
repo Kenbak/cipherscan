@@ -457,8 +457,10 @@ export default function NetworkPage() {
           <StatCard
             label="Block Reward"
             value={`${stats.mining.blockReward} ZEC`}
-            subtitle={`Miner: ${stats.mining.minerReward} ZEC`}
-            tooltip={`Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams} ZEC, Lockbox: ${stats.mining.lockbox} ZEC.`}
+            subtitle={stats.mining.minerReward ? `Miner: ${stats.mining.minerReward} ZEC` : undefined}
+            tooltip={stats.mining.minerReward
+              ? `Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams ?? 0} ZEC, Lockbox: ${stats.mining.lockbox ?? 0} ZEC.`
+              : `Current ZEC block subsidy.`}
           />
           <StatCard
             label="TX/Block"
@@ -470,7 +472,9 @@ export default function NetworkPage() {
             label="Daily Revenue"
             value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
             subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
-            tooltip={`Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`}
+            tooltip={stats.mining.dailyMinerRevenue
+              ? `Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`
+              : `Total ZEC emitted in the last 24 hours (blocks × block reward).`}
           />
         </div>
       </div>
