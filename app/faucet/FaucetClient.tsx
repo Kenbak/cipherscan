@@ -67,7 +67,12 @@ export default function FaucetClient() {
   const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
   const isDark = theme === 'dark';
-  const captchaRequired = !!TURNSTILE_SITE_KEY;
+  // Drive captcha gating off the server (TURNSTILE_SECRET_KEY) — the public
+  // site key alone isn't authoritative. If the server enforces captcha but the
+  // UI is missing the site key, fail loud instead of silently 400-looping.
+  const captchaEnabledServer = status?.captchaEnabled === true;
+  const captchaRequired = captchaEnabledServer && !!TURNSTILE_SITE_KEY;
+  const captchaMisconfigured = captchaEnabledServer && !TURNSTILE_SITE_KEY;
 
   const lowSpendable =
     status != null &&
@@ -305,6 +310,13 @@ export default function FaucetClient() {
                 </div>
               )}
 
+              {captchaMisconfigured && (
+                <p className="text-xs text-cipher-orange font-mono text-center">
+                  captcha misconfigured — server requires it but site key is missing.
+                  ask the operator to set NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+                </p>
+              )}
+
               <button
                 type="submit"
                 disabled={
@@ -312,6 +324,7 @@ export default function FaucetClient() {
                   !address.trim() ||
                   state.kind === 'drained' ||
                   overSpendable ||
+                  captchaMisconfigured ||
                   (captchaRequired && !captchaToken)
                 }
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
