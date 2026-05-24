@@ -9,6 +9,8 @@ const router = express.Router();
 
 const DEFAULT_DISPENSE_TAZ = 0.5;
 const UA_REGEX = /^utest1[02-9ac-hj-np-z]{40,}$/;
+const FAUCET_MEMO =
+  "thanks for using the cipherscan testnet faucet — zipher, a zcash wallet for humans and agents, coming soon (in beta)";
 
 const dispenseLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -70,7 +72,7 @@ async function tapsSend({ recipient, amountTaz }) {
       "Content-Type": "application/json",
       "X-Api-Key": apiKey,
     },
-    body: JSON.stringify({ recipient, amount: amountTaz }),
+    body: JSON.stringify({ recipient, amount: amountTaz, memo: FAUCET_MEMO }),
   });
   const body = await res.json().catch(() => ({}));
   return { status: res.status, body };
