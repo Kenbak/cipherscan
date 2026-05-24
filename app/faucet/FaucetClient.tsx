@@ -160,34 +160,17 @@ export default function FaucetClient() {
 
   return (
     <div className="space-y-6">
-      {/* Header + status strip */}
-      <div className="flex items-start justify-between gap-4 animate-fade-in">
-        <div>
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> TESTNET_FAUCET
+      {/* Header */}
+      <div className="animate-fade-in">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
+          <span className="opacity-50">{'>'}</span> TESTNET_FAUCET
+        </p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
+        {lowSpendable && (
+          <p className="text-xs text-cipher-orange font-mono mt-2">
+            wallet syncing — single dispense currently capped at {formatTaz(maxDispensable)} TAZ
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
-          {lowSpendable && (
-            <p className="text-xs text-cipher-orange font-mono mt-2">
-              wallet syncing — single dispense currently capped at {formatTaz(maxDispensable)} TAZ
-            </p>
-          )}
-        </div>
-
-        <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
-          balance{' '}
-          <span className="text-cipher-green ml-1.5">
-            {status ? `${status.balanceTaz.toFixed(1)} TAZ` : '…'}
-          </span>
-        </div>
-      </div>
-
-      {/* Mobile balance */}
-      <div className="sm:hidden font-mono text-[11px] text-muted">
-        balance{' '}
-        <span className="text-cipher-green">
-          {status ? `${status.balanceTaz.toFixed(1)} TAZ` : '…'}
-        </span>
+        )}
       </div>
 
       {/* Form / Result */}
@@ -373,6 +356,41 @@ export default function FaucetClient() {
             <li>· {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request</li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
+        </CardBody>
+      </Card>
+
+      {/* Wallet stats */}
+      <Card variant="glass">
+        <CardBody>
+          <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
+            <span className="opacity-50">{'>'}</span> WALLET_STATS
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
+                Balance
+              </div>
+              <div className="font-mono text-sm text-cipher-green tabular-nums">
+                {status ? `${formatTaz(status.balanceTaz)} TAZ` : '…'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
+                Spendable
+              </div>
+              <div className="font-mono text-sm text-cipher-cyan tabular-nums">
+                {status ? `${formatTaz(status.maxDispensableTaz)} TAZ` : '…'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
+                Cap / tx
+              </div>
+              <div className="font-mono text-sm text-secondary tabular-nums">
+                {status ? `${formatTaz(status.maxSpendTaz)} TAZ` : '…'}
+              </div>
+            </div>
+          </div>
         </CardBody>
       </Card>
 
