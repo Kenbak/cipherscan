@@ -34,7 +34,6 @@ function formatTaz(v: number): string {
 interface FaucetStatus {
   balanceTaz: number;
   dispenseAmountTaz: number;
-  cooldownSeconds: number;
   captchaEnabled: boolean;
   donateAddress: string | null;
 }
@@ -44,18 +43,8 @@ type SubmitState =
   | { kind: 'submitting' }
   | { kind: 'success'; txid: string; amountTaz: number }
   | { kind: 'invalid' }
-  | { kind: 'cooldown'; retryAfterSeconds: number }
   | { kind: 'drained' }
   | { kind: 'error'; message: string };
-
-function formatRetry(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.ceil(seconds / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
-}
 
 // Loose testnet Unified Address check (bech32m charset). Strict parsing
 // happens server-side in taps.
@@ -73,8 +62,6 @@ export default function FaucetClient() {
   const { theme, mounted: themeMounted } = useTheme();
   const isDark = theme === 'dark';
   const captchaRequired = !!TURNSTILE_SITE_KEY;
-
-  const cooldownEnabled = (status?.cooldownSeconds ?? 0) > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -129,12 +116,6 @@ export default function FaucetClient() {
         case 'invalid address':
           setState({ kind: 'invalid' });
           break;
-        case 'cooldown':
-          setState({
-            kind: 'cooldown',
-            retryAfterSeconds: data.retryAfterSeconds ?? 86400,
-          });
-          break;
         case 'drained':
           setState({ kind: 'drained' });
           break;
@@ -174,11 +155,6 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> TESTNET_FAUCET
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
-          {cooldownEnabled && (
-            <p className="text-sm text-secondary mt-2">
-              one request every {formatRetry(status!.cooldownSeconds)}.
-            </p>
-          )}
         </div>
 
         <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
@@ -268,11 +244,6 @@ export default function FaucetClient() {
                 {state.kind === 'invalid' && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
                     invalid testnet address — expected <span className="text-primary">utest1…</span>
-                  </p>
-                )}
-                {state.kind === 'cooldown' && (
-                  <p className="text-xs text-cipher-orange font-mono mt-2">
-                    cooldown active — try again in {formatRetry(state.retryAfterSeconds)}
                   </p>
                 )}
                 {state.kind === 'drained' && (
@@ -376,10 +347,7 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> RULES_OF_ENGAGEMENT
           </h3>
           <ul className="space-y-2 text-xs text-secondary font-mono">
-            <li>
-              · {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request
-              {cooldownEnabled && `, max one per ${formatRetry(status!.cooldownSeconds)}`}
-            </li>
+            <li>· {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request</li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
         </CardBody>
