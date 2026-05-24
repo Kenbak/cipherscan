@@ -175,11 +175,12 @@ export default function FaucetClient() {
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
             <span className="opacity-50">{'>'}</span> TESTNET_FAUCET
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Get free testnet ZEC</h1>
-          <p className="text-sm text-secondary mt-2">
-            {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request, you choose
-            {cooldownEnabled && `, every ${formatRetry(status!.cooldownSeconds)}`}.
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
+          {cooldownEnabled && (
+            <p className="text-sm text-secondary mt-2">
+              one request every {formatRetry(status!.cooldownSeconds)}.
+            </p>
+          )}
         </div>
 
         <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
@@ -425,9 +426,6 @@ export default function FaucetClient() {
                   <span className="text-muted">loading…</span>
                 )}
               </div>
-              <p className="text-[10px] font-mono text-muted/70 mt-2">
-                transparent or shielded · both welcome
-              </p>
             </div>
           </div>
         </CardBody>
