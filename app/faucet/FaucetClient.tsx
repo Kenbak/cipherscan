@@ -12,8 +12,6 @@ import { getApiUrl } from '@/lib/api-config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
-const FALLBACK_DISPENSE_TAZ = 1;
-
 // Match taps' deploy/taps.toml: min_spend_zat=100_000, spend_increment_zat=10_000,
 // max_spend_zat=100_000_000 (1 TAZ).
 const MIN_DISPENSE_TAZ = 0.001;
