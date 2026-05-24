@@ -69,11 +69,11 @@ export default function FaucetClient() {
   const isDark = theme === 'dark';
   const captchaRequired = !!TURNSTILE_SITE_KEY;
 
-  const maxDispensable = status?.maxDispensableTaz ?? MAX_DISPENSE_TAZ;
-  const maxSpend = status?.maxSpendTaz ?? MAX_DISPENSE_TAZ;
   const lowSpendable =
-    status != null && maxSpend > 0 && maxDispensable < maxSpend * SYNC_NOTICE_THRESHOLD;
-  const overSpendable = status != null && amountTaz > maxDispensable + 1e-9;
+    status != null &&
+    status.maxSpendTaz > 0 &&
+    status.maxDispensableTaz < status.maxSpendTaz * SYNC_NOTICE_THRESHOLD;
+  const overSpendable = status != null && amountTaz > status.maxDispensableTaz + 1e-9;
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +168,7 @@ export default function FaucetClient() {
         <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
         {lowSpendable && (
           <p className="text-xs text-cipher-orange font-mono mt-2">
-            wallet syncing — single dispense currently capped at {formatTaz(maxDispensable)} TAZ
+            wallet syncing — single dispense currently capped at {formatTaz(status!.maxDispensableTaz)} TAZ
           </p>
         )}
       </div>
@@ -284,7 +284,7 @@ export default function FaucetClient() {
                 </div>
                 {overSpendable && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
-                    only {formatTaz(maxDispensable)} TAZ spendable right now — pick a smaller amount
+                    only {formatTaz(status!.maxDispensableTaz)} TAZ spendable right now — pick a smaller amount
                   </p>
                 )}
               </div>
@@ -350,7 +350,7 @@ export default function FaucetClient() {
       <Card variant="glass">
         <CardBody>
           <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
-            <span className="opacity-50">{'>'}</span> WALLET_STATS
+            <span className="opacity-50">{'>'}</span> FAUCET_STATS
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
