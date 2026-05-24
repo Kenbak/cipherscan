@@ -13,8 +13,6 @@ import { isTestnet } from '@/lib/config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
-const DEFAULT_DISPENSE_TAZ = 0.1;
-
 // Slider events emit 0.30000000000000004 etc. — snap to the increment.
 function snapToStep(v: number, step: number): number {
   return Math.round(v / step) * step;
@@ -54,7 +52,7 @@ function errorMessage(data: { error?: string; detail?: string }): string {
 
 export default function FaucetClient() {
   const [address, setAddress] = useState('');
-  const [amountTaz, setAmountTaz] = useState<number>(DEFAULT_DISPENSE_TAZ);
+  const [amountTaz, setAmountTaz] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<{ txid: string; amountTaz: number } | null>(null);
@@ -68,7 +66,7 @@ export default function FaucetClient() {
     status != null &&
     status.maxSpendTaz > 0 &&
     status.maxDispensableTaz < status.maxSpendTaz * SYNC_NOTICE_THRESHOLD;
-  const overSpendable = status != null && amountTaz > status.maxDispensableTaz + 1e-9;
+  const overSpendable = status != null && amountTaz != null && amountTaz > status.maxDispensableTaz + 1e-9;
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +86,13 @@ export default function FaucetClient() {
     };
   }, []);
 
+  useEffect(() => {
+    if (status == null) return;
+    if (amountTaz == null || amountTaz > status.maxDispensableTaz) {
+      setAmountTaz(status.maxDispensableTaz);
+    }
+  }, [status, amountTaz]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = address.trim();
@@ -97,6 +102,10 @@ export default function FaucetClient() {
     }
     if (!captchaToken) {
       setNotice('complete the captcha first');
+      return;
+    }
+    if (amountTaz == null) {
+      setNotice('still loading — try again in a moment');
       return;
     }
     setNotice(null);
@@ -247,7 +256,7 @@ export default function FaucetClient() {
                     <span className="opacity-50">{'>'}</span> AMOUNT
                   </div>
                   <div className="font-mono text-sm text-cipher-cyan tabular-nums">
-                    {formatTaz(amountTaz)} <span className="text-muted">TAZ</span>
+                    {formatTaz(amountTaz ?? 0)} <span className="text-muted">TAZ</span>
                   </div>
                 </div>
                 {status ? (
@@ -255,9 +264,9 @@ export default function FaucetClient() {
                     <input
                       type="range"
                       min={status.minSpendTaz}
-                      max={status.maxSpendTaz}
+                      max={status.maxDispensableTaz}
                       step={status.stepTaz}
-                      value={amountTaz}
+                      value={amountTaz ?? status.minSpendTaz}
                       onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value), status.stepTaz))}
                       disabled={pending}
                       aria-label="Dispense amount in TAZ"
@@ -265,7 +274,7 @@ export default function FaucetClient() {
                     />
                     <div className="flex justify-between font-mono text-[10px] text-muted/70 mt-1">
                       <span>{formatTaz(status.minSpendTaz)} TAZ</span>
-                      <span>{formatTaz(status.maxSpendTaz)} TAZ</span>
+                      <span>{formatTaz(status.maxDispensableTaz)} TAZ</span>
                     </div>
                   </>
                 ) : (
@@ -327,11 +336,11 @@ export default function FaucetClient() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                       />
                     </svg>
-                    Sending {formatTaz(amountTaz)} TAZ…
+                    Sending {formatTaz(amountTaz ?? 0)} TAZ…
                   </>
                 ) : (
                   <>
-                    <span className="opacity-60">{'>'}</span> Send {formatTaz(amountTaz)} TAZ
+                    <span className="opacity-60">{'>'}</span> Send {formatTaz(amountTaz ?? 0)} TAZ
                   </>
                 )}
               </button>
