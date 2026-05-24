@@ -77,11 +77,13 @@ router.get('/api/faucet/status', async (_req, res) => {
   try {
     const taps = await tapsStatus();
     const orchard = taps?.balances?.orchard;
+    const ua = taps?.unified_address;
     res.json({
       balanceTaz: typeof orchard === 'number' ? orchard : 0,
       dispenseAmountTaz: dispenseAmountTaz(),
       cooldownSeconds: cooldownSeconds(),
       captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
+      donateAddress: typeof ua === 'string' && ua !== 'unavailable' ? ua : null,
     });
   } catch (err) {
     console.error('[faucet] status failed:', err.message);

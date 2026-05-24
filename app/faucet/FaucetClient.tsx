@@ -12,14 +12,13 @@ import { getApiUrl } from '@/lib/api-config';
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 const FALLBACK_DISPENSE_TAZ = 1;
-// STUB: real address comes from env once taps wallet is provisioned
-const FAUCET_DONATE_ADDRESS = 'tm9zNbDx7K2pVcRfYqWxJ8mE4hT3nL6Aoq5';
 
 interface FaucetStatus {
   balanceTaz: number;
   dispenseAmountTaz: number;
   cooldownSeconds: number;
   captchaEnabled: boolean;
+  donateAddress: string | null;
 }
 
 type SubmitState =
@@ -155,7 +154,8 @@ export default function FaucetClient() {
   }
 
   async function copyDonateAddress() {
-    await navigator.clipboard.writeText(FAUCET_DONATE_ADDRESS);
+    if (!status?.donateAddress) return;
+    await navigator.clipboard.writeText(status.donateAddress);
     setAddrCopied(true);
     setTimeout(() => setAddrCopied(false), 2000);
   }
@@ -376,9 +376,9 @@ export default function FaucetClient() {
           <div className="flex flex-col sm:flex-row gap-4 items-start">
             {/* QR */}
             <div className="bg-white/95 dark:bg-black/40 border border-cipher-border rounded-md p-2 flex-shrink-0 self-center sm:self-start">
-              {themeMounted && (
+              {themeMounted && status?.donateAddress && (
                 <QRCodeSVG
-                  value={FAUCET_DONATE_ADDRESS}
+                  value={status.donateAddress}
                   size={96}
                   level="M"
                   bgColor={isDark ? '#08090F' : '#F5F7FA'}
@@ -393,18 +393,24 @@ export default function FaucetClient() {
                 <span className="opacity-50">{'>'}</span> ADDRESS
               </div>
               <div className="flex items-center gap-2 font-mono text-xs text-primary break-all">
-                <span>{FAUCET_DONATE_ADDRESS}</span>
-                <button
-                  type="button"
-                  onClick={copyDonateAddress}
-                  className="text-muted hover:text-cipher-cyan flex-shrink-0 font-mono"
-                  aria-label="Copy donate address"
-                >
-                  {addrCopied ? '✓' : '⎘'}
-                </button>
+                {status?.donateAddress ? (
+                  <>
+                    <span>{status.donateAddress}</span>
+                    <button
+                      type="button"
+                      onClick={copyDonateAddress}
+                      className="text-muted hover:text-cipher-cyan flex-shrink-0 font-mono"
+                      aria-label="Copy donate address"
+                    >
+                      {addrCopied ? '✓' : '⎘'}
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-muted">loading…</span>
+                )}
               </div>
               <p className="text-[10px] font-mono text-muted/70 mt-2">
-                transparent only · shielded donations coming
+                transparent or shielded · both welcome
               </p>
             </div>
           </div>
