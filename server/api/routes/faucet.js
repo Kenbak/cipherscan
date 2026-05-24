@@ -81,7 +81,6 @@ router.get('/api/faucet/status', async (_req, res) => {
       balanceTaz: typeof orchard === 'number' ? orchard : 0,
       maxDispensableTaz: typeof maxDispensable === 'number' ? maxDispensable / ZAT_PER_TAZ : 0,
       maxSpendTaz: typeof maxSpend === 'number' ? maxSpend / ZAT_PER_TAZ : 0,
-      dispenseAmountTaz: dispenseAmountTaz(),
       captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
       donateAddress: typeof ua === 'string' && ua !== 'unavailable' ? ua : null,
     });

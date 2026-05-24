@@ -35,7 +35,6 @@ interface FaucetStatus {
   balanceTaz: number;
   maxDispensableTaz: number;
   maxSpendTaz: number;
-  dispenseAmountTaz: number;
   captchaEnabled: boolean;
   donateAddress: string | null;
 }
@@ -44,29 +43,35 @@ interface FaucetStatus {
 // than 20% of the per-tx cap. Above that we consider it healthy fluctuation.
 const SYNC_NOTICE_THRESHOLD = 0.2;
 
-type SubmitState =
-  | { kind: 'idle' }
-  | { kind: 'submitting' }
-  | { kind: 'success'; txid: string; amountTaz: number }
-  | { kind: 'invalid' }
-  | { kind: 'drained' }
-  | { kind: 'error'; message: string };
-
 // Loose testnet Unified Address check (bech32m charset). Strict parsing
 // happens server-side in taps.
 function isValidTestnetUnifiedAddress(addr: string): boolean {
   return /^utest1[02-9ac-hj-np-z]{40,}$/.test(addr.trim());
 }
 
+function errorMessage(data: { error?: string; detail?: string }): string {
+  switch (data.error) {
+    case 'invalid address':
+      return 'invalid testnet address — expected utest1…';
+    case 'drained':
+      return 'faucet is dry — mining the next refill, check back later';
+    case 'captcha failed':
+      return 'captcha verification failed';
+    default:
+      return data.error || data.detail || 'something broke, try again';
+  }
+}
+
 export default function FaucetClient() {
   const [address, setAddress] = useState('');
   const [amountTaz, setAmountTaz] = useState<number>(DEFAULT_DISPENSE_TAZ);
-  const [state, setState] = useState<SubmitState>({ kind: 'idle' });
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [result, setResult] = useState<{ txid: string; amountTaz: number } | null>(null);
   const [status, setStatus] = useState<FaucetStatus | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
-  const isDark = theme === 'dark';
   // Drive captcha gating off the server (TURNSTILE_SECRET_KEY) — the public
   // site key alone isn't authoritative. If the server enforces captcha but the
   // UI is missing the site key, fail loud instead of silently 400-looping.
@@ -102,14 +107,15 @@ export default function FaucetClient() {
     e.preventDefault();
     const trimmed = address.trim();
     if (!isValidTestnetUnifiedAddress(trimmed)) {
-      setState({ kind: 'invalid' });
+      setNotice('invalid testnet address — expected utest1…');
       return;
     }
     if (captchaRequired && !captchaToken) {
-      setState({ kind: 'error', message: 'complete the captcha first' });
+      setNotice('complete the captcha first');
       return;
     }
-    setState({ kind: 'submitting' });
+    setNotice(null);
+    setPending(true);
 
     try {
       const res = await fetch(`${getApiUrl()}/api/faucet/dispense`, {
@@ -120,7 +126,7 @@ export default function FaucetClient() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.txid) {
-        setState({ kind: 'success', txid: data.txid, amountTaz });
+        setResult({ txid: data.txid, amountTaz });
         return;
       }
 
@@ -128,40 +134,21 @@ export default function FaucetClient() {
       // so the user gets a fresh one for the next attempt.
       turnstileRef.current?.reset();
       setCaptchaToken(null);
-
-      switch (data.error) {
-        case 'invalid address':
-          setState({ kind: 'invalid' });
-          break;
-        case 'drained':
-          setState({ kind: 'drained' });
-          break;
-        case 'captcha failed':
-          setState({ kind: 'error', message: 'captcha verification failed' });
-          break;
-        default:
-          setState({
-            kind: 'error',
-            message: data.error || data.detail || 'something broke, try again',
-          });
-      }
+      setNotice(errorMessage(data));
     } catch (err) {
       turnstileRef.current?.reset();
       setCaptchaToken(null);
-      setState({
-        kind: 'error',
-        message: err instanceof Error ? err.message : 'network error',
-      });
+      setNotice(err instanceof Error ? err.message : 'network error');
+    } finally {
+      setPending(false);
     }
   }
 
   function reset() {
     setAddress('');
-    setState({ kind: 'idle' });
+    setNotice(null);
+    setResult(null);
   }
-
-  const isSubmitting = state.kind === 'submitting';
-  const isSuccess = state.kind === 'success';
 
   return (
     <div className="space-y-6">
@@ -179,13 +166,13 @@ export default function FaucetClient() {
       </div>
 
       {/* Form / Result */}
-      {isSuccess ? (
+      {result ? (
         <Card variant="glass">
           <CardBody>
             <div className="flex items-center gap-2 mb-4">
               <Badge color="green">SENT</Badge>
               <span className="text-sm text-secondary">
-                {formatTaz(state.amountTaz)} TAZ dispatched to your address
+                {formatTaz(result.amountTaz)} TAZ dispatched to your address
               </span>
             </div>
 
@@ -194,8 +181,8 @@ export default function FaucetClient() {
                 <span className="opacity-50">{'>'}</span> TXID
               </div>
               <div className="flex items-center gap-2 font-mono text-xs sm:text-sm text-primary break-all">
-                <span>{state.txid}</span>
-                <CopyButton text={state.txid} label="Copy txid" />
+                <span>{result.txid}</span>
+                <CopyButton text={result.txid} label="Copy txid" />
               </div>
               <p className="text-xs text-muted">
                 Likely unconfirmed — confirmation in ~75 seconds.
@@ -204,7 +191,7 @@ export default function FaucetClient() {
 
             <div className="mt-6 flex flex-wrap gap-4">
               <Link
-                href={`/tx/${state.txid}`}
+                href={`/tx/${result.txid}`}
                 className="text-xs font-mono text-cipher-cyan hover:underline"
               >
                 view tx →
@@ -236,29 +223,17 @@ export default function FaucetClient() {
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value);
-                    if (state.kind !== 'idle' && state.kind !== 'submitting') {
-                      setState({ kind: 'idle' });
-                    }
+                    if (notice) setNotice(null);
                   }}
                   placeholder="utest1..."
                   spellCheck={false}
                   autoComplete="off"
-                  disabled={isSubmitting}
+                  disabled={pending}
                   className="input-field disabled:opacity-50"
                 />
-                {state.kind === 'invalid' && (
+                {notice && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
-                    invalid testnet address — expected <span className="text-primary">utest1…</span>
-                  </p>
-                )}
-                {state.kind === 'drained' && (
-                  <p className="text-xs text-cipher-orange font-mono mt-2">
-                    faucet is dry — mining the next refill, check back later
-                  </p>
-                )}
-                {state.kind === 'error' && (
-                  <p className="text-xs text-cipher-orange font-mono mt-2">
-                    {state.message}
+                    {notice}
                   </p>
                 )}
               </div>
@@ -279,7 +254,7 @@ export default function FaucetClient() {
                   step={STEP_TAZ}
                   value={amountTaz}
                   onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value)))}
-                  disabled={isSubmitting}
+                  disabled={pending}
                   aria-label="Dispense amount in TAZ"
                   className="w-full accent-cipher-cyan cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -303,7 +278,7 @@ export default function FaucetClient() {
                     onExpire={() => setCaptchaToken(null)}
                     onError={() => setCaptchaToken(null)}
                     options={{
-                      theme: isDark ? 'dark' : 'light',
+                      theme,
                       size: 'normal',
                     }}
                   />
@@ -320,16 +295,15 @@ export default function FaucetClient() {
               <button
                 type="submit"
                 disabled={
-                  isSubmitting ||
+                  pending ||
                   !address.trim() ||
-                  state.kind === 'drained' ||
                   overSpendable ||
                   captchaMisconfigured ||
                   (captchaRequired && !captchaToken)
                 }
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >
-                {isSubmitting ? (
+                {pending ? (
                   <>
                     <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                       <circle
@@ -417,7 +391,7 @@ export default function FaucetClient() {
                   value={status.donateAddress}
                   size={96}
                   level="M"
-                  bgColor={isDark ? '#08090F' : '#F5F7FA'}
+                  bgColor="var(--color-bg)"
                   fgColor="var(--color-cyan)"
                 />
               )}
