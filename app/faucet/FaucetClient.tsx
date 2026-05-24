@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { CopyButton } from '@/components/CopyButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/api-config';
 
@@ -68,8 +69,6 @@ export default function FaucetClient() {
   const [address, setAddress] = useState('');
   const [amountTaz, setAmountTaz] = useState<number>(DEFAULT_DISPENSE_TAZ);
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
-  const [copied, setCopied] = useState(false);
-  const [addrCopied, setAddrCopied] = useState(false);
   const [status, setStatus] = useState<FaucetStatus | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | null>(null);
@@ -163,20 +162,6 @@ export default function FaucetClient() {
   function reset() {
     setAddress('');
     setState({ kind: 'idle' });
-    setCopied(false);
-  }
-
-  async function copyTxid(txid: string) {
-    await navigator.clipboard.writeText(txid);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  async function copyDonateAddress() {
-    if (!status?.donateAddress) return;
-    await navigator.clipboard.writeText(status.donateAddress);
-    setAddrCopied(true);
-    setTimeout(() => setAddrCopied(false), 2000);
   }
 
   const isSubmitting = state.kind === 'submitting';
@@ -230,14 +215,7 @@ export default function FaucetClient() {
               </div>
               <div className="flex items-center gap-2 font-mono text-xs sm:text-sm text-primary break-all">
                 <span>{state.txid}</span>
-                <button
-                  type="button"
-                  onClick={() => copyTxid(state.txid)}
-                  className="text-muted hover:text-cipher-cyan flex-shrink-0 font-mono"
-                  aria-label="Copy txid"
-                >
-                  {copied ? '✓' : '⎘'}
-                </button>
+                <CopyButton text={state.txid} label="Copy txid" />
               </div>
               <p className="text-xs text-muted">
                 Likely unconfirmed — confirmation in ~75 seconds.
@@ -441,14 +419,7 @@ export default function FaucetClient() {
                 {status?.donateAddress ? (
                   <>
                     <span>{status.donateAddress}</span>
-                    <button
-                      type="button"
-                      onClick={copyDonateAddress}
-                      className="text-muted hover:text-cipher-cyan flex-shrink-0 font-mono"
-                      aria-label="Copy donate address"
-                    >
-                      {addrCopied ? '✓' : '⎘'}
-                    </button>
+                    <CopyButton text={status.donateAddress} label="Copy donate address" />
                   </>
                 ) : (
                   <span className="text-muted">loading…</span>
