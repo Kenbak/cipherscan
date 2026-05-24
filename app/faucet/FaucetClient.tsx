@@ -12,10 +12,6 @@ import { getApiUrl } from '@/lib/api-config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
-// First-paint fallbacks until /status lands.
-const FALLBACK_MIN_TAZ = 0.001;
-const FALLBACK_MAX_TAZ = 1;
-const FALLBACK_STEP_TAZ = 0.0001;
 const DEFAULT_DISPENSE_TAZ = 0.1;
 
 // Slider events emit 0.30000000000000004 etc. — snap to the increment.
@@ -66,10 +62,6 @@ export default function FaucetClient() {
   const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
   const captchaMisconfigured = !TURNSTILE_SITE_KEY;
-
-  const minTaz = status?.minSpendTaz || FALLBACK_MIN_TAZ;
-  const maxTaz = status?.maxSpendTaz || FALLBACK_MAX_TAZ;
-  const stepTaz = status?.stepTaz || FALLBACK_STEP_TAZ;
 
   const lowSpendable =
     status != null &&
@@ -237,21 +229,27 @@ export default function FaucetClient() {
                     {formatTaz(amountTaz)} <span className="text-muted">TAZ</span>
                   </div>
                 </div>
-                <input
-                  type="range"
-                  min={minTaz}
-                  max={maxTaz}
-                  step={stepTaz}
-                  value={amountTaz}
-                  onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value), stepTaz))}
-                  disabled={pending}
-                  aria-label="Dispense amount in TAZ"
-                  className="w-full accent-cipher-cyan cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <div className="flex justify-between font-mono text-[10px] text-muted/70 mt-1">
-                  <span>{formatTaz(minTaz)} TAZ</span>
-                  <span>{formatTaz(maxTaz)} TAZ</span>
-                </div>
+                {status ? (
+                  <>
+                    <input
+                      type="range"
+                      min={status.minSpendTaz}
+                      max={status.maxSpendTaz}
+                      step={status.stepTaz}
+                      value={amountTaz}
+                      onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value), status.stepTaz))}
+                      disabled={pending}
+                      aria-label="Dispense amount in TAZ"
+                      className="w-full accent-cipher-cyan cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="flex justify-between font-mono text-[10px] text-muted/70 mt-1">
+                      <span>{formatTaz(status.minSpendTaz)} TAZ</span>
+                      <span>{formatTaz(status.maxSpendTaz)} TAZ</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-6 font-mono text-[10px] text-muted/70">loading bounds…</div>
+                )}
                 {overSpendable && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
                     only {formatTaz(status!.maxDispensableTaz)} TAZ spendable right now — pick a smaller amount
@@ -284,6 +282,7 @@ export default function FaucetClient() {
                 disabled={
                   pending ||
                   !address.trim() ||
+                  !status ||
                   overSpendable ||
                   captchaMisconfigured ||
                   !captchaToken
@@ -354,7 +353,7 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> RULES_OF_ENGAGEMENT
           </h3>
           <ul className="space-y-2 text-xs text-secondary font-mono">
-            <li>· {formatTaz(minTaz)} – {formatTaz(maxTaz)} TAZ per request</li>
+            <li>· {status ? `${formatTaz(status.minSpendTaz)} – ${formatTaz(status.maxSpendTaz)} TAZ per request` : '…'}</li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
         </CardBody>
