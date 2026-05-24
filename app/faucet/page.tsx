@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import FaucetClient from './FaucetClient';
-import { isTestnet } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Testnet Faucet | CipherScan',
@@ -19,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default function FaucetPage() {
-  if (!isTestnet) notFound();
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
       <FaucetClient />

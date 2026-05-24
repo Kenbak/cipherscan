@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { CopyButton } from '@/components/CopyButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/lib/api-config';
+import { isTestnet } from '@/lib/config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
@@ -130,6 +131,26 @@ export default function FaucetClient() {
     setAddress('');
     setNotice(null);
     setResult(null);
+  }
+
+  if (!isTestnet) {
+    return (
+      <div className="max-w-md mx-auto text-center">
+        <div className="card py-16 px-8">
+          <div className="w-12 h-12 rounded-full bg-cipher-cyan/10 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-6 h-6 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold font-mono text-primary mb-3">Testnet Only</h1>
+          <p className="text-sm text-muted mb-6">The faucet dispenses testnet ZEC (TAZ).</p>
+          <a href="https://testnet.cipherscan.app/faucet" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-mono text-sm text-cipher-cyan bg-cipher-cyan/10 hover:bg-cipher-cyan/15 transition-colors">
+            Go to Testnet
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (
