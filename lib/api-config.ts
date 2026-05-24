@@ -41,7 +41,7 @@ export const NETWORK = detectNetwork();
 
 const POSTGRES_API_URLS: Record<Network, string> = {
   'mainnet': 'https://api.mainnet.cipherscan.app',
-  'testnet': 'https://api.testnet.cipherscan.app',
+  'testnet': process.env.NEXT_PUBLIC_TESTNET_API_URL || 'https://api.testnet.cipherscan.app',
   'crosslink-testnet': process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
 };
 
