@@ -93,12 +93,23 @@ router.get('/api/faucet/status', async (_req, res) => {
 
 router.post('/api/faucet/dispense', express.json(), async (req, res) => {
   const redisClient = req.app.locals.redisClient;
-  const { address, captchaToken } = req.body || {};
+  const { address, amountTaz: requestedAmount, captchaToken } = req.body || {};
 
   if (!address || typeof address !== 'string' || !UA_REGEX.test(address.trim())) {
     return res.status(400).json({ error: 'invalid address' });
   }
   const addr = address.trim();
+
+  // Caller chooses the amount; taps enforces min/max/increment.
+  // Fall back to the env default if the client didn't send one.
+  let amountTaz;
+  if (requestedAmount === undefined || requestedAmount === null) {
+    amountTaz = dispenseAmountTaz();
+  } else if (typeof requestedAmount !== 'number' || !Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+    return res.status(400).json({ error: 'invalid amount' });
+  } else {
+    amountTaz = requestedAmount;
+  }
 
   const captchaOk = await verifyTurnstile(captchaToken, req.ip);
   if (!captchaOk) {
@@ -121,8 +132,6 @@ router.post('/api/faucet/dispense', express.json(), async (req, res) => {
       console.error('[faucet] cooldown check failed:', err.message);
     }
   }
-
-  const amountTaz = dispenseAmountTaz();
 
   let result;
   try {
@@ -151,6 +160,10 @@ router.post('/api/faucet/dispense', express.json(), async (req, res) => {
   }
   if (tapsErr === 'insufficient balance') {
     return res.status(503).json({ error: 'drained' });
+  }
+  if (tapsErr.startsWith('amount ')) {
+    // taps amount-validation surface: too small, too large, wrong increment
+    return res.status(400).json({ error: 'invalid amount', detail: tapsErr });
   }
   if (result.status === 401) {
     console.error('[faucet] taps rejected api key — check TAPS_API_KEY');

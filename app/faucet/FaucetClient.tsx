@@ -13,6 +13,25 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 const FALLBACK_DISPENSE_TAZ = 1;
 
+// Match taps' deploy/taps.toml: min_spend_zat=100_000, spend_increment_zat=10_000,
+// max_spend_zat=100_000_000 (1 TAZ).
+const MIN_DISPENSE_TAZ = 0.001;
+const MAX_DISPENSE_TAZ = 1;
+const STEP_TAZ = 0.0001;
+const DEFAULT_DISPENSE_TAZ = 0.1;
+
+// Snap a slider value to the nearest valid step to dodge float drift
+// (e.g. 0.30000000000000004 → 0.3).
+function snapToStep(v: number): number {
+  return Math.round(v / STEP_TAZ) * STEP_TAZ;
+}
+
+// Strip trailing zeros from a 4-decimal-place fixed string.
+// 0.1 → "0.1", 0.001 → "0.001", 1 → "1".
+function formatTaz(v: number): string {
+  return parseFloat(v.toFixed(4)).toString();
+}
+
 interface FaucetStatus {
   balanceTaz: number;
   dispenseAmountTaz: number;
@@ -24,7 +43,7 @@ interface FaucetStatus {
 type SubmitState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
-  | { kind: 'success'; txid: string }
+  | { kind: 'success'; txid: string; amountTaz: number }
   | { kind: 'invalid' }
   | { kind: 'cooldown'; retryAfterSeconds: number }
   | { kind: 'drained' }
@@ -47,6 +66,7 @@ function isValidTestnetUnifiedAddress(addr: string): boolean {
 
 export default function FaucetClient() {
   const [address, setAddress] = useState('');
+  const [amountTaz, setAmountTaz] = useState<number>(DEFAULT_DISPENSE_TAZ);
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
   const [copied, setCopied] = useState(false);
   const [addrCopied, setAddrCopied] = useState(false);
@@ -57,7 +77,6 @@ export default function FaucetClient() {
   const isDark = theme === 'dark';
   const captchaRequired = !!TURNSTILE_SITE_KEY;
 
-  const dispenseAmount = status?.dispenseAmountTaz ?? FALLBACK_DISPENSE_TAZ;
   const cooldownEnabled = (status?.cooldownSeconds ?? 0) > 0;
 
   useEffect(() => {
@@ -95,12 +114,12 @@ export default function FaucetClient() {
       const res = await fetch(`${getApiUrl()}/api/faucet/dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: trimmed, captchaToken }),
+        body: JSON.stringify({ address: trimmed, amountTaz, captchaToken }),
       });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.txid) {
-        setState({ kind: 'success', txid: data.txid });
+        setState({ kind: 'success', txid: data.txid, amountTaz });
         return;
       }
 
@@ -173,7 +192,7 @@ export default function FaucetClient() {
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Get free testnet ZEC</h1>
           <p className="text-sm text-secondary mt-2">
-            {dispenseAmount} TAZ per address
+            {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request, you choose
             {cooldownEnabled && `, every ${formatRetry(status!.cooldownSeconds)}`}.
           </p>
         </div>
@@ -201,7 +220,7 @@ export default function FaucetClient() {
             <div className="flex items-center gap-2 mb-4">
               <Badge color="green">SENT</Badge>
               <span className="text-sm text-secondary">
-                {dispenseAmount} TAZ dispatched to your address
+                {formatTaz(state.amountTaz)} TAZ dispatched to your address
               </span>
             </div>
 
@@ -291,6 +310,32 @@ export default function FaucetClient() {
                 )}
               </div>
 
+              <div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <div className="text-xs font-mono text-muted uppercase tracking-widest">
+                    <span className="opacity-50">{'>'}</span> AMOUNT
+                  </div>
+                  <div className="font-mono text-sm text-cipher-cyan tabular-nums">
+                    {formatTaz(amountTaz)} <span className="text-muted">TAZ</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={MIN_DISPENSE_TAZ}
+                  max={MAX_DISPENSE_TAZ}
+                  step={STEP_TAZ}
+                  value={amountTaz}
+                  onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value)))}
+                  disabled={isSubmitting}
+                  aria-label="Dispense amount in TAZ"
+                  className="w-full accent-cipher-cyan cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <div className="flex justify-between font-mono text-[10px] text-muted/70 mt-1">
+                  <span>{MIN_DISPENSE_TAZ} TAZ</span>
+                  <span>{MAX_DISPENSE_TAZ} TAZ</span>
+                </div>
+              </div>
+
               {captchaRequired && (
                 <div className="flex justify-center">
                   <Turnstile
@@ -334,11 +379,11 @@ export default function FaucetClient() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                       />
                     </svg>
-                    Sending {dispenseAmount} TAZ…
+                    Sending {formatTaz(amountTaz)} TAZ…
                   </>
                 ) : (
                   <>
-                    <span className="opacity-60">{'>'}</span> Send {dispenseAmount} TAZ
+                    <span className="opacity-60">{'>'}</span> Send {formatTaz(amountTaz)} TAZ
                   </>
                 )}
               </button>
@@ -355,7 +400,7 @@ export default function FaucetClient() {
           </h3>
           <ul className="space-y-2 text-xs text-secondary font-mono">
             <li>
-              · {dispenseAmount} TAZ per testnet address
+              · {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request
               {cooldownEnabled && `, max one per ${formatRetry(status!.cooldownSeconds)}`}
             </li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
