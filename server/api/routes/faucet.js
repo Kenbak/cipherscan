@@ -68,13 +68,19 @@ async function tapsSend({ recipient, amountTaz }) {
   return { status: res.status, body };
 }
 
+const ZAT_PER_TAZ = 100_000_000;
+
 router.get('/api/faucet/status', async (_req, res) => {
   try {
     const taps = await tapsStatus();
     const orchard = taps?.balances?.orchard;
     const ua = taps?.unified_address;
+    const maxDispensable = taps?.max_dispensable_zat;
+    const maxSpend = taps?.max_spend_zat;
     res.json({
       balanceTaz: typeof orchard === 'number' ? orchard : 0,
+      maxDispensableTaz: typeof maxDispensable === 'number' ? maxDispensable / ZAT_PER_TAZ : 0,
+      maxSpendTaz: typeof maxSpend === 'number' ? maxSpend / ZAT_PER_TAZ : 0,
       dispenseAmountTaz: dispenseAmountTaz(),
       captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
       donateAddress: typeof ua === 'string' && ua !== 'unavailable' ? ua : null,

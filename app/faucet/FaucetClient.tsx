@@ -33,10 +33,16 @@ function formatTaz(v: number): string {
 
 interface FaucetStatus {
   balanceTaz: number;
+  maxDispensableTaz: number;
+  maxSpendTaz: number;
   dispenseAmountTaz: number;
   captchaEnabled: boolean;
   donateAddress: string | null;
 }
+
+// Show a "wallet syncing" notice when a single dispense can fulfill less
+// than 20% of the per-tx cap. Above that we consider it healthy fluctuation.
+const SYNC_NOTICE_THRESHOLD = 0.2;
 
 type SubmitState =
   | { kind: 'idle' }
@@ -62,6 +68,12 @@ export default function FaucetClient() {
   const { theme, mounted: themeMounted } = useTheme();
   const isDark = theme === 'dark';
   const captchaRequired = !!TURNSTILE_SITE_KEY;
+
+  const maxDispensable = status?.maxDispensableTaz ?? MAX_DISPENSE_TAZ;
+  const maxSpend = status?.maxSpendTaz ?? MAX_DISPENSE_TAZ;
+  const lowSpendable =
+    status != null && maxSpend > 0 && maxDispensable < maxSpend * SYNC_NOTICE_THRESHOLD;
+  const overSpendable = status != null && amountTaz > maxDispensable + 1e-9;
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +167,11 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> TESTNET_FAUCET
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">Testnet Faucet</h1>
+          {lowSpendable && (
+            <p className="text-xs text-cipher-orange font-mono mt-2">
+              wallet syncing — single dispense currently capped at {formatTaz(maxDispensable)} TAZ
+            </p>
+          )}
         </div>
 
         <div className="hidden sm:flex items-center font-mono text-[11px] text-muted flex-shrink-0">
@@ -282,6 +299,11 @@ export default function FaucetClient() {
                   <span>{MIN_DISPENSE_TAZ} TAZ</span>
                   <span>{MAX_DISPENSE_TAZ} TAZ</span>
                 </div>
+                {overSpendable && (
+                  <p className="text-xs text-cipher-orange font-mono mt-2">
+                    only {formatTaz(maxDispensable)} TAZ spendable right now — pick a smaller amount
+                  </p>
+                )}
               </div>
 
               {captchaRequired && (
@@ -306,6 +328,7 @@ export default function FaucetClient() {
                   isSubmitting ||
                   !address.trim() ||
                   state.kind === 'drained' ||
+                  overSpendable ||
                   (captchaRequired && !captchaToken)
                 }
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
