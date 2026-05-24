@@ -33,7 +33,6 @@ interface FaucetStatus {
   maxSpendTaz: number;
   minSpendTaz: number;
   stepTaz: number;
-  captchaEnabled: boolean;
   donateAddress: string | null;
 }
 
@@ -66,9 +65,7 @@ export default function FaucetClient() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
-  const captchaEnabledServer = status?.captchaEnabled === true;
-  const captchaRequired = captchaEnabledServer && !!TURNSTILE_SITE_KEY;
-  const captchaMisconfigured = captchaEnabledServer && !TURNSTILE_SITE_KEY;
+  const captchaMisconfigured = !TURNSTILE_SITE_KEY;
 
   const minTaz = status?.minSpendTaz || FALLBACK_MIN_TAZ;
   const maxTaz = status?.maxSpendTaz || FALLBACK_MAX_TAZ;
@@ -105,7 +102,7 @@ export default function FaucetClient() {
       setNotice('invalid testnet address — expected utest1…');
       return;
     }
-    if (captchaRequired && !captchaToken) {
+    if (!captchaToken) {
       setNotice('complete the captcha first');
       return;
     }
@@ -262,7 +259,11 @@ export default function FaucetClient() {
                 )}
               </div>
 
-              {captchaRequired && (
+              {captchaMisconfigured ? (
+                <p className="text-xs text-cipher-orange font-mono text-center">
+                  captcha misconfigured — set NEXT_PUBLIC_TURNSTILE_SITE_KEY on the build.
+                </p>
+              ) : (
                 <div className="flex justify-center">
                   <Turnstile
                     ref={turnstileRef}
@@ -278,13 +279,6 @@ export default function FaucetClient() {
                 </div>
               )}
 
-              {captchaMisconfigured && (
-                <p className="text-xs text-cipher-orange font-mono text-center">
-                  captcha misconfigured — server requires it but site key is missing.
-                  ask the operator to set NEXT_PUBLIC_TURNSTILE_SITE_KEY.
-                </p>
-              )}
-
               <button
                 type="submit"
                 disabled={
@@ -292,7 +286,7 @@ export default function FaucetClient() {
                   !address.trim() ||
                   overSpendable ||
                   captchaMisconfigured ||
-                  (captchaRequired && !captchaToken)
+                  !captchaToken
                 }
                 className="w-full bg-cipher-yellow text-black rounded-md px-4 py-3 font-mono font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >

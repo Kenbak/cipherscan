@@ -14,18 +14,21 @@ if (!TAPS_URL) {
   console.error('[faucet] TAPS_URL not set — /api/faucet/* will 503');
 }
 
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY || '';
+if (!TURNSTILE_SECRET) {
+  console.error('[faucet] TURNSTILE_SECRET_KEY not set — /api/faucet/dispense will 503');
+}
+
 function dispenseAmountTaz() {
   const raw = parseFloat(process.env.FAUCET_DISPENSE_AMOUNT_TAZ);
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_DISPENSE_TAZ;
 }
 
 async function verifyTurnstile(token, remoteIp) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // captcha disabled
   if (!token) return false;
 
   try {
-    const body = new URLSearchParams({ secret, response: token });
+    const body = new URLSearchParams({ secret: TURNSTILE_SECRET, response: token });
     if (remoteIp) body.append('remoteip', remoteIp);
 
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -76,7 +79,6 @@ router.get('/api/faucet/status', async (_req, res) => {
       maxSpendTaz: typeof maxSpend === 'number' ? maxSpend / 100000000 : 0,
       minSpendTaz: typeof minSpend === 'number' ? minSpend / 100000000 : 0,
       stepTaz: typeof increment === 'number' ? increment / 100000000 : 0,
-      captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
       donateAddress: typeof ua === 'string' && ua !== 'unavailable' ? ua : null,
     });
   } catch (err) {
@@ -87,6 +89,7 @@ router.get('/api/faucet/status', async (_req, res) => {
 
 router.post('/api/faucet/dispense', express.json(), async (req, res) => {
   if (!TAPS_URL) return res.status(503).json({ error: 'taps not configured' });
+  if (!TURNSTILE_SECRET) return res.status(503).json({ error: 'captcha not configured' });
   const { address, amountTaz: requestedAmount, captchaToken } = req.body || {};
 
   if (!address || typeof address !== 'string' || !UA_REGEX.test(address.trim())) {
