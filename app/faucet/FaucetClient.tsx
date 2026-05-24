@@ -255,7 +255,7 @@ export default function FaucetClient() {
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value);
-                    if (state.kind !== 'idle' && state.kind !== 'submitting' && state.kind !== 'success') {
+                    if (state.kind !== 'idle' && state.kind !== 'submitting') {
                       setState({ kind: 'idle' });
                     }
                   }}
