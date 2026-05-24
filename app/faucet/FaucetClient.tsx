@@ -239,7 +239,7 @@ export default function FaucetClient() {
                   spellCheck={false}
                   autoComplete="off"
                   disabled={isSubmitting}
-                  className="w-full bg-black/40 border border-cipher-border rounded-md px-3 py-2.5 font-mono text-sm text-primary placeholder:text-muted/40 focus:outline-none focus:border-cipher-cyan/60 focus:ring-1 focus:ring-cipher-cyan/30 transition-colors disabled:opacity-50"
+                  className="input-field disabled:opacity-50"
                 />
                 {state.kind === 'invalid' && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
@@ -346,6 +346,33 @@ export default function FaucetClient() {
         </Card>
       )}
 
+      {/* Wallet stats */}
+      <Card variant="glass">
+        <CardBody>
+          <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
+            <span className="opacity-50">{'>'}</span> WALLET_STATS
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
+                Wallet balance
+              </div>
+              <div className="font-mono text-sm text-secondary tabular-nums">
+                {status ? `${formatTaz(status.balanceTaz)} TAZ` : '…'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
+                Available right now
+              </div>
+              <div className="font-mono text-sm text-cipher-green tabular-nums">
+                {status ? `${formatTaz(status.maxDispensableTaz)} TAZ` : '…'}
+              </div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
       {/* Rules card */}
       <Card variant="glass">
         <CardBody>
@@ -356,41 +383,6 @@ export default function FaucetClient() {
             <li>· {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request</li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
-        </CardBody>
-      </Card>
-
-      {/* Wallet stats */}
-      <Card variant="glass">
-        <CardBody>
-          <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
-            <span className="opacity-50">{'>'}</span> WALLET_STATS
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
-                Balance
-              </div>
-              <div className="font-mono text-sm text-cipher-green tabular-nums">
-                {status ? `${formatTaz(status.balanceTaz)} TAZ` : '…'}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
-                Spendable
-              </div>
-              <div className="font-mono text-sm text-cipher-cyan tabular-nums">
-                {status ? `${formatTaz(status.maxDispensableTaz)} TAZ` : '…'}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] font-mono text-muted uppercase tracking-widest mb-1">
-                Cap / tx
-              </div>
-              <div className="font-mono text-sm text-secondary tabular-nums">
-                {status ? `${formatTaz(status.maxSpendTaz)} TAZ` : '…'}
-              </div>
-            </div>
-          </div>
         </CardBody>
       </Card>
 
