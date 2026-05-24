@@ -1,25 +1,17 @@
 /**
- * Testnet Faucet — proxy to the taps wallet daemon
- *
- * GET  /api/faucet/status     → balance, dispense amount, captcha
- * POST /api/faucet/dispense   → send TAZ to a testnet Unified Address
- *
- * Taps (https://github.com/zcashme/taps — separate repo) runs on the same VPS,
- * listens on loopback only, and holds the Orchard spending key. We sit in
- * front of it for Turnstile only.
+ * Testnet Faucet Routes
+ * /api/faucet/status, /api/faucet/dispense — proxies to taps, verifies Turnstile
  */
 
 const express = require('express');
 const router = express.Router();
 
 const DEFAULT_DISPENSE_TAZ = 1;
-const DEFAULT_TAPS_URL = 'http://127.0.0.1:3001';
-// Loose testnet Unified Address check: bech32m charset, utest1 prefix.
-// Strict parsing happens in taps.
 const UA_REGEX = /^utest1[02-9ac-hj-np-z]{40,}$/;
 
-function tapsUrl() {
-  return (process.env.TAPS_URL || DEFAULT_TAPS_URL).replace(/\/$/, '');
+const TAPS_URL = process.env.TAPS_URL || '';
+if (!TAPS_URL) {
+  console.error('[faucet] TAPS_URL not set — /api/faucet/* will 503');
 }
 
 function dispenseAmountTaz() {
@@ -49,14 +41,14 @@ async function verifyTurnstile(token, remoteIp) {
 }
 
 async function tapsStatus() {
-  const res = await fetch(`${tapsUrl()}/status`);
+  const res = await fetch(`${TAPS_URL}/status`);
   if (!res.ok) throw new Error(`taps /status ${res.status}`);
   return res.json();
 }
 
 async function tapsSend({ recipient, amountTaz }) {
   const apiKey = process.env.TAPS_API_KEY || '';
-  const res = await fetch(`${tapsUrl()}/send`, {
+  const res = await fetch(`${TAPS_URL}/send`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -68,19 +60,22 @@ async function tapsSend({ recipient, amountTaz }) {
   return { status: res.status, body };
 }
 
-const ZAT_PER_TAZ = 100_000_000;
-
 router.get('/api/faucet/status', async (_req, res) => {
+  if (!TAPS_URL) return res.status(503).json({ error: 'taps not configured' });
   try {
     const taps = await tapsStatus();
     const orchard = taps?.balances?.orchard;
     const ua = taps?.unified_address;
     const maxDispensable = taps?.max_dispensable_zat;
     const maxSpend = taps?.max_spend_zat;
+    const minSpend = taps?.min_spend_zat;
+    const increment = taps?.spend_increment_zat;
     res.json({
       balanceTaz: typeof orchard === 'number' ? orchard : 0,
-      maxDispensableTaz: typeof maxDispensable === 'number' ? maxDispensable / ZAT_PER_TAZ : 0,
-      maxSpendTaz: typeof maxSpend === 'number' ? maxSpend / ZAT_PER_TAZ : 0,
+      maxDispensableTaz: typeof maxDispensable === 'number' ? maxDispensable / 100000000 : 0,
+      maxSpendTaz: typeof maxSpend === 'number' ? maxSpend / 100000000 : 0,
+      minSpendTaz: typeof minSpend === 'number' ? minSpend / 100000000 : 0,
+      stepTaz: typeof increment === 'number' ? increment / 100000000 : 0,
       captchaEnabled: !!process.env.TURNSTILE_SECRET_KEY,
       donateAddress: typeof ua === 'string' && ua !== 'unavailable' ? ua : null,
     });
@@ -91,6 +86,7 @@ router.get('/api/faucet/status', async (_req, res) => {
 });
 
 router.post('/api/faucet/dispense', express.json(), async (req, res) => {
+  if (!TAPS_URL) return res.status(503).json({ error: 'taps not configured' });
   const { address, amountTaz: requestedAmount, captchaToken } = req.body || {};
 
   if (!address || typeof address !== 'string' || !UA_REGEX.test(address.trim())) {
@@ -98,8 +94,6 @@ router.post('/api/faucet/dispense', express.json(), async (req, res) => {
   }
   const addr = address.trim();
 
-  // Caller chooses the amount; taps enforces min/max/increment.
-  // Fall back to the env default if the client didn't send one.
   let amountTaz;
   if (requestedAmount === undefined || requestedAmount === null) {
     amountTaz = dispenseAmountTaz();
@@ -127,7 +121,6 @@ router.post('/api/faucet/dispense', express.json(), async (req, res) => {
     return res.json({ txid: result.body.txid, amountTaz });
   }
 
-  // Map taps errors → cipherscan UI shapes
   const tapsErr = result.body?.error || '';
   if (tapsErr === 'invalid address') {
     return res.status(400).json({ error: 'invalid address' });

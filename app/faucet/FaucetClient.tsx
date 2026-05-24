@@ -12,21 +12,17 @@ import { getApiUrl } from '@/lib/api-config';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
-// Match taps' deploy/taps.toml: min_spend_zat=100_000, spend_increment_zat=10_000,
-// max_spend_zat=100_000_000 (1 TAZ).
-const MIN_DISPENSE_TAZ = 0.001;
-const MAX_DISPENSE_TAZ = 1;
-const STEP_TAZ = 0.0001;
+// First-paint fallbacks until /status lands.
+const FALLBACK_MIN_TAZ = 0.001;
+const FALLBACK_MAX_TAZ = 1;
+const FALLBACK_STEP_TAZ = 0.0001;
 const DEFAULT_DISPENSE_TAZ = 0.1;
 
-// Snap a slider value to the nearest valid step to dodge float drift
-// (e.g. 0.30000000000000004 → 0.3).
-function snapToStep(v: number): number {
-  return Math.round(v / STEP_TAZ) * STEP_TAZ;
+// Slider events emit 0.30000000000000004 etc. — snap to the increment.
+function snapToStep(v: number, step: number): number {
+  return Math.round(v / step) * step;
 }
 
-// Strip trailing zeros from a 4-decimal-place fixed string.
-// 0.1 → "0.1", 0.001 → "0.001", 1 → "1".
 function formatTaz(v: number): string {
   return parseFloat(v.toFixed(4)).toString();
 }
@@ -35,16 +31,14 @@ interface FaucetStatus {
   balanceTaz: number;
   maxDispensableTaz: number;
   maxSpendTaz: number;
+  minSpendTaz: number;
+  stepTaz: number;
   captchaEnabled: boolean;
   donateAddress: string | null;
 }
 
-// Show a "wallet syncing" notice when a single dispense can fulfill less
-// than 20% of the per-tx cap. Above that we consider it healthy fluctuation.
 const SYNC_NOTICE_THRESHOLD = 0.2;
 
-// Loose testnet Unified Address check (bech32m charset). Strict parsing
-// happens server-side in taps.
 function isValidTestnetUnifiedAddress(addr: string): boolean {
   return /^utest1[02-9ac-hj-np-z]{40,}$/.test(addr.trim());
 }
@@ -72,12 +66,13 @@ export default function FaucetClient() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | null>(null);
   const { theme, mounted: themeMounted } = useTheme();
-  // Drive captcha gating off the server (TURNSTILE_SECRET_KEY) — the public
-  // site key alone isn't authoritative. If the server enforces captcha but the
-  // UI is missing the site key, fail loud instead of silently 400-looping.
   const captchaEnabledServer = status?.captchaEnabled === true;
   const captchaRequired = captchaEnabledServer && !!TURNSTILE_SITE_KEY;
   const captchaMisconfigured = captchaEnabledServer && !TURNSTILE_SITE_KEY;
+
+  const minTaz = status?.minSpendTaz || FALLBACK_MIN_TAZ;
+  const maxTaz = status?.maxSpendTaz || FALLBACK_MAX_TAZ;
+  const stepTaz = status?.stepTaz || FALLBACK_STEP_TAZ;
 
   const lowSpendable =
     status != null &&
@@ -130,8 +125,6 @@ export default function FaucetClient() {
         return;
       }
 
-      // Any non-success response invalidates the captcha token — reset the widget
-      // so the user gets a fresh one for the next attempt.
       turnstileRef.current?.reset();
       setCaptchaToken(null);
       setNotice(errorMessage(data));
@@ -249,18 +242,18 @@ export default function FaucetClient() {
                 </div>
                 <input
                   type="range"
-                  min={MIN_DISPENSE_TAZ}
-                  max={MAX_DISPENSE_TAZ}
-                  step={STEP_TAZ}
+                  min={minTaz}
+                  max={maxTaz}
+                  step={stepTaz}
                   value={amountTaz}
-                  onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value)))}
+                  onChange={(e) => setAmountTaz(snapToStep(parseFloat(e.target.value), stepTaz))}
                   disabled={pending}
                   aria-label="Dispense amount in TAZ"
                   className="w-full accent-cipher-cyan cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <div className="flex justify-between font-mono text-[10px] text-muted/70 mt-1">
-                  <span>{MIN_DISPENSE_TAZ} TAZ</span>
-                  <span>{MAX_DISPENSE_TAZ} TAZ</span>
+                  <span>{formatTaz(minTaz)} TAZ</span>
+                  <span>{formatTaz(maxTaz)} TAZ</span>
                 </div>
                 {overSpendable && (
                   <p className="text-xs text-cipher-orange font-mono mt-2">
@@ -367,7 +360,7 @@ export default function FaucetClient() {
             <span className="opacity-50">{'>'}</span> RULES_OF_ENGAGEMENT
           </h3>
           <ul className="space-y-2 text-xs text-secondary font-mono">
-            <li>· {MIN_DISPENSE_TAZ} – {MAX_DISPENSE_TAZ} TAZ per request</li>
+            <li>· {formatTaz(minTaz)} – {formatTaz(maxTaz)} TAZ per request</li>
             <li>· Orchard / Unified addresses (utest1…) only</li>
           </ul>
         </CardBody>
