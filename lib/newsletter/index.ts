@@ -15,7 +15,8 @@ export type {
   ParsedToolUpdate,
 } from './types';
 export { extractSections, parseNewsletterContent, parseNewsletterFooter } from './parser';
-export { inlineMarkdown, proseMarkdown } from './inline';
+export { inlineMarkdown, proseMarkdown, extractFirstLink } from './inline';
+export type { MarkdownLink } from './inline';
 export { extractMarkdownTables, parseMarkdownTableBlock } from './tables';
 
 const NEWSLETTER_DIR = path.join(process.cwd(), 'content', 'newsletter');

@@ -4,15 +4,27 @@ export function inlineMarkdown(text: string): string {
   let html = text;
 
   html = html.replace(/`([^`]+)`/g, '<code class="nl-code">$1</code>');
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="text-primary font-semibold"><em>$1</em></strong>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-primary font-semibold">$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em class="text-secondary/90">$1</em>');
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="nl-link">$1</a>'
   );
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="text-primary font-semibold"><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-primary font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-secondary/90">$1</em>');
 
   return html;
+}
+
+export interface MarkdownLink {
+  text: string;
+  url: string;
+}
+
+/** Returns the first markdown link in a string, if any. */
+export function extractFirstLink(md: string): MarkdownLink | null {
+  const match = md.match(/\[([^\]]+)\]\(([^)]+)\)/);
+  if (!match) return null;
+  return { text: match[1].trim(), url: match[2].trim() };
 }
 
 export function proseMarkdown(md: string): string {
@@ -40,6 +52,11 @@ export function proseMarkdown(md: string): string {
 
       if (/^\|.+\|$/.test(block)) {
         return renderTable(block);
+      }
+
+      if (/^\*.+\*$/.test(block) && !block.includes('\n')) {
+        const inner = block.replace(/^\*|\*$/g, '');
+        return `<p class="nl-attribution">${inlineMarkdown(inner)}</p>`;
       }
 
       return `<p class="nl-p">${inlineMarkdown(block.replace(/\n/g, '<br/>'))}</p>`;
