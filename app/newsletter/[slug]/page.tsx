@@ -1,4 +1,5 @@
-import { getAllNewsletters, getNewsletter, markdownToHtml, extractSections } from '@/lib/newsletter';
+import { getAllNewsletters, getNewsletter, extractSections } from '@/lib/newsletter';
+import { NewsletterContent } from '@/components/newsletter/NewsletterContent';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -27,7 +28,6 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
   const issue = getNewsletter(slug);
   if (!issue) notFound();
 
-  const contentHtml = markdownToHtml(issue.content);
   const sections = extractSections(issue.content);
   const allIssues = getAllNewsletters();
   const currentIdx = allIssues.findIndex((n) => n.slug === slug);
@@ -36,7 +36,6 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
 
   return (
     <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-      {/* Back link */}
       <Link
         href="/newsletter"
         className="inline-flex items-center gap-2 text-sm font-mono text-muted hover:text-cipher-cyan transition-colors mb-8"
@@ -47,8 +46,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
         All issues
       </Link>
 
-      {/* Header */}
-      <header className="mb-14 pb-8 border-b border-cipher-yellow/15">
+      <header className="nl-header mb-12 pb-8 border-b border-cipher-yellow/15">
         <div className="flex items-center gap-3 mb-4">
           {issue.issue > 0 && (
             <span className="text-xs font-mono text-cipher-yellow bg-cipher-yellow/10 rounded px-2 py-1">
@@ -64,17 +62,16 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
             })}
           </time>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-mono text-primary mb-5 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-primary mb-4 leading-tight tracking-tight">
           {issue.title}
         </h1>
         {issue.summary && (
-          <p className="text-base text-secondary leading-relaxed">{issue.summary}</p>
+          <p className="text-base sm:text-lg text-secondary leading-relaxed max-w-2xl">{issue.summary}</p>
         )}
       </header>
 
-      {/* Mobile TOC */}
       {sections.length > 3 && (
-        <details className="xl:hidden mb-10 border rounded-lg" style={{ background: 'var(--glass-2)', borderColor: 'var(--color-border-subtle)' }}>
+        <details className="xl:hidden mb-10 border rounded-lg nl-toc-mobile">
           <summary className="px-4 py-3 text-sm font-mono text-muted cursor-pointer hover:text-primary transition-colors">
             Jump to section
           </summary>
@@ -83,23 +80,17 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="text-xs font-mono text-secondary hover:text-cipher-cyan transition-colors rounded px-2 py-1"
-                style={{ background: 'var(--glass-3)' }}
+                className="text-xs font-mono text-secondary hover:text-cipher-cyan transition-colors rounded px-2 py-1 nl-toc-pill"
               >
-                {s.title}
+                {s.title.replace(/^Privacy Corner:\s*/i, 'Privacy Corner')}
               </a>
             ))}
           </nav>
         </details>
       )}
 
-      {/* Content */}
-      <article
-        className="newsletter-content"
-        dangerouslySetInnerHTML={{ __html: contentHtml }}
-      />
+      <NewsletterContent content={issue.content} />
 
-      {/* Navigation */}
       <nav className="mt-16 pt-8 border-t border-cipher-border flex items-center justify-between">
         {prevIssue ? (
           <Link
@@ -112,7 +103,9 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
             <span className="hidden sm:inline">{prevIssue.title}</span>
             <span className="sm:hidden">Previous</span>
           </Link>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
         {nextIssue ? (
           <Link
             href={`/newsletter/${nextIssue.slug}`}
@@ -124,10 +117,11 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
       </nav>
 
-      {/* Desktop TOC — positioned outside content flow */}
       {sections.length > 3 && (
         <aside className="hidden xl:block absolute left-full top-0 ml-8 w-52" style={{ paddingTop: '12rem' }}>
           <div className="sticky top-24">
@@ -139,9 +133,9 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className="block text-[13px] font-mono text-muted hover:text-cipher-cyan transition-colors py-0.5 leading-snug"
+                  className="block text-[13px] text-muted hover:text-cipher-cyan transition-colors py-0.5 leading-snug"
                 >
-                  {s.title}
+                  {s.title.replace(/^Privacy Corner:\s*/i, 'Privacy Corner')}
                 </a>
               ))}
             </nav>
