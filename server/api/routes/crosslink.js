@@ -232,8 +232,11 @@ router.get('/api/crosslink', async (req, res) => {
     const statuses = tflRecency?.finalizer_statuses || [];
     let bftHeight = tflRecency?.my_height ?? null;
     let bftRound = tflRecency?.my_round ?? null;
+    const nowUtc = tflRecency?.now_utc ?? Math.floor(Date.now() / 1000);
     let onlineCount = 0;
     let onlineStake = 0;
+    let connectedCount = 0;
+    let connectedStake = 0;
     for (const f of parsedRoster) {
       const entry = statuses[f._rosterIdx];
       if (entry) {
@@ -243,13 +246,21 @@ router.get('/api/crosslink', async (req, res) => {
         const precommitYes = votes[1]?.[1] || 0;
         f.voted = prevoteYes > 0 || precommitYes > 0;
         f.highest_round = status.highest_round_vote || 0;
+        f.last_connected_utc = status.last_direct_connection_utc ?? null;
+        f.connected = f.last_connected_utc != null && (nowUtc - f.last_connected_utc) < 300;
       } else {
         f.voted = null;
         f.highest_round = null;
+        f.last_connected_utc = null;
+        f.connected = null;
       }
       if (f.voted) {
         onlineCount++;
         onlineStake += f.stake_zats;
+      }
+      if (f.connected) {
+        connectedCount++;
+        connectedStake += f.stake_zats;
       }
       delete f._rosterIdx;
     }
@@ -277,6 +288,9 @@ router.get('/api/crosslink', async (req, res) => {
         onlineStakeZec: onlineStake / 1e8,
         offlineStakeZec: (totalStakeZats - onlineStake) / 1e8,
         onlinePercent: totalStakeZats > 0 ? Math.round((onlineStake / totalStakeZats) * 100) : 0,
+        connectedCount,
+        connectedStakeZec: connectedStake / 1e8,
+        connectedPercent: totalStakeZats > 0 ? Math.round((connectedStake / totalStakeZats) * 100) : 0,
       },
       roster: parsedRoster,
     };

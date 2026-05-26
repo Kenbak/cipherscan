@@ -15,6 +15,8 @@ interface RosterMember {
   stake_zec?: number;
   voted?: boolean | null;
   highest_round?: number | null;
+  last_connected_utc?: number | null;
+  connected?: boolean | null;
 }
 
 interface LivenessData {
@@ -25,6 +27,9 @@ interface LivenessData {
   onlineStakeZec: number;
   offlineStakeZec: number;
   onlinePercent: number;
+  connectedCount?: number;
+  connectedStakeZec?: number;
+  connectedPercent?: number;
 }
 
 interface ValidatorData {
@@ -138,25 +143,42 @@ export default function ValidatorsPage() {
               BFT height {data.liveness.bftHeight?.toLocaleString()} &middot; round {data.liveness.bftRound}
             </span>
           </div>
-          <div className="flex rounded-full overflow-hidden h-4 bg-cipher-border-alpha/30 mb-2">
-            <div
-              className="bg-emerald-500 transition-all duration-500"
-              style={{ width: `${data.liveness.onlinePercent}%` }}
-              title={`Online: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
-            />
-            <div
-              className="bg-red-500/60 transition-all duration-500"
-              style={{ width: `${100 - data.liveness.onlinePercent}%` }}
-              title={`Offline: ${data.liveness.offlineCount} finalizers (${data.liveness.offlineStakeZec.toFixed(2)} ${CURRENCY})`}
-            />
+
+          {data.liveness.connectedPercent != null && (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-mono text-muted uppercase w-16">Connected</span>
+                <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
+                  <div
+                    className="bg-cyan-500 transition-all duration-500"
+                    style={{ width: `${data.liveness.connectedPercent}%` }}
+                    title={`Connected: ${data.liveness.connectedCount} finalizers (${data.liveness.connectedStakeZec?.toFixed(2)} ${CURRENCY})`}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-cyan-400 w-24 text-right">
+                  {data.liveness.connectedCount} ({data.liveness.connectedPercent}%)
+                </span>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-mono text-muted uppercase w-16">Voted</span>
+            <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
+              <div
+                className="bg-emerald-500 transition-all duration-500"
+                style={{ width: `${data.liveness.onlinePercent}%` }}
+                title={`Voted: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400 w-24 text-right">
+              {data.liveness.onlineCount} ({data.liveness.onlinePercent}%)
+            </span>
           </div>
-          <div className="flex justify-between text-[10px] font-mono">
-            <span className="text-emerald-400">
-              {data.liveness.onlineCount} voted ({data.liveness.onlinePercent}% stake)
-            </span>
-            <span className="text-red-400/80">
-              {data.liveness.offlineCount} silent
-            </span>
+
+          <div className="flex justify-between text-[10px] font-mono text-muted/70">
+            <span>{data.roster.length} total finalizers</span>
+            <span>{data.liveness.offlineCount} silent &middot; {data.liveness.offlineStakeZec.toFixed(2)} {CURRENCY} offline</span>
           </div>
         </div>
       )}
@@ -225,7 +247,7 @@ export default function ValidatorsPage() {
               <thead>
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
-                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10">Live</th>
+                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10" title="Peer discovery status: cyan = connected, green = voted, red = silent">Status</th>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
@@ -277,13 +299,40 @@ export default function ValidatorsPage() {
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>
                       </td>
                       <td className="px-2 h-[60px] border-b border-cipher-border text-center">
-                        {member.voted === true ? (
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" title="Voted at current height" />
-                        ) : member.voted === false ? (
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60" title="Silent" />
-                        ) : (
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-cipher-border-alpha/40" title="Unknown" />
-                        )}
+                        {(() => {
+                          const lastConn = member.last_connected_utc;
+                          const ago = lastConn ? Math.max(0, Math.floor(Date.now() / 1000) - lastConn) : null;
+                          const agoText = ago != null
+                            ? ago < 60 ? `${ago}s ago` : ago < 3600 ? `${Math.floor(ago / 60)}m ago` : `${Math.floor(ago / 3600)}h ago`
+                            : '';
+                          if (member.connected) {
+                            return (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-500"
+                                title={`Connected (${agoText})${member.voted ? ' + voted' : ''}`}
+                              />
+                            );
+                          }
+                          if (member.voted === true) {
+                            return (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"
+                                title={`Voted (not directly connected${agoText ? `, last seen ${agoText}` : ''})`}
+                              />
+                            );
+                          }
+                          if (member.voted === false) {
+                            return (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60"
+                                title={`Silent${agoText ? ` (last connected ${agoText})` : ''}`}
+                              />
+                            );
+                          }
+                          return (
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-cipher-border-alpha/40" title="Unknown" />
+                          );
+                        })()}
                       </td>
                       <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
                         <div className="flex items-center gap-3 min-w-0">
