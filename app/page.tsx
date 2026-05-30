@@ -117,17 +117,17 @@ const crosslinkMode = isCrosslink;
 export const metadata = {
   title: crosslinkMode
     ? 'CipherScan - Zcash Crosslink Explorer'
-    : 'CipherScan - Zcash Blockchain Explorer',
+    : 'CipherScan - Zcash Block Explorer & Privacy Analytics',
   description: crosslinkMode
     ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks on the hybrid PoW/PoS network.'
-    : 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Fast, open-source, and privacy-first.',
+    : 'Zcash block explorer with privacy analytics. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Open-source and privacy-first.',
   openGraph: {
     title: crosslinkMode
       ? 'CipherScan - Zcash Crosslink Explorer'
-      : 'CipherScan - Zcash Blockchain Explorer',
+      : 'CipherScan - Zcash Block Explorer',
     description: crosslinkMode
       ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks.'
-      : 'Explore the Zcash blockchain with CipherScan. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health.',
+      : 'Zcash block explorer with privacy analytics. Search blocks, transactions, and addresses. View shielded pool stats and network health.',
   },
 };
 
@@ -146,7 +146,7 @@ export default async function Home() {
         {/* Tagline - SEO friendly */}
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-6 sm:mb-8 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
-          {crosslinkMode ? 'Zcash Crosslink Explorer' : 'Zcash Blockchain Explorer'}
+          {crosslinkMode ? 'Zcash Crosslink Explorer' : 'Zcash Block Explorer'}
         </h1>
 
         {/* Search Section */}

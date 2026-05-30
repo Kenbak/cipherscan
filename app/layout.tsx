@@ -20,34 +20,33 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CipherScan - Zcash Blockchain Explorer",
-  description: "Explore the Zcash blockchain with clarity. Privacy meets transparency. Fast, simple, and educational Zcash explorer for testnet and mainnet.",
-  keywords: ["Zcash", "blockchain", "explorer", "cryptocurrency", "privacy", "ZEC", "CipherScan", "testnet", "mainnet", "shielded transactions"],
+  metadataBase: new URL('https://cipherscan.app'),
+  title: "CipherScan - Zcash Block Explorer & Privacy Analytics",
+  description: "Zcash block explorer with privacy analytics. Search blocks, transactions, and addresses. Track shielded pool stats, privacy scores, and network health. Open-source and privacy-first.",
+  keywords: ["zcash block explorer", "zcash explorer", "ZEC explorer", "zcash blockchain explorer", "zcash transactions", "zcash shielded pool", "privacy", "ZEC", "CipherScan", "zcash rich list", "zcash network"],
 
-  // Open Graph (Facebook, LinkedIn, Discord, etc.)
   openGraph: {
-    title: "CipherScan - Zcash Blockchain Explorer",
-    description: "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
+    title: "CipherScan - Zcash Block Explorer",
+    description: "Zcash block explorer with privacy analytics. Search blocks, transactions, addresses, and shielded pool activity.",
     url: "https://cipherscan.app",
     siteName: "CipherScan",
     images: [
       {
-        url: "https://cipherscan.app/og-image.png?v=2",
+        url: "/og-image.png?v=2",
         width: 1200,
         height: 630,
-        alt: "CipherScan - Zcash Blockchain Explorer",
+        alt: "CipherScan - Zcash Block Explorer",
       },
     ],
     locale: "en_US",
     type: "website",
   },
 
-  // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "CipherScan - Zcash Blockchain Explorer",
-    description: "Explore the Zcash blockchain with clarity. Privacy meets transparency.",
-    images: ["https://cipherscan.app/og-image.png?v=2"],
+    title: "CipherScan - Zcash Block Explorer",
+    description: "Zcash block explorer with privacy analytics. Search blocks, transactions, addresses, and shielded pool activity.",
+    images: ["/og-image.png?v=2"],
     creator: "@Kenbak",
   },
 
@@ -95,7 +94,7 @@ const siteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'CipherScan',
-  description: 'Zcash blockchain explorer and privacy intelligence platform. Explore blocks, transactions, addresses, and decrypt shielded memos.',
+  description: 'Zcash block explorer and privacy analytics platform. Explore blocks, transactions, addresses, and shielded pool activity.',
   url: 'https://cipherscan.app',
   potentialAction: {
     '@type': 'SearchAction',

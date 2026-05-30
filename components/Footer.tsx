@@ -48,6 +48,8 @@ export function Footer() {
               Explore
             </span>
             <div className="flex flex-col gap-1.5">
+              <Link href="/blocks" className="footer-link text-xs font-mono">Blocks</Link>
+              <Link href="/txs" className="footer-link text-xs font-mono">Transactions</Link>
               <Link href="/network" className="footer-link text-xs font-mono">Network</Link>
               <Link href="/rich-list" className="footer-link text-xs font-mono">Rich List</Link>
               <Link href="/privacy" className="footer-link text-xs font-mono">Privacy</Link>

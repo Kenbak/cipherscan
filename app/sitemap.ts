@@ -11,13 +11,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
+    { url: `${baseUrl}/blocks`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
+    { url: `${baseUrl}/txs`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
+    { url: `${baseUrl}/txs/shielded`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
     { url: `${baseUrl}/network`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${baseUrl}/rich-list`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/privacy-risks`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/decrypt`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/crosschain`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/mempool`, lastModified: now, changeFrequency: 'always', priority: 0.8 },
     { url: `${baseUrl}/learn`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/newsletter`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/docs`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${baseUrl}/tools`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },

@@ -103,6 +103,8 @@ export function NavBar() {
   }, [pathname]);
 
   const analyticsItems: MenuItem[] = [
+    { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },
+    { href: '/txs', label: 'Transactions', desc: 'Recent transactions' },
     { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
     ...(isCrosslink
       ? [
@@ -169,9 +171,9 @@ export function NavBar() {
                 className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10 object-contain"
               />
               <div>
-                <h1 className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
+                <span className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
                   CIPHERSCAN
-                </h1>
+                </span>
                 <p className={`text-[10px] sm:text-xs font-mono ${NETWORK_COLOR}`}>[ {NETWORK_LABEL} ]</p>
               </div>
             </Link>
