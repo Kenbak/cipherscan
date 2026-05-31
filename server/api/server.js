@@ -4,6 +4,7 @@
  * Runs on DigitalOcean, serves data to Netlify frontend
  */
 
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env.local') });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -32,6 +33,7 @@ const swapRouter = require('./routes/swap');
 const addressRouter = require('./routes/address');
 const blendCheckRouter = require('./routes/blend-check');
 const crosslinkRouter = require('./routes/crosslink');
+const faucetRouter = require('./routes/faucet');
 
 // Import privacy linkage functions
 const {
@@ -371,6 +373,9 @@ app.use(blendCheckRouter);
 
 // Crosslink routes: /api/crosslink
 app.use(crosslinkRouter);
+
+// Faucet routes: /api/faucet/*
+app.use(faucetRouter);
 
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
