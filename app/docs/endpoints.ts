@@ -33,7 +33,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Blocks',
     method: 'GET',
     path: '/api/block/:heightOrHash',
-    description: 'Get detailed information about a specific block by height or hash, including all transactions.',
+    description: 'Get detailed information about a specific block by height or hash, including all transactions with fee, total_input, and total_output in zatoshis.',
     params: [
       { name: 'heightOrHash', type: 'number | string', description: 'Block height (e.g., 2500000) or 64-character block hash', required: true }
     ],
@@ -54,13 +54,22 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         {
           txid: 'abc123...',
           block_height: 2500000,
+          block_hash: '0000000002c4a65a...',
+          block_time: 1699123456,
           size: 250,
           fee: 10000,
+          total_input: 150000000,
+          total_output: 149990000,
+          is_coinbase: false,
           vin_count: 1,
           vout_count: 2,
           has_sapling: false,
           has_orchard: true,
-          orchard_actions: 2
+          orchard_actions: 2,
+          value_balance_sapling: 0,
+          value_balance_orchard: 0,
+          inputs: [{ address: 't1abc...', value: '150000000', prev_txid: 'def456...', prev_vout: 0 }],
+          outputs: [{ address: 't1xyz...', value: '100000000', vout_index: 0, spent: false }]
         }
       ]
     }
