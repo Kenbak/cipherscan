@@ -77,11 +77,13 @@ router.get('/api/transactions/list', async (req, res) => {
     }
 
     let result;
+    const txCols = `txid, block_height, block_time, size, vin_count, vout_count,
+                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
+                value_balance_sapling, value_balance_orchard, flow_type,
+                fee, total_input, total_output`;
     if (cursor === null) {
       result = await pool.query(
-        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
-                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
-                value_balance_sapling, value_balance_orchard, flow_type
+        `SELECT ${txCols}
          FROM transactions
          WHERE true ${typeCondition}
          ORDER BY block_height DESC, tx_index DESC
@@ -90,9 +92,7 @@ router.get('/api/transactions/list', async (req, res) => {
       );
     } else if (direction === 'prev') {
       result = await pool.query(
-        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
-                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
-                value_balance_sapling, value_balance_orchard, flow_type
+        `SELECT ${txCols}
          FROM transactions
          WHERE (block_height > $1 OR (block_height = $1 AND tx_index > $2)) ${typeCondition}
          ORDER BY block_height ASC, tx_index ASC
@@ -102,9 +102,7 @@ router.get('/api/transactions/list', async (req, res) => {
       result.rows.reverse();
     } else {
       result = await pool.query(
-        `SELECT txid, block_height, block_time, size, vin_count, vout_count,
-                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
-                value_balance_sapling, value_balance_orchard, flow_type
+        `SELECT ${txCols}
          FROM transactions
          WHERE (block_height < $1 OR (block_height = $1 AND tx_index < $2)) ${typeCondition}
          ORDER BY block_height DESC, tx_index DESC

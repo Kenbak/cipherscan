@@ -257,9 +257,10 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       : '';
     const txResult = await pool.query(
       `SELECT
-        txid, block_height, block_time, size, version, locktime,
+        txid, block_height, block_hash, block_time, size, version, locktime,
         vin_count, vout_count, value_balance, value_balance_sapling,
         value_balance_orchard, has_sapling, has_orchard, has_sprout,
+        fee, total_input, total_output, is_coinbase,
         tx_index${stakingCols}
       FROM transactions
       WHERE block_height = $1
