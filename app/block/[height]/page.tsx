@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { ExportButton } from '@/components/ExportButton';
-import { formatRelativeTime, formatDate } from '@/lib/utils';
+import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -416,7 +416,7 @@ export default function BlockPage() {
             value={
               <span>
                 {formatRelativeTime(data.timestamp)}
-                <span className="text-muted ml-2">({formatDate(data.timestamp)})</span>
+                <span className="text-muted ml-2">({formatDateUTC(data.timestamp)})</span>
               </span>
             }
             tooltip="The date and time this block was mined"

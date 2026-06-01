@@ -78,6 +78,21 @@ export function formatDate(timestamp: number): string {
   });
 }
 
+export function formatDateUTC(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+    hour12: false,
+  });
+}
+
 /**
  * Format timestamp to full date and time
  */
