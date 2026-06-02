@@ -48,7 +48,7 @@ const {
 
 // Import Zebra gRPC client
 const { ZebraGrpcClient } = require('./zebra-grpc');
-
+ 
 // PostgreSQL connection pool
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',

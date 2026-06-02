@@ -105,12 +105,12 @@ export default function UnclesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Header */}
       <div className="mb-8">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; CHAIN_REORGS</span>
+        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FORK_WATCH</span>
         <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mt-1">
-          Chain Reorgs & Orphaned Blocks
+          Fork Watch
         </h1>
         <p className="text-xs text-muted mt-2 max-w-2xl">
-          Monitor chain reorganizations and competing forks on the Zcash network.
+          Monitor chain forks, orphaned blocks, and competing tips on the Zcash network.
           When miners produce blocks at the same height, the network resolves to a single chain — losing blocks become orphans.
         </p>
       </div>
@@ -120,7 +120,7 @@ export default function UnclesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           <StatCard label="Fork Events" value={stats.totalForkEvents} />
           <StatCard label="Orphaned Blocks" value={stats.totalOrphanedBlocks} />
-          <StatCard label="Deepest Reorg" value={stats.deepestReorg > 0 ? `${stats.deepestReorg} blocks` : '—'} color={stats.deepestReorg > 3 ? 'text-cipher-orange' : 'text-primary'} />
+          <StatCard label="Longest Reorg" value={stats.deepestReorg > 0 ? `${stats.deepestReorg} blocks` : '—'} color={stats.deepestReorg > 3 ? 'text-cipher-orange' : 'text-primary'} />
           <StatCard label="Reports (24h)" value={stats.reportsLast24h} />
         </div>
       )}
@@ -193,7 +193,7 @@ export default function UnclesPage() {
                 <thead>
                   <tr className="border-b border-cipher-border">
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Fork Height</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Depth</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Reorg Length</th>
                     <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Orphans</th>
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Source</th>
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Description</th>
@@ -221,7 +221,7 @@ export default function UnclesPage() {
                           {fork.source}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-secondary hidden sm:table-cell max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-xs text-secondary hidden sm:table-cell max-w-[300px] truncate">
                         {fork.description || '—'}
                       </td>
                       <td className="px-4 py-3 text-right text-xs text-muted font-mono">

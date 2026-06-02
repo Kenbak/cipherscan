@@ -118,7 +118,7 @@ export function NavBar() {
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
           { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
         ]),
-    { href: '/reorgs', label: 'Chain Reorgs', desc: 'Orphaned blocks & forks' },
+    { href: '/reorgs', label: 'Fork Watch', desc: 'Chain forks & orphaned blocks' },
     ...(isMainnet ? [{ href: '/crosschain', label: 'ZEC Crosschain', desc: 'Cross-chain swap analytics' }] : []),
   ];
 
