@@ -56,6 +56,7 @@ export function Footer() {
               <Link href="/privacy-risks" className="footer-link text-xs font-mono">Privacy Risks</Link>
               {isMainnet && <Link href="/crosschain" className="footer-link text-xs font-mono">ZEC Crosschain</Link>}
               <Link href="/mempool" className="footer-link text-xs font-mono">Mempool</Link>
+              <Link href="/reorgs" className="footer-link text-xs font-mono">Chain Reorgs</Link>
             </div>
           </div>
 
