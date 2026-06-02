@@ -1,0 +1,197 @@
+/**
+ * Fork Monitor — Multi-node chain tip polling
+ *
+ * Polls external lightwalletd servers every 60s via gRPC GetLatestBlock,
+ * compares their chain tips to ours, and logs mismatches to tip_reports.
+ * Purely additive — if this module fails, the rest of the system is unaffected.
+ */
+
+const POLL_INTERVAL_MS = 60_000;
+const GRPC_DEADLINE_MS = 5_000;
+
+const MONITORED_NODES = [
+  { name: 'Cake Wallet', host: 'zec-node.cakewallet.com', port: 443, tls: true },
+  { name: 'zprivacy', host: 'zprivacy.online', port: 443, tls: true },
+  { name: 'z0n.jp', host: 'lwd.z0n.jp', port: 443, tls: true },
+  { name: 'Stardust EU', host: 'eu2.zec.stardust.rest', port: 443, tls: true },
+  { name: 'ombie.cash (Zaino)', host: 'z.ombie.cash', port: 443, tls: true },
+  { name: 'chmodas', host: 'chmodas.org', port: 443, tls: true },
+];
+
+class ForkMonitor {
+  constructor({ pool, grpc, CompactTxStreamer }) {
+    this.pool = pool;
+    this.grpc = grpc;
+    this.CompactTxStreamer = CompactTxStreamer;
+    this.interval = null;
+    this.clients = new Map();
+    this.nodeStatus = new Map();
+
+    for (const node of MONITORED_NODES) {
+      this.nodeStatus.set(node.name, {
+        name: node.name,
+        host: `${node.host}:${node.port}`,
+        height: null,
+        hash: null,
+        ourHash: null,
+        status: 'pending',
+        lastChecked: null,
+        error: null,
+      });
+    }
+  }
+
+  start() {
+    if (!this.CompactTxStreamer) {
+      console.error('   [ForkMonitor] CompactTxStreamer not available, skipping');
+      return;
+    }
+
+    console.log(`   [ForkMonitor] Monitoring ${MONITORED_NODES.length} external nodes`);
+    this._createClients();
+
+    setTimeout(() => this._poll(), 5_000);
+    this.interval = setInterval(() => this._poll(), POLL_INTERVAL_MS);
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    for (const [, client] of this.clients) {
+      try { client.close(); } catch (_) {}
+    }
+    this.clients.clear();
+  }
+
+  getStatus() {
+    return Array.from(this.nodeStatus.values());
+  }
+
+  _createClients() {
+    for (const node of MONITORED_NODES) {
+      try {
+        const address = `${node.host}:${node.port}`;
+        const creds = node.tls
+          ? this.grpc.credentials.createSsl()
+          : this.grpc.credentials.createInsecure();
+
+        const client = new this.CompactTxStreamer(address, creds, {
+          'grpc.keepalive_time_ms': 60_000,
+          'grpc.keepalive_timeout_ms': 10_000,
+        });
+
+        this.clients.set(node.name, client);
+      } catch (err) {
+        console.error(`   [ForkMonitor] Failed to create client for ${node.name}: ${err.message}`);
+      }
+    }
+  }
+
+  async _poll() {
+    try {
+      const tipResult = await this.pool.query(
+        'SELECT height, hash FROM blocks ORDER BY height DESC LIMIT 1'
+      );
+      if (tipResult.rows.length === 0) return;
+
+      const ourTip = {
+        height: parseInt(tipResult.rows[0].height),
+        hash: tipResult.rows[0].hash,
+      };
+
+      const checks = MONITORED_NODES.map(node => this._checkNode(node, ourTip));
+      await Promise.allSettled(checks);
+    } catch (err) {
+      console.error(`   [ForkMonitor] Poll error: ${err.message}`);
+    }
+  }
+
+  async _checkNode(node, ourTip) {
+    const client = this.clients.get(node.name);
+    if (!client) {
+      this._updateStatus(node.name, { status: 'offline', error: 'No client' });
+      return;
+    }
+
+    try {
+      const response = await this._getLatestBlock(client);
+      const remoteHeight = parseInt(response.height);
+      const remoteHash = this._hashToHex(response.hash);
+
+      let status = 'syncing';
+      let ourHashAtRemoteHeight = null;
+
+      if (remoteHeight === ourTip.height) {
+        ourHashAtRemoteHeight = ourTip.hash;
+        status = remoteHash === ourTip.hash ? 'agree' : 'fork';
+      } else if (remoteHeight < ourTip.height) {
+        const dbResult = await this.pool.query(
+          'SELECT hash FROM blocks WHERE height = $1', [remoteHeight]
+        );
+        if (dbResult.rows.length > 0) {
+          ourHashAtRemoteHeight = dbResult.rows[0].hash;
+          status = remoteHash === ourHashAtRemoteHeight ? 'behind' : 'fork';
+        } else {
+          status = 'behind';
+        }
+      } else {
+        status = 'ahead';
+      }
+
+      this._updateStatus(node.name, {
+        height: remoteHeight,
+        hash: remoteHash,
+        ourHash: ourHashAtRemoteHeight,
+        status,
+        error: null,
+      });
+
+      if (status === 'fork') {
+        console.warn(`   [ForkMonitor] FORK: ${node.name} at height ${remoteHeight} — ${remoteHash.slice(0, 16)} != ${ourHashAtRemoteHeight?.slice(0, 16)}`);
+        await this._recordMismatch(node.name, remoteHeight, remoteHash, ourHashAtRemoteHeight);
+      }
+    } catch (err) {
+      this._updateStatus(node.name, { status: 'offline', error: err.message });
+    }
+  }
+
+  _getLatestBlock(client) {
+    return new Promise((resolve, reject) => {
+      const deadline = new Date(Date.now() + GRPC_DEADLINE_MS);
+      client.getLatestBlock({}, { deadline }, (err, response) => {
+        if (err) reject(err);
+        else resolve(response);
+      });
+    });
+  }
+
+  _hashToHex(hashBytes) {
+    if (!hashBytes || hashBytes.length === 0) return '';
+    const buf = Buffer.from(hashBytes);
+    return Buffer.from(buf).reverse().toString('hex');
+  }
+
+  _updateStatus(name, updates) {
+    const current = this.nodeStatus.get(name);
+    if (current) {
+      Object.assign(current, updates, { lastChecked: new Date().toISOString() });
+    }
+  }
+
+  async _recordMismatch(nodeName, height, remoteHash, ourHash) {
+    try {
+      await this.pool.query(
+        `INSERT INTO tip_reports (height, hash, node_id, ip_hash, is_match)
+         VALUES ($1, $2, $3, 'monitor', false)
+         ON CONFLICT (height, hash, COALESCE(node_id, '')) DO NOTHING`,
+        [height, remoteHash, `monitor:${nodeName}`]
+      );
+    } catch (err) {
+      console.error(`   [ForkMonitor] DB write error: ${err.message}`);
+    }
+  }
+}
+
+module.exports = { ForkMonitor };

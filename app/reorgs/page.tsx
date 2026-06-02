@@ -45,11 +45,30 @@ interface Stats {
   deepestReorg: number;
 }
 
+interface MonitoredNode {
+  name: string;
+  host: string;
+  height: number | null;
+  hash: string | null;
+  ourHash: string | null;
+  status: 'pending' | 'agree' | 'behind' | 'ahead' | 'fork' | 'syncing' | 'offline';
+  lastChecked: string | null;
+  error: string | null;
+}
+
+interface NodesSummary {
+  total: number;
+  online: number;
+  forking: number;
+}
+
 export default function UnclesPage() {
-  const [tab, setTab] = useState<'orphans' | 'forks'>('forks');
+  const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('forks');
   const [orphans, setOrphans] = useState<OrphanedBlock[]>([]);
   const [forks, setForks] = useState<ForkEvent[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [nodes, setNodes] = useState<MonitoredNode[]>([]);
+  const [nodesSummary, setNodesSummary] = useState<NodesSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +77,11 @@ export default function UnclesPage() {
       setLoading(true);
       setError(null);
 
-      const [statsRes, orphansRes, forksRes] = await Promise.all([
+      const [statsRes, orphansRes, forksRes, nodesRes] = await Promise.all([
         fetch(`${API_URL}/api/uncles/stats`),
         fetch(`${API_URL}/api/uncles?limit=50`),
         fetch(`${API_URL}/api/uncles/forks?limit=20`),
+        fetch(`${API_URL}/api/uncles/nodes`),
       ]);
 
       if (statsRes.ok) {
@@ -77,6 +97,14 @@ export default function UnclesPage() {
       if (forksRes.ok) {
         const forksData = await forksRes.json();
         if (forksData.success) setForks(forksData.forks || []);
+      }
+
+      if (nodesRes.ok) {
+        const nodesData = await nodesRes.json();
+        if (nodesData.success) {
+          setNodes(nodesData.nodes || []);
+          setNodesSummary(nodesData.summary || null);
+        }
       }
     } catch (err) {
       console.error('Error fetching reorg data:', err);
@@ -121,7 +149,7 @@ export default function UnclesPage() {
           <StatCard label="Fork Events" value={stats.totalForkEvents} />
           <StatCard label="Orphaned Blocks" value={stats.totalOrphanedBlocks} />
           <StatCard label="Longest Reorg" value={stats.deepestReorg > 0 ? `${stats.deepestReorg} blocks` : '—'} color={stats.deepestReorg > 3 ? 'text-cipher-orange' : 'text-primary'} />
-          <StatCard label="Reports (24h)" value={stats.reportsLast24h} />
+          <StatCard label="Nodes Monitored" value={nodesSummary ? `${nodesSummary.online}/${nodesSummary.total}` : '—'} color={nodesSummary && nodesSummary.forking > 0 ? 'text-cipher-orange' : 'text-primary'} />
         </div>
       )}
 
@@ -146,6 +174,16 @@ export default function UnclesPage() {
           }`}
         >
           Orphaned Blocks ({orphans.length})
+        </button>
+        <button
+          onClick={() => setTab('nodes')}
+          className={`px-4 py-2 text-xs font-mono transition-colors border-b-2 ${
+            tab === 'nodes'
+              ? 'border-cipher-cyan text-cipher-cyan'
+              : 'border-transparent text-muted hover:text-secondary'
+          }`}
+        >
+          Monitored Nodes ({nodes.length})
         </button>
       </div>
 
@@ -297,6 +335,80 @@ export default function UnclesPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Monitored Nodes Table */}
+      {!loading && !error && tab === 'nodes' && (
+        <Card>
+          <CardBody className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-cipher-border">
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Node</th>
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Host</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden md:table-cell">Tip Hash</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Status</th>
+                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Last Check</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nodes.map((node) => {
+                    const statusColor: Record<string, string> = {
+                      agree: 'text-cipher-green',
+                      behind: 'text-cipher-yellow',
+                      ahead: 'text-cipher-cyan',
+                      fork: 'text-cipher-orange',
+                      offline: 'text-red-500',
+                      pending: 'text-muted',
+                      syncing: 'text-muted',
+                    };
+                    const statusLabel: Record<string, string> = {
+                      agree: 'Agrees',
+                      behind: 'Behind',
+                      ahead: 'Ahead',
+                      fork: 'FORK',
+                      offline: 'Offline',
+                      pending: 'Pending',
+                      syncing: 'Syncing',
+                    };
+                    return (
+                      <tr key={node.name} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-primary font-medium">
+                          {node.name}
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <code className="text-xs text-muted font-mono">{node.host}</code>
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
+                          {node.height ? node.height.toLocaleString() : '—'}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          {node.hash ? (
+                            <code className={`text-xs font-mono ${node.status === 'fork' ? 'text-cipher-orange' : 'text-secondary'}`}>
+                              {node.hash.slice(0, 10)}...{node.hash.slice(-6)}
+                            </code>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-xs font-mono font-bold ${statusColor[node.status] || 'text-muted'}`}>
+                            {statusLabel[node.status] || node.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted font-mono">
+                          {node.lastChecked ? formatRelativeTime(new Date(node.lastChecked).getTime() / 1000) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

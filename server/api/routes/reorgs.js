@@ -259,6 +259,29 @@ router.get('/api/uncles/stats', async (req, res) => {
   }
 });
 
+// GET /api/uncles/nodes — Status of monitored external lightwalletd nodes
+router.get('/api/uncles/nodes', (req, res) => {
+  const forkMonitor = req.app.locals.forkMonitor;
+  if (!forkMonitor) {
+    return res.json({ success: true, nodes: [], message: 'Fork monitor not initialized' });
+  }
+
+  const nodes = forkMonitor.getStatus();
+  const online = nodes.filter(n => n.status !== 'offline' && n.status !== 'pending').length;
+  const forking = nodes.filter(n => n.status === 'fork').length;
+
+  res.json({
+    success: true,
+    nodes,
+    summary: {
+      total: nodes.length,
+      online,
+      forking,
+      lastPoll: nodes[0]?.lastChecked || null,
+    },
+  });
+});
+
 function formatOrphanedBlock(row) {
   return {
     id: row.id,

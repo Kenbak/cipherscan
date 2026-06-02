@@ -48,6 +48,9 @@ const {
 
 // Import Zebra gRPC client
 const { ZebraGrpcClient } = require('./zebra-grpc');
+
+// Import Fork Monitor
+const { ForkMonitor } = require('./fork-monitor');
  
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -566,6 +569,11 @@ const zebraGrpc = new ZebraGrpcClient(
 
 zebraGrpc.start();
 
+// Fork Monitor: poll external lightwalletd nodes for chain tip comparison
+const forkMonitor = new ForkMonitor({ pool, grpc, CompactTxStreamer });
+forkMonitor.start();
+app.locals.forkMonitor = forkMonitor;
+
 // Fallback: poll for new blocks every 10s when gRPC is not connected
 setInterval(async () => {
   if (grpcConnected) return;
@@ -647,6 +655,7 @@ server.listen(PORT, '127.0.0.1', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing server...');
+  forkMonitor.stop();
   server.close(() => {
     pool.end(() => {
       console.log('Database pool closed');
