@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { getPoolName, getPoolInfo } = require('../mining-pools');
 
 let pool;
 let redisClient;
@@ -96,25 +97,21 @@ router.get('/api/blocks/list', async (req, res) => {
 
     let result;
     if (cursor === null) {
-      // First page — newest blocks
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
          FROM blocks ORDER BY height DESC LIMIT $1`,
         [limit]
       );
     } else if (direction === 'prev') {
-      // Going to newer blocks
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
          FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
         [cursor, limit]
       );
-      // Reverse so display order is still DESC
       result.rows.reverse();
     } else {
-      // Going to older blocks
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
          FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
         [cursor, limit]
       );
@@ -125,6 +122,7 @@ router.get('/api/blocks/list', async (req, res) => {
       if (finalizedHeight !== null) {
         b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
       }
+      b.miner_pool = getPoolName(b.miner_address);
       return b;
     });
     const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
@@ -189,6 +187,7 @@ router.get('/api/blocks', async (req, res) => {
       if (finalizedHeight !== null) {
         b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
       }
+      b.miner_pool = getPoolName(b.miner_address);
       return b;
     });
 
@@ -320,11 +319,15 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const currentHeight = currentHeightResult.rows[0]?.max_height || blockHeight;
     const confirmations = currentHeight - blockHeight + 1;
 
+    const poolInfo = getPoolInfo(block.miner_address);
     const response = {
       ...block,
       confirmations,
       transactions,
       transactionCount: transactions.length,
+      miner_pool: poolInfo?.name || null,
+      miner_pool_url: poolInfo?.url || null,
+      miner_pool_region: poolInfo?.region || null,
     };
 
     if (finalizedHeight !== null) {

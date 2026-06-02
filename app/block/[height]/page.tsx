@@ -31,6 +31,9 @@ interface BlockData {
   solution?: string;
   totalFees?: number;
   minerAddress?: string;
+  minerPool?: string | null;
+  minerPoolUrl?: string | null;
+  minerPoolRegion?: string | null;
   finality?: string | null;
 }
 
@@ -213,6 +216,9 @@ export default function BlockPage() {
             solution: blockData.solution,
             totalFees: totalFeesZatoshi / 100000000, // zatoshis to ZEC
             minerAddress: blockData.miner_address || blockData.minerAddress,
+            minerPool: blockData.miner_pool || null,
+            minerPoolUrl: blockData.miner_pool_url || null,
+            minerPoolRegion: blockData.miner_pool_region || null,
             finality: blockData.finality || null,
           };
           setData(transformedData);
@@ -480,9 +486,21 @@ export default function BlockPage() {
               icon={Icons.User}
               label="Fee Recipient"
               value={
-                <Link href={`/address/${data.minerAddress}`} className="text-cipher-cyan hover:underline">
-                  {data.minerAddress}
-                </Link>
+                <span className="flex flex-wrap items-center gap-2">
+                  <Link href={`/address/${data.minerAddress}`} className="text-cipher-cyan hover:underline break-all">
+                    {data.minerAddress}
+                  </Link>
+                  {data.minerPool && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-xs font-mono text-cipher-cyan border border-cipher-border whitespace-nowrap">
+                      {data.minerPoolUrl ? (
+                        <a href={data.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{data.minerPool}</a>
+                      ) : (
+                        data.minerPool
+                      )}
+                      {data.minerPoolRegion && <span className="text-muted">({data.minerPoolRegion})</span>}
+                    </span>
+                  )}
+                </span>
               }
               tooltip="The address that received the block reward and transaction fees"
             />

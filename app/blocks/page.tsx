@@ -14,6 +14,7 @@ interface Block {
   size: number;
   difficulty: number;
   finality_status?: string | null;
+  miner_pool?: string | null;
 }
 
 interface PaginationState {
@@ -95,6 +96,7 @@ export default function BlocksPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Miner</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Txs</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Size</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Interval</th>
@@ -107,6 +109,7 @@ export default function BlocksPage() {
                   <tr key={i} className="animate-pulse">
                     <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-24 bg-cipher-border rounded" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-40 bg-cipher-border rounded" /></td>
+                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-16 bg-cipher-border rounded" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-8 bg-cipher-border rounded ml-auto" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border hidden md:table-cell"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
                     <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-12 bg-cipher-border rounded ml-auto" /></td>
@@ -156,6 +159,13 @@ export default function BlocksPage() {
                         <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
                           {block.hash}
                         </Link>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
+                        {block.miner_pool ? (
+                          <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
+                        ) : (
+                          <span className="text-xs font-mono text-muted/40">—</span>
+                        )}
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">{block.transaction_count}</span>
