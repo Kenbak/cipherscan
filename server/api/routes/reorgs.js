@@ -136,8 +136,36 @@ router.get('/api/uncle/:hash', async (req, res) => {
 });
 
 // POST /api/uncle/report — External nodes report (height, hash)
+// Rate limited: 10 reports per IP per minute
+const reportRateLimit = new Map();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
+
 router.post('/api/uncle/report', async (req, res) => {
   try {
+    // Rate limit by IP
+    const clientIp = req.ip || 'unknown';
+    const ipKey = crypto.createHash('sha256').update(clientIp).digest('hex').slice(0, 16);
+    const now = Date.now();
+    const windowStart = now - RATE_LIMIT_WINDOW_MS;
+
+    let hits = reportRateLimit.get(ipKey) || [];
+    hits = hits.filter(t => t > windowStart);
+    if (hits.length >= RATE_LIMIT_MAX) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Max 10 reports per minute.' });
+    }
+    hits.push(now);
+    reportRateLimit.set(ipKey, hits);
+
+    // Periodically clean stale entries (every ~100 requests)
+    if (Math.random() < 0.01) {
+      for (const [key, timestamps] of reportRateLimit) {
+        const active = timestamps.filter(t => t > windowStart);
+        if (active.length === 0) reportRateLimit.delete(key);
+        else reportRateLimit.set(key, active);
+      }
+    }
+
     const { height, hash, node_id } = req.body;
 
     if (!height || !hash) {
@@ -145,7 +173,7 @@ router.post('/api/uncle/report', async (req, res) => {
     }
 
     const blockHeight = parseInt(height);
-    if (isNaN(blockHeight) || blockHeight < 0) {
+    if (isNaN(blockHeight) || blockHeight < 0 || blockHeight > 100_000_000) {
       return res.status(400).json({ error: 'Invalid height' });
     }
 
@@ -153,11 +181,12 @@ router.post('/api/uncle/report', async (req, res) => {
       return res.status(400).json({ error: 'Invalid block hash (must be 64 hex chars)' });
     }
 
+    // Block hash must start with leading zeros (valid PoW)
+    if (!hash.startsWith('000000')) {
+      return res.status(400).json({ error: 'Invalid block hash (insufficient proof of work)' });
+    }
+
     const nodeId = node_id ? String(node_id).slice(0, 64) : null;
-    const ipHash = crypto.createHash('sha256')
-      .update(req.ip || 'unknown')
-      .digest('hex')
-      .slice(0, 16);
 
     // Compare to our canonical block at this height
     const canonical = await pool.query(
@@ -165,23 +194,28 @@ router.post('/api/uncle/report', async (req, res) => {
       [blockHeight]
     );
 
-    const isMatch = canonical.rows.length > 0 && canonical.rows[0].hash === hash;
+    // Only accept reports for heights we have indexed
+    if (canonical.rows.length === 0) {
+      return res.status(400).json({ error: 'Height not yet indexed' });
+    }
+
+    const isMatch = canonical.rows[0].hash === hash;
 
     // Store the report (ignore duplicates via unique index)
     await pool.query(
       `INSERT INTO tip_reports (height, hash, node_id, ip_hash, is_match)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (height, hash, COALESCE(node_id, '')) DO NOTHING`,
-      [blockHeight, hash, nodeId, ipHash, isMatch]
+      [blockHeight, hash, nodeId, ipKey, isMatch]
     );
 
-    // If mismatch and we haven't already archived this orphan, archive it
-    if (!isMatch && canonical.rows.length > 0) {
+    // If mismatch, archive as external orphan report
+    if (!isMatch) {
       await pool.query(
         `INSERT INTO orphaned_blocks (height, hash, canonical_hash, source, reported_by)
          VALUES ($1, $2, $3, 'external', $4)
          ON CONFLICT (hash) DO NOTHING`,
-        [blockHeight, hash, canonical.rows[0].hash, nodeId || ipHash]
+        [blockHeight, hash, canonical.rows[0].hash, nodeId || ipKey]
       );
     }
 
@@ -189,7 +223,7 @@ router.post('/api/uncle/report', async (req, res) => {
       success: true,
       height: blockHeight,
       isMatch,
-      canonicalHash: canonical.rows.length > 0 ? canonical.rows[0].hash : null
+      canonicalHash: canonical.rows[0].hash
     });
   } catch (error) {
     console.error('Error processing uncle report:', error);
