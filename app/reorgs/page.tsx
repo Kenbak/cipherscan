@@ -209,7 +209,7 @@ export default function UnclesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'yellow' : 'muted'}>
+                        <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
                           {fork.depth} block{fork.depth !== 1 ? 's' : ''}
                         </Badge>
                       </td>
