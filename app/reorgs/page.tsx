@@ -48,6 +48,8 @@ interface Stats {
 interface MonitoredNode {
   name: string;
   host: string;
+  nodeImpl: string | null;
+  version: string | null;
   height: number | null;
   hash: string | null;
   ourHash: string | null;
@@ -352,6 +354,7 @@ export default function UnclesPage() {
                   <tr className="border-b border-cipher-border">
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Node</th>
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Host</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Version</th>
                     <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
                     <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden md:table-cell">Tip Hash</th>
                     <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Status</th>
@@ -385,6 +388,15 @@ export default function UnclesPage() {
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
                           <code className="text-xs text-muted font-mono">{node.host}</code>
+                        </td>
+                        <td className="px-4 py-3 text-center hidden sm:table-cell">
+                          {node.version ? (
+                            <span className="text-xs font-mono text-secondary">
+                              {node.nodeImpl ? `${node.nodeImpl} ` : ''}{node.version}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
                           {node.height ? node.height.toLocaleString() : '—'}

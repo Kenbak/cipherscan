@@ -31,6 +31,9 @@ class ForkMonitor {
       this.nodeStatus.set(node.name, {
         name: node.name,
         host: `${node.host}:${node.port}`,
+        nodeImpl: null,
+        version: null,
+        lightwalletdVersion: null,
         height: null,
         hash: null,
         ourHash: null,
@@ -50,14 +53,22 @@ class ForkMonitor {
     console.log(`   [ForkMonitor] Monitoring ${MONITORED_NODES.length} external nodes`);
     this._createClients();
 
-    setTimeout(() => this._poll(), 5_000);
+    setTimeout(() => {
+      this._fetchNodeInfo();
+      this._poll();
+    }, 5_000);
     this.interval = setInterval(() => this._poll(), POLL_INTERVAL_MS);
+    this._infoInterval = setInterval(() => this._fetchNodeInfo(), 10 * 60_000);
   }
 
   stop() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
+    }
+    if (this._infoInterval) {
+      clearInterval(this._infoInterval);
+      this._infoInterval = null;
     }
     for (const [, client] of this.clients) {
       try { client.close(); } catch (_) {}
@@ -155,6 +166,37 @@ class ForkMonitor {
     } catch (err) {
       this._updateStatus(node.name, { status: 'offline', error: err.message });
     }
+  }
+
+  async _fetchNodeInfo() {
+    const checks = MONITORED_NODES.map(async (node) => {
+      const client = this.clients.get(node.name);
+      if (!client) return;
+      try {
+        const info = await this._getLightdInfo(client);
+        const subversion = info.zcashdSubversion || '';
+        // Extract version from subversion string like "/Zebra:5.0.0/" or "/MagicBean:6.20.0/"
+        const match = subversion.match(/\/([\w.-]+):([\d.]+)/);
+        const nodeImpl = match ? match[1] : null;
+        const nodeVersion = match ? match[2] : null;
+        this._updateStatus(node.name, {
+          nodeImpl: nodeImpl,
+          version: nodeVersion,
+          lightwalletdVersion: info.version || null,
+        });
+      } catch (_) {}
+    });
+    await Promise.allSettled(checks);
+  }
+
+  _getLightdInfo(client) {
+    return new Promise((resolve, reject) => {
+      const deadline = new Date(Date.now() + GRPC_DEADLINE_MS);
+      client.getLightdInfo({}, { deadline }, (err, response) => {
+        if (err) reject(err);
+        else resolve(response);
+      });
+    });
   }
 
   _getLatestBlock(client) {
