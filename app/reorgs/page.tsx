@@ -19,6 +19,7 @@ interface OrphanedBlock {
   size: number;
   difficulty: string | null;
   minerAddress: string | null;
+  minerPool: string | null;
   source: string;
   reportedBy: string | null;
   consensusValid: boolean | null;
@@ -319,7 +320,15 @@ export default function UnclesPage() {
                         {block.transactionCount ?? '—'}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        {block.minerAddress ? (
+                        {block.minerPool ? (
+                          block.minerAddress ? (
+                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress}>
+                              {block.minerPool}
+                            </Link>
+                          ) : (
+                            <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
+                          )
+                        ) : block.minerAddress ? (
                           <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]">
                             {block.minerAddress.slice(0, 8)}...
                           </Link>

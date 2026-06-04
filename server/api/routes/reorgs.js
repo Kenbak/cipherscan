@@ -5,6 +5,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const { getPoolName } = require('../mining-pools');
 const router = express.Router();
 
 let pool;
@@ -293,6 +294,7 @@ function formatOrphanedBlock(row) {
     size: row.size,
     difficulty: row.difficulty,
     minerAddress: row.miner_address,
+    minerPool: getPoolName(row.miner_address),
     previousBlockHash: row.previous_block_hash,
     source: row.source,
     reportedBy: row.reported_by,
