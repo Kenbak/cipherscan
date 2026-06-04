@@ -16,6 +16,10 @@ const MONITORED_NODES = [
   { name: 'Stardust EU', host: 'eu2.zec.stardust.rest', port: 443, tls: true },
   { name: 'ombie.cash (Zaino)', host: 'z.ombie.cash', port: 443, tls: true },
   { name: 'chmodas', host: 'chmodas.org', port: 443, tls: true },
+  { name: 'zec.rocks NA', host: 'na.zec.rocks', port: 443, tls: true },
+  { name: 'zec.rocks SA', host: 'sa.zec.rocks', port: 443, tls: true },
+  { name: 'zec.rocks EU', host: 'eu.zec.rocks', port: 443, tls: true },
+  { name: 'zec.rocks AP', host: 'ap.zec.rocks', port: 443, tls: true },
 ];
 
 class ForkMonitor {
