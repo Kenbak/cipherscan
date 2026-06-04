@@ -33,8 +33,14 @@ function getSinceDate(p: TurnstilePeriod): string {
 interface TurnstileSummary {
   totalDeshielded: number;
   totalHeld: number;
+  totalReshielded: number;
+  totalExchange: number;
+  totalTransferred: number;
   totalMoved: number;
   heldPercent: number;
+  reshieldedPercent: number;
+  exchangePercent: number;
+  transferredPercent: number;
   movedPercent: number;
   txCount: number;
 }
@@ -43,7 +49,9 @@ interface TurnstilePoint {
   date: string;
   deshielded: number;
   held: number;
-  moved: number;
+  reshielded: number;
+  exchange: number;
+  transferred: number;
   dateLabel: string;
 }
 
@@ -75,7 +83,9 @@ export function TurnstileTracker() {
 
   const deshieldColor = theme === 'dark' ? '#E8C48D' : '#c9a066';
   const heldColor = colors.cyan;
-  const movedColor = colors.transparent;
+  const reshieldedColor = '#6BCB77';
+  const exchangeColor = theme === 'dark' ? '#E8C48D' : '#c9a066';
+  const transferredColor = colors.transparent;
 
   const periodOptions: { key: TurnstilePeriod; label: string }[] = [
     { key: 'nu6.2', label: 'Since NU6.2' },
@@ -94,7 +104,7 @@ export function TurnstileTracker() {
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
               <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TURNSTILE_TRACKER</h2>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap justify-end">
               {periodOptions.map(({ key, label }) => (
                 <button
                   key={key}
@@ -122,78 +132,70 @@ export function TurnstileTracker() {
             </div>
           ) : (
             <>
-              {/* Flow stats — 3 connected blocks */}
-              <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-0">
-
-                {/* Total Deshielded */}
-                <div className="relative z-10 p-4 text-center sm:text-left">
-                  <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Total Deshielded</p>
-                    <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums" style={{ color: deshieldColor }}>
-                      {formatZecCompact(summary.totalDeshielded)}
-                    </p>
-                    <p className="text-[10px] font-mono text-muted mt-1">ZEC deshielded</p>
-                  </div>
-                </div>
-
-                {/* Still Held */}
-                <div className="relative z-10 p-4 text-center">
-                  <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Still Held</p>
-                    <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-cipher-cyan">
-                      {formatZecCompact(summary.totalHeld)}
-                    </p>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono text-muted">ZEC held</span>
-                      <span className="px-1.5 py-0.5 text-[9px] font-mono rounded bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/20">
-                        {summary.heldPercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Moved */}
-                <div className="relative z-10 p-4 text-center sm:text-right">
-                  <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Spent or Moved</p>
-                    <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-muted">
-                      {formatZecCompact(summary.totalMoved)}
-                    </p>
-                    <div className="flex items-center justify-center sm:justify-end gap-2 mt-1">
-                      <span className="text-[10px] font-mono text-muted">ZEC moved</span>
-                      <span className="px-1.5 py-0.5 text-[9px] font-mono rounded bg-glass-6 text-muted">
-                        {summary.movedPercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
+              {/* Hero stat: Total Deshielded */}
+              <div className="px-4 mb-5">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Total Deshielded</p>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums" style={{ color: deshieldColor }}>
+                    {formatZecCompact(summary.totalDeshielded)}
+                  </span>
+                  <span className="text-sm font-mono text-muted">ZEC</span>
+                  <span className="text-[10px] font-mono text-muted">across {summary.txCount.toLocaleString()} txs</span>
                 </div>
               </div>
 
-              {/* Composition bar */}
+              {/* 4-segment composition bar */}
               {summary.totalDeshielded > 0 && (
-                <div className="mt-4 mx-4">
-                  <div className="h-2 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--color-bg)' }}>
-                    <div
-                      className="transition-all duration-1000 rounded-l-full"
-                      style={{ width: `${summary.heldPercent}%`, backgroundColor: heldColor, opacity: 0.7 }}
-                    />
-                    <div
-                      className="transition-all duration-1000 rounded-r-full"
-                      style={{ width: `${summary.movedPercent}%`, backgroundColor: movedColor, opacity: 0.4 }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1.5 px-0.5">
-                    <span className="text-[9px] font-mono text-cipher-cyan">Held</span>
-                    <span className="text-[9px] font-mono text-muted">Moved</span>
+                <div className="mx-4 mb-5">
+                  <div className="h-3 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--color-bg)' }}>
+                    <div className="transition-all duration-1000 rounded-l-full" style={{ width: `${summary.heldPercent}%`, backgroundColor: heldColor, opacity: 0.7 }} />
+                    <div className="transition-all duration-1000" style={{ width: `${summary.reshieldedPercent}%`, backgroundColor: reshieldedColor, opacity: 0.6 }} />
+                    <div className="transition-all duration-1000" style={{ width: `${summary.transferredPercent}%`, backgroundColor: transferredColor, opacity: 0.35 }} />
+                    <div className="transition-all duration-1000 rounded-r-full" style={{ width: `${summary.exchangePercent}%`, backgroundColor: exchangeColor, opacity: 0.5 }} />
                   </div>
                 </div>
               )}
+
+              {/* 4 stat cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4">
+                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: heldColor }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Still Held</p>
+                  <p className="text-xl font-bold font-mono tabular-nums text-cipher-cyan">{formatZecCompact(summary.totalHeld)}</p>
+                  <p className="text-[10px] font-mono text-muted mt-0.5">
+                    {summary.heldPercent.toFixed(1)}% <span className="opacity-60">— sitting at t-addr</span>
+                  </p>
+                </div>
+
+                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: reshieldedColor }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Reshielded</p>
+                  <p className="text-xl font-bold font-mono tabular-nums" style={{ color: reshieldedColor }}>{formatZecCompact(summary.totalReshielded)}</p>
+                  <p className="text-[10px] font-mono text-muted mt-0.5">
+                    {summary.reshieldedPercent.toFixed(1)}% <span className="opacity-60">— back to privacy</span>
+                  </p>
+                </div>
+
+                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: transferredColor }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Transferred</p>
+                  <p className="text-xl font-bold font-mono tabular-nums text-muted">{formatZecCompact(summary.totalTransferred)}</p>
+                  <p className="text-[10px] font-mono text-muted mt-0.5">
+                    {summary.transferredPercent.toFixed(1)}% <span className="opacity-60">— to another t-addr</span>
+                  </p>
+                </div>
+
+                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: exchangeColor }}>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">To Exchange</p>
+                  <p className="text-xl font-bold font-mono tabular-nums" style={{ color: exchangeColor }}>{formatZecCompact(summary.totalExchange)}</p>
+                  <p className="text-[10px] font-mono text-muted mt-0.5">
+                    {summary.exchangePercent.toFixed(1)}% <span className="opacity-60">— labeled exchange addr</span>
+                  </p>
+                </div>
+              </div>
             </>
           )}
 
           <p className="text-[10px] text-muted font-mono mt-4 mx-4 leading-relaxed">
-            &quot;Held&quot; = ZEC that left a shielded pool and is still sitting untouched at its transparent address.
-            &quot;Moved&quot; = ZEC that was later sent somewhere else — to an exchange, another address, or back into a shielded pool. Updated hourly.
+            Tracks what happens after ZEC leaves a shielded pool. &quot;Reshielded&quot; = went back into a private pool.
+            &quot;To Exchange&quot; = sent to a labeled exchange address. &quot;Transferred&quot; = moved to another transparent address. Updated hourly.
           </p>
           {(period === 'all' || period === '1y') && (
             <p className="text-[10px] text-muted/60 font-mono mt-1 mx-4 leading-relaxed italic">
@@ -205,8 +207,8 @@ export function TurnstileTracker() {
 
       {/* Time series chart */}
       {timeseries.length > 1 && (
-        <ChartCard title="ZEC_HELD_VS_MOVED_OVER_TIME" height={240}>
-          <ResponsiveContainer width="100%" height={240}>
+        <ChartCard title="DAILY_DESHIELDED_ZEC_BREAKDOWN" height={280}>
+          <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={timeseries}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis
@@ -229,28 +231,19 @@ export function TurnstileTracker() {
                   fontSize: 12,
                 }}
                 formatter={(value: number, name: string) => {
-                  const label = name === 'held' ? 'Still Held' : 'Moved';
-                  return [`${Number(value).toFixed(2)} ZEC`, label];
+                  const labels: Record<string, string> = {
+                    held: 'Still Held',
+                    reshielded: 'Reshielded',
+                    transferred: 'Transferred',
+                    exchange: 'To Exchange',
+                  };
+                  return [`${Number(value).toFixed(2)} ZEC`, labels[name] || name];
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="held"
-                stackId="1"
-                stroke={heldColor}
-                fill={heldColor}
-                fillOpacity={0.3}
-                name="held"
-              />
-              <Area
-                type="monotone"
-                dataKey="moved"
-                stackId="1"
-                stroke={movedColor}
-                fill={movedColor}
-                fillOpacity={0.15}
-                name="moved"
-              />
+              <Area type="monotone" dataKey="held" stackId="1" stroke={heldColor} fill={heldColor} fillOpacity={0.35} name="held" />
+              <Area type="monotone" dataKey="reshielded" stackId="1" stroke={reshieldedColor} fill={reshieldedColor} fillOpacity={0.3} name="reshielded" />
+              <Area type="monotone" dataKey="transferred" stackId="1" stroke={transferredColor} fill={transferredColor} fillOpacity={0.15} name="transferred" />
+              <Area type="monotone" dataKey="exchange" stackId="1" stroke={exchangeColor} fill={exchangeColor} fillOpacity={0.25} name="exchange" />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
