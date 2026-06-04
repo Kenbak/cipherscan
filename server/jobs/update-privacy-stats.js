@@ -354,6 +354,20 @@ async function main() {
     await updatePrivacyStats(pools, txStats);
     await updatePrivacyTrendsDaily(pools, txStats);
 
+    // Refresh pool analytics materialized views (if they exist)
+    try {
+      await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY flow_daily');
+      log('  Refreshed flow_daily');
+    } catch (e) {
+      if (!e.message.includes('does not exist')) log(`  flow_daily refresh skipped: ${e.message}`);
+    }
+    try {
+      await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY turnstile_daily');
+      log('  Refreshed turnstile_daily');
+    } catch (e) {
+      if (!e.message.includes('does not exist')) log(`  turnstile_daily refresh skipped: ${e.message}`);
+    }
+
     log(`=== Done in ${((Date.now() - start) / 1000).toFixed(1)}s ===`);
   } catch (err) {
     log(`ERROR: ${err.message}`);

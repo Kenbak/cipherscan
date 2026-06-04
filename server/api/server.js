@@ -33,6 +33,7 @@ const addressRouter = require('./routes/address');
 const blendCheckRouter = require('./routes/blend-check');
 const crosslinkRouter = require('./routes/crosslink');
 const reorgsRouter = require('./routes/reorgs');
+const poolsRouter = require('./routes/pools');
 
 // Import privacy linkage functions
 const {
@@ -376,6 +377,7 @@ app.use(blendCheckRouter);
 // Crosslink routes: /api/crosslink
 app.use(crosslinkRouter);
 app.use(reorgsRouter);
+app.use(poolsRouter);
 
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)

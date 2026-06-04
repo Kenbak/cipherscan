@@ -8,8 +8,14 @@
 
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
+
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const apiEnvPath = path.join(__dirname, '../api/.env');
+if (fs.existsSync(apiEnvPath)) {
+  const apiEnv = dotenv.parse(fs.readFileSync(apiEnvPath));
+  if (apiEnv.ZEBRA_RPC_URL) process.env.ZEBRA_RPC_URL = apiEnv.ZEBRA_RPC_URL;
+}
 
 const { Pool } = require('pg');
 
@@ -24,6 +30,7 @@ const pool = new Pool({
 
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
+const isLocalZebraRpc = () => /localhost|127\.0\.0\.1/.test(ZEBRA_RPC_URL);
 const RETENTION_DAYS = 400;
 
 function log(msg) {
@@ -32,11 +39,13 @@ function log(msg) {
 
 async function callZebraRPC(method, params = []) {
   let auth = '';
-  try {
-    const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
-    auth = `Basic ${Buffer.from(cookie).toString('base64')}`;
-  } catch {
-    // no auth
+  if (isLocalZebraRpc()) {
+    try {
+      const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
+      auth = `Basic ${Buffer.from(cookie).toString('base64')}`;
+    } catch {
+      // no auth
+    }
   }
 
   const headers = { 'Content-Type': 'application/json' };
@@ -57,8 +66,18 @@ async function main() {
   log('=== Chain Snapshot ===');
   await pool.query('SELECT 1');
 
+  log(`Zebra RPC: ${ZEBRA_RPC_URL}`);
   const info = await callZebraRPC('getblockchaininfo');
   if (!info?.valuePools) throw new Error('Missing valuePools from getblockchaininfo');
+
+  const progress = Number(info.verificationprogress ?? 0);
+  const blocks = Number(info.blocks ?? 0);
+  const headers = Number(info.headers ?? 0);
+  if (progress < 0.99 || (headers > 0 && blocks < headers - 2)) {
+    throw new Error(
+      `Zebra not fully synced (progress=${progress}, blocks=${blocks}, headers=${headers})`,
+    );
+  }
 
   const pools = {};
   for (const p of info.valuePools) {

@@ -524,7 +524,7 @@ export default function PrivacyPage() {
                 {activeTab === 'adoption' && (
                   <>Share of non-coinbase transactions that touch Sapling or Orchard each day. This is <strong className="text-secondary font-normal">transaction volume</strong>, not ZEC in shielded pools — see Supply Shielded above.</>
                 )}
-                {activeTab === 'pool' && 'Total ZEC held in shielded pools (Sprout, Sapling, Orchard).'}
+                {activeTab === 'pool' && (<>Total ZEC held in shielded pools (Sprout, Sapling, Orchard). <a href="/pools" className="text-cipher-cyan hover:underline">View detailed pool analytics →</a></>)}
                 {activeTab === 'activity' && 'Raw count of shielded vs transparent transactions per day (coinbase excluded from transparent).'}
                 {activeTab === 'score' && 'Composite privacy score from tx adoption, fully shielded usage, and pool size.'}
               </p>
