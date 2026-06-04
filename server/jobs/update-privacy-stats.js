@@ -15,9 +15,16 @@
 
 const path = require('path');
 const fs = require('fs');
-// Load .env from jobs folder first, then fallback to api folder
+const dotenv = require('dotenv');
+
+// DB creds from jobs/.env; Zebra RPC from api/.env (fully-synced remote node).
+// jobs/.env must not override ZEBRA_RPC_URL — localhost is often mid-resync.
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const apiEnvPath = path.join(__dirname, '../api/.env');
+if (fs.existsSync(apiEnvPath)) {
+  const apiEnv = dotenv.parse(fs.readFileSync(apiEnvPath));
+  if (apiEnv.ZEBRA_RPC_URL) process.env.ZEBRA_RPC_URL = apiEnv.ZEBRA_RPC_URL;
+}
 
 const { Pool } = require('pg');
 
@@ -33,6 +40,8 @@ const pool = new Pool({
 
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
+const POOL_DROP_THRESHOLD = 0.8; // skip if shielded pool falls more than 20% vs prior day
+const isLocalZebraRpc = () => /localhost|127\.0\.0\.1/.test(ZEBRA_RPC_URL);
 
 function log(msg) {
   const ts = new Date().toISOString().slice(11, 19);
@@ -41,11 +50,13 @@ function log(msg) {
 
 async function callZebraRPC(method, params = []) {
   let auth = '';
-  try {
-    const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
-    auth = 'Basic ' + Buffer.from(cookie).toString('base64');
-  } catch (err) {
-    // Try without auth
+  if (isLocalZebraRpc()) {
+    try {
+      const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
+      auth = 'Basic ' + Buffer.from(cookie).toString('base64');
+    } catch {
+      // try without auth
+    }
   }
 
   const headers = { 'Content-Type': 'application/json' };
@@ -74,13 +85,54 @@ function calculatePrivacyScore({ allTimeShieldedPercent = 0, totalShieldedZat = 
   return Math.min(Math.round(supplyScore + fullyShieldedScore + adoptionScore), 100);
 }
 
+function assertZebraSynced(blockchainInfo) {
+  const progress = Number(blockchainInfo.verificationprogress ?? 0);
+  const blocks = Number(blockchainInfo.blocks ?? 0);
+  const headers = Number(blockchainInfo.headers ?? 0);
+  if (progress < 0.99) {
+    throw new Error(
+      `Zebra not fully synced (verificationprogress=${progress.toFixed(4)} at ${ZEBRA_RPC_URL})`,
+    );
+  }
+  if (headers > 0 && blocks < headers - 2) {
+    throw new Error(
+      `Zebra behind chain tip (blocks=${blocks}, headers=${headers} at ${ZEBRA_RPC_URL})`,
+    );
+  }
+}
+
+async function validatePoolSizesAgainstPriorDay(pools) {
+  const today = new Date().toISOString().split('T')[0];
+  const prev = await pool.query(
+    `SELECT pool_size, chain_supply FROM privacy_trends_daily
+     WHERE date < $1::date AND pool_size > 0 ORDER BY date DESC LIMIT 1`,
+    [today],
+  );
+  if (prev.rows.length === 0) return;
+
+  const prevPool = Number(prev.rows[0].pool_size) || 0;
+  const prevSupply = Number(prev.rows[0].chain_supply) || 0;
+  if (prevPool > 0 && pools.shieldedPoolSize < prevPool * POOL_DROP_THRESHOLD) {
+    throw new Error(
+      `Shielded pool dropped >20% (${pools.shieldedPoolSize} vs ${prevPool}); refusing to overwrite stats`,
+    );
+  }
+  if (prevSupply > 0 && pools.chainSupply < prevSupply * POOL_DROP_THRESHOLD) {
+    throw new Error(
+      `Chain supply dropped >20% (${pools.chainSupply} vs ${prevSupply}); refusing to overwrite stats`,
+    );
+  }
+}
+
 async function updatePoolSizes() {
-  log('Fetching pool sizes from Zebra RPC...');
+  log(`Fetching pool sizes from Zebra RPC (${ZEBRA_RPC_URL})...`);
   const blockchainInfo = await callZebraRPC('getblockchaininfo');
 
   if (!blockchainInfo || !blockchainInfo.valuePools) {
     throw new Error('Could not get valuePools from Zebra');
   }
+
+  assertZebraSynced(blockchainInfo);
 
   let transparentPool = 0, sproutPool = 0, saplingPool = 0, orchardPool = 0, chainSupply = 0;
 
@@ -297,6 +349,7 @@ async function main() {
   try {
     await pool.query('SELECT 1');
     const pools = await updatePoolSizes();
+    await validatePoolSizesAgainstPriorDay(pools);
     const txStats = await updateTransactionCounts();
     await updatePrivacyStats(pools, txStats);
     await updatePrivacyTrendsDaily(pools, txStats);
