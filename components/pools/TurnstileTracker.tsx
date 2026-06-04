@@ -124,12 +124,6 @@ export function TurnstileTracker() {
             <>
               {/* Flow stats — 3 connected blocks */}
               <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-0">
-                {/* Connecting gradient line */}
-                <div className="hidden sm:block absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 z-0"
-                  style={{
-                    background: `linear-gradient(to right, ${deshieldColor}40, ${heldColor}40, ${movedColor}40)`,
-                  }}
-                />
 
                 {/* Total Deshielded */}
                 <div className="relative z-10 p-4 text-center sm:text-left">
@@ -201,6 +195,11 @@ export function TurnstileTracker() {
             &quot;Held&quot; = ZEC that left a shielded pool and is still sitting untouched at its transparent address.
             &quot;Moved&quot; = ZEC that was later sent somewhere else — to an exchange, another address, or back into a shielded pool. Updated hourly.
           </p>
+          {(period === 'all' || period === '1y') && (
+            <p className="text-[10px] text-muted/60 font-mono mt-1 mx-4 leading-relaxed italic">
+              Note: cumulative volume — the same ZEC can be deshielded and reshielded multiple times, so totals may exceed circulating supply.
+            </p>
+          )}
         </CardBody>
       </Card>
 
