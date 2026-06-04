@@ -50,7 +50,7 @@ interface TurnstilePoint {
 export function TurnstileTracker() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [period, setPeriod] = useState<TurnstilePeriod>('30d');
+  const [period, setPeriod] = useState<TurnstilePeriod>('nu6.2');
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
