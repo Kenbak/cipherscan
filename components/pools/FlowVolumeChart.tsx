@@ -104,7 +104,7 @@ export function FlowVolumeChart() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={points}>
+          <ComposedChart data={points} barCategoryGap="15%">
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="dateLabel"
@@ -133,8 +133,8 @@ export function FlowVolumeChart() {
               labelStyle={{ color: colors.tooltipText, fontSize: 11 }}
             />
             <ReferenceLine y={0} stroke={colors.grid} strokeDasharray="2 6" />
-            <Bar dataKey="shield" stackId="flow" fill={colors.cyan} fillOpacity={0.6} radius={[2, 2, 0, 0]} name="shield" />
-            <Bar dataKey="deshield" stackId="flow" fill={deshieldColor} fillOpacity={0.4} radius={[0, 0, 2, 2]} name="deshield" />
+            <Bar dataKey="shield" fill={colors.cyan} fillOpacity={0.7} radius={[2, 2, 0, 0]} name="shield" />
+            <Bar dataKey="deshield" fill={deshieldColor} fillOpacity={0.5} radius={[0, 0, 2, 2]} name="deshield" />
             <Line
               type="monotone"
               dataKey="net"
