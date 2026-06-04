@@ -17,7 +17,7 @@ const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'supply', label: 'Supply' },
   { id: 'flows', label: 'Flows' },
-  { id: 'turnstile', label: 'Turnstile' },
+  { id: 'turnstile', label: 'Held vs. Moved' },
 ] as const;
 
 function SectionNav({ active }: { active: string }) {
@@ -91,6 +91,7 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_OVERVIEW</h2>
         </div>
+        <p className="text-[10px] font-mono text-muted mb-2">Where all ZEC lives right now — split between public (transparent) and private (shielded) pools.</p>
 
         {/* Hero number */}
         <div className="mb-5">
@@ -276,7 +277,7 @@ export default function PoolsPage() {
         </p>
         <h1 className="text-2xl sm:text-3xl font-bold text-primary">Shielded Pools</h1>
         <p className="text-sm text-secondary mt-2 max-w-2xl">
-          Per-pool supply breakdown, shield/deshield flow volume, and UTXO-level turnstile tracking for the Zcash shielded pools.
+          Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays.
         </p>
       </div>
 
@@ -304,7 +305,7 @@ export default function PoolsPage() {
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
             <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Supply History</h2>
           </div>
-          <p className="text-xs text-muted mt-1">Per-pool value from daily chain state snapshots.</p>
+          <p className="text-xs text-muted mt-1">How the balance of each pool has changed over time. A rising shielded share means more ZEC is being held privately.</p>
         </div>
         <PoolDistributionChart />
       </section>
@@ -317,7 +318,7 @@ export default function PoolsPage() {
             <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Flow Volume</h2>
           </div>
           <p className="text-xs text-muted mt-1">
-            Daily shielding and deshielding volume. Bars up = ZEC entering pools. Bars down = ZEC leaving pools.
+            Shielding means moving ZEC into a private pool. Deshielding means moving it back to a public address. Bars up = ZEC going private. Bars down = ZEC going public. The white line shows net flow.
           </p>
         </div>
         <FlowVolumeChart />
@@ -331,7 +332,7 @@ export default function PoolsPage() {
             <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Turnstile Tracker</h2>
           </div>
           <p className="text-xs text-muted mt-1">
-            Where does deshielded ZEC go? Tracks whether transparent outputs are still held or were subsequently moved.
+            When ZEC leaves a shielded pool, it lands on a public transparent address. We track what happens next — does it stay there (held), or get sent somewhere else (moved)? A high &quot;held&quot; percentage suggests users aren&apos;t selling.
           </p>
         </div>
         <TurnstileTracker />

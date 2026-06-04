@@ -134,7 +134,7 @@ export function TurnstileTracker() {
                 {/* Total Deshielded */}
                 <div className="relative z-10 p-4 text-center sm:text-left">
                   <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Left Shielded Pools</p>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Total Deshielded</p>
                     <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums" style={{ color: deshieldColor }}>
                       {formatZecCompact(summary.totalDeshielded)}
                     </p>
@@ -145,7 +145,7 @@ export function TurnstileTracker() {
                 {/* Still Held */}
                 <div className="relative z-10 p-4 text-center">
                   <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Still at T-addr</p>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Still Held</p>
                     <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-cipher-cyan">
                       {formatZecCompact(summary.totalHeld)}
                     </p>
@@ -161,7 +161,7 @@ export function TurnstileTracker() {
                 {/* Moved */}
                 <div className="relative z-10 p-4 text-center sm:text-right">
                   <div className="bg-glass-4 rounded-xl p-5 border border-glass-6">
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Subsequently Moved</p>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-2">Spent or Moved</p>
                     <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-muted">
                       {formatZecCompact(summary.totalMoved)}
                     </p>
@@ -198,15 +198,15 @@ export function TurnstileTracker() {
           )}
 
           <p className="text-[10px] text-muted font-mono mt-4 mx-4 leading-relaxed">
-            Tracks transparent outputs from deshield transactions. &quot;Moved&quot; means the output was subsequently spent
-            (reshielding, transfers, or exchange deposits). Updated hourly.
+            &quot;Held&quot; = ZEC that left a shielded pool and is still sitting untouched at its transparent address.
+            &quot;Moved&quot; = ZEC that was later sent somewhere else — to an exchange, another address, or back into a shielded pool. Updated hourly.
           </p>
         </CardBody>
       </Card>
 
       {/* Time series chart */}
       {timeseries.length > 1 && (
-        <ChartCard title="HELD_VS_MOVED" height={240}>
+        <ChartCard title="ZEC_HELD_VS_MOVED_OVER_TIME" height={240}>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={timeseries}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
