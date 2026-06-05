@@ -277,8 +277,18 @@ router.get('/api/pools/turnstile', async (req, res) => {
         txCount: Number(r.tx_count),
       }));
 
+      // Fetch last refresh timestamp
+      let lastUpdated = null;
+      try {
+        const stateRow = await pool.query(
+          "SELECT updated_at FROM indexer_state WHERE key = 'turnstile_last_processed_time'"
+        );
+        if (stateRow.rows.length) lastUpdated = stateRow.rows[0].updated_at;
+      } catch {}
+
       return {
         since,
+        lastUpdated,
         summary: {
           totalDeshielded: totalDeshielded / 1e8,
           totalHeld: totalHeld / 1e8,

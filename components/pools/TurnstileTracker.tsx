@@ -93,6 +93,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewBuilding, setViewBuilding] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<TurnstileCategory | null>(null);
 
   useEffect(() => {
@@ -106,6 +107,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       })
       .then(data => {
         if (data?.summary) setSummary(data.summary);
+        if (data?.lastUpdated) setLastUpdated(data.lastUpdated);
         if (data?.timeseries) {
           setTimeseries(data.timeseries.map((p: TurnstilePoint) => ({
             ...p,
@@ -259,7 +261,9 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           )}
 
           <p className="text-xs text-secondary font-sans mt-6 leading-relaxed">
-            Tracks what happens after ZEC leaves a shielded pool — held, reshielded, transferred, bridged cross-chain, or sent to exchanges. Updated hourly.
+            Tracks what happens after ZEC leaves a shielded pool — held, reshielded, transferred, bridged cross-chain, or sent to exchanges.
+            {lastUpdated && ` Updated ${new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${new Date(lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}.`}
+            {!lastUpdated && ' Updated daily.'}
           </p>
           {(period === 'all' || period === '1y') && (
             <p className="text-[10px] text-muted/60 font-mono mt-2 leading-relaxed italic">
