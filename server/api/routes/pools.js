@@ -169,13 +169,44 @@ router.get('/api/pools/flows', async (req, res) => {
 
 // ─── GET /api/pools/turnstile ───────────────────────────────────────────────
 
+// Short-circuit: if the materialized view is being rebuilt, avoid hammering
+// the DB with expensive fallback queries. Cache the "building" state briefly.
+let turnstileViewAvailable = null; // null = unknown, true/false = cached result
+let turnstileViewCheckAt = 0;
+const VIEW_CHECK_TTL_MS = 30_000; // re-check every 30s
+
+async function isTurnstileViewReady(pg) {
+  const now = Date.now();
+  if (turnstileViewAvailable !== null && now - turnstileViewCheckAt < VIEW_CHECK_TTL_MS) {
+    return turnstileViewAvailable;
+  }
+  try {
+    await pg.query(`SELECT 1 FROM turnstile_daily LIMIT 0`);
+    turnstileViewAvailable = true;
+  } catch {
+    turnstileViewAvailable = false;
+  }
+  turnstileViewCheckAt = now;
+  return turnstileViewAvailable;
+}
+
 router.get('/api/pools/turnstile', async (req, res) => {
   try {
+    // Fast-path: if view is rebuilding, return immediately
+    const viewReady = await isTurnstileViewReady(pool);
+    if (!viewReady) {
+      return res.status(503).json({
+        success: false,
+        error: 'turnstile_daily view is rebuilding',
+        status: 'building',
+        retryAfter: 60,
+      });
+    }
+
     const since = req.query.since || '2020-01-01';
     const cacheKey = `zcash:pools:turnstile:${since}`;
 
     const data = await cached(cacheKey, 600, async () => {
-      // Try materialized view first
       let summaryResult, timeseriesResult;
       try {
         summaryResult = await pool.query(`

@@ -92,13 +92,18 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewBuilding, setViewBuilding] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<TurnstileCategory | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setViewBuilding(false);
     const since = getSinceDate(period);
     fetch(`${getApiUrl()}/api/pools/turnstile?since=${since}`)
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 503) return r.json().then(d => { setViewBuilding(d?.status === 'building'); return null; });
+        return r.ok ? r.json() : null;
+      })
       .then(data => {
         if (data?.summary) setSummary(data.summary);
         if (data?.timeseries) {
@@ -112,6 +117,22 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [period]);
+
+  if (viewBuilding && !summary) {
+    return (
+      <div className="space-y-4">
+        <Card variant="glass">
+          <CardBody>
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <div className="w-5 h-5 border-2 border-cipher-cyan border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted font-mono">Turnstile view is rebuilding — data will appear shortly</p>
+              <p className="text-[10px] text-muted/60 font-mono">Auto-retries in 60s</p>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
