@@ -74,11 +74,12 @@ const PERIOD_OPTIONS: { key: TurnstilePeriod; label: string }[] = [
   { key: 'all', label: 'ALL' },
 ];
 
-type TurnstileCategory = 'held' | 'reshielded' | 'transferred' | 'bridge' | 'exchange';
+type TurnstileCategory = 'held' | 'reshielded' | 'moved' | 'transferred' | 'bridge' | 'exchange';
 
 const TURNSTILE_HINTS: Record<TurnstileCategory, string> = {
   held: 'sitting at t-addr',
   reshielded: 'back to privacy',
+  moved: 'sent elsewhere',
   transferred: 'to another t-addr',
   bridge: 'labeled bridge addr',
   exchange: 'labeled exchange addr',
@@ -94,6 +95,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const [loading, setLoading] = useState(true);
   const [viewBuilding, setViewBuilding] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<TurnstileCategory | null>(null);
 
   useEffect(() => {
@@ -188,75 +190,130 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                 </div>
               </MetricWithTooltip>
 
-              {summary.totalDeshielded > 0 && (
-                <InteractiveCompositionBar
-                  className="mb-6"
-                  hoveredKey={hoveredCategory}
-                  onHoverKeyChange={key => setHoveredCategory(key as TurnstileCategory | null)}
-                  segments={([
-                    { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
-                    { key: 'reshielded', pct: summary.reshieldedPercent, amount: summary.totalReshielded },
-                    { key: 'transferred', pct: summary.transferredPercent, amount: summary.totalTransferred },
-                    { key: 'bridge', pct: summary.bridgePercent ?? 0, amount: summary.totalBridge ?? 0 },
-                    { key: 'exchange', pct: summary.exchangePercent, amount: summary.totalExchange },
-                  ] as const).map(({ key, pct, amount }) => ({
-                    key,
-                    label: TURNSTILE_CATEGORY_LABELS[key],
-                    percent: pct,
-                    color: flowColors[key],
-                    opacity: key === 'transferred' ? 0.5 : key === 'held' ? 0.85 : key === 'bridge' ? 0.65 : 0.7,
-                    hint: TURNSTILE_HINTS[key],
-                    title: `${TURNSTILE_CATEGORY_LABELS[key]}: ${formatZecCompact(amount)} ZEC (${pct.toFixed(1)}%)`,
-                  }))}
-                />
-              )}
+              {summary.totalDeshielded > 0 && (() => {
+                const movedPct = (summary.transferredPercent ?? 0) + (summary.bridgePercent ?? 0) + summary.exchangePercent;
+                const movedAmt = (summary.totalTransferred ?? 0) + (summary.totalBridge ?? 0) + summary.totalExchange;
+                const movedColor = flowColors.transferred;
 
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                {([
-                  { key: 'held' as const, value: summary.totalHeld, pct: summary.heldPercent },
-                  { key: 'reshielded' as const, value: summary.totalReshielded, pct: summary.reshieldedPercent },
-                  { key: 'transferred' as const, value: summary.totalTransferred, pct: summary.transferredPercent },
-                  { key: 'bridge' as const, value: summary.totalBridge ?? 0, pct: summary.bridgePercent ?? 0 },
-                  { key: 'exchange' as const, value: summary.totalExchange, pct: summary.exchangePercent },
-                ]).map(({ key, value, pct }) => {
-                  const isHovered = hoveredCategory === key;
-                  const isDimmed = hoveredCategory != null && !isHovered;
-                  const coloredValues: TurnstileCategory[] = ['held', 'reshielded', 'bridge', 'exchange'];
-                  const tooltips: Record<TurnstileCategory, string> = {
-                    held: 'Deshielded ZEC still sitting on the original transparent address',
-                    reshielded: 'ZEC that moved back into a shielded pool after deshielding',
-                    transferred: 'ZEC sent to another transparent address (not an exchange or bridge)',
-                    bridge: 'ZEC sent to a labeled cross-chain bridge address (e.g. NEAR Intents)',
-                    exchange: 'ZEC sent to a labeled exchange deposit address',
-                  };
+                const segments = showDetail
+                  ? [
+                      { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
+                      { key: 'reshielded', pct: summary.reshieldedPercent, amount: summary.totalReshielded },
+                      { key: 'transferred', pct: summary.transferredPercent, amount: summary.totalTransferred },
+                      { key: 'bridge', pct: summary.bridgePercent ?? 0, amount: summary.totalBridge ?? 0 },
+                      { key: 'exchange', pct: summary.exchangePercent, amount: summary.totalExchange },
+                    ]
+                  : [
+                      { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
+                      { key: 'reshielded', pct: summary.reshieldedPercent, amount: summary.totalReshielded },
+                      { key: 'moved', pct: movedPct, amount: movedAmt },
+                    ];
 
-                  return (
-                    <div
-                      key={key}
-                      className={`bg-glass-4 rounded-xl p-4 border-l-2 transition-all duration-200 ${
-                        isHovered ? 'ring-1 ring-glass-12 bg-glass-6' : ''
-                      } ${isDimmed ? 'opacity-40' : ''}`}
-                      style={{ borderLeftColor: flowColors[key] }}
-                      onMouseEnter={() => setHoveredCategory(key)}
-                      onMouseLeave={() => setHoveredCategory(null)}
-                    >
-                      <MetricWithTooltip label={TURNSTILE_CATEGORY_LABELS[key]} tooltip={tooltips[key]}>
-                        <p
-                          className={`text-xl font-bold font-mono tabular-nums ${
-                            coloredValues.includes(key) ? '' : 'text-secondary'
-                          }`}
-                          style={coloredValues.includes(key) ? { color: flowColors[key] } : undefined}
-                        >
-                          {formatZecCompact(value)}
-                        </p>
-                      </MetricWithTooltip>
-                      <p className="text-xs font-mono text-muted mt-1">
-                        {pct.toFixed(1)}% of deshielded
-                      </p>
+                const cards = showDetail
+                  ? [
+                      { key: 'held' as const, value: summary.totalHeld, pct: summary.heldPercent },
+                      { key: 'reshielded' as const, value: summary.totalReshielded, pct: summary.reshieldedPercent },
+                      { key: 'transferred' as const, value: summary.totalTransferred, pct: summary.transferredPercent },
+                      { key: 'bridge' as const, value: summary.totalBridge ?? 0, pct: summary.bridgePercent ?? 0 },
+                      { key: 'exchange' as const, value: summary.totalExchange, pct: summary.exchangePercent },
+                    ]
+                  : [
+                      { key: 'held' as const, value: summary.totalHeld, pct: summary.heldPercent },
+                      { key: 'reshielded' as const, value: summary.totalReshielded, pct: summary.reshieldedPercent },
+                      { key: 'moved' as const, value: movedAmt, pct: movedPct },
+                    ];
+
+                const categoryColors: Record<string, string> = {
+                  held: flowColors.held,
+                  reshielded: flowColors.reshielded,
+                  moved: movedColor,
+                  transferred: flowColors.transferred,
+                  bridge: flowColors.bridge ?? flowColors.transferred,
+                  exchange: flowColors.exchange,
+                };
+
+                const categoryLabels: Record<string, string> = {
+                  held: 'Still Held',
+                  reshielded: 'Reshielded',
+                  moved: 'Moved',
+                  transferred: 'Transferred',
+                  bridge: 'To Bridge',
+                  exchange: 'To Exchange',
+                };
+
+                const tooltips: Record<string, string> = {
+                  held: 'Deshielded ZEC still sitting on the original transparent address',
+                  reshielded: 'ZEC that moved back into a shielded pool after deshielding',
+                  moved: 'ZEC sent elsewhere — transferred, bridged, or deposited to an exchange',
+                  transferred: 'ZEC sent to another transparent address (not an exchange or bridge)',
+                  bridge: 'ZEC sent to a labeled cross-chain bridge address (e.g. NEAR Intents)',
+                  exchange: 'ZEC sent to a labeled exchange deposit address',
+                };
+
+                return (
+                  <>
+                    <InteractiveCompositionBar
+                      className="mb-6"
+                      hoveredKey={hoveredCategory}
+                      onHoverKeyChange={key => setHoveredCategory(key as TurnstileCategory | null)}
+                      segments={segments.map(({ key, pct, amount }) => ({
+                        key,
+                        label: categoryLabels[key] ?? key,
+                        percent: pct,
+                        color: categoryColors[key] ?? flowColors.transferred,
+                        opacity: key === 'transferred' ? 0.5 : key === 'held' ? 0.85 : key === 'moved' ? 0.6 : key === 'bridge' ? 0.65 : 0.7,
+                        hint: TURNSTILE_HINTS[key as TurnstileCategory] ?? '',
+                        title: `${categoryLabels[key]}: ${formatZecCompact(amount)} ZEC (${pct.toFixed(1)}%)`,
+                      }))}
+                    />
+
+                    <div className="flex items-center justify-end mb-3">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={showDetail}
+                          onChange={e => setShowDetail(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-cyan"
+                        />
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                          Split moved
+                        </span>
+                      </label>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className={`grid gap-3 ${showDetail ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-3'}`}>
+                      {cards.map(({ key, value, pct }) => {
+                        const isHovered = hoveredCategory === key;
+                        const isDimmed = hoveredCategory != null && !isHovered;
+
+                        return (
+                          <div
+                            key={key}
+                            className={`bg-glass-4 rounded-xl p-4 border-l-2 transition-all duration-200 ${
+                              isHovered ? 'ring-1 ring-glass-12 bg-glass-6' : ''
+                            } ${isDimmed ? 'opacity-40' : ''}`}
+                            style={{ borderLeftColor: categoryColors[key] }}
+                            onMouseEnter={() => setHoveredCategory(key as TurnstileCategory)}
+                            onMouseLeave={() => setHoveredCategory(null)}
+                          >
+                            <MetricWithTooltip label={categoryLabels[key]} tooltip={tooltips[key]}>
+                              <p
+                                className="text-xl font-bold font-mono tabular-nums"
+                                style={{ color: categoryColors[key] }}
+                              >
+                                {formatZecCompact(value)}
+                              </p>
+                            </MetricWithTooltip>
+                            <p className="text-xs font-mono text-muted mt-1">
+                              {pct.toFixed(1)}% of deshielded
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
 

@@ -33,6 +33,7 @@ export function PoolDistributionChart() {
   const [view, setView] = useState<View>('composition');
   const [points, setPoints] = useState<PoolPoint[]>([]);
   const [hasPerPoolHistory, setHasPerPoolHistory] = useState(false);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/network/pool-history?period=${period}`)
@@ -111,11 +112,21 @@ export function PoolDistributionChart() {
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
                 formatter={(value: number, name: string) => [`${(value / 1e6).toFixed(3)}M ZEC`, name]}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Area type="monotone" dataKey="orchard" stackId="1" stroke={colors.orchard} fill={colors.orchard} fillOpacity={0.6} name="Orchard" />
-              <Area type="monotone" dataKey="sapling" stackId="1" stroke={colors.sapling} fill={colors.sapling} fillOpacity={0.6} name="Sapling" />
-              <Area type="monotone" dataKey="sprout" stackId="1" stroke={colors.sprout} fill={colors.sprout} fillOpacity={0.5} name="Sprout" />
-              <Area type="monotone" dataKey="transparent" stackId="1" stroke={colors.transparent} fill={colors.transparent} fillOpacity={0.35} name="Transparent" />
+              <Legend
+                wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
+                onClick={(e: { dataKey?: string }) => {
+                  if (!e.dataKey) return;
+                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(e.dataKey!)) next.delete(e.dataKey!); else next.add(e.dataKey!); return next; });
+                }}
+                formatter={(value: string, entry: { dataKey?: string }) => {
+                  const hidden = hiddenSeries.has(entry.dataKey ?? '');
+                  return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{value}</span>;
+                }}
+              />
+              <Area type="monotone" dataKey="orchard" stackId="1" stroke={colors.orchard} fill={colors.orchard} fillOpacity={0.6} name="Orchard" hide={hiddenSeries.has('orchard')} />
+              <Area type="monotone" dataKey="sapling" stackId="1" stroke={colors.sapling} fill={colors.sapling} fillOpacity={0.6} name="Sapling" hide={hiddenSeries.has('sapling')} />
+              <Area type="monotone" dataKey="sprout" stackId="1" stroke={colors.sprout} fill={colors.sprout} fillOpacity={0.5} name="Sprout" hide={hiddenSeries.has('sprout')} />
+              <Area type="monotone" dataKey="transparent" stackId="1" stroke={colors.transparent} fill={colors.transparent} fillOpacity={0.35} name="Transparent" hide={hiddenSeries.has('transparent')} />
             </AreaChart>
           ) : view === 'composition' ? (
             <AreaChart data={chartData}>
@@ -134,9 +145,19 @@ export function PoolDistributionChart() {
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
                 formatter={(value: number, name: string) => [`${(value / 1e6).toFixed(3)}M ZEC`, name]}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Area type="monotone" dataKey="shielded" stackId="1" stroke={colors.shielded} fill={colors.shielded} fillOpacity={0.55} name="Shielded" />
-              <Area type="monotone" dataKey="transparent" stackId="1" stroke={colors.transparent} fill={colors.transparent} fillOpacity={0.35} name="Transparent" />
+              <Legend
+                wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
+                onClick={(e: { dataKey?: string }) => {
+                  if (!e.dataKey) return;
+                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(e.dataKey!)) next.delete(e.dataKey!); else next.add(e.dataKey!); return next; });
+                }}
+                formatter={(value: string, entry: { dataKey?: string }) => {
+                  const hidden = hiddenSeries.has(entry.dataKey ?? '');
+                  return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{value}</span>;
+                }}
+              />
+              <Area type="monotone" dataKey="shielded" stackId="1" stroke={colors.shielded} fill={colors.shielded} fillOpacity={0.55} name="Shielded" hide={hiddenSeries.has('shielded')} />
+              <Area type="monotone" dataKey="transparent" stackId="1" stroke={colors.transparent} fill={colors.transparent} fillOpacity={0.35} name="Transparent" hide={hiddenSeries.has('transparent')} />
             </AreaChart>
           ) : (
             <LineChart data={chartData}>

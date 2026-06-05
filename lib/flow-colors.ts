@@ -12,6 +12,7 @@ export interface FlowColors {
   netFlow: string;
   held: string;
   reshielded: string;
+  moved: string;
   transferred: string;
   bridge: string;
   exchange: string;
@@ -27,6 +28,7 @@ export function getFlowColors(theme: FlowTheme): FlowColors {
     // Turnstile outcomes — held uses ZEC yellow to distinguish from transferred slate
     held: isDark ? '#F4B728' : '#D49B00',
     reshielded: isDark ? '#00E676' : '#059669',
+    moved: isDark ? '#94a3b8' : '#64748b',
     transferred: isDark ? '#64748b' : '#475569',
     bridge: isDark ? '#A78BFA' : '#7C3AED',
     exchange: isDark ? '#FF6B35' : '#C2410C',
@@ -36,6 +38,7 @@ export function getFlowColors(theme: FlowTheme): FlowColors {
 export const TURNSTILE_CATEGORY_LABELS = {
   held: 'Still Held',
   reshielded: 'Reshielded',
+  moved: 'Moved',
   transferred: 'Transferred',
   bridge: 'To Bridge',
   exchange: 'To Exchange',

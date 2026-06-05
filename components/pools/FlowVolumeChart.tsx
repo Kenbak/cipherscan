@@ -33,6 +33,7 @@ export function FlowVolumeChart() {
   const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
   const [points, setPoints] = useState<FlowPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLoading(true);
@@ -129,10 +130,21 @@ export function FlowVolumeChart() {
                 labelStyle={{ color: colors.tooltipText, fontSize: 11 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                formatter={(value: string) =>
-                  value === 'shield' ? 'Shielded' : value === 'deshield' ? 'Deshielded' : 'Net Flow'
-                }
+                wrapperStyle={{ fontSize: 11, paddingTop: 8, cursor: 'pointer' }}
+                onClick={(e: { dataKey?: string }) => {
+                  if (!e.dataKey) return;
+                  setHiddenSeries(prev => {
+                    const next = new Set(prev);
+                    if (next.has(e.dataKey!)) next.delete(e.dataKey!);
+                    else next.add(e.dataKey!);
+                    return next;
+                  });
+                }}
+                formatter={(value: string) => {
+                  const label = value === 'shield' ? 'Shielded' : value === 'deshield' ? 'Deshielded' : 'Net Flow';
+                  const hidden = hiddenSeries.has(value);
+                  return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{label}</span>;
+                }}
               />
               <ReferenceLine y={0} stroke={colors.grid} strokeDasharray="2 6" />
               <Bar
@@ -141,6 +153,7 @@ export function FlowVolumeChart() {
                 fillOpacity={0.7}
                 radius={[2, 2, 0, 0]}
                 name="shield"
+                hide={hiddenSeries.has('shield')}
               />
               <Bar
                 dataKey="deshield"
@@ -148,6 +161,7 @@ export function FlowVolumeChart() {
                 fillOpacity={0.55}
                 radius={[0, 0, 2, 2]}
                 name="deshield"
+                hide={hiddenSeries.has('deshield')}
               />
               <Line
                 type="monotone"
@@ -157,6 +171,7 @@ export function FlowVolumeChart() {
                 strokeDasharray="4 3"
                 dot={false}
                 name="net"
+                hide={hiddenSeries.has('net')}
               />
             </ComposedChart>
           </ResponsiveContainer>
