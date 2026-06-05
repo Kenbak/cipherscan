@@ -331,12 +331,10 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       </Card>
 
       {timeseries.length > 1 && (() => {
-        const chartData = showDetail
-          ? timeseries
-          : timeseries.map(p => ({
-              ...p,
-              moved: (p.transferred ?? 0) + (p.bridge ?? 0) + (p.exchange ?? 0),
-            }));
+        const chartData = timeseries.map(p => ({
+          ...p,
+          moved: (p.transferred ?? 0) + (p.bridge ?? 0) + (p.exchange ?? 0),
+        }));
 
         return (
           <ChartCard title="DAILY_DESHIELDED_ZEC_BREAKDOWN" height={280}>
@@ -377,15 +375,10 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                 <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name="Still Held" />
                 <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name="Reshielded" />
-                {showDetail ? (
-                  <>
-                    <Area type="monotone" dataKey="transferred" stackId="1" stroke={flowColors.transferred} fill={flowColors.transferred} fillOpacity={0.2} name="Transferred" />
-                    <Area type="monotone" dataKey="bridge" stackId="1" stroke={flowColors.bridge} fill={flowColors.bridge} fillOpacity={0.3} name="To Bridge" />
-                    <Area type="monotone" dataKey="exchange" stackId="1" stroke={flowColors.exchange} fill={flowColors.exchange} fillOpacity={0.25} name="To Exchange" />
-                  </>
-                ) : (
-                  <Area type="monotone" dataKey="moved" stackId="1" stroke={flowColors.moved} fill={flowColors.moved} fillOpacity={0.25} name="Moved" />
-                )}
+                <Area type="monotone" dataKey="moved" stackId="1" stroke={flowColors.moved} fill={flowColors.moved} fillOpacity={0.25} name="Moved" hide={showDetail} />
+                <Area type="monotone" dataKey="transferred" stackId="1" stroke={flowColors.transferred} fill={flowColors.transferred} fillOpacity={0.2} name="Transferred" hide={!showDetail} />
+                <Area type="monotone" dataKey="bridge" stackId="1" stroke={flowColors.bridge} fill={flowColors.bridge} fillOpacity={0.3} name="To Bridge" hide={!showDetail} />
+                <Area type="monotone" dataKey="exchange" stackId="1" stroke={flowColors.exchange} fill={flowColors.exchange} fillOpacity={0.25} name="To Exchange" hide={!showDetail} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
