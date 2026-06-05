@@ -76,6 +76,9 @@ async function recomputeDates(client, dates) {
 
   await client.query('BEGIN');
   try {
+    await client.query('SET LOCAL enable_hashjoin = off');
+    await client.query('SET LOCAL enable_mergejoin = off');
+
     await client.query('DELETE FROM turnstile_daily WHERE date = ANY($1::date[])', [dates]);
 
     const result = await client.query(`
