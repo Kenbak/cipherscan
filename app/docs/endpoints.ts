@@ -1047,6 +1047,78 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       total: 2
     },
     note: 'Actions: CLAIM, LIST, DELIST, UPDATE, BUY.'
+  },
+
+  // ============================================================================
+  // POOL ANALYTICS
+  // ============================================================================
+  {
+    id: 'pools-overview',
+    category: 'Pool Analytics',
+    method: 'GET',
+    path: '/api/pools/overview',
+    description: 'Current shielded pool sizes (Sapling, Orchard, Sprout) with 24h, 7d, and 30d deltas showing supply movement between pools.',
+    params: [],
+    example: `curl ${baseUrl}/api/pools/overview`,
+    response: {
+      pools: [
+        { pool: 'orchard', supply_zec: 1245678.12, delta_24h: 3412.5, delta_7d: -12340.8, delta_30d: 54210.3 },
+        { pool: 'sapling', supply_zec: 3421000.45, delta_24h: -1200.0, delta_7d: 8900.2, delta_30d: -23100.7 },
+        { pool: 'sprout', supply_zec: 12345.67, delta_24h: 0, delta_7d: -0.5, delta_30d: -12.3 }
+      ],
+      total_shielded_zec: 4679024.24,
+      total_supply_zec: 15312500.0,
+      shielded_percentage: 30.56
+    },
+    note: 'Supply values in ZEC (not zatoshis). Deltas represent net flow into the pool over the period (positive = more ZEC shielded, negative = more deshielded).'
+  },
+  {
+    id: 'pools-flows',
+    category: 'Pool Analytics',
+    method: 'GET',
+    path: '/api/pools/flows',
+    description: 'Time-series shield/deshield volume data. Supports daily or hourly granularity with optional pool filtering.',
+    params: [
+      { name: 'period', type: 'string', description: 'Time window: 30d, 90d, 1y, all (default: 30d)', required: false },
+      { name: 'pool', type: 'string', description: 'Filter by pool: all, orchard, sapling, sprout (default: all)', required: false },
+      { name: 'granularity', type: 'string', description: 'Bucket size: daily or hourly (default: daily)', required: false }
+    ],
+    example: `curl "${baseUrl}/api/pools/flows?period=7d&granularity=hourly&pool=orchard"`,
+    response: {
+      period: '7d',
+      pool: 'orchard',
+      granularity: 'hourly',
+      points: [
+        { date: '2026-06-05T14:00:00.000Z', shield: 142.5, deshield: 89.3, shieldTx: 12, deshieldTx: 8, net: 53.2 },
+        { date: '2026-06-05T15:00:00.000Z', shield: 201.8, deshield: 1250.4, shieldTx: 18, deshieldTx: 3, net: -1048.6 }
+      ]
+    },
+    note: 'Values in ZEC. Net = shield - deshield. Hourly mode returns ISO timestamps; daily mode returns date strings (YYYY-MM-DD). Hourly cached 2min, daily cached 5min.'
+  },
+  {
+    id: 'pools-turnstile',
+    category: 'Pool Analytics',
+    method: 'GET',
+    path: '/api/pools/turnstile',
+    description: 'Turnstile analysis: tracks where deshielded ZEC goes after exiting a shielded pool (still held, reshielded, transferred, sent to exchange, sent to bridge).',
+    params: [
+      { name: 'since', type: 'string', description: 'Start date in YYYY-MM-DD format (default: 2020-01-01)', required: false }
+    ],
+    example: `curl "${baseUrl}/api/pools/turnstile?since=2026-01-01"`,
+    response: {
+      summary: {
+        total_deshielded_zat: 18340000000000,
+        still_held_zat: 5630000000000,
+        reshielded_zat: 920000000000,
+        transferred_zat: 11800000000000,
+        exchange_zat: 4200000000000,
+        bridge_zat: 1500000000000
+      },
+      timeseries: [
+        { date: '2026-06-01', pool: 'orchard', deshielded_zat: 450000000000, held_zat: 120000000000, reshielded_zat: 50000000000, exchange_zat: 80000000000, bridge_zat: 30000000000, transferred_zat: 170000000000, tx_count: 45 }
+      ]
+    },
+    note: 'All amounts in zatoshis (1 ZEC = 100,000,000 zat). Categories are mutually exclusive. "Still held" means the deshielded output has not been spent yet. Updated daily at 04:00 UTC.'
   }
 ];
 
