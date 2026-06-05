@@ -97,18 +97,18 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
         <div className="mb-5">
           <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Total Shielded</p>
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-cipher-cyan">
+            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-primary">
               {formatZecCompact(shieldedZec)}
             </span>
             <span className="text-sm font-mono text-muted">ZEC</span>
-            <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/20">
+            <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-glass-4 text-secondary border border-glass-3">
               {shieldedPct.toFixed(1)}% of supply
             </span>
           </div>
         </div>
 
         {/* Composition bar */}
-        <div className="h-3 rounded-full overflow-hidden flex mb-5" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="h-3 rounded-full overflow-hidden flex mb-6" style={{ backgroundColor: 'var(--color-bg)' }}>
           {pools.map(p => {
             const pct = ((p.zat / 1e8) / totalForBar) * 100;
             if (pct < 0.1) return null;
