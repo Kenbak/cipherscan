@@ -131,18 +131,19 @@ export function FlowVolumeChart() {
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, paddingTop: 8, cursor: 'pointer' }}
-                onClick={(e: { dataKey?: string }) => {
-                  if (!e.dataKey) return;
+                onClick={(data) => {
+                  const key = String(data.dataKey ?? '');
+                  if (!key) return;
                   setHiddenSeries(prev => {
                     const next = new Set(prev);
-                    if (next.has(e.dataKey!)) next.delete(e.dataKey!);
-                    else next.add(e.dataKey!);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
                     return next;
                   });
                 }}
-                formatter={(value: string) => {
+                formatter={(value) => {
                   const label = value === 'shield' ? 'Shielded' : value === 'deshield' ? 'Deshielded' : 'Net Flow';
-                  const hidden = hiddenSeries.has(value);
+                  const hidden = hiddenSeries.has(String(value));
                   return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{label}</span>;
                 }}
               />

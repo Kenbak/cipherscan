@@ -114,12 +114,13 @@ export function PoolDistributionChart() {
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
-                onClick={(e: { dataKey?: string }) => {
-                  if (!e.dataKey) return;
-                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(e.dataKey!)) next.delete(e.dataKey!); else next.add(e.dataKey!); return next; });
+                onClick={(data) => {
+                  const key = String(data.dataKey ?? '');
+                  if (!key) return;
+                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; });
                 }}
-                formatter={(value: string, entry: { dataKey?: string }) => {
-                  const hidden = hiddenSeries.has(entry.dataKey ?? '');
+                formatter={(value, entry) => {
+                  const hidden = hiddenSeries.has(String(entry.dataKey ?? ''));
                   return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{value}</span>;
                 }}
               />
@@ -147,12 +148,13 @@ export function PoolDistributionChart() {
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
-                onClick={(e: { dataKey?: string }) => {
-                  if (!e.dataKey) return;
-                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(e.dataKey!)) next.delete(e.dataKey!); else next.add(e.dataKey!); return next; });
+                onClick={(data) => {
+                  const key = String(data.dataKey ?? '');
+                  if (!key) return;
+                  setHiddenSeries(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; });
                 }}
-                formatter={(value: string, entry: { dataKey?: string }) => {
-                  const hidden = hiddenSeries.has(entry.dataKey ?? '');
+                formatter={(value, entry) => {
+                  const hidden = hiddenSeries.has(String(entry.dataKey ?? ''));
                   return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{value}</span>;
                 }}
               />
