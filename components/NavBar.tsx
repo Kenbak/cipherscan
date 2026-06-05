@@ -117,6 +117,7 @@ export function NavBar() {
           { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
           { href: '/pools', label: 'Pool Analytics', desc: 'Supply, flows & turnstile tracking' },
+          { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
           { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
         ]),
     { href: '/reorgs', label: 'Fork Watch', desc: 'Chain forks & orphaned blocks' },
