@@ -163,6 +163,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
               {summary.totalDeshielded > 0 && (
                 <InteractiveCompositionBar
                   className="mb-6"
+                  hoveredKey={hoveredCategory}
                   onHoverKeyChange={key => setHoveredCategory(key as TurnstileCategory | null)}
                   segments={([
                     { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
@@ -205,6 +206,8 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                         isHovered ? 'ring-1 ring-glass-12 bg-glass-6' : ''
                       } ${isDimmed ? 'opacity-40' : ''}`}
                       style={{ borderLeftColor: flowColors[key] }}
+                      onMouseEnter={() => setHoveredCategory(key)}
+                      onMouseLeave={() => setHoveredCategory(null)}
                     >
                       <MetricWithTooltip label={TURNSTILE_CATEGORY_LABELS[key]} tooltip={tooltips[key]}>
                         <p

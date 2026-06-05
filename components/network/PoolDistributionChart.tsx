@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { ChartCard } from './ChartCard';
-import { FilterGroup, FilterButton } from '@/components/ui/FilterGroup';
+import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 
 type Period = '30d' | '90d' | '1y';
 type View = 'composition' | 'pools' | 'share';
@@ -75,28 +75,22 @@ export function PoolDistributionChart() {
         watermarkSize="lg"
         controls={
           <div className="flex flex-wrap gap-2 justify-end">
-            <FilterGroup inline>
-              {viewOptions.map(({ key, label }) => (
-                <FilterButton
-                  key={key}
-                  active={view === key}
-                  onClick={() => setView(key)}
-                >
-                  {label}
-                </FilterButton>
-              ))}
-            </FilterGroup>
-            <FilterGroup inline>
-              {(['30d', '90d', '1y'] as Period[]).map((p) => (
-                <FilterButton
-                  key={p}
-                  active={period === p}
-                  onClick={() => setPeriod(p)}
-                >
-                  {p.toUpperCase()}
-                </FilterButton>
-              ))}
-            </FilterGroup>
+            <PeriodPillTags
+              options={viewOptions}
+              value={view}
+              onChange={setView}
+              aria-label="Supply chart view"
+            />
+            <PeriodPillTags
+              options={[
+                { key: '30d' as const, label: '30D' },
+                { key: '90d' as const, label: '90D' },
+                { key: '1y' as const, label: '1Y' },
+              ]}
+              value={period}
+              onChange={setPeriod}
+              aria-label="Supply chart period"
+            />
           </div>
         }
       >

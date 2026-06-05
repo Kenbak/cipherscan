@@ -20,7 +20,7 @@ const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'supply', label: 'Supply' },
   { id: 'flows', label: 'Flows' },
-  { id: 'turnstile', label: 'Held vs. Moved' },
+  { id: 'turnstile', label: 'Turnstile' },
 ] as const;
 
 interface PoolOverview {
@@ -98,7 +98,7 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
           className="mb-5"
         >
           <div className="flex items-baseline gap-3 flex-wrap">
-            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-cipher-purple">
+            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-primary">
               {formatZecCompact(shieldedZec)}
             </span>
             <span className="text-sm font-mono text-muted">ZEC</span>
@@ -110,6 +110,7 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
 
         <InteractiveCompositionBar
           className="mb-6"
+          hoveredKey={hoveredPool}
           onHoverKeyChange={setHoveredPool}
           segments={pools.map(p => {
             const zec = p.zat / 1e8;
@@ -139,6 +140,8 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
                   isHovered ? 'ring-1 ring-glass-12 bg-glass-4' : ''
                 } ${isDimmed ? 'opacity-40' : ''}`}
                 style={{ borderLeftColor: p.color }}
+                onMouseEnter={() => setHoveredPool(p.key)}
+                onMouseLeave={() => setHoveredPool(null)}
               >
                 <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">{p.label}</p>
                 <p className="text-lg font-bold font-mono tabular-nums text-primary">{formatZecCompact(zec)}</p>

@@ -11,7 +11,7 @@ import { getChartColors } from '@/lib/chart-theme';
 import { getFlowColors } from '@/lib/flow-colors';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { ChartCard } from '@/components/network/ChartCard';
-import { FilterGroup, FilterButton } from '@/components/ui/FilterGroup';
+import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { FlowLegend } from '@/components/pools/FlowLegend';
 
 type Period = '30d' | '90d' | '1y';
@@ -64,28 +64,22 @@ export function FlowVolumeChart() {
         height={320}
         controls={
           <div className="flex flex-wrap gap-2 justify-end">
-            <FilterGroup inline>
-              {poolOptions.map(({ key, label }) => (
-                <FilterButton
-                  key={key}
-                  active={poolFilter === key}
-                  onClick={() => setPoolFilter(key)}
-                >
-                  {label}
-                </FilterButton>
-              ))}
-            </FilterGroup>
-            <FilterGroup inline>
-              {(['30d', '90d', '1y'] as Period[]).map(p => (
-                <FilterButton
-                  key={p}
-                  active={period === p}
-                  onClick={() => setPeriod(p)}
-                >
-                  {p.toUpperCase()}
-                </FilterButton>
-              ))}
-            </FilterGroup>
+            <PeriodPillTags
+              options={poolOptions}
+              value={poolFilter}
+              onChange={setPoolFilter}
+              aria-label="Pool filter"
+            />
+            <PeriodPillTags
+              options={[
+                { key: '30d' as const, label: '30D' },
+                { key: '90d' as const, label: '90D' },
+                { key: '1y' as const, label: '1Y' },
+              ]}
+              value={period}
+              onChange={setPeriod}
+              aria-label="Flow chart period"
+            />
           </div>
         }
       >
@@ -158,7 +152,7 @@ export function FlowVolumeChart() {
               <Line
                 type="monotone"
                 dataKey="net"
-                stroke={flowColors.netFlow}
+                stroke={colors.tooltipText}
                 strokeWidth={2}
                 strokeDasharray="4 3"
                 dot={false}

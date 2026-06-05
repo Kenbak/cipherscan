@@ -7,33 +7,37 @@ export interface CompositionSegment {
   label: string;
   percent: number;
   color: string;
-  /** Bar fill opacity, 0–1. Default 0.7 */
   opacity?: number;
-  /** Optional subtitle after label in legend, e.g. "sitting at t-addr" */
   hint?: string;
-  /** Native tooltip on bar segment */
   title?: string;
 }
 
 interface InteractiveCompositionBarProps {
   segments: CompositionSegment[];
   className?: string;
-  /** Called when hover focus changes — use to highlight related stat cards */
+  /** Controlled hover — pass with onHoverKeyChange for card ↔ bar sync */
+  hoveredKey?: string | null;
   onHoverKeyChange?: (key: string | null) => void;
 }
 
 export function InteractiveCompositionBar({
   segments,
   className = '',
+  hoveredKey: controlledHovered,
   onHoverKeyChange,
 }: InteractiveCompositionBarProps) {
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [internalHovered, setInternalHovered] = useState<string | null>(null);
+  const isControlled = onHoverKeyChange !== undefined;
+  const hoveredKey = isControlled ? (controlledHovered ?? null) : internalHovered;
 
   const visible = segments.filter(s => s.percent >= 0.05);
 
   function setHover(key: string | null) {
-    setHoveredKey(key);
-    onHoverKeyChange?.(key);
+    if (isControlled) {
+      onHoverKeyChange?.(key);
+    } else {
+      setInternalHovered(key);
+    }
   }
 
   if (visible.length === 0) return null;
