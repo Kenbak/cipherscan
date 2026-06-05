@@ -150,10 +150,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                 tooltip="ZEC that left a shielded pool to a transparent address in this period"
               >
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <span
-                    className="text-3xl sm:text-4xl font-bold font-mono tabular-nums"
-                    style={{ color: flowColors.deshielding }}
-                  >
+                  <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-primary">
                     {formatZecCompact(summary.totalDeshielded)}
                   </span>
                   <span className="text-sm font-mono text-muted">ZEC</span>
