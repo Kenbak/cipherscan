@@ -184,6 +184,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
             SUM(held_zat) as total_held,
             COALESCE(SUM(reshielded_zat), 0) as total_reshielded,
             COALESCE(SUM(exchange_zat), 0) as total_exchange,
+            COALESCE(SUM(bridge_zat), 0) as total_bridge,
             COALESCE(SUM(transferred_zat), 0) as total_transferred,
             SUM(tx_count) as total_tx
           FROM turnstile_daily
@@ -196,6 +197,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
                  SUM(held_zat) as held,
                  COALESCE(SUM(reshielded_zat), 0) as reshielded,
                  COALESCE(SUM(exchange_zat), 0) as exchange,
+                 COALESCE(SUM(bridge_zat), 0) as bridge,
                  COALESCE(SUM(transferred_zat), 0) as transferred,
                  SUM(tx_count) as tx_count
           FROM turnstile_daily
@@ -216,7 +218,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
           SELECT
             SUM(d.value) as total_deshielded,
             SUM(CASE WHEN ti.prev_txid IS NULL THEN d.value ELSE 0 END) as total_held,
-            0 as total_reshielded, 0 as total_exchange, 0 as total_transferred
+            0 as total_reshielded, 0 as total_exchange, 0 as total_bridge, 0 as total_transferred
           FROM deshield_outputs d
           LEFT JOIN transaction_inputs ti ON ti.prev_txid = d.txid AND ti.prev_vout = d.vout_index
         `, [since]);
@@ -229,8 +231,9 @@ router.get('/api/pools/turnstile', async (req, res) => {
       const totalHeld = Number(summary.total_held) || 0;
       const totalReshielded = Number(summary.total_reshielded) || 0;
       const totalExchange = Number(summary.total_exchange) || 0;
+      const totalBridge = Number(summary.total_bridge) || 0;
       const totalTransferred = Number(summary.total_transferred) || 0;
-      const totalMoved = totalReshielded + totalExchange + totalTransferred;
+      const totalMoved = totalReshielded + totalExchange + totalBridge + totalTransferred;
 
       const timeseries = timeseriesResult.rows.map(r => ({
         date: new Date(r.date).toISOString().split('T')[0],
@@ -238,6 +241,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
         held: Number(r.held) / 1e8,
         reshielded: Number(r.reshielded) / 1e8,
         exchange: Number(r.exchange) / 1e8,
+        bridge: Number(r.bridge) / 1e8,
         transferred: Number(r.transferred) / 1e8,
         txCount: Number(r.tx_count),
       }));
@@ -249,11 +253,13 @@ router.get('/api/pools/turnstile', async (req, res) => {
           totalHeld: totalHeld / 1e8,
           totalReshielded: totalReshielded / 1e8,
           totalExchange: totalExchange / 1e8,
+          totalBridge: totalBridge / 1e8,
           totalTransferred: totalTransferred / 1e8,
           totalMoved: totalMoved / 1e8,
           heldPercent: totalDeshielded > 0 ? (totalHeld / totalDeshielded) * 100 : 0,
           reshieldedPercent: totalDeshielded > 0 ? (totalReshielded / totalDeshielded) * 100 : 0,
           exchangePercent: totalDeshielded > 0 ? (totalExchange / totalDeshielded) * 100 : 0,
+          bridgePercent: totalDeshielded > 0 ? (totalBridge / totalDeshielded) * 100 : 0,
           transferredPercent: totalDeshielded > 0 ? (totalTransferred / totalDeshielded) * 100 : 0,
           movedPercent: totalDeshielded > 0 ? (totalMoved / totalDeshielded) * 100 : 0,
           txCount: Number(summary.total_tx) || 0,

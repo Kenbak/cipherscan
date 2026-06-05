@@ -1,28 +1,9 @@
--- Turnstile + flow daily materialized views for /pools page.
--- Run manually on mainnet + testnet before deploying the pools feature.
---
--- Definitions match production mainnet (zcash_explorer_mainnet) as of 2026-06-05.
+-- Rebuild turnstile_daily with bridge_zat column.
+-- Usage: psql -U postgres -d zcash_explorer_mainnet -f rebuild-turnstile-daily.sql
 
--- ─── flow_daily ─────────────────────────────────────────────────────────────
+DROP MATERIALIZED VIEW IF EXISTS turnstile_daily;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS flow_daily AS
-SELECT
-  DATE(TO_TIMESTAMP(block_time)) AS date,
-  flow_type,
-  pool,
-  SUM(amount_zat) AS total_zat,
-  COUNT(*) AS tx_count
-FROM shielded_flows
-GROUP BY DATE(TO_TIMESTAMP(block_time)), flow_type, pool;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_flow_daily_date_type_pool
-  ON flow_daily (date, flow_type, pool);
-
--- ─── turnstile_daily ────────────────────────────────────────────────────────
--- Classifies deshielded transparent outputs into held / reshielded /
--- bridge / exchange / transferred buckets. Excludes mixed deshield+shield txs.
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS turnstile_daily AS
+CREATE MATERIALIZED VIEW turnstile_daily AS
 WITH pure_deshields AS (
   SELECT
     DATE(TO_TIMESTAMP(sf.block_time)) AS date,
@@ -99,5 +80,7 @@ LEFT JOIN exchange_txids et ON et.spending_txid = ws.spending_txid
 LEFT JOIN bridge_txids bt ON bt.spending_txid = ws.spending_txid
 GROUP BY ws.date, ws.pool;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_turnstile_daily_date_pool
-  ON turnstile_daily (date, pool);
+CREATE UNIQUE INDEX idx_turnstile_daily_date_pool ON turnstile_daily (date, pool);
+
+ALTER MATERIALIZED VIEW turnstile_daily OWNER TO zcash_user;
+GRANT SELECT ON turnstile_daily TO zcash_user;

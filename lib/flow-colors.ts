@@ -13,6 +13,7 @@ export interface FlowColors {
   held: string;
   reshielded: string;
   transferred: string;
+  bridge: string;
   exchange: string;
 }
 
@@ -27,6 +28,7 @@ export function getFlowColors(theme: FlowTheme): FlowColors {
     held: isDark ? '#F4B728' : '#D49B00',
     reshielded: isDark ? '#00E676' : '#059669',
     transferred: isDark ? '#64748b' : '#475569',
+    bridge: isDark ? '#A78BFA' : '#7C3AED',
     exchange: isDark ? '#FF6B35' : '#C2410C',
   };
 }
@@ -35,5 +37,6 @@ export const TURNSTILE_CATEGORY_LABELS = {
   held: 'Still Held',
   reshielded: 'Reshielded',
   transferred: 'Transferred',
+  bridge: 'To Bridge',
   exchange: 'To Exchange',
 } as const;

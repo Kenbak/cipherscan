@@ -38,13 +38,15 @@ interface TurnstileSummary {
   totalDeshielded: number;
   totalHeld: number;
   totalReshielded: number;
-  totalExchange: number;
   totalTransferred: number;
+  totalBridge: number;
+  totalExchange: number;
   totalMoved: number;
   heldPercent: number;
   reshieldedPercent: number;
-  exchangePercent: number;
   transferredPercent: number;
+  bridgePercent: number;
+  exchangePercent: number;
   movedPercent: number;
   txCount: number;
 }
@@ -54,8 +56,9 @@ interface TurnstilePoint {
   deshielded: number;
   held: number;
   reshielded: number;
-  exchange: number;
   transferred: number;
+  bridge: number;
+  exchange: number;
   dateLabel: string;
 }
 
@@ -71,12 +74,13 @@ const PERIOD_OPTIONS: { key: TurnstilePeriod; label: string }[] = [
   { key: 'all', label: 'ALL' },
 ];
 
-type TurnstileCategory = 'held' | 'reshielded' | 'transferred' | 'exchange';
+type TurnstileCategory = 'held' | 'reshielded' | 'transferred' | 'bridge' | 'exchange';
 
 const TURNSTILE_HINTS: Record<TurnstileCategory, string> = {
   held: 'sitting at t-addr',
   reshielded: 'back to privacy',
   transferred: 'to another t-addr',
+  bridge: 'labeled bridge addr',
   exchange: 'labeled exchange addr',
 };
 
@@ -100,6 +104,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
         if (data?.timeseries) {
           setTimeseries(data.timeseries.map((p: TurnstilePoint) => ({
             ...p,
+            bridge: p.bridge ?? 0,
             dateLabel: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           })));
         }
@@ -132,8 +137,8 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
             <div className="space-y-6">
               <div className="h-10 w-48 skeleton-bg rounded animate-pulse" />
               <div className="h-3 skeleton-bg rounded-full animate-pulse" />
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[1, 2, 3, 4].map(i => (
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="h-24 skeleton-bg rounded-xl animate-pulse" />
                 ))}
               </div>
@@ -169,33 +174,36 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
                     { key: 'reshielded', pct: summary.reshieldedPercent, amount: summary.totalReshielded },
                     { key: 'transferred', pct: summary.transferredPercent, amount: summary.totalTransferred },
+                    { key: 'bridge', pct: summary.bridgePercent ?? 0, amount: summary.totalBridge ?? 0 },
                     { key: 'exchange', pct: summary.exchangePercent, amount: summary.totalExchange },
                   ] as const).map(({ key, pct, amount }) => ({
                     key,
                     label: TURNSTILE_CATEGORY_LABELS[key],
                     percent: pct,
                     color: flowColors[key],
-                    opacity: key === 'transferred' ? 0.5 : key === 'held' ? 0.85 : 0.7,
+                    opacity: key === 'transferred' ? 0.5 : key === 'held' ? 0.85 : key === 'bridge' ? 0.65 : 0.7,
                     hint: TURNSTILE_HINTS[key],
                     title: `${TURNSTILE_CATEGORY_LABELS[key]}: ${formatZecCompact(amount)} ZEC (${pct.toFixed(1)}%)`,
                   }))}
                 />
               )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 {([
                   { key: 'held' as const, value: summary.totalHeld, pct: summary.heldPercent },
                   { key: 'reshielded' as const, value: summary.totalReshielded, pct: summary.reshieldedPercent },
                   { key: 'transferred' as const, value: summary.totalTransferred, pct: summary.transferredPercent },
+                  { key: 'bridge' as const, value: summary.totalBridge ?? 0, pct: summary.bridgePercent ?? 0 },
                   { key: 'exchange' as const, value: summary.totalExchange, pct: summary.exchangePercent },
                 ]).map(({ key, value, pct }) => {
                   const isHovered = hoveredCategory === key;
                   const isDimmed = hoveredCategory != null && !isHovered;
-                  const coloredValues: TurnstileCategory[] = ['held', 'reshielded', 'exchange'];
+                  const coloredValues: TurnstileCategory[] = ['held', 'reshielded', 'bridge', 'exchange'];
                   const tooltips: Record<TurnstileCategory, string> = {
                     held: 'Deshielded ZEC still sitting on the original transparent address',
                     reshielded: 'ZEC that moved back into a shielded pool after deshielding',
-                    transferred: 'ZEC sent to another transparent address (not an exchange)',
+                    transferred: 'ZEC sent to another transparent address (not an exchange or bridge)',
+                    bridge: 'ZEC sent to a labeled cross-chain bridge address (e.g. NEAR Intents)',
                     exchange: 'ZEC sent to a labeled exchange deposit address',
                   };
 
@@ -230,7 +238,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           )}
 
           <p className="text-xs text-secondary font-sans mt-6 leading-relaxed">
-            Tracks what happens after ZEC leaves a shielded pool. Updated hourly.
+            Tracks what happens after ZEC leaves a shielded pool — held, reshielded, transferred, bridged cross-chain, or sent to exchanges. Updated hourly.
           </p>
           {(period === 'all' || period === '1y') && (
             <p className="text-[10px] text-muted/60 font-mono mt-2 leading-relaxed italic">
@@ -269,6 +277,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     held: TURNSTILE_CATEGORY_LABELS.held,
                     reshielded: TURNSTILE_CATEGORY_LABELS.reshielded,
                     transferred: TURNSTILE_CATEGORY_LABELS.transferred,
+                    bridge: TURNSTILE_CATEGORY_LABELS.bridge,
                     exchange: TURNSTILE_CATEGORY_LABELS.exchange,
                   };
                   return [`${Number(value).toFixed(2)} ZEC`, labels[name] || name];
@@ -278,6 +287,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
               <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name={TURNSTILE_CATEGORY_LABELS.held} />
               <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name={TURNSTILE_CATEGORY_LABELS.reshielded} />
               <Area type="monotone" dataKey="transferred" stackId="1" stroke={flowColors.transferred} fill={flowColors.transferred} fillOpacity={0.2} name={TURNSTILE_CATEGORY_LABELS.transferred} />
+              <Area type="monotone" dataKey="bridge" stackId="1" stroke={flowColors.bridge} fill={flowColors.bridge} fillOpacity={0.3} name={TURNSTILE_CATEGORY_LABELS.bridge} />
               <Area type="monotone" dataKey="exchange" stackId="1" stroke={flowColors.exchange} fill={flowColors.exchange} fillOpacity={0.25} name={TURNSTILE_CATEGORY_LABELS.exchange} />
             </AreaChart>
           </ResponsiveContainer>
