@@ -7,11 +7,13 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { Card, CardBody } from '@/components/ui/Card';
+import { PageSectionNav } from '@/components/PageSectionNav';
 import { PoolDistributionChart } from '@/components/network/PoolDistributionChart';
 import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
 import { TurnstileTracker } from '@/components/pools/TurnstileTracker';
-
-// ─── Section Nav ────────────────────────────────────────────────────────────
+import { FlowLegend } from '@/components/pools/FlowLegend';
+import { MetricWithTooltip } from '@/components/pools/MetricWithTooltip';
+import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -19,32 +21,6 @@ const SECTIONS = [
   { id: 'flows', label: 'Flows' },
   { id: 'turnstile', label: 'Held vs. Moved' },
 ] as const;
-
-function SectionNav({ active }: { active: string }) {
-  return (
-    <nav className="sticky top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2 backdrop-blur-xl"
-      style={{ backgroundColor: 'var(--glass-3)' }}
-    >
-      <div className="flex gap-1 max-w-7xl mx-auto">
-        {SECTIONS.map(s => (
-          <a
-            key={s.id}
-            href={`#${s.id}`}
-            className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider rounded-full transition-colors ${
-              active === s.id
-                ? 'bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30'
-                : 'text-muted hover:text-secondary'
-            }`}
-          >
-            {s.label}
-          </a>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
-// ─── Pool Overview Hero ─────────────────────────────────────────────────────
 
 interface PoolOverview {
   current: {
@@ -57,6 +33,25 @@ interface PoolOverview {
     updatedAt: string;
   };
   deltas: Record<string, Record<string, number | null>>;
+}
+
+function PoolOverviewSkeleton() {
+  return (
+    <Card className="gradient-card-purple">
+      <CardBody>
+        <div className="space-y-5">
+          <div className="h-4 w-32 skeleton-bg rounded animate-pulse" />
+          <div className="h-10 w-48 skeleton-bg rounded animate-pulse" />
+          <div className="h-3 skeleton-bg rounded-full animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-20 skeleton-bg rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
 }
 
 function PoolOverviewHero({ data }: { data: PoolOverview }) {
@@ -85,30 +80,33 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
   }
 
   return (
-    <Card>
+    <Card className="gradient-card-purple">
       <CardBody>
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2 mb-3">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
           <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_OVERVIEW</h2>
         </div>
-        <p className="text-[10px] font-mono text-muted mb-2">Where all ZEC lives right now — split between public (transparent) and private (shielded) pools.</p>
+        <p className="text-xs text-secondary font-sans mb-5">
+          Where all ZEC lives right now — split between public (transparent) and private (shielded) pools.
+        </p>
 
-        {/* Hero number */}
-        <div className="mb-5">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">Total Shielded</p>
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-primary">
+        <MetricWithTooltip
+          label="Total Shielded"
+          tooltip="All ZEC currently held in Sprout, Sapling, and Orchard shielded pools"
+          className="mb-5"
+        >
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-cipher-purple">
               {formatZecCompact(shieldedZec)}
             </span>
             <span className="text-sm font-mono text-muted">ZEC</span>
-            <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-glass-4 text-secondary border border-glass-3">
+            <span className="px-2 py-0.5 text-[10px] font-mono rounded badge-purple">
               {shieldedPct.toFixed(1)}% of supply
             </span>
           </div>
-        </div>
+        </MetricWithTooltip>
 
-        {/* Composition bar */}
-        <div className="h-3 rounded-full overflow-hidden flex mb-6" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="h-3 rounded-full overflow-hidden flex mb-2" style={{ backgroundColor: 'var(--color-bg)' }}>
           {pools.map(p => {
             const pct = ((p.zat / 1e8) / totalForBar) * 100;
             if (pct < 0.1) return null;
@@ -117,12 +115,25 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
                 key={p.key}
                 className="transition-all duration-1000"
                 style={{ width: `${pct}%`, backgroundColor: p.color, opacity: p.key === 'transparent' ? 0.35 : 0.7 }}
+                title={`${p.label}: ${formatZecCompact(p.zat / 1e8)} ZEC`}
               />
             );
           })}
         </div>
 
-        {/* Per-pool stats */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-6 text-[10px] font-mono text-muted">
+          {pools.map(p => {
+            const pct = ((p.zat / 1e8) / totalForBar) * 100;
+            if (pct < 0.1) return null;
+            return (
+              <span key={p.key} className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color, opacity: p.key === 'transparent' ? 0.5 : 0.85 }} />
+                {p.label}
+              </span>
+            );
+          })}
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {pools.map(p => {
             const zec = p.zat / 1e8;
@@ -150,8 +161,6 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
     </Card>
   );
 }
-
-// ─── Recent Flows Table ─────────────────────────────────────────────────────
 
 interface RecentFlow {
   txid: string;
@@ -199,27 +208,27 @@ function RecentFlows() {
               </tr>
             </thead>
             <tbody>
-              {flows.map((f, i) => (
-                <tr key={`${f.txid}-${i}`} className="border-t border-glass-4">
-                  <td className="py-2 pr-4">
-                    <span className={`text-[10px] uppercase ${
-                      f.flowType === 'shield' ? 'text-cipher-cyan' : 'text-cipher-yellow'
-                    }`}>
-                      {f.flowType === 'shield' ? 'Shield' : 'Deshield'}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-4 text-muted capitalize">{f.pool}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-primary">
-                    {(f.amountZec || 0).toFixed(2)} ZEC
-                  </td>
-                  <td className="py-2 text-right text-muted">
-                    {f.blockTime ? formatTimeAgo(f.blockTime) : '—'}
-                  </td>
-                </tr>
-              ))}
+              {flows.map((f, i) => {
+                const flowType = f.flowType === 'shield' ? 'shielding' : 'unshielding';
+                return (
+                  <tr key={`${f.txid}-${i}`} className="border-t border-glass-4">
+                    <td className="py-2 pr-4">
+                      <ShieldFlowBadge type={flowType} variant="full" />
+                    </td>
+                    <td className="py-2 pr-4 text-muted capitalize">{f.pool}</td>
+                    <td className="py-2 pr-4 text-right tabular-nums text-primary">
+                      {(f.amountZec || 0).toFixed(2)} ZEC
+                    </td>
+                    <td className="py-2 text-right text-muted">
+                      {f.blockTime ? formatTimeAgo(f.blockTime) : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        <FlowLegend className="mt-4 pt-4 border-t border-glass-4" />
       </CardBody>
     </Card>
   );
@@ -233,11 +242,8 @@ function formatTimeAgo(unixSec: number): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
-
 export default function PoolsPage() {
   const [overview, setOverview] = useState<PoolOverview | null>(null);
-  const [activeSection, setActiveSection] = useState('overview');
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/pools/overview`)
@@ -248,97 +254,65 @@ export default function PoolsPage() {
       .catch(() => {});
   }, []);
 
-  // Intersection observer for section nav
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: '-120px 0px -60% 0px', threshold: 0 }
-    );
-
-    for (const s of SECTIONS) {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header */}
       <div className="mb-8 animate-fade-in">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> POOL_ANALYTICS
         </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">Shielded Pools</h1>
-        <p className="text-sm text-secondary mt-2 max-w-2xl">
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Shielded Pools</h1>
+        <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">
           Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays.
         </p>
       </div>
 
-      <SectionNav active={activeSection} />
+      <PageSectionNav sections={SECTIONS} ariaLabel="Pool analytics sections" />
 
-      {/* Section 1: Overview */}
       <section id="overview" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        {overview ? (
-          <PoolOverviewHero data={overview} />
-        ) : (
-          <Card>
-            <CardBody>
-              <div className="flex items-center justify-center h-40">
-                <span className="text-xs text-muted font-mono">Loading pool data...</span>
-              </div>
-            </CardBody>
-          </Card>
-        )}
+        {overview ? <PoolOverviewHero data={overview} /> : <PoolOverviewSkeleton />}
       </section>
 
-      {/* Section 2: Supply History */}
       <section id="supply" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Supply History</h2>
+            <h2 className="text-lg font-bold font-sans text-primary">Supply History</h2>
           </div>
-          <p className="text-xs text-muted mt-1">How the balance of each pool has changed over time. A rising shielded share means more ZEC is being held privately.</p>
+          <p className="text-xs text-secondary mt-1 font-sans">
+            How the balance of each pool has changed over time. A rising shielded share means more ZEC is being held privately.
+          </p>
         </div>
         <PoolDistributionChart />
       </section>
 
-      {/* Section 3: Flow Volume */}
       <section id="flows" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Flow Volume</h2>
+            <h2 className="text-lg font-bold font-sans text-primary">Flow Volume</h2>
           </div>
-          <p className="text-xs text-muted mt-1">
-            Shielding means moving ZEC into a private pool. Deshielding means moving it back to a public address. Bars up = ZEC going private. Bars down = ZEC going public. The white line shows net flow.
+          <p className="text-xs text-secondary mt-1 font-sans">
+            Shielding means moving ZEC into a private pool. Deshielding means moving it back to a public address.
+            Bars up = into privacy. Bars down = out of privacy.
           </p>
         </div>
         <FlowVolumeChart />
       </section>
 
-      {/* Section 4: Turnstile Tracker */}
       <section id="turnstile" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-lg font-bold font-mono text-primary uppercase tracking-wider">Turnstile Tracker</h2>
+            <h2 className="text-lg font-bold font-sans text-primary">Turnstile Tracker</h2>
           </div>
-          <p className="text-xs text-muted mt-1">
-            When ZEC leaves a shielded pool, it lands on a public transparent address. We track what happens next — does it stay there (held), or get sent somewhere else (moved)? A high &quot;held&quot; percentage suggests users aren&apos;t selling.
+          <p className="text-xs text-secondary mt-1 font-sans">
+            When ZEC leaves a shielded pool, it lands on a public transparent address. We track what happens next —
+            does it stay there (held), or get sent somewhere else (moved)?
           </p>
         </div>
         <TurnstileTracker />
       </section>
 
-      {/* Section 5: Recent Large Flows */}
       <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
         <RecentFlows />
       </section>

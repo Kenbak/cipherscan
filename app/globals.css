@@ -60,6 +60,11 @@
   --color-purple-glow: #C4B5FD;
   --color-orange: #FF6B35;
 
+  /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
+  --color-shielding: var(--color-green);
+  --color-deshielding: var(--color-orange);
+  --color-shielded-state: var(--color-purple);
+
   /* Text */
   --color-text-primary: #E5E7EB;
   --color-text-secondary: #9CA3AF;
@@ -142,6 +147,11 @@
   --color-purple: #7C3AED;
   --color-purple-glow: #8B5CF6;
   --color-orange: #C2410C;
+
+  /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
+  --color-shielding: var(--color-green);
+  --color-deshielding: var(--color-orange);
+  --color-shielded-state: var(--color-purple);
 
   /* Text - high contrast for readability */
   --color-text-primary: #0F172A;

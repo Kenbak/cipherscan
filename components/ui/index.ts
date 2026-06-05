@@ -9,3 +9,6 @@ export { Badge, StatusBadge, CountBadge } from './Badge';
 
 // Input components
 export { Input, Textarea, SearchInput } from './Input';
+
+// Filter components
+export { FilterGroup, FilterButton } from './FilterGroup';

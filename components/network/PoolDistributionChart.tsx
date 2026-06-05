@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { ChartCard } from './ChartCard';
+import { FilterGroup, FilterButton } from '@/components/ui/FilterGroup';
 
 type Period = '30d' | '90d' | '1y';
 type View = 'composition' | 'pools' | 'share';
@@ -73,33 +74,29 @@ export function PoolDistributionChart() {
         height={320}
         watermarkSize="lg"
         controls={
-          <div className="flex flex-wrap gap-1 justify-end">
-            <div className="flex gap-1 mr-2">
+          <div className="flex flex-wrap gap-2 justify-end">
+            <FilterGroup inline>
               {viewOptions.map(({ key, label }) => (
-                <button
+                <FilterButton
                   key={key}
-                  type="button"
+                  active={view === key}
                   onClick={() => setView(key)}
-                  className={`px-2 py-1 text-[10px] font-mono rounded ${
-                    view === key ? 'bg-cipher-purple/10 text-cipher-purple border border-cipher-purple/30' : 'text-muted'
-                  }`}
                 >
                   {label}
-                </button>
+                </FilterButton>
               ))}
-            </div>
-            {(['30d', '90d', '1y'] as Period[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={`px-2 py-1 text-[10px] font-mono rounded ${
-                  period === p ? 'bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30' : 'text-muted'
-                }`}
-              >
-                {p.toUpperCase()}
-              </button>
-            ))}
+            </FilterGroup>
+            <FilterGroup inline>
+              {(['30d', '90d', '1y'] as Period[]).map((p) => (
+                <FilterButton
+                  key={p}
+                  active={period === p}
+                  onClick={() => setPeriod(p)}
+                >
+                  {p.toUpperCase()}
+                </FilterButton>
+              ))}
+            </FilterGroup>
           </div>
         }
       >

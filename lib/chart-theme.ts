@@ -10,7 +10,7 @@ export function getChartColors(theme: 'dark' | 'light') {
     sapling: '#56D4C8',
     sprout: '#E8C48D',
     transparent: '#64748b',
-    shielded: '#5B9CF6',
+    shielded: isDark ? '#A78BFA' : '#7C3AED',
     cyan: '#56D4C8',
     yellow: '#E8C48D',
     purple: '#a78bfa',
