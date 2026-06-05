@@ -104,7 +104,11 @@ export function FlowVolumeChart() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={points} barCategoryGap="15%">
+          <ComposedChart
+            data={points}
+            barSize={Math.max(4, Math.floor(600 / points.length))}
+            barGap={-Math.max(4, Math.floor(600 / points.length))}
+          >
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="dateLabel"
