@@ -107,9 +107,12 @@ router.get('/api/pools/flows', async (req, res) => {
   try {
     const period = req.query.period || '30d';
     const poolFilter = req.query.pool || 'all';
-    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}`;
+    const granularity = req.query.granularity || 'daily';
+    const isHourly = granularity === 'hourly';
+    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}:${granularity}`;
+    const cacheTtl = isHourly ? 120 : 300;
 
-    const data = await cached(cacheKey, 300, async () => {
+    const data = await cached(cacheKey, cacheTtl, async () => {
       const since = Math.floor(Date.now() / 1000) - periodToSeconds(period);
       const params = [since];
       let poolClause = '';
@@ -118,46 +121,59 @@ router.get('/api/pools/flows', async (req, res) => {
         params.push(poolFilter);
       }
 
-      // Try materialized view first, fall back to live query
       let result;
-      try {
+      if (isHourly) {
         result = await pool.query(`
-          SELECT date, flow_type, pool, total_zat, tx_count
-          FROM flow_daily
-          WHERE date >= DATE(TO_TIMESTAMP($1))${poolFilter !== 'all' ? ' AND pool = $2' : ''}
-          ORDER BY date
-        `, params);
-      } catch {
-        result = await pool.query(`
-          SELECT DATE(TO_TIMESTAMP(block_time)) as date, flow_type, pool,
+          SELECT DATE_TRUNC('hour', TO_TIMESTAMP(block_time)) as bucket,
+                 flow_type, pool,
                  SUM(amount_zat) as total_zat, COUNT(*) as tx_count
           FROM shielded_flows
           WHERE block_time >= $1${poolClause}
-          GROUP BY date, flow_type, pool
-          ORDER BY date
+          GROUP BY bucket, flow_type, pool
+          ORDER BY bucket
         `, params);
-      }
-
-      const byDate = {};
-      for (const r of result.rows) {
-        const d = new Date(r.date).toISOString().split('T')[0];
-        if (!byDate[d]) byDate[d] = { date: d, shield: 0, deshield: 0, shieldTx: 0, deshieldTx: 0 };
-        const zec = Number(r.total_zat) / 1e8;
-        if (r.flow_type === 'shield') {
-          byDate[d].shield += zec;
-          byDate[d].shieldTx += Number(r.tx_count);
-        } else {
-          byDate[d].deshield += zec;
-          byDate[d].deshieldTx += Number(r.tx_count);
+      } else {
+        try {
+          result = await pool.query(`
+            SELECT date, flow_type, pool, total_zat, tx_count
+            FROM flow_daily
+            WHERE date >= DATE(TO_TIMESTAMP($1))${poolFilter !== 'all' ? ' AND pool = $2' : ''}
+            ORDER BY date
+          `, params);
+        } catch {
+          result = await pool.query(`
+            SELECT DATE(TO_TIMESTAMP(block_time)) as date, flow_type, pool,
+                   SUM(amount_zat) as total_zat, COUNT(*) as tx_count
+            FROM shielded_flows
+            WHERE block_time >= $1${poolClause}
+            GROUP BY date, flow_type, pool
+            ORDER BY date
+          `, params);
         }
       }
 
-      const points = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+      const byBucket = {};
+      for (const r of result.rows) {
+        const key = isHourly
+          ? new Date(r.bucket).toISOString()
+          : new Date(r.date).toISOString().split('T')[0];
+        if (!byBucket[key]) byBucket[key] = { date: key, shield: 0, deshield: 0, shieldTx: 0, deshieldTx: 0 };
+        const zec = Number(r.total_zat) / 1e8;
+        if (r.flow_type === 'shield') {
+          byBucket[key].shield += zec;
+          byBucket[key].shieldTx += Number(r.tx_count);
+        } else {
+          byBucket[key].deshield += zec;
+          byBucket[key].deshieldTx += Number(r.tx_count);
+        }
+      }
+
+      const points = Object.values(byBucket).sort((a, b) => a.date.localeCompare(b.date));
       for (const p of points) {
         p.net = p.shield - p.deshield;
       }
 
-      return { period, pool: poolFilter, points };
+      return { period, pool: poolFilter, granularity, points };
     });
 
     res.json({ success: true, ...data });
