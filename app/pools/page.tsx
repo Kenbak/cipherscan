@@ -13,6 +13,7 @@ import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
 import { TurnstileTracker } from '@/components/pools/TurnstileTracker';
 import { FlowLegend } from '@/components/pools/FlowLegend';
 import { MetricWithTooltip } from '@/components/pools/MetricWithTooltip';
+import { InteractiveCompositionBar } from '@/components/pools/InteractiveCompositionBar';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 
 const SECTIONS = [
@@ -57,6 +58,7 @@ function PoolOverviewSkeleton() {
 function PoolOverviewHero({ data }: { data: PoolOverview }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
+  const [hoveredPool, setHoveredPool] = useState<string | null>(null);
   const { current, deltas } = data;
   const supply = current.chainSupply / 1e8 || 1;
   const shieldedZec = current.shielded / 1e8;
@@ -106,41 +108,38 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
           </div>
         </MetricWithTooltip>
 
-        <div className="h-3 rounded-full overflow-hidden flex mb-2" style={{ backgroundColor: 'var(--color-bg)' }}>
-          {pools.map(p => {
-            const pct = ((p.zat / 1e8) / totalForBar) * 100;
-            if (pct < 0.1) return null;
-            return (
-              <div
-                key={p.key}
-                className="transition-all duration-1000"
-                style={{ width: `${pct}%`, backgroundColor: p.color, opacity: p.key === 'transparent' ? 0.35 : 0.7 }}
-                title={`${p.label}: ${formatZecCompact(p.zat / 1e8)} ZEC`}
-              />
-            );
+        <InteractiveCompositionBar
+          className="mb-6"
+          onHoverKeyChange={setHoveredPool}
+          segments={pools.map(p => {
+            const zec = p.zat / 1e8;
+            const pct = (zec / totalForBar) * 100;
+            return {
+              key: p.key,
+              label: p.label,
+              percent: pct,
+              color: p.color,
+              opacity: p.key === 'transparent' ? 0.35 : 0.7,
+              title: `${p.label}: ${formatZecCompact(zec)} ZEC (${pct.toFixed(1)}% of tracked supply)`,
+            };
           })}
-        </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-6 text-[10px] font-mono text-muted">
-          {pools.map(p => {
-            const pct = ((p.zat / 1e8) / totalForBar) * 100;
-            if (pct < 0.1) return null;
-            return (
-              <span key={p.key} className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color, opacity: p.key === 'transparent' ? 0.5 : 0.85 }} />
-                {p.label}
-              </span>
-            );
-          })}
-        </div>
+        />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {pools.map(p => {
             const zec = p.zat / 1e8;
             const pct = (zec / supply) * 100;
             const delta7d = p.key !== 'transparent' ? formatDelta(p.key, '7d') : null;
+            const isHovered = hoveredPool === p.key;
+            const isDimmed = hoveredPool != null && !isHovered;
             return (
-              <div key={p.key} className="bg-glass-3 rounded-lg p-3 border-l-2" style={{ borderLeftColor: p.color }}>
+              <div
+                key={p.key}
+                className={`bg-glass-3 rounded-lg p-3 border-l-2 transition-all duration-200 ${
+                  isHovered ? 'ring-1 ring-glass-12 bg-glass-4' : ''
+                } ${isDimmed ? 'opacity-40' : ''}`}
+                style={{ borderLeftColor: p.color }}
+              >
                 <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">{p.label}</p>
                 <p className="text-lg font-bold font-mono tabular-nums text-primary">{formatZecCompact(zec)}</p>
                 <div className="flex items-center gap-2 mt-0.5">

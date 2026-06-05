@@ -13,7 +13,7 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { ChartCard } from '@/components/network/ChartCard';
 import { MetricWithTooltip } from '@/components/pools/MetricWithTooltip';
-import { TurnstileLegend } from '@/components/pools/TurnstileLegend';
+import { InteractiveCompositionBar } from '@/components/pools/InteractiveCompositionBar';
 
 type TurnstilePeriod = 'nu6.2' | '30d' | '90d' | '1y' | 'all';
 
@@ -71,6 +71,15 @@ const PERIOD_OPTIONS: { key: TurnstilePeriod; label: string }[] = [
   { key: 'all', label: 'ALL' },
 ];
 
+type TurnstileCategory = 'held' | 'reshielded' | 'transferred' | 'exchange';
+
+const TURNSTILE_HINTS: Record<TurnstileCategory, string> = {
+  held: 'sitting at t-addr',
+  reshielded: 'back to privacy',
+  transferred: 'to another t-addr',
+  exchange: 'labeled exchange addr',
+};
+
 export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerProps) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
@@ -79,6 +88,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredCategory, setHoveredCategory] = useState<TurnstileCategory | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -154,85 +164,67 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
               </MetricWithTooltip>
 
               {summary.totalDeshielded > 0 && (
-                <div className="mb-6">
-                  <div className="h-3 rounded-full overflow-hidden flex mb-3" style={{ backgroundColor: 'var(--color-bg)' }}>
-                    <div
-                      className="transition-all duration-1000 rounded-l-full"
-                      style={{ width: `${summary.heldPercent}%`, backgroundColor: flowColors.held, opacity: 0.75 }}
-                    />
-                    <div
-                      className="transition-all duration-1000"
-                      style={{ width: `${summary.reshieldedPercent}%`, backgroundColor: flowColors.reshielded, opacity: 0.7 }}
-                    />
-                    <div
-                      className="transition-all duration-1000"
-                      style={{ width: `${summary.transferredPercent}%`, backgroundColor: flowColors.transferred, opacity: 0.55 }}
-                    />
-                    <div
-                      className="transition-all duration-1000 rounded-r-full"
-                      style={{ width: `${summary.exchangePercent}%`, backgroundColor: flowColors.exchange, opacity: 0.65 }}
-                    />
-                  </div>
-                  <TurnstileLegend />
-                </div>
+                <InteractiveCompositionBar
+                  className="mb-6"
+                  onHoverKeyChange={key => setHoveredCategory(key as TurnstileCategory | null)}
+                  segments={([
+                    { key: 'held', pct: summary.heldPercent, amount: summary.totalHeld },
+                    { key: 'reshielded', pct: summary.reshieldedPercent, amount: summary.totalReshielded },
+                    { key: 'transferred', pct: summary.transferredPercent, amount: summary.totalTransferred },
+                    { key: 'exchange', pct: summary.exchangePercent, amount: summary.totalExchange },
+                  ] as const).map(({ key, pct, amount }) => ({
+                    key,
+                    label: TURNSTILE_CATEGORY_LABELS[key],
+                    percent: pct,
+                    color: flowColors[key],
+                    opacity: key === 'transferred' ? 0.5 : key === 'held' ? 0.85 : 0.7,
+                    hint: TURNSTILE_HINTS[key],
+                    title: `${TURNSTILE_CATEGORY_LABELS[key]}: ${formatZecCompact(amount)} ZEC (${pct.toFixed(1)}%)`,
+                  }))}
+                />
               )}
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: flowColors.held }}>
-                  <MetricWithTooltip
-                    label="Still Held"
-                    tooltip="Deshielded ZEC still sitting on the original transparent address"
-                  >
-                    <p className="text-xl font-bold font-mono tabular-nums text-primary">
-                      {formatZecCompact(summary.totalHeld)}
-                    </p>
-                  </MetricWithTooltip>
-                  <p className="text-xs font-mono text-muted mt-1">
-                    {summary.heldPercent.toFixed(1)}% of deshielded
-                  </p>
-                </div>
+                {([
+                  { key: 'held' as const, value: summary.totalHeld, pct: summary.heldPercent },
+                  { key: 'reshielded' as const, value: summary.totalReshielded, pct: summary.reshieldedPercent },
+                  { key: 'transferred' as const, value: summary.totalTransferred, pct: summary.transferredPercent },
+                  { key: 'exchange' as const, value: summary.totalExchange, pct: summary.exchangePercent },
+                ]).map(({ key, value, pct }) => {
+                  const isHovered = hoveredCategory === key;
+                  const isDimmed = hoveredCategory != null && !isHovered;
+                  const coloredValues: TurnstileCategory[] = ['held', 'reshielded', 'exchange'];
+                  const tooltips: Record<TurnstileCategory, string> = {
+                    held: 'Deshielded ZEC still sitting on the original transparent address',
+                    reshielded: 'ZEC that moved back into a shielded pool after deshielding',
+                    transferred: 'ZEC sent to another transparent address (not an exchange)',
+                    exchange: 'ZEC sent to a labeled exchange deposit address',
+                  };
 
-                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: flowColors.reshielded }}>
-                  <MetricWithTooltip
-                    label="Reshielded"
-                    tooltip="ZEC that moved back into a shielded pool after deshielding"
-                  >
-                    <p className="text-xl font-bold font-mono tabular-nums" style={{ color: flowColors.reshielded }}>
-                      {formatZecCompact(summary.totalReshielded)}
-                    </p>
-                  </MetricWithTooltip>
-                  <p className="text-xs font-mono text-muted mt-1">
-                    {summary.reshieldedPercent.toFixed(1)}% of deshielded
-                  </p>
-                </div>
-
-                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: flowColors.transferred }}>
-                  <MetricWithTooltip
-                    label="Transferred"
-                    tooltip="ZEC sent to another transparent address (not an exchange)"
-                  >
-                    <p className="text-xl font-bold font-mono tabular-nums text-primary">
-                      {formatZecCompact(summary.totalTransferred)}
-                    </p>
-                  </MetricWithTooltip>
-                  <p className="text-xs font-mono text-muted mt-1">
-                    {summary.transferredPercent.toFixed(1)}% of deshielded
-                  </p>
-                </div>
-
-                <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: flowColors.exchange }}>
-                  <MetricWithTooltip
-                    label="To Exchange"
-                    tooltip="ZEC sent to a labeled exchange deposit address"
-                  >
-                    <p className="text-xl font-bold font-mono tabular-nums" style={{ color: flowColors.exchange }}>
-                      {formatZecCompact(summary.totalExchange)}
-                    </p>
-                  </MetricWithTooltip>
-                  <p className="text-xs font-mono text-muted mt-1">
-                    {summary.exchangePercent.toFixed(1)}% of deshielded
-                  </p>
-                </div>
+                  return (
+                    <div
+                      key={key}
+                      className={`bg-glass-4 rounded-xl p-4 border-l-2 transition-all duration-200 ${
+                        isHovered ? 'ring-1 ring-glass-12 bg-glass-6' : ''
+                      } ${isDimmed ? 'opacity-40' : ''}`}
+                      style={{ borderLeftColor: flowColors[key] }}
+                    >
+                      <MetricWithTooltip label={TURNSTILE_CATEGORY_LABELS[key]} tooltip={tooltips[key]}>
+                        <p
+                          className={`text-xl font-bold font-mono tabular-nums ${
+                            coloredValues.includes(key) ? '' : 'text-secondary'
+                          }`}
+                          style={coloredValues.includes(key) ? { color: flowColors[key] } : undefined}
+                        >
+                          {formatZecCompact(value)}
+                        </p>
+                      </MetricWithTooltip>
+                      <p className="text-xs font-mono text-muted mt-1">
+                        {pct.toFixed(1)}% of deshielded
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

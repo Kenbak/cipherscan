@@ -23,21 +23,21 @@ export default function TurnstilePage() {
         <div className="flex flex-wrap gap-2 shrink-0">
           <Link
             href="/pools#flows"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-cipher-cyan hover:border-cipher-cyan/30 transition-colors"
+            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
             Shield / Deshield Flows
           </Link>
           <Link
             href="/privacy-risks"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-cipher-cyan hover:border-cipher-cyan/30 transition-colors"
+            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
             Privacy Risks
           </Link>
           <Link
             href="/pools"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-cipher-cyan/20 text-cipher-cyan hover:bg-cipher-cyan/10 transition-colors"
+            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
-            Full Pool Analytics
+            Full Pool Analytics →
           </Link>
         </div>
       </div>
