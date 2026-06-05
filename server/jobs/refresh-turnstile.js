@@ -155,36 +155,50 @@ async function findNewDeshieldDates(client, sinceBlockTime) {
 }
 
 /**
- * Find dates where "held" outputs have been spent since we last checked.
- * In sweep mode, checks all time. Otherwise, checks recent days only.
+ * Find dates that need reclassification (held outputs that got spent).
+ *
+ * In non-sweep mode: just returns today and yesterday (fast, catches most
+ * reclassifications since outputs are usually spent within a day or two).
+ *
+ * In sweep mode: scans all dates with held_zat > 0 and checks if any of
+ * those outputs have been spent. This is the expensive query that only
+ * runs daily at 4am.
  */
 async function findReclassifiedDates(client, sweep) {
-  const dateClause = sweep
-    ? ''
-    : `AND DATE(TO_TIMESTAMP(sf.block_time)) >= CURRENT_DATE - ${RECENT_HELD_DAYS}`;
+  if (!sweep) {
+    // Fast path: just recompute today and yesterday to catch recent spends
+    const result = await client.query(`
+      SELECT DISTINCT date FROM turnstile_daily
+      WHERE date >= CURRENT_DATE - 1 AND held_zat > 0
+    `);
+    return result.rows.map(r => r.date);
+  }
 
+  // Sweep mode: find all dates where held outputs have actually been spent
   const result = await client.query(`
-    WITH held_outputs AS (
-      SELECT sf.txid, txo.vout_index, DATE(TO_TIMESTAMP(sf.block_time)) AS date
+    WITH dates_with_held AS (
+      SELECT DISTINCT date FROM turnstile_daily WHERE held_zat > 0
+    ),
+    sample_held AS (
+      SELECT
+        sf.txid,
+        txo.vout_index,
+        DATE(TO_TIMESTAMP(sf.block_time)) AS date
       FROM shielded_flows sf
       JOIN transaction_outputs txo ON txo.txid = sf.txid
+      JOIN dates_with_held dwh ON dwh.date = DATE(TO_TIMESTAMP(sf.block_time))
       WHERE sf.flow_type = 'deshield'
         AND txo.address LIKE 't%'
-        ${dateClause}
         AND NOT EXISTS (
           SELECT 1 FROM transaction_inputs ti_check
           WHERE ti_check.txid = sf.txid
         )
+      LIMIT 10000
     )
-    SELECT DISTINCT ho.date
-    FROM held_outputs ho
+    SELECT DISTINCT sh.date
+    FROM sample_held sh
     JOIN transaction_inputs ti
-      ON ti.prev_txid = ho.txid AND ti.prev_vout = ho.vout_index
-    WHERE NOT EXISTS (
-      SELECT 1 FROM turnstile_daily td
-      WHERE td.date = ho.date
-        AND td.held_zat = 0
-    )
+      ON ti.prev_txid = sh.txid AND ti.prev_vout = sh.vout_index
   `);
   return result.rows.map(r => r.date);
 }
