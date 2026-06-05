@@ -276,7 +276,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-cyan"
                         />
                         <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
-                          Split moved
+                          Show full breakdown
                         </span>
                       </label>
                     </div>
@@ -330,51 +330,67 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
         </CardBody>
       </Card>
 
-      {timeseries.length > 1 && (
-        <ChartCard title="DAILY_DESHIELDED_ZEC_BREAKDOWN" height={280}>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={timeseries}>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-              <XAxis
-                dataKey="dateLabel"
-                stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
-                tickFormatter={v => formatZecCompact(v)}
-                width={48}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: colors.tooltipBg,
-                  border: `1px solid ${colors.tooltipBorder}`,
-                  borderRadius: '8px',
-                  fontSize: 12,
-                }}
-                formatter={(value: number, name: string) => {
-                  const labels: Record<string, string> = {
-                    held: TURNSTILE_CATEGORY_LABELS.held,
-                    reshielded: TURNSTILE_CATEGORY_LABELS.reshielded,
-                    transferred: TURNSTILE_CATEGORY_LABELS.transferred,
-                    bridge: TURNSTILE_CATEGORY_LABELS.bridge,
-                    exchange: TURNSTILE_CATEGORY_LABELS.exchange,
-                  };
-                  return [`${Number(value).toFixed(2)} ZEC`, labels[name] || name];
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name={TURNSTILE_CATEGORY_LABELS.held} />
-              <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name={TURNSTILE_CATEGORY_LABELS.reshielded} />
-              <Area type="monotone" dataKey="transferred" stackId="1" stroke={flowColors.transferred} fill={flowColors.transferred} fillOpacity={0.2} name={TURNSTILE_CATEGORY_LABELS.transferred} />
-              <Area type="monotone" dataKey="bridge" stackId="1" stroke={flowColors.bridge} fill={flowColors.bridge} fillOpacity={0.3} name={TURNSTILE_CATEGORY_LABELS.bridge} />
-              <Area type="monotone" dataKey="exchange" stackId="1" stroke={flowColors.exchange} fill={flowColors.exchange} fillOpacity={0.25} name={TURNSTILE_CATEGORY_LABELS.exchange} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      )}
+      {timeseries.length > 1 && (() => {
+        const chartData = showDetail
+          ? timeseries
+          : timeseries.map(p => ({
+              ...p,
+              moved: (p.transferred ?? 0) + (p.bridge ?? 0) + (p.exchange ?? 0),
+            }));
+
+        return (
+          <ChartCard title="DAILY_DESHIELDED_ZEC_BREAKDOWN" height={280}>
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+                <XAxis
+                  dataKey="dateLabel"
+                  stroke={colors.axis}
+                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  stroke={colors.axis}
+                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tickFormatter={v => formatZecCompact(v)}
+                  width={48}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: colors.tooltipBg,
+                    border: `1px solid ${colors.tooltipBorder}`,
+                    borderRadius: '8px',
+                    fontSize: 12,
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = {
+                      held: 'Still Held',
+                      reshielded: 'Reshielded',
+                      moved: 'Moved',
+                      transferred: 'Transferred',
+                      bridge: 'To Bridge',
+                      exchange: 'To Exchange',
+                    };
+                    return [`${Number(value).toFixed(2)} ZEC`, labels[name] || name];
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name="Still Held" />
+                <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name="Reshielded" />
+                {showDetail ? (
+                  <>
+                    <Area type="monotone" dataKey="transferred" stackId="1" stroke={flowColors.transferred} fill={flowColors.transferred} fillOpacity={0.2} name="Transferred" />
+                    <Area type="monotone" dataKey="bridge" stackId="1" stroke={flowColors.bridge} fill={flowColors.bridge} fillOpacity={0.3} name="To Bridge" />
+                    <Area type="monotone" dataKey="exchange" stackId="1" stroke={flowColors.exchange} fill={flowColors.exchange} fillOpacity={0.25} name="To Exchange" />
+                  </>
+                ) : (
+                  <Area type="monotone" dataKey="moved" stackId="1" stroke={flowColors.moved} fill={flowColors.moved} fillOpacity={0.25} name="Moved" />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        );
+      })()}
     </div>
   );
 }
