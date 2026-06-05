@@ -361,12 +361,7 @@ async function main() {
     } catch (e) {
       if (!e.message.includes('does not exist')) log(`  flow_daily refresh skipped: ${e.message}`);
     }
-    try {
-      await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY turnstile_daily');
-      log('  Refreshed turnstile_daily');
-    } catch (e) {
-      if (!e.message.includes('does not exist')) log(`  turnstile_daily refresh skipped: ${e.message}`);
-    }
+    // turnstile_daily is now maintained by refresh-turnstile.js (incremental job)
 
     log(`=== Done in ${((Date.now() - start) / 1000).toFixed(1)}s ===`);
   } catch (err) {
