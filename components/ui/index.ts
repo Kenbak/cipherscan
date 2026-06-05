@@ -12,3 +12,4 @@ export { Input, Textarea, SearchInput } from './Input';
 
 // Filter components
 export { FilterGroup, FilterButton } from './FilterGroup';
+export { PeriodPillTags } from './PeriodPillTags';

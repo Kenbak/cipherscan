@@ -10,10 +10,9 @@ import { getChartColors } from '@/lib/chart-theme';
 import { getFlowColors, TURNSTILE_CATEGORY_LABELS } from '@/lib/flow-colors';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { Card, CardBody } from '@/components/ui/Card';
-import { FilterGroup, FilterButton } from '@/components/ui/FilterGroup';
+import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { ChartCard } from '@/components/network/ChartCard';
 import { MetricWithTooltip } from '@/components/pools/MetricWithTooltip';
-import { TurnstileFunnel } from '@/components/pools/TurnstileFunnel';
 import { TurnstileLegend } from '@/components/pools/TurnstileLegend';
 
 type TurnstilePeriod = 'nu6.2' | '30d' | '90d' | '1y' | 'all';
@@ -61,9 +60,16 @@ interface TurnstilePoint {
 }
 
 interface TurnstileTrackerProps {
-  /** Hide card chrome when page already provides a title (standalone / pools section). */
   showCardHeader?: boolean;
 }
+
+const PERIOD_OPTIONS: { key: TurnstilePeriod; label: string }[] = [
+  { key: 'nu6.2', label: 'Since NU6.2' },
+  { key: '30d', label: '30D' },
+  { key: '90d', label: '90D' },
+  { key: '1y', label: '1Y' },
+  { key: 'all', label: 'ALL' },
+];
 
 export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerProps) {
   const { theme } = useTheme();
@@ -92,42 +98,28 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       .finally(() => setLoading(false));
   }, [period]);
 
-  const periodOptions: { key: TurnstilePeriod; label: string }[] = [
-    { key: 'nu6.2', label: 'Since NU6.2' },
-    { key: '30d', label: '30D' },
-    { key: '90d', label: '90D' },
-    { key: '1y', label: '1Y' },
-    { key: 'all', label: 'ALL' },
-  ];
-
   return (
     <div className="space-y-4">
       <Card variant="glass">
         <CardBody>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-            {showCardHeader ? (
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+            {showCardHeader && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
                 <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TURNSTILE_TRACKER</h2>
               </div>
-            ) : (
-              <TurnstileLegend />
             )}
-            <FilterGroup inline className="justify-end">
-              {periodOptions.map(({ key, label }) => (
-                <FilterButton
-                  key={key}
-                  active={period === key}
-                  onClick={() => setPeriod(key)}
-                >
-                  {label}
-                </FilterButton>
-              ))}
-            </FilterGroup>
+            <PeriodPillTags
+              options={PERIOD_OPTIONS}
+              value={period}
+              onChange={setPeriod}
+              className="sm:ml-auto"
+              aria-label="Turnstile time period"
+            />
           </div>
 
           {loading ? (
-            <div className="space-y-4 px-4">
+            <div className="space-y-6">
               <div className="h-10 w-48 skeleton-bg rounded animate-pulse" />
               <div className="h-3 skeleton-bg rounded-full animate-pulse" />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -143,11 +135,11 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           ) : (
             <>
               <MetricWithTooltip
-                className="px-4 mb-5"
+                className="mb-6"
                 label="Total Deshielded"
                 tooltip="ZEC that left a shielded pool to a transparent address in this period"
               >
-                <div className="flex items-baseline gap-3">
+                <div className="flex items-baseline gap-3 flex-wrap">
                   <span
                     className="text-3xl sm:text-4xl font-bold font-mono tabular-nums"
                     style={{ color: flowColors.deshielding }}
@@ -155,27 +147,37 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     {formatZecCompact(summary.totalDeshielded)}
                   </span>
                   <span className="text-sm font-mono text-muted">ZEC</span>
-                  <span className="text-[10px] font-mono text-muted">
+                  <span className="text-xs font-mono text-muted">
                     across {summary.txCount.toLocaleString()} txs
                   </span>
                 </div>
               </MetricWithTooltip>
 
-              <div className="px-4 mb-5">
-                <TurnstileFunnel
-                  totalDeshielded={summary.totalDeshielded}
-                  heldPercent={summary.heldPercent}
-                  reshieldedPercent={summary.reshieldedPercent}
-                  transferredPercent={summary.transferredPercent}
-                  exchangePercent={summary.exchangePercent}
-                  totalHeld={summary.totalHeld}
-                  totalReshielded={summary.totalReshielded}
-                  totalTransferred={summary.totalTransferred}
-                  totalExchange={summary.totalExchange}
-                />
-              </div>
+              {summary.totalDeshielded > 0 && (
+                <div className="mb-6">
+                  <div className="h-3 rounded-full overflow-hidden flex mb-3" style={{ backgroundColor: 'var(--color-bg)' }}>
+                    <div
+                      className="transition-all duration-1000 rounded-l-full"
+                      style={{ width: `${summary.heldPercent}%`, backgroundColor: flowColors.held, opacity: 0.75 }}
+                    />
+                    <div
+                      className="transition-all duration-1000"
+                      style={{ width: `${summary.reshieldedPercent}%`, backgroundColor: flowColors.reshielded, opacity: 0.7 }}
+                    />
+                    <div
+                      className="transition-all duration-1000"
+                      style={{ width: `${summary.transferredPercent}%`, backgroundColor: flowColors.transferred, opacity: 0.55 }}
+                    />
+                    <div
+                      className="transition-all duration-1000 rounded-r-full"
+                      style={{ width: `${summary.exchangePercent}%`, backgroundColor: flowColors.exchange, opacity: 0.65 }}
+                    />
+                  </div>
+                  <TurnstileLegend />
+                </div>
+              )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-glass-4 rounded-xl p-4 border-l-2" style={{ borderLeftColor: flowColors.held }}>
                   <MetricWithTooltip
                     label="Still Held"
@@ -185,8 +187,8 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                       {formatZecCompact(summary.totalHeld)}
                     </p>
                   </MetricWithTooltip>
-                  <p className="text-[10px] font-mono text-muted mt-0.5">
-                    {summary.heldPercent.toFixed(1)}% <span className="opacity-60">— sitting at t-addr</span>
+                  <p className="text-xs font-mono text-muted mt-1">
+                    {summary.heldPercent.toFixed(1)}% of deshielded
                   </p>
                 </div>
 
@@ -199,8 +201,8 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                       {formatZecCompact(summary.totalReshielded)}
                     </p>
                   </MetricWithTooltip>
-                  <p className="text-[10px] font-mono text-muted mt-0.5">
-                    {summary.reshieldedPercent.toFixed(1)}% <span className="opacity-60">— back to privacy</span>
+                  <p className="text-xs font-mono text-muted mt-1">
+                    {summary.reshieldedPercent.toFixed(1)}% of deshielded
                   </p>
                 </div>
 
@@ -209,12 +211,12 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     label="Transferred"
                     tooltip="ZEC sent to another transparent address (not an exchange)"
                   >
-                    <p className="text-xl font-bold font-mono tabular-nums text-secondary">
+                    <p className="text-xl font-bold font-mono tabular-nums text-primary">
                       {formatZecCompact(summary.totalTransferred)}
                     </p>
                   </MetricWithTooltip>
-                  <p className="text-[10px] font-mono text-muted mt-0.5">
-                    {summary.transferredPercent.toFixed(1)}% <span className="opacity-60">— to another t-addr</span>
+                  <p className="text-xs font-mono text-muted mt-1">
+                    {summary.transferredPercent.toFixed(1)}% of deshielded
                   </p>
                 </div>
 
@@ -227,20 +229,19 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                       {formatZecCompact(summary.totalExchange)}
                     </p>
                   </MetricWithTooltip>
-                  <p className="text-[10px] font-mono text-muted mt-0.5">
-                    {summary.exchangePercent.toFixed(1)}% <span className="opacity-60">— labeled exchange addr</span>
+                  <p className="text-xs font-mono text-muted mt-1">
+                    {summary.exchangePercent.toFixed(1)}% of deshielded
                   </p>
                 </div>
               </div>
             </>
           )}
 
-          <p className="text-xs text-secondary font-sans mt-4 mx-4 leading-relaxed">
-            Tracks what happens after ZEC leaves a shielded pool. &quot;Reshielded&quot; = went back into a private pool.
-            &quot;To Exchange&quot; = sent to a labeled exchange address. Updated hourly.
+          <p className="text-xs text-secondary font-sans mt-6 leading-relaxed">
+            Tracks what happens after ZEC leaves a shielded pool. Updated hourly.
           </p>
           {(period === 'all' || period === '1y') && (
-            <p className="text-[10px] text-muted/60 font-mono mt-1 mx-4 leading-relaxed italic">
+            <p className="text-[10px] text-muted/60 font-mono mt-2 leading-relaxed italic">
               Note: cumulative volume — the same ZEC can be deshielded and reshielded multiple times, so totals may exceed circulating supply.
             </p>
           )}
