@@ -181,8 +181,8 @@ async function isTurnstileViewReady(pg) {
     return turnstileViewAvailable;
   }
   try {
-    await pg.query(`SELECT 1 FROM turnstile_daily LIMIT 0`);
-    turnstileViewAvailable = true;
+    const r = await pg.query(`SELECT COUNT(*) AS n FROM turnstile_daily LIMIT 1`);
+    turnstileViewAvailable = parseInt(r.rows[0].n) > 0;
   } catch {
     turnstileViewAvailable = false;
   }
