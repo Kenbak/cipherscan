@@ -32,7 +32,14 @@ const pool = new Pool({
 const LOCK_ID = 839271; // arbitrary advisory lock ID for this job
 const STATE_KEY = 'turnstile_last_processed_time';
 const SWEEP_MODE = process.argv.includes('--sweep');
+// Explicit full-history rebuild. Without this flag, the job refuses to
+// recompute more than MAX_AUTO_DATES at once — this prevents a missing/zeroed
+// bookmark from silently triggering a multi-thousand-date recompute that
+// saturates disk IO and takes the site down.
+const REBUILD_MODE = process.argv.includes('--rebuild');
 const RECENT_HELD_DAYS = 7;
+const SWEEP_WINDOW_DAYS = 120; // daily sweep only re-checks held outputs this recent
+const MAX_AUTO_DATES = 31; // safety cap for non-rebuild runs
 
 function log(msg) {
   const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -68,21 +75,37 @@ async function setLastProcessedTime(client, blockTime) {
 /**
  * Recompute turnstile_daily rows for a set of dates.
  * Idempotent: deletes existing rows then inserts fresh aggregates from raw data.
- * Uses the proven matview SQL (separate CTEs with explicit priority ordering).
+ * Uses separate CTEs with explicit priority ordering (reshield > exchange >
+ * bridge > transferred). The scan is bounded by a block_time range so it can
+ * use idx_shielded_flows_time; the planner is left to choose join strategies
+ * (hash joins on the 100M+ row output/input tables are far faster than the
+ * nested loops that forced join hints previously produced).
  * Wrapped in a transaction so partial failures don't corrupt data.
  */
 async function recomputeDates(client, dates) {
   if (dates.length === 0) return 0;
 
+  // Derive an inclusive block_time range covering the affected dates so the
+  // scan can use idx_shielded_flows_time (sargable). The DATE(...) = ANY(...)
+  // filter is kept for exactness when the date set is sparse, but the range
+  // bound is what lets Postgres avoid a full scan of every deshield row.
+  // DB session is UTC, so EXTRACT(EPOCH FROM date) aligns with
+  // DATE(TO_TIMESTAMP(block_time)).
+  const sorted = [...dates].sort();
+  const minDate = sorted[0];
+  const maxDate = sorted[sorted.length - 1];
+
   await client.query('BEGIN');
   try {
-    await client.query('SET LOCAL enable_hashjoin = off');
-    await client.query('SET LOCAL enable_mergejoin = off');
-
     await client.query('DELETE FROM turnstile_daily WHERE date = ANY($1::date[])', [dates]);
 
     const result = await client.query(`
-      WITH pure_deshields AS (
+      WITH bounds AS (
+        SELECT
+          EXTRACT(EPOCH FROM $2::date)::bigint AS min_ts,
+          EXTRACT(EPOCH FROM ($3::date + 1))::bigint AS max_ts
+      ),
+      pure_deshields AS (
         SELECT
           DATE(TO_TIMESTAMP(sf.block_time)) AS date,
           sf.pool,
@@ -90,8 +113,11 @@ async function recomputeDates(client, dates) {
           txo.vout_index,
           txo.value
         FROM shielded_flows sf
+        CROSS JOIN bounds b
         JOIN transaction_outputs txo ON txo.txid = sf.txid
         WHERE sf.flow_type = 'deshield'
+          AND sf.block_time >= b.min_ts
+          AND sf.block_time < b.max_ts
           AND txo.address LIKE 't%'
           AND DATE(TO_TIMESTAMP(sf.block_time)) = ANY($1::date[])
           AND NOT EXISTS (
@@ -159,7 +185,7 @@ async function recomputeDates(client, dates) {
       LEFT JOIN exchange_txids et ON et.spending_txid = ws.spending_txid
       LEFT JOIN bridge_txids bt ON bt.spending_txid = ws.spending_txid
       GROUP BY ws.date, ws.pool
-    `, [dates]);
+    `, [dates, minDate, maxDate]);
 
     await client.query('COMMIT');
     return result.rowCount;
@@ -202,10 +228,16 @@ async function findReclassifiedDates(client, sweep) {
     return result.rows.map(r => r.date);
   }
 
-  // Sweep mode: find all dates where held outputs have actually been spent
+  // Sweep mode: find dates where held outputs have actually been spent.
+  // Bounded to a recent window ($1 days) and a sargable block_time lower bound
+  // so the daily 4am run stays fast instead of re-scanning all history back to
+  // 2018. Outputs deshielded long ago rarely move; a periodic --rebuild covers
+  // those. The block_time bound lets the scan use idx_shielded_flows_time.
   const result = await client.query(`
     WITH dates_with_held AS (
-      SELECT DISTINCT date FROM turnstile_daily WHERE held_zat > 0
+      SELECT DISTINCT date FROM turnstile_daily
+      WHERE held_zat > 0
+        AND date >= CURRENT_DATE - $1::int
     ),
     sample_held AS (
       SELECT
@@ -216,6 +248,7 @@ async function findReclassifiedDates(client, sweep) {
       JOIN transaction_outputs txo ON txo.txid = sf.txid
       JOIN dates_with_held dwh ON dwh.date = DATE(TO_TIMESTAMP(sf.block_time))
       WHERE sf.flow_type = 'deshield'
+        AND sf.block_time >= EXTRACT(EPOCH FROM CURRENT_DATE - $1::int)::bigint
         AND txo.address LIKE 't%'
         AND NOT EXISTS (
           SELECT 1 FROM transaction_inputs ti_check
@@ -227,7 +260,7 @@ async function findReclassifiedDates(client, sweep) {
     FROM sample_held sh
     JOIN transaction_inputs ti
       ON ti.prev_txid = sh.txid AND ti.prev_vout = sh.vout_index
-  `);
+  `, [SWEEP_WINDOW_DAYS]);
   return result.rows.map(r => r.date);
 }
 
@@ -256,8 +289,22 @@ async function main() {
       log(`Last processed block_time: ${lastProcessed} (${lastProcessed > 0 ? new Date(lastProcessed * 1000).toISOString().split('T')[0] : 'never'})`);
 
       // Step 1: Find dates with new deshields
-      const newDates = await findNewDeshieldDates(client, lastProcessed);
+      let newDates = await findNewDeshieldDates(client, lastProcessed);
       log(`New deshield dates: ${newDates.length}`);
+
+      // Safety guard: an abnormally large set of "new" dates means the bookmark
+      // is stale or zeroed (e.g. a manual INSERT bypassed setLastProcessedTime).
+      // Recomputing thousands of dates at once is what previously saturated disk
+      // IO and took the site down. Unless --rebuild is explicitly passed, cap to
+      // the most recent dates and warn; the bookmark update at the end then makes
+      // subsequent runs normal again.
+      if (!REBUILD_MODE && newDates.length > MAX_AUTO_DATES) {
+        const capped = newDates.slice(-RECENT_HELD_DAYS);
+        log(`WARNING: ${newDates.length} new dates exceeds cap of ${MAX_AUTO_DATES} ` +
+          `(likely a stale/zeroed bookmark). Processing only the most recent ` +
+          `${capped.length} date(s). Run with --rebuild for a full recompute.`);
+        newDates = capped;
+      }
 
       // Step 2: Find dates where held outputs got spent
       const reclassDates = await findReclassifiedDates(client, SWEEP_MODE);
