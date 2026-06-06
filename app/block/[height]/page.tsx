@@ -466,19 +466,21 @@ export default function BlockPage() {
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
             <div className="flex items-center gap-3 mt-1">
-              <Link
-                href={`/block/${data.height - 1}`}
-                className={`p-1 rounded transition-colors ${
-                  data.previousBlockHash
-                    ? 'text-secondary hover:text-primary'
-                    : 'text-muted cursor-not-allowed pointer-events-none'
-                }`}
-                title="Previous Block"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
+              {!data.isOrphaned && (
+                <Link
+                  href={`/block/${data.height - 1}`}
+                  className={`p-1 rounded transition-colors ${
+                    data.previousBlockHash
+                      ? 'text-secondary hover:text-primary'
+                      : 'text-muted cursor-not-allowed pointer-events-none'
+                  }`}
+                  title="Previous Block"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+              )}
 
               <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${data.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
                 #{data.height.toLocaleString()}
@@ -487,22 +489,24 @@ export default function BlockPage() {
                 <Badge color="orange">ORPHAN</Badge>
               )}
 
-              <Link
-                href={`/block/${data.height + 1}`}
-                className={`p-1 rounded transition-colors ${
-                  data.confirmations > 1
-                    ? 'text-secondary hover:text-primary'
-                    : 'text-muted cursor-not-allowed pointer-events-none'
-                }`}
-                title="Next Block"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              {!data.isOrphaned && (
+                <Link
+                  href={`/block/${data.height + 1}`}
+                  className={`p-1 rounded transition-colors ${
+                    data.confirmations > 1
+                      ? 'text-secondary hover:text-primary'
+                      : 'text-muted cursor-not-allowed pointer-events-none'
+                  }`}
+                  title="Next Block"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
             </div>
           </div>
-          <ExportButton
+          {!data.isOrphaned && <ExportButton
             data={{
               height: data.height,
               hash: data.hash,
@@ -541,7 +545,7 @@ export default function BlockPage() {
               String(tx.vout?.length || 0),
               tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0).toFixed(8) || '0'
             ]}
-          />
+          />}
         </div>
       </div>
 
@@ -583,18 +587,20 @@ export default function BlockPage() {
             onClick={data.isOrphaned ? undefined : scrollToTransactions}
           />
 
-          <InfoRow
-            icon={Icons.Check}
-            label="Confirmations"
-            value={
-              <span className={data.confirmations > 6 ? 'text-cipher-green font-semibold' : 'text-cipher-orange'}>
-                {data.confirmations.toLocaleString()}
-              </span>
-            }
-            tooltip="Number of blocks mined after this one (6+ confirmations = secure)"
-          />
+          {!data.isOrphaned && (
+            <InfoRow
+              icon={Icons.Check}
+              label="Confirmations"
+              value={
+                <span className={data.confirmations > 6 ? 'text-cipher-green font-semibold' : 'text-cipher-orange'}>
+                  {data.confirmations.toLocaleString()}
+                </span>
+              }
+              tooltip="Number of blocks mined after this one (6+ confirmations = secure)"
+            />
+          )}
 
-          {data.finality && (
+          {data.finality && !data.isOrphaned && (
             <InfoRow
               icon={Icons.Shield}
               label="Finality"
@@ -645,7 +651,7 @@ export default function BlockPage() {
           )}
 
           {/* Transaction Fees */}
-          {data.totalFees !== undefined && (
+          {data.totalFees !== undefined && !data.isOrphaned && (
             <InfoRow
               icon={Icons.Currency}
               label="Transaction Fees"
@@ -673,18 +679,20 @@ export default function BlockPage() {
           </div>
 
           {/* More Details Toggle */}
-          <button
-            onClick={() => setShowMoreDetails(!showMoreDetails)}
-            className="mt-8 pt-6 border-t block-info-border text-sm text-secondary hover:text-primary transition-colors flex items-center font-mono w-full"
-          >
-            <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {showMoreDetails ? 'Hide' : 'Show'} More Details
-          </button>
+          {!data.isOrphaned && (
+            <button
+              onClick={() => setShowMoreDetails(!showMoreDetails)}
+              className="mt-8 pt-6 border-t block-info-border text-sm text-secondary hover:text-primary transition-colors flex items-center font-mono w-full"
+            >
+              <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              {showMoreDetails ? 'Hide' : 'Show'} More Details
+            </button>
+          )}
 
         {/* Additional Details (Collapsible) */}
-        {showMoreDetails && (
+        {showMoreDetails && !data.isOrphaned && (
           <div className="mt-4 pt-4 border-t block-info-border space-y-0">
             <InfoRow
               icon={Icons.Code}
@@ -755,7 +763,7 @@ export default function BlockPage() {
       </Card>
 
       {/* Transactions Section */}
-      <Card ref={txSectionRef}>
+      {!data.isOrphaned && <Card ref={txSectionRef}>
         <CardHeader>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
@@ -994,7 +1002,7 @@ export default function BlockPage() {
           </div>
         )}
         </CardBody>
-      </Card>
+      </Card>}
     </div>
   );
 }
