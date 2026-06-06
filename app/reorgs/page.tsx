@@ -86,7 +86,7 @@ interface NodesSummary {
 }
 
 export default function UnclesPage() {
-  const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('forks');
+  const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('orphans');
   const [orphans, setOrphans] = useState<OrphanedBlock[]>([]);
   const [forks, setForks] = useState<ForkEvent[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);

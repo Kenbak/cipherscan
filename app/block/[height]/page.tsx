@@ -367,39 +367,96 @@ export default function BlockPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-fade-in">
-      {/* Orphaned Block Banner */}
+      {/* Orphaned Block Banner + Comparison */}
       {data.isOrphaned && (
-        <div className="mb-6 rounded-xl border border-orange-500/40 bg-gradient-to-r from-orange-950/60 via-red-950/40 to-orange-950/60 backdrop-blur-sm p-4 sm:p-5 animate-fade-in-up">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Badge color="orange" className="self-start">ORPHANED BLOCK</Badge>
-            <p className="text-sm text-secondary flex-1">
-              This block was replaced during a chain reorganization and is not on the canonical chain.
-              {data.orphanSource && (
-                <span className="text-muted ml-1">Source: {data.orphanSource}</span>
-              )}
-            </p>
-          </div>
-          {data.canonicalBlock && (
-            <div className="mt-4 pt-4 border-t border-orange-500/20">
-              <p className="text-xs text-muted mb-2 font-mono uppercase tracking-wider">Canonical block at height #{data.height.toLocaleString()}</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href={`/block/${data.canonicalBlock.hash}`}
-                  className="text-xs font-mono text-cipher-green hover:underline break-all"
-                >
-                  {data.canonicalBlock.hash}
-                </Link>
-                {data.canonicalBlock.minerPool && (
-                  <Badge color="green">{data.canonicalBlock.minerPool}</Badge>
+        <div className="mb-6 space-y-4 animate-fade-in-up">
+          <div className="rounded-xl border border-orange-500/30 bg-orange-950/30 backdrop-blur-sm p-4 sm:p-5">
+            <div className="flex flex-col gap-3">
+              <Badge color="orange" className="self-start text-[10px] font-bold tracking-wider">ORPHANED BLOCK</Badge>
+              <p className="text-sm text-secondary">
+                This block was replaced during a chain reorganization and is no longer part of the canonical chain.
+              </p>
+              <p className="text-xs text-muted font-mono">
+                Transaction data is not available for orphaned blocks.
+                {data.orphanSource && (
+                  <span className="ml-2 text-secondary">Source: {data.orphanSource}</span>
                 )}
-                {data.canonicalBlock.transactionCount != null && (
-                  <span className="text-xs text-muted font-mono">
-                    {data.canonicalBlock.transactionCount} txs
-                  </span>
-                )}
-              </div>
+              </p>
             </div>
-          )}
+          </div>
+
+          <div className="rounded-xl border border-cipher-border bg-glass-2 backdrop-blur-sm p-4">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-3">Reorg comparison at #{data.height.toLocaleString()}</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Orphaned side */}
+              <div className="flex-1 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-950/30 to-red-950/20 p-3">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-orange">Orphaned</span>
+                <div className="mt-2 space-y-1.5">
+                  <code className="text-xs font-mono text-cipher-orange block" title={data.hash}>
+                    {data.hash.slice(0, 10)}...{data.hash.slice(-6)}
+                  </code>
+                  <div className="text-xs font-mono text-secondary">
+                    {data.minerPool ? (
+                      data.minerPoolUrl ? (
+                        <a href={data.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-orange hover:underline">{data.minerPool}</a>
+                      ) : (
+                        <span className="text-cipher-orange">{data.minerPool}</span>
+                      )
+                    ) : (
+                      <span className="text-muted">Unknown miner</span>
+                    )}
+                  </div>
+                  <div className="flex gap-3 text-xs font-mono text-muted">
+                    <span>{data.transactionCount} txs</span>
+                    <span>{data.timestamp ? formatRelativeTime(data.timestamp) : '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden sm:flex items-center justify-center px-1">
+                <span className="text-[10px] font-mono text-muted">vs</span>
+              </div>
+
+              {/* Canonical side */}
+              {data.canonicalBlock ? (
+                <div className="flex-1 rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-cyan-950/20 p-3">
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-green">Canonical</span>
+                  <div className="mt-2 space-y-1.5">
+                    <Link
+                      href={`/block/${data.canonicalBlock.height}`}
+                      className="text-xs font-mono text-cipher-green hover:underline block"
+                      title={data.canonicalBlock.hash}
+                    >
+                      {data.canonicalBlock.hash.slice(0, 10)}...{data.canonicalBlock.hash.slice(-6)}
+                    </Link>
+                    <div className="text-xs font-mono text-secondary">
+                      {data.canonicalBlock.minerPool ? (
+                        data.canonicalBlock.minerPoolUrl ? (
+                          <a href={data.canonicalBlock.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-green hover:underline">{data.canonicalBlock.minerPool}</a>
+                        ) : (
+                          <span className="text-cipher-green">{data.canonicalBlock.minerPool}</span>
+                        )
+                      ) : (
+                        <span className="text-muted">Unknown miner</span>
+                      )}
+                    </div>
+                    <div className="flex gap-3 text-xs font-mono text-muted">
+                      {data.canonicalBlock.transactionCount != null && (
+                        <span>{data.canonicalBlock.transactionCount} txs</span>
+                      )}
+                      {data.canonicalBlock.timestamp && (
+                        <span>{formatRelativeTime(data.canonicalBlock.timestamp)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-3 flex items-center justify-center">
+                  <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -507,17 +564,23 @@ export default function BlockPage() {
             icon={Icons.Document}
             label="Transactions"
             value={
-              <span
-                className="text-primary font-semibold cursor-pointer hover:text-cipher-cyan transition-colors"
-                onClick={scrollToTransactions}
-                title="Click to view all transactions"
-              >
-                {data.transactionCount} transaction{data.transactionCount !== 1 ? 's' : ''} in this block
-              </span>
+              data.isOrphaned ? (
+                <span className="text-muted font-mono text-xs">
+                  {data.transactionCount} recorded — details not stored
+                </span>
+              ) : (
+                <span
+                  className="text-primary font-semibold cursor-pointer hover:text-cipher-cyan transition-colors"
+                  onClick={scrollToTransactions}
+                  title="Click to view all transactions"
+                >
+                  {data.transactionCount} transaction{data.transactionCount !== 1 ? 's' : ''} in this block
+                </span>
+              )
             }
-            tooltip="Total number of transactions included in this block"
-            clickable
-            onClick={scrollToTransactions}
+            tooltip={data.isOrphaned ? 'Transaction data is not stored for orphaned blocks' : 'Total number of transactions included in this block'}
+            clickable={!data.isOrphaned}
+            onClick={data.isOrphaned ? undefined : scrollToTransactions}
           />
 
           <InfoRow
@@ -734,10 +797,21 @@ export default function BlockPage() {
         </CardHeader>
         <CardBody>
 
-        {!data.transactions || data.transactions.length === 0 ? (
+        {data.isOrphaned ? (
           <div className="text-center py-12">
-            <div className="text-5xl mb-4">📭</div>
-            <p className="text-secondary">No transaction details available</p>
+            <p className="text-sm text-secondary font-mono">Transaction data not stored for orphaned blocks</p>
+            {data.canonicalBlock && (
+              <Link
+                href={`/block/${data.canonicalBlock.height}`}
+                className="inline-block mt-3 text-xs font-mono text-cipher-green hover:underline"
+              >
+                View canonical block at #{data.canonicalBlock.height.toLocaleString()}
+              </Link>
+            )}
+          </div>
+        ) : !data.transactions || data.transactions.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-secondary font-mono text-sm">No transaction details available</p>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6">
