@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
 import { API_CONFIG } from '@/lib/api-config';
@@ -86,7 +86,7 @@ interface NodesSummary {
 }
 
 export default function UnclesPage() {
-  const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('orphans');
+  const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('forks');
   const [orphans, setOrphans] = useState<OrphanedBlock[]>([]);
   const [forks, setForks] = useState<ForkEvent[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -94,6 +94,7 @@ export default function UnclesPage() {
   const [nodesSummary, setNodesSummary] = useState<NodesSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedOrphan, setExpandedOrphan] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -330,78 +331,61 @@ export default function UnclesPage() {
         </Card>
       )}
 
-      {/* Fork Events — Side-by-side comparisons */}
+      {/* Fork Events — Summary list */}
       {!loading && !error && tab === 'forks' && forks.length > 0 && (
-        <div className="space-y-6">
-          {forks.map((fork) => (
-            <Card key={fork.id}>
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href={`/block/${fork.forkHeight}`}
-                      className="text-sm font-mono font-bold text-cipher-cyan hover:underline"
-                    >
-                      Reorg at #{fork.forkHeight.toLocaleString()}
-                    </Link>
-                    <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
-                      {fork.depth} block{fork.depth !== 1 ? 's' : ''}
-                    </Badge>
-                    <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
-                      {fork.source}
-                    </Badge>
-                  </div>
-                  <span className="text-xs text-muted font-mono">
-                    {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
-                  </span>
-                </div>
-                {fork.description && (
-                  <p className="text-xs text-secondary mt-2">{fork.description}</p>
-                )}
-              </CardHeader>
-              <CardBody>
-                {fork.comparisons && fork.comparisons.length > 0 ? (
-                  <div className="space-y-4">
-                    {fork.comparisons.map((comparison) => (
-                      <div key={comparison.orphaned.hash} className="space-y-2">
-                        <div className="flex flex-col lg:flex-row gap-3">
-                          <BlockSideCard
-                            label="Orphaned Block"
-                            block={comparison.orphaned}
-                            variant="orphan"
-                            height={comparison.height}
-                          />
-                          <div className="hidden lg:flex items-center justify-center px-2">
-                            <div className="text-muted font-mono text-xs rotate-0 lg:-rotate-0">vs</div>
-                          </div>
-                          {comparison.canonical ? (
-                            <BlockSideCard
-                              label="Canonical Block"
-                              block={comparison.canonical}
-                              variant="canonical"
-                              height={comparison.height}
-                            />
-                          ) : (
-                            <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-4 flex items-center justify-center">
-                              <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted font-mono text-center py-4">
-                    No orphaned block details recorded for this fork event
-                  </p>
-                )}
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardBody className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-cipher-border">
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Depth</th>
+                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Blocks</th>
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Source</th>
+                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Description</th>
+                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Detected</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {forks.map((fork) => (
+                    <tr key={fork.id} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
+                      <td className="px-4 py-3">
+                        <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
+                          #{fork.forkHeight.toLocaleString()}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
+                          {fork.depth} block{fork.depth !== 1 ? 's' : ''}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
+                        {fork.orphanedCount || fork.comparisons?.length || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
+                          {fork.source}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className="text-xs text-secondary truncate block max-w-[250px]">
+                          {fork.description || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs text-muted font-mono whitespace-nowrap">
+                        {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
       )}
 
-      {/* Orphaned Blocks Table */}
+      {/* Orphaned Blocks Table with expandable comparison */}
       {!loading && !error && tab === 'orphans' && orphans.length > 0 && (
         <Card>
           <CardBody className="p-0">
@@ -420,60 +404,102 @@ export default function UnclesPage() {
                 </thead>
                 <tbody>
                   {orphans.map((block) => (
-                    <tr key={block.id} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
-                      <td className="px-4 py-3">
-                        <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-xs">
-                          #{block.height.toLocaleString()}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash}>
-                          {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        {(block.canonicalBlock?.hash || block.canonicalHash) ? (
-                          <Link
-                            href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`}
-                            className="text-xs text-cipher-green font-mono hover:underline"
-                            title={block.canonicalBlock?.hash || block.canonicalHash || ''}
-                          >
-                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
-                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
+                    <React.Fragment key={block.id}>
+                      <tr
+                        className={`border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors cursor-pointer ${expandedOrphan === block.id ? 'bg-[var(--color-hover)]' : ''}`}
+                        onClick={() => setExpandedOrphan(expandedOrphan === block.id ? null : block.id)}
+                      >
+                        <td className="px-4 py-3">
+                          <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-xs" onClick={e => e.stopPropagation()}>
+                            #{block.height.toLocaleString()}
                           </Link>
-                        ) : (
-                          <span className="text-xs text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
-                        {block.transactionCount ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        {block.minerPool ? (
-                          block.minerAddress ? (
-                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress}>
-                              {block.minerPool}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash} onClick={e => e.stopPropagation()}>
+                            {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          {(block.canonicalBlock?.hash || block.canonicalHash) ? (
+                            <Link
+                              href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`}
+                              className="text-xs text-cipher-green font-mono hover:underline"
+                              title={block.canonicalBlock?.hash || block.canonicalHash || ''}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
+                              {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
                             </Link>
                           ) : (
-                            <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
-                          )
-                        ) : block.minerAddress ? (
-                          <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]">
-                            {block.minerAddress.slice(0, 8)}...
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'cyan' : 'muted'}>
-                          {block.source}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-muted font-mono whitespace-nowrap">
-                        {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
-                      </td>
-                    </tr>
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
+                          {block.transactionCount ?? '—'}
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          {block.minerPool ? (
+                            block.minerAddress ? (
+                              <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                                {block.minerPool}
+                              </Link>
+                            ) : (
+                              <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
+                            )
+                          ) : block.minerAddress ? (
+                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" onClick={e => e.stopPropagation()}>
+                              {block.minerAddress.slice(0, 8)}...
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'cyan' : 'muted'}>
+                            {block.source}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs text-muted font-mono whitespace-nowrap">
+                          {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
+                        </td>
+                      </tr>
+                      {expandedOrphan === block.id && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-4 bg-[var(--color-surface)]">
+                            <div className="flex flex-col lg:flex-row gap-3">
+                              <BlockSideCard
+                                label="Orphaned Block"
+                                block={{
+                                  hash: block.hash,
+                                  timestamp: block.timestamp,
+                                  transactionCount: block.transactionCount,
+                                  size: block.size,
+                                  minerAddress: block.minerAddress,
+                                  minerPool: block.minerPool,
+                                }}
+                                variant="orphan"
+                                height={block.height}
+                              />
+                              <div className="hidden lg:flex items-center justify-center px-2">
+                                <div className="text-muted font-mono text-xs">vs</div>
+                              </div>
+                              {block.canonicalBlock ? (
+                                <BlockSideCard
+                                  label="Canonical Block"
+                                  block={block.canonicalBlock}
+                                  variant="canonical"
+                                  height={block.height}
+                                />
+                              ) : (
+                                <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-4 flex items-center justify-center">
+                                  <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
