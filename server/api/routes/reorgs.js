@@ -5,7 +5,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { getPoolName } = require('../mining-pools');
+const { getPoolName, getPoolInfo } = require('../mining-pools');
 const router = express.Router();
 
 let pool;
@@ -26,8 +26,14 @@ router.get('/api/uncles', async (req, res) => {
         `SELECT ob.id, ob.height, ob.hash, ob.canonical_hash, ob.timestamp,
                 ob.transaction_count, ob.size, ob.difficulty, ob.miner_address,
                 ob.previous_block_hash, ob.source, ob.reported_by,
-                ob.consensus_valid, ob.detected_at, ob.fork_event_id
+                ob.consensus_valid, ob.detected_at, ob.fork_event_id,
+                b.hash as canonical_block_hash,
+                b.timestamp as canonical_timestamp,
+                b.transaction_count as canonical_transaction_count,
+                b.size as canonical_size,
+                b.miner_address as canonical_miner_address
          FROM orphaned_blocks ob
+         LEFT JOIN blocks b ON b.height = ob.height
          ORDER BY ob.height DESC, ob.detected_at DESC
          LIMIT $1 OFFSET $2`,
         [limit, offset]
@@ -39,7 +45,10 @@ router.get('/api/uncles', async (req, res) => {
 
     res.json({
       success: true,
-      orphanedBlocks: result.rows.map(formatOrphanedBlock),
+      orphanedBlocks: result.rows.map(row => ({
+        ...formatOrphanedBlock(row),
+        canonicalBlock: formatCanonicalBlockSummary(row),
+      })),
       pagination: {
         total,
         limit,
@@ -74,6 +83,32 @@ router.get('/api/uncles/forks', async (req, res) => {
     ]);
 
     const total = parseInt(countResult.rows[0].total);
+    const forkIds = result.rows.map(row => row.id);
+
+    let comparisonsByFork = {};
+    if (forkIds.length > 0) {
+      const comparisonsResult = await pool.query(
+        `SELECT ob.id, ob.height, ob.hash, ob.canonical_hash, ob.timestamp,
+                ob.transaction_count, ob.size, ob.miner_address, ob.source,
+                ob.detected_at, ob.fork_event_id,
+                b.hash as canonical_block_hash,
+                b.timestamp as canonical_timestamp,
+                b.transaction_count as canonical_transaction_count,
+                b.size as canonical_size,
+                b.miner_address as canonical_miner_address
+         FROM orphaned_blocks ob
+         LEFT JOIN blocks b ON b.height = ob.height
+         WHERE ob.fork_event_id = ANY($1::int[])
+         ORDER BY ob.height ASC`,
+        [forkIds]
+      );
+
+      for (const row of comparisonsResult.rows) {
+        const forkId = row.fork_event_id;
+        if (!comparisonsByFork[forkId]) comparisonsByFork[forkId] = [];
+        comparisonsByFork[forkId].push(formatReorgComparison(row));
+      }
+    }
 
     res.json({
       success: true,
@@ -86,7 +121,8 @@ router.get('/api/uncles/forks', async (req, res) => {
         source: row.source,
         description: row.description,
         detectedAt: row.detected_at,
-        resolvedAt: row.resolved_at
+        resolvedAt: row.resolved_at,
+        comparisons: comparisonsByFork[row.id] || [],
       })),
       pagination: {
         total,
@@ -282,6 +318,48 @@ router.get('/api/uncles/nodes', (req, res) => {
     },
   });
 });
+
+function formatCanonicalBlockSummary(row) {
+  const hash = row.canonical_block_hash || row.canonical_hash;
+  if (!hash) return null;
+
+  const poolInfo = getPoolInfo(row.canonical_miner_address);
+  return {
+    hash,
+    height: parseInt(row.height),
+    timestamp: row.canonical_timestamp ? parseInt(row.canonical_timestamp) : null,
+    transactionCount: row.canonical_transaction_count ?? null,
+    size: row.canonical_size ?? null,
+    minerAddress: row.canonical_miner_address || null,
+    minerPool: getPoolName(row.canonical_miner_address),
+    minerPoolUrl: poolInfo?.url || null,
+    minerPoolRegion: poolInfo?.region || null,
+  };
+}
+
+function formatReorgComparison(row) {
+  const orphanPool = getPoolInfo(row.miner_address);
+  const canonicalPool = getPoolInfo(row.canonical_miner_address);
+
+  return {
+    height: parseInt(row.height),
+    orphaned: {
+      hash: row.hash,
+      timestamp: row.timestamp ? parseInt(row.timestamp) : null,
+      transactionCount: row.transaction_count,
+      size: row.size,
+      minerAddress: row.miner_address,
+      minerPool: getPoolName(row.miner_address),
+      minerPoolUrl: orphanPool?.url || null,
+      source: row.source,
+    },
+    canonical: formatCanonicalBlockSummary(row) ? {
+      ...formatCanonicalBlockSummary(row),
+      minerPoolUrl: canonicalPool?.url || null,
+      minerPoolRegion: canonicalPool?.region || null,
+    } : null,
+  };
+}
 
 function formatOrphanedBlock(row) {
   return {

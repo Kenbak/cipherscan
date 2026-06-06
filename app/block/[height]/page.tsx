@@ -12,6 +12,18 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 
+interface CanonicalBlockSummary {
+  height: number;
+  hash: string;
+  timestamp: number | null;
+  transactionCount: number | null;
+  size: number | null;
+  minerAddress: string | null;
+  minerPool: string | null;
+  minerPoolUrl?: string | null;
+  minerPoolRegion?: string | null;
+}
+
 interface BlockData {
   height: number;
   hash: string;
@@ -35,6 +47,10 @@ interface BlockData {
   minerPoolUrl?: string | null;
   minerPoolRegion?: string | null;
   finality?: string | null;
+  isOrphaned?: boolean;
+  orphanSource?: string | null;
+  orphanDetectedAt?: string | null;
+  canonicalBlock?: CanonicalBlockSummary | null;
 }
 
 // Heroicons SVG Components
@@ -197,29 +213,49 @@ export default function BlockPage() {
 
           const totalFeesZatoshi = calculatedFees;
 
+          const canonicalBlock = blockData.canonicalBlock
+            ? {
+                height: parseInt(blockData.canonicalBlock.height),
+                hash: blockData.canonicalBlock.hash,
+                timestamp: blockData.canonicalBlock.timestamp
+                  ? parseInt(blockData.canonicalBlock.timestamp)
+                  : null,
+                transactionCount: blockData.canonicalBlock.transaction_count ?? null,
+                size: blockData.canonicalBlock.size ?? null,
+                minerAddress: blockData.canonicalBlock.miner_address || null,
+                minerPool: blockData.canonicalBlock.miner_pool || null,
+                minerPoolUrl: blockData.canonicalBlock.miner_pool_url || null,
+                minerPoolRegion: blockData.canonicalBlock.miner_pool_region || null,
+              }
+            : null;
+
           const transformedData = {
             height: parseInt(blockData.height),
             hash: blockData.hash,
-            timestamp: parseInt(blockData.timestamp),
+            timestamp: blockData.timestamp ? parseInt(blockData.timestamp) : 0,
             transactions: transformedTransactions,
             transactionCount: blockData.transactionCount || transformedTransactions.length,
-            size: parseInt(blockData.size),
-            difficulty: parseFloat(blockData.difficulty),
-            confirmations: parseInt(blockData.confirmations),
+            size: parseInt(blockData.size || 0),
+            difficulty: blockData.difficulty ? parseFloat(blockData.difficulty) : 0,
+            confirmations: parseInt(blockData.confirmations || 0),
             previousBlockHash: blockData.previous_block_hash || blockData.previousBlockHash,
             nextBlockHash: blockData.next_block_hash || blockData.nextBlockHash,
-            version: parseInt(blockData.version),
+            version: blockData.version ? parseInt(blockData.version) : undefined,
             merkleRoot: blockData.merkle_root || blockData.merkleRoot,
             finalSaplingRoot: blockData.final_sapling_root || blockData.finalSaplingRoot,
             bits: blockData.bits,
             nonce: blockData.nonce,
             solution: blockData.solution,
-            totalFees: totalFeesZatoshi / 100000000, // zatoshis to ZEC
+            totalFees: totalFeesZatoshi / 100000000,
             minerAddress: blockData.miner_address || blockData.minerAddress,
             minerPool: blockData.miner_pool || null,
             minerPoolUrl: blockData.miner_pool_url || null,
             minerPoolRegion: blockData.miner_pool_region || null,
-            finality: blockData.finality || null,
+            finality: blockData.finality || blockData.finality_status || null,
+            isOrphaned: Boolean(blockData.isOrphaned),
+            orphanSource: blockData.orphanSource || null,
+            orphanDetectedAt: blockData.orphanDetectedAt || null,
+            canonicalBlock,
           };
           setData(transformedData);
         } else {
@@ -331,6 +367,42 @@ export default function BlockPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-fade-in">
+      {/* Orphaned Block Banner */}
+      {data.isOrphaned && (
+        <div className="mb-6 rounded-xl border border-orange-500/40 bg-gradient-to-r from-orange-950/60 via-red-950/40 to-orange-950/60 backdrop-blur-sm p-4 sm:p-5 animate-fade-in-up">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <Badge color="orange" className="self-start">ORPHANED BLOCK</Badge>
+            <p className="text-sm text-secondary flex-1">
+              This block was replaced during a chain reorganization and is not on the canonical chain.
+              {data.orphanSource && (
+                <span className="text-muted ml-1">Source: {data.orphanSource}</span>
+              )}
+            </p>
+          </div>
+          {data.canonicalBlock && (
+            <div className="mt-4 pt-4 border-t border-orange-500/20">
+              <p className="text-xs text-muted mb-2 font-mono uppercase tracking-wider">Canonical block at height #{data.height.toLocaleString()}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/block/${data.canonicalBlock.hash}`}
+                  className="text-xs font-mono text-cipher-green hover:underline break-all"
+                >
+                  {data.canonicalBlock.hash}
+                </Link>
+                {data.canonicalBlock.minerPool && (
+                  <Badge color="green">{data.canonicalBlock.minerPool}</Badge>
+                )}
+                {data.canonicalBlock.transactionCount != null && (
+                  <span className="text-xs text-muted font-mono">
+                    {data.canonicalBlock.transactionCount} txs
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 animate-fade-in-up">
         <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
@@ -351,9 +423,12 @@ export default function BlockPage() {
                 </svg>
               </Link>
 
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono text-primary">
+              <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${data.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
                 #{data.height.toLocaleString()}
               </h1>
+              {data.isOrphaned && (
+                <Badge color="orange">ORPHAN</Badge>
+              )}
 
               <Link
                 href={`/block/${data.height + 1}`}

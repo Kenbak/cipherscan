@@ -90,32 +90,53 @@ export async function fetchBlockByHeightFromPostgres(heightOrHash: number | stri
       };
     });
 
+    const canonicalBlock = block.canonicalBlock
+      ? {
+          height: parseInt(block.canonicalBlock.height),
+          hash: block.canonicalBlock.hash,
+          timestamp: block.canonicalBlock.timestamp ? parseInt(block.canonicalBlock.timestamp) : null,
+          transactionCount: block.canonicalBlock.transaction_count ?? null,
+          size: block.canonicalBlock.size ?? null,
+          minerAddress: block.canonicalBlock.miner_address || null,
+          minerPool: block.canonicalBlock.miner_pool || null,
+          minerPoolUrl: block.canonicalBlock.miner_pool_url || null,
+          minerPoolRegion: block.canonicalBlock.miner_pool_region || null,
+        }
+      : null;
+
     return {
       height: parseInt(block.height),
       hash: block.hash,
-      time: parseInt(block.timestamp),
-      timestamp: parseInt(block.timestamp), // Add timestamp as number for frontend
+      time: block.timestamp ? parseInt(block.timestamp) : null,
+      timestamp: block.timestamp ? parseInt(block.timestamp) : null,
       tx: transactions,
-      transactions: transactions, // Add this for compatibility
-      transactionCount: transactions.length, // Add transaction count
-      size: parseInt(block.size),
-      difficulty: parseFloat(block.difficulty),
-      confirmations: parseInt(block.confirmations),
+      transactions,
+      transactionCount: block.transactionCount ?? transactions.length,
+      size: block.size ? parseInt(block.size) : 0,
+      difficulty: block.difficulty ? parseFloat(block.difficulty) : 0,
+      confirmations: parseInt(block.confirmations || 0),
       previousblockhash: block.previous_block_hash,
       nextblockhash: block.next_block_hash,
-      previousBlockHash: block.previous_block_hash, // Add camelCase version
-      nextBlockHash: block.next_block_hash, // Add camelCase version
-      version: parseInt(block.version),
+      previousBlockHash: block.previous_block_hash,
+      nextBlockHash: block.next_block_hash,
+      version: block.version ? parseInt(block.version) : undefined,
       merkleroot: block.merkle_root,
-      merkleRoot: block.merkle_root, // Add camelCase version
+      merkleRoot: block.merkle_root,
       finalsaplingroot: block.final_sapling_root,
-      finalSaplingRoot: block.final_sapling_root, // Add camelCase version
+      finalSaplingRoot: block.final_sapling_root,
       bits: block.bits,
       nonce: block.nonce,
       solution: block.solution,
       totalFees: block.total_fees ? parseInt(block.total_fees) : 0,
       minerAddress: block.miner_address,
+      minerPool: block.miner_pool || null,
+      minerPoolUrl: block.miner_pool_url || null,
+      minerPoolRegion: block.miner_pool_region || null,
       finality: block.finality_status || null,
+      isOrphaned: Boolean(block.isOrphaned),
+      orphanSource: block.orphanSource || null,
+      orphanDetectedAt: block.orphanDetectedAt || null,
+      canonicalBlock,
     };
   } catch (error) {
     console.error('Error fetching block from PostgreSQL API:', error);

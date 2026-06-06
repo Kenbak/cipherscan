@@ -19,9 +19,10 @@ export async function GET(
   try {
     const { height: heightStr } = await params;
     const isHash = /^[a-fA-F0-9]{64}$/.test(heightStr);
+    const isHeight = /^\d+$/.test(heightStr);
     const height = isHash ? null : parseInt(heightStr, 10);
 
-    if (!isHash && isNaN(height!)) {
+    if (!isHash && !isHeight) {
       return NextResponse.json(
         { error: 'Invalid block height or hash' },
         { status: 400 }
@@ -40,13 +41,6 @@ export async function GET(
         : await fetchBlockByHeight(height!);
     }
 
-    // Get current block height to calculate confirmations
-    const blockHeight = block?.height ?? height;
-    const currentHeight = usePostgresApi()
-      ? await getCurrentBlockHeightFromPostgres()
-      : await getCurrentBlockHeight();
-    const confirmations = (currentHeight && blockHeight) ? currentHeight - blockHeight + 1 : 1;
-
     if (!block) {
       return NextResponse.json(
         { error: 'Block not found' },
@@ -54,11 +48,22 @@ export async function GET(
       );
     }
 
+    // Get current block height to calculate confirmations
+    const blockHeight = block?.height ?? height;
+    const currentHeight = block.isOrphaned
+      ? null
+      : usePostgresApi()
+        ? await getCurrentBlockHeightFromPostgres()
+        : await getCurrentBlockHeight();
+    const confirmations = block.isOrphaned
+      ? 0
+      : (currentHeight && blockHeight) ? currentHeight - blockHeight + 1 : 1;
+
     // Override confirmations with freshly calculated value
     block.confirmations = confirmations;
 
     // Enrich with crosslink finality (returns null when not configured)
-    if (block.hash) {
+    if (block.hash && !block.isOrphaned) {
       const finality = await getBlockFinality(block.hash);
       if (finality) {
         block.finality = finality;

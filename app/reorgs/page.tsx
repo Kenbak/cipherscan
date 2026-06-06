@@ -25,6 +25,25 @@ interface OrphanedBlock {
   consensusValid: boolean | null;
   detectedAt: string;
   forkEventId: number | null;
+  canonicalBlock?: ReorgBlockSide | null;
+}
+
+interface ReorgBlockSide {
+  hash: string;
+  timestamp: number | null;
+  transactionCount: number | null;
+  size: number | null;
+  minerAddress: string | null;
+  minerPool: string | null;
+  minerPoolUrl?: string | null;
+  minerPoolRegion?: string | null;
+  source?: string;
+}
+
+interface ReorgComparison {
+  height: number;
+  orphaned: ReorgBlockSide;
+  canonical: ReorgBlockSide | null;
 }
 
 interface ForkEvent {
@@ -37,6 +56,7 @@ interface ForkEvent {
   description: string | null;
   detectedAt: string;
   resolvedAt: string | null;
+  comparisons?: ReorgComparison[];
 }
 
 interface Stats {
@@ -122,6 +142,91 @@ export default function UnclesPage() {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  const PoolBadge = ({ pool, url, variant }: { pool: string | null; url?: string | null; variant: 'orphan' | 'canonical' }) => {
+    if (!pool) return <span className="text-xs text-muted font-mono">Unknown miner</span>;
+    const colorClass = variant === 'orphan'
+      ? 'bg-orange-950/50 text-cipher-orange border-orange-500/30'
+      : 'bg-emerald-950/50 text-cipher-green border-emerald-500/30';
+    const content = (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-semibold border ${colorClass}`}>
+        {pool}
+      </span>
+    );
+    if (url) {
+      return (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+          {content}
+        </a>
+      );
+    }
+    return content;
+  };
+
+  const BlockSideCard = ({
+    label,
+    block,
+    variant,
+    height,
+  }: {
+    label: string;
+    block: ReorgBlockSide;
+    variant: 'orphan' | 'canonical';
+    height: number;
+  }) => {
+    const isOrphan = variant === 'orphan';
+    const borderColor = isOrphan ? 'border-orange-500/30' : 'border-emerald-500/30';
+    const bgGradient = isOrphan
+      ? 'from-orange-950/30 to-red-950/20'
+      : 'from-emerald-950/30 to-cyan-950/20';
+    const labelColor = isOrphan ? 'text-cipher-orange' : 'text-cipher-green';
+
+    return (
+      <div className={`flex-1 rounded-lg border ${borderColor} bg-gradient-to-br ${bgGradient} p-4`}>
+        <div className="flex items-center justify-between mb-3">
+          <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${labelColor}`}>
+            {label}
+          </span>
+          <Badge color={isOrphan ? 'orange' : 'green'}>
+            {isOrphan ? 'Orphaned' : 'Canonical'}
+          </Badge>
+        </div>
+        <div className="space-y-2.5">
+          <div>
+            <span className="text-[10px] text-muted font-mono uppercase">Height</span>
+            <div className="text-sm font-mono text-primary">#{height.toLocaleString()}</div>
+          </div>
+          <div>
+            <span className="text-[10px] text-muted font-mono uppercase">Hash</span>
+            <Link
+              href={`/block/${block.hash}`}
+              className={`text-xs font-mono break-all hover:underline block mt-0.5 ${isOrphan ? 'text-cipher-orange' : 'text-cipher-green'}`}
+            >
+              {block.hash}
+            </Link>
+          </div>
+          <div>
+            <span className="text-[10px] text-muted font-mono uppercase">Miner / Pool</span>
+            <div className="mt-1">
+              <PoolBadge pool={block.minerPool} url={block.minerPoolUrl} variant={variant} />
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div>
+              <span className="text-[10px] text-muted font-mono uppercase">TXs</span>
+              <div className="text-xs font-mono text-secondary">{block.transactionCount ?? '—'}</div>
+            </div>
+            <div>
+              <span className="text-[10px] text-muted font-mono uppercase">Time</span>
+              <div className="text-xs font-mono text-secondary">
+                {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const StatCard = ({ label, value, color = 'text-primary' }: { label: string; value: string | number; color?: string }) => (
     <Card variant="compact">
@@ -225,56 +330,75 @@ export default function UnclesPage() {
         </Card>
       )}
 
-      {/* Fork Events Table */}
+      {/* Fork Events — Side-by-side comparisons */}
       {!loading && !error && tab === 'forks' && forks.length > 0 && (
-        <Card>
-          <CardBody className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-cipher-border">
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Fork Height</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Reorg Length</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Orphans</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Source</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Description</th>
-                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Detected</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {forks.map((fork) => (
-                    <tr key={fork.id} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
-                      <td className="px-4 py-3">
-                        <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
-                          #{fork.forkHeight.toLocaleString()}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
-                          {fork.depth} block{fork.depth !== 1 ? 's' : ''}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
-                        {fork.orphanedCount}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
-                          {fork.source}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-secondary hidden sm:table-cell max-w-[300px] truncate">
-                        {fork.description || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-muted font-mono">
-                        {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+        <div className="space-y-6">
+          {forks.map((fork) => (
+            <Card key={fork.id}>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/block/${fork.forkHeight}`}
+                      className="text-sm font-mono font-bold text-cipher-cyan hover:underline"
+                    >
+                      Reorg at #{fork.forkHeight.toLocaleString()}
+                    </Link>
+                    <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
+                      {fork.depth} block{fork.depth !== 1 ? 's' : ''}
+                    </Badge>
+                    <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
+                      {fork.source}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted font-mono">
+                    {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
+                  </span>
+                </div>
+                {fork.description && (
+                  <p className="text-xs text-secondary mt-2">{fork.description}</p>
+                )}
+              </CardHeader>
+              <CardBody>
+                {fork.comparisons && fork.comparisons.length > 0 ? (
+                  <div className="space-y-4">
+                    {fork.comparisons.map((comparison) => (
+                      <div key={comparison.orphaned.hash} className="space-y-2">
+                        <div className="flex flex-col lg:flex-row gap-3">
+                          <BlockSideCard
+                            label="Orphaned Block"
+                            block={comparison.orphaned}
+                            variant="orphan"
+                            height={comparison.height}
+                          />
+                          <div className="hidden lg:flex items-center justify-center px-2">
+                            <div className="text-muted font-mono text-xs rotate-0 lg:-rotate-0">vs</div>
+                          </div>
+                          {comparison.canonical ? (
+                            <BlockSideCard
+                              label="Canonical Block"
+                              block={comparison.canonical}
+                              variant="canonical"
+                              height={comparison.height}
+                            />
+                          ) : (
+                            <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-4 flex items-center justify-center">
+                              <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted font-mono text-center py-4">
+                    No orphaned block details recorded for this fork event
+                  </p>
+                )}
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Orphaned Blocks Table */}
@@ -303,15 +427,20 @@ export default function UnclesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <code className="text-xs text-cipher-orange font-mono" title={block.hash}>
+                        <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash}>
                           {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
-                        </code>
+                        </Link>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        {block.canonicalHash ? (
-                          <code className="text-xs text-cipher-green font-mono" title={block.canonicalHash}>
-                            {block.canonicalHash.slice(0, 10)}...{block.canonicalHash.slice(-6)}
-                          </code>
+                        {(block.canonicalBlock?.hash || block.canonicalHash) ? (
+                          <Link
+                            href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`}
+                            className="text-xs text-cipher-green font-mono hover:underline"
+                            title={block.canonicalBlock?.hash || block.canonicalHash || ''}
+                          >
+                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
+                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
+                          </Link>
                         ) : (
                           <span className="text-xs text-muted">—</span>
                         )}

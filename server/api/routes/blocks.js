@@ -206,16 +206,79 @@ router.get('/api/blocks', async (req, res) => {
   }
 });
 
+function parseBlockIdentifier(param) {
+  if (/^[a-fA-F0-9]{64}$/.test(param)) {
+    return { type: 'hash', value: param };
+  }
+  if (/^\d+$/.test(param)) {
+    const height = parseInt(param, 10);
+    if (height < 0 || height > 100_000_000) return null;
+    return { type: 'height', value: height };
+  }
+  return null;
+}
+
+async function fetchCanonicalBlockSummary(blockHeight) {
+  const result = await pool.query(
+    `SELECT height, hash, timestamp, transaction_count, size, miner_address
+     FROM blocks WHERE height = $1`,
+    [blockHeight]
+  );
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  const poolInfo = getPoolInfo(row.miner_address);
+  return {
+    height: parseInt(row.height),
+    hash: row.hash,
+    timestamp: parseInt(row.timestamp),
+    transaction_count: row.transaction_count,
+    size: row.size,
+    miner_address: row.miner_address,
+    miner_pool: poolInfo?.name || null,
+    miner_pool_url: poolInfo?.url || null,
+    miner_pool_region: poolInfo?.region || null,
+  };
+}
+
+async function buildOrphanedBlockResponse(orphanRow) {
+  const blockHeight = parseInt(orphanRow.height);
+  const canonicalBlock = await fetchCanonicalBlockSummary(blockHeight);
+  const poolInfo = getPoolInfo(orphanRow.miner_address);
+
+  return {
+    height: blockHeight,
+    hash: orphanRow.hash,
+    timestamp: orphanRow.timestamp ? parseInt(orphanRow.timestamp) : null,
+    transaction_count: orphanRow.transaction_count || 0,
+    size: orphanRow.size || 0,
+    difficulty: orphanRow.difficulty,
+    previous_block_hash: orphanRow.previous_block_hash,
+    miner_address: orphanRow.miner_address,
+    isOrphaned: true,
+    orphanSource: orphanRow.source,
+    orphanDetectedAt: orphanRow.detected_at,
+    canonicalBlock,
+    transactions: [],
+    transactionCount: orphanRow.transaction_count || 0,
+    confirmations: 0,
+    miner_pool: poolInfo?.name || null,
+    miner_pool_url: poolInfo?.url || null,
+    miner_pool_region: poolInfo?.region || null,
+  };
+}
+
 // Get block by height or hash
 router.get('/api/block/:heightOrHash', async (req, res) => {
   try {
     const param = req.params.heightOrHash;
-    const isHash = /^[a-fA-F0-9]{64}$/.test(param);
-    const height = isHash ? null : parseInt(param);
+    const identifier = parseBlockIdentifier(param);
 
-    if (!isHash && isNaN(height)) {
+    if (!identifier) {
       return res.status(400).json({ error: 'Invalid block height or hash' });
     }
+
+    const isHash = identifier.type === 'hash';
+    const height = isHash ? null : identifier.value;
 
     // Get block details by height or hash
     const blockResult = await pool.query(
@@ -239,8 +302,24 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         miner_address
       FROM blocks
       WHERE ${isHash ? 'hash = $1' : 'height = $1'}`,
-      [isHash ? param : height]
+      [isHash ? identifier.value : height]
     );
+
+    // Hash lookup: fall back to orphaned_blocks if not on canonical chain
+    if (blockResult.rows.length === 0 && isHash) {
+      const orphanResult = await pool.query(
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty,
+                miner_address, previous_block_hash, source, detected_at
+         FROM orphaned_blocks WHERE hash = $1`,
+        [identifier.value]
+      );
+
+      if (orphanResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Block not found' });
+      }
+
+      return res.json(await buildOrphanedBlockResponse(orphanResult.rows[0]));
+    }
 
     if (blockResult.rows.length === 0) {
       return res.status(404).json({ error: 'Block not found' });
@@ -325,6 +404,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       confirmations,
       transactions,
       transactionCount: transactions.length,
+      isOrphaned: false,
       miner_pool: poolInfo?.name || null,
       miner_pool_url: poolInfo?.url || null,
       miner_pool_region: poolInfo?.region || null,
