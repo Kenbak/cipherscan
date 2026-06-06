@@ -50,12 +50,13 @@ export async function GET(
 
     // Get current block height to calculate confirmations
     const blockHeight = block?.height ?? height;
-    const currentHeight = block.isOrphaned
+    const isOrphaned = 'isOrphaned' in block && block.isOrphaned;
+    const currentHeight = isOrphaned
       ? null
       : usePostgresApi()
         ? await getCurrentBlockHeightFromPostgres()
         : await getCurrentBlockHeight();
-    const confirmations = block.isOrphaned
+    const confirmations = isOrphaned
       ? 0
       : (currentHeight && blockHeight) ? currentHeight - blockHeight + 1 : 1;
 
@@ -63,7 +64,7 @@ export async function GET(
     block.confirmations = confirmations;
 
     // Enrich with crosslink finality (returns null when not configured)
-    if (block.hash && !block.isOrphaned) {
+    if (block.hash && !isOrphaned) {
       const finality = await getBlockFinality(block.hash);
       if (finality) {
         block.finality = finality;
