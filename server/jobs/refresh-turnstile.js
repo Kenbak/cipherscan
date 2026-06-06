@@ -74,118 +74,123 @@ async function setLastProcessedTime(client, blockTime) {
 
 /**
  * Recompute turnstile_daily rows for a set of dates.
- * Idempotent: deletes existing rows then inserts fresh aggregates from raw data.
- * Uses separate CTEs with explicit priority ordering (reshield > exchange >
- * bridge > transferred). The scan is bounded by a block_time range so it can
- * use idx_shielded_flows_time; the planner is left to choose join strategies
- * (hash joins on the 100M+ row output/input tables are far faster than the
- * nested loops that forced join hints previously produced).
- * Wrapped in a transaction so partial failures don't corrupt data.
+ * Idempotent: deletes existing rows then inserts fresh aggregates.
+ *
+ * Uses a step-by-step temp table approach instead of a single massive CTE.
+ * This forces PostgreSQL to materialize small intermediate results and use
+ * index lookups (nested loops) against the 188M-row transaction_outputs and
+ * 161M-row transaction_inputs tables, rather than choosing expensive hash joins.
+ *
+ * Each step typically processes < 200 rows for a daily update, completing in
+ * seconds even under disk IO pressure.
  */
 async function recomputeDates(client, dates) {
   if (dates.length === 0) return 0;
 
-  // Derive an inclusive block_time range covering the affected dates so the
-  // scan can use idx_shielded_flows_time (sargable). The DATE(...) = ANY(...)
-  // filter is kept for exactness when the date set is sparse, but the range
-  // bound is what lets Postgres avoid a full scan of every deshield row.
-  // DB session is UTC, so EXTRACT(EPOCH FROM date) aligns with
-  // DATE(TO_TIMESTAMP(block_time)).
   const sorted = [...dates].sort();
   const minDate = sorted[0];
   const maxDate = sorted[sorted.length - 1];
 
   await client.query('BEGIN');
   try {
+    // Step 1: Collect deshield txids within the date range (uses idx_shielded_flows_time)
+    await client.query(`
+      CREATE TEMP TABLE _deshield_txs ON COMMIT DROP AS
+      SELECT sf.txid, sf.pool, sf.block_time,
+             DATE(TO_TIMESTAMP(sf.block_time)) AS date
+      FROM shielded_flows sf
+      WHERE sf.flow_type = 'deshield'
+        AND sf.block_time >= EXTRACT(EPOCH FROM $1::date)::bigint
+        AND sf.block_time < EXTRACT(EPOCH FROM ($2::date + 1))::bigint
+        AND DATE(TO_TIMESTAMP(sf.block_time)) = ANY($3::date[])
+    `, [minDate, maxDate, dates]);
+
+    // Step 2: Filter to "pure" deshields (no transparent inputs in the tx)
+    // Uses idx_tx_inputs_txid for the NOT EXISTS check
+    await client.query(`
+      CREATE TEMP TABLE _pure_deshields ON COMMIT DROP AS
+      SELECT dt.txid, dt.pool, dt.date
+      FROM _deshield_txs dt
+      WHERE NOT EXISTS (
+        SELECT 1 FROM transaction_inputs ti WHERE ti.txid = dt.txid
+      )
+    `);
+
+    // Step 3: Get transparent outputs for those txids (uses idx_tx_outputs_txid)
+    await client.query(`
+      CREATE TEMP TABLE _outputs ON COMMIT DROP AS
+      SELECT pd.date, pd.pool, pd.txid, txo.vout_index, txo.value
+      FROM _pure_deshields pd
+      JOIN transaction_outputs txo ON txo.txid = pd.txid
+      WHERE txo.address LIKE 't%'
+    `);
+
+    // Step 4: Find spends (uses idx_tx_inputs_prev_tx on prev_txid, prev_vout)
+    await client.query(`
+      CREATE TEMP TABLE _with_spend ON COMMIT DROP AS
+      SELECT o.date, o.pool, o.txid, o.vout_index, o.value,
+             ti.txid AS spending_txid
+      FROM _outputs o
+      LEFT JOIN transaction_inputs ti
+        ON ti.prev_txid = o.txid AND ti.prev_vout = o.vout_index
+    `);
+
+    // Step 5: Classify spending txids — priority: reshield > exchange > bridge > transferred
+    // 5a: Reshields (uses idx_shielded_flows_txid)
+    await client.query(`
+      CREATE TEMP TABLE _reshield ON COMMIT DROP AS
+      SELECT DISTINCT ws.spending_txid
+      FROM _with_spend ws
+      JOIN shielded_flows sf ON sf.txid = ws.spending_txid AND sf.flow_type = 'shield'
+      WHERE ws.spending_txid IS NOT NULL
+    `);
+
+    // 5b: Exchange destinations (uses idx_tx_outputs_txid + address_labels PK)
+    await client.query(`
+      CREATE TEMP TABLE _exchange ON COMMIT DROP AS
+      SELECT DISTINCT ws.spending_txid
+      FROM _with_spend ws
+      JOIN transaction_outputs txo ON txo.txid = ws.spending_txid
+      JOIN address_labels al ON al.address = txo.address AND al.category = 'exchange'
+      WHERE ws.spending_txid IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM _reshield r WHERE r.spending_txid = ws.spending_txid)
+    `);
+
+    // 5c: Bridge destinations
+    await client.query(`
+      CREATE TEMP TABLE _bridge ON COMMIT DROP AS
+      SELECT DISTINCT ws.spending_txid
+      FROM _with_spend ws
+      JOIN transaction_outputs txo ON txo.txid = ws.spending_txid
+      JOIN address_labels al ON al.address = txo.address AND al.category = 'bridge'
+      WHERE ws.spending_txid IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM _reshield r WHERE r.spending_txid = ws.spending_txid)
+        AND NOT EXISTS (SELECT 1 FROM _exchange e WHERE e.spending_txid = ws.spending_txid)
+    `);
+
+    // Step 6: Aggregate and insert
     await client.query('DELETE FROM turnstile_daily WHERE date = ANY($1::date[])', [dates]);
 
     const result = await client.query(`
-      WITH bounds AS (
-        SELECT
-          EXTRACT(EPOCH FROM $2::date)::bigint AS min_ts,
-          EXTRACT(EPOCH FROM ($3::date + 1))::bigint AS max_ts
-      ),
-      pure_deshields AS (
-        SELECT
-          DATE(TO_TIMESTAMP(sf.block_time)) AS date,
-          sf.pool,
-          sf.txid,
-          txo.vout_index,
-          txo.value
-        FROM shielded_flows sf
-        CROSS JOIN bounds b
-        JOIN transaction_outputs txo ON txo.txid = sf.txid
-        WHERE sf.flow_type = 'deshield'
-          AND sf.block_time >= b.min_ts
-          AND sf.block_time < b.max_ts
-          AND txo.address LIKE 't%'
-          AND DATE(TO_TIMESTAMP(sf.block_time)) = ANY($1::date[])
-          AND NOT EXISTS (
-            SELECT 1 FROM transaction_inputs ti_check
-            WHERE ti_check.txid = sf.txid
-          )
-      ),
-      with_spend AS (
-        SELECT
-          pd.date,
-          pd.pool,
-          pd.txid,
-          pd.vout_index,
-          pd.value,
-          ti.txid AS spending_txid
-        FROM pure_deshields pd
-        LEFT JOIN transaction_inputs ti
-          ON ti.prev_txid = pd.txid AND ti.prev_vout = pd.vout_index
-      ),
-      reshield_txids AS (
-        SELECT DISTINCT ws.spending_txid
-        FROM with_spend ws
-        JOIN shielded_flows sf ON sf.txid = ws.spending_txid
-        WHERE ws.spending_txid IS NOT NULL
-          AND sf.flow_type = 'shield'
-      ),
-      exchange_txids AS (
-        SELECT DISTINCT ws.spending_txid
-        FROM with_spend ws
-        JOIN transaction_outputs txo ON txo.txid = ws.spending_txid
-        JOIN address_labels al ON al.address = txo.address
-        WHERE ws.spending_txid IS NOT NULL
-          AND al.category = 'exchange'
-          AND ws.spending_txid NOT IN (SELECT spending_txid FROM reshield_txids)
-      ),
-      bridge_txids AS (
-        SELECT DISTINCT ws.spending_txid
-        FROM with_spend ws
-        JOIN transaction_outputs txo ON txo.txid = ws.spending_txid
-        JOIN address_labels al ON al.address = txo.address
-        WHERE ws.spending_txid IS NOT NULL
-          AND al.category = 'bridge'
-          AND ws.spending_txid NOT IN (SELECT spending_txid FROM reshield_txids)
-          AND ws.spending_txid NOT IN (SELECT spending_txid FROM exchange_txids)
-      )
       INSERT INTO turnstile_daily (date, pool, deshielded_zat, held_zat, reshielded_zat, exchange_zat, bridge_zat, transferred_zat, tx_count)
       SELECT
-        ws.date,
-        ws.pool,
-        SUM(ws.value) AS deshielded_zat,
-        SUM(CASE WHEN ws.spending_txid IS NULL THEN ws.value ELSE 0 END) AS held_zat,
-        SUM(CASE WHEN rt.spending_txid IS NOT NULL THEN ws.value ELSE 0 END) AS reshielded_zat,
-        SUM(CASE WHEN et.spending_txid IS NOT NULL THEN ws.value ELSE 0 END) AS exchange_zat,
-        SUM(CASE WHEN bt.spending_txid IS NOT NULL THEN ws.value ELSE 0 END) AS bridge_zat,
-        SUM(CASE
-          WHEN ws.spending_txid IS NOT NULL
-           AND rt.spending_txid IS NULL
-           AND et.spending_txid IS NULL
-           AND bt.spending_txid IS NULL
-          THEN ws.value ELSE 0
-        END) AS transferred_zat,
-        COUNT(DISTINCT ws.txid) AS tx_count
-      FROM with_spend ws
-      LEFT JOIN reshield_txids rt ON rt.spending_txid = ws.spending_txid
-      LEFT JOIN exchange_txids et ON et.spending_txid = ws.spending_txid
-      LEFT JOIN bridge_txids bt ON bt.spending_txid = ws.spending_txid
+        ws.date, ws.pool,
+        SUM(ws.value),
+        SUM(CASE WHEN ws.spending_txid IS NULL THEN ws.value ELSE 0 END),
+        SUM(CASE WHEN r.spending_txid IS NOT NULL THEN ws.value ELSE 0 END),
+        SUM(CASE WHEN e.spending_txid IS NOT NULL THEN ws.value ELSE 0 END),
+        SUM(CASE WHEN b.spending_txid IS NOT NULL THEN ws.value ELSE 0 END),
+        SUM(CASE WHEN ws.spending_txid IS NOT NULL
+                  AND r.spending_txid IS NULL
+                  AND e.spending_txid IS NULL
+                  AND b.spending_txid IS NULL THEN ws.value ELSE 0 END),
+        COUNT(DISTINCT ws.txid)
+      FROM _with_spend ws
+      LEFT JOIN _reshield r ON r.spending_txid = ws.spending_txid
+      LEFT JOIN _exchange e ON e.spending_txid = ws.spending_txid
+      LEFT JOIN _bridge b ON b.spending_txid = ws.spending_txid
       GROUP BY ws.date, ws.pool
-    `, [dates, minDate, maxDate]);
+    `);
 
     await client.query('COMMIT');
     return result.rowCount;
