@@ -1,6 +1,6 @@
 import type { ParsedGrantGroup, ParsedSubsection } from '@/lib/newsletter';
 import { inlineMarkdown } from '@/lib/newsletter';
-import { stripGrantGroupsFromBody } from '@/lib/newsletter/grant-utils';
+import { stripGrantGroupsFromBody, linkifyGrantItem } from '@/lib/newsletter/grant-utils';
 import { ProseHtml } from './ProseHtml';
 import { StoryCard } from './StoryCard';
 
@@ -29,7 +29,7 @@ export function GrantPipeline({ groups, footer }: GrantPipelineProps) {
             {group.items.map((item, j) => (
               <li
                 key={j}
-                dangerouslySetInnerHTML={{ __html: inlineMarkdown(item) }}
+                dangerouslySetInnerHTML={{ __html: inlineMarkdown(linkifyGrantItem(item)) }}
               />
             ))}
           </ul>
