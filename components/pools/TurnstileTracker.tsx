@@ -203,64 +203,113 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
             </div>
           ) : (
             <>
-              <MetricWithTooltip
-                className="mb-4"
-                label="Total Deshielded"
-                tooltip="ZEC that left a shielded pool to a transparent address in this period"
-              >
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="text-3xl sm:text-4xl font-bold font-mono tabular-nums text-primary">
-                    {formatZecCompact(summary.totalDeshielded)}
-                  </span>
-                  <span className="text-sm font-mono text-muted">ZEC</span>
-                  <span className="text-xs font-mono text-muted">
-                    across {summary.txCount.toLocaleString()} txs
-                  </span>
-                </div>
-              </MetricWithTooltip>
-
-              {totalShielded != null && totalShielded > 0 && summary.totalDeshielded > 0 && period !== 'all' && (() => {
-                const recoveryPct = (totalShielded / summary.totalDeshielded) * 100;
-                const shieldColor = '#56D4C8';
+              {(() => {
+                const showInflow = totalShielded != null && totalShielded > 0 && period !== 'all';
+                const inflowRatio = showInflow && summary.totalDeshielded > 0
+                  ? totalShielded / summary.totalDeshielded
+                  : null;
+                const netOutflow = showInflow && summary.totalDeshielded > totalShielded
+                  ? summary.totalDeshielded - totalShielded
+                  : null;
 
                 return (
-                  <div
-                    className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl bg-glass-4 border border-glass-6"
-                    style={{ borderLeftWidth: 2, borderLeftColor: shieldColor }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <svg
-                        className="w-4 h-4 shrink-0 opacity-80"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke={shieldColor}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden
-                      >
-                        <path d="M8 12V4M8 4L5 7M8 4l3 3" />
-                      </svg>
-                      <MetricWithTooltip
-                        label="Shielded During Period"
-                        tooltip="Total ZEC moved into shielded pools during this period — new shielding inflow, including reshields from transparent addresses"
-                      >
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <span
-                            className="text-xl sm:text-2xl font-bold font-mono tabular-nums"
-                            style={{ color: shieldColor }}
+                  <div className="mb-6 rounded-xl bg-glass-4 border border-glass-6 overflow-hidden">
+                    <div className={`grid ${showInflow ? 'sm:grid-cols-2' : ''} divide-y sm:divide-y-0 sm:divide-x divide-glass-6`}>
+                      <div className="p-4 sm:p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg
+                            className="w-3.5 h-3.5 shrink-0 text-muted opacity-70"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
                           >
-                            {formatZecCompact(totalShielded)}
+                            <path d="M8 4v8M8 12l3-3M8 12L5 9" />
+                          </svg>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                            Out of privacy
                           </span>
-                          <span className="text-sm font-mono text-muted">ZEC</span>
                         </div>
-                      </MetricWithTooltip>
+                        <MetricWithTooltip
+                          label="Deshielded"
+                          tooltip="ZEC that left a shielded pool to a transparent address in this period"
+                        >
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                              {formatZecCompact(summary.totalDeshielded)}
+                            </span>
+                            <span className="text-sm font-mono text-muted">ZEC</span>
+                          </div>
+                          <p className="text-xs font-mono text-muted mt-1">
+                            across {summary.txCount.toLocaleString()} txs
+                          </p>
+                        </MetricWithTooltip>
+                      </div>
+
+                      {showInflow && (
+                        <div className="p-4 sm:p-5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg
+                              className="w-3.5 h-3.5 shrink-0 text-muted opacity-70"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden
+                            >
+                              <path d="M8 12V4M8 4L5 7M8 4l3 3" />
+                            </svg>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                              Into privacy
+                            </span>
+                          </div>
+                          <MetricWithTooltip
+                            label="Shielded"
+                            tooltip="Total ZEC moved into shielded pools during this period — from transparent addresses, exchanges, bridges, and other sources. Not limited to deshielded outputs below."
+                          >
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                                {formatZecCompact(totalShielded)}
+                              </span>
+                              <span className="text-sm font-mono text-muted">ZEC</span>
+                            </div>
+                            <p className="text-xs font-mono text-muted mt-1">
+                              all shield inflows this period
+                            </p>
+                          </MetricWithTooltip>
+                        </div>
+                      )}
                     </div>
-                    <div className="hidden sm:block w-px h-8 bg-glass-8 shrink-0" aria-hidden />
-                    <p className="text-xs font-mono text-muted sm:max-w-xs">
-                      <span style={{ color: shieldColor }}>{recoveryPct.toFixed(1)}%</span>
-                      {' '}of deshielded volume returned to privacy
-                    </p>
+
+                    {showInflow && inflowRatio != null && summary.totalDeshielded > 0 && (
+                      <div className="px-4 sm:px-5 py-3 border-t border-glass-6 bg-glass-2">
+                        <p className="text-xs font-mono text-muted leading-relaxed">
+                          {inflowRatio >= 1 ? (
+                            <>
+                              <span className="text-secondary tabular-nums">{inflowRatio.toFixed(2)}×</span>
+                              {' '}more shielded in than deshielded out
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-secondary tabular-nums">{inflowRatio.toFixed(2)}×</span>
+                              {' '}shielded in per 1 ZEC deshielded out
+                              {netOutflow != null && netOutflow > 0 && (
+                                <>
+                                  {' '}· net{' '}
+                                  <span className="text-secondary tabular-nums">{formatZecCompact(netOutflow)}</span>
+                                  {' '}left privacy
+                                </>
+                              )}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -327,6 +376,9 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
                 return (
                   <>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-3">
+                      Where deshielded ZEC went
+                    </p>
                     <InteractiveCompositionBar
                       className="mb-6"
                       hoveredKey={hoveredCategory}
