@@ -1652,18 +1652,17 @@
     --nl-timeline-rail: 11px;
     position: relative;
     margin: 1.75rem 0;
-    padding: 0.25rem 0 0.25rem 1.75rem;
+    padding-left: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
   }
 
   .nl-longform-timeline::before {
     content: '';
     position: absolute;
     left: var(--nl-timeline-rail);
-    top: 0.5rem;
-    bottom: 0.5rem;
+    top: 0.75rem;
+    bottom: 0.75rem;
     width: 2px;
     transform: translateX(-50%);
     background: rgba(86, 212, 200, 0.35);
@@ -1671,35 +1670,42 @@
 
   .nl-longform-timeline-item {
     position: relative;
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    align-items: baseline;
+  }
+
+  .nl-longform-timeline-item:last-child {
+    border-bottom: none;
   }
 
   .nl-longform-timeline-item::before {
     content: '';
     position: absolute;
-    left: calc(-1.75rem + var(--nl-timeline-rail));
-    top: 0.45em;
+    left: calc(-2rem + var(--nl-timeline-rail));
+    top: 50%;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     background: var(--color-cyan);
     box-shadow: 0 0 0 3px rgba(86, 212, 200, 0.15);
   }
 
   .nl-longform-timeline-date {
-    display: block;
     font-family: var(--font-geist-mono), monospace;
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-cyan);
-    margin-bottom: 0.375rem;
+    color: var(--color-yellow);
+    white-space: nowrap;
   }
 
   .nl-longform-timeline-body {
     font-size: 0.9375rem;
-    line-height: 1.65;
+    line-height: 1.55;
     color: var(--color-text-secondary);
     margin: 0;
   }
