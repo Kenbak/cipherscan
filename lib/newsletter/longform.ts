@@ -67,9 +67,9 @@ function isRecoveryCallout(block: string): boolean {
 }
 
 function renderTimelineItem(date: string, body: string): string {
-  return `<div class="nl-timeline-item">
-    <time class="nl-timeline-date">${inlineMarkdown(date)}</time>
-    <p class="nl-timeline-body">${inlineMarkdown(body)}</p>
+  return `<div class="nl-longform-timeline-item">
+    <time class="nl-longform-timeline-date">${inlineMarkdown(date)}</time>
+    <p class="nl-longform-timeline-body">${inlineMarkdown(body)}</p>
   </div>`;
 }
 
@@ -151,7 +151,7 @@ export function longformMarkdown(md: string): string {
         timelineItems.push(renderTimelineItem(date, body));
         i++;
       }
-      html.push(`<div class="nl-timeline">${timelineItems.join('')}</div>`);
+      html.push(`<div class="nl-longform-timeline">${timelineItems.join('')}</div>`);
       continue;
     }
 
