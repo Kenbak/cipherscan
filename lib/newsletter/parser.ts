@@ -226,6 +226,13 @@ function stripTables(body: string): string {
   return body.replace(/((?:^\|.+\|$\n?)+)/gm, '').trim();
 }
 
+function stripBulletSubsections(body: string): string {
+  return body
+    .replace(/^[\-\*] \*\*.+?\*\*[.\s—\-–]*\s*.+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function stripBlockquotes(body: string): string {
   return body.replace(/^> .+$/gm, '').trim();
 }
@@ -301,6 +308,12 @@ function resolveProse(
       kind === 'forum-highlights'
     ) {
       prose = getLeadingProse(body);
+      if (
+        (kind === 'protocol' || kind === 'ecosystem' || kind === 'forum-highlights') &&
+        !/^### /m.test(body)
+      ) {
+        prose = stripBulletSubsections(prose);
+      }
     } else if (kind === 'privacy-index') {
       prose = removeAllSubsections(
         body,

@@ -63,7 +63,9 @@ function renderSection(section: ParsedSection) {
           {section.subsections.map((sub, i) => (
             <StoryCard key={i} title={sub.title} body={sub.body} />
           ))}
-          {section.prose && <ProseHtml markdown={section.prose} />}
+          {section.prose && section.subsections.length === 0 && (
+            <ProseHtml markdown={section.prose} />
+          )}
         </div>
       );
 
