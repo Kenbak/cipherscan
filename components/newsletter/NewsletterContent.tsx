@@ -18,6 +18,9 @@ interface NewsletterContentProps {
 function renderSection(section: ParsedSection) {
   switch (section.kind) {
     case 'top-stories':
+      if (section.subsections.length === 0 && section.prose) {
+        return <ProseHtml markdown={section.prose} className="nl-prose nl-prose--longform" />;
+      }
       return (
         <div className="nl-story-grid">
           {section.subsections.map((sub, i) => (

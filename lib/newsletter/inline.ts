@@ -41,6 +41,14 @@ export function proseMarkdown(md: string): string {
         return `<h4 class="nl-h4">${inlineMarkdown(title)}</h4>`;
       }
 
+      if (/^> /.test(block)) {
+        const inner = block
+          .split('\n')
+          .map((l) => l.replace(/^> ?/, ''))
+          .join('<br/>');
+        return `<blockquote class="nl-blockquote">${inlineMarkdown(inner)}</blockquote>`;
+      }
+
       if (/^[\-\*] /.test(block)) {
         const items = block
           .split('\n')

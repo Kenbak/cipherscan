@@ -1585,6 +1585,20 @@
     font-size: 1rem;
   }
 
+  .nl-prose--longform {
+    max-width: 72ch;
+  }
+
+  .nl-blockquote {
+    border-left: 3px solid var(--color-cyan);
+    padding: 0.75rem 1.25rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: var(--color-text-secondary);
+    background: var(--glass-2);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+
   .nl-p {
     margin: 1rem 0;
   }
