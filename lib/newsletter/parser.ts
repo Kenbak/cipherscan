@@ -13,6 +13,7 @@ import {
   getLeadingProse,
   removeAllSubsections,
 } from './tables';
+import { stripGrantGroupsFromBody } from './grant-utils';
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -327,7 +328,7 @@ function resolveProse(
   }
 
   if (kind === 'governance' && grantGroups.length > 0) {
-    prose = getLeadingProse(body);
+    prose = stripGrantGroupsFromBody(getLeadingProse(body));
   }
 
   if (tables.length > 0 && kind === 'network-snapshot') {

@@ -48,6 +48,16 @@ function parseStatListItem(line: string): { pct: string; amount: string; desc: s
   return { pct: label, amount: '', desc };
 }
 
+function isInlineAttributionQuote(block: string): boolean {
+  return /^[^*\n]+:\s*\*".+"\*$/.test(block.trim());
+}
+
+function renderInlineAttributionQuote(block: string): string {
+  const match = block.trim().match(/^(.+?):\s*\*(.+)\*$/);
+  if (!match) return renderParagraph(block, 'nl-p');
+  return renderPullQuote(match[2], match[1]);
+}
+
 function isAttributionLine(block: string): boolean {
   return (
     !block.includes('\n') &&
@@ -132,6 +142,12 @@ export function longformMarkdown(md: string): string {
 
   while (i < blocks.length) {
     const block = blocks[i];
+
+    if (isInlineAttributionQuote(block)) {
+      html.push(renderInlineAttributionQuote(block));
+      i++;
+      continue;
+    }
 
     if (isAttributionLine(block) && i + 1 < blocks.length && /^> /.test(blocks[i + 1])) {
       const attribution = block.replace(/:$/, '');

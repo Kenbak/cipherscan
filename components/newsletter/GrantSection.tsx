@@ -63,7 +63,8 @@ export function GovernanceSection({ subsections, grantGroups, prose }: Governanc
         .filter(
           (sub) =>
             !/grant pipeline/i.test(sub.title) &&
-            !/^grant decisions$/i.test(sub.title)
+            !/^grant decisions$/i.test(sub.title) &&
+            !/grant tracker/i.test(sub.title)
         )
         .map((sub, i) => (
           <StoryCard key={i} title={sub.title} body={sub.body} />

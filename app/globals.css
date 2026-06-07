@@ -1779,6 +1779,62 @@
   }
 
   /* Pull quotes with attribution */
+  .newsletter-content .nl-longform .nl-pullquote {
+    margin: 2rem 0;
+    border: 1px solid rgba(86, 212, 200, 0.22);
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(86, 212, 200, 0.07), rgba(86, 212, 200, 0.02));
+    overflow: hidden;
+  }
+
+  .newsletter-content .nl-longform .nl-pullquote .nl-blockquote {
+    margin: 0;
+    border-left: none;
+    border-radius: 0;
+    padding: 1.25rem 1.5rem 1rem;
+    font-size: 1.125rem;
+    line-height: 1.75;
+    font-style: italic;
+    color: var(--color-text-primary);
+    background: transparent;
+  }
+
+  .newsletter-content .nl-longform .nl-pullquote .nl-blockquote::before {
+    content: '\201C';
+    display: block;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--color-cyan);
+    opacity: 0.5;
+    margin-bottom: 0.25rem;
+    font-style: normal;
+  }
+
+  .newsletter-content .nl-longform .nl-pullquote-attr {
+    margin: 0;
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid rgba(86, 212, 200, 0.12);
+    background: rgba(86, 212, 200, 0.04);
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--color-cyan);
+    font-style: normal;
+  }
+
+  .newsletter-content .nl-longform .nl-blockquote {
+    margin: 2rem 0;
+    border-left: 3px solid var(--color-cyan);
+    padding: 1.125rem 1.375rem;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    font-style: italic;
+    color: var(--color-text-primary);
+    background: rgba(86, 212, 200, 0.05);
+    border-radius: 0 0.75rem 0.75rem 0;
+  }
+
   .nl-pullquote {
     margin: 1.75rem 0;
   }
