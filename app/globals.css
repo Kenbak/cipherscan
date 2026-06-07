@@ -1586,7 +1586,204 @@
   }
 
   .nl-prose--longform {
-    max-width: 72ch;
+    max-width: 65ch;
+  }
+
+  /* Longform article container */
+  .nl-longform {
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 1.25rem;
+    background: var(--glass-2);
+    overflow: hidden;
+  }
+
+  .nl-longform-body {
+    padding: 1.75rem 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .nl-longform-body {
+      padding: 2.25rem 2.5rem;
+    }
+  }
+
+  .nl-longform-body .nl-lead {
+    font-size: 1.125rem;
+    line-height: 1.85;
+    color: var(--color-text-primary);
+    margin-top: 0;
+    margin-bottom: 1.75rem;
+  }
+
+  .nl-longform-body .nl-p {
+    margin: 1.125rem 0;
+  }
+
+  .nl-longform-heading {
+    font-size: 1.0625rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  /* Key metric callout */
+  .nl-callout {
+    margin: 1.75rem 0;
+    padding: 1.125rem 1.25rem;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(232, 196, 141, 0.25);
+    background: linear-gradient(135deg, rgba(232, 196, 141, 0.08), rgba(86, 212, 200, 0.04));
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+  }
+
+  .nl-callout--recovery {
+    border-color: rgba(86, 212, 200, 0.25);
+    background: linear-gradient(135deg, rgba(86, 212, 200, 0.08), rgba(86, 212, 200, 0.02));
+  }
+
+  .nl-callout strong {
+    color: var(--color-text-primary);
+  }
+
+  /* Timeline */
+  .nl-timeline {
+    margin: 1.75rem 0;
+    padding: 0.25rem 0 0.25rem 1.25rem;
+    border-left: 2px solid rgba(86, 212, 200, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .nl-timeline-item {
+    position: relative;
+  }
+
+  .nl-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: calc(-1.25rem - 5px);
+    top: 0.45em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-cyan);
+    box-shadow: 0 0 0 3px rgba(86, 212, 200, 0.15);
+  }
+
+  .nl-timeline-date {
+    display: block;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    margin-bottom: 0.375rem;
+  }
+
+  .nl-timeline-body {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  /* Stat breakdown grid */
+  .nl-stat-breakdown {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+    margin: 1.75rem 0;
+  }
+
+  @media (min-width: 480px) {
+    .nl-stat-breakdown {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .nl-stat-breakdown {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .nl-stat-breakdown-item {
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--glass-3);
+    border-left-width: 3px;
+  }
+
+  .nl-stat-breakdown-item--held { border-left-color: #F4B728; }
+  .nl-stat-breakdown-item--reshielded { border-left-color: #00E676; }
+  .nl-stat-breakdown-item--transferred { border-left-color: #64748b; }
+  .nl-stat-breakdown-item--bridge { border-left-color: #A78BFA; }
+  .nl-stat-breakdown-item--exchange { border-left-color: #FF6B35; }
+  .nl-stat-breakdown-item--default { border-left-color: var(--color-cyan); }
+
+  .nl-stat-breakdown-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .nl-stat-breakdown-pct {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.2;
+  }
+
+  .nl-stat-breakdown-pct strong {
+    font-weight: 700;
+    color: inherit;
+  }
+
+  .nl-stat-breakdown-amt {
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .nl-stat-breakdown-desc {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  /* Pull quotes with attribution */
+  .nl-pullquote {
+    margin: 1.75rem 0;
+  }
+
+  .nl-pullquote .nl-blockquote {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    padding: 1.125rem 1.25rem;
+  }
+
+  .nl-pullquote-attr {
+    margin-top: 0.625rem;
+    padding-left: 1.25rem;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    font-style: normal;
+  }
+
+  .nl-longform-body .nl-blockquote {
+    margin: 1.5rem 0;
   }
 
   .nl-blockquote {

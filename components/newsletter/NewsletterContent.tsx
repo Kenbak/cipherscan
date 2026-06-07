@@ -8,6 +8,7 @@ import { QuoteGrid } from './QuoteGrid';
 import { GovernanceSection } from './GrantSection';
 import { TimelineList, ToolUpdateList } from './TimelineList';
 import { ProseHtml } from './ProseHtml';
+import { LongformArticle } from './LongformArticle';
 import { PrivacyIndexSection } from './PrivacyIndexSection';
 import { proseMarkdown } from '@/lib/newsletter';
 
@@ -19,7 +20,7 @@ function renderSection(section: ParsedSection) {
   switch (section.kind) {
     case 'top-stories':
       if (section.subsections.length === 0 && section.prose) {
-        return <ProseHtml markdown={section.prose} className="nl-prose nl-prose--longform" />;
+        return <LongformArticle markdown={section.prose} />;
       }
       return (
         <div className="nl-story-grid">
