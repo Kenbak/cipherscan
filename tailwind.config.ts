@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { LONGFORM_HTML_CLASS_LIST } from "./lib/newsletter/longform-classes";
 
 const config: Config = {
   content: [
@@ -7,6 +8,7 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [...LONGFORM_HTML_CLASS_LIST],
   darkMode: 'class',
   theme: {
     extend: {
