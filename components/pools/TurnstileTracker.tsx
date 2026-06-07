@@ -34,6 +34,26 @@ function getSinceDate(p: TurnstilePeriod): string {
   return d.toISOString().split('T')[0];
 }
 
+/** Flows API only supports fixed lookbacks — pick one that covers the turnstile window. */
+function getFlowsApiPeriod(p: TurnstilePeriod): string {
+  switch (p) {
+    case 'nu6.2':
+    case '30d':
+      return '30d';
+    case '90d':
+      return '90d';
+    case '1y':
+    case 'all':
+      return '1y';
+  }
+}
+
+function sumShieldInPeriod(points: { date: string; shield: number }[], since: string): number {
+  return points
+    .filter(pt => pt.date >= since)
+    .reduce((sum, pt) => sum + pt.shield, 0);
+}
+
 interface TurnstileSummary {
   totalDeshielded: number;
   totalHeld: number;
@@ -91,6 +111,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const flowColors = getFlowColors(theme);
   const [period, setPeriod] = useState<TurnstilePeriod>('nu6.2');
   const [summary, setSummary] = useState<TurnstileSummary | null>(null);
+  const [totalShielded, setTotalShielded] = useState<number | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewBuilding, setViewBuilding] = useState(false);
@@ -101,21 +122,29 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   useEffect(() => {
     setLoading(true);
     setViewBuilding(false);
+    setTotalShielded(null);
     const since = getSinceDate(period);
-    fetch(`${getApiUrl()}/api/pools/turnstile?since=${since}`)
-      .then(r => {
+    const flowsPeriod = getFlowsApiPeriod(period);
+
+    Promise.all([
+      fetch(`${getApiUrl()}/api/pools/turnstile?since=${since}`).then(r => {
         if (r.status === 503) return r.json().then(d => { setViewBuilding(d?.status === 'building'); return null; });
         return r.ok ? r.json() : null;
-      })
-      .then(data => {
-        if (data?.summary) setSummary(data.summary);
-        if (data?.lastUpdated) setLastUpdated(data.lastUpdated);
-        if (data?.timeseries) {
-          setTimeseries(data.timeseries.map((p: TurnstilePoint) => ({
+      }),
+      fetch(`${getApiUrl()}/api/pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? r.json() : null),
+    ])
+      .then(([turnstileData, flowsData]) => {
+        if (turnstileData?.summary) setSummary(turnstileData.summary);
+        if (turnstileData?.lastUpdated) setLastUpdated(turnstileData.lastUpdated);
+        if (turnstileData?.timeseries) {
+          setTimeseries(turnstileData.timeseries.map((p: TurnstilePoint) => ({
             ...p,
             bridge: p.bridge ?? 0,
             dateLabel: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           })));
+        }
+        if (flowsData?.points) {
+          setTotalShielded(sumShieldInPeriod(flowsData.points, since));
         }
       })
       .catch(() => {})
@@ -175,7 +204,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           ) : (
             <>
               <MetricWithTooltip
-                className="mb-6"
+                className="mb-4"
                 label="Total Deshielded"
                 tooltip="ZEC that left a shielded pool to a transparent address in this period"
               >
@@ -189,6 +218,52 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                   </span>
                 </div>
               </MetricWithTooltip>
+
+              {totalShielded != null && totalShielded > 0 && summary.totalDeshielded > 0 && period !== 'all' && (() => {
+                const recoveryPct = (totalShielded / summary.totalDeshielded) * 100;
+                const shieldColor = '#56D4C8';
+
+                return (
+                  <div
+                    className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl bg-glass-4 border border-glass-6"
+                    style={{ borderLeftWidth: 2, borderLeftColor: shieldColor }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg
+                        className="w-4 h-4 shrink-0 opacity-80"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke={shieldColor}
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M8 12V4M8 4L5 7M8 4l3 3" />
+                      </svg>
+                      <MetricWithTooltip
+                        label="Shielded During Period"
+                        tooltip="Total ZEC moved into shielded pools during this period — new shielding inflow, including reshields from transparent addresses"
+                      >
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span
+                            className="text-xl sm:text-2xl font-bold font-mono tabular-nums"
+                            style={{ color: shieldColor }}
+                          >
+                            {formatZecCompact(totalShielded)}
+                          </span>
+                          <span className="text-sm font-mono text-muted">ZEC</span>
+                        </div>
+                      </MetricWithTooltip>
+                    </div>
+                    <div className="hidden sm:block w-px h-8 bg-glass-8 shrink-0" aria-hidden />
+                    <p className="text-xs font-mono text-muted sm:max-w-xs">
+                      <span style={{ color: shieldColor }}>{recoveryPct.toFixed(1)}%</span>
+                      {' '}of deshielded volume returned to privacy
+                    </p>
+                  </div>
+                );
+              })()}
 
               {summary.totalDeshielded > 0 && (() => {
                 const movedPct = (summary.transferredPercent ?? 0) + (summary.bridgePercent ?? 0) + summary.exchangePercent;

@@ -58,11 +58,15 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 | **Block Explorer** | Navigate blocks with full transaction details |
 | **Mempool Viewer** | Real-time pending transactions |
 | **Live Updates** | WebSocket for real-time block notifications |
+| **CSV/JSON Export** | Export address, block, and transaction data from the UI |
+| **Fork Watch** | Chain reorganizations and orphaned block comparison |
 
 ### 🛡️ Privacy Tools
 | Feature | Description |
 |---------|-------------|
 | **Privacy Dashboard** | Real-time shielded adoption metrics |
+| **Pool Analytics** | Per-pool supply, shield/deshield flows, and deltas |
+| **Turnstile Tracker** | Where deshielded ZEC goes (held, exchange, bridge) |
 | **Decrypt Memos** | Client-side Orchard memo decryption (WASM) |
 | **Privacy Risks** | Round-trip transaction linkability detection |
 | **100% Private** | Viewing keys never leave your browser |
@@ -84,8 +88,9 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 ### 🔧 Developer Tools
 | Feature | Description |
 |---------|-------------|
-| **API Documentation** | Interactive REST API docs at `/docs` |
+| **API Documentation** | 43 endpoints — interactive REST docs at [`/docs`](https://cipherscan.app/docs) |
 | **Public Infrastructure** | Free Lightwalletd gRPC + REST API |
+| **Deployment Guide** | Operational docs in [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 
 ---
 
@@ -209,7 +214,7 @@ ZCASH_RPC_PASSWORD=your_password
 
 See [GitHub Issues](https://github.com/Kenbak/cipherscan/issues) for upcoming features and improvements.
 
-**Coming soon:** Sapling memo decryption, batch transaction scanning, CSV export.
+**In progress:** Sapling memo decryption, Tor hidden service (.onion), batch transaction scanning.
 
 ---
 

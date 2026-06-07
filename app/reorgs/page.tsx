@@ -9,6 +9,14 @@ import { Badge } from '@/components/ui/Badge';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
 
+function truncateAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function isUnknownPool(pool: string | null | undefined) {
+  return !pool || /^Unknown/i.test(pool);
+}
+
 interface OrphanedBlock {
   id: number;
   height: number;
@@ -144,8 +152,17 @@ export default function UnclesPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const PoolBadge = ({ pool, url, variant }: { pool: string | null; url?: string | null; variant: 'orphan' | 'canonical' }) => {
-    if (!pool) return <span className="text-xs text-muted font-mono">Unknown miner</span>;
+  const PoolBadge = ({ pool, url, variant, minerAddress }: { pool: string | null; url?: string | null; variant: 'orphan' | 'canonical'; minerAddress?: string | null }) => {
+    if (isUnknownPool(pool)) {
+      if (minerAddress) {
+        return (
+          <Link href={`/address/${minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline" title={minerAddress}>
+            {truncateAddress(minerAddress)}
+          </Link>
+        );
+      }
+      return <span className="text-xs text-muted font-mono">—</span>;
+    }
     const colorClass = variant === 'orphan'
       ? 'bg-orange-950/50 text-cipher-orange border-orange-500/30'
       : 'bg-emerald-950/50 text-cipher-green border-emerald-500/30';
@@ -209,7 +226,7 @@ export default function UnclesPage() {
           <div>
             <span className="text-[10px] text-muted font-mono uppercase">Miner / Pool</span>
             <div className="mt-1">
-              <PoolBadge pool={block.minerPool} url={block.minerPoolUrl} variant={variant} />
+              <PoolBadge pool={block.minerPool} url={block.minerPoolUrl} variant={variant} minerAddress={block.minerAddress} />
             </div>
           </div>
           <div className="flex gap-4">
@@ -272,7 +289,7 @@ export default function UnclesPage() {
               : 'border-transparent text-muted hover:text-secondary'
           }`}
         >
-          Fork Events ({forks.length})
+          Reorg History ({forks.length})
         </button>
         <button
           onClick={() => setTab('orphans')}
@@ -438,20 +455,20 @@ export default function UnclesPage() {
                           {block.transactionCount ?? '—'}
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
-                          {block.minerPool ? (
+                          {isUnknownPool(block.minerPool) ? (
                             block.minerAddress ? (
-                              <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
-                                {block.minerPool}
+                              <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                                {truncateAddress(block.minerAddress)}
                               </Link>
                             ) : (
-                              <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
+                              <span className="text-xs text-muted">—</span>
                             )
                           ) : block.minerAddress ? (
-                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" onClick={e => e.stopPropagation()}>
-                              {block.minerAddress.slice(0, 8)}...
+                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                              {block.minerPool}
                             </Link>
                           ) : (
-                            <span className="text-xs text-muted">—</span>
+                            <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
