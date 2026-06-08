@@ -1,0 +1,103 @@
+name: Security audit
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    # Weekly re-scan so newly disclosed CVEs surface even without a push.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # npm audit across every package.json in the repo
+  # ---------------------------------------------------------------------------
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    # Report-only for now: the inherited tree has pre-existing high-severity
+    # advisories (e.g. bigint-buffer via @solana). Dependabot raises fixes
+    # as individual PRs; flip this off once the backlog is cleared.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - "."
+          - "server/api"
+          - "server/indexer"
+          - "packages/zcash-decoder"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Audit (${{ matrix.dir }})
+        working-directory: ${{ matrix.dir }}
+        # high+critical fail the build; lower severities are reported only.
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          npm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Rust dependency audit (RUSTSEC advisories)
+  # ---------------------------------------------------------------------------
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    # Report-only: the WASM crate cannot resolve a fresh lockfile (orchard
+    # 0.11.0 -> yanked core2 ^0.3), so cargo-audit cannot build the graph.
+    # Unblocks once the orchard bump + committed Cargo.lock land.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: wasm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust + cargo-audit
+        run: |
+          rustup toolchain install stable --profile minimal
+          cargo install cargo-audit --locked
+      - name: Generate lockfile if missing
+        run: test -f Cargo.lock || cargo generate-lockfile
+      - name: Audit
+        run: cargo audit
+
+  # ---------------------------------------------------------------------------
+  # Python dependency audit
+  # ---------------------------------------------------------------------------
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/jobs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit
+        run: pip-audit -r requirements.txt
+
+  # ---------------------------------------------------------------------------
+  # Secret scanning (TruffleHog) - repo ships a .trufflehogignore already
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified

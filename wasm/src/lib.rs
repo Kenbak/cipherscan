@@ -32,13 +32,8 @@ pub struct UnifiedAddressComponents {
     pub sapling_address: Option<String>,
 }
 
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 #[wasm_bindgen(start)]
 pub fn main() {
-    #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 }
 
@@ -62,7 +57,7 @@ pub fn detect_key_type(viewing_key: &str) -> String {
 #[wasm_bindgen]
 pub fn decode_unified_address(ua_string: &str) -> Result<String, String> {
     // Decode the unified address
-    let (network, ua) = UnifiedAddress::decode(ua_string)
+    let (_network, ua) = UnifiedAddress::decode(ua_string)
         .map_err(|e| format!("Failed to decode unified address: {:?}", e))?;
 
     let is_mainnet = ua_string.starts_with("u1");
@@ -127,7 +122,7 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
     // Step 2: Extract Orchard FVK
     let orchard_fvk_bytes = ufvk.items().iter().find_map(|fvk| {
         match fvk {
-            Fvk::Orchard(data) => Some(data.clone()),
+            Fvk::Orchard(data) => Some(*data),
             _ => None,
         }
     }).ok_or("No Orchard FVK found in UFVK")?;
@@ -141,7 +136,7 @@ pub fn decrypt_memo(tx_hex: &str, viewing_key: &str) -> Result<String, String> {
         .map_err(|e| format!("Hex decode failed: {:?}", e))?;
 
     let mut cursor = Cursor::new(&tx_bytes[..]);
-    let tx = Transaction::read(&mut cursor, zcash_primitives::consensus::BranchId::Nu5)
+    let tx = Transaction::read(&mut cursor, zcash_protocol::consensus::BranchId::Nu5)
         .map_err(|e| format!("TX parse: {:?}", e))?;
 
     // Step 5: Get Orchard actions
@@ -220,7 +215,7 @@ pub fn decrypt_compact_output(
     // Step 2: Extract Orchard FVK
     let orchard_fvk_bytes = ufvk.items().iter().find_map(|fvk| {
         match fvk {
-            Fvk::Orchard(data) => Some(data.clone()),
+            Fvk::Orchard(data) => Some(*data),
             _ => None,
         }
     }).ok_or("No Orchard FVK found in UFVK")?;
@@ -324,7 +319,7 @@ pub fn batch_filter_compact_outputs(
 
     let orchard_fvk_bytes = ufvk.items().iter().find_map(|fvk| {
         match fvk {
-            Fvk::Orchard(data) => Some(data.clone()),
+            Fvk::Orchard(data) => Some(*data),
             _ => None,
         }
     }).ok_or("No Orchard FVK found in UFVK")?;
@@ -402,7 +397,7 @@ pub fn batch_filter_compact_outputs(
     let matches: Vec<Match> = results.iter()
         .enumerate()
         .filter_map(|(i, result)| {
-            result.as_ref().map(|((note, _recipient), ivk_idx)| {
+            result.as_ref().map(|((_note, _recipient), ivk_idx)| {
                 let scope_name = if *ivk_idx == 0 { "External" } else { "Internal" };
                 Match {
                     index: i,

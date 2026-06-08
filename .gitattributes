@@ -1,0 +1,2 @@
+# Auto-resolve concurrent CHANGELOG additions (keep both sides).
+CHANGELOG.md merge=union

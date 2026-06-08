@@ -1,0 +1,152 @@
+# CipherScan full stack: zebrad + lightwalletd + Postgres + Redis + API + web.
+#
+# Image versions are pinned via variables so you can point any service at a
+# specific tag, digest, or commit-tagged image. Copy .env.docker.example to
+# .env.docker and run:
+#
+#   docker compose --env-file .env.docker up -d
+#
+# To pin a service to a specific commit image, set e.g.
+#   ZEBRA_IMAGE=zfnd/zebra:sha-<commit>
+#   LIGHTWALLETD_IMAGE=electriccoinco/lightwalletd@sha256:<digest>
+# Locally built images (web, api) bake the source commit via GIT_COMMIT.
+
+name: cipherscan
+
+services:
+  # ----- Zebra full node (JSON-RPC for the API and lightwalletd) -----
+  zebrad:
+    image: ${ZEBRA_IMAGE:-zfnd/zebra:2.4.0}
+    restart: unless-stopped
+    environment:
+      ZEBRA_NETWORK__NETWORK: ${ZEBRA_NETWORK:-Mainnet}
+      ZEBRA_RPC__LISTEN_ADDR: 0.0.0.0:8232
+      # Internal-only network; cookie auth is disabled so peers can reach RPC.
+      ZEBRA_RPC__ENABLE_COOKIE_AUTH: "false"
+      ZEBRA_STATE__CACHE_DIR: /var/cache/zebrad
+    volumes:
+      - zebrad-state:/var/cache/zebrad
+    expose:
+      - "8232"
+    networks: [cipherscan]
+
+  # ----- lightwalletd (compact block gRPC over the zebrad RPC) -----
+  lightwalletd:
+    image: ${LIGHTWALLETD_IMAGE:-electriccoinco/lightwalletd:v0.4.17}
+    restart: unless-stopped
+    depends_on:
+      - zebrad
+    command:
+      - "--grpc-bind-addr=0.0.0.0:9067"
+      - "--http-bind-addr=0.0.0.0:9068"
+      - "--no-tls-very-insecure"
+      - "--zcash-conf-path=/etc/lightwalletd/zcash.conf"
+      - "--data-dir=/var/lib/lightwalletd"
+      - "--log-file=/dev/stdout"
+    volumes:
+      - ./docker/lightwalletd/zcash.conf:/etc/lightwalletd/zcash.conf:ro
+      - lightwalletd-data:/var/lib/lightwalletd
+    expose:
+      - "9067"
+    networks: [cipherscan]
+
+  # ----- PostgreSQL (explorer database) -----
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-zcash_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-zcash_explorer}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-zcash_user} -d ${DB_NAME:-zcash_explorer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cipherscan]
+
+  # ----- Redis (API cache + WebSocket pub/sub) -----
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-bookworm}
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    expose:
+      - "6379"
+    networks: [cipherscan]
+
+  # ----- Express API backend -----
+  api:
+    image: ${API_IMAGE:-cipherscan-api:local}
+    build:
+      context: ./server/api
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22.14.0-bookworm-slim}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      zebrad:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-zcash_explorer}
+      DB_USER: ${DB_USER:-zcash_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      ZEBRA_RPC_URL: http://zebrad:8232
+      ZEBRA_GRPC_URL: lightwalletd:9067
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    expose:
+      - "3001"
+    networks: [cipherscan]
+
+  # ----- Next.js frontend -----
+  web:
+    image: ${WEB_IMAGE:-cipherscan-web:local}
+    build:
+      context: .
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22.14.0-bookworm-slim}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    restart: unless-stopped
+    depends_on:
+      - api
+      - zebrad
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      NEXT_PUBLIC_NETWORK: ${NEXT_PUBLIC_NETWORK:-mainnet}
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Server-side calls inside the compose network:
+      ZCASH_RPC_URL: http://zebrad:8232
+      CIPHERSCAN_API_URL: http://api:3001
+      # Browser-side calls (adjust to your published host):
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_LIGHTWALLETD_HOST: ${NEXT_PUBLIC_LIGHTWALLETD_HOST:-lightwalletd}
+      NEXT_PUBLIC_LIGHTWALLETD_PORT: "9067"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    networks: [cipherscan]
+
+networks:
+  cipherscan:
+    driver: bridge
+
+volumes:
+  zebrad-state:
+  lightwalletd-data:
+  postgres-data:
+  redis-data:

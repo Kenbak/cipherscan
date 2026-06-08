@@ -1,0 +1,28 @@
+# Optional overlay: run Zebra's internal miner. TESTNET ONLY.
+#
+# This forces the network to Testnet and enables Zebra's experimental
+# internal miner, building zebrad from source with --features internal-miner.
+# Set ZEBRA_MINER_ADDRESS to a testnet transparent (tm...) address.
+#
+# Usage:
+#   docker compose --env-file .env.docker \
+#     -f docker-compose.yml -f docker-compose.mining.yml up -d
+#
+# See https://dannywillems.github.io/blog/2026/06/02/zcash-mining-zebra-stratum/
+
+services:
+  zebrad:
+    image: cipherscan-zebra-mining:local
+    build:
+      context: ./docker/zebra
+      args:
+        ZEBRA_REF: ${ZEBRA_REF:-v2.4.0}
+    environment:
+      # Mining is testnet-only; force Testnet regardless of the base config.
+      ZEBRA_NETWORK__NETWORK: Testnet
+      ZEBRA_RPC__LISTEN_ADDR: 0.0.0.0:8232
+      ZEBRA_RPC__ENABLE_COOKIE_AUTH: "false"
+      ZEBRA_STATE__CACHE_DIR: /var/cache/zebrad
+      ZEBRA_MINING__INTERNAL_MINER: "true"
+      # Required: a testnet transparent address. Compose errors if unset.
+      ZEBRA_MINING__MINER_ADDRESS: ${ZEBRA_MINER_ADDRESS:?set ZEBRA_MINER_ADDRESS to a testnet tm... address in .env.docker}

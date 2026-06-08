@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  # Never phone home from CI.
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Next.js frontend: lint, type-check, build
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint
+        # The inherited project has no ESLint config yet, so `next lint`
+        # prompts interactively and fails. Report-only until ESLint is
+        # configured (tracked as a follow-up). Type-check + build still gate.
+        continue-on-error: true
+        run: npm run lint
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Express API backend: install + syntax check (no lockfile committed yet)
+  # ---------------------------------------------------------------------------
+  backend-api:
+    name: Backend API (Express)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax check all JS sources
+        run: |
+          find . -name '*.js' -not -path './node_modules/*' \
+            -print0 | xargs -0 -n1 node --check
+
+  # ---------------------------------------------------------------------------
+  # Indexer: install + syntax check
+  # ---------------------------------------------------------------------------
+  indexer:
+    name: Indexer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/indexer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax check all JS sources
+        run: |
+          find . -name '*.js' -not -path './node_modules/*' \
+            -print0 | xargs -0 -n1 node --check
+
+  # ---------------------------------------------------------------------------
+  # zcash-decoder package: build (tsc)
+  # ---------------------------------------------------------------------------
+  zcash-decoder:
+    name: Package (zcash-decoder)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/zcash-decoder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies (skip postinstall banner)
+        run: npm install --no-audit --no-fund --ignore-scripts
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Rust WASM module: format, clippy, build
+  # ---------------------------------------------------------------------------
+  wasm:
+    name: WASM (Rust)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wasm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal \
+            --component clippy
+          rustup target add wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wasm
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+      - name: Clippy
+        run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
+      - name: Build (wasm-pack)
+        run: wasm-pack build --target web --release
+
+  # ---------------------------------------------------------------------------
+  # Python ML jobs: install deps + byte-compile
+  # ---------------------------------------------------------------------------
+  python-jobs:
+    name: Python jobs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/jobs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Byte-compile sources
+        run: python -m compileall -q .
+
+  # ---------------------------------------------------------------------------
+  # Shell scripts: shellcheck
+  # ---------------------------------------------------------------------------
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Run shellcheck
+        run: |
+          find . -name '*.sh' -not -path './node_modules/*' \
+            -print0 | xargs -0 -r shellcheck --severity=warning

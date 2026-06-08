@@ -1,0 +1,6 @@
+failure-threshold: warning
+trustedRegistries:
+  - docker.io
+ignored:
+  # Base image is pinned via the NODE_IMAGE ARG, not a literal tag.
+  - DL3006

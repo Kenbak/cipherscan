@@ -1,0 +1,109 @@
+# Dependabot configuration
+# Keeps every dependency ecosystem in the repo up to date with security
+# and version updates. Grouped to reduce PR noise; security updates are
+# always raised individually and immediately by Dependabot regardless of
+# the schedule below.
+version: 2
+
+updates:
+  # ----- npm: Next.js frontend (repo root) -----
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - frontend
+    groups:
+      frontend-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # ----- npm: Express API backend -----
+  - package-ecosystem: npm
+    directory: "/server/api"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - backend
+    groups:
+      backend-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # ----- npm: indexer -----
+  - package-ecosystem: npm
+    directory: "/server/indexer"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - indexer
+
+  # ----- npm: zcash-decoder package -----
+  - package-ecosystem: npm
+    directory: "/packages/zcash-decoder"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - zcash-decoder
+
+  # ----- Cargo: Rust WASM module -----
+  - package-ecosystem: cargo
+    directory: "/wasm"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - wasm
+
+  # ----- pip: Python ML jobs -----
+  - package-ecosystem: pip
+    directory: "/server/jobs"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+
+  # ----- GitHub Actions used by the workflows below -----
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+
+  # ----- Docker: frontend image base (root Dockerfile) -----
+  - package-ecosystem: docker
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker
+
+  # ----- Docker: API backend image base -----
+  - package-ecosystem: docker
+    directory: "/server/api"
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker

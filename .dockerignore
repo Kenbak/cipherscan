@@ -1,0 +1,25 @@
+# VCS / CI
+.git
+.github
+# Dependencies and build artifacts
+node_modules
+**/node_modules
+.next
+out
+build
+dist
+coverage
+# Rust / WASM build outputs (the runtime WASM lives under public/)
+wasm/target
+wasm/pkg
+# The backend has its own build context (server/api/Dockerfile)
+server
+# Local env / secrets
+.env
+.env.*
+!.env.example
+# Docs and misc
+*.md
+docs
+.vscode
+.idea
