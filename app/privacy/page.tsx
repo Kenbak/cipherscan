@@ -559,7 +559,7 @@ export default function PrivacyPage() {
                         color: chartColors.tooltipText
                       }}
                       labelFormatter={(label) => formatDate(label)}
-                      formatter={(value: any) => [
+                      formatter={(value) => [
                         <span key="v" style={{ color: chartColors.tooltipText }}>{Number(value).toFixed(2)}%</span>,
                         'Shielded tx share'
                       ]}
@@ -620,7 +620,7 @@ export default function PrivacyPage() {
                         color: chartColors.tooltipText
                       }}
                       labelFormatter={(label) => formatDate(label)}
-                      formatter={(value: any) => [
+                      formatter={(value) => [
                         <span key="v" style={{ color: chartColors.tooltipText }}>{(Number(value) / 1000000).toFixed(4)}M ZEC</span>,
                         'Pool Size'
                       ]}
@@ -667,7 +667,7 @@ export default function PrivacyPage() {
                       }}
                       labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                       labelFormatter={(label) => formatDate(label)}
-                      formatter={(value: any, name: string) => {
+                      formatter={(value, name) => {
                         const color = name === 'shielded' ? 'var(--color-purple)' : chartColors.axis;
                         const displayName = name === 'shielded' ? 'Shielded' : 'Transparent';
                         return [
@@ -741,7 +741,7 @@ export default function PrivacyPage() {
                           padding: '12px'
                         }}
                         labelFormatter={(label) => formatDate(label)}
-                        formatter={(value: any) => {
+                        formatter={(value) => {
                           const score = Number(value);
                           let rating = 'Low';
                           let ratingColor = '#EF4444';

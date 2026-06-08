@@ -21,12 +21,12 @@
     "@grpc/grpc-js": "^1.14.1",
     "@grpc/proto-loader": "^0.8.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
+    "dotenv": "^17.0.0",
+    "express": "^5.0.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.0.0",
     "pg": "^8.11.3",
-    "redis": "^5.10.0",
+    "redis": "^6.0.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {

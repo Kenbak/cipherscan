@@ -86,8 +86,8 @@ export function NetworkHistoryCharts() {
               />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(v: number) => [
-                  `${(v / 1e6).toFixed(2)}M ZEC (${((v / MAX_ZEC_SUPPLY) * 100).toFixed(1)}% of max)`,
+                formatter={(v) => [
+                  `${(Number(v) / 1e6).toFixed(2)}M ZEC (${((Number(v) / MAX_ZEC_SUPPLY) * 100).toFixed(1)}% of max)`,
                   'Circulating',
                 ]}
               />
@@ -110,7 +110,7 @@ export function NetworkHistoryCharts() {
               <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${v.toFixed(0)} GB`} domain={['auto', 'auto']} />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(v: number) => [`${v.toFixed(2)} GB`, 'Chain size']}
+                formatter={(v) => [`${Number(v).toFixed(2)} GB`, 'Chain size']}
               />
               <Line type="monotone" dataKey="sizeGB" stroke={colors.yellow} strokeWidth={2} dot={sizePoints.length === 1} />
             </LineChart>

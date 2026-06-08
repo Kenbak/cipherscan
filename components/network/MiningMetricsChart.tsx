@@ -84,7 +84,7 @@ export function MiningMetricsChart() {
                 fontSize: 12,
               }}
               labelFormatter={(h) => `Block ${h}`}
-              formatter={(value: number) => [metric.format(value), metric.label]}
+              formatter={(value) => [metric.format(Number(value)), metric.label]}
             />
             <Line type="monotone" dataKey={active} stroke={stroke} strokeWidth={2} dot={false} />
           </LineChart>

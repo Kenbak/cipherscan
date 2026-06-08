@@ -122,8 +122,8 @@ export function FlowVolumeChart() {
                   borderRadius: '8px',
                   fontSize: 12,
                 }}
-                formatter={(value: number, name: string) => {
-                  const abs = Math.abs(value);
+                formatter={(value, name) => {
+                  const abs = Math.abs(Number(value));
                   const label = name === 'deshield' ? 'Deshielded' : name === 'shield' ? 'Shielded' : 'Net Flow';
                   return [`${abs.toFixed(2)} ZEC`, label];
                 }}

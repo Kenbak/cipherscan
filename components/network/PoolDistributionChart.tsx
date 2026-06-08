@@ -110,7 +110,7 @@ export function PoolDistributionChart() {
               />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(value: number, name: string) => [`${(value / 1e6).toFixed(3)}M ZEC`, name]}
+                formatter={(value, name) => [`${(Number(value) / 1e6).toFixed(3)}M ZEC`, name]}
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
@@ -144,7 +144,7 @@ export function PoolDistributionChart() {
               <ReferenceLine y={MAX_ZEC_SUPPLY} stroke={colors.axis} strokeDasharray="4 4" strokeOpacity={0.35} />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(value: number, name: string) => [`${(value / 1e6).toFixed(3)}M ZEC`, name]}
+                formatter={(value, name) => [`${(Number(value) / 1e6).toFixed(3)}M ZEC`, name]}
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
@@ -168,7 +168,7 @@ export function PoolDistributionChart() {
               <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} domain={[yMin, yMax]} tickFormatter={(v) => `${v.toFixed(0)}%`} />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px' }}
-                formatter={(value: number) => [`${Number(value).toFixed(2)}%`, 'Shielded share of supply']}
+                formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Shielded share of supply']}
               />
               <Line type="monotone" dataKey="shieldedPct" stroke={colors.shielded} strokeWidth={2} dot={false} name="Shielded share" />
             </LineChart>

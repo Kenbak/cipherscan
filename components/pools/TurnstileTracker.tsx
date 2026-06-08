@@ -487,7 +487,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     borderRadius: '8px',
                     fontSize: 12,
                   }}
-                  formatter={(value: number, name: string) => {
+                  formatter={(value, name) => {
                     const labels: Record<string, string> = {
                       held: 'Still Held',
                       reshielded: 'Reshielded',
@@ -496,7 +496,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                       bridge: 'To Bridge',
                       exchange: 'To Exchange',
                     };
-                    return [`${Number(value).toFixed(2)} ZEC`, labels[name] || name];
+                    return [`${Number(value).toFixed(2)} ZEC`, labels[String(name)] || String(name)];
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />

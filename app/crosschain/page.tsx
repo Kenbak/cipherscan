@@ -504,8 +504,8 @@ export default function CrosschainPage() {
                       <RechartsTooltip
                         contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px' }}
                         labelStyle={{ color: 'var(--color-text-secondary, #ccc)' }}
-                        formatter={(value: number, name: string) => [formatUSD(value), name === 'inflowVolume' ? 'Inflows' : 'Outflows']}
-                        labelFormatter={(label: string) => new Date(label).toLocaleDateString()}
+                        formatter={(value, name) => [formatUSD(Number(value)), name === 'inflowVolume' ? 'Inflows' : 'Outflows']}
+                        labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
                       />
                       <Legend formatter={(value: string) => value === 'inflowVolume' ? 'Inflows' : 'Outflows'} />
                       <Bar dataKey="inflowVolume" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="volume" />
