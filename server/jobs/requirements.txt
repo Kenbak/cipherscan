@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Database
-psycopg2-binary>=2.9.9
+psycopg2-binary>=2.9.12
 
 # ML/Data Science
 numpy>=1.24.0
