@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/Kenbak/cipherscan/tree/main/packages/zcash-decoder#readme",
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^25.9.2",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {},
