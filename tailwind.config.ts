@@ -1,14 +1,6 @@
 import type { Config } from "tailwindcss";
-import { LONGFORM_HTML_CLASS_LIST } from "./lib/newsletter/longform-classes";
 
 const config: Config = {
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  safelist: [...LONGFORM_HTML_CLASS_LIST],
   darkMode: 'class',
   theme: {
     extend: {

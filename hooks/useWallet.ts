@@ -52,7 +52,7 @@ interface EIP6963Detail {
 }
 
 // Stored EIP-6963 providers (populated by event listener)
-let eip6963Providers: EIP6963Detail[] = [];
+const eip6963Providers: EIP6963Detail[] = [];
 let eip6963Requested = false;
 
 function requestEIP6963() {
@@ -130,7 +130,7 @@ function getEvmProviders(): { name: string; icon?: string; key: string; provider
 // ── Wallet Standard (Solana) — icon discovery only ──
 interface StandardWallet { name: string; icon: string; chains: readonly string[]; features: Record<string, any>; }
 
-let standardWallets: StandardWallet[] = [];
+const standardWallets: StandardWallet[] = [];
 let standardWalletsRequested = false;
 
 function requestStandardWallets() {

@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@source "../components";
+@source "../app";
+@source "../lib";
+@source "../pages";
 
 /**
  * CIPHERSCAN Design System v2.0
