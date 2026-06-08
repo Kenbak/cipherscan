@@ -1,8 +1,6 @@
 # Dependabot configuration
-# Keeps every dependency ecosystem in the repo up to date with security
-# and version updates. Grouped to reduce PR noise; security updates are
-# always raised individually and immediately by Dependabot regardless of
-# the schedule below.
+# Only proposes patch and minor updates (no major version bumps).
+# Security fixes are always raised immediately regardless of schedule.
 version: 2
 
 updates:
@@ -10,13 +8,16 @@ updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+      interval: monthly
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - frontend
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
-      frontend-minor-patch:
+      frontend-patches:
         update-types:
           - minor
           - patch
@@ -25,85 +26,52 @@ updates:
   - package-ecosystem: npm
     directory: "/server/api"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-    labels:
-      - dependencies
-      - backend
-    groups:
-      backend-minor-patch:
-        update-types:
-          - minor
-          - patch
-
-  # ----- npm: indexer -----
-  - package-ecosystem: npm
-    directory: "/server/indexer"
-    schedule:
-      interval: weekly
+      interval: monthly
     open-pull-requests-limit: 5
     labels:
       - dependencies
-      - indexer
+      - backend
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      backend-patches:
+        update-types:
+          - minor
+          - patch
 
   # ----- npm: zcash-decoder package -----
   - package-ecosystem: npm
     directory: "/packages/zcash-decoder"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - zcash-decoder
-
-  # ----- Cargo: Rust WASM module -----
-  - package-ecosystem: cargo
-    directory: "/wasm"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - wasm
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # ----- pip: Python ML jobs -----
   - package-ecosystem: pip
     directory: "/server/jobs"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - python
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # ----- GitHub Actions used by the workflows below -----
+  # ----- GitHub Actions used by the workflows -----
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - ci
-
-  # ----- Docker: frontend image base (root Dockerfile) -----
-  - package-ecosystem: docker
-    directory: "/"
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - docker
-
-  # ----- Docker: API backend image base -----
-  - package-ecosystem: docker
-    directory: "/server/api"
-    target-branch: dev
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - docker
