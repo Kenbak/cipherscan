@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: 'About | CipherScan',
   description:
     'Privacy-first Zcash blockchain explorer. Born at the Zypherpunk hackathon. Making privacy visual, understandable, and accessible to all.',
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;

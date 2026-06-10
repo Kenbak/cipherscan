@@ -78,8 +78,12 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 
   // Canonical + RSS
+  // './' resolves to the current pathname (via metadataBase), so every page
+  // gets a self-referencing canonical unless it overrides alternates itself.
+  // A hardcoded absolute URL here would mark every page as a duplicate of
+  // the homepage and block indexing.
   alternates: {
-    canonical: 'https://cipherscan.app',
+    canonical: './',
     types: {
       'application/rss+xml': 'https://cipherscan.app/newsletter/rss',
     },
@@ -89,26 +93,42 @@ export const metadata: Metadata = {
   category: 'technology',
 };
 
-// Site-wide JSON-LD structured data
+// Site-wide JSON-LD structured data.
+// WebSite.name + alternateName teach Google the site-name entity for the
+// "cipherscan" brand query; Organization with sameAs links the domain to
+// our social/code profiles for entity disambiguation.
 const siteJsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'CipherScan',
-  description: 'Zcash block explorer and privacy analytics platform. Explore blocks, transactions, addresses, and shielded pool activity.',
-  url: 'https://cipherscan.app',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://cipherscan.app/tx/{search_term_string}',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': 'https://cipherscan.app/#website',
+      name: 'CipherScan',
+      alternateName: ['CipherScan Zcash Explorer', 'cipherscan.app'],
+      description: 'Zcash block explorer and privacy analytics platform. Explore blocks, transactions, addresses, and shielded pool activity.',
+      url: 'https://cipherscan.app',
+      publisher: { '@id': 'https://cipherscan.app/#organization' },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: 'https://cipherscan.app/tx/{search_term_string}',
+        },
+        'query-input': 'required name=search_term_string',
+      },
     },
-    'query-input': 'required name=search_term_string',
-  },
-  creator: {
-    '@type': 'Organization',
-    name: 'CipherScan',
-    url: 'https://cipherscan.app',
-  },
+    {
+      '@type': 'Organization',
+      '@id': 'https://cipherscan.app/#organization',
+      name: 'CipherScan',
+      url: 'https://cipherscan.app',
+      logo: 'https://cipherscan.app/apple-touch-icon.png',
+      sameAs: [
+        'https://twitter.com/cipherscan_app',
+        'https://github.com/Kenbak/cipherscan',
+      ],
+    },
+  ],
 };
 
 function AppContent({ children }: { children: React.ReactNode }) {
