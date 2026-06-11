@@ -616,6 +616,37 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
 });
 
 // ============================================================================
+// VERBOSE RAW TRANSACTION (full decoded JSON from Zebra RPC)
+// ============================================================================
+
+router.get('/api/tx/:txid/verbose', async (req, res) => {
+  try {
+    const { txid } = req.params;
+
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
+      return res.status(400).json({ error: 'Invalid transaction ID' });
+    }
+
+    const [rawHex, decoded] = await Promise.all([
+      callZebraRPC('getrawtransaction', [txid, 0]),
+      callZebraRPC('getrawtransaction', [txid, 1]),
+    ]);
+
+    res.json({
+      txid,
+      hex: rawHex,
+      decoded,
+    });
+  } catch (error) {
+    if (error.message && error.message.includes('No such mempool or blockchain transaction')) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    console.error('Error fetching verbose transaction:', error);
+    res.status(500).json({ error: 'Failed to fetch transaction' });
+  }
+});
+
+// ============================================================================
 // BATCH RAW TRANSACTIONS
 // ============================================================================
 

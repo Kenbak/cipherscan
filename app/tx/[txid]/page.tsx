@@ -137,7 +137,9 @@ export default function TransactionPage() {
   const [loading, setLoading] = useState(true);
   const [blockFallbackChecked, setBlockFallbackChecked] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'summary' | 'io'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'io' | 'raw'>('summary');
+  const [rawData, setRawData] = useState<{ hex: string; decoded: any } | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
   const [mempoolTx, setMempoolTx] = useState<any>(null);
   const [mempoolChecked, setMempoolChecked] = useState(false);
   const [mempoolConfirming, setMempoolConfirming] = useState(false);
@@ -1087,8 +1089,8 @@ export default function TransactionPage() {
           ================================================================ */}
       <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
         <div className="flex items-center gap-6 border-b border-cipher-border">
-          {(['summary', 'io'] as const).map((tab) => {
-            const labels = { summary: 'Overview', io: 'Inputs / Outputs' };
+          {(['summary', 'io', 'raw'] as const).map((tab) => {
+            const labels = { summary: 'Overview', io: 'Inputs / Outputs', raw: 'Raw' };
             return (
               <button
                 key={tab}
@@ -1444,8 +1446,115 @@ export default function TransactionPage() {
         </div>
       )}
 
+      {/* ================================================================
+          RAW TAB
+          ================================================================ */}
+      {activeTab === 'raw' && (
+        <RawTransactionTab txid={txid} rawData={rawData} setRawData={setRawData} rawLoading={rawLoading} setRawLoading={setRawLoading} />
+      )}
 
+    </div>
+  );
+}
 
+function RawTransactionTab({ txid, rawData, setRawData, rawLoading, setRawLoading }: {
+  txid: string;
+  rawData: { hex: string; decoded: any } | null;
+  setRawData: (d: { hex: string; decoded: any } | null) => void;
+  rawLoading: boolean;
+  setRawLoading: (l: boolean) => void;
+}) {
+  useEffect(() => {
+    if (rawData) return;
+    setRawLoading(true);
+    fetch(`${getApiUrl()}/api/tx/${txid}/verbose`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.hex && data.decoded) {
+          setRawData({ hex: data.hex, decoded: data.decoded });
+        }
+      })
+      .catch(err => console.error('Failed to fetch raw tx:', err))
+      .finally(() => setRawLoading(false));
+  }, [txid, rawData, setRawData, setRawLoading]);
+
+  const [copiedRaw, setCopiedRaw] = useState(false);
+  const [showDecoded, setShowDecoded] = useState(true);
+
+  const copyHex = async () => {
+    if (!rawData?.hex) return;
+    await navigator.clipboard.writeText(rawData.hex);
+    setCopiedRaw(true);
+    setTimeout(() => setCopiedRaw(false), 2000);
+  };
+
+  if (rawLoading) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="flex items-center justify-center py-12">
+            <div className="w-5 h-5 border-2 border-cipher-cyan/30 border-t-cipher-cyan rounded-full animate-spin" />
+            <span className="ml-3 text-sm text-muted">Loading raw transaction...</span>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (!rawData) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="text-sm text-muted text-center py-8">Failed to load raw transaction data.</p>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => setShowDecoded(false)}
+          className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${
+            !showDecoded ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+          }`}
+        >
+          Hex
+        </button>
+        <button
+          onClick={() => setShowDecoded(true)}
+          className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${
+            showDecoded ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+          }`}
+        >
+          Decoded JSON
+        </button>
+        <button
+          onClick={copyHex}
+          className="ml-auto px-3 py-1.5 text-xs font-mono text-muted hover:text-primary transition-colors"
+        >
+          {copiedRaw ? '✓ Copied' : 'Copy Hex'}
+        </button>
+      </div>
+
+      <Card>
+        <CardBody>
+          {!showDecoded ? (
+            <pre className="text-[11px] font-mono text-secondary whitespace-pre-wrap break-all max-h-[600px] overflow-y-auto leading-relaxed">
+              {rawData.hex}
+            </pre>
+          ) : (
+            <pre className="text-[11px] font-mono text-secondary whitespace-pre-wrap max-h-[600px] overflow-y-auto leading-relaxed">
+              {JSON.stringify(rawData.decoded, null, 2)}
+            </pre>
+          )}
+        </CardBody>
+      </Card>
+
+      <p className="text-[10px] text-muted font-mono text-center">
+        {rawData.hex.length / 2} bytes • {rawData.hex.length} hex characters
+      </p>
     </div>
   );
 }
