@@ -804,6 +804,50 @@ router.get('/api/price', async (req, res) => {
   }
 });
 
+// ============================================================================
+// HISTORICAL PRICE LOOKUP
+// ============================================================================
+
+router.get('/api/price/at', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' });
+    }
+
+    const result = await pool.query(
+      'SELECT price_usd FROM zec_price_daily WHERE date = $1',
+      [date]
+    );
+
+    if (result.rows.length === 0) {
+      const closest = await pool.query(
+        `SELECT date, price_usd FROM zec_price_daily
+         WHERE date <= $1 ORDER BY date DESC LIMIT 1`,
+        [date]
+      );
+      if (closest.rows.length === 0) {
+        return res.json({ date, price_usd: null, exact: false });
+      }
+      return res.json({
+        date,
+        price_usd: parseFloat(closest.rows[0].price_usd),
+        actual_date: closest.rows[0].date,
+        exact: false,
+      });
+    }
+
+    res.json({
+      date,
+      price_usd: parseFloat(result.rows[0].price_usd),
+      exact: true,
+    });
+  } catch (error) {
+    console.error('Error fetching historical price:', error);
+    res.status(500).json({ error: 'Failed to fetch price' });
+  }
+});
+
 registerNetworkAnalyticsRoutes(router);
 
 module.exports = router;

@@ -140,6 +140,7 @@ export default function TransactionPage() {
   const [activeTab, setActiveTab] = useState<'summary' | 'io' | 'raw'>('summary');
   const [rawData, setRawData] = useState<{ hex: string; decoded: any } | null>(null);
   const [rawLoading, setRawLoading] = useState(false);
+  const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [mempoolTx, setMempoolTx] = useState<any>(null);
   const [mempoolChecked, setMempoolChecked] = useState(false);
   const [mempoolConfirming, setMempoolConfirming] = useState(false);
@@ -290,6 +291,16 @@ export default function TransactionPage() {
 
     fetchData();
   }, [txid]);
+
+  // Fetch USD price for the transaction date
+  useEffect(() => {
+    if (!data || !data.timestamp) return;
+    const date = new Date(data.timestamp * 1000).toISOString().split('T')[0];
+    fetch(`${getApiUrl()}/api/price/at?date=${date}`)
+      .then(res => res.json())
+      .then(p => { if (p.price_usd) setPriceUsd(p.price_usd); })
+      .catch(() => {});
+  }, [data?.timestamp]);
 
   // Fallback: if tx not found, check if this hash is actually a block hash
   useEffect(() => {
@@ -1169,7 +1180,12 @@ export default function TransactionPage() {
               <InfoRow icon={Icons.Clock} label="Timestamp" value={formatTimestamp(data.timestamp)} tooltip="When this transaction was mined" />
 
               <InfoRow icon={Icons.Currency} label="Fee" tooltip="Fee paid to the miner" value={
-                <span className="font-semibold text-primary">{data.fee.toFixed(8)} {CURRENCY}</span>
+                <span className="font-semibold text-primary">
+                  {data.fee.toFixed(8)} {CURRENCY}
+                  {priceUsd && data.fee > 0 && (
+                    <span className="text-muted font-normal text-[11px] ml-2">(${(data.fee * priceUsd).toFixed(2)})</span>
+                  )}
+                </span>
               } />
 
               <InfoRow icon={Icons.Database} label="Value" tooltip={
@@ -1194,11 +1210,20 @@ export default function TransactionPage() {
                     </Link>
                   </div>
                 ) : txType === 'SHIELDING' ? (
-                  <span className="font-semibold text-primary">{Math.abs(valueBalance).toFixed(8)} {CURRENCY}</span>
+                  <span className="font-semibold text-primary">
+                    {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
+                    {priceUsd && <span className="text-muted font-normal text-[11px] ml-2">(${(Math.abs(valueBalance) * priceUsd).toLocaleString(undefined, { maximumFractionDigits: 2 })})</span>}
+                  </span>
                 ) : txType === 'UNSHIELDING' ? (
-                  <span className="font-semibold text-primary">{data.totalOutput.toFixed(8)} {CURRENCY}</span>
+                  <span className="font-semibold text-primary">
+                    {data.totalOutput.toFixed(8)} {CURRENCY}
+                    {priceUsd && <span className="text-muted font-normal text-[11px] ml-2">(${(data.totalOutput * priceUsd).toLocaleString(undefined, { maximumFractionDigits: 2 })})</span>}
+                  </span>
                 ) : (
-                  <span className="font-semibold text-primary">{(data.totalOutput > 0 ? data.totalOutput : data.totalInput).toFixed(8)} {CURRENCY}</span>
+                  <span className="font-semibold text-primary">
+                    {(data.totalOutput > 0 ? data.totalOutput : data.totalInput).toFixed(8)} {CURRENCY}
+                    {priceUsd && <span className="text-muted font-normal text-[11px] ml-2">(${((data.totalOutput > 0 ? data.totalOutput : data.totalInput) * priceUsd).toLocaleString(undefined, { maximumFractionDigits: 2 })})</span>}
+                  </span>
                 )
               } />
 
