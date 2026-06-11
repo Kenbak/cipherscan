@@ -6,7 +6,9 @@
  *   node backfill-privacy-trends.js [--days=30]
  *
  * Calculates daily shielded/transparent tx counts and privacy scores
- * by looking at block ranges for each day.
+ * by looking at block ranges for each day. Fetches historical pool sizes
+ * from Zebra's getblock RPC to get exact per-pool values at each day's
+ * end-of-day block height.
  */
 
 const path = require('path');
@@ -43,33 +45,52 @@ function calculatePrivacyScore({ allTimeShieldedPercent = 0, totalShieldedZat = 
   return Math.min(Math.round(supplyScore + fullyShieldedScore + adoptionScore), 100);
 }
 
-async function getPoolSize() {
+function getRpcHeaders() {
   let auth = '';
   try {
     const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
     auth = 'Basic ' + Buffer.from(cookie).toString('base64');
   } catch (e) {}
-
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = auth;
+  return headers;
+}
 
+async function rpcCall(method, params) {
   const response = await fetch(ZEBRA_RPC_URL, {
     method: 'POST',
-    headers,
-    body: JSON.stringify({ jsonrpc: '2.0', id: '1', method: 'getblockchaininfo', params: [] }),
+    headers: getRpcHeaders(),
+    body: JSON.stringify({ jsonrpc: '2.0', id: '1', method, params }),
   });
-
   const data = await response.json();
-  const info = data.result;
+  if (data.error) throw new Error(`RPC ${method}: ${data.error.message}`);
+  return data.result;
+}
+
+function parsePoolsFromResult(info) {
   let shieldedPoolSize = 0, chainSupply = 0;
+  let sproutPool = 0, saplingPool = 0, orchardPool = 0, transparentPool = 0;
 
   for (const p of (info.valuePools || [])) {
     const val = parseInt(p.chainValueZat) || 0;
-    if (p.id !== 'transparent') shieldedPoolSize += val;
+    if (p.id === 'sprout') sproutPool = val;
+    else if (p.id === 'sapling') saplingPool = val;
+    else if (p.id === 'orchard') orchardPool = val;
+    else if (p.id === 'transparent') transparentPool = val;
+    if (p.id !== 'transparent' && p.id !== 'lockbox') shieldedPoolSize += val;
   }
   if (info.chainSupply) chainSupply = parseInt(info.chainSupply.chainValueZat) || 0;
+  return { shieldedPoolSize, chainSupply, sproutPool, saplingPool, orchardPool, transparentPool };
+}
 
-  return { shieldedPoolSize, chainSupply };
+async function getPoolSize() {
+  const info = await rpcCall('getblockchaininfo', []);
+  return parsePoolsFromResult(info);
+}
+
+async function getPoolSizeAtHeight(height) {
+  const block = await rpcCall('getblock', [String(height), 1]);
+  return parsePoolsFromResult(block);
 }
 
 async function main() {
@@ -78,8 +99,8 @@ async function main() {
   await pool.query('SELECT 1');
   log('Database connected');
 
-  const { shieldedPoolSize, chainSupply } = await getPoolSize();
-  log(`Current pool: ${(shieldedPoolSize / 1e8).toFixed(2)} ZEC shielded / ${(chainSupply / 1e8).toFixed(2)} ZEC total`);
+  const currentPools = await getPoolSize();
+  log(`Current pool: ${(currentPools.shieldedPoolSize / 1e8).toFixed(2)} ZEC shielded / ${(currentPools.chainSupply / 1e8).toFixed(2)} ZEC total`);
 
   const allTimeStats = (await pool.query(`
     SELECT
@@ -107,7 +128,8 @@ async function main() {
     const dayStats = (await pool.query(`
       SELECT
         COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
-        COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count
+        COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count,
+        MAX(block_height) as max_height
       FROM transactions
       WHERE block_time >= $1 AND block_time < $2 AND block_height > 0
     `, [dayStart, dayEnd])).rows[0];
@@ -116,19 +138,30 @@ async function main() {
     const transparentCount = parseInt(dayStats.transparent_count) || 0;
     const totalCount = shieldedCount + transparentCount;
     const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
-
-    const privacyScore = calculatePrivacyScore({
-      allTimeShieldedPercent,
-      totalShieldedZat: shieldedPoolSize,
-      chainSupplyZat: chainSupply,
-      fullyShieldedTx: parseInt(allTimeStats.fully_shielded) || 0,
-      shieldedTx: parseInt(allTimeStats.shielded) || 0,
-    });
+    const maxHeight = parseInt(dayStats.max_height) || 0;
 
     if (totalCount === 0) {
       log(`  ${dateStr}: no transactions, skipping`);
       continue;
     }
+
+    // Fetch exact pool sizes at end-of-day block height
+    let pools = currentPools;
+    if (maxHeight > 0 && i > 0) {
+      try {
+        pools = await getPoolSizeAtHeight(maxHeight);
+      } catch (err) {
+        log(`  ${dateStr}: RPC failed for height ${maxHeight}, using current: ${err.message}`);
+      }
+    }
+
+    const privacyScore = calculatePrivacyScore({
+      allTimeShieldedPercent,
+      totalShieldedZat: pools.shieldedPoolSize,
+      chainSupplyZat: pools.chainSupply,
+      fullyShieldedTx: parseInt(allTimeStats.fully_shielded) || 0,
+      shieldedTx: parseInt(allTimeStats.shielded) || 0,
+    });
 
     const existing = await pool.query('SELECT id FROM privacy_trends_daily WHERE date = $1', [dateStr]);
 
@@ -136,19 +169,25 @@ async function main() {
       await pool.query(`
         UPDATE privacy_trends_daily SET
           shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
-          pool_size = $5, privacy_score = $6
+          pool_size = $5, privacy_score = $6,
+          sprout_pool_size = $7, sapling_pool_size = $8, orchard_pool_size = $9,
+          transparent_pool_size = $10, chain_supply = $11
         WHERE date = $1
-      `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, shieldedPoolSize, privacyScore]);
+      `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
       updated++;
     } else {
       await pool.query(`
-        INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-      `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, shieldedPoolSize, privacyScore]);
+        INSERT INTO privacy_trends_daily (
+          date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score,
+          sprout_pool_size, sapling_pool_size, orchard_pool_size, transparent_pool_size, chain_supply, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
       inserted++;
     }
 
-    log(`  ${dateStr}: ${shieldedCount} shielded / ${transparentCount} transparent (${shieldedPercentage.toFixed(1)}%) score=${privacyScore}`);
+    log(`  ${dateStr}: ${shieldedCount} shielded / ${transparentCount} transparent (${shieldedPercentage.toFixed(1)}%) h=${maxHeight} pool=${(pools.shieldedPoolSize/1e8).toFixed(0)} ZEC`);
   }
 
   log(`\n=== Done: ${inserted} inserted, ${updated} updated ===`);
