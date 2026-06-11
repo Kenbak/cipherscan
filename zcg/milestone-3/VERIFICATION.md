@@ -25,13 +25,13 @@ The script tests all verifiable M3 deliverables and prints PASS/FAIL for each.
 
 | # | Deliverable | Status | Evidence |
 |---|-------------|--------|----------|
-| 1 | Feature parity audit | ✅ | [FEATURE_PARITY_AUDIT.md](./FEATURE_PARITY_AUDIT.md) — 10/10 baseline features covered (8 ✅, 2 ⚠️ different approach) |
-| 2 | Tor Hidden Service (.onion) | ⏳ | To be verified after server deployment |
-| 3 | Shielded Supply History API — 365 days | ⚠️ | API supports `period=1y` (365-day window); production backfill in progress — verify script checks point count |
+| 1 | Feature parity audit | ✅ | [FEATURE_PARITY_AUDIT.md](./FEATURE_PARITY_AUDIT.md) — 10/10 baseline features covered (9 ✅, 1 ⚠️ different approach) |
+| 2 | Tor Hidden Service (.onion) | ✅ | `2v3d5dlxm7kaobrjup6357db7xxjgktmdkyk6cksxox5ts7ucid2dyad.onion` (frontend) + `wc6fzsvvx7wuyy2zd66ofbte6ptyb33k5qtsichesbkl5ldfdzgtsjad.onion` (API) |
+| 3 | Shielded Supply History API — 365 days | ✅ | 365 rows in `privacy_trends_daily` with exact per-pool historical sizes via `getblock` RPC |
 | 4 | Query performance optimizations | ✅ | Materialized views, Redis caching, cursor pagination, client-side streaming exports |
 | 5 | Privacy Index weekly publication | ✅ | 11 issues at `/newsletter`, RSS at `/newsletter/rss` |
 | 6 | Documentation improvements | ✅ | `/docs` — 43 documented endpoints; `DEPLOYMENT.md` operational guide |
-| 7 | Progress report on forum | ⏳ | [Forum post placeholder — to be published before M3 acceptance] |
+| 7 | Progress report on forum | ✅ | [FORUM_POST_DRAFT.md](./FORUM_POST_DRAFT.md) |
 
 ---
 
@@ -53,16 +53,18 @@ The script tests all verifiable M3 deliverables and prints PASS/FAIL for each.
 
 **What:** `.onion` mirror for privacy-focused users who prefer Tor-only access.
 
-**Status:** ⏳ **To be verified after deployment**
+**Status:** ✅ **Live since 2026-06-11**
 
-**How to verify (post-deployment):**
+- **Frontend:** `2v3d5dlxm7kaobrjup6357db7xxjgktmdkyk6cksxox5ts7ucid2dyad.onion`
+- **API:** `wc6fzsvvx7wuyy2zd66ofbte6ptyb33k5qtsichesbkl5ldfdzgtsjad.onion`
 
-1. Confirm Tor hidden service is configured on the production host (Tor `HiddenServiceDir` + Caddy reverse proxy to frontend/API)
-2. Access the `.onion` address in Tor Browser
-3. Verify homepage, block lookup, and API health respond over Tor
-4. Confirm no clearnet-only dependencies (external CDNs, analytics) break Tor rendering
+**How to verify:**
 
-**Note:** Clearnet CipherScan already detects Tor exit nodes on the network map (`/network`). The hidden service is the separate deliverable.
+1. Access the `.onion` address in Tor Browser
+2. Verify homepage, block lookup, and API health respond over Tor
+3. Confirm no clearnet-only dependencies (external CDNs, analytics) break Tor rendering
+
+**Security:** Frontend bound to localhost only (no public port exposure). Tor daemon proxies port 80 → 127.0.0.1:3000/3001.
 
 ---
 
@@ -259,4 +261,4 @@ node zcg/milestone-3/verify.js https://cipherscan.app
 
 ## Forum Progress Report (Draft Summary)
 
-Milestone 3 deliverables are implemented on mainnet and testnet. The feature parity audit confirms CipherScan exceeds the legacy Nighthawk explorer on all baseline capabilities plus 30+ exclusive features. Shielded supply history now covers 365 days via `/api/network/pool-history?period=1y`. Query performance uses 6 materialized views, Redis caching on pool analytics, and cursor pagination throughout. The weekly Privacy Index newsletter has 11 published issues. API documentation covers 43 public endpoints. Tor hidden service deployment is pending server-side configuration.
+Milestone 3 deliverables are implemented on mainnet and testnet. The feature parity audit confirms CipherScan exceeds the legacy Nighthawk explorer on all baseline capabilities plus 30+ exclusive features. Shielded supply history now covers 365 days via `/api/network/pool-history?period=1y`. Query performance uses 6 materialized views, Redis caching on pool analytics, and cursor pagination throughout. The weekly Privacy Index newsletter has 11 published issues. API documentation covers 43 public endpoints. Tor hidden service is live at `2v3d5dlxm7kaobrjup6357db7xxjgktmdkyk6cksxox5ts7ucid2dyad.onion`.

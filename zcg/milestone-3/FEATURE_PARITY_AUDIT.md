@@ -22,12 +22,12 @@ Nighthawk was the community reference explorer for years (still accessible at ma
 | Metric | Count |
 |--------|-------|
 | Nighthawk baseline features | 10 |
-| ✅ Implemented (parity or better) | 8 |
-| ⚠️ Partial / different approach | 2 |
+| ✅ Implemented (parity or better) | 9 |
+| ⚠️ Partial / different approach | 1 |
 | ❌ Not applicable / deferred | 0 |
 | 🆕 CipherScan-exclusive major features | 30+ |
 
-**Conclusion:** CipherScan exceeds Nighthawk on every comparable dimension. Two items use a different implementation model (viewing-key decryption vs payment disclosure; self-hosting via documented systemd stack vs Docker). Tor hidden service is a separate M3 deliverable pending server deployment.
+**Conclusion:** CipherScan exceeds Nighthawk on every comparable dimension. All 10 baseline features are implemented (one uses a different model: client-side memo decryption instead of payment disclosure protocol). Tor hidden service and Docker self-hosting are both live.
 
 ---
 
@@ -42,8 +42,8 @@ Nighthawk was the community reference explorer for years (still accessible at ma
 | 5 | **Raw transaction broadcast** | Submit signed hex to network | `/tools/broadcast` + `POST /api/tx/broadcast` with Zod validation | ✅ | Rejects invalid hex with structured 400 errors |
 | 6 | **Viewing key / payment disclosure** | Payment disclosure protocol support | Client-side Orchard memo decryption (`/decrypt`, `@cipherscan/zcash-decoder` npm WASM) | ⚠️ | Different protocol: memo decryption, not BIP-style payment disclosure. Keys never leave browser |
 | 7 | **Network stats** — hashrate, difficulty, peers | Basic network dashboard | `/network` — hashrate, difficulty, block times, emission, halving countdown, node map, Tor detection | ✅ | Mining metrics API + 365-day pool history |
-| 8 | **Tor hidden service** | `.onion` mirror for privacy-focused access | Planned — separate M3 server deliverable | ⚠️ | To be verified after deployment; clearnet site has Tor node detection on network map |
-| 9 | **Docker self-hosting** | Official Docker Compose stack | Manual deployment via systemd + Caddy (see `DEPLOYMENT.md`); no Dockerfile in repo | ⚠️ | Documented operational path; Docker not shipped (intentional — production uses bare-metal systemd) |
+| 8 | **Tor hidden service** | `.onion` mirror for privacy-focused access | `2v3d5dlxm7kaobrjup6357db7xxjgktmdkyk6cksxox5ts7ucid2dyad.onion` (frontend) + API .onion | ✅ | Live since 2026-06-11; both frontend and API accessible via Tor |
+| 9 | **Docker self-hosting** | Official Docker Compose stack | `Dockerfile`, `docker-compose.yml`, `docker-compose.mining.yml` in repo; production uses bare-metal systemd (see `DEPLOYMENT.md`) | ✅ | Both paths available: Docker for dev/self-hosting, systemd for production |
 | 10 | **REST API** | Basic JSON endpoints | 43 documented public endpoints at `/docs`; Zod validation; rate-limited; mainnet + testnet | ✅ | Superset of Nighthawk API surface |
 
 **Legend:** ✅ Implemented · ⚠️ Partial or different approach · ❌ Not applicable · 🆕 New capability
@@ -97,9 +97,7 @@ These capabilities have no equivalent in the Nighthawk explorer.
 
 | Item | Rationale |
 |------|-----------|
-| **Payment disclosure protocol** | CipherScan implements client-side memo decryption (Orchard WASM) instead. Payment disclosure is a different standard; memo decrypt covers the primary user need (reading shielded memos) without server-side key handling. |
-| **Tor hidden service (.onion)** | Separate M3 server deliverable. Requires Tor daemon + Caddy onion service configuration on production host. Cleared for post-deployment verification. |
-| **Docker Compose stack** | Production runs on DigitalOcean with systemd units (`zebrad`, `cipherscan-rust`, `zcash-api`, `lightwalletd`, Caddy). `DEPLOYMENT.md` documents the operational path. A Dockerfile would duplicate this without matching production topology. |
+| **Payment disclosure protocol** vs **memo decryption** | CipherScan uses client-side WASM memo decryption (viewing key never leaves browser) instead of the payment disclosure protocol. Covers the same user need with stronger privacy guarantees. |
 | **z-address balance lookup** | Impossible by design — Zcash shielded addresses are private. Both explorers correctly omit this. |
 | **Sprout memo decryption** | Orchard-focused WASM module; Sprout pool is deprecated and nearly empty. Sapling memo support is on the roadmap. |
 
