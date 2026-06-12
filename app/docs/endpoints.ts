@@ -186,6 +186,32 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     }
   },
   {
+    id: 'tx-verbose',
+    category: 'Transactions',
+    method: 'GET',
+    path: '/api/tx/:txid/verbose',
+    description: 'Get the full decoded transaction from the Zebra node (raw hex + decoded JSON with all inputs, outputs, shielded data, and script details).',
+    params: [
+      { name: 'txid', type: 'string', description: 'Transaction ID (64 hex characters)', required: true }
+    ],
+    example: `curl ${baseUrl}/api/tx/abc123.../verbose`,
+    response: {
+      txid: 'abc123...',
+      hex: '0500000000010...',
+      decoded: {
+        txid: 'abc123...',
+        version: 5,
+        locktime: 0,
+        vin: [],
+        vout: [{ value: 1.25, n: 0, scriptPubKey: {} }],
+        vShieldedSpend: [],
+        vShieldedOutput: [],
+        orchard: { actions: [], flags: {} }
+      }
+    },
+    note: 'Fetches directly from the Zebra RPC node with verbosity=1. Useful for developers inspecting raw protocol data.'
+  },
+  {
     id: 'tx-shielded',
     category: 'Transactions',
     method: 'GET',
@@ -734,6 +760,45 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       change24h: -2.15,
       timestamp: 1699123456
     }
+  },
+  {
+    id: 'price-historical',
+    category: 'Network',
+    method: 'GET',
+    path: '/api/price/at',
+    description: 'Get the historical ZEC/USD price for a specific date. Falls back to the closest earlier date if exact date is unavailable.',
+    params: [
+      { name: 'date', type: 'string', description: 'Date in YYYY-MM-DD format', required: true }
+    ],
+    example: `curl ${baseUrl}/api/price/at?date=2025-01-15`,
+    response: {
+      date: '2025-01-15',
+      price_usd: 34.82,
+      exact: true
+    }
+  },
+  {
+    id: 'protocol-stats',
+    category: 'Network',
+    method: 'GET',
+    path: '/api/network/protocol-stats',
+    description: 'Commitment tree sizes and nullifier set sizes for Sapling and Orchard pools, with monthly historical growth data.',
+    params: [],
+    example: `curl ${baseUrl}/api/network/protocol-stats`,
+    response: {
+      success: true,
+      current: {
+        saplingCommitments: 73919821,
+        saplingNullifiers: 2117264,
+        orchardCommitments: 50102915,
+        orchardNullifiers: 50102915
+      },
+      history: [
+        { month: '2022-06-01', saplingCommitments: 35000000, saplingNullifiers: 1500000, orchardCommitments: 100000, orchardNullifiers: 100000 }
+      ],
+      timestamp: 1699123456
+    },
+    note: 'Sapling commitments = total Sapling note outputs (commitment tree size). Orchard actions each produce both a commitment and a nullifier. Cached for 5 minutes.'
   },
 
   // ============================================================================
