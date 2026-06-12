@@ -875,6 +875,80 @@ router.get('/api/price/at', async (req, res) => {
   }
 });
 
+// ============================================================================
+// PROTOCOL STATS: Commitment trees & nullifier sets
+// ============================================================================
+
+const PROTOCOL_STATS_CACHE_KEY = 'zcash:protocol_stats';
+const PROTOCOL_STATS_CACHE_DURATION = 300; // 5 minutes
+
+router.get('/api/network/protocol-stats', async (req, res) => {
+  try {
+    const cached = await getFromRedisCache(PROTOCOL_STATS_CACHE_KEY);
+    if (cached) return res.json({ ...cached, cached: true });
+
+    const [totals, monthly] = await Promise.all([
+      pool.query(`
+        SELECT
+          SUM(shielded_outputs)::bigint AS sapling_commitments,
+          SUM(shielded_spends)::bigint AS sapling_nullifiers,
+          SUM(orchard_actions)::bigint AS orchard_commitments,
+          SUM(orchard_actions)::bigint AS orchard_nullifiers
+        FROM transactions
+      `),
+      pool.query(`
+        SELECT
+          date_trunc('month', to_timestamp(block_time))::date AS month,
+          SUM(shielded_outputs)::bigint AS sapling_outputs,
+          SUM(shielded_spends)::bigint AS sapling_spends,
+          SUM(orchard_actions)::bigint AS orchard_actions
+        FROM transactions
+        WHERE block_time > 0
+        GROUP BY month
+        ORDER BY month
+      `),
+    ]);
+
+    const t = totals.rows[0];
+
+    let saplingCum = 0;
+    let saplingNullCum = 0;
+    let orchardCum = 0;
+    let orchardNullCum = 0;
+    const history = monthly.rows.map(row => {
+      saplingCum += parseInt(row.sapling_outputs) || 0;
+      saplingNullCum += parseInt(row.sapling_spends) || 0;
+      orchardCum += parseInt(row.orchard_actions) || 0;
+      orchardNullCum += parseInt(row.orchard_actions) || 0;
+      return {
+        month: row.month,
+        saplingCommitments: saplingCum,
+        saplingNullifiers: saplingNullCum,
+        orchardCommitments: orchardCum,
+        orchardNullifiers: orchardNullCum,
+      };
+    });
+
+    const result = {
+      success: true,
+      current: {
+        saplingCommitments: parseInt(t.sapling_commitments) || 0,
+        saplingNullifiers: parseInt(t.sapling_nullifiers) || 0,
+        orchardCommitments: parseInt(t.orchard_commitments) || 0,
+        orchardNullifiers: parseInt(t.orchard_nullifiers) || 0,
+      },
+      history,
+      timestamp: Date.now(),
+    };
+
+    await setInRedisCache(PROTOCOL_STATS_CACHE_KEY, result, PROTOCOL_STATS_CACHE_DURATION);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching protocol stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch protocol stats' });
+  }
+});
+
 registerNetworkAnalyticsRoutes(router);
 
 module.exports = router;

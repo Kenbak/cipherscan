@@ -19,6 +19,7 @@ const SupplyEmissionPanel = lazy(() => import('@/components/network/HalvingPanel
 const MiningMetricsChart = lazy(() => import('@/components/network/MiningMetricsChart').then((m) => ({ default: m.MiningMetricsChart })));
 const PoolDistributionChart = lazy(() => import('@/components/network/PoolDistributionChart').then((m) => ({ default: m.PoolDistributionChart })));
 const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then((m) => ({ default: m.NetworkHistoryCharts })));
+const ProtocolStatsChart = lazy(() => import('@/components/network/ProtocolStatsChart').then((m) => ({ default: m.ProtocolStatsChart })));
 const RecentBlocksTable = lazy(() => import('@/components/network/RecentBlocksTable').then((m) => ({ default: m.RecentBlocksTable })));
 
 const UPGRADE_URLS: Record<string, string> = {
@@ -469,6 +470,9 @@ export default function NetworkClient() {
               </Suspense>
               <Suspense fallback={<div className="card h-64 animate-pulse" />}>
                 <NetworkHistoryCharts />
+              </Suspense>
+              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
+                <ProtocolStatsChart />
               </Suspense>
             </div>
           </section>
