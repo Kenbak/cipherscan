@@ -134,7 +134,7 @@ export function ProtocolStatsChart() {
           <Tooltip
             contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
             labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
-            formatter={(value: number, name: string) => [formatMillions(value), name]}
+            formatter={(value) => formatMillions(Number(value))}
           />
           <Legend
             wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}
