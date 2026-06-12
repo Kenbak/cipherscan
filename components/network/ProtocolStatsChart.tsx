@@ -123,30 +123,37 @@ export function ProtocolStatsChart() {
   return (
     <ChartCard title="PROTOCOL_GROWTH" height={280} watermarkSize="sm" controls={controls}>
       {current && (
-        <div className="flex gap-4 mb-3 flex-wrap">
-          {view === 'commitments' ? (
-            <>
-              <div className="text-[10px] font-mono">
-                <span className="text-muted">Sapling tree: </span>
-                <span className="text-blue-400 font-semibold">{formatMillions(current.saplingCommitments)}</span>
-              </div>
-              <div className="text-[10px] font-mono">
-                <span className="text-muted">Orchard tree: </span>
-                <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardCommitments)}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-[10px] font-mono">
-                <span className="text-muted">Sapling nullifiers: </span>
-                <span className="text-blue-400 font-semibold">{formatMillions(current.saplingNullifiers)}</span>
-              </div>
-              <div className="text-[10px] font-mono">
-                <span className="text-muted">Orchard nullifiers: </span>
-                <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardNullifiers)}</span>
-              </div>
-            </>
-          )}
+        <div className="mb-3">
+          <div className="flex gap-4 flex-wrap">
+            {view === 'commitments' ? (
+              <>
+                <div className="text-[10px] font-mono">
+                  <span className="text-muted">Sapling tree: </span>
+                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingCommitments)}</span>
+                </div>
+                <div className="text-[10px] font-mono">
+                  <span className="text-muted">Orchard tree: </span>
+                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardCommitments)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-[10px] font-mono">
+                  <span className="text-muted">Sapling nullifiers: </span>
+                  <span className="text-blue-400 font-semibold">{formatMillions(current.saplingNullifiers)}</span>
+                </div>
+                <div className="text-[10px] font-mono">
+                  <span className="text-muted">Orchard nullifiers: </span>
+                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardNullifiers)}</span>
+                </div>
+              </>
+            )}
+          </div>
+          <p className="text-[9px] font-mono text-muted/60 mt-1.5">
+            {view === 'commitments'
+              ? 'Note commitments added to each pool\u2019s Merkle tree. Each shielded output creates one commitment. Larger tree = more private transactions processed.'
+              : 'Nullifiers revealed when notes are spent. Sapling counts real spends only. Orchard includes padding (each Action = 1 spend + 1 output for uniform privacy).'}
+          </p>
         </div>
       )}
       <ResponsiveContainer width="100%" height={240}>
