@@ -118,7 +118,7 @@ export default function NetworkClient() {
   const [error, setError] = useState<string | null>(null);
   const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
+  const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; addressTypes?: { type: string; description: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
   const [halving, setHalving] = useState<HalvingInfo | null>(null);
   const [emission, setEmission] = useState<EmissionInfo | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
@@ -423,6 +423,38 @@ export default function NetworkClient() {
                               </div>
                             )}
                           </div>
+
+                          {breakdown.addressTypes && breakdown.addressTypes.length > 0 && (
+                            <div className="mt-5 pt-4 border-t border-cipher-border-alpha/50">
+                              <p className="text-[11px] font-mono text-muted uppercase tracking-wider mb-3">Script Types</p>
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
+                                  {breakdown.addressTypes.map(t => (
+                                    <div
+                                      key={t.type}
+                                      className={`h-full ${t.type === 'P2PKH' ? 'bg-blue-500' : t.type === 'P2SH' ? 'bg-amber-500' : 'bg-gray-500'}`}
+                                      style={{ width: `${t.percentage}%` }}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {breakdown.addressTypes.map(t => (
+                                  <div key={t.type} className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.type === 'P2PKH' ? 'bg-blue-500' : t.type === 'P2SH' ? 'bg-amber-500' : 'bg-gray-500'}`} />
+                                    <span className="text-[11px] font-mono text-secondary w-12">{t.type}</span>
+                                    <span className="text-[10px] font-mono text-muted flex-1 truncate">{t.description}</span>
+                                    <span className="text-[11px] font-mono text-primary text-right w-20 tabular-nums">
+                                      {t.addressCount.toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                      {t.percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}

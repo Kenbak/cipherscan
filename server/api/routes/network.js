@@ -448,7 +448,7 @@ router.get('/api/supply/transparent-breakdown', async (req, res) => {
       return res.json({ ...cached, cached: true });
     }
 
-    const [categoryResult, blockchainInfo] = await Promise.all([
+    const [categoryResult, addressTypeResult, blockchainInfo] = await Promise.all([
       pool.query(
         `SELECT COALESCE(l.category, 'unlabeled') AS category,
                 COUNT(*)::int AS address_count,
@@ -457,6 +457,20 @@ router.get('/api/supply/transparent-breakdown', async (req, res) => {
          LEFT JOIN address_labels l ON a.address = l.address
          WHERE a.balance > 0
          GROUP BY COALESCE(l.category, 'unlabeled')
+         ORDER BY total_balance DESC`
+      ),
+      pool.query(
+        `SELECT
+           CASE
+             WHEN address LIKE 't1%' THEN 'P2PKH'
+             WHEN address LIKE 't3%' THEN 'P2SH'
+             ELSE 'other'
+           END AS script_type,
+           COUNT(*)::int AS address_count,
+           COALESCE(SUM(balance), 0) AS total_balance
+         FROM addresses
+         WHERE balance > 0
+         GROUP BY script_type
          ORDER BY total_balance DESC`
       ),
       callZebraRPC('getblockchaininfo').catch(() => null),
@@ -477,9 +491,22 @@ router.get('/api/supply/transparent-breakdown', async (req, res) => {
       };
     });
 
+    const addressTypes = addressTypeResult.rows.map(row => {
+      const balance = parseFloat(row.total_balance) / 1e8;
+      return {
+        type: row.script_type,
+        description: row.script_type === 'P2PKH' ? 'Pay-to-Public-Key-Hash (t1...)' :
+                     row.script_type === 'P2SH' ? 'Pay-to-Script-Hash (t3..., multi-sig/custody)' : 'Other',
+        addressCount: row.address_count,
+        totalBalance: balance,
+        percentage: transparentTotal > 0 ? (balance / transparentTotal) * 100 : 0,
+      };
+    });
+
     const result = {
       success: true,
       categories,
+      addressTypes,
       transparentTotal,
       labeledTotal,
       labeledPercentage: transparentTotal > 0 ? (labeledTotal / transparentTotal) * 100 : 0,
