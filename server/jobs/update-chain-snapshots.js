@@ -88,6 +88,16 @@ async function main() {
   const blockHeight = parseInt(info.blocks, 10) || 0;
   const chainSize = parseInt(info.size_on_disk, 10) || 0;
 
+  // Skip recording if chain size dropped (node is resyncing from scratch)
+  const prev = await pool.query(
+    'SELECT chain_size_bytes FROM chain_snapshots ORDER BY snapshot_time DESC LIMIT 1'
+  );
+  if (prev.rows.length > 0 && chainSize < parseInt(prev.rows[0].chain_size_bytes, 10) * 0.9) {
+    console.log(`⚠️ [CHAIN-SNAPSHOT] Skipping — size ${chainSize} is less than 90% of previous (${prev.rows[0].chain_size_bytes}). Node likely resyncing.`);
+    await pool.end();
+    return;
+  }
+
   await pool.query(
     `INSERT INTO chain_snapshots (
       block_height, chain_size_bytes, chain_supply_zat,
