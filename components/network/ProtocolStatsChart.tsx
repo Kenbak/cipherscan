@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -227,6 +227,14 @@ export function ProtocolStatsChart() {
               />
             </>
           )}
+          <Brush
+            dataKey="label"
+            height={20}
+            stroke="var(--color-border-subtle)"
+            fill="var(--color-bg-card)"
+            travellerWidth={8}
+            tickFormatter={() => ''}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </ChartCard>
