@@ -170,6 +170,7 @@ export function ProtocolStatsChart() {
             tick={{ fill: colors.axis, fontSize: 9 }}
             tickFormatter={formatMillions}
             width={42}
+            domain={period === 'all' || period === '4y' ? [0, 'auto'] : ['dataMin', 'auto']}
           />
           <Tooltip
             contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
