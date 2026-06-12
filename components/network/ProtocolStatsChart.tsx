@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { ChartCard } from './ChartCard';
 
-interface ProtocolPoint {
+interface RawPoint {
   month: string;
   saplingCommitments: number;
   saplingNullifiers: number;
@@ -17,19 +17,26 @@ interface ProtocolPoint {
   orchardNullifiers: number;
 }
 
+interface ChartPoint extends RawPoint {
+  label: string;
+}
+
 function formatMillions(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)}M`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
   return v.toString();
 }
 
+type Period = '2y' | '4y' | 'all';
+
 export function ProtocolStatsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [data, setData] = useState<ProtocolPoint[]>([]);
-  const [current, setCurrent] = useState<ProtocolPoint | null>(null);
+  const [rawData, setRawData] = useState<RawPoint[]>([]);
+  const [current, setCurrent] = useState<RawPoint | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
+  const [period, setPeriod] = useState<Period>('4y');
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/network/protocol-stats`)
@@ -37,19 +44,33 @@ export function ProtocolStatsChart() {
       .then(d => {
         if (d?.success) {
           setCurrent(d.current);
-          const filtered = (d.history || []).filter((p: ProtocolPoint) => {
-            const year = new Date(p.month).getFullYear();
-            return year >= 2018;
-          });
-          setData(filtered.map((p: ProtocolPoint) => ({
-            ...p,
-            month: new Date(p.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-          })));
+          // Filter out months before any meaningful data exists
+          const meaningful = (d.history || []).filter((p: RawPoint) =>
+            p.saplingCommitments > 0 || p.orchardCommitments > 0
+          );
+          setRawData(meaningful);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const data: ChartPoint[] = useMemo(() => {
+    if (!rawData.length) return [];
+
+    let filtered = rawData;
+    if (period !== 'all') {
+      const years = period === '2y' ? 2 : 4;
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - years);
+      filtered = rawData.filter(p => new Date(p.month) >= cutoff);
+    }
+
+    return filtered.map(p => ({
+      ...p,
+      label: new Date(p.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    }));
+  }, [rawData, period]);
 
   const controls = (
     <div className="flex gap-1">
@@ -62,6 +83,18 @@ export function ProtocolStatsChart() {
           }`}
         >
           {v === 'commitments' ? 'Trees' : 'Nullifiers'}
+        </button>
+      ))}
+      <span className="w-px bg-cipher-border-alpha/30 mx-1" />
+      {(['2y', '4y', 'all'] as const).map(p => (
+        <button
+          key={p}
+          onClick={() => setPeriod(p)}
+          className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
+            period === p ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+          }`}
+        >
+          {p === 'all' ? 'All' : p.toUpperCase()}
         </button>
       ))}
     </div>
@@ -120,7 +153,7 @@ export function ProtocolStatsChart() {
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
           <XAxis
-            dataKey="month"
+            dataKey="label"
             stroke={colors.axis}
             tick={{ fill: colors.axis, fontSize: 9 }}
             interval="preserveStartEnd"
