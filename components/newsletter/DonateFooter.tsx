@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface DonateFooterProps {
@@ -7,7 +8,14 @@ interface DonateFooterProps {
 }
 
 export function DonateFooter({ address }: DonateFooterProps) {
+  const [copied, setCopied] = useState(false);
   const truncated = `${address.slice(0, 16)}…${address.slice(-16)}`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div className="nl-donate">
@@ -20,7 +28,9 @@ export function DonateFooter({ address }: DonateFooterProps) {
       />
       <div className="nl-donate-text">
         <span className="nl-donate-label">Support CipherScan</span>
-        <code className="nl-donate-addr" title={address}>{truncated}</code>
+        <button className="nl-donate-addr" onClick={handleCopy} title="Click to copy">
+          {copied ? 'Copied ✓' : truncated}
+        </button>
       </div>
     </div>
   );

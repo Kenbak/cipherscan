@@ -2350,6 +2350,16 @@
     font-size: 0.6875rem;
     color: var(--color-cyan);
     word-break: break-all;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: opacity 0.15s ease;
+  }
+
+  .nl-donate-addr:hover {
+    opacity: 0.7;
   }
 
   .nl-table-wrap {
