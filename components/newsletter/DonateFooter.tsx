@@ -21,7 +21,7 @@ export function DonateFooter({ address }: DonateFooterProps) {
     <div className="nl-donate">
       <QRCodeSVG
         value={`zcash:${address}`}
-        size={56}
+        size={72}
         bgColor="transparent"
         fgColor="#56d4c8"
         level="L"
