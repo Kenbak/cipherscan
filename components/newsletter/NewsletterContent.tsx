@@ -11,6 +11,7 @@ import { ProseHtml } from './ProseHtml';
 import { LongformArticle } from './LongformArticle';
 import { PrivacyIndexSection } from './PrivacyIndexSection';
 import { proseMarkdown } from '@/lib/newsletter';
+import { DonateFooter } from './DonateFooter';
 
 interface NewsletterContentProps {
   content: string;
@@ -120,9 +121,17 @@ function sectionLabel(section: ParsedSection): string {
   return section.title;
 }
 
+function extractDonateAddress(text: string): { address: string | null; cleaned: string } {
+  const match = text.match(/`(u1[a-z0-9]{80,})`/);
+  if (!match) return { address: null, cleaned: text };
+  const cleaned = text.replace(/\*Support CipherScan:\*\s*`u1[a-z0-9]+`/, '').trim();
+  return { address: match[1], cleaned };
+}
+
 export function NewsletterContent({ content }: NewsletterContentProps) {
   const sections = parseNewsletterContent(content);
   const footer = parseNewsletterFooter(content);
+  const { address: donateAddress, cleaned: footerWithoutAddress } = extractDonateAddress(footer);
 
   return (
     <div className="newsletter-content">
@@ -137,10 +146,10 @@ export function NewsletterContent({ content }: NewsletterContentProps) {
       ))}
 
       {footer && (
-        <footer
-          className="nl-footer"
-          dangerouslySetInnerHTML={{ __html: proseMarkdown(footer) }}
-        />
+        <footer className="nl-footer">
+          <div dangerouslySetInnerHTML={{ __html: proseMarkdown(footerWithoutAddress) }} />
+          {donateAddress && <DonateFooter address={donateAddress} />}
+        </footer>
       )}
     </div>
   );

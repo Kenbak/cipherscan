@@ -2317,6 +2317,41 @@
     margin: 0.375rem 0;
   }
 
+  .nl-donate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.875rem;
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 0.75rem;
+    background: var(--glass-2);
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .nl-donate-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .nl-donate-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .nl-donate-addr {
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.6875rem;
+    color: var(--color-cyan);
+    word-break: break-all;
+  }
+
   .nl-table-wrap {
     overflow-x: auto;
     border: 1px solid var(--color-border-subtle);
