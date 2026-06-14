@@ -28,7 +28,7 @@ export function DonateFooter({ address }: DonateFooterProps) {
       />
       <div className="nl-donate-text">
         <span className="nl-donate-label">Support CipherScan</span>
-        <button className="nl-donate-addr" onClick={handleCopy} title="Click to copy">
+        <button className="nl-donate-addr" onClick={handleCopy} title={address}>
           {copied ? 'Copied ✓' : truncated}
         </button>
       </div>
