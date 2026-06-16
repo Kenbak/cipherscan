@@ -151,6 +151,7 @@ router.get('/api/shielded/list', async (req, res) => {
     const direction = req.query.direction || 'next';
     const flowType = req.query.flow_type || 'all'; // all, shield, deshield
     const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, mixed
+    const minZec = parseFloat(req.query.min_zec) || 0;
 
     // Build filters
     const conditions = [];
@@ -164,6 +165,10 @@ router.get('/api/shielded/list', async (req, res) => {
     if (poolFilter !== 'all') {
       conditions.push(`pool = $${paramIdx++}`);
       params.push(poolFilter);
+    }
+    if (minZec > 0) {
+      conditions.push(`amount_zat >= $${paramIdx++}`);
+      params.push(Math.round(minZec * 1e8));
     }
 
     const whereBase = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';

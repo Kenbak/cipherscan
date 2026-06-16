@@ -50,13 +50,14 @@ export default function ShieldedTxsPage() {
   const [loading, setLoading] = useState(true);
   const [flowFilter, setFlowFilter] = useState<FlowFilter>('all');
   const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
+  const [minZec, setMinZec] = useState<number>(0);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationState>({
     total: 0, totalPages: 0, hasNext: false, hasPrev: false,
     nextCursor: null, nextCursorId: null, prevCursor: null, prevCursorId: null,
   });
 
-  const fetchFlows = useCallback(async (cursor?: number | null, cursorId?: number | null, direction?: string, flow?: FlowFilter, pool?: PoolFilter) => {
+  const fetchFlows = useCallback(async (cursor?: number | null, cursorId?: number | null, direction?: string, flow?: FlowFilter, pool?: PoolFilter, minAmount?: number) => {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -65,6 +66,10 @@ export default function ShieldedTxsPage() {
         flow_type: flow || flowFilter,
         pool: pool || poolFilter,
       });
+      const effectiveMin = minAmount !== undefined ? minAmount : minZec;
+      if (effectiveMin > 0) {
+        params.set('min_zec', String(effectiveMin));
+      }
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('cursor_id', String(cursorId ?? 0));
@@ -81,12 +86,12 @@ export default function ShieldedTxsPage() {
     } finally {
       setLoading(false);
     }
-  }, [flowFilter, poolFilter]);
+  }, [flowFilter, poolFilter, minZec]);
 
   useEffect(() => {
     setPage(1);
-    fetchFlows(null, null, undefined, flowFilter, poolFilter);
-  }, [flowFilter, poolFilter]);
+    fetchFlows(null, null, undefined, flowFilter, poolFilter, minZec);
+  }, [flowFilter, poolFilter, minZec]);
 
   const goFirst = () => { setPage(1); fetchFlows(null, null, undefined); };
   const goPrev = () => { setPage(p => p - 1); fetchFlows(pagination.prevCursor, pagination.prevCursorId, 'prev'); };
@@ -103,6 +108,13 @@ export default function ShieldedTxsPage() {
     { id: 'orchard', label: 'Orchard' },
     { id: 'sapling', label: 'Sapling' },
     { id: 'mixed', label: 'Mixed' },
+  ];
+
+  const amountPresets = [
+    { value: 0, label: 'Any' },
+    { value: 10, label: '> 10 ZEC' },
+    { value: 100, label: '> 100 ZEC' },
+    { value: 1000, label: '> 1K ZEC' },
   ];
 
   return (
@@ -141,6 +153,17 @@ export default function ShieldedTxsPage() {
               className={`filter-btn ${poolFilter === f.id ? 'filter-btn-active' : ''}`}
             >
               {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="filter-group inline-flex">
+          {amountPresets.map(p => (
+            <button
+              key={p.value}
+              onClick={() => setMinZec(p.value)}
+              className={`filter-btn ${minZec === p.value ? 'filter-btn-active' : ''}`}
+            >
+              {p.label}
             </button>
           ))}
         </div>
