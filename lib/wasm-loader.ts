@@ -114,19 +114,24 @@ export async function decryptMemoFromTxid(txid: string, viewingKey: string): Pro
 
   try {
     const response = await fetch(apiUrl);
+    if (response.status === 404) {
+      throw new Error('Transaction not found on mainnet. Check the transaction ID or ensure it is a mainnet transaction.');
+    }
     if (!response.ok) {
-      throw new Error(`Failed to fetch transaction: ${response.status}`);
+      throw new Error(`Failed to fetch raw transaction: ${response.status}`);
     }
 
     const txData = await response.json();
 
-    // Check if we have raw hex
     if (txData.hex) {
       return decryptMemo(txData.hex, viewingKey);
     }
 
     throw new Error('Transaction data does not include raw hex');
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes('not found') || error.message?.includes('Failed to fetch raw')) {
+      throw error;
+    }
     throw new Error(`Could not fetch transaction. Please provide the raw transaction hex instead.`);
   }
 }

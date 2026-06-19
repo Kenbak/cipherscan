@@ -615,8 +615,11 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
       hex: rawHex,
     });
   } catch (error) {
+    if (error.message && error.message.includes('No such mempool or blockchain transaction')) {
+      return res.status(404).json({ error: 'Transaction not found. It may be a testnet transaction or the ID may be incorrect.' });
+    }
     console.error('Error fetching raw transaction:', error);
-    res.status(500).json({ error: 'Failed to fetch raw transaction: ' + error.message });
+    res.status(500).json({ error: 'Failed to fetch raw transaction' });
   }
 });
 
