@@ -615,7 +615,7 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
       hex: rawHex,
     });
   } catch (error) {
-    if (error.message && error.message.includes('No such mempool or blockchain transaction')) {
+    if (error.message && (error.message.includes('No such mempool') || error.message.includes('not found'))) {
       return res.status(404).json({ error: 'Transaction not found. It may be a testnet transaction or the ID may be incorrect.' });
     }
     console.error('Error fetching raw transaction:', error);
@@ -646,7 +646,7 @@ router.get('/api/tx/:txid/verbose', async (req, res) => {
       decoded,
     });
   } catch (error) {
-    if (error.message && error.message.includes('No such mempool or blockchain transaction')) {
+    if (error.message && (error.message.includes('No such mempool') || error.message.includes('not found'))) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
     console.error('Error fetching verbose transaction:', error);
