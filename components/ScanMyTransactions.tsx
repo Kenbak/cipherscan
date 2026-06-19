@@ -415,24 +415,28 @@ export function ScanMyTransactions() {
         return;
       }
 
-      // Fetch raw TXs in batch
+      // Fetch raw TXs in batches of 1000
       const txids = orchardTxs.map((tx: any) => tx.txid);
-
-      const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txids }),
-      });
-
-      if (!batchRes.ok) {
-        throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
-      }
-
-      const batchData = await batchRes.json();
       const allRawTxs = new Map<string, string>();
-      batchData.transactions.forEach((tx: any) => {
-        allRawTxs.set(tx.txid, tx.hex);
-      });
+      const batchSize = 1000;
+
+      for (let i = 0; i < txids.length; i += batchSize) {
+        const batch = txids.slice(i, i + batchSize);
+        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txids: batch }),
+        });
+
+        if (!batchRes.ok) {
+          throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
+        }
+
+        const batchData = await batchRes.json();
+        batchData.transactions.forEach((tx: any) => {
+          allRawTxs.set(tx.txid, tx.hex);
+        });
+      }
 
       // Now decrypt each TX
       let txsProcessed = 0;
