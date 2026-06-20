@@ -306,6 +306,8 @@ function registerNetworkAnalyticsRoutes(router) {
     try {
       const pool = req.app.locals.pool;
       const period = req.query.period || '1y';
+      const format = req.query.format || 'zec'; // 'zec' (default) or 'zatoshi'
+      const useZat = format === 'zatoshi';
       const interval = periodToInterval(period);
       const hasPoolCols = await columnExists(pool, 'privacy_trends_daily', 'orchard_pool_size');
 
@@ -329,6 +331,28 @@ function registerNetworkAnalyticsRoutes(router) {
         const transparentZat = hasPoolCols ? (parseInt(r.transparent_pool_size, 10) || 0) : 0;
         const shieldedZat = parseInt(r.pool_size, 10) || 0;
         const chainSupplyZat = hasPoolCols ? (parseInt(r.chain_supply, 10) || 0) : 0;
+
+        if (useZat) {
+          return {
+            date: r.date,
+            shieldedZat: shieldedZat.toString(),
+            sproutZat: sproutZat.toString(),
+            saplingZat: saplingZat.toString(),
+            orchardZat: orchardZat.toString(),
+            transparentZat: transparentZat.toString(),
+            chainSupplyZat: chainSupplyZat > 0 ? chainSupplyZat.toString() : null,
+            shieldedSupplyPct: computeShieldedSupplyPct({
+              shieldedZat,
+              chainSupplyZat,
+              sproutZat,
+              saplingZat,
+              orchardZat,
+              transparentZat,
+            }),
+            hasPoolBreakdown: hasPoolCols,
+          };
+        }
+
         const shielded = shieldedZat / ZAT;
         const chainSupply = chainSupplyZat / ZAT;
 
@@ -357,6 +381,7 @@ function registerNetworkAnalyticsRoutes(router) {
       res.json({
         success: true,
         period,
+        format,
         points,
         hasPoolBreakdown: hasPoolCols,
         hasVerifiedPerPoolBreakdown: verifiedPerPool,

@@ -108,8 +108,10 @@ router.get('/api/pools/flows', async (req, res) => {
     const period = req.query.period || '30d';
     const poolFilter = req.query.pool || 'all';
     const granularity = req.query.granularity || 'daily';
+    const format = req.query.format || 'zec'; // 'zec' (default) or 'zatoshi'
+    const useZat = format === 'zatoshi';
     const isHourly = granularity === 'hourly';
-    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}:${granularity}`;
+    const cacheKey = `zcash:pools:flows:${period}:${poolFilter}:${granularity}:${format}`;
     const cacheTtl = isHourly ? 120 : 300;
 
     const data = await cached(cacheKey, cacheTtl, async () => {
@@ -158,22 +160,34 @@ router.get('/api/pools/flows', async (req, res) => {
           ? new Date(r.bucket).toISOString()
           : new Date(r.date).toISOString().split('T')[0];
         if (!byBucket[key]) byBucket[key] = { date: key, shield: 0, deshield: 0, shieldTx: 0, deshieldTx: 0 };
-        const zec = Number(r.total_zat) / 1e8;
+        const amount = useZat ? BigInt(r.total_zat) : Number(r.total_zat) / 1e8;
         if (r.flow_type === 'shield') {
-          byBucket[key].shield += zec;
+          if (useZat) {
+            byBucket[key].shield = (BigInt(byBucket[key].shield) + amount).toString();
+          } else {
+            byBucket[key].shield += amount;
+          }
           byBucket[key].shieldTx += Number(r.tx_count);
         } else {
-          byBucket[key].deshield += zec;
+          if (useZat) {
+            byBucket[key].deshield = (BigInt(byBucket[key].deshield) + amount).toString();
+          } else {
+            byBucket[key].deshield += amount;
+          }
           byBucket[key].deshieldTx += Number(r.tx_count);
         }
       }
 
       const points = Object.values(byBucket).sort((a, b) => a.date.localeCompare(b.date));
       for (const p of points) {
-        p.net = p.shield - p.deshield;
+        if (useZat) {
+          p.net = (BigInt(p.shield) - BigInt(p.deshield)).toString();
+        } else {
+          p.net = p.shield - p.deshield;
+        }
       }
 
-      return { period, pool: poolFilter, granularity, points };
+      return { period, pool: poolFilter, granularity, format, points };
     });
 
     res.json({ success: true, ...data });
