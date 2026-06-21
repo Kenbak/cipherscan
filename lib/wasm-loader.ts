@@ -118,10 +118,19 @@ function patchBranchId(hex: string): string {
 export async function decryptMemo(txHex: string, viewingKey: string): Promise<DecryptedOutput> {
   const wasm = await loadWasm();
   const patchedHex = patchBranchId(txHex);
-  const result = wasm.decrypt_memo(patchedHex, viewingKey);
 
-  // Parse JSON response from WASM
-  return JSON.parse(result);
+  try {
+    const result = wasm.decrypt_memo(patchedHex, viewingKey);
+    return JSON.parse(result);
+  } catch (err: any) {
+    const msg = err?.message || err?.toString() || '';
+    if (msg.includes('No memo found')) {
+      throw new Error(
+        'No text memo in this transaction. The transaction may match your key but contains no memo (most transfers don\'t include one), or the viewing key doesn\'t match any outputs.'
+      );
+    }
+    throw err;
+  }
 }
 
 /**

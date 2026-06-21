@@ -1,6 +1,6 @@
 {
   "name": "@cipherscan/zcash-decoder",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Client-side decoder for Zcash shielded transactions and memos",
   "type": "module",
   "main": "dist/index.js",

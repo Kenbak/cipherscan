@@ -114,11 +114,30 @@ export class ZcashWASM {
     }
 
     try {
-      const resultJson = this.wasmModule.decrypt_memo(txHex, viewingKey);
+      const patchedHex = ZcashWASM.patchBranchId(txHex);
+      const resultJson = this.wasmModule.decrypt_memo(patchedHex, viewingKey);
       return JSON.parse(resultJson);
     } catch (error) {
       throw new Error(`Failed to decrypt memo: ${error}`);
     }
+  }
+
+  /**
+   * Patch unknown consensus branch IDs to NU5 for parsing.
+   * NU6/NU6.1/NU6.2 use the same v5 tx format — only proof rules changed.
+   * The WASM only needs to parse structure for decryption, not validate proofs.
+   */
+  private static patchBranchId(hex: string): string {
+    if (hex.length < 24) return hex;
+    const knownBranchIds = [
+      '00000000', '191ba85b', 'bb09b876', '602bb42b', '0b23b9f5',
+      'a675ffe9', 'b4d0d6c2',
+    ];
+    const branchIdHex = hex.substring(16, 24);
+    if (!knownBranchIds.includes(branchIdHex)) {
+      return hex.substring(0, 16) + 'b4d0d6c2' + hex.substring(24);
+    }
+    return hex;
   }
 
   /**
