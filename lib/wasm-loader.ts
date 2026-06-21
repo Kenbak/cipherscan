@@ -92,12 +92,33 @@ export async function decodeUnifiedAddress(uaString: string): Promise<UnifiedAdd
 }
 
 /**
+ * Patch unknown consensus branch IDs to NU5 for parsing.
+ * NU6/NU6.1/NU6.2 use the same v5 tx format — only proof rules changed.
+ * The WASM only needs to parse structure for decryption, not validate proofs.
+ */
+function patchBranchId(hex: string): string {
+  if (hex.length < 24) return hex;
+  // Branch IDs the deployed WASM recognizes (up to NU5)
+  const knownBranchIds = [
+    '00000000', '191ba85b', 'bb09b876', '602bb42b', '0b23b9f5',
+    'a675ffe9', 'b4d0d6c2',
+  ];
+  const branchIdHex = hex.substring(16, 24);
+  if (!knownBranchIds.includes(branchIdHex)) {
+    // Patch to NU5 — same v5 format, WASM can parse it
+    return hex.substring(0, 16) + 'b4d0d6c2' + hex.substring(24);
+  }
+  return hex;
+}
+
+/**
  * Decrypt a memo from a transaction
  * @returns DecryptedOutput with memo and amount
  */
 export async function decryptMemo(txHex: string, viewingKey: string): Promise<DecryptedOutput> {
   const wasm = await loadWasm();
-  const result = wasm.decrypt_memo(txHex, viewingKey);
+  const patchedHex = patchBranchId(txHex);
+  const result = wasm.decrypt_memo(patchedHex, viewingKey);
 
   // Parse JSON response from WASM
   return JSON.parse(result);
