@@ -65,6 +65,12 @@ export declare class ZcashWASM {
      */
     decryptMemo(txHex: string, viewingKey: string): Promise<DecryptedOutput>;
     /**
+     * Patch unknown consensus branch IDs to NU5 for parsing.
+     * NU6/NU6.1/NU6.2 use the same v5 tx format — only proof rules changed.
+     * The WASM only needs to parse structure for decryption, not validate proofs.
+     */
+    private static patchBranchId;
+    /**
      * Filter compact blocks to find transactions matching the viewing key
      *
      * This is much faster than full decryption as it only checks compact block data.
