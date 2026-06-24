@@ -474,6 +474,33 @@ export default function NetworkClient() {
                 <ProtocolStatsChart />
               </Suspense>
             </div>
+
+            {/* Mining summary teaser */}
+            <div className="mt-8 animate-fade-in-up">
+              <Card>
+                <CardBody className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider mb-1">Mining</h3>
+                      <div className="flex items-center gap-4 text-[11px] font-mono text-muted">
+                        <span>Hashrate: <span className="text-primary">{formatHashrate(stats.mining.networkHashrateRaw)}</span></span>
+                        <span>Difficulty: <span className="text-primary">{(stats.mining.difficulty / 1e6).toFixed(1)}M</span></span>
+                        <span>Block time: <span className="text-primary">~{stats.mining.avgBlockTime}s</span></span>
+                      </div>
+                    </div>
+                    <Link
+                      href="/mining"
+                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-cyan hover:text-cipher-cyan-bright transition-colors"
+                    >
+                      <span>Pool distribution & miner behavior</span>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
           </section>
 
         </>

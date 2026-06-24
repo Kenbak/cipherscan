@@ -98,17 +98,23 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
 }
 
 function generateEmissionCurve(currentCirculating: number) {
-  const points: { date: string; supply: number }[] = [];
+  const points: { date: string; supply: number; ts: number }[] = [];
   const genesisDate = new Date('2016-10-28');
-  const blockTime = 75;
   const maxSupply = 21_000_000;
 
-  const halvings = [840_000, 1_680_000, 2_520_000, 3_360_000, 4_200_000, 5_040_000, 5_880_000];
-  let currentBlock = 0;
-  let supply = 0;
-  let subsidy = 12.5;
-
-  const targetDates: { date: Date; supply: number; label: string }[] = [];
+  // Zcash actual emission schedule (accounting for Blossom halving per-block reward):
+  // Era 1: blocks 0–1,046,399 (Oct 2016 – Nov 2020) — effectively 10 ZEC/block avg (slow start + pre-Blossom)
+  // Era 2: blocks 1,046,400–2,726,399 (Nov 2020 – ~Dec 2024) — 3.125 ZEC/block
+  // Era 3: blocks 2,726,400–4,406,399 (Dec 2024 – ~Nov 2028) — 1.5625 ZEC/block
+  // Era 4: blocks 4,406,400+ (~Nov 2028+) — 0.78125 ZEC/block
+  const eras = [
+    { endBlock: 1_046_400, avgSubsidy: 10.0 },
+    { endBlock: 2_726_400, avgSubsidy: 3.125 },
+    { endBlock: 4_406_400, avgSubsidy: 1.5625 },
+    { endBlock: 6_086_400, avgSubsidy: 0.78125 },
+    { endBlock: 7_766_400, avgSubsidy: 0.390625 },
+  ];
+  const blockTime = 75;
 
   for (let year = 2016; year <= 2036; year += 1) {
     for (let month = 0; month < 12; month += 3) {
@@ -120,22 +126,19 @@ function generateEmissionCurve(currentCirculating: number) {
       const blockAtDate = Math.floor(secondsSinceGenesis / blockTime);
 
       let s = 0;
-      let sub = 12.5;
-      let prevHalving = 0;
-
-      for (const h of halvings) {
-        if (blockAtDate <= h) {
-          s += (blockAtDate - prevHalving) * sub;
+      let prevEnd = 0;
+      for (const era of eras) {
+        if (blockAtDate <= era.endBlock) {
+          s += (blockAtDate - prevEnd) * era.avgSubsidy;
           break;
         }
-        s += (h - prevHalving) * sub;
-        prevHalving = h;
-        sub /= 2;
+        s += (era.endBlock - prevEnd) * era.avgSubsidy;
+        prevEnd = era.endBlock;
       }
 
       const cappedSupply = Math.min(s, maxSupply);
       const label = `${date.toLocaleString(undefined, { month: 'short' })} '${String(year).slice(2)}`;
-      points.push({ date: label, supply: cappedSupply });
+      points.push({ date: label, supply: cappedSupply, ts: date.getTime() });
     }
   }
 
@@ -159,8 +162,10 @@ export function SupplyEmissionPanel({
   const colors = getChartColors(theme);
   const emissionData = useMemo(() => generateEmissionCurve(circulating), [circulating]);
 
-  const nowIndex = emissionData.findIndex(p => p.supply >= circulating) || emissionData.length - 5;
-  const nowPoint = emissionData[Math.min(nowIndex, emissionData.length - 1)];
+  const nowTs = Date.now();
+  const nowIndex = emissionData.reduce((closest, p, i) =>
+    Math.abs(p.ts - nowTs) < Math.abs(emissionData[closest].ts - nowTs) ? i : closest, 0);
+  const nowPoint = { ...emissionData[nowIndex], supply: circulating };
 
   return (
     <Card>
