@@ -35,6 +35,13 @@ export function formatBytesCompact(bytes: number): string {
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '—';
   const days = Math.floor(seconds / 86400);
+  if (days >= 60) {
+    const years = Math.floor(days / 365);
+    const months = Math.round((days % 365) / 30);
+    if (years > 0 && months > 0) return `${years}y ${months}mo`;
+    if (years > 0) return `${years}y`;
+    return `${months}mo`;
+  }
   const hours = Math.floor((seconds % 86400) / 3600);
   if (days > 0) return `${days}d ${hours}h`;
   const mins = Math.floor((seconds % 3600) / 60);
