@@ -82,16 +82,26 @@ router.get('/api/mining/pool-distribution', async (req, res) => {
 
     const totalBlocks = result.rows.reduce((sum, r) => sum + parseInt(r.block_count), 0);
 
-    const pools = result.rows.map(row => {
-      const blockCount = parseInt(row.block_count);
-      return {
-        address: row.miner_address,
-        name: resolvePoolName(row.miner_address),
-        blocks: blockCount,
-        share: totalBlocks > 0 ? blockCount / totalBlocks : 0,
-        totalFeesZat: row.total_fees_zat || '0',
-      };
-    });
+    // Aggregate multiple addresses per pool
+    const poolAgg = {};
+    for (const row of result.rows) {
+      const name = resolvePoolName(row.miner_address);
+      if (!poolAgg[name]) {
+        poolAgg[name] = { address: row.miner_address, name, blocks: 0, totalFeesZat: BigInt(0) };
+      }
+      poolAgg[name].blocks += parseInt(row.block_count);
+      poolAgg[name].totalFeesZat += BigInt(row.total_fees_zat || '0');
+    }
+
+    const pools = Object.values(poolAgg)
+      .map(p => ({
+        address: p.address,
+        name: p.name,
+        blocks: p.blocks,
+        share: totalBlocks > 0 ? p.blocks / totalBlocks : 0,
+        totalFeesZat: p.totalFeesZat.toString(),
+      }))
+      .sort((a, b) => b.blocks - a.blocks);
 
     const response = {
       period,
@@ -153,21 +163,46 @@ router.get('/api/mining/pool-ranking', async (req, res) => {
 
     const totalBlocks = result.rows.reduce((sum, r) => sum + parseInt(r.block_count), 0);
 
-    const ranking = result.rows.map((row, idx) => {
-      const blockCount = parseInt(row.block_count);
+    // Aggregate multiple addresses per pool
+    const poolAgg = {};
+    for (const row of result.rows) {
+      const name = resolvePoolName(row.miner_address);
       const poolInfo = POOL_BY_ADDRESS[row.miner_address];
-      return {
+      if (!poolAgg[name]) {
+        poolAgg[name] = {
+          address: row.miner_address,
+          name,
+          url: poolInfo?.url || null,
+          region: poolInfo?.region || null,
+          blocks: 0,
+          totalFeesZat: BigInt(0),
+          firstBlockTs: Infinity,
+          lastBlockTs: 0,
+        };
+      }
+      poolAgg[name].blocks += parseInt(row.block_count);
+      poolAgg[name].totalFeesZat += BigInt(row.total_fees_zat || '0');
+      const first = parseInt(row.first_block_ts);
+      const last = parseInt(row.last_block_ts);
+      if (first < poolAgg[name].firstBlockTs) poolAgg[name].firstBlockTs = first;
+      if (last > poolAgg[name].lastBlockTs) poolAgg[name].lastBlockTs = last;
+    }
+
+    const ranking = Object.values(poolAgg)
+      .sort((a, b) => b.blocks - a.blocks)
+      .map((p, idx) => ({
         rank: idx + 1,
-        address: row.miner_address,
-        name: resolvePoolName(row.miner_address),
-        url: poolInfo?.url || null,
-        region: poolInfo?.region || null,
-        blocks: blockCount,
-        share: totalBlocks > 0 ? blockCount / totalBlocks : 0,
-        totalFeesZat: row.total_fees_zat || '0',
-        avgBlockInterval: row.avg_block_interval ? parseFloat(row.avg_block_interval) : null,
-      };
-    });
+        address: p.address,
+        name: p.name,
+        url: p.url,
+        region: p.region,
+        blocks: p.blocks,
+        share: totalBlocks > 0 ? p.blocks / totalBlocks : 0,
+        totalFeesZat: p.totalFeesZat.toString(),
+        avgBlockInterval: p.blocks > 1
+          ? (p.lastBlockTs - p.firstBlockTs) / (p.blocks - 1)
+          : null,
+      }));
 
     const response = { period, totalBlocks, ranking, generatedAt: new Date().toISOString() };
     await setCache(cacheKey, response);

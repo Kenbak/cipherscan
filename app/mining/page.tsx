@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
   PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar,
+  LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
@@ -309,10 +310,40 @@ function RankingSection() {
   );
 }
 
+type ChartMode = 'line' | 'area';
+
+function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: ChartMode) => void }) {
+  return (
+    <div className="flex items-center gap-1 bg-glass-3 rounded-md p-0.5">
+      <button
+        onClick={() => onChange('line')}
+        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all ${
+          mode === 'line'
+            ? 'bg-accent/20 text-accent font-bold'
+            : 'text-muted hover:text-secondary'
+        }`}
+      >
+        Line
+      </button>
+      <button
+        onClick={() => onChange('area')}
+        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all ${
+          mode === 'area'
+            ? 'bg-accent/20 text-accent font-bold'
+            : 'text-muted hover:text-secondary'
+        }`}
+      >
+        Area
+      </button>
+    </div>
+  );
+}
+
 function HashrateShareSection() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
+  const [chartMode, setChartMode] = useState<ChartMode>('line');
   const [series, setSeries] = useState<HashratePoint[]>([]);
   const [allPools, setAllPools] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -331,14 +362,12 @@ function HashrateShareSection() {
       .catch(() => setLoading(false));
   }, [period]);
 
-  // Sort pools by total share (descending) to stack biggest at bottom
   const poolOrder = [...allPools].sort((a, b) => {
     const aTotal = series.reduce((s, p) => s + (p.pools[a] || 0), 0);
     const bTotal = series.reduce((s, p) => s + (p.pools[b] || 0), 0);
     return bTotal - aTotal;
   });
 
-  // Transform data for stacked area chart (percentages)
   const chartData = series.map(point => {
     const entry: Record<string, string | number> = { date: point.date };
     for (const pool of poolOrder) {
@@ -347,18 +376,25 @@ function HashrateShareSection() {
     return entry;
   });
 
+  const chartControls = (
+    <div className="flex items-center gap-2">
+      <ChartModeToggle mode={chartMode} onChange={setChartMode} />
+      <PeriodSelector value={period} onChange={setPeriod} />
+    </div>
+  );
+
   return (
     <section id="hashrate" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
       <ChartCard
-        title="HASHRATE_SHARE_OVER_TIME"
+        title="POOL_NETWORK_BLOCK_SHARE"
         height={380}
-        controls={<PeriodSelector value={period} onChange={setPeriod} />}
+        controls={chartControls}
       >
         {loading ? (
           <div className="flex items-center justify-center h-[380px]">
             <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
           </div>
-        ) : (
+        ) : chartMode === 'area' ? (
           <ResponsiveContainer width="100%" height={380}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
@@ -400,6 +436,54 @@ function HashrateShareSection() {
                 />
               ))}
             </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <ResponsiveContainer width="100%" height={380}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+              <XAxis
+                dataKey="date"
+                stroke={colors.axis}
+                tick={{ fill: colors.axis, fontSize: 10 }}
+                tickFormatter={(d: string) => {
+                  const date = new Date(d);
+                  return `${date.getMonth() + 1}/${date.getDate()}`;
+                }}
+              />
+              <YAxis
+                stroke={colors.axis}
+                tick={{ fill: colors.axis, fontSize: 10 }}
+                tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+                domain={[0, 'auto']}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: colors.tooltipBg,
+                  border: `1px solid ${colors.tooltipBorder}`,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                }}
+                formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
+                labelFormatter={(label) => String(label)}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
+                iconType="line"
+                iconSize={12}
+              />
+              {poolOrder.map((pool, idx) => (
+                <Line
+                  key={pool}
+                  type="monotone"
+                  dataKey={pool}
+                  stroke={POOL_COLORS[idx % POOL_COLORS.length]}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                />
+              ))}
+            </LineChart>
           </ResponsiveContainer>
         )}
       </ChartCard>
