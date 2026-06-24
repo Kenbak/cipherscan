@@ -16,7 +16,6 @@ const BlockActivityChart = lazy(() =>
 );
 const HalvingPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.HalvingPanel })));
 const SupplyEmissionPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.SupplyEmissionPanel })));
-const MiningMetricsChart = lazy(() => import('@/components/network/MiningMetricsChart').then((m) => ({ default: m.MiningMetricsChart })));
 const PoolDistributionChart = lazy(() => import('@/components/network/PoolDistributionChart').then((m) => ({ default: m.PoolDistributionChart })));
 const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then((m) => ({ default: m.NetworkHistoryCharts })));
 const ProtocolStatsChart = lazy(() => import('@/components/network/ProtocolStatsChart').then((m) => ({ default: m.ProtocolStatsChart })));
@@ -477,53 +476,7 @@ export default function NetworkClient() {
             </div>
           </section>
 
-          {/* ── MINING ── */}
-          <section id="network-mining" className="scroll-mt-36 pt-2">
-            <SectionHeading title="Mining" subtitle="Hashrate, difficulty, and block economics" />
-
-            <div className="mb-6 animate-fade-in-up">
-              <Suspense fallback={<div className="card h-96 animate-pulse" />}>
-                <MiningMetricsChart />
-              </Suspense>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in-up">
-              <StatCard
-                label="Block Reward"
-                value={`${stats.mining.blockReward} ZEC`}
-                subtitle={stats.mining.minerReward ? `Miner: ${stats.mining.minerReward} ZEC` : undefined}
-                tooltip={stats.mining.minerReward
-                  ? `Total block subsidy: ${stats.mining.blockReward} ZEC. Miner: ${stats.mining.minerReward} ZEC, Grants: ${stats.mining.fundingStreams ?? 0} ZEC, Lockbox: ${stats.mining.lockbox ?? 0} ZEC.`
-                  : `Current ZEC block subsidy.`}
-              />
-              <StatCard
-                label="Daily Revenue"
-                value={`${(stats.mining.dailyRevenue / 1000).toFixed(1)}K ZEC`}
-                subtitle={zecPrice ? `$${((stats.mining.dailyRevenue * zecPrice) / 1000).toFixed(1)}K` : undefined}
-                tooltip={stats.mining.dailyMinerRevenue
-                  ? `Total daily emission: ${stats.mining.dailyRevenue.toFixed(0)} ZEC. Miner revenue: ${stats.mining.dailyMinerRevenue.toFixed(0)} ZEC.`
-                  : `Total ZEC emitted in the last 24 hours (blocks × block reward).`}
-              />
-              <StatCard
-                label="Blocks (24h)"
-                value={stats.mining.blocks24h.toLocaleString()}
-                subtitle={`TX/block: ${(stats.blockchain.tx24h / stats.mining.blocks24h).toFixed(1)}`}
-                tooltip="Number of blocks mined in the last 24 hours, with average transactions per block."
-              />
-            </div>
-          </section>
         </>
-      )}
-
-      {!stats.supply && (
-        <section id="network-mining" className="scroll-mt-36 pt-2">
-          <SectionHeading title="Mining" subtitle="Hashrate, difficulty, and block economics" />
-          <div className="mb-6">
-            <Suspense fallback={<div className="card h-96 animate-pulse" />}>
-              <MiningMetricsChart />
-            </Suspense>
-          </div>
-        </section>
       )}
     </div>
   );
