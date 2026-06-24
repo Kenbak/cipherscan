@@ -227,7 +227,7 @@ export function SupplyEmissionPanel({
                 }}
                 itemStyle={{ color: colors.tooltipText }}
                 labelStyle={{ color: colors.tooltipText }}
-                formatter={(value: number) => [`${(value / 1_000_000).toFixed(2)}M ZEC`, 'Supply']}
+                formatter={(value) => [`${(Number(value) / 1_000_000).toFixed(2)}M ZEC`, 'Supply']}
               />
               <ReferenceLine y={maxSupply} stroke={colors.axis} strokeDasharray="3 3" strokeOpacity={0.5} />
               {nowPoint && (
