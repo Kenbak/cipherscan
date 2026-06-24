@@ -154,16 +154,16 @@ export function NavBar() {
     <Link
       href={item.href}
       onClick={onClick}
-      className="flex flex-col px-2.5 py-2 dropdown-item rounded-md transition-colors duration-150"
+      className="flex flex-col px-2.5 py-1.5 dropdown-item rounded-md transition-colors duration-150"
     >
-      <span className="text-sm font-mono">{item.label}</span>
-      <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+      <span className="text-[13px] font-mono">{item.label}</span>
+      <span className="text-[9px] text-muted leading-tight">{item.desc}</span>
     </Link>
   );
 
   const SectionLabel = ({ label }: { label: string }) => (
-    <div className="px-2.5 pt-2 pb-1">
-      <span className="text-[10px] font-mono text-muted tracking-widest uppercase">{label}</span>
+    <div className="px-2.5 pt-1.5 pb-0.5">
+      <span className="text-[9px] font-mono text-muted tracking-widest uppercase">{label}</span>
     </div>
   );
 
@@ -250,22 +250,22 @@ export function NavBar() {
                 </button>
 
                 {toolsOpen && (
-                  <div className="absolute right-0 mt-2 w-[480px] max-h-[calc(100vh-4.5rem)] overflow-y-auto dropdown-menu rounded-lg shadow-xl border p-2 z-50 animate-scale-in origin-top-right">
-                    <div className="grid grid-cols-2 gap-1">
-                      {/* Left column — Blockchain + Privacy */}
+                  <div className="absolute right-0 mt-2 w-[480px] max-h-[calc(100vh-4.5rem)] overflow-y-auto dropdown-menu rounded-lg shadow-xl border p-1.5 z-50 animate-scale-in origin-top-right">
+                    <div className="grid grid-cols-2 gap-0.5">
+                      {/* Left column — Blockchain + Privacy + Research */}
                       <div>
                         <SectionLabel label="Blockchain" />
                         {blockchainItems.map((item) => (
                           <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
                         ))}
-                        <div className="border-t border-cipher-border my-1.5 mx-2.5" />
+                        <div className="border-t border-cipher-border my-1 mx-2.5" />
                         <SectionLabel label="Privacy" />
                         {privacyItems.map((item) => (
                           <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
                         ))}
                         {researchItems.length > 0 && (
                           <>
-                            <div className="border-t border-cipher-border my-1.5 mx-2.5" />
+                            <div className="border-t border-cipher-border my-1 mx-2.5" />
                             <SectionLabel label="Research" />
                             {researchItems.map((item) => (
                               <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
@@ -280,7 +280,7 @@ export function NavBar() {
                         {toolsItems.map((item) => (
                           <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
                         ))}
-                        <div className="border-t border-cipher-border my-1.5 mx-2.5" />
+                        <div className="border-t border-cipher-border my-1 mx-2.5" />
                         <SectionLabel label="Resources" />
                         {resourcesItems.map((item) => (
                           <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
@@ -289,7 +289,7 @@ export function NavBar() {
                     </div>
 
                     {/* Utility footer — Network, Theme, Donate */}
-                    <div className="border-t border-cipher-border mt-2 pt-2 px-1">
+                    <div className="border-t border-cipher-border mt-1.5 pt-1.5 px-1">
                       <div className="flex items-center justify-between">
                         {/* Network switcher */}
                         <div className="flex items-center gap-1">
