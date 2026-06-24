@@ -169,8 +169,8 @@ function DistributionSection() {
                     fontSize: 11,
                     fontFamily: 'monospace',
                   }}
-                  formatter={(value: number) => [
-                    `${value} blocks (${total > 0 ? ((value / total) * 100).toFixed(1) : 0}%)`,
+                  formatter={(value) => [
+                    `${value} blocks (${total > 0 ? ((Number(value) / total) * 100).toFixed(1) : 0}%)`,
                     '',
                   ]}
                 />
@@ -385,8 +385,8 @@ function HashrateShareSection() {
                   fontSize: 11,
                   fontFamily: 'monospace',
                 }}
-                formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
-                labelFormatter={(label: string) => label}
+                formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
+                labelFormatter={(label) => String(label)}
               />
               {poolOrder.map((pool, idx) => (
                 <Area
@@ -532,15 +532,15 @@ function MinerBehaviorSection() {
                   fontSize: 11,
                   fontFamily: 'monospace',
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const label = name === 'earned' ? 'Earned' : name === 'spent' ? 'Moved/Sold' : 'Held';
-                  return [`${value.toFixed(2)} ZEC`, label];
+                  return [`${Number(value).toFixed(2)} ZEC`, label];
                 }}
-                labelFormatter={(label: string) => label}
+                labelFormatter={(label) => String(label)}
               />
               <Legend
                 wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
-                formatter={(value: string) => value === 'earned' ? 'Earned' : value === 'spent' ? 'Moved/Sold' : 'Held'}
+                formatter={(value) => value === 'earned' ? 'Earned' : value === 'spent' ? 'Moved/Sold' : 'Held'}
               />
               <Bar dataKey="earned" fill={colors.cyan} fillOpacity={0.3} stroke={colors.cyan} />
               <Bar dataKey="spent" fill="#f59e0b" fillOpacity={0.7} />
