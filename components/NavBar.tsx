@@ -115,6 +115,7 @@ export function NavBar() {
         ]
       : [
           { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
+          { href: '/mining', label: 'Mining Pools', desc: 'Pool distribution & miner behavior' },
           { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
           { href: '/pools', label: 'Pool Analytics', desc: 'Supply, flows & turnstile tracking' },
           { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
