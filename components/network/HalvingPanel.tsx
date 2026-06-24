@@ -165,7 +165,7 @@ export function SupplyEmissionPanel({
   const nowTs = Date.now();
   const nowIndex = emissionData.reduce((closest, p, i) =>
     Math.abs(p.ts - nowTs) < Math.abs(emissionData[closest].ts - nowTs) ? i : closest, 0);
-  const nowPoint = { ...emissionData[nowIndex], supply: circulating };
+  const nowPoint = emissionData[nowIndex];
 
   return (
     <Card>
