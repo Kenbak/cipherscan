@@ -111,14 +111,17 @@ async function computeDay(client, dateStr) {
   const dayEnd = dayStart + 86400;
 
   const result = await client.query(`
-    WITH day_coinbase AS (
-      SELECT b.miner_address, t.txid as coinbase_txid, txo.vout_index, txo.value
+    WITH coinbase_txs AS (
+      SELECT b.miner_address, t.txid
       FROM blocks b
       JOIN transactions t ON t.block_height = b.height AND t.is_coinbase = true
-      JOIN transaction_outputs txo ON txo.txid = t.txid
       WHERE b.timestamp >= $1 AND b.timestamp < $2
         AND b.miner_address IS NOT NULL
-        AND txo.address = b.miner_address
+    ),
+    day_coinbase AS (
+      SELECT ct.miner_address, txo.txid as coinbase_txid, txo.vout_index, txo.value
+      FROM coinbase_txs ct
+      JOIN transaction_outputs txo ON txo.txid = ct.txid AND txo.address = ct.miner_address
     ),
     spend_status AS (
       SELECT dc.miner_address, dc.value,
