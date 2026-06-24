@@ -118,24 +118,24 @@ async function computeDay(client, dateStr) {
       WHERE b.timestamp >= $1 AND b.timestamp < $2
         AND b.miner_address IS NOT NULL
     ),
-    day_coinbase AS (
-      SELECT ct.miner_address, txo.txid as coinbase_txid, txo.vout_index, txo.value
-      FROM coinbase_txs ct
-      JOIN transaction_outputs txo ON txo.txid = ct.txid AND txo.address = ct.miner_address
+    all_cb_outputs AS MATERIALIZED (
+      SELECT txo.txid, txo.vout_index, txo.value, txo.address
+      FROM transaction_outputs txo
+      WHERE txo.txid IN (SELECT txid FROM coinbase_txs)
     ),
-    spend_status AS (
-      SELECT dc.miner_address, dc.value,
-        CASE WHEN ti.txid IS NOT NULL THEN true ELSE false END as is_spent
-      FROM day_coinbase dc
-      LEFT JOIN transaction_inputs ti
-        ON ti.prev_txid = dc.coinbase_txid AND ti.prev_vout = dc.vout_index
+    day_coinbase AS (
+      SELECT ct.miner_address, o.txid as coinbase_txid, o.vout_index, o.value
+      FROM coinbase_txs ct
+      JOIN all_cb_outputs o ON o.txid = ct.txid AND o.address = ct.miner_address
     )
-    SELECT miner_address, COUNT(*) as output_count,
-      SUM(value) as total_earned,
-      SUM(CASE WHEN is_spent THEN value ELSE 0 END) as total_spent,
-      SUM(CASE WHEN is_spent THEN 1 ELSE 0 END) as spent_count
-    FROM spend_status
-    GROUP BY miner_address
+    SELECT dc.miner_address, COUNT(*) as output_count,
+      SUM(dc.value) as total_earned,
+      SUM(CASE WHEN ti.txid IS NOT NULL THEN dc.value ELSE 0 END) as total_spent,
+      SUM(CASE WHEN ti.txid IS NOT NULL THEN 1 ELSE 0 END) as spent_count
+    FROM day_coinbase dc
+    LEFT JOIN transaction_inputs ti
+      ON ti.prev_txid = dc.coinbase_txid AND ti.prev_vout = dc.vout_index
+    GROUP BY dc.miner_address
   `, [dayStart, dayEnd]);
 
   const blockCounts = await client.query(`
