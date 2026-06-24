@@ -105,7 +105,7 @@ export function NavBar() {
   const analyticsItems: MenuItem[] = [
     { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },
     { href: '/txs', label: 'Transactions', desc: 'Recent transactions' },
-    { href: '/network', label: 'Network Stats', desc: 'Nodes, hashrate & peers' },
+    { href: '/network', label: 'Network', desc: 'Hashrate, peers & difficulty' },
     ...(isCrosslink
       ? [
           { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
@@ -115,18 +115,18 @@ export function NavBar() {
         ]
       : [
           { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
-          { href: '/mining', label: 'Mining Pools', desc: 'Pool distribution & miner behavior' },
-          { href: '/privacy', label: 'Privacy Dashboard', desc: 'Shielded pool metrics' },
-          { href: '/pools', label: 'Pool Analytics', desc: 'Supply, flows & turnstile tracking' },
+          { href: '/mining', label: 'Mining', desc: 'Pool distribution & miner behavior' },
+          { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
+          { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile tracking' },
           { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
-          { href: '/privacy-risks', label: 'Privacy Risks', desc: 'Detect risky patterns' },
+          { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
         ]),
-    { href: '/reorgs', label: 'Fork Watch', desc: 'Chain forks & orphaned blocks' },
-    ...(isMainnet ? [{ href: '/crosschain', label: 'ZEC Crosschain', desc: 'Cross-chain swap analytics' }] : []),
+    { href: '/reorgs', label: 'Forks & Reorgs', desc: 'Chain forks & orphaned blocks' },
+    ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
   ];
 
   const toolsItems: MenuItem[] = [
-    { href: '/tools', label: 'Developer Tools', desc: 'All tools & API reference' },
+    { href: '/tools', label: 'Dev Tools', desc: 'All tools & API reference' },
     { href: '/decrypt', label: 'Decrypt Memo', desc: 'Decode shielded messages' },
     { href: '/tools/blend-check', label: 'Blend Check', desc: 'See if your amount blends in' },
   ];
