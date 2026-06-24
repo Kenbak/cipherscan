@@ -1,0 +1,390 @@
+/**
+ * Mining Routes
+ * /api/mining/pool-distribution, /api/mining/pool-ranking,
+ * /api/mining/hashrate-share, /api/mining/rewards, /api/mining/miner-behavior
+ */
+
+const express = require('express');
+const router = express.Router();
+const { POOL_BY_ADDRESS, getPoolName } = require('../mining-pools');
+
+let pool;
+let redisClient;
+
+router.use((req, res, next) => {
+  pool = req.app.locals.pool;
+  redisClient = req.app.locals.redisClient;
+  next();
+});
+
+const CACHE_TTL = 300; // 5 minutes
+
+async function getFromCache(key) {
+  try {
+    if (!redisClient || !redisClient.isOpen) return null;
+    const data = await redisClient.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch { return null; }
+}
+
+async function setCache(key, data, ttl = CACHE_TTL) {
+  try {
+    if (!redisClient || !redisClient.isOpen) return;
+    await redisClient.setEx(key, ttl, JSON.stringify(data));
+  } catch {}
+}
+
+function parsePeriod(period) {
+  const map = {
+    '24h': '24 hours',
+    '3d': '3 days',
+    '7d': '7 days',
+    '30d': '30 days',
+    '90d': '90 days',
+    '6m': '180 days',
+    '1y': '365 days',
+    'all': null,
+  };
+  return map[period] || map['7d'];
+}
+
+function resolvePoolName(address) {
+  return getPoolName(address) || 'Unknown';
+}
+
+// ============================================================================
+// GET /api/mining/pool-distribution
+// Returns block counts per pool for a time period (for pie/donut chart)
+// ============================================================================
+router.get('/api/mining/pool-distribution', async (req, res) => {
+  try {
+    const period = req.query.period || '7d';
+    const cacheKey = `mining:pool-dist:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`
+      : '';
+
+    const result = await pool.query(`
+      SELECT
+        miner_address,
+        COUNT(*) as block_count,
+        SUM(total_fees) as total_fees_zat
+      FROM blocks
+      ${whereClause}
+      GROUP BY miner_address
+      ORDER BY block_count DESC
+    `);
+
+    const totalBlocks = result.rows.reduce((sum, r) => sum + parseInt(r.block_count), 0);
+
+    const pools = result.rows.map(row => {
+      const blockCount = parseInt(row.block_count);
+      return {
+        address: row.miner_address,
+        name: resolvePoolName(row.miner_address),
+        blocks: blockCount,
+        share: totalBlocks > 0 ? blockCount / totalBlocks : 0,
+        totalFeesZat: row.total_fees_zat || '0',
+      };
+    });
+
+    const response = {
+      period,
+      totalBlocks,
+      pools,
+      generatedAt: new Date().toISOString(),
+    };
+
+    await setCache(cacheKey, response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching pool distribution:', error);
+    res.status(500).json({ error: 'Failed to fetch pool distribution' });
+  }
+});
+
+// ============================================================================
+// GET /api/mining/pool-ranking
+// Sorted ranking table with avg block time per pool
+// ============================================================================
+router.get('/api/mining/pool-ranking', async (req, res) => {
+  try {
+    const period = req.query.period || '7d';
+    const cacheKey = `mining:pool-rank:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`
+      : '';
+
+    const result = await pool.query(`
+      WITH pool_blocks AS (
+        SELECT
+          miner_address,
+          COUNT(*) as block_count,
+          SUM(total_fees) as total_fees_zat,
+          MIN(timestamp) as first_block_ts,
+          MAX(timestamp) as last_block_ts
+        FROM blocks
+        ${whereClause}
+        GROUP BY miner_address
+      )
+      SELECT
+        miner_address,
+        block_count,
+        total_fees_zat,
+        first_block_ts,
+        last_block_ts,
+        CASE WHEN block_count > 1
+          THEN (last_block_ts - first_block_ts)::numeric / (block_count - 1)
+          ELSE NULL
+        END as avg_block_interval
+      FROM pool_blocks
+      ORDER BY block_count DESC
+    `);
+
+    const totalBlocks = result.rows.reduce((sum, r) => sum + parseInt(r.block_count), 0);
+
+    const ranking = result.rows.map((row, idx) => {
+      const blockCount = parseInt(row.block_count);
+      const poolInfo = POOL_BY_ADDRESS[row.miner_address];
+      return {
+        rank: idx + 1,
+        address: row.miner_address,
+        name: resolvePoolName(row.miner_address),
+        url: poolInfo?.url || null,
+        region: poolInfo?.region || null,
+        blocks: blockCount,
+        share: totalBlocks > 0 ? blockCount / totalBlocks : 0,
+        totalFeesZat: row.total_fees_zat || '0',
+        avgBlockInterval: row.avg_block_interval ? parseFloat(row.avg_block_interval) : null,
+      };
+    });
+
+    const response = { period, totalBlocks, ranking, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching pool ranking:', error);
+    res.status(500).json({ error: 'Failed to fetch pool ranking' });
+  }
+});
+
+// ============================================================================
+// GET /api/mining/hashrate-share
+// Time series of pool dominance (for stacked area chart)
+// ============================================================================
+router.get('/api/mining/hashrate-share', async (req, res) => {
+  try {
+    const period = req.query.period || '30d';
+    const cacheKey = `mining:hashrate-share:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`
+      : `WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '365 days')`;
+
+    // Bucket into days
+    const result = await pool.query(`
+      SELECT
+        date_trunc('day', to_timestamp(timestamp)) as day,
+        miner_address,
+        COUNT(*) as block_count
+      FROM blocks
+      ${whereClause}
+      GROUP BY day, miner_address
+      ORDER BY day
+    `);
+
+    // Aggregate: for each day, compute share per pool
+    const dayMap = new Map();
+    for (const row of result.rows) {
+      const dayKey = row.day.toISOString().slice(0, 10);
+      if (!dayMap.has(dayKey)) dayMap.set(dayKey, {});
+      const poolName = resolvePoolName(row.miner_address);
+      const dayPools = dayMap.get(dayKey);
+      dayPools[poolName] = (dayPools[poolName] || 0) + parseInt(row.block_count);
+    }
+
+    // Build time series: each point = { date, pools: { name: share } }
+    const series = [];
+    for (const [date, pools] of dayMap.entries()) {
+      const total = Object.values(pools).reduce((s, v) => s + v, 0);
+      const shares = {};
+      for (const [name, count] of Object.entries(pools)) {
+        shares[name] = total > 0 ? count / total : 0;
+      }
+      series.push({ date, totalBlocks: total, pools: shares });
+    }
+
+    // Collect all pool names seen
+    const allPools = [...new Set(series.flatMap(s => Object.keys(s.pools)))];
+
+    const response = { period, series, allPools, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, response, 600); // 10 min cache for time series
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching hashrate share:', error);
+    res.status(500).json({ error: 'Failed to fetch hashrate share' });
+  }
+});
+
+// ============================================================================
+// GET /api/mining/rewards
+// Miner reward stats (subsidy, fees, total) for recent blocks
+// ============================================================================
+router.get('/api/mining/rewards', async (req, res) => {
+  try {
+    const period = req.query.period || '7d';
+    const cacheKey = `mining:rewards:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE b.timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`
+      : '';
+
+    // Block subsidy = coinbase total_output; fees = block.total_fees
+    const result = await pool.query(`
+      SELECT
+        date_trunc('day', to_timestamp(b.timestamp)) as day,
+        COUNT(*) as block_count,
+        SUM(b.total_fees) as total_fees_zat,
+        SUM(t.total_output) as total_coinbase_output_zat
+      FROM blocks b
+      JOIN transactions t ON t.block_height = b.height AND t.is_coinbase = true
+      ${whereClause}
+      GROUP BY day
+      ORDER BY day
+    `);
+
+    const series = result.rows.map(row => ({
+      date: row.day.toISOString().slice(0, 10),
+      blocks: parseInt(row.block_count),
+      totalFeesZat: row.total_fees_zat || '0',
+      totalCoinbaseZat: row.total_coinbase_output_zat || '0',
+    }));
+
+    const response = { period, series, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching mining rewards:', error);
+    res.status(500).json({ error: 'Failed to fetch mining rewards' });
+  }
+});
+
+// ============================================================================
+// GET /api/mining/miner-behavior
+// Pre-computed miner sell/hold behavior from snapshot table
+// ============================================================================
+router.get('/api/mining/miner-behavior', async (req, res) => {
+  try {
+    const period = req.query.period || '90d';
+    const cacheKey = `mining:miner-behavior:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE date >= CURRENT_DATE - INTERVAL '${interval}'`
+      : '';
+
+    // Check if snapshot table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_name = 'mining_behavior_daily'
+      ) as exists
+    `);
+
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        period,
+        series: [],
+        summary: null,
+        message: 'Miner behavior data is being computed. Check back soon.',
+        generatedAt: new Date().toISOString(),
+      });
+    }
+
+    const result = await pool.query(`
+      SELECT
+        date,
+        pool_name,
+        earned_zat,
+        spent_zat,
+        held_zat,
+        blocks_mined,
+        outputs_spent,
+        outputs_total
+      FROM mining_behavior_daily
+      ${whereClause}
+      ORDER BY date, pool_name
+    `);
+
+    // Group by date for aggregate view
+    const byDate = new Map();
+    for (const row of result.rows) {
+      const dateKey = row.date.toISOString().slice(0, 10);
+      if (!byDate.has(dateKey)) {
+        byDate.set(dateKey, { date: dateKey, earned: BigInt(0), spent: BigInt(0), held: BigInt(0), pools: {} });
+      }
+      const entry = byDate.get(dateKey);
+      const earned = BigInt(row.earned_zat);
+      const spent = BigInt(row.spent_zat);
+      const held = BigInt(row.held_zat);
+      entry.earned += earned;
+      entry.spent += spent;
+      entry.held += held;
+      entry.pools[row.pool_name] = {
+        earned: row.earned_zat,
+        spent: row.spent_zat,
+        held: row.held_zat,
+        blocks: parseInt(row.blocks_mined),
+      };
+    }
+
+    const series = [...byDate.values()].map(entry => ({
+      date: entry.date,
+      earnedZat: entry.earned.toString(),
+      spentZat: entry.spent.toString(),
+      heldZat: entry.held.toString(),
+      sellRatio: entry.earned > 0n ? Number((entry.spent * 10000n) / entry.earned) / 10000 : 0,
+      pools: entry.pools,
+    }));
+
+    // Compute overall summary
+    const totalEarned = series.reduce((s, r) => s + BigInt(r.earnedZat), 0n);
+    const totalSpent = series.reduce((s, r) => s + BigInt(r.spentZat), 0n);
+    const summary = {
+      totalEarnedZat: totalEarned.toString(),
+      totalSpentZat: totalSpent.toString(),
+      totalHeldZat: (totalEarned - totalSpent).toString(),
+      overallSellRatio: totalEarned > 0n ? Number((totalSpent * 10000n) / totalEarned) / 10000 : 0,
+    };
+
+    const response = { period, series, summary, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, response, 900); // 15 min cache
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching miner behavior:', error);
+    res.status(500).json({ error: 'Failed to fetch miner behavior' });
+  }
+});
+
+module.exports = router;

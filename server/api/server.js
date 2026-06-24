@@ -34,6 +34,7 @@ const blendCheckRouter = require('./routes/blend-check');
 const crosslinkRouter = require('./routes/crosslink');
 const reorgsRouter = require('./routes/reorgs');
 const poolsRouter = require('./routes/pools');
+const miningRouter = require('./routes/mining');
 
 // Import privacy linkage functions
 const {
@@ -378,6 +379,9 @@ app.use(blendCheckRouter);
 app.use(crosslinkRouter);
 app.use(reorgsRouter);
 app.use(poolsRouter);
+
+// Mining routes: /api/mining/*
+app.use(miningRouter);
 
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
