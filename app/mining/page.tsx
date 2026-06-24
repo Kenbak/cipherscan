@@ -85,12 +85,12 @@ function formatPct(share: number): string {
 
 function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
   return (
-    <div className="inline-flex gap-0.5 p-0.5 rounded-md bg-glass-3 overflow-x-auto max-w-full flex-shrink-0">
+    <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3 flex-shrink-0">
       {PERIODS.map(p => (
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`px-2 py-1 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
             value === p
               ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
               : 'text-muted hover:text-primary'
@@ -349,6 +349,7 @@ function HashrateShareSection() {
   const [chartMode, setChartMode] = useState<ChartMode>('line');
   const [series, setSeries] = useState<HashratePoint[]>([]);
   const [allPools, setAllPools] = useState<string[]>([]);
+  const [hiddenPools, setHiddenPools] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -371,6 +372,8 @@ function HashrateShareSection() {
     return bTotal - aTotal;
   });
 
+  const visiblePools = poolOrder.filter(p => !hiddenPools.has(p));
+
   const chartData = series.map(point => {
     const entry: Record<string, string | number> = { date: point.date };
     for (const pool of poolOrder) {
@@ -379,12 +382,23 @@ function HashrateShareSection() {
     return entry;
   });
 
+  const togglePool = (pool: string) => {
+    setHiddenPools(prev => {
+      const next = new Set(prev);
+      if (next.has(pool)) next.delete(pool);
+      else next.add(pool);
+      return next;
+    });
+  };
+
   const chartControls = (
-    <div className="flex items-center gap-2 flex-wrap justify-end">
+    <div className="flex items-center gap-1.5 flex-wrap justify-end">
       <ChartModeToggle mode={chartMode} onChange={setChartMode} />
       <PeriodSelector value={period} onChange={setPeriod} />
     </div>
   );
+
+  const cursorStyle = { fill: 'rgba(255,255,255,0.03)', stroke: 'rgba(255,255,255,0.1)' };
 
   return (
     <section id="hashrate" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
@@ -417,30 +431,33 @@ function HashrateShareSection() {
                 domain={[0, 100]}
               />
               <Tooltip
+                cursor={cursorStyle}
                 contentStyle={{
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
-                  color: colors.tooltipText,
                 }}
                 itemStyle={{ color: colors.tooltipText }}
-                labelStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
                 formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
                 labelFormatter={(label) => String(label)}
               />
-              {poolOrder.map((pool, idx) => (
-                <Area
-                  key={pool}
-                  type="monotone"
-                  dataKey={pool}
-                  stackId="1"
-                  fill={POOL_COLORS[idx % POOL_COLORS.length]}
-                  stroke={POOL_COLORS[idx % POOL_COLORS.length]}
-                  fillOpacity={0.7}
-                />
-              ))}
+              {visiblePools.map((pool) => {
+                const idx = poolOrder.indexOf(pool);
+                return (
+                  <Area
+                    key={pool}
+                    type="monotone"
+                    dataKey={pool}
+                    stackId="1"
+                    fill={POOL_COLORS[idx % POOL_COLORS.length]}
+                    stroke={POOL_COLORS[idx % POOL_COLORS.length]}
+                    fillOpacity={0.7}
+                  />
+                );
+              })}
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -463,38 +480,63 @@ function HashrateShareSection() {
                 domain={[0, 'auto']}
               />
               <Tooltip
+                cursor={cursorStyle}
                 contentStyle={{
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
-                  color: colors.tooltipText,
                 }}
                 itemStyle={{ color: colors.tooltipText }}
-                labelStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
                 formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
                 labelFormatter={(label) => String(label)}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
-                iconType="line"
-                iconSize={12}
-              />
-              {poolOrder.map((pool, idx) => (
-                <Line
-                  key={pool}
-                  type="monotone"
-                  dataKey={pool}
-                  stroke={POOL_COLORS[idx % POOL_COLORS.length]}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 3 }}
-                />
-              ))}
+              {visiblePools.map((pool) => {
+                const idx = poolOrder.indexOf(pool);
+                return (
+                  <Line
+                    key={pool}
+                    type="monotone"
+                    dataKey={pool}
+                    stroke={POOL_COLORS[idx % POOL_COLORS.length]}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         )}
+
+        {/* Clickable legend */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-4 px-1">
+          {poolOrder.map((pool, idx) => {
+            const isHidden = hiddenPools.has(pool);
+            return (
+              <button
+                key={pool}
+                onClick={() => togglePool(pool)}
+                className={`flex items-center gap-1.5 text-[10px] font-mono transition-opacity ${
+                  isHidden ? 'opacity-30' : 'opacity-100'
+                } hover:opacity-80`}
+              >
+                <span
+                  className="w-3 h-[3px] rounded-full inline-block"
+                  style={{
+                    backgroundColor: POOL_COLORS[idx % POOL_COLORS.length],
+                    opacity: isHidden ? 0.3 : 1,
+                  }}
+                />
+                <span className={isHidden ? 'text-muted line-through' : 'text-secondary'}>
+                  {pool}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </ChartCard>
     </section>
   );
@@ -618,16 +660,16 @@ function MinerBehaviorSection() {
                 label={{ value: 'ZEC', angle: -90, position: 'insideLeft', fill: colors.axis, fontSize: 10 }}
               />
               <Tooltip
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                 contentStyle={{
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
-                  color: colors.tooltipText,
                 }}
                 itemStyle={{ color: colors.tooltipText }}
-                labelStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
                 formatter={(value, name) => {
                   const label = name === 'earned' ? 'Earned' : name === 'spent' ? 'Moved/Sold' : 'Held';
                   return [`${Number(value).toFixed(2)} ZEC`, label];
