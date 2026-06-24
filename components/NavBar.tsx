@@ -250,7 +250,7 @@ export function NavBar() {
                 </button>
 
                 {toolsOpen && (
-                  <div className="absolute right-0 mt-2 w-[480px] dropdown-menu rounded-lg shadow-xl border p-2 z-50 animate-scale-in origin-top-right">
+                  <div className="absolute right-0 mt-2 w-[480px] max-h-[calc(100vh-4.5rem)] overflow-y-auto dropdown-menu rounded-lg shadow-xl border p-2 z-50 animate-scale-in origin-top-right">
                     <div className="grid grid-cols-2 gap-1">
                       {/* Left column — Blockchain + Privacy */}
                       <div>

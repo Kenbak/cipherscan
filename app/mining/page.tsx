@@ -169,10 +169,13 @@ function DistributionSection() {
                     borderRadius: 8,
                     fontSize: 11,
                     fontFamily: 'monospace',
+                    color: colors.tooltipText,
                   }}
-                  formatter={(value) => [
+                  itemStyle={{ color: colors.tooltipText }}
+                  labelStyle={{ color: colors.tooltipText }}
+                  formatter={(value, name) => [
                     `${value} blocks (${total > 0 ? ((Number(value) / total) * 100).toFixed(1) : 0}%)`,
-                    '',
+                    String(name),
                   ]}
                 />
               </PieChart>
@@ -420,7 +423,10 @@ function HashrateShareSection() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
+                  color: colors.tooltipText,
                 }}
+                itemStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText }}
                 formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
                 labelFormatter={(label) => String(label)}
               />
@@ -463,7 +469,10 @@ function HashrateShareSection() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
+                  color: colors.tooltipText,
                 }}
+                itemStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText }}
                 formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]}
                 labelFormatter={(label) => String(label)}
               />
@@ -615,7 +624,10 @@ function MinerBehaviorSection() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontFamily: 'monospace',
+                  color: colors.tooltipText,
                 }}
+                itemStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: colors.tooltipText }}
                 formatter={(value, name) => {
                   const label = name === 'earned' ? 'Earned' : name === 'spent' ? 'Moved/Sold' : 'Held';
                   return [`${Number(value).toFixed(2)} ZEC`, label];
