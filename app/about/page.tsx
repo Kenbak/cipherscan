@@ -18,9 +18,13 @@ interface LiveStats {
   blocksIndexed: number | null;
   totalTransactions: number | null;
   shieldedTxAnalyzed: number | null;
+  chainSizeGB: number | null;
+  miningPools: number;
+  apiEndpoints: number;
 }
 
 async function getLiveStats(): Promise<LiveStats> {
+  const STATIC = { miningPools: 12, apiEndpoints: 96 };
   try {
     const [networkRes, privacyRes] = await Promise.allSettled([
       fetch(`${API_URL}/api/network/stats`, { next: { revalidate: 60 } }),
@@ -40,9 +44,11 @@ async function getLiveStats(): Promise<LiveStats> {
       blocksIndexed: network?.blockchain?.height ?? null,
       totalTransactions: privacy?.totals?.totalTx ?? null,
       shieldedTxAnalyzed: privacy?.totals?.shieldedTx ?? null,
+      chainSizeGB: network?.blockchain?.sizeGB ?? null,
+      ...STATIC,
     };
   } catch {
-    return { blocksIndexed: null, totalTransactions: null, shieldedTxAnalyzed: null };
+    return { blocksIndexed: null, totalTransactions: null, shieldedTxAnalyzed: null, chainSizeGB: null, ...STATIC };
   }
 }
 
@@ -97,15 +103,42 @@ const timeline = [
     description:
       'Funded by the Zcash Community Grants program. Community recognition that privacy visibility infrastructure is essential for the ecosystem.',
   },
-  // {
-  //   date: 'FEB 2026',
-  //   tag: 'NPM',
-  //   tagColor: 'text-purple-400',
-  //   dotColor: 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.6)]',
-  //   title: 'Published as NPM Package',
-  //   description:
-  //     "Core libraries on NPM. Any developer can build on Zcash data and privacy tooling without starting from scratch.",
-  // },
+  {
+    date: 'MAR 2026',
+    tag: 'CROSS-CHAIN',
+    tagColor: 'text-cipher-green',
+    dotColor: 'bg-cipher-green shadow-[0_0_8px_rgba(0,255,148,0.6)]',
+    title: 'Bridge & Cross-Chain Analytics',
+    description:
+      'Tracking ZEC flowing across bridges — ETH, BTC, and beyond. Mapping the cross-chain ecosystem with swap detection, volume analytics, and bridge health monitoring.',
+  },
+  {
+    date: 'APR 2026',
+    tag: 'MONITORING',
+    tagColor: 'text-cipher-cyan',
+    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
+    title: 'Fork Watch & Network Health',
+    description:
+      'Real-time chain reorganization detection and monitoring. Tracking network consensus health, stale blocks, and reorg depth — critical infrastructure visibility.',
+  },
+  {
+    date: 'MAY 2026',
+    tag: 'INDEXER',
+    tagColor: 'text-cipher-purple',
+    dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgb(var(--color-purple-rgb)_/_0.6)]',
+    title: 'CipherScan Rust Indexer',
+    description:
+      'High-performance Rust-based blockchain indexer. Full chain state in PostgreSQL — every transaction, output, and shielded action indexed for instant queries across 3.3M+ blocks.',
+  },
+  {
+    date: 'JUN 2026',
+    tag: 'MINING',
+    tagColor: 'text-cipher-orange',
+    dotColor: 'bg-cipher-orange shadow-[0_0_8px_rgb(var(--color-orange-rgb)_/_0.6)]',
+    title: 'Mining Pool Analytics',
+    description:
+      'Pool diversity tracking, hashrate share over time, and miner behavior analysis. Showing whether miners sell or accumulate — strategy transparency for the entire network.',
+  },
 ];
 
 export default async function AboutPage() {
@@ -140,14 +173,23 @@ export default async function AboutPage() {
 
         {/* Live Stats */}
         <div className="mb-20 sm:mb-28">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-8 sm:gap-0 sm:divide-x sm:divide-cipher-border">
+          <div className="mb-5">
+            <span className="font-mono text-[10px] text-muted tracking-[0.3em] uppercase">
+              {'>'} live_stats
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8">
             {[
               { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-cyan' },
               { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
               { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-purple' },
-            ].map((stat, i) => (
-              <div key={stat.label} className={`${i > 0 ? 'sm:pl-8 lg:pl-12' : ''} ${i < 2 ? 'sm:pr-8 lg:pr-12' : ''}`}>
-                <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold font-mono ${stat.color} leading-none`}>
+              { label: 'Chain Data Indexed', value: stats.chainSizeGB ? `${stats.chainSizeGB} GB` : '...', color: 'text-cipher-green' },
+              { label: 'API Endpoints', value: String(stats.apiEndpoints), color: 'text-primary' },
+              { label: 'Mining Pools Tracked', value: String(stats.miningPools), color: 'text-cipher-orange' },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <div className={`text-xl sm:text-2xl lg:text-3xl font-bold font-mono ${stat.color} leading-none`}>
                   {stat.value}
                 </div>
                 <div className="text-[9px] sm:text-[10px] text-muted/50 font-mono uppercase tracking-wider mt-2">
