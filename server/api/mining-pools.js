@@ -43,12 +43,13 @@ const POOL_BY_ADDRESS = {
     region: null,
     deprecated: '2026-06-15',
   },
-  // ViaBTC new primary address (started Jun 15, currently ~27-40% hashrate)
-  // No coinbase tag — consistent with ViaBTC's pattern
+  // Unidentified — surged to ~40% hashrate starting Jun 15. No coinbase tag.
+  // NOT ViaBTC (zcashinfo confirms ViaBTC is only a few % currently).
+  // Possibly new institutional miner or pool that hasn't been publicly identified.
   't1MKn34KBa8Xh4g8qU8psibBXvURafphVn7': {
-    name: 'ViaBTC',
-    url: 'https://www.viabtc.com',
-    region: 'US/CN',
+    name: 'Unidentified (Dominant)',
+    url: null,
+    region: null,
   },
 
   // --- AntPool ---
