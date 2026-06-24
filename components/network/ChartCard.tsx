@@ -24,10 +24,10 @@ export function ChartCard({
   return (
     <Card className={className}>
       <CardBody>
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">{title}</h2>
+            <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider truncate">{title}</h2>
           </div>
           {controls}
         </div>

@@ -85,12 +85,12 @@ function formatPct(share: number): string {
 
 function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
   return (
-    <div className="inline-flex gap-0.5 p-0.5 rounded-md bg-glass-3">
+    <div className="inline-flex gap-0.5 p-0.5 rounded-md bg-glass-3 overflow-x-auto max-w-full flex-shrink-0">
       {PERIODS.map(p => (
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`px-2 py-1 text-[10px] font-mono rounded transition-all ${
+          className={`px-2 py-1 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
             value === p
               ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
               : 'text-muted hover:text-primary'
@@ -229,10 +229,10 @@ function RankingSection() {
     <section id="ranking" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
       <Card>
         <CardBody>
-          <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_RANKING</h2>
+              <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_RANKING</h2>
             </div>
             <PeriodSelector value={period} onChange={setPeriod} />
           </div>
@@ -377,7 +377,7 @@ function HashrateShareSection() {
   });
 
   const chartControls = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap justify-end">
       <ChartModeToggle mode={chartMode} onChange={setChartMode} />
       <PeriodSelector value={period} onChange={setPeriod} />
     </div>
@@ -639,7 +639,7 @@ function MinerBehaviorSection() {
 
 export default function MiningPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
       <div className="mb-8 animate-fade-in">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> MINING_POOLS

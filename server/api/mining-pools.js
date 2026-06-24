@@ -35,11 +35,12 @@ const POOL_BY_ADDRESS = {
     region: 'US/CN',
     deprecated: '2026-06-22',
   },
-  // ViaBTC secondary address (ran alongside primary, deprecated Jun 15)
+  // Unidentified — consistent ~7% hashrate, stopped Jun 15. Possibly ViaBTC secondary
+  // or Luxor. Timing correlates with address rotations but no coinbase tag to confirm.
   't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': {
-    name: 'ViaBTC',
-    url: 'https://www.viabtc.com',
-    region: 'US/CN',
+    name: 'Unidentified #5',
+    url: null,
+    region: null,
     deprecated: '2026-06-15',
   },
   // ViaBTC new primary address (started Jun 15, currently ~27-40% hashrate)
