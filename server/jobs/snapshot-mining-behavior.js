@@ -111,7 +111,7 @@ async function computeDay(client, dateStr) {
   const dayEnd = dayStart + 86400;
 
   const result = await client.query(`
-    WITH coinbase_txs AS (
+    WITH coinbase_txs AS MATERIALIZED (
       SELECT b.miner_address, t.txid
       FROM blocks b
       JOIN transactions t ON t.block_height = b.height AND t.is_coinbase = true
