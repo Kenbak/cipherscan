@@ -12,8 +12,10 @@ import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
+import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
 
 const SECTIONS = [
+  { id: 'metrics', label: 'Network' },
   { id: 'distribution', label: 'Distribution' },
   { id: 'ranking', label: 'Ranking' },
   { id: 'hashrate', label: 'Hashrate Share' },
@@ -696,16 +698,19 @@ export default function MiningPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 overflow-x-hidden">
       <div className="mb-8 animate-fade-in">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> MINING_POOLS
+          <span className="opacity-50">{'>'}</span> MINING
         </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Mining Pools</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Mining</h1>
         <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">
-          Which pools are securing the Zcash network, their hashrate share over time,
-          and whether miners are selling or accumulating their block rewards.
+          Hashrate, difficulty, block economics, pool distribution, and miner behavior.
         </p>
       </div>
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Mining pool sections" />
+
+      <section id="metrics" className="scroll-mt-36 mb-12 animate-fade-in-up">
+        <MiningMetricsChart />
+      </section>
 
       <DistributionSection />
       <RankingSection />
