@@ -102,7 +102,7 @@ export function NavBar() {
     setToolsOpen(false);
   }, [pathname]);
 
-  const analyticsItems: MenuItem[] = [
+  const blockchainItems: MenuItem[] = [
     { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },
     { href: '/txs', label: 'Transactions', desc: 'Recent transactions' },
     { href: '/network', label: 'Network', desc: 'Hashrate, peers & difficulty' },
@@ -111,16 +111,25 @@ export function NavBar() {
           { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
           { href: '/validators', label: 'Validators', desc: 'Finalizer roster & staking' },
           { href: '/bootstrap', label: 'Node Bootstrap', desc: 'Skip genesis resync' },
-          { href: '/fork-monitor', label: 'Fork Monitor', desc: 'Chain forks & node health' },
         ]
       : [
-          { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
           { href: '/mining', label: 'Mining', desc: 'Pool distribution & miner behavior' },
-          { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
-          { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile tracking' },
-          { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
-          { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
         ]),
+  ];
+
+  const privacyItems: MenuItem[] = isCrosslink
+    ? [{ href: '/fork-monitor', label: 'Fork Monitor', desc: 'Chain forks & node health' }]
+    : [
+        { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
+        { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile' },
+        { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
+        { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
+      ];
+
+  const researchItems: MenuItem[] = [
+    ...(isCrosslink ? [] : [
+      { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
+    ]),
     { href: '/reorgs', label: 'Forks & Reorgs', desc: 'Chain forks & orphaned blocks' },
     ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
   ];
@@ -241,14 +250,28 @@ export function NavBar() {
                 </button>
 
                 {toolsOpen && (
-                  <div className="absolute right-0 mt-2 w-[420px] dropdown-menu rounded-lg shadow-xl border p-2 z-50 animate-scale-in origin-top-right">
+                  <div className="absolute right-0 mt-2 w-[480px] dropdown-menu rounded-lg shadow-xl border p-2 z-50 animate-scale-in origin-top-right">
                     <div className="grid grid-cols-2 gap-1">
-                      {/* Left column — Analytics */}
+                      {/* Left column — Blockchain + Privacy */}
                       <div>
-                        <SectionLabel label="Analytics" />
-                        {analyticsItems.map((item) => (
+                        <SectionLabel label="Blockchain" />
+                        {blockchainItems.map((item) => (
                           <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
                         ))}
+                        <div className="border-t border-cipher-border my-1.5 mx-2.5" />
+                        <SectionLabel label="Privacy" />
+                        {privacyItems.map((item) => (
+                          <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
+                        ))}
+                        {researchItems.length > 0 && (
+                          <>
+                            <div className="border-t border-cipher-border my-1.5 mx-2.5" />
+                            <SectionLabel label="Research" />
+                            {researchItems.map((item) => (
+                              <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
+                            ))}
+                          </>
+                        )}
                       </div>
 
                       {/* Right column — Tools + Resources */}
@@ -420,9 +443,9 @@ export function NavBar() {
 
               <div className="border-t navbar-border my-2" />
 
-              {/* Analytics */}
-              <SectionLabel label="Analytics" />
-              {analyticsItems.map((item) => (
+              {/* Blockchain */}
+              <SectionLabel label="Blockchain" />
+              {blockchainItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -433,6 +456,40 @@ export function NavBar() {
                   <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
                 </Link>
               ))}
+
+              <div className="border-t navbar-border my-2" />
+
+              {/* Privacy */}
+              <SectionLabel label="Privacy" />
+              {privacyItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
+                >
+                  <span className="text-sm font-mono">{item.label}</span>
+                  <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                </Link>
+              ))}
+
+              {researchItems.length > 0 && (
+                <>
+                  <div className="border-t navbar-border my-2" />
+                  <SectionLabel label="Research" />
+                  {researchItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
+                    >
+                      <span className="text-sm font-mono">{item.label}</span>
+                      <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                    </Link>
+                  ))}
+                </>
+              )}
 
               <div className="border-t navbar-border my-2" />
 
