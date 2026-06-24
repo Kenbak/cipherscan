@@ -80,6 +80,21 @@ const POOL_BY_ADDRESS = {
     region: 'EU',
   },
 
+  // Rising pool — surged to ~27% hashrate in June 2026 (7d window)
+  // Address first appeared with high block volume around mid-June 2026
+  't1MKn34KBa8Xh4g8qU8psibBXvURafphVn7': {
+    name: 'Unknown Pool (Rising)',
+    url: null,
+    region: null,
+  },
+
+  // Consistent ~5-6% hashrate, appeared in May/June 2026 data
+  't1fu6KgYtHEXk2ZhTpM1XD7jbnSmW6wokDM': {
+    name: 'Unknown Pool #8',
+    url: null,
+    region: null,
+  },
+
   // Dev Fund recipient (not a pool, but worth labelling)
   't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': {
     name: 'Dev Fund',
