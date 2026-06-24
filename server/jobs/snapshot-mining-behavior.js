@@ -33,7 +33,8 @@ const pool = new Pool({
 
 const LOCK_ID = 839275;
 const BACKFILL_MODE = process.argv.includes('--backfill');
-const INCREMENTAL_DAYS = 7;
+const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
+const INCREMENTAL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 7;
 
 function log(msg) {
   const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -75,18 +76,26 @@ async function releaseLock(client) {
 /**
  * Known pool map — mirrors server/api/mining-pools.js
  * Duplicated here so the job is self-contained (no import path issues from cron).
+ * Last synced: 2026-06-24
  */
 const POOL_MAP = {
   't1SqwRAAdSig6dE4EBPLonAait219VmkUjP': 'Foundry USA',
   't1PEp2GJLSdhDfCKqc2J211WKDUS1NfoQNy': 'F2Pool',
   't1at7nVNsv6taLRrNRvnQdtfLNRDfsGc3Ak': 'ViaBTC',
   't1ZVi2YGk98tEGYcNpXYnJFWCoLG2oYwv3J': 'AntPool',
-  't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': 'Unknown Pool #5',
+  't1L2b66MXbgpVMXDfUa94GCBFAN4dCxGohM': 'AntPool',
+  't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': 'Unidentified #5',
+  't1MKn34KBa8Xh4g8qU8psibBXvURafphVn7': 'Unidentified (Dominant)',
   't1bnxtY7aLCjWx9Ru1YcGwRWch3eEWUFK7u': '2Miners',
-  't1L2b66MXbgpVMXDfUa94GCBFAN4dCxGohM': 'Unknown Pool #7',
-  't1XQZdZMnzXBcL8yx2PR27dSNrqctgwLgux': 'Unknown Pool (US)',
-  't1egMFNkP7EfkK25y8s4GeiMkEGnqcMnTb1': 'Unknown Pool (EU)',
+  't1fu6KgYtHEXk2ZhTpM1XD7jbnSmW6wokDM': '2Miners',
+  't1XQZdZMnzXBcL8yx2PR27dSNrqctgwLgux': 'Luxor',
+  't1egMFNkP7EfkK25y8s4GeiMkEGnqcMnTb1': 'Mining Dutch',
   't1Mofe2EigYNfgqSTPbK4k1iJTxyCEEQCEC': 'Kryptex',
+  't1SEgZvXCu3ceE42qrq5pCeSq7HbLjX8NJv': 'NiceHash',
+  't1fpcZ2Dbwn4oj35oWBTUhtmUciSq7HG7LU': 'Solopool',
+  't1Na7ykQ6vE4CbxBPuUDUQx5n6aEWXu1VQq': 'Binance Pool',
+  't1e6hceYHkzCbwcwGZzKeMfXXW7x7gr19Cw': 'Poolin',
+  't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': 'Dev Fund',
 };
 
 function getPoolNameForAddress(address) {
@@ -98,49 +107,41 @@ function getPoolNameForAddress(address) {
  * Uses a join between coinbase outputs and transaction_inputs to detect spends.
  */
 async function computeDay(client, dateStr) {
-  // Get all coinbase outputs for blocks mined on this date, grouped by miner
+  const dayStart = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
+  const dayEnd = dayStart + 86400;
+
   const result = await client.query(`
     WITH day_coinbase AS (
-      SELECT
-        b.miner_address,
-        t.txid as coinbase_txid,
-        txo.vout_index,
-        txo.value
+      SELECT b.miner_address, t.txid as coinbase_txid, txo.vout_index, txo.value
       FROM blocks b
       JOIN transactions t ON t.block_height = b.height AND t.is_coinbase = true
       JOIN transaction_outputs txo ON txo.txid = t.txid
-      WHERE date_trunc('day', to_timestamp(b.timestamp)) = $1::date
+      WHERE b.timestamp >= $1 AND b.timestamp < $2
         AND b.miner_address IS NOT NULL
         AND txo.address = b.miner_address
     ),
     spend_status AS (
-      SELECT
-        dc.miner_address,
-        dc.value,
+      SELECT dc.miner_address, dc.value,
         CASE WHEN ti.txid IS NOT NULL THEN true ELSE false END as is_spent
       FROM day_coinbase dc
       LEFT JOIN transaction_inputs ti
-        ON ti.prev_txid = dc.coinbase_txid
-        AND ti.prev_vout = dc.vout_index
+        ON ti.prev_txid = dc.coinbase_txid AND ti.prev_vout = dc.vout_index
     )
-    SELECT
-      miner_address,
-      COUNT(*) as output_count,
+    SELECT miner_address, COUNT(*) as output_count,
       SUM(value) as total_earned,
       SUM(CASE WHEN is_spent THEN value ELSE 0 END) as total_spent,
       SUM(CASE WHEN is_spent THEN 1 ELSE 0 END) as spent_count
     FROM spend_status
     GROUP BY miner_address
-  `, [dateStr]);
+  `, [dayStart, dayEnd]);
 
-  // Get block count per miner for this day
   const blockCounts = await client.query(`
     SELECT miner_address, COUNT(*) as blocks
     FROM blocks
-    WHERE date_trunc('day', to_timestamp(timestamp)) = $1::date
+    WHERE timestamp >= $1 AND timestamp < $2
       AND miner_address IS NOT NULL
     GROUP BY miner_address
-  `, [dateStr]);
+  `, [dayStart, dayEnd]);
 
   const blockMap = {};
   for (const row of blockCounts.rows) {
