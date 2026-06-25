@@ -11,6 +11,17 @@ let pool;
 let redisClient;
 let callZebraRPC;
 
+function decodeCoinbaseText(hex) {
+  if (!hex) return null;
+  const buf = Buffer.from(hex, 'hex');
+  let text = '';
+  for (let i = 0; i < buf.length; i++) {
+    const byte = buf[i];
+    text += (byte >= 0x20 && byte <= 0x7e) ? String.fromCharCode(byte) : '.';
+  }
+  return text;
+}
+
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   redisClient = req.app.locals.redisClient;
@@ -299,7 +310,8 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         nonce,
         solution,
         total_fees,
-        miner_address
+        miner_address,
+        coinbase_hex
       FROM blocks
       WHERE ${isHash ? 'hash = $1' : 'height = $1'}`,
       [isHash ? identifier.value : height]
@@ -399,6 +411,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const confirmations = currentHeight - blockHeight + 1;
 
     const poolInfo = getPoolInfo(block.miner_address);
+    const coinbaseText = decodeCoinbaseText(block.coinbase_hex);
     const response = {
       ...block,
       confirmations,
@@ -408,6 +421,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       miner_pool: poolInfo?.name || null,
       miner_pool_url: poolInfo?.url || null,
       miner_pool_region: poolInfo?.region || null,
+      coinbase_text: coinbaseText,
     };
 
     if (finalizedHeight !== null) {

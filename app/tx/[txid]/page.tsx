@@ -68,6 +68,8 @@ interface TransactionData {
     amountZats: number | null;
     amountZec: number | null;
   } | null;
+  coinbaseHex?: string | null;
+  coinbaseText?: string | null;
 }
 
 // Icon components (same as block page)
@@ -264,6 +266,8 @@ export default function TransactionPage() {
             bridge: txData.bridge || null,
             bridges: txData.bridges || [],
             stakingAction: txData.stakingAction || null,
+            coinbaseHex: txData.coinbaseHex || null,
+            coinbaseText: txData.coinbaseText || null,
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
@@ -1323,7 +1327,14 @@ export default function TransactionPage() {
                       <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
                       <div className="min-w-0 flex-1 overflow-hidden">
                         {input.coinbase ? (
-                          <span className="text-xs text-muted font-mono">Block Reward</span>
+                          <div className="space-y-1">
+                            <span className="text-xs text-muted font-mono">Block Reward</span>
+                            {data.coinbaseText && (
+                              <div className="block-hash-bg px-2 py-1 rounded border border-cipher-border">
+                                <code className="text-[10px] text-cipher-cyan break-all">{data.coinbaseText}</code>
+                              </div>
+                            )}
+                          </div>
                         ) : input.address ? (
                           <div className="flex items-center gap-1 min-w-0">
                             <Link href={`/address/${input.address}`} className="min-w-0 block overflow-hidden">

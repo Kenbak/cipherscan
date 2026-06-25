@@ -51,6 +51,8 @@ interface BlockData {
   orphanSource?: string | null;
   orphanDetectedAt?: string | null;
   canonicalBlock?: CanonicalBlockSummary | null;
+  coinbaseHex?: string | null;
+  coinbaseText?: string | null;
 }
 
 // Heroicons SVG Components
@@ -256,6 +258,8 @@ export default function BlockPage() {
             orphanSource: blockData.orphanSource || null,
             orphanDetectedAt: blockData.orphanDetectedAt || null,
             canonicalBlock,
+            coinbaseHex: blockData.coinbase_hex || null,
+            coinbaseText: blockData.coinbase_text || null,
           };
           setData(transformedData);
         } else {
@@ -648,6 +652,36 @@ export default function BlockPage() {
               }
               tooltip="The address that received the block reward and transaction fees"
             />
+          )}
+
+          {/* Coinbase Message */}
+          {data.coinbaseText && (
+            <div className="py-3 border-b block-info-border">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-0">
+                <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
+                  <span className="mr-2"><Icons.Code /></span>
+                  <span className="text-xs sm:text-sm">Coinbase Data</span>
+                  <span className="ml-2">
+                    <Tooltip content="Arbitrary data embedded by the miner in the coinbase transaction. Often contains pool identification tags or messages." />
+                  </span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="block-hash-bg p-2.5 rounded-lg border border-cipher-border">
+                    <code className="text-xs text-cipher-cyan break-all leading-relaxed">{data.coinbaseText}</code>
+                  </div>
+                  {data.coinbaseHex && (
+                    <details className="group">
+                      <summary className="text-[10px] font-mono text-muted cursor-pointer hover:text-secondary transition-colors">
+                        Raw hex ({Math.floor(data.coinbaseHex.length / 2)} bytes)
+                      </summary>
+                      <div className="mt-1.5 block-hash-bg p-2 rounded border border-cipher-border">
+                        <code className="text-[10px] text-muted break-all">{data.coinbaseHex}</code>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Transaction Fees */}

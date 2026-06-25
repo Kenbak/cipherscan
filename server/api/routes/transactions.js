@@ -552,6 +552,28 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       console.error('❌ [TX] Bridge lookup error for txid', txid, ':', bridgeErr.message);
     }
 
+    // Coinbase data for coinbase transactions
+    let coinbaseHex = null;
+    let coinbaseText = null;
+    if (tx.is_coinbase) {
+      try {
+        const cbResult = await pool.query(
+          'SELECT coinbase_hex FROM blocks WHERE height = $1',
+          [tx.block_height]
+        );
+        if (cbResult.rows[0]?.coinbase_hex) {
+          coinbaseHex = cbResult.rows[0].coinbase_hex;
+          const buf = Buffer.from(coinbaseHex, 'hex');
+          let text = '';
+          for (let i = 0; i < buf.length; i++) {
+            const byte = buf[i];
+            text += (byte >= 0x20 && byte <= 0x7e) ? String.fromCharCode(byte) : '.';
+          }
+          coinbaseText = text;
+        }
+      } catch (e) { /* non-critical */ }
+    }
+
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
@@ -578,6 +600,8 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       outputs: outputsResult.rows,
       inputCount: inputsResult.rows.length,
       outputCount: outputsResult.rows.length,
+      coinbaseHex,
+      coinbaseText,
       bridge,
       bridges: bridges.length > 0 ? bridges : undefined,
       stakingAction: tx.staking_action_type ? {
