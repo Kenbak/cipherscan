@@ -244,6 +244,7 @@ router.get('/api/network/stats', async (req, res) => {
 
     // Fetch fresh data
     const stats = await fetchNetworkStatsOptimized();
+    stats.apiEndpoints = req.app.locals.apiRouteCount || null;
 
     // Update Redis cache
     await setInRedisCache(NETWORK_STATS_CACHE_KEY, stats, NETWORK_STATS_CACHE_DURATION);

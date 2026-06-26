@@ -385,6 +385,25 @@ app.use(poolsRouter);
 app.use(miningRouter);
 app.use(analyticsRouter);
 
+// Count registered API routes (available as app.locals.apiRouteCount)
+function countApiRoutes(app) {
+  let count = 0;
+  app._router.stack.forEach(layer => {
+    if (layer.route && layer.route.path?.startsWith('/api/')) {
+      count++;
+    } else if (layer.name === 'router' && layer.handle?.stack) {
+      layer.handle.stack.forEach(routeLayer => {
+        if (routeLayer.route && routeLayer.route.path?.startsWith('/api/')) {
+          count++;
+        }
+      });
+    }
+  });
+  return count;
+}
+app.locals.apiRouteCount = countApiRoutes(app);
+console.log(`📊 Registered ${app.locals.apiRouteCount} API routes`);
+
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
 // ============================================================================
