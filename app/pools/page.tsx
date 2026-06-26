@@ -176,7 +176,7 @@ function RecentFlows() {
   const [flows, setFlows] = useState<RecentFlow[]>([]);
 
   useEffect(() => {
-    fetch(`${getApiUrl()}/api/shielded/list?limit=10&min_amount=10000000000`)
+    fetch(`${getApiUrl()}/api/shielded/list?limit=10&min_zec=10`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.flows) setFlows(data.flows);
