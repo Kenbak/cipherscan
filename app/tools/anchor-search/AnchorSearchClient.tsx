@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/api-config';
 
 interface AnchorResult {
   height: number;
@@ -43,8 +44,7 @@ export default function AnchorSearchClient() {
     setResult(null);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-      const res = await fetch(`${apiBase}/api/search/anchor/${trimmed}`);
+      const res = await fetch(`${getApiUrl()}/api/search/anchor/${trimmed}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       setResult(data);
