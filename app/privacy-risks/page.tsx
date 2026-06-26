@@ -319,43 +319,40 @@ function PrivacyRisksContent() {
         {/* ── Main Column ── */}
         <div className="min-w-0">
           {/* Tab Navigation */}
-          <div className="mb-4">
-            <div className="filter-group inline-flex">
+          <div className="flex gap-2 mb-4">
+            {([
+              { key: 'roundtrip' as TabType, label: 'Round Trip', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+              { key: 'batch' as TabType, label: 'Batch Patterns', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+            ]).map((tab) => (
               <button
+                key={tab.key}
                 onClick={() => {
-                  setActiveTab('roundtrip');
-                  if (periodFilter === '90d') setPeriodFilter('30d');
+                  setActiveTab(tab.key);
+                  if (tab.key === 'roundtrip' && periodFilter === '90d') setPeriodFilter('30d');
+                  if (tab.key === 'batch' && periodFilter === '24h') setPeriodFilter('7d');
                 }}
-                className={`filter-btn flex items-center gap-2 ${activeTab === 'roundtrip' ? 'filter-btn-active' : ''}`}
+                className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-full transition-all flex items-center gap-2 ${
+                  activeTab === tab.key
+                    ? 'bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30'
+                    : 'text-muted hover:text-secondary border border-transparent'
+                }`}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
                 </svg>
-                Round Trip
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('batch');
-                  if (periodFilter === '24h') setPeriodFilter('7d');
-                }}
-                className={`filter-btn flex items-center gap-2 ${activeTab === 'batch' ? 'filter-btn-active' : ''}`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                Batch Patterns
-                {batchStats && batchStats.highRisk > 0 && (
-                  <span className="ml-1 text-[10px] font-mono bg-white/20 text-white font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
+                {tab.label}
+                {tab.key === 'batch' && batchStats && batchStats.highRisk > 0 && (
+                  <span className="text-[10px] font-mono bg-red-500/15 text-red-400 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
                     {batchStats.highRisk}
                   </span>
                 )}
               </button>
-            </div>
+            ))}
           </div>
 
           {/* Filters — compact inline */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
-            <div className="filter-group">
+            <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3">
               {(activeTab === 'roundtrip'
                 ? ['24h', '7d', '30d']
                 : ['7d', '30d', '90d']
@@ -363,40 +360,49 @@ function PrivacyRisksContent() {
                 <button
                   key={period}
                   onClick={() => setPeriodFilter(period as PeriodFilter)}
-                  className={`filter-btn ${periodFilter === period ? 'filter-btn-active' : ''}`}
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
-
-            <div className="filter-group">
-              {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => (
-                <button
-                  key={level}
-                  onClick={() => activeTab === 'roundtrip' ? setRiskFilter(level) : setBatchRiskFilter(level)}
-                  className={`filter-btn ${
-                    (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level
-                      ? level === 'HIGH'
-                        ? 'filter-btn-danger'
-                        : level === 'MEDIUM'
-                        ? 'filter-btn-warning'
-                        : 'filter-btn-active'
-                      : ''
+                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                    periodFilter === period
+                      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+                      : 'text-muted hover:text-primary'
                   }`}
                 >
-                  {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
+                  {period.toUpperCase()}
                 </button>
               ))}
             </div>
 
-            <div className="filter-group">
-              <span className="text-[10px] text-muted px-1.5 hidden sm:inline">Sort</span>
+            <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3">
+              {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => {
+                const isActive = (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level;
+                const activeStyle = level === 'HIGH'
+                  ? 'bg-red-500/15 text-red-400 font-bold'
+                  : level === 'MEDIUM'
+                  ? 'bg-amber-500/15 text-amber-400 font-bold'
+                  : 'bg-cipher-cyan/15 text-cipher-cyan font-bold';
+                return (
+                  <button
+                    key={level}
+                    onClick={() => activeTab === 'roundtrip' ? setRiskFilter(level) : setBatchRiskFilter(level)}
+                    className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                      isActive ? activeStyle : 'text-muted hover:text-primary'
+                    }`}
+                  >
+                    {level === 'ALL' ? 'All' : level === 'HIGH' ? 'High' : 'Med'}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3">
               {(['score', 'recent'] as SortOption[]).map((option) => (
                 <button
                   key={option}
                   onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
-                  className={`filter-btn ${(activeTab === 'roundtrip' ? sortBy : batchSortBy) === option ? 'filter-btn-active' : ''}`}
+                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                    (activeTab === 'roundtrip' ? sortBy : batchSortBy) === option
+                      ? 'bg-cipher-purple/15 text-cipher-purple font-bold'
+                      : 'text-muted hover:text-primary'
+                  }`}
                 >
                   {option === 'recent' ? 'Recent' : 'Score'}
                 </button>
@@ -511,7 +517,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="btn btn-md btn-secondary disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-cipher-cyan hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
                       >
                         {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
                       </button>
@@ -573,7 +579,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMoreBatch}
                         disabled={batchLoadingMore}
-                        className="btn btn-md btn-secondary disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-cipher-cyan hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
                       >
                         {batchLoadingMore ? 'Loading...' : 'Load More'}
                       </button>
