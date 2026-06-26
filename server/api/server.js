@@ -35,6 +35,7 @@ const crosslinkRouter = require('./routes/crosslink');
 const reorgsRouter = require('./routes/reorgs');
 const poolsRouter = require('./routes/pools');
 const miningRouter = require('./routes/mining');
+const analyticsRouter = require('./routes/analytics');
 
 // Import privacy linkage functions
 const {
@@ -382,6 +383,7 @@ app.use(poolsRouter);
 
 // Mining routes: /api/mining/*
 app.use(miningRouter);
+app.use(analyticsRouter);
 
 // ============================================================================
 // WEBSOCKET SERVER (Real-time updates)
