@@ -24,6 +24,11 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
     </svg>
   ),
+  Tree: () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+    </svg>
+  ),
   ChevronRight: () => (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -60,6 +65,13 @@ const tools = [
     icon: Icons.Calculator,
     badge: 'Client-side',
   },
+  {
+    href: '/tools/anchor-search',
+    title: 'Anchor Root Search',
+    desc: 'Search Sapling/Orchard commitment tree roots across canonical and orphaned blocks. Debug wallet sync issues and fork detection.',
+    icon: Icons.Tree,
+    badge: 'API',
+  },
 ];
 
 export default function ToolsPage() {
@@ -74,7 +86,7 @@ export default function ToolsPage() {
           Developer Tools
         </h1>
         <p className="text-sm text-secondary mt-2">
-          Decode and broadcast transactions, decrypt memos, convert ZEC units
+          Decode and broadcast transactions, decrypt memos, convert units, debug wallets
         </p>
       </div>
 
@@ -125,6 +137,11 @@ export default function ToolsPage() {
                 <Badge color="cyan">GET</Badge>
                 <code className="text-primary">/api/tx/:txid</code>
                 <span className="text-muted hidden sm:inline">— Get transaction details</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge color="cyan">GET</Badge>
+                <code className="text-primary">/api/search/anchor/:root</code>
+                <span className="text-muted hidden sm:inline">— Search anchor root (canonical + orphaned)</span>
               </div>
             </div>
             <p className="text-xs text-muted mt-4">
