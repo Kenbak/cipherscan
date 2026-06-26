@@ -95,43 +95,43 @@ function GraphCardNode({ data }: NodeProps) {
 
   if (node.type === 'pool') {
     return (
-      <div className={`rounded-xl border border-dashed px-4 py-3 ${palette.border} ${palette.bg}`}>
-        <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
-        <div className="flex items-center gap-1.5">
-          <svg className="w-3 h-3 text-cipher-purple/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className={`rounded-xl border border-dashed px-5 py-3.5 backdrop-blur-sm ${palette.border} ${palette.bg}`}>
+        <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
+        <div className="flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-cipher-purple/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className={`text-[9px] font-mono uppercase tracking-[0.15em] ${palette.title}`}>
+          <p className={`text-[10px] font-mono uppercase tracking-[0.12em] ${palette.title} opacity-80`}>
             Shielded Pool
           </p>
         </div>
-        <p className="mt-0.5 text-[10px] text-muted">Privacy boundary</p>
-        <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
+        <p className="mt-1 text-[10px] text-muted/60">Privacy boundary</p>
+        <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className={`max-w-[170px] rounded-xl border px-3 py-2.5 shadow-md ${palette.border} ${palette.bg}`}>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
-      <p className={`text-[9px] font-mono uppercase tracking-[0.15em] ${palette.title}`}>
+    <div className={`max-w-[180px] rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm ${palette.border} ${palette.bg}`}>
+      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
+      <p className={`text-[9px] font-mono uppercase tracking-[0.12em] opacity-70 ${palette.title}`}>
         {node.type}
       </p>
       <p
-        className="mt-0.5 text-[13px] font-semibold leading-tight font-mono"
-        style={{ color: palette.label }}
+        className="mt-1 text-[12px] font-medium leading-tight font-mono"
+        style={{ color: palette.label, opacity: 0.9 }}
       >
         {truncateLabel(node.label)}
       </p>
       {node.amountZec !== undefined && (
-        <p className="mt-0.5 text-[11px] font-mono" style={{ color: palette.amount }}>
+        <p className="mt-1 text-[11px] font-mono text-primary/70">
           {node.amountZec.toFixed(4)} ZEC
         </p>
       )}
       {node.subtitle && (
-        <p className="mt-0.5 text-[10px] leading-snug text-secondary">{node.subtitle}</p>
+        <p className="mt-0.5 text-[10px] leading-snug text-muted/60">{node.subtitle}</p>
       )}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-cipher-border" />
+      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
     </div>
   );
 }
@@ -241,30 +241,30 @@ export function PrivacyLinkGraph({
       },
       style: {
         stroke: edgeStroke(edge.type),
-        strokeOpacity: 0.82,
-        strokeWidth: Math.max(2, edge.confidence / 35),
+        strokeOpacity: 0.55,
+        strokeWidth: Math.max(1.5, edge.confidence / 40),
         ...(edge.type === 'pool_entry' ? { strokeDasharray: '6 3' } : {}),
       },
       labelStyle: {
-        fill: 'var(--color-text-secondary, #94A3B8)',
+        fill: 'var(--color-text-muted, #64748b)',
         fontSize: 10,
         fontWeight: 500,
       },
       labelBgStyle: {
         fill: 'var(--color-surface, #0b0f1a)',
-        fillOpacity: 0.95,
+        fillOpacity: 0.9,
       },
-      labelBgPadding: [5, 3] as [number, number],
-      labelBgBorderRadius: 6,
+      labelBgPadding: [6, 4] as [number, number],
+      labelBgBorderRadius: 8,
     }))
   ), [edges]);
 
   return (
-    <div className="privacy-link-graph w-full overflow-hidden rounded-2xl border border-cipher-border" style={{ background: 'var(--glass-2)' }}>
-      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--color-border-subtle)' }}>
+    <div className="privacy-link-graph w-full overflow-hidden rounded-2xl border border-white/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>
+      <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-3.5">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted">Link Graph</p>
-          <p className="mt-1 text-xs text-secondary">Drag, pan, and zoom to inspect the relationship.</p>
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted/70">Link Graph</p>
+          <p className="mt-0.5 text-[11px] text-secondary/60">Drag, pan, and zoom to inspect the relationship.</p>
         </div>
       </div>
       <div style={{ height }} className="w-full">
@@ -273,15 +273,15 @@ export function PrivacyLinkGraph({
           edges={flowEdges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{ padding: 0.35 }}
           minZoom={0.45}
           maxZoom={1.8}
           nodesConnectable={false}
           elementsSelectable
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="var(--glass-6, rgba(148,163,184,0.12))" gap={20} />
-          <Controls showInteractive={false} />
+          <Background color="rgba(148,163,184,0.04)" gap={24} size={1} />
+          <Controls showInteractive={false} className="!border-white/10 !bg-white/[0.03] !shadow-none [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!text-muted [&>button:hover]:!bg-white/5" />
         </ReactFlow>
       </div>
     </div>

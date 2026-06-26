@@ -331,9 +331,9 @@ function PrivacyRisksContent() {
                   if (tab.key === 'roundtrip' && periodFilter === '90d') setPeriodFilter('30d');
                   if (tab.key === 'batch' && periodFilter === '24h') setPeriodFilter('7d');
                 }}
-                className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-full transition-all flex items-center gap-2 ${
+                className={`px-4 py-1.5 text-xs font-mono font-medium rounded-full transition-all flex items-center gap-2 ${
                   activeTab === tab.key
-                    ? 'bg-cipher-cyan/10 text-cipher-cyan border border-cipher-cyan/30'
+                    ? 'bg-white/5 text-primary border border-white/10'
                     : 'text-muted hover:text-secondary border border-transparent'
                 }`}
               >
@@ -342,7 +342,7 @@ function PrivacyRisksContent() {
                 </svg>
                 {tab.label}
                 {tab.key === 'batch' && batchStats && batchStats.highRisk > 0 && (
-                  <span className="text-[10px] font-mono bg-red-500/15 text-red-400 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
+                  <span className="text-[10px] font-mono bg-red-500/10 text-red-400/70 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
                     {batchStats.highRisk}
                   </span>
                 )}
@@ -362,7 +362,7 @@ function PrivacyRisksContent() {
                   onClick={() => setPeriodFilter(period as PeriodFilter)}
                   className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
                     periodFilter === period
-                      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+                      ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >
@@ -375,10 +375,10 @@ function PrivacyRisksContent() {
               {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => {
                 const isActive = (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level;
                 const activeStyle = level === 'HIGH'
-                  ? 'bg-red-500/15 text-red-400 font-bold'
+                  ? 'bg-red-500/8 text-red-400/80 font-bold'
                   : level === 'MEDIUM'
-                  ? 'bg-amber-500/15 text-amber-400 font-bold'
-                  : 'bg-cipher-cyan/15 text-cipher-cyan font-bold';
+                  ? 'bg-amber-500/8 text-amber-400/80 font-bold'
+                  : 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold';
                 return (
                   <button
                     key={level}
@@ -400,7 +400,7 @@ function PrivacyRisksContent() {
                   onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
                   className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
                     (activeTab === 'roundtrip' ? sortBy : batchSortBy) === option
-                      ? 'bg-cipher-purple/15 text-cipher-purple font-bold'
+                      ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >

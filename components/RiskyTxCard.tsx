@@ -258,7 +258,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         <button
           onClick={() => setShowGraph(!showGraph)}
           aria-label={showGraph ? 'Hide linkage graph' : 'Show linkage graph'}
-          className="text-xs text-cipher-cyan hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
+          className="text-xs text-secondary hover:text-primary flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-sm transition-colors"
         >
           {showGraph ? 'Hide' : 'Show'} linkage graph
           <svg className={`w-3 h-3 transition-transform ${showGraph ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
