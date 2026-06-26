@@ -383,9 +383,10 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       };
     });
 
+    const rawBalance = parseFloat(summary.balance);
     res.json({
       address: summary.address,
-      balance: parseFloat(summary.balance),
+      balance: Math.max(0, rawBalance),
       totalReceived: parseFloat(summary.total_received),
       totalSent: parseFloat(summary.total_sent),
       txCount: totalTxCount,
