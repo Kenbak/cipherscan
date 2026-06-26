@@ -105,16 +105,21 @@ export function ShieldingDistributionChart() {
                 }
               />
               <Tooltip
+                cursor={{ fill: 'rgba(167, 139, 250, 0.08)' }}
                 contentStyle={{
-                  backgroundColor: colors.tooltipBg,
-                  border: `1px solid ${colors.tooltipBorder}`,
+                  backgroundColor: 'var(--tooltip-bg, #1F2937)',
+                  border: '1px solid var(--tooltip-border, #374151)',
                   borderRadius: '8px',
+                  padding: '12px',
                   color: colors.tooltipText,
                 }}
+                labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                 formatter={(value, name) => [
-                  mode === 'count'
-                    ? Number(value).toLocaleString() + ' txs'
-                    : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ZEC',
+                  <span key="v" style={{ color: colors.tooltipText }}>
+                    {mode === 'count'
+                      ? Number(value).toLocaleString() + ' txs'
+                      : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ZEC'}
+                  </span>,
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
