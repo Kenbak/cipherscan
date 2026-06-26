@@ -11,6 +11,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ChartWatermark } from '@/components/ChartWatermark';
+import { AnonymitySetChart } from '@/components/privacy/AnonymitySetChart';
+import { ShieldingDistributionChart } from '@/components/privacy/ShieldingDistributionChart';
 
 // Format date for charts (shorter format)
 const formatDate = (dateStr: string) => {
@@ -790,6 +792,52 @@ export default function PrivacyClient() {
             </Card>
           </div>
         )}
+
+        {/* Anonymity Set + Shielding Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '220ms' }}>
+          <AnonymitySetChart />
+          <ShieldingDistributionChart />
+        </div>
+
+        {/* Cross-links */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+          <Link
+            href="/turnstile"
+            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-cyan/40 transition-all bg-card"
+          >
+            <div className="w-9 h-9 rounded-lg bg-cipher-cyan/10 flex items-center justify-center text-cipher-cyan group-hover:scale-110 transition-transform">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-primary group-hover:text-cipher-cyan transition-colors">Turnstile</p>
+              <p className="text-[11px] text-muted">See where deshielded ZEC goes →</p>
+            </div>
+          </Link>
+          <Link
+            href="/pools"
+            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-purple/40 transition-all bg-card"
+          >
+            <div className="w-9 h-9 rounded-lg bg-cipher-purple/10 flex items-center justify-center text-cipher-purple group-hover:scale-110 transition-transform">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-primary group-hover:text-cipher-purple transition-colors">Pool Analytics</p>
+              <p className="text-[11px] text-muted">Track pool supply over time →</p>
+            </div>
+          </Link>
+          <Link
+            href="/tools/blend-check"
+            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-green/40 transition-all bg-card"
+          >
+            <div className="w-9 h-9 rounded-lg bg-cipher-green/10 flex items-center justify-center text-cipher-green group-hover:scale-110 transition-transform">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-primary group-hover:text-cipher-green transition-colors">Blend Check</p>
+              <p className="text-[11px] text-muted">Check your amount before shielding →</p>
+            </div>
+          </Link>
+        </div>
 
         {/* Info Footer */}
         <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>

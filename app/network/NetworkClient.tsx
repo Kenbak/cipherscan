@@ -18,6 +18,7 @@ const HalvingPanel = lazy(() => import('@/components/network/HalvingPanel').then
 const SupplyEmissionPanel = lazy(() => import('@/components/network/HalvingPanel').then((m) => ({ default: m.SupplyEmissionPanel })));
 const PoolDistributionChart = lazy(() => import('@/components/network/PoolDistributionChart').then((m) => ({ default: m.PoolDistributionChart })));
 const NetworkHistoryCharts = lazy(() => import('@/components/network/NetworkHistoryCharts').then((m) => ({ default: m.NetworkHistoryCharts })));
+const FeeDistributionChart = lazy(() => import('@/components/network/FeeDistributionChart').then((m) => ({ default: m.FeeDistributionChart })));
 const ProtocolStatsChart = lazy(() => import('@/components/network/ProtocolStatsChart').then((m) => ({ default: m.ProtocolStatsChart })));
 const RecentBlocksTable = lazy(() => import('@/components/network/RecentBlocksTable').then((m) => ({ default: m.RecentBlocksTable })));
 
@@ -469,6 +470,9 @@ export default function NetworkClient() {
               </Suspense>
               <Suspense fallback={<div className="card h-64 animate-pulse" />}>
                 <NetworkHistoryCharts />
+              </Suspense>
+              <Suspense fallback={<div className="card h-80 animate-pulse" />}>
+                <FeeDistributionChart />
               </Suspense>
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
                 <ProtocolStatsChart />
