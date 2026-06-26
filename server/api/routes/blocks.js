@@ -450,23 +450,25 @@ router.get('/api/search/anchor/:root', async (req, res) => {
 
     const rootLower = root.toLowerCase();
 
-    // Search canonical blocks for matching sapling or orchard root
+    // Search canonical blocks — UNION to leverage separate indexes
     const canonicalResult = await pool.query(
-      `SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
-       FROM blocks
-       WHERE final_sapling_root = $1 OR final_orchard_root = $1
-       ORDER BY height DESC
-       LIMIT 10`,
+      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
+        FROM blocks WHERE final_sapling_root = $1 LIMIT 10)
+       UNION ALL
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
+        FROM blocks WHERE final_orchard_root = $1 LIMIT 10)
+       ORDER BY height DESC LIMIT 10`,
       [rootLower]
     );
 
     // Search orphaned blocks
     const orphanResult = await pool.query(
-      `SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
-       FROM orphaned_blocks
-       WHERE final_sapling_root = $1 OR final_orchard_root = $1
-       ORDER BY height DESC
-       LIMIT 10`,
+      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
+        FROM orphaned_blocks WHERE final_sapling_root = $1 LIMIT 10)
+       UNION ALL
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
+        FROM orphaned_blocks WHERE final_orchard_root = $1 LIMIT 10)
+       ORDER BY height DESC LIMIT 10`,
       [rootLower]
     );
 
