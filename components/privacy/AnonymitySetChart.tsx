@@ -83,9 +83,9 @@ export function AnonymitySetChart() {
                   borderRadius: '8px',
                   color: colors.tooltipText,
                 }}
-                formatter={(value: number, name: string) => [
-                  value.toLocaleString() + ' txs',
-                  name === 'shield' ? 'Shield (in)' : 'Deshield (out)',
+                formatter={(value, name) => [
+                  Number(value).toLocaleString() + ' txs',
+                  String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
               <Legend

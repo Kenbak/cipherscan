@@ -116,7 +116,7 @@ export function FeeDistributionChart() {
                   borderRadius: '8px',
                   color: colors.tooltipText,
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const labels: Record<string, string> = {
                     p90: '90th percentile',
                     p75: '75th percentile',
@@ -124,7 +124,7 @@ export function FeeDistributionChart() {
                     p25: '25th percentile',
                     p10: '10th percentile',
                   };
-                  return [`${value.toFixed(3)} mZEC`, labels[name] || name];
+                  return [`${Number(value).toFixed(3)} mZEC`, labels[String(name)] || String(name)];
                 }}
               />
               <Legend

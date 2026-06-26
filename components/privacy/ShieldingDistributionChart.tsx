@@ -111,11 +111,11 @@ export function ShieldingDistributionChart() {
                   borderRadius: '8px',
                   color: colors.tooltipText,
                 }}
-                formatter={(value: number, name: string) => [
+                formatter={(value, name) => [
                   mode === 'count'
-                    ? value.toLocaleString() + ' txs'
-                    : value.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ZEC',
-                  name === 'shield' ? 'Shield (in)' : 'Deshield (out)',
+                    ? Number(value).toLocaleString() + ' txs'
+                    : Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' ZEC',
+                  String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
               <Legend
