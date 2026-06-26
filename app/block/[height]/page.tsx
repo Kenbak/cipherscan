@@ -38,6 +38,7 @@ interface BlockData {
   version?: number;
   merkleRoot?: string;
   finalSaplingRoot?: string;
+  finalOrchardRoot?: string | null;
   bits?: string;
   nonce?: string;
   solution?: string;
@@ -245,6 +246,7 @@ export default function BlockPage() {
             version: blockData.version ? parseInt(blockData.version) : undefined,
             merkleRoot: blockData.merkle_root || blockData.merkleRoot,
             finalSaplingRoot: blockData.final_sapling_root || blockData.finalSaplingRoot,
+            finalOrchardRoot: blockData.final_orchard_root || blockData.finalOrchardRoot || null,
             bits: blockData.bits,
             nonce: blockData.nonce,
             solution: blockData.solution,
@@ -788,6 +790,21 @@ export default function BlockPage() {
                 </div>
                 <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
                   <code className="text-xs text-secondary break-all">{data.finalSaplingRoot}</code>
+                </div>
+              </div>
+            )}
+
+            {data.finalOrchardRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2">
+                  <span className="mr-2 text-cipher-purple"><Icons.Shield /></span>
+                  <span className="text-sm text-secondary">Final Orchard Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Root hash of the Orchard note commitment tree after processing this block. Used by wallets as an anchor when constructing shielded spends." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-secondary break-all">{data.finalOrchardRoot}</code>
                 </div>
               </div>
             )}

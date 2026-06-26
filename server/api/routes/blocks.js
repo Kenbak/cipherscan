@@ -306,6 +306,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         version,
         merkle_root,
         final_sapling_root,
+        final_orchard_root,
         bits,
         nonce,
         solution,
@@ -432,6 +433,78 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
   } catch (error) {
     console.error('Error fetching block:', error);
     res.status(500).json({ error: 'Failed to fetch block' });
+  }
+});
+
+// ============================================================================
+// ANCHOR ROOT SEARCH (wallet debugging)
+// ============================================================================
+
+router.get('/api/search/anchor/:root', async (req, res) => {
+  try {
+    const { root } = req.params;
+
+    if (!root || !/^[a-fA-F0-9]{64}$/.test(root)) {
+      return res.status(400).json({ error: 'Invalid anchor root (expected 64-char hex)' });
+    }
+
+    const rootLower = root.toLowerCase();
+
+    // Search canonical blocks for matching sapling or orchard root
+    const canonicalResult = await pool.query(
+      `SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
+       FROM blocks
+       WHERE final_sapling_root = $1 OR final_orchard_root = $1
+       ORDER BY height DESC
+       LIMIT 10`,
+      [rootLower]
+    );
+
+    // Search orphaned blocks
+    const orphanResult = await pool.query(
+      `SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
+       FROM orphaned_blocks
+       WHERE final_sapling_root = $1 OR final_orchard_root = $1
+       ORDER BY height DESC
+       LIMIT 10`,
+      [rootLower]
+    );
+
+    const canonical = canonicalResult.rows.map(row => ({
+      height: parseInt(row.height),
+      hash: row.hash,
+      timestamp: parseInt(row.timestamp),
+      matchedField: row.final_sapling_root === rootLower ? 'sapling' : 'orchard',
+      minerAddress: row.miner_address,
+      minerPool: getPoolName(row.miner_address),
+      chain: 'canonical',
+    }));
+
+    const orphaned = orphanResult.rows.map(row => ({
+      height: parseInt(row.height),
+      hash: row.hash,
+      timestamp: row.timestamp ? parseInt(row.timestamp) : null,
+      matchedField: row.final_sapling_root === rootLower ? 'sapling' : 'orchard',
+      minerAddress: row.miner_address,
+      minerPool: getPoolName(row.miner_address),
+      chain: 'orphaned',
+      detectedAt: row.detected_at,
+    }));
+
+    res.json({
+      root: rootLower,
+      found: canonical.length + orphaned.length > 0,
+      canonical,
+      orphaned,
+      diagnosis: orphaned.length > 0 && canonical.length === 0
+        ? 'This anchor root exists ONLY on orphaned fork(s). A wallet referencing this root is stuck on a dead fork and needs to rescan.'
+        : canonical.length > 0
+          ? 'This anchor root is on the canonical chain.'
+          : 'This anchor root was not found. It may be from a very old block not yet backfilled, or an invalid root.',
+    });
+  } catch (error) {
+    console.error('Error searching anchor root:', error);
+    res.status(500).json({ error: 'Failed to search anchor root' });
   }
 });
 
