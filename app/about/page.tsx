@@ -24,7 +24,7 @@ interface LiveStats {
 }
 
 async function getLiveStats(): Promise<LiveStats> {
-  const STATIC = { miningPools: 12, apiEndpoints: 96 };
+  const STATIC = { miningPools: 12, apiEndpoints: 99 };
   try {
     const [networkRes, privacyRes] = await Promise.allSettled([
       fetch(`${API_URL}/api/network/stats`, { next: { revalidate: 60 } }),
