@@ -387,31 +387,30 @@ function MempoolMiniViz() {
   );
 }
 
-function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; low: number } | null }) {
+function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; low: number; total?: number } | null }) {
   if (!data) return <div className="h-full w-full bg-[#0a0f14]" />;
-  const total = data.high + data.medium + data.low;
+  const total = data.total || (data.high + data.medium + data.low);
 
   return (
-    <div className="h-full w-full flex items-center justify-center bg-[#0a0f14] p-6">
-      <div className="grid grid-cols-3 gap-4 w-full max-w-[260px]">
+    <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0f14] p-5 relative">
+      <div className="text-center mb-4">
+        <div className="text-3xl font-bold font-mono text-primary">{total.toLocaleString()}</div>
+        <div className="text-[9px] font-mono text-muted uppercase mt-1">detected (7d)</div>
+      </div>
+      <div className="grid grid-cols-3 gap-6 w-full max-w-[220px]">
         <div className="text-center">
-          <div className="text-2xl font-bold font-mono text-red-400">{data.high}</div>
-          <div className="text-[9px] font-mono text-red-400/60 uppercase mt-1">High</div>
+          <div className="text-lg font-bold font-mono text-red-400">{data.high}</div>
+          <div className="text-[8px] font-mono text-red-400/60 uppercase">High</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold font-mono text-amber-400">{data.medium}</div>
-          <div className="text-[9px] font-mono text-amber-400/60 uppercase mt-1">Medium</div>
+          <div className="text-lg font-bold font-mono text-amber-400">{data.medium}</div>
+          <div className="text-[8px] font-mono text-amber-400/60 uppercase">Med</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold font-mono text-emerald-400">{data.low}</div>
-          <div className="text-[9px] font-mono text-emerald-400/60 uppercase mt-1">Low</div>
+          <div className="text-lg font-bold font-mono text-emerald-400">{data.low.toLocaleString()}</div>
+          <div className="text-[8px] font-mono text-emerald-400/60 uppercase">Low</div>
         </div>
       </div>
-      {total > 0 && (
-        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
-          {total} patterns detected
-        </div>
-      )}
     </div>
   );
 }
@@ -423,7 +422,7 @@ function LiveVizPreview({ id, riskData }: { id: string; riskData: { high: number
   return null;
 }
 
-export function ChartsClient({ initialData, riskCounts }: { initialData: Record<string, MiniChartData[]>; riskCounts: { high: number; medium: number; low: number } | null }) {
+export function ChartsClient({ initialData, riskCounts }: { initialData: Record<string, MiniChartData[]>; riskCounts: { high: number; medium: number; low: number; total?: number } | null }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category>('all');
 
