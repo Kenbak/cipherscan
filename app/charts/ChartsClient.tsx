@@ -239,6 +239,7 @@ function getChartConfig(id: string): { dataKey: string; type: 'line' | 'area' | 
 
 function NodeMapMiniViz() {
   const [nodes, setNodes] = useState<{ lat: number; lon: number; count: number }[]>([]);
+  const [landDots, setLandDots] = useState<{ x: number; y: number }[]>([]);
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/network/nodes`)
@@ -248,27 +249,55 @@ function NodeMapMiniViz() {
         setNodes(locs);
       })
       .catch(() => {});
+
+    // Fetch same world topology as the full map for land dots
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
+      .then(r => r.json())
+      .then(async (topology) => {
+        const { feature } = await import('topojson-client');
+        const land = feature(topology, topology.objects.land) as any;
+        const features = land.features ? land.features : [land];
+        const dots: { x: number; y: number }[] = [];
+        const spacing = 5;
+        for (let lat = 84; lat >= -60; lat -= spacing) {
+          for (let lon = -180; lon < 180; lon += spacing) {
+            if (isOnLand(lat, lon, features)) {
+              dots.push({
+                x: ((lon + 180) / 360) * 1000,
+                y: ((90 - lat) / 180) * 500,
+              });
+            }
+          }
+        }
+        setLandDots(dots);
+      })
+      .catch(() => {});
   }, []);
 
   const project = (lat: number, lon: number) => ({
-    x: ((lon + 180) / 360) * 100,
-    y: ((90 - lat) / 180) * 100,
+    x: ((lon + 180) / 360) * 1000,
+    y: ((90 - lat) / 180) * 500,
   });
 
   return (
     <div className="h-full w-full relative bg-[#0a0f14]">
-      <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        {/* Land dot matrix */}
+        {landDots.map((d, i) => (
+          <circle key={i} cx={d.x} cy={d.y} r={1.5} fill="#1e293b" />
+        ))}
+        {/* Node dots */}
         {nodes.map((n, i) => {
           const { x, y } = project(n.lat, n.lon);
-          const r = Math.max(0.4, Math.min(1.5, 0.3 + Math.sqrt(n.count) * 0.3));
+          const r = Math.max(4, Math.min(14, 3 + Math.sqrt(n.count) * 3));
           return (
             <circle
-              key={i}
+              key={`n${i}`}
               cx={x}
               cy={y}
               r={r}
               fill="#F4B728"
-              opacity={Math.min(0.9, 0.3 + n.count * 0.05)}
+              opacity={Math.min(0.85, 0.3 + n.count * 0.04)}
             />
           );
         })}
@@ -280,6 +309,30 @@ function NodeMapMiniViz() {
       )}
     </div>
   );
+}
+
+function isOnLand(lat: number, lon: number, features: any[]): boolean {
+  for (const feat of features) {
+    const geom = feat.geometry || feat;
+    const coords = geom.coordinates || [];
+    const rings = geom.type === 'MultiPolygon' ? coords.flat() : coords;
+    for (const ring of rings) {
+      if (pointInPoly(lon, lat, ring)) return true;
+    }
+  }
+  return false;
+}
+
+function pointInPoly(x: number, y: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
 
 function MempoolMiniViz() {
