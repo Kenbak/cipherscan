@@ -24,77 +24,91 @@ async function fetchChartData() {
   const [flows, hashrate, anonymity, shielding, fees, poolDist, minerBeh] = results;
   const map: Record<string, any[]> = {};
 
-  if (flows?.data) {
-    const fData = flows.data.slice(-30);
+  // /api/pools/flows → { points: [{ date, shield, deshield, net, shieldTx, deshieldTx }] }
+  if (flows?.points?.length) {
+    const fData = flows.points.slice(-30);
     map['flow-volume'] = fData.map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      netFlow: d.net_flow ?? d.netFlow ?? 0,
+      netFlow: Math.round(d.net ?? 0),
     }));
     map['pool-balances'] = fData.map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      orchard: d.orchard_balance ?? d.shield_in ?? 0,
+      orchard: Math.round(d.shield ?? 0),
     }));
     map['pool-growth'] = fData.map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      totalShielded: d.total_shielded ?? d.shield_in ?? 0,
-    }));
-    map['privacy-adoption'] = fData.map((d: any) => ({
-      label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      shieldedPct: d.shielded_pct ?? 0,
+      totalShielded: Math.round(d.shield ?? 0),
     }));
     map['daily-activity'] = fData.map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      shielded: d.shield_count ?? d.shield_in ?? 0,
+      shielded: d.shieldTx ?? 0,
     }));
     map['turnstile'] = fData.map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      held: d.held ?? d.deshield_out ?? 0,
+      held: Math.round(d.deshield ?? 0),
     }));
-  }
-
-  if (hashrate?.data) {
-    map['hashrate-share'] = hashrate.data.slice(-30).map((d: any) => {
-      const numericVals = Object.entries(d).filter(([k, v]) => k !== 'date' && typeof v === 'number');
-      const topVal = numericVals.length > 0 ? Math.max(...numericVals.map(([, v]) => v as number)) : 0;
+    // Derive shielded % from shield tx vs total
+    map['privacy-adoption'] = fData.map((d: any) => {
+      const total = (d.shieldTx ?? 0) + (d.deshieldTx ?? 0);
       return {
         label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-        share: topVal,
+        shieldedPct: total > 0 ? Math.round((d.shieldTx / total) * 100) : 0,
       };
     });
   }
 
-  if (anonymity?.data) {
-    map['anonymity-set'] = anonymity.data.map((d: any) => ({
-      label: d.thresholdZec != null ? `${d.thresholdZec}` : '',
-      shieldCount: d.shieldCount ?? d.shield_count ?? 0,
+  // /api/mining/hashrate-share → { series: [{ date, totalBlocks, pools: { name: share, ... } }] }
+  if (hashrate?.series?.length) {
+    map['hashrate-share'] = hashrate.series.slice(-30).map((d: any) => {
+      const pools = d.pools || {};
+      const topShare = Math.max(...Object.values(pools).map((v: any) => Number(v) || 0));
+      return {
+        label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
+        share: Math.round(topShare * 100),
+      };
+    });
+  }
+
+  // /api/analytics/anonymity-set → { thresholds: [{ thresholdZec, shieldCount, deshieldCount }] }
+  if (anonymity?.thresholds?.length) {
+    map['anonymity-set'] = anonymity.thresholds.map((d: any) => ({
+      label: d.thresholdZec >= 1 ? `${d.thresholdZec}` : `${d.thresholdZec}`,
+      shieldCount: d.shieldCount ?? 0,
     }));
   }
 
-  if (shielding?.data) {
-    map['shielding-dist'] = shielding.data.map((d: any) => ({
-      label: d.bucket ?? d.range ?? '',
-      count: d.shieldCount ?? d.shield_count ?? d.count ?? 0,
+  // /api/analytics/shielding-distribution → { buckets: [{ label, shieldCount, deshieldCount }] }
+  if (shielding?.buckets?.length) {
+    map['shielding-dist'] = shielding.buckets.map((d: any) => ({
+      label: d.label ?? '',
+      count: d.shieldCount ?? 0,
     }));
   }
 
-  if (fees?.data) {
-    map['fee-dist'] = fees.data.slice(-30).map((d: any) => ({
+  // /api/network/fee-distribution → { daily: [{ date, p10, p25, median, p75, p90, avgFee }] }
+  if (fees?.daily?.length) {
+    map['fee-dist'] = fees.daily.slice(-30).map((d: any) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      median: d.p50 ?? d.median ?? 0,
+      median: (d.median ?? 0) / 100000,
     }));
   }
 
-  if (poolDist?.data) {
-    map['mining-dist'] = poolDist.data.slice(0, 10).map((d: any) => ({
-      label: (d.pool ?? d.name ?? '').slice(0, 8),
-      blocks: d.blocks ?? d.block_count ?? 0,
+  // /api/mining/pool-distribution → { pools: [{ name, blocks, share }] }
+  if (poolDist?.pools?.length) {
+    map['mining-dist'] = poolDist.pools.slice(0, 8).map((d: any) => ({
+      label: (d.name ?? '').slice(0, 10),
+      blocks: d.blocks ?? 0,
     }));
   }
 
-  if (minerBeh?.data) {
-    map['miner-behavior'] = minerBeh.data.slice(0, 10).map((d: any) => ({
-      label: (d.pool ?? d.name ?? '').slice(0, 8),
-      earned: d.earned ?? d.total_earned_zec ?? 0,
+  // /api/mining/miner-behavior → { series: [{ date, earnedZat, spentZat, heldZat, pools: {...} }] }
+  if (minerBeh?.series?.length) {
+    // Aggregate per-pool totals from latest day
+    const latest = minerBeh.series[minerBeh.series.length - 1];
+    const pools = latest?.pools || {};
+    map['miner-behavior'] = Object.entries(pools).slice(0, 8).map(([name, d]: [string, any]) => ({
+      label: name.slice(0, 10),
+      earned: Math.round(Number(d.earned ?? 0) / 1e8),
     }));
   }
 
@@ -106,12 +120,12 @@ async function fetchChartData() {
 
   map['mining-metrics'] = Array.from({ length: 20 }, (_, i) => ({
     label: `${i + 1}`,
-    value: 15 + Math.sin(i / 3) * 3 + i * 0.2,
+    value: +(15 + Math.sin(i / 3) * 3 + i * 0.2).toFixed(1),
   }));
 
   map['chain-size'] = Array.from({ length: 20 }, (_, i) => ({
     label: `${2020 + Math.floor(i / 4)}`,
-    sizeGb: 30 + i * 2.5,
+    sizeGb: +(30 + i * 2.5).toFixed(1),
   }));
 
   map['protocol-stats'] = Array.from({ length: 12 }, (_, i) => ({
