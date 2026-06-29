@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/api-config';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
 
-const NodeMapMini = lazy(() => import('@/components/NodeMap').then(m => ({ default: m.NodeMap })));
-const MempoolBubblesMini = lazy(() => import('@/components/MempoolBubbles').then(m => ({ default: m.MempoolBubbles })));
 
 type Category = 'all' | 'privacy' | 'mining' | 'pools' | 'network' | 'fees';
 
@@ -238,44 +237,140 @@ function getChartConfig(id: string): { dataKey: string; type: 'line' | 'area' | 
   }
 }
 
-function LiveVizPreview({ id }: { id: string }) {
-  if (id === 'node-map') {
-    return (
-      <Suspense fallback={<div className="h-full w-full bg-white/[0.02]" />}>
-        <div className="h-full w-full scale-[0.6] origin-center opacity-80">
-          <NodeMapMini />
+function NodeMapMiniViz() {
+  const [nodes, setNodes] = useState<{ lat: number; lon: number; count: number }[]>([]);
+
+  useEffect(() => {
+    fetch(`${getApiUrl()}/api/network/nodes`)
+      .then(r => r.json())
+      .then(d => {
+        const locs = (d.locations || []).map((l: any) => ({ lat: l.lat, lon: l.lon, count: l.nodeCount || 1 }));
+        setNodes(locs);
+      })
+      .catch(() => {});
+  }, []);
+
+  const project = (lat: number, lon: number) => ({
+    x: ((lon + 180) / 360) * 100,
+    y: ((90 - lat) / 180) * 100,
+  });
+
+  return (
+    <div className="h-full w-full relative bg-[#0a0f14]">
+      <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+        {nodes.map((n, i) => {
+          const { x, y } = project(n.lat, n.lon);
+          const r = Math.max(0.4, Math.min(1.5, 0.3 + Math.sqrt(n.count) * 0.3));
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={r}
+              fill="#F4B728"
+              opacity={Math.min(0.9, 0.3 + n.count * 0.05)}
+            />
+          );
+        })}
+      </svg>
+      {nodes.length > 0 && (
+        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
+          {nodes.length} locations
         </div>
-      </Suspense>
-    );
-  }
-  if (id === 'mempool') {
-    return (
-      <Suspense fallback={<div className="h-full w-full bg-white/[0.02]" />}>
-        <MempoolBubblesMini transactions={[]} className="h-full w-full" />
-      </Suspense>
-    );
-  }
-  if (id === 'privacy-risks') {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent p-4">
-        <div className="space-y-2 w-full max-w-[200px]">
-          <div className="h-2 rounded-full bg-red-400/20 w-full" />
-          <div className="h-2 rounded-full bg-amber-400/15 w-4/5" />
-          <div className="h-2 rounded-full bg-amber-400/10 w-3/5" />
-          <div className="h-2 rounded-full bg-emerald-400/10 w-2/5" />
-          <div className="mt-3 grid grid-cols-3 gap-1">
-            <div className="h-6 rounded bg-red-400/10 flex items-center justify-center text-[8px] text-red-400/60 font-mono">HIGH</div>
-            <div className="h-6 rounded bg-amber-400/10 flex items-center justify-center text-[8px] text-amber-400/60 font-mono">MED</div>
-            <div className="h-6 rounded bg-emerald-400/10 flex items-center justify-center text-[8px] text-emerald-400/60 font-mono">LOW</div>
-          </div>
+      )}
+    </div>
+  );
+}
+
+function MempoolMiniViz() {
+  const [txs, setTxs] = useState<{ type: string; size: number }[]>([]);
+
+  useEffect(() => {
+    fetch(`${getApiUrl()}/api/mempool`)
+      .then(r => r.json())
+      .then(d => {
+        const list = (d.transactions || []).slice(0, 30).map((t: any) => ({
+          type: t.type || 'transparent',
+          size: t.size || 200,
+        }));
+        setTxs(list);
+      })
+      .catch(() => {});
+  }, []);
+
+  const colors: Record<string, string> = {
+    shielded: '#a78bfa',
+    mixed: '#56D4C8',
+    transparent: '#f97316',
+  };
+
+  return (
+    <div className="h-full w-full relative flex items-center justify-center bg-[#0a0f14] overflow-hidden">
+      <div className="flex flex-wrap gap-1.5 justify-center items-center p-4 max-w-[250px]">
+        {txs.map((tx, i) => {
+          const r = Math.max(6, Math.min(18, Math.sqrt(tx.size / 50) * 6));
+          return (
+            <div
+              key={i}
+              className="rounded-full opacity-70"
+              style={{
+                width: r,
+                height: r,
+                backgroundColor: colors[tx.type] || colors.transparent,
+              }}
+            />
+          );
+        })}
+        {txs.length === 0 && (
+          <span className="text-[10px] text-muted/40 font-mono">awaiting txs...</span>
+        )}
+      </div>
+      {txs.length > 0 && (
+        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
+          {txs.length} pending
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; low: number } | null }) {
+  if (!data) return <div className="h-full w-full bg-[#0a0f14]" />;
+  const total = data.high + data.medium + data.low;
+
+  return (
+    <div className="h-full w-full flex items-center justify-center bg-[#0a0f14] p-6">
+      <div className="grid grid-cols-3 gap-4 w-full max-w-[260px]">
+        <div className="text-center">
+          <div className="text-2xl font-bold font-mono text-red-400">{data.high}</div>
+          <div className="text-[9px] font-mono text-red-400/60 uppercase mt-1">High</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold font-mono text-amber-400">{data.medium}</div>
+          <div className="text-[9px] font-mono text-amber-400/60 uppercase mt-1">Medium</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold font-mono text-emerald-400">{data.low}</div>
+          <div className="text-[9px] font-mono text-emerald-400/60 uppercase mt-1">Low</div>
         </div>
       </div>
-    );
-  }
+      {total > 0 && (
+        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
+          {total} patterns detected
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveVizPreview({ id, riskData }: { id: string; riskData: { high: number; medium: number; low: number } | null }) {
+  if (id === 'node-map') return <NodeMapMiniViz />;
+  if (id === 'mempool') return <MempoolMiniViz />;
+  if (id === 'privacy-risks') return <RiskScannerMiniViz data={riskData} />;
   return null;
 }
 
-export function ChartsClient({ initialData }: { initialData: Record<string, MiniChartData[]> }) {
+export function ChartsClient({ initialData, riskCounts }: { initialData: Record<string, MiniChartData[]>; riskCounts: { high: number; medium: number; low: number } | null }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category>('all');
 
@@ -421,7 +516,7 @@ export function ChartsClient({ initialData }: { initialData: Record<string, Mini
                 className="group block rounded-xl border border-cipher-border/40 bg-card overflow-hidden transition-all duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
               >
                 <div className="h-[180px] relative overflow-hidden pointer-events-none">
-                  <LiveVizPreview id={v.id} />
+                  <LiveVizPreview id={v.id} riskData={riskCounts} />
                 </div>
                 <div className="px-4 pb-3 border-t border-cipher-border/20 pt-2 flex items-center justify-between">
                   <div>

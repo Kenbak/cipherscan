@@ -136,7 +136,25 @@ async function fetchChartData() {
   return map;
 }
 
+async function fetchRiskCounts() {
+  try {
+    const res = await fetch(`${API_BASE}/api/privacy/risks?limit=1&period=30d`, { next: { revalidate: 300 } });
+    const d = await res.json();
+    const stats = d.stats || {};
+    return {
+      high: stats.highRisk || 0,
+      medium: stats.mediumRisk || 0,
+      low: stats.lowRisk || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function ChartsPage() {
-  const chartData = await fetchChartData();
-  return <ChartsClient initialData={chartData} />;
+  const [chartData, riskCounts] = await Promise.all([
+    fetchChartData(),
+    fetchRiskCounts(),
+  ]);
+  return <ChartsClient initialData={chartData} riskCounts={riskCounts} />;
 }
