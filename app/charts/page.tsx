@@ -141,11 +141,12 @@ async function fetchRiskCounts() {
     const res = await fetch(`${API_BASE}/api/privacy/risks?limit=1&period=7d`, { next: { revalidate: 300 } });
     const d = await res.json();
     const stats = d.stats || {};
-    const total = stats.total || 0;
-    const high = stats.highRisk || 0;
-    const medium = stats.mediumRisk || 0;
-    const low = Math.max(0, total - high - medium);
-    return { high, medium, low, total };
+    return {
+      high: stats.highRisk || 0,
+      medium: stats.mediumRisk || 0,
+      low: stats.lowRisk || 0,
+      total: stats.total || 0,
+    };
   } catch {
     return null;
   }

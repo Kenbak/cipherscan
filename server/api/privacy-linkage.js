@@ -1046,21 +1046,36 @@ async function queryPrivacyLinkageEdges(pool, options = {}) {
     WHERE ${clauses.join(' AND ')}
   `;
 
-  const [result, countResult] = await Promise.all([
+  const riskCountQuery = `
+    SELECT warning_level, COUNT(*)::int AS cnt
+    FROM privacy_linkage_edges
+    WHERE ${clauses.join(' AND ')}
+    GROUP BY warning_level
+  `;
+
+  const [result, countResult, riskCountResult] = await Promise.all([
     pool.query(query, params),
     pool.query(countQuery, params.slice(0, -2)),
+    pool.query(riskCountQuery, params.slice(0, -2)),
   ]);
 
+  const riskBreakdown = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  for (const row of riskCountResult.rows) {
+    riskBreakdown[row.warning_level] = row.cnt;
+  }
+
   const transactions = result.rows.map(mapEdgeRowToRisk);
+  const total = Number(countResult.rows[0]?.total || 0);
   return {
     transactions,
     pagination: {
-      total: Number(countResult.rows[0]?.total || 0),
+      total,
       limit,
       offset,
       returned: transactions.length,
-      hasMore: offset + transactions.length < Number(countResult.rows[0]?.total || 0),
+      hasMore: offset + transactions.length < total,
     },
+    riskBreakdown,
   };
 }
 
@@ -1124,10 +1139,23 @@ async function queryPrivacyBatchClusters(pool, options = {}) {
     WHERE ${clauses.join(' AND ')}
   `;
 
-  const [result, countResult] = await Promise.all([
+  const riskCountQuery = `
+    SELECT warning_level, COUNT(*)::int AS cnt
+    FROM privacy_batch_clusters
+    WHERE ${clauses.join(' AND ')}
+    GROUP BY warning_level
+  `;
+
+  const [result, countResult, riskCountResult] = await Promise.all([
     pool.query(query, params),
     pool.query(countQuery, filterParams),
+    pool.query(riskCountQuery, filterParams),
   ]);
+
+  const riskBreakdown = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  for (const row of riskCountResult.rows) {
+    riskBreakdown[row.warning_level] = row.cnt;
+  }
 
   const hasMore = result.rows.length > limit;
   const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
@@ -1146,6 +1174,7 @@ async function queryPrivacyBatchClusters(pool, options = {}) {
           : { time: lastPattern.firstTime }
         : null,
     },
+    riskBreakdown,
   };
 }
 

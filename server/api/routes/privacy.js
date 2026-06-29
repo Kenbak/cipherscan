@@ -30,32 +30,10 @@ router.use((req, res, next) => {
   next();
 });
 
-function summarizeRiskRows(rows, period) {
-  return {
-    total: rows.length,
-    highRisk: rows.filter((row) => row.warningLevel === 'HIGH').length,
-    mediumRisk: rows.filter((row) => row.warningLevel === 'MEDIUM').length,
-    avgScore: rows.length > 0
-      ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
-      : 0,
-    period,
-  };
-}
-
-function summarizeBatchRows(rows, period) {
-  return {
-    total: rows.length,
-    highRisk: rows.filter((row) => row.warningLevel === 'HIGH').length,
-    mediumRisk: rows.filter((row) => row.warningLevel === 'MEDIUM').length,
-    totalZecFlagged: rows.reduce((sum, row) => sum + row.totalAmountZec, 0),
-    period,
-    filteredTotal: rows.length,
-  };
-}
 
 router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
   try {
-    const { transactions, pagination } = await queryPrivacyLinkageEdges(pool, {
+    const { transactions, pagination, riskBreakdown } = await queryPrivacyLinkageEdges(pool, {
       limit: Number(req.query.limit),
       offset: Number(req.query.offset),
       minScore: Number(req.query.minScore),
@@ -64,10 +42,18 @@ router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
       sort: req.query.sort,
     });
 
-    const stats = summarizeRiskRows(transactions, req.query.period);
-    stats.total = pagination.total;
+    const stats = {
+      total: pagination.total,
+      highRisk: riskBreakdown.HIGH,
+      mediumRisk: riskBreakdown.MEDIUM,
+      lowRisk: riskBreakdown.LOW,
+      avgScore: transactions.length > 0
+        ? Math.round(transactions.reduce((sum, row) => sum + row.score, 0) / transactions.length)
+        : 0,
+      period: req.query.period,
+    };
 
-    console.log(`✅ [PRIVACY RISKS] Returning ${transactions.length}/${pagination.total}`);
+    console.log(`✅ [PRIVACY RISKS] Returning ${transactions.length}/${pagination.total} (H:${riskBreakdown.HIGH} M:${riskBreakdown.MEDIUM} L:${riskBreakdown.LOW})`);
 
     res.json({
       success: true,
@@ -121,8 +107,16 @@ router.get('/api/privacy/batch-risks', validate('privacyBatchRisks'), async (req
       afterAmount: req.query.afterAmount ? Number(req.query.afterAmount) : null,
       minScore: Number(req.query.minScore || 35),
     });
-    const stats = summarizeBatchRows(result.patterns, req.query.period);
-    stats.total = result.pagination.total;
+
+    const stats = {
+      total: result.pagination.total,
+      highRisk: result.riskBreakdown.HIGH,
+      mediumRisk: result.riskBreakdown.MEDIUM,
+      lowRisk: result.riskBreakdown.LOW,
+      totalZecFlagged: result.patterns.reduce((sum, p) => sum + (p.totalAmountZec || 0), 0),
+      period: req.query.period,
+      filteredTotal: result.pagination.returned,
+    };
 
     res.json({
       success: true,
