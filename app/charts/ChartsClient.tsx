@@ -280,13 +280,11 @@ function NodeMapMiniViz() {
   });
 
   return (
-    <div className="h-full w-full relative bg-[#0a0f14]">
+    <div className="h-full w-full relative bg-[#0a0f14] dark:bg-[#0a0f14]">
       <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-        {/* Land dot matrix */}
         {landDots.map((d, i) => (
           <circle key={i} cx={d.x} cy={d.y} r={1.5} fill="#1e293b" />
         ))}
-        {/* Node dots */}
         {nodes.map((n, i) => {
           const { x, y } = project(n.lat, n.lon);
           const r = Math.max(4, Math.min(14, 3 + Math.sqrt(n.count) * 3));
@@ -303,7 +301,7 @@ function NodeMapMiniViz() {
         })}
       </svg>
       {nodes.length > 0 && (
-        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
+        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-white/40">
           {nodes.length} locations
         </div>
       )}
@@ -362,7 +360,7 @@ function MempoolMiniViz() {
   };
 
   return (
-    <div className="h-full w-full relative bg-[#0a0f14] overflow-hidden">
+    <div className="h-full w-full relative bg-[#0a0f14] dark:bg-[#0a0f14] overflow-hidden">
       <style>{`
         @keyframes float-bubble {
           0%, 100% { transform: translate(0, 0); }
@@ -391,11 +389,11 @@ function MempoolMiniViz() {
       })}
       {txs.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[10px] text-muted/40 font-mono">awaiting txs...</span>
+          <span className="text-[10px] text-white/30 font-mono">awaiting txs...</span>
         </div>
       )}
       {txs.length > 0 && (
-        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
+        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-white/40">
           {txs.length} pending
         </div>
       )}
@@ -408,10 +406,10 @@ function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; lo
   const total = data.total || (data.high + data.medium + data.low);
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0f14] p-5 relative">
+    <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0f14] dark:bg-[#0a0f14] p-5 relative">
       <div className="text-center mb-4">
-        <div className="text-3xl font-bold font-mono text-primary">{total.toLocaleString()}</div>
-        <div className="text-[9px] font-mono text-muted uppercase mt-1">detected (7d)</div>
+        <div className="text-3xl font-bold font-mono text-white">{total.toLocaleString()}</div>
+        <div className="text-[9px] font-mono text-white/50 uppercase mt-1">detected (7d)</div>
       </div>
       <div className="grid grid-cols-3 gap-6 w-full max-w-[220px]">
         <div className="text-center">
