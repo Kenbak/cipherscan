@@ -127,6 +127,7 @@ export function NavBar() {
       ];
 
   const researchItems: MenuItem[] = [
+    { href: '/charts', label: 'Charts', desc: 'All metrics in one place' },
     ...(isCrosslink ? [] : [
       { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
     ]),
