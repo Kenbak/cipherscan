@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
+
+const NodeMapMini = lazy(() => import('@/components/NodeMap').then(m => ({ default: m.NodeMap })));
+const MempoolBubblesMini = lazy(() => import('@/components/MempoolBubbles').then(m => ({ default: m.MempoolBubbles })));
 
 type Category = 'all' | 'privacy' | 'mining' | 'pools' | 'network' | 'fees';
 
@@ -28,7 +31,6 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'daily-activity', title: 'Daily Activity', description: 'Shielded vs transparent transaction counts', category: 'privacy', href: '/privacy' },
   { id: 'anonymity-set', title: 'Anonymity Set', description: 'How many txs could be your source at each amount', category: 'privacy', href: '/privacy', isNew: true },
   { id: 'shielding-dist', title: 'Shielding Distribution', description: 'Shield/deshield histogram by amount bucket', category: 'privacy', href: '/privacy', isNew: true },
-  { id: 'privacy-risks', title: 'Privacy Risk Scanner', description: 'Round-trip and batch pattern detection', category: 'privacy', href: '/privacy-risks' },
   { id: 'pool-balances', title: 'Pool Balances', description: 'Sprout, Sapling, Orchard pool sizes over time', category: 'pools', href: '/pools' },
   { id: 'flow-volume', title: 'Shield/Deshield Flows', description: 'Daily ZEC flowing in/out of shielded pools', category: 'pools', href: '/pools' },
   { id: 'turnstile', title: 'Turnstile Tracker', description: 'Where deshielded ZEC goes after leaving pools', category: 'pools', href: '/turnstile' },
@@ -39,9 +41,13 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'supply-emission', title: 'Supply Emission', description: 'ZEC circulating supply toward 21M cap', category: 'network', href: '/network' },
   { id: 'chain-size', title: 'Chain Size', description: 'Blockchain disk size growth (GB)', category: 'network', href: '/network' },
   { id: 'protocol-stats', title: 'Protocol Stats', description: 'Monthly Sapling/Orchard commitments & nullifiers', category: 'network', href: '/network' },
-  { id: 'node-map', title: 'Node Map', description: 'Geographic Zcash node distribution', category: 'network', href: '/network' },
-  { id: 'mempool', title: 'Mempool Bubbles', description: 'Live unconfirmed transactions (physics sim)', category: 'network', href: '/mempool' },
   { id: 'fee-dist', title: 'Fee Distribution', description: 'Daily fee percentile bands (p10–p90)', category: 'fees', href: '/network', isNew: true },
+];
+
+const LIVE_VIZ_DEFS = [
+  { id: 'node-map', title: 'Node Map', description: 'Geographic Zcash node distribution', href: '/network' },
+  { id: 'mempool', title: 'Mempool Bubbles', description: 'Live unconfirmed transactions', href: '/mempool' },
+  { id: 'privacy-risks', title: 'Privacy Risk Scanner', description: 'Round-trip and batch pattern detection', href: '/privacy-risks' },
 ];
 
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -232,6 +238,43 @@ function getChartConfig(id: string): { dataKey: string; type: 'line' | 'area' | 
   }
 }
 
+function LiveVizPreview({ id }: { id: string }) {
+  if (id === 'node-map') {
+    return (
+      <Suspense fallback={<div className="h-full w-full bg-white/[0.02]" />}>
+        <div className="h-full w-full scale-[0.6] origin-center opacity-80">
+          <NodeMapMini />
+        </div>
+      </Suspense>
+    );
+  }
+  if (id === 'mempool') {
+    return (
+      <Suspense fallback={<div className="h-full w-full bg-white/[0.02]" />}>
+        <MempoolBubblesMini transactions={[]} className="h-full w-full" />
+      </Suspense>
+    );
+  }
+  if (id === 'privacy-risks') {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-gradient-to-b from-white/[0.02] to-transparent p-4">
+        <div className="space-y-2 w-full max-w-[200px]">
+          <div className="h-2 rounded-full bg-red-400/20 w-full" />
+          <div className="h-2 rounded-full bg-amber-400/15 w-4/5" />
+          <div className="h-2 rounded-full bg-amber-400/10 w-3/5" />
+          <div className="h-2 rounded-full bg-emerald-400/10 w-2/5" />
+          <div className="mt-3 grid grid-cols-3 gap-1">
+            <div className="h-6 rounded bg-red-400/10 flex items-center justify-center text-[8px] text-red-400/60 font-mono">HIGH</div>
+            <div className="h-6 rounded bg-amber-400/10 flex items-center justify-center text-[8px] text-amber-400/60 font-mono">MED</div>
+            <div className="h-6 rounded bg-emerald-400/10 flex items-center justify-center text-[8px] text-emerald-400/60 font-mono">LOW</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function ChartsClient({ initialData }: { initialData: Record<string, MiniChartData[]> }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<Category>('all');
@@ -357,6 +400,44 @@ export function ChartsClient({ initialData }: { initialData: Record<string, Mini
             Clear filters
           </button>
         </div>
+      )}
+
+      {/* Live Visualizations */}
+      {category === 'all' && !search.trim() && (
+        <section className="mt-12">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              Live Visualizations
+            </h2>
+            <div className="flex-1 h-px bg-cipher-border/30" />
+            <span className="text-[10px] text-muted font-mono">interactive</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {LIVE_VIZ_DEFS.map(v => (
+              <Link
+                key={v.id}
+                href={v.href}
+                className="group block rounded-xl border border-cipher-border/40 bg-card overflow-hidden transition-all duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
+              >
+                <div className="h-[180px] relative overflow-hidden pointer-events-none">
+                  <LiveVizPreview id={v.id} />
+                </div>
+                <div className="px-4 pb-3 border-t border-cipher-border/20 pt-2 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[11px] font-bold font-mono text-secondary group-hover:text-primary transition-colors uppercase tracking-wider">
+                      {v.title}
+                    </h3>
+                    <p className="text-[10px] text-muted mt-0.5">{v.description}</p>
+                  </div>
+                  <span className="text-[9px] text-muted/40 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                    open →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="mt-14 text-center">
