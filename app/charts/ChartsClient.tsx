@@ -336,15 +336,19 @@ function pointInPoly(x: number, y: number, ring: number[][]): boolean {
 }
 
 function MempoolMiniViz() {
-  const [txs, setTxs] = useState<{ type: string; size: number }[]>([]);
+  const [txs, setTxs] = useState<{ type: string; size: number; x: number; y: number; delay: number; dur: number }[]>([]);
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/mempool`)
       .then(r => r.json())
       .then(d => {
-        const list = (d.transactions || []).slice(0, 30).map((t: any) => ({
+        const list = (d.transactions || []).slice(0, 25).map((t: any) => ({
           type: t.type || 'transparent',
           size: t.size || 200,
+          x: Math.random() * 80 + 10,
+          y: Math.random() * 70 + 15,
+          delay: Math.random() * 3,
+          dur: 2 + Math.random() * 3,
         }));
         setTxs(list);
       })
@@ -358,26 +362,38 @@ function MempoolMiniViz() {
   };
 
   return (
-    <div className="h-full w-full relative flex items-center justify-center bg-[#0a0f14] overflow-hidden">
-      <div className="flex flex-wrap gap-1.5 justify-center items-center p-4 max-w-[250px]">
-        {txs.map((tx, i) => {
-          const r = Math.max(6, Math.min(18, Math.sqrt(tx.size / 50) * 6));
-          return (
-            <div
-              key={i}
-              className="rounded-full opacity-70"
-              style={{
-                width: r,
-                height: r,
-                backgroundColor: colors[tx.type] || colors.transparent,
-              }}
-            />
-          );
-        })}
-        {txs.length === 0 && (
+    <div className="h-full w-full relative bg-[#0a0f14] overflow-hidden">
+      <style>{`
+        @keyframes float-bubble {
+          0%, 100% { transform: translate(0, 0); }
+          25% { transform: translate(3px, -5px); }
+          50% { transform: translate(-2px, -8px); }
+          75% { transform: translate(-4px, -3px); }
+        }
+      `}</style>
+      {txs.map((tx, i) => {
+        const r = Math.max(8, Math.min(22, Math.sqrt(tx.size / 40) * 6));
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: r,
+              height: r,
+              left: `${tx.x}%`,
+              top: `${tx.y}%`,
+              backgroundColor: colors[tx.type] || colors.transparent,
+              opacity: 0.7,
+              animation: `float-bubble ${tx.dur}s ease-in-out ${tx.delay}s infinite`,
+            }}
+          />
+        );
+      })}
+      {txs.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-[10px] text-muted/40 font-mono">awaiting txs...</span>
-        )}
-      </div>
+        </div>
+      )}
       {txs.length > 0 && (
         <div className="absolute bottom-2 left-3 text-[9px] font-mono text-muted/60">
           {txs.length} pending
