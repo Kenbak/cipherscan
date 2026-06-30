@@ -161,22 +161,31 @@ function tealForShare(t: number): string {
   return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
 }
 
+function goldForLevel(t: number): string {
+  const a = [120, 86, 22];   // deep amber (quiet hour)
+  const b = [255, 208, 96];  // bright gold (busy hour)
+  const f = Math.max(0, Math.min(1, t));
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
+}
+
 function RadialClock({
   hourly,
-  peakValue,
   nodeDaylightShare,
   hour,
   currentHour,
   activityPct,
 }: {
   hourly: number[];
-  peakValue: number;
   nodeDaylightShare: number[];
   hour: number;
   currentHour: number;
   activityPct: number;
 }) {
   const sunHand = polar(BAR_INNER + BAR_MAX + 14, hour);
+  // Min–max normalize so the daily rhythm (only ~1.6×) is actually visible.
+  const minV = Math.min(...hourly);
+  const maxV = Math.max(...hourly, 1);
+  const span = maxV - minV || 1;
   return (
     <svg viewBox={`0 0 ${DIAL} ${DIAL}`} className="w-full h-auto">
       <defs>
@@ -207,11 +216,12 @@ function RadialClock({
         />
       ))}
 
-      {/* activity bars */}
+      {/* activity bars — length and brightness both encode volume */}
       {hourly.map((v, h) => {
-        const len = peakValue > 0 ? (v / peakValue) * BAR_MAX : 0;
+        const norm = (v - minV) / span;
+        const len = 16 + norm * (BAR_MAX - 16);
         const p0 = polar(BAR_INNER, h + 0.5);
-        const p1 = polar(BAR_INNER + Math.max(2, len), h + 0.5);
+        const p1 = polar(BAR_INNER + len, h + 0.5);
         const active = h === currentHour;
         return (
           <line
@@ -220,10 +230,10 @@ function RadialClock({
             y1={p0.y}
             x2={p1.x}
             y2={p1.y}
-            stroke={active ? '#FFD060' : '#F4B728'}
+            stroke={active ? '#FFE08A' : goldForLevel(norm)}
             strokeWidth={9}
             strokeLinecap="round"
-            opacity={active ? 1 : 0.5}
+            opacity={active ? 1 : 0.45 + 0.5 * norm}
             filter={active ? 'url(#barGlow)' : undefined}
           />
         );
@@ -267,6 +277,31 @@ function RadialClock({
         OF PEAK
       </text>
     </svg>
+  );
+}
+
+function ResidualTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const up = d.residual >= 0;
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--color-surface-solid)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 8,
+        padding: '8px 10px',
+        fontFamily: 'monospace',
+        fontSize: 11,
+      }}
+    >
+      <div style={{ color: 'var(--color-text-secondary)', marginBottom: 4 }}>{d.label}:00 UTC</div>
+      <div style={{ color: 'var(--color-text-muted)' }}>actual {d.actual}% of the day</div>
+      <div style={{ color: 'var(--color-text-muted)' }}>expected {d.predicted}% (humans only)</div>
+      <div style={{ color: up ? '#FF6B35' : '#5B9CF6', marginTop: 4, fontWeight: 700 }}>
+        {up ? '+' : ''}{d.residual} pts · {up ? 'busier than people explain' : 'quieter than expected'}
+      </div>
+    </div>
   );
 }
 
@@ -396,6 +431,8 @@ export function UsageClockClient({
     () => hourly.map((_, h) => ({
       hour: h,
       label: `${String(h).padStart(2, '0')}`,
+      actual: +(hourlyFrac[h] * 100).toFixed(2),
+      predicted: +(predictedFrac[h] * 100).toFixed(2),
       residual: +((hourlyFrac[h] - predictedFrac[h]) * 100).toFixed(2),
     })),
     [hourly, hourlyFrac, predictedFrac]
@@ -470,7 +507,6 @@ export function UsageClockClient({
           <div className="max-w-[440px] w-full mx-auto">
             <RadialClock
               hourly={hourly}
-              peakValue={peakValue}
               nodeDaylightShare={nodeDaylightShare}
               hour={hour}
               currentHour={currentHour}
@@ -588,19 +624,28 @@ export function UsageClockClient({
 
         {/* Residual */}
         <div className="rounded-xl border border-cipher-border bg-cipher-surface p-5 lg:col-span-2">
-          <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-1">What the humans don&apos;t explain</h3>
-          <p className="text-[10px] text-muted mb-2">Actual activity minus what human waking-hours over the node map would predict. Bars above zero are hours busier than people alone account for — the fingerprint of exchanges, miners and bots that run on machine time.</p>
-          <div className="h-[150px]">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+            <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider">The machine hours</h3>
+            <div className="flex items-center gap-3 text-[9px] font-mono">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: '#FF6B35' }} /> <span className="text-muted">busier than people</span></span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: '#5B9CF6' }} /> <span className="text-muted">quieter</span></span>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted mb-2 leading-relaxed">
+            We predict each hour&apos;s share of the day assuming people transact in their waking hours, in the timezones where the nodes sit. This shows <span className="text-secondary">actual minus predicted</span>. Orange hours are busier than human routine explains — when exchanges, miners and bots that run on machine time leave their mark. Hover any hour for the breakdown.
+          </p>
+          <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={residualBars} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                <ReferenceLine y={0} stroke="var(--color-border)" />
-                <XAxis dataKey="label" tick={{ fontSize: 8, fontFamily: 'monospace' }} stroke="var(--color-text-muted)" interval={3} />
-                <YAxis tick={{ fontSize: 8, fontFamily: 'monospace' }} stroke="var(--color-text-muted)" width={28} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
-                  formatter={(val: any) => [`${val}%`, 'residual']}
-                  labelFormatter={(l) => `${l}:00 UTC`}
+              <BarChart data={residualBars} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <ReferenceLine y={0} stroke="var(--color-text-muted)" strokeOpacity={0.5} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fontFamily: 'monospace' }} stroke="var(--color-text-muted)" interval={2} tickFormatter={(l) => `${l}h`} />
+                <YAxis
+                  tick={{ fontSize: 9, fontFamily: 'monospace' }}
+                  stroke="var(--color-text-muted)"
+                  width={40}
+                  tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}pt`}
                 />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={<ResidualTooltip />} />
                 <Bar dataKey="residual" radius={[2, 2, 0, 0]}>
                   {residualBars.map((d) => (
                     <Cell key={d.hour} fill={d.residual >= 0 ? '#FF6B35' : '#5B9CF6'} opacity={0.85} />
