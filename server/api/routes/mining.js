@@ -422,4 +422,90 @@ router.get('/api/mining/miner-behavior', async (req, res) => {
   }
 });
 
+// ============================================================================
+// GET /api/mining/zodl-leaderboard
+// Per-pool accumulation ranking — how much of earned rewards each pool holds
+// vs. sells over a period (the "ZODL" leaderboard).
+// ============================================================================
+router.get('/api/mining/zodl-leaderboard', async (req, res) => {
+  try {
+    const period = req.query.period || '90d';
+    const cacheKey = `mining:zodl:${period}`;
+
+    const cached = await getFromCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const interval = parsePeriod(period);
+    const whereClause = interval
+      ? `WHERE date >= CURRENT_DATE - INTERVAL '${interval}'`
+      : '';
+
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_name = 'mining_behavior_daily'
+      ) as exists
+    `);
+
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        period,
+        pools: [],
+        summary: null,
+        message: 'Miner behavior data is being computed. Check back soon.',
+        generatedAt: new Date().toISOString(),
+      });
+    }
+
+    const result = await pool.query(`
+      SELECT
+        pool_name,
+        SUM(earned_zat)::numeric AS earned,
+        SUM(spent_zat)::numeric AS spent,
+        SUM(held_zat)::numeric AS held,
+        SUM(blocks_mined)::bigint AS blocks,
+        COUNT(DISTINCT date) AS active_days
+      FROM mining_behavior_daily
+      ${whereClause}
+      GROUP BY pool_name
+      HAVING SUM(earned_zat) > 0
+      ORDER BY held DESC
+    `);
+
+    const pools = result.rows.map((row) => {
+      const earned = BigInt(row.earned);
+      const spent = BigInt(row.spent);
+      const held = BigInt(row.held);
+      return {
+        pool: row.pool_name,
+        earnedZat: earned.toString(),
+        spentZat: spent.toString(),
+        heldZat: held.toString(),
+        blocks: Number(row.blocks),
+        activeDays: Number(row.active_days),
+        holdRatio: earned > 0n ? Number((held * 10000n) / earned) / 10000 : 0,
+        sellRatio: earned > 0n ? Number((spent * 10000n) / earned) / 10000 : 0,
+      };
+    });
+
+    const totalEarned = pools.reduce((s, p) => s + BigInt(p.earnedZat), 0n);
+    const totalHeld = pools.reduce((s, p) => s + BigInt(p.heldZat), 0n);
+    const totalSpent = pools.reduce((s, p) => s + BigInt(p.spentZat), 0n);
+    const summary = {
+      totalEarnedZat: totalEarned.toString(),
+      totalHeldZat: totalHeld.toString(),
+      totalSpentZat: totalSpent.toString(),
+      networkHoldRatio: totalEarned > 0n ? Number((totalHeld * 10000n) / totalEarned) / 10000 : 0,
+      poolCount: pools.length,
+    };
+
+    const response = { period, pools, summary, generatedAt: new Date().toISOString() };
+    await setCache(cacheKey, response, 900); // 15 min cache
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching ZODL leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch ZODL leaderboard' });
+  }
+});
+
 module.exports = router;
