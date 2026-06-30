@@ -142,8 +142,10 @@ const RING_R = 104;
 const RING_W = 11;
 const HUB_R = 90;
 
+// Noon (12:00) at top, midnight (00:00) at bottom, sunrise (06) right, sunset
+// (18) left — the dial follows the sun's arc across the sky.
 function polar(r: number, hourFrac: number): { x: number; y: number } {
-  const a = ((hourFrac / 24) * 360 - 90) * (Math.PI / 180);
+  const a = (90 - 15 * hourFrac) * (Math.PI / 180);
   return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
 }
 
@@ -257,6 +259,38 @@ function RadialClock({
           </text>
         );
       })}
+
+      {/* sun (noon, top) & moon (midnight, bottom) anchors */}
+      {(() => {
+        const sun = polar(BAR_INNER + BAR_MAX + 40, 12);
+        const moon = polar(BAR_INNER + BAR_MAX + 40, 0);
+        return (
+          <g>
+            <g>
+              <circle cx={sun.x} cy={sun.y} r={6} fill="#F4B728" />
+              {Array.from({ length: 8 }, (_, i) => {
+                const a = (i / 8) * 2 * Math.PI;
+                return (
+                  <line
+                    key={i}
+                    x1={sun.x + Math.cos(a) * 8}
+                    y1={sun.y + Math.sin(a) * 8}
+                    x2={sun.x + Math.cos(a) * 11}
+                    y2={sun.y + Math.sin(a) * 11}
+                    stroke="#F4B728"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </g>
+            <g>
+              <circle cx={moon.x} cy={moon.y} r={6} fill="#9aa6b2" />
+              <circle cx={moon.x + 2.6} cy={moon.y - 1.6} r={5} fill="#070b10" />
+            </g>
+          </g>
+        );
+      })()}
 
       {/* sun hand */}
       <line x1={CX} y1={CY} x2={sunHand.x} y2={sunHand.y} stroke="#F4B728" strokeWidth={2} strokeOpacity={0.5} />
@@ -518,9 +552,14 @@ export function UsageClockClient({
           <div className="mt-4 flex items-center gap-4">
             <button
               onClick={() => setPlaying((p) => !p)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-green/15 border border-cipher-green/30 text-cipher-green-bright text-xs font-mono font-bold hover:bg-cipher-green/25 transition-all min-w-[92px] justify-center"
+              aria-label={playing ? 'Pause' : 'Play'}
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-cipher-border bg-glass-3 text-secondary hover:text-primary hover:border-cipher-yellow/40 transition-all flex-shrink-0"
             >
-              {playing ? '❙❙ Pause' : '▶ Sweep'}
+              {playing ? (
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="1" /><rect x="7" y="1.5" width="3" height="9" rx="1" /></svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.8v8.4a.6.6 0 0 0 .92.5l6.6-4.2a.6.6 0 0 0 0-1L3.92 1.3A.6.6 0 0 0 3 1.8z" /></svg>
+              )}
             </button>
             <input
               type="range"
