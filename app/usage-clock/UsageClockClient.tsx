@@ -133,7 +133,9 @@ function heatColor(t: number): string {
 // Radial 24-hour clock dial
 // ---------------------------------------------------------------------------
 
-const DIAL = 440;
+// viewBox is padded well beyond the outer bars so hour labels and the
+// sun/moon anchors at the rim aren't clipped at the edges.
+const DIAL = 520;
 const CX = DIAL / 2;
 const CY = DIAL / 2;
 const BAR_INNER = 124;
