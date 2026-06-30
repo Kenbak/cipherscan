@@ -226,4 +226,97 @@ router.get('/api/network/fee-distribution', async (req, res) => {
   }
 });
 
+// ============================================================================
+// USAGE CLOCK — transaction counts by hour of day and day of week (UTC)
+// ============================================================================
+
+const PERIOD_DAYS = { '30d': 30, '90d': 90, '6m': 183, '1y': 365, 'all': 0 };
+
+router.get('/api/analytics/usage-clock', async (req, res) => {
+  try {
+    const pool = req.app.locals.pool;
+    const redisClient = req.app.locals.redisClient;
+    const period = req.query.period || '1y';
+    const days = PERIOD_DAYS[period] || 365;
+
+    const cacheKey = `analytics:usage-clock:${period}`;
+    const cached = await getCached(redisClient, cacheKey);
+    if (cached) return res.json(cached);
+
+    const params = [];
+    let whereClause = '';
+    if (days > 0) {
+      params.push(Math.floor(Date.now() / 1000) - days * 86400);
+      whereClause = 'WHERE timestamp > $1';
+    }
+
+    const query = `
+      SELECT
+        EXTRACT(HOUR FROM TO_TIMESTAMP(timestamp))::int AS hour,
+        EXTRACT(DOW FROM TO_TIMESTAMP(timestamp))::int AS dow,
+        SUM(transaction_count)::int AS tx_count,
+        COUNT(*)::int AS block_count
+      FROM blocks
+      ${whereClause}
+      GROUP BY hour, dow
+      ORDER BY dow, hour
+    `;
+
+    const summaryQuery = `
+      SELECT
+        COUNT(*)::int AS total_blocks,
+        SUM(transaction_count)::int AS total_txs,
+        MIN(timestamp) AS first_block,
+        MAX(timestamp) AS last_block
+      FROM blocks
+      ${whereClause}
+    `;
+
+    const [result, summaryResult] = await Promise.all([
+      pool.query(query, params),
+      pool.query(summaryQuery, params),
+    ]);
+
+    const heatmap = result.rows.map(r => ({
+      hour: r.hour,
+      dow: r.dow,
+      txCount: r.tx_count,
+      blockCount: r.block_count,
+    }));
+
+    // Aggregate by hour only
+    const hourly = Array.from({ length: 24 }, (_, h) => ({
+      hour: h,
+      txCount: heatmap.filter(r => r.hour === h).reduce((s, r) => s + r.txCount, 0),
+    }));
+
+    const peakHour = hourly.reduce((max, h) => h.txCount > max.txCount ? h : max, hourly[0]);
+    const lowHour = hourly.reduce((min, h) => h.txCount < min.txCount ? h : min, hourly[0]);
+
+    const summary = summaryResult.rows[0] || {};
+    const response = {
+      period,
+      dateRange: {
+        from: summary.first_block ? new Date(summary.first_block * 1000).toISOString().slice(0, 10) : null,
+        to: summary.last_block ? new Date(summary.last_block * 1000).toISOString().slice(0, 10) : null,
+      },
+      totalBlocks: summary.total_blocks || 0,
+      totalTxs: summary.total_txs || 0,
+      heatmap,
+      hourly,
+      peakHour: peakHour.hour,
+      lowHour: lowHour.hour,
+      peakToLowRatio: lowHour.txCount > 0
+        ? +(peakHour.txCount / lowHour.txCount).toFixed(2)
+        : 0,
+    };
+
+    await setCache(redisClient, cacheKey, response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching usage clock:', error);
+    res.status(500).json({ error: 'Failed to fetch usage clock data' });
+  }
+});
+
 module.exports = router;
