@@ -129,6 +129,7 @@ export function NavBar() {
   const researchItems: MenuItem[] = [
     { href: '/charts', label: 'Charts', desc: 'All metrics in one place' },
     ...(isMainnet ? [{ href: '/usage-clock', label: 'Usage Clock', desc: 'Activity rhythm vs node geography' }] : []),
+    ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),
     ...(isCrosslink ? [] : [
       { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
     ]),
