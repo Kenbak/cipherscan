@@ -437,7 +437,7 @@ router.get('/api/mining/zodl-leaderboard', async (req, res) => {
 
     const interval = parsePeriod(period);
     const whereClause = interval
-      ? `WHERE date >= CURRENT_DATE - INTERVAL '${interval}'`
+      ? `WHERE b.date >= CURRENT_DATE - INTERVAL '${interval}'`
       : '';
 
     const tableCheck = await pool.query(`
@@ -457,18 +457,28 @@ router.get('/api/mining/zodl-leaderboard', async (req, res) => {
       });
     }
 
+    // Join the destination breakdown (shielded / exchange / bridge / other).
+    // Days not yet classified contribute 0 to the breakdown; the remainder of
+    // each pool's spend is reported as "unclassified" so totals always reconcile.
     const result = await pool.query(`
       SELECT
-        pool_name,
-        SUM(earned_zat)::numeric AS earned,
-        SUM(spent_zat)::numeric AS spent,
-        SUM(held_zat)::numeric AS held,
-        SUM(blocks_mined)::bigint AS blocks,
-        COUNT(DISTINCT date) AS active_days
-      FROM mining_behavior_daily
+        b.pool_name,
+        SUM(b.earned_zat)::numeric AS earned,
+        SUM(b.spent_zat)::numeric AS spent,
+        SUM(b.held_zat)::numeric AS held,
+        SUM(b.blocks_mined)::bigint AS blocks,
+        COUNT(DISTINCT b.date) AS active_days,
+        COALESCE(SUM(d.shielded_zat), 0)::numeric AS shielded,
+        COALESCE(SUM(d.exchange_zat), 0)::numeric AS exchange,
+        COALESCE(SUM(d.bridge_zat),   0)::numeric AS bridge,
+        COALESCE(SUM(d.other_zat),    0)::numeric AS classified_other,
+        COUNT(DISTINCT d.date) AS classified_days
+      FROM mining_behavior_daily b
+      LEFT JOIN miner_destination_daily d
+        ON d.date = b.date AND d.pool_name = b.pool_name
       ${whereClause}
-      GROUP BY pool_name
-      HAVING SUM(earned_zat) > 0
+      GROUP BY b.pool_name
+      HAVING SUM(b.earned_zat) > 0
       ORDER BY held DESC
     `);
 
@@ -476,26 +486,51 @@ router.get('/api/mining/zodl-leaderboard', async (req, res) => {
       const earned = BigInt(row.earned);
       const spent = BigInt(row.spent);
       const held = BigInt(row.held);
+      const shielded = BigInt(row.shielded);
+      const exchange = BigInt(row.exchange);
+      const bridge = BigInt(row.bridge);
+      const classifiedOther = BigInt(row.classified_other);
+      // Spend not yet classified (days missing from destination table).
+      let unclassified = spent - shielded - exchange - bridge - classifiedOther;
+      if (unclassified < 0n) unclassified = 0n;
+      const otherTransparent = classifiedOther + unclassified;
+      const ratio = (v) => (earned > 0n ? Number((v * 10000n) / earned) / 10000 : 0);
       return {
         pool: row.pool_name,
         earnedZat: earned.toString(),
         spentZat: spent.toString(),
         heldZat: held.toString(),
+        shieldedZat: shielded.toString(),
+        exchangeZat: exchange.toString(),
+        bridgeZat: bridge.toString(),
+        otherZat: otherTransparent.toString(),
         blocks: Number(row.blocks),
         activeDays: Number(row.active_days),
-        holdRatio: earned > 0n ? Number((held * 10000n) / earned) / 10000 : 0,
-        sellRatio: earned > 0n ? Number((spent * 10000n) / earned) / 10000 : 0,
+        classifiedDays: Number(row.classified_days),
+        holdRatio: ratio(held),
+        sellRatio: ratio(spent),
+        shieldedRatio: ratio(shielded),
+        offrampRatio: ratio(exchange + bridge),
+        otherRatio: ratio(otherTransparent),
       };
     });
 
-    const totalEarned = pools.reduce((s, p) => s + BigInt(p.earnedZat), 0n);
-    const totalHeld = pools.reduce((s, p) => s + BigInt(p.heldZat), 0n);
-    const totalSpent = pools.reduce((s, p) => s + BigInt(p.spentZat), 0n);
+    const sum = (key) => pools.reduce((s, p) => s + BigInt(p[key]), 0n);
+    const totalEarned = sum('earnedZat');
+    const totalHeld = sum('heldZat');
+    const totalSpent = sum('spentZat');
+    const totalShielded = sum('shieldedZat');
+    const totalOfframp = pools.reduce((s, p) => s + BigInt(p.exchangeZat) + BigInt(p.bridgeZat), 0n);
+    const ratioOf = (v) => (totalEarned > 0n ? Number((v * 10000n) / totalEarned) / 10000 : 0);
     const summary = {
       totalEarnedZat: totalEarned.toString(),
       totalHeldZat: totalHeld.toString(),
       totalSpentZat: totalSpent.toString(),
-      networkHoldRatio: totalEarned > 0n ? Number((totalHeld * 10000n) / totalEarned) / 10000 : 0,
+      totalShieldedZat: totalShielded.toString(),
+      totalOfframpZat: totalOfframp.toString(),
+      networkHoldRatio: ratioOf(totalHeld),
+      networkShieldedRatio: ratioOf(totalShielded),
+      networkOfframpRatio: ratioOf(totalOfframp),
       poolCount: pools.length,
     };
 

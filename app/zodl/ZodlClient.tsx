@@ -14,25 +14,46 @@ const PERIODS = [
 
 const SORTS = [
   { key: 'held', label: 'Most stacked' },
-  { key: 'holdRatio', label: 'Highest hold %' },
+  { key: 'shielded', label: 'Most shielded' },
+  { key: 'offramp', label: 'Most off-ramped' },
   { key: 'blocks', label: 'Most blocks' },
 ];
+
+// Destination segment palette
+const SEG = {
+  held: { color: '#F4B728', label: 'Held' },
+  shielded: { color: '#A78BFA', label: 'Shielded' },
+  offramp: { color: '#FF6B35', label: 'Exchange / bridge' },
+  other: { color: '#6B7280', label: 'Other transparent' },
+};
 
 interface PoolRow {
   pool: string;
   earnedZat: string;
   spentZat: string;
   heldZat: string;
+  shieldedZat: string;
+  exchangeZat: string;
+  bridgeZat: string;
+  otherZat: string;
   blocks: number;
   activeDays: number;
+  classifiedDays: number;
   holdRatio: number;
   sellRatio: number;
+  shieldedRatio: number;
+  offrampRatio: number;
+  otherRatio: number;
 }
 interface Summary {
   totalEarnedZat: string;
   totalHeldZat: string;
   totalSpentZat: string;
+  totalShieldedZat: string;
+  totalOfframpZat: string;
   networkHoldRatio: number;
+  networkShieldedRatio: number;
+  networkOfframpRatio: number;
   poolCount: number;
 }
 interface ZodlData {
@@ -45,17 +66,10 @@ interface ZodlData {
 function zec(zat: string | number): number {
   return Number(BigInt(typeof zat === 'number' ? Math.round(zat) : zat)) / 1e8;
 }
-
 function fmtZec(zat: string): string {
   const z = zec(zat);
   if (Math.abs(z) >= 1000) return `${Math.round(z).toLocaleString()}`;
   return z.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function holdColor(ratio: number): string {
-  if (ratio >= 0.25) return '#56D4C8';   // strong holder — cyan
-  if (ratio >= 0.05) return '#F4B728';   // moderate — gold
-  return '#6B7280';                       // mostly selling — muted
 }
 
 export function ZodlClient({
@@ -68,7 +82,7 @@ export function ZodlClient({
   const [period, setPeriod] = useState(initialPeriod);
   const [data, setData] = useState<ZodlData | null>(initialData);
   const [loading, setLoading] = useState(false);
-  const [sortKey, setSortKey] = useState<'held' | 'holdRatio' | 'blocks'>('held');
+  const [sortKey, setSortKey] = useState<'held' | 'shielded' | 'offramp' | 'blocks'>('held');
 
   useEffect(() => {
     if (period === initialPeriod && initialData) return;
@@ -85,18 +99,18 @@ export function ZodlClient({
 
   const pools = useMemo(() => {
     const list = [...(data?.pools || [])];
+    const big = (z: string) => BigInt(z);
     list.sort((a, b) => {
-      if (sortKey === 'held') return Number(BigInt(b.heldZat) - BigInt(a.heldZat));
-      if (sortKey === 'holdRatio') return b.holdRatio - a.holdRatio;
+      if (sortKey === 'held') return Number(big(b.heldZat) - big(a.heldZat));
+      if (sortKey === 'shielded') return Number(big(b.shieldedZat) - big(a.shieldedZat));
+      if (sortKey === 'offramp') {
+        const off = (p: PoolRow) => big(p.exchangeZat) + big(p.bridgeZat);
+        return Number(off(b) - off(a));
+      }
       return b.blocks - a.blocks;
     });
     return list;
   }, [data, sortKey]);
-
-  const maxEarned = useMemo(
-    () => pools.reduce((m, p) => Math.max(m, zec(p.earnedZat)), 1),
-    [pools]
-  );
 
   const summary = data?.summary;
 
@@ -112,11 +126,11 @@ export function ZodlClient({
       {/* Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-primary">Miner ZODL Leaderboard</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-        Every block mints new ZEC for whoever mined it. Some pools cash out immediately; others sit on their rewards. This ranks pools by how much of what they earned they&apos;re still <span className="text-primary font-semibold">holding</span> — a read on who&apos;s betting on Zcash with their own stack.
+        Every block mints new ZEC for whoever mined it. We follow those rewards: what each pool still <span className="text-primary font-semibold">holds</span>, what it moved into the <span style={{ color: SEG.shielded.color }} className="font-semibold">shielded pool</span>, and what it sent to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — so this separates real off-ramps from privacy moves.
       </p>
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-5 mb-7">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-5 mb-6">
         <div className="inline-flex gap-1 p-1 rounded-lg bg-glass-3">
           {PERIODS.map((p) => (
             <button
@@ -130,12 +144,12 @@ export function ZodlClient({
             </button>
           ))}
         </div>
-        <div className="inline-flex gap-1 p-1 rounded-lg bg-glass-3">
+        <div className="inline-flex gap-1 p-1 rounded-lg bg-glass-3 overflow-x-auto">
           {SORTS.map((s) => (
             <button
               key={s.key}
               onClick={() => setSortKey(s.key as any)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition-all ${
+              className={`px-3 py-1 text-[11px] font-mono rounded-md transition-all whitespace-nowrap ${
                 sortKey === s.key ? 'bg-white/5 text-primary font-bold border border-white/10' : 'text-muted hover:text-secondary border border-transparent'
               }`}
             >
@@ -148,20 +162,29 @@ export function ZodlClient({
 
       {/* Summary */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {[
             { label: 'Rewards mined', value: `${fmtZec(summary.totalEarnedZat)} ZEC`, color: 'text-primary' },
-            { label: 'Still held', value: `${fmtZec(summary.totalHeldZat)} ZEC`, color: 'text-cipher-cyan' },
-            { label: 'Network hold rate', value: `${(summary.networkHoldRatio * 100).toFixed(1)}%`, color: 'text-cipher-yellow-bright' },
-            { label: 'Pools tracked', value: `${summary.poolCount}`, color: 'text-primary' },
+            { label: 'Held (unspent)', value: `${(summary.networkHoldRatio * 100).toFixed(1)}%`, color: 'text-cipher-yellow-bright' },
+            { label: 'Shielded', value: `${(summary.networkShieldedRatio * 100).toFixed(1)}%`, color: '' , style: { color: SEG.shielded.color } },
+            { label: 'To exchange / bridge', value: `${(summary.networkOfframpRatio * 100).toFixed(1)}%`, color: '', style: { color: SEG.offramp.color } },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-cipher-border bg-cipher-surface p-4">
-              <div className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</div>
+              <div className={`text-xl font-bold font-mono ${s.color}`} style={(s as any).style}>{s.value}</div>
               <div className="text-[10px] text-muted uppercase tracking-wider mt-1 font-mono">{s.label}</div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-[10px] font-mono text-muted">
+        {Object.values(SEG).map((s) => (
+          <span key={s.label} className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} /> {s.label}
+          </span>
+        ))}
+      </div>
 
       {/* Leaderboard */}
       {data?.message ? (
@@ -170,53 +193,43 @@ export function ZodlClient({
         </div>
       ) : (
         <div className="space-y-2">
-          {/* column header */}
-          <div className="hidden sm:flex items-center gap-3 px-4 text-[10px] font-mono text-muted uppercase tracking-wider">
-            <div className="w-6">#</div>
-            <div className="flex-1">Pool</div>
-            <div className="w-24 text-right">Earned</div>
-            <div className="w-[34%]">Held vs. sold</div>
-          </div>
-
           {pools.map((p, i) => {
-            const earnedBarPct = (zec(p.earnedZat) / maxEarned) * 100;
-            const holdPct = Math.max(0, Math.min(100, p.holdRatio * 100));
+            const segs = [
+              { ...SEG.held, pct: p.holdRatio * 100, zat: p.heldZat },
+              { ...SEG.shielded, pct: p.shieldedRatio * 100, zat: p.shieldedZat },
+              { ...SEG.offramp, pct: p.offrampRatio * 100, zat: (BigInt(p.exchangeZat) + BigInt(p.bridgeZat)).toString() },
+              { ...SEG.other, pct: p.otherRatio * 100, zat: p.otherZat },
+            ];
             return (
               <div
                 key={p.pool}
                 className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-cipher-border bg-cipher-surface px-4 py-3 hover:border-cipher-yellow/30 transition-colors"
               >
-                <div className="flex items-center gap-3 sm:contents">
-                  <div className={`w-6 text-sm font-mono font-bold ${i < 3 ? 'text-cipher-yellow-bright' : 'text-muted'}`}>
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 sm:w-[200px] sm:flex-shrink-0">
+                  <div className={`w-6 text-sm font-mono font-bold ${i < 3 ? 'text-cipher-yellow-bright' : 'text-muted'}`}>{i + 1}</div>
+                  <div className="min-w-0">
                     <div className="text-sm font-semibold text-primary truncate">{p.pool}</div>
-                    <div className="text-[10px] text-muted font-mono">{p.blocks.toLocaleString()} blocks · {p.activeDays}d active</div>
+                    <div className="text-[10px] text-muted font-mono">{fmtZec(p.earnedZat)} ZEC · {p.blocks.toLocaleString()} blocks</div>
                   </div>
                 </div>
 
-                <div className="w-24 text-left sm:text-right">
-                  <span className="text-sm font-mono text-secondary">{fmtZec(p.earnedZat)}</span>
-                  <span className="text-[10px] text-muted ml-1">ZEC</span>
-                </div>
-
-                {/* held vs sold bar */}
-                <div className="w-full sm:w-[34%]">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1 h-3 rounded-full bg-glass-3 overflow-hidden">
+                {/* stacked destination bar */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex h-3.5 rounded-full overflow-hidden bg-glass-3">
+                    {segs.map((s) => s.pct > 0 ? (
                       <div
-                        className="absolute inset-y-0 left-0 rounded-full"
-                        style={{ width: `${holdPct}%`, backgroundColor: holdColor(p.holdRatio) }}
-                        title={`Holding ${fmtZec(p.heldZat)} ZEC`}
+                        key={s.label}
+                        style={{ width: `${s.pct}%`, backgroundColor: s.color }}
+                        title={`${s.label}: ${s.pct.toFixed(1)}% · ${fmtZec(s.zat)} ZEC`}
                       />
-                    </div>
-                    <span className="text-xs font-mono font-bold tabular-nums w-12 text-right" style={{ color: holdColor(p.holdRatio) }}>
-                      {holdPct.toFixed(1)}%
-                    </span>
+                    ) : null)}
                   </div>
-                  <div className="text-[10px] text-muted font-mono mt-0.5">
-                    holds {fmtZec(p.heldZat)} · sold {fmtZec(p.spentZat)} ZEC
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] font-mono text-muted">
+                    {segs.filter((s) => s.pct >= 0.5).map((s) => (
+                      <span key={s.label}>
+                        <span style={{ color: s.color }}>●</span> {s.label.split(' ')[0]} {s.pct.toFixed(0)}%
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -229,7 +242,8 @@ export function ZodlClient({
       <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-5">
         <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">How we read it</h3>
         <p className="text-xs text-muted leading-relaxed">
-          We attribute each coinbase reward to a pool by its payout address, then track whether those coins are later spent. <span className="text-secondary">Held</span> is the share of mined ZEC still sitting in known payout addresses; <span className="text-secondary">sold</span> is what&apos;s moved on. It&apos;s a proxy, not gospel: a pool that rotates to a fresh address or shields its rewards reads as &ldquo;sold&rdquo; even if it still holds the coins economically. Treat it as a directional signal of accumulation, not an exact treasury balance.
+          We attribute each coinbase reward to a pool by its payout address, then trace where those coins go when spent.
+          <span className="text-secondary"> Held</span> = never spent. <span style={{ color: SEG.shielded.color }}>Shielded</span> = swept into the shielded pool — a privacy move, not a sale, and likely still the miner&apos;s. <span style={{ color: SEG.offramp.color }}>Exchange / bridge</span> = sent to a labeled off-ramp, the clearest &ldquo;sold&rdquo; signal. <span className="text-secondary">Other transparent</span> = moved to an unlabeled address (rotation, cold storage, payouts) or not yet classified. It&apos;s a directional read built from public coinbase spends and our address labels — not an exact treasury.
         </p>
       </div>
     </div>
