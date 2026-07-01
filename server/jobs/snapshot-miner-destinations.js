@@ -190,14 +190,16 @@ async function run() {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() - 1); // skip today (incomplete)
 
-    let current = new Date(startDate);
+    // Process most-recent first so the common short windows (30D/90D) become
+    // accurate quickly during a long backfill.
+    let current = new Date(endDate);
     let daysProcessed = 0;
-    while (current <= endDate) {
+    while (current >= startDate) {
       const dateStr = current.toISOString().slice(0, 10);
       const poolCount = await computeDay(client, dateStr);
       daysProcessed++;
       if (daysProcessed % 30 === 0) log(`  ${dateStr}: ${poolCount} pools`);
-      current.setDate(current.getDate() + 1);
+      current.setDate(current.getDate() - 1);
     }
 
     log(`Done. Processed ${daysProcessed} days.`);
