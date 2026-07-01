@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar,
   LineChart, Line,
@@ -579,13 +580,23 @@ function MinerBehaviorSection() {
   return (
     <section id="behavior" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
       <div className="mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-          <h2 className="text-lg font-bold font-sans text-primary">Miner Behavior</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+            <h2 className="text-lg font-bold font-sans text-primary">Miner Behavior</h2>
+          </div>
+          <Link
+            href="/zodl"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cipher-border bg-glass-3 text-[11px] font-mono text-secondary hover:text-primary hover:border-cipher-yellow/40 transition-all"
+          >
+            ZODL leaderboard
+            <span className="opacity-60">→</span>
+          </Link>
         </div>
         <p className="text-xs text-secondary mt-1 font-sans">
-          How much of their block rewards miners move vs hold. A high sell ratio means miners are liquidating quickly.
-          A low ratio means they&apos;re accumulating.
+          How much of their block rewards miners move vs hold. A high sell ratio means miners are liquidating quickly;
+          a low ratio means they&apos;re accumulating. But &ldquo;moved&rdquo; isn&apos;t the same as &ldquo;sold&rdquo; — the{' '}
+          <Link href="/zodl" className="text-cipher-cyan hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), and most of it turns out to be shielding, not selling.
         </p>
       </div>
 
