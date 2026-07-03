@@ -132,6 +132,18 @@ router.get('/api/migration/overview', async (req, res) => {
         }
       } catch {}
 
+      // Average block time from recent blocks (last 100)
+      let avgBlockTimeSecs = 75;
+      try {
+        const bt = await pool.query(`
+          SELECT EXTRACT(EPOCH FROM (MAX(time) - MIN(time))) / NULLIF(COUNT(*) - 1, 0) AS avg_secs
+          FROM (SELECT time FROM blocks ORDER BY height DESC LIMIT 100) sub
+        `);
+        if (bt.rows.length && bt.rows[0].avg_secs) {
+          avgBlockTimeSecs = Math.round(Number(bt.rows[0].avg_secs) * 10) / 10;
+        }
+      } catch {}
+
       const migratedFraction = (orchardPool + ironwoodPool) > 0
         ? ironwoodPool / (orchardPool + ironwoodPool)
         : 0;
@@ -145,6 +157,7 @@ router.get('/api/migration/overview', async (req, res) => {
         activationHeight,
         tipHeight,
         activated,
+        avgBlockTimeSecs,
         blocksUntilActivation: activated || activationHeight == null
           ? 0
           : Math.max(0, activationHeight - tipHeight),

@@ -196,6 +196,7 @@ export function MigrationClient({
               orchardZat={displayOverview.poolSizes.orchardZat}
               ironwoodZat={displayOverview.poolSizes.ironwoodZat}
               blockPulseKey={displayOverview.tipHeight}
+              avgBlockTimeSecs={(displayOverview as any).avgBlockTimeSecs}
               fallback={!activated ? <ActivationCountdown overview={displayOverview} /> : null}
             />
           )}
@@ -236,7 +237,7 @@ function StatusBadge({ activated, network }: { activated: boolean; network?: str
 
 function ActivationCountdown({ overview }: { overview: Overview }) {
   const { blocksUntilActivation, activationHeight, tipHeight } = overview;
-  const BLOCK_TIME_SECS = 75;
+  const BLOCK_TIME_SECS = (overview as any)?.avgBlockTimeSecs || 75;
   const etaSecs = blocksUntilActivation * BLOCK_TIME_SECS;
   const etaDays = etaSecs / 86400;
   const etaHours = etaSecs / 3600;

@@ -43,6 +43,8 @@ export interface TurnstileHeroProps {
   activationHeight: number | null;
   orchardZat: number;
   ironwoodZat: number;
+  /** Average seconds per block from the API (observed from last 100 blocks). */
+  avgBlockTimeSecs?: number;
   /** Bumped each time a new block is observed → fires a ripple + counter tick. */
   blockPulseKey: number;
   /** 2D card shown when WebGL is unavailable or motion is reduced. */
@@ -60,6 +62,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     orchardZat,
     ironwoodZat,
     blockPulseKey,
+    avgBlockTimeSecs,
     fallback,
   } = props;
 
@@ -104,7 +107,8 @@ export function TurnstileHero(props: TurnstileHeroProps) {
 
   if (!use3D) return <>{fallback}</>;
 
-  const etaSecs = blocksUntilActivation * 75;
+  const blockTime = avgBlockTimeSecs || 75;
+  const etaSecs = blocksUntilActivation * blockTime;
   const etaDays = etaSecs / 86400;
   const etaHours = etaSecs / 3600;
   const etaLabel = etaDays >= 2 ? `~${etaDays.toFixed(1)} days` : etaHours >= 1 ? `~${Math.round(etaHours)} hours` : '<1 hour';
