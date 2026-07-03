@@ -174,14 +174,30 @@ function StatusBadge({ activated, network }: { activated: boolean; network?: str
 
 function ActivationCountdown({ overview }: { overview: Overview }) {
   const { blocksUntilActivation, activationHeight, tipHeight } = overview;
-  // Testnet ~75s blocks → estimate days remaining.
-  const etaDays = blocksUntilActivation > 0 ? (blocksUntilActivation * 75) / 86400 : 0;
+  const BLOCK_TIME_SECS = 75;
+  const etaSecs = blocksUntilActivation * BLOCK_TIME_SECS;
+  const etaDays = etaSecs / 86400;
+  const etaHours = etaSecs / 3600;
+  const progressPct = activationHeight
+    ? Math.min(100, (tipHeight / activationHeight) * 100)
+    : 0;
+
+  const etaLabel = etaDays >= 2
+    ? `~${etaDays.toFixed(1)} days`
+    : etaHours >= 1
+      ? `~${Math.round(etaHours)} hours`
+      : `<1 hour`;
+
+  const estimatedDate = blocksUntilActivation > 0
+    ? new Date(Date.now() + etaSecs * 1000)
+    : null;
+
   return (
     <div className="mt-6 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="text-[10px] text-muted uppercase tracking-widest font-mono mb-1">
-            NU6.3 activation
+            NU6.3 IRONWOOD ACTIVATION
           </div>
           <div className="text-2xl font-bold font-mono text-primary">
             {blocksUntilActivation > 0
@@ -190,27 +206,44 @@ function ActivationCountdown({ overview }: { overview: Overview }) {
                 ? 'Activation reached'
                 : 'Activation height TBD'}
           </div>
-          <div className="text-xs text-muted mt-1 font-mono">
-            height {tipHeight.toLocaleString()} / {activationHeight?.toLocaleString() ?? '—'}
-            {etaDays > 0 ? ` · ~${etaDays.toFixed(1)} days` : ''}
+          <div className="text-xs text-muted mt-1 font-mono space-y-0.5">
+            <div>
+              height {tipHeight.toLocaleString()} / {activationHeight?.toLocaleString() ?? '—'}
+              {blocksUntilActivation > 0 && <span className="ml-2 text-secondary">{etaLabel}</span>}
+            </div>
+            {estimatedDate && (
+              <div className="text-muted/70">
+                est. {estimatedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </div>
+            )}
           </div>
         </div>
-        <p className="text-xs text-secondary max-w-xs leading-relaxed">
-          Migration transactions cannot exist until the network upgrade activates. The moment they do,
-          this dashboard fills in — no reindex required.
-        </p>
+        <div className="text-right space-y-2">
+          <p className="text-xs text-secondary max-w-xs leading-relaxed">
+            ZIP-318 migration transactions cannot exist until the network upgrade activates.
+            The moment they do, this dashboard fills in automatically.
+          </p>
+          {blocksUntilActivation > 0 && (
+            <div className="text-[11px] font-mono" style={{ color: IRONWOOD }}>
+              {progressPct.toFixed(1)}% complete
+            </div>
+          )}
+        </div>
       </div>
-      {/* progress toward activation */}
-      {activationHeight && (
+      {activationHeight && blocksUntilActivation > 0 && (
         <div className="mt-4">
-          <div className="h-1.5 rounded-full bg-glass-3 overflow-hidden">
+          <div className="h-2 rounded-full bg-glass-3 overflow-hidden">
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-all duration-1000"
               style={{
-                width: `${Math.min(100, (tipHeight / activationHeight) * 100).toFixed(2)}%`,
-                background: IRONWOOD,
+                width: `${progressPct.toFixed(2)}%`,
+                background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
               }}
             />
+          </div>
+          <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted">
+            <span>current: {tipHeight.toLocaleString()}</span>
+            <span style={{ color: IRONWOOD }}>NU6.3 @ {activationHeight.toLocaleString()}</span>
           </div>
         </div>
       )}
