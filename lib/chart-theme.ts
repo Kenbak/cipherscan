@@ -9,11 +9,11 @@ export function getChartColors(theme: 'dark' | 'light') {
     ironwood: '#F59E0B',
     orchard: '#22c55e',
     sapling: '#56D4C8',
-    sprout: '#E8C48D',
+    sprout: '#F4B728',
     transparent: '#64748b',
     shielded: isDark ? '#A78BFA' : '#7C3AED',
     cyan: '#56D4C8',
-    yellow: '#E8C48D',
+    yellow: '#F4B728',
     purple: '#a78bfa',
   };
 }

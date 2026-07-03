@@ -2501,6 +2501,17 @@
     display: none;
   }
 
+  /* Turnstile hero — adapts to theme */
+  .turnstile-hero {
+    --turnstile-bg: radial-gradient(ellipse at 50% 40%, rgba(30,27,60,0.5), rgba(6,8,15,0.95));
+  }
+  .light .turnstile-hero {
+    --turnstile-bg: radial-gradient(ellipse at 50% 40%, rgba(240,242,248,0.9), rgba(248,250,252,0.95));
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-text-muted: #64748B;
+  }
+
   /* Reduced motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,

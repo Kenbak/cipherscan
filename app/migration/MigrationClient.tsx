@@ -12,10 +12,11 @@ import {
   Cell,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
+import { TurnstileHero } from './TurnstileHero';
 
 // Orchard sunsets (violet), Ironwood grows (warm gold — the brand emphasis color).
 const ORCHARD = '#A78BFA';
-const IRONWOOD = '#E8C48D';
+const IRONWOOD = '#F4B728';
 
 interface Overview {
   success?: boolean;
@@ -82,29 +83,41 @@ export function MigrationClient({
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
   const [denoms, setDenoms] = useState<Denominations | null>(initialDenominations);
+  const [loaded, setLoaded] = useState(!!initialOverview);
 
   // Refresh client-side against the network-appropriate API (testnet vs mainnet).
+  // Polls so the block countdown ticks live as new blocks arrive.
   useEffect(() => {
     let cancelled = false;
     const base = getApiUrl();
-    Promise.all([
-      fetch(`${base}/api/migration/overview`).then((r) => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${base}/api/migration/cohorts`).then((r) => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${base}/api/migration/denominations`).then((r) => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([o, c, d]) => {
-      if (cancelled) return;
-      if (o?.success) setOverview(o);
-      if (c?.success) setCohorts(c);
-      if (d?.success) setDenoms(d);
-    });
+    const load = () => {
+      Promise.all([
+        fetch(`${base}/api/migration/overview`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${base}/api/migration/cohorts`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${base}/api/migration/denominations`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]).then(([o, c, d]) => {
+        if (cancelled) return;
+        if (o?.success) setOverview(o);
+        if (c?.success) setCohorts(c);
+        if (d?.success) setDenoms(d);
+        setLoaded(true);
+      });
+    };
+    load();
+    const id = setInterval(load, 20000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, []);
 
   const activated = overview?.activated ?? false;
   const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
-  const noData = !overview || !overview.migration;
+  const noData = loaded && (!overview || !overview.migration);
+
+  const displayOverview = overview;
+  const displayCohorts = cohorts;
+  const displayDenoms = denoms;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -133,8 +146,19 @@ export function MigrationClient({
             from the chain.
           </p>
         </div>
-        <StatusBadge activated={activated} network={overview?.network} />
+        {displayOverview?.network && (
+          <span className="text-[10px] font-mono text-muted bg-glass-3 border border-cipher-border/50 rounded-full px-3 py-1">
+            {displayOverview.network}
+          </span>
+        )}
       </div>
+
+
+
+      {/* Loading state */}
+      {!loaded && !initialOverview && (
+        <div className="mt-8 h-80 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse" />
+      )}
 
       {/* No data state (mainnet before activation height is set, or API unavailable) */}
       {noData ? (
@@ -155,21 +179,37 @@ export function MigrationClient({
         </div>
       ) : (
         <>
-          {/* Activation countdown (pre-activation) */}
-          {!activated && overview && (
-            <ActivationCountdown overview={overview} />
+          {/* 3D turnstile hero — falls back to the 2D countdown card */}
+          {displayOverview && (
+            <TurnstileHero
+              activated={activated}
+              balanced={displayOverview.supplyAudit?.balanced ?? true}
+              migratedPct={
+                (displayOverview.poolSizes.orchardZat + displayOverview.poolSizes.ironwoodZat) > 0
+                  ? (displayOverview.poolSizes.ironwoodZat /
+                      (displayOverview.poolSizes.orchardZat + displayOverview.poolSizes.ironwoodZat)) * 100
+                  : 0
+              }
+              blocksUntilActivation={displayOverview.blocksUntilActivation}
+              tipHeight={displayOverview.tipHeight}
+              activationHeight={displayOverview.activationHeight}
+              orchardZat={displayOverview.poolSizes.orchardZat}
+              ironwoodZat={displayOverview.poolSizes.ironwoodZat}
+              blockPulseKey={displayOverview.tipHeight}
+              fallback={!activated ? <ActivationCountdown overview={displayOverview} /> : null}
+            />
           )}
 
           {/* Supply audit — the headline */}
-          <SupplyAudit overview={overview} hasMigrations={hasMigrations} />
+          <SupplyAudit overview={displayOverview} hasMigrations={hasMigrations} />
 
           {/* Cohort waves */}
-          <CohortWaves cohorts={cohorts} activated={activated} />
+          <CohortWaves cohorts={displayCohorts} activated={activated} />
 
           {/* Denomination histogram + anonymity set */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-            <DenominationHistogram denoms={denoms} activated={activated} />
-            <AnonymitySet cohorts={cohorts} activated={activated} />
+            <DenominationHistogram denoms={displayDenoms} activated={activated} />
+            <AnonymitySet cohorts={displayCohorts} activated={activated} />
           </div>
         </>
       )}
@@ -280,53 +320,41 @@ function SupplyAudit({
   overview: Overview | null;
   hasMigrations: boolean;
 }) {
-  const orchard = overview?.poolSizes.orchardZat ?? 0;
-  const ironwood = overview?.poolSizes.ironwoodZat ?? 0;
-  const total = orchard + ironwood;
-  const migratedPct = total > 0 ? (ironwood / total) * 100 : 0;
   const audit = overview?.supplyAudit;
+  const ironwoodZat = overview?.poolSizes.ironwoodZat ?? 0;
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-primary">Supply audit &amp; migration progress</h2>
+        <h2 className="text-sm font-bold text-primary">Turnstile audit</h2>
         {audit && (
           <span
             className={`text-[10px] font-mono px-2 py-1 rounded-md border ${
               audit.balanced
-                ? 'text-cipher-cyan border-cipher-cyan/30 bg-cipher-cyan/10'
+                ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
                 : 'text-red-400 border-red-400/30 bg-red-400/10'
             }`}
             title="Ironwood inflow must never exceed Orchard outflow through the turnstile."
           >
-            {audit.balanced ? 'TURNSTILE BALANCED' : 'IMBALANCE DETECTED'}
+            {audit.balanced ? 'BALANCED' : 'IMBALANCE'}
           </span>
         )}
       </div>
 
-      {/* % migrated bar */}
-      <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
-        <span style={{ color: ORCHARD }}>Orchard {fmtZec(orchard)} ZEC</span>
-        <span style={{ color: IRONWOOD }}>Ironwood {fmtZec(ironwood)} ZEC</span>
-      </div>
-      <div className="flex h-4 rounded-full overflow-hidden bg-glass-3">
-        {total > 0 ? (
-          <>
-            <div style={{ width: `${100 - migratedPct}%`, backgroundColor: ORCHARD }} />
-            <div style={{ width: `${migratedPct}%`, backgroundColor: IRONWOOD }} />
-          </>
-        ) : (
-          <div className="w-full flex items-center justify-center text-[10px] text-muted font-mono">
-            no pool data yet
-          </div>
-        )}
-      </div>
-      <div className="text-center text-[11px] font-mono text-muted mt-1.5">
-        {migratedPct.toFixed(migratedPct < 1 ? 3 : 1)}% of shielded value migrated to Ironwood
+      {/* Verified supply headline */}
+      <div className="mb-4 pb-4 border-b border-cipher-border/50">
+        <div className="text-[10px] uppercase tracking-wider text-muted font-mono mb-1">
+          Verified shielded supply
+        </div>
+        <div className="text-2xl font-bold font-mono" style={{ color: IRONWOOD }}>
+          {ironwoodZat > 0 ? `${fmtZec(ironwoodZat)} ZEC` : '—'}
+        </div>
+        <div className="text-[10px] text-muted mt-1 max-w-md leading-relaxed">
+          ZEC that has been cryptographically proven valid by passing through the turnstile into Ironwood.
+        </div>
       </div>
 
-      {/* audit numbers */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Migrated total" value={hasMigrations ? `${fmtZec(overview!.migration.totalMigratedZat)} ZEC` : '—'} />
         <Stat label="Migration txs" value={hasMigrations ? overview!.migration.txCount.toLocaleString() : '—'} />
         <Stat
@@ -470,14 +498,11 @@ function AnonymitySet({ cohorts, activated }: { cohorts: Cohorts | null; activat
   );
 }
 
-function EmptyPanel({ activated, label }: { activated: boolean; label: string }) {
+function EmptyPanel({ activated }: { activated: boolean; label?: string }) {
   return (
-    <div className="h-[160px] flex flex-col items-center justify-center text-center rounded-lg border border-dashed border-cipher-border/70 bg-glass-3">
-      <p className="text-xs text-secondary font-mono">
-        {activated ? `No migrations indexed yet` : `Awaiting NU6.3 activation`}
-      </p>
-      <p className="text-[10px] text-muted mt-1 max-w-[220px]">
-        The {label} will populate automatically once migration transactions appear on-chain.
+    <div className="h-[140px] flex items-center justify-center rounded-lg border border-dashed border-cipher-border/50 bg-glass-3">
+      <p className="text-xs text-muted font-mono">
+        {activated ? 'No migrations indexed yet' : 'Populates at activation'}
       </p>
     </div>
   );
