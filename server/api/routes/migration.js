@@ -77,7 +77,7 @@ router.get('/api/migration/overview', async (req, res) => {
   try {
     const network = resolveNetwork();
     const activationHeight = ACTIVATION_HEIGHT[network];
-    const data = await cached(`zcash:migration:overview:${network}`, 300, async () => {
+    const data = await cached(`zcash:migration:overview:${network}`, 15, async () => {
       const tipHeight = await getTipHeight();
       const activated = activationHeight != null && tipHeight >= activationHeight;
 
