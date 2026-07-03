@@ -93,6 +93,7 @@ interface NetworkStats {
     sprout: number;
     sapling: number;
     orchard: number;
+    ironwood: number;
     lockbox: number;
     totalShielded: number;
     shieldedPercentage: number;
@@ -350,7 +351,10 @@ export default function NetworkClient() {
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  {(stats.supply!.ironwood || 0) > 0 && (
+                    <PoolCard name="Ironwood" amount={stats.supply!.ironwood} color="amber" zecPrice={zecPrice} />
+                  )}
                   <PoolCard name="Orchard" amount={stats.supply!.orchard} color="green" zecPrice={zecPrice} />
                   <PoolCard name="Sapling" amount={stats.supply!.sapling} color="cyan" zecPrice={zecPrice} />
                   <PoolCard name="Sprout" amount={stats.supply!.sprout} color="amber" zecPrice={zecPrice} isSmall />

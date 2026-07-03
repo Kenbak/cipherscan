@@ -123,6 +123,7 @@ export function NavBar() {
         { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
         { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile' },
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
+        { href: '/migration', label: 'Ironwood Migration', desc: 'Orchard → Ironwood (NU6.3)' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
       ];
 

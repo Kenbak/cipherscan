@@ -36,6 +36,7 @@ const reorgsRouter = require('./routes/reorgs');
 const poolsRouter = require('./routes/pools');
 const miningRouter = require('./routes/mining');
 const analyticsRouter = require('./routes/analytics');
+const migrationRouter = require('./routes/migration');
 
 // Import privacy linkage functions
 const {
@@ -384,6 +385,9 @@ app.use(poolsRouter);
 // Mining routes: /api/mining/*
 app.use(miningRouter);
 app.use(analyticsRouter);
+
+// Orchard → Ironwood migration routes: /api/migration/*
+app.use(migrationRouter);
 
 // Count registered API routes (available as app.locals.apiRouteCount)
 function countApiRoutes(app) {

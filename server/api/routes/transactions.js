@@ -54,9 +54,9 @@ router.get('/api/transactions/list', async (req, res) => {
     // Build type filter
     let typeCondition = '';
     if (typeFilter === 'shielded') {
-      typeCondition = 'AND (has_sapling = true OR has_orchard = true)';
+      typeCondition = 'AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)';
     } else if (typeFilter === 'transparent') {
-      typeCondition = 'AND has_sapling = false AND has_orchard = false AND is_coinbase = false';
+      typeCondition = 'AND has_sapling = false AND has_orchard = false AND has_ironwood = false AND is_coinbase = false';
     } else if (typeFilter === 'coinbase') {
       typeCondition = 'AND is_coinbase = true';
     }
@@ -78,8 +78,9 @@ router.get('/api/transactions/list', async (req, res) => {
 
     let result;
     const txCols = `txid, block_height, block_time, size, vin_count, vout_count,
-                has_sapling, has_orchard, has_sprout, is_coinbase, value_balance,
-                value_balance_sapling, value_balance_orchard, flow_type,
+                has_sapling, has_orchard, has_ironwood, has_sprout, is_coinbase, value_balance,
+                value_balance_sapling, value_balance_orchard, value_balance_ironwood,
+                ironwood_actions, flow_type,
                 fee, total_input, total_output`;
     if (cursor === null) {
       result = await pool.query(
@@ -279,9 +280,10 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
       conditions.push(`(has_sapling = true)`);
     } else if (poolType === 'orchard') {
       conditions.push(`(has_orchard = true)`);
+    } else if (poolType === 'ironwood') {
+      conditions.push(`(has_ironwood = true)`);
     } else {
-      // Both pools
-      conditions.push(`(has_sapling = true OR has_orchard = true)`);
+      conditions.push(`(has_sapling = true OR has_orchard = true OR has_ironwood = true)`);
     }
 
     // Filter by transaction type
@@ -409,10 +411,13 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         value_balance,
         value_balance_sapling,
         value_balance_orchard,
+        value_balance_ironwood,
         has_sapling,
         has_orchard,
+        has_ironwood,
         has_sprout,
         orchard_actions,
+        ironwood_actions,
         shielded_spends,
         shielded_outputs,
         tx_index,
@@ -474,6 +479,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     // Get value balances (in ZEC)
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
     const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
+    const valueBalanceIronwood = (tx.value_balance_ironwood || 0) / 100000000;
     const totalValueBalance = (tx.value_balance || 0) / 100000000;
 
     // Fee from DB (in zatoshis, convert to ZEC)
@@ -586,14 +592,17 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       valueBalance: totalValueBalance,
       valueBalanceSapling,
       valueBalanceOrchard,
+      valueBalanceIronwood,
       fee,
       totalInput,
       totalOutput,
       isCoinbase: tx.is_coinbase || false,
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
+      hasIronwood: tx.has_ironwood || false,
       hasSprout: tx.has_sprout,
       orchardActions: tx.orchard_actions || 0,
+      ironwoodActions: tx.ironwood_actions || 0,
       shieldedSpends: tx.shielded_spends || 0,
       shieldedOutputs: tx.shielded_outputs || 0,
       inputs: inputsResult.rows,

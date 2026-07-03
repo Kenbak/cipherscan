@@ -43,6 +43,7 @@ router.get('/api/pools/overview', async (req, res) => {
     const data = await cached('zcash:pools:overview', 300, async () => {
       const current = await pool.query(`
         SELECT sprout_pool_size, sapling_pool_size, orchard_pool_size,
+               COALESCE(ironwood_pool_size, 0) AS ironwood_pool_size,
                transparent_pool_size, shielded_pool_size, chain_supply, updated_at
         FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
       `);
@@ -79,6 +80,7 @@ router.get('/api/pools/overview', async (req, res) => {
           sprout: Number(s.sprout_pool_size) || 0,
           sapling: Number(s.sapling_pool_size) || 0,
           orchard: Number(s.orchard_pool_size) || 0,
+          ironwood: Number(s.ironwood_pool_size) || 0,
           transparent: Number(s.transparent_pool_size) || 0,
           shielded: Number(s.shielded_pool_size) || 0,
           chainSupply: Number(s.chain_supply) || 0,
@@ -88,6 +90,7 @@ router.get('/api/pools/overview', async (req, res) => {
           sprout: computeDeltas(s.sprout_pool_size, 'sprout_pool_size'),
           sapling: computeDeltas(s.sapling_pool_size, 'sapling_pool_size'),
           orchard: computeDeltas(s.orchard_pool_size, 'orchard_pool_size'),
+          ironwood: computeDeltas(s.ironwood_pool_size, 'ironwood_pool_size'),
           shielded: computeDeltas(s.shielded_pool_size, 'pool_size'),
         },
       };

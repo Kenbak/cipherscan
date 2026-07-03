@@ -19,9 +19,11 @@ interface MempoolTransaction {
   vShieldedSpend: number;
   vShieldedOutput: number;
   orchardActions?: number;
+  ironwoodActions?: number;
   totalOutput?: number;
   valueBalanceSapling?: number;
   valueBalanceOrchard?: number;
+  valueBalanceIronwood?: number;
   version?: number;
 }
 
@@ -332,19 +334,23 @@ export default function MempoolClient() {
                             )}
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
-                            {tx.orchardActions && tx.orchardActions > 0 ? (
+                            {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
+                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                            ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedSpend > 0 ? (
-                              <span className="font-mono text-xs text-cipher-purple">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vin}</span>
                             )}
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
-                            {tx.orchardActions && tx.orchardActions > 0 ? (
+                            {tx.ironwoodActions && tx.ironwoodActions > 0 ? (
+                              <span className="font-mono text-xs text-cipher-yellow">{tx.ironwoodActions}<span className="text-muted ml-1">ironwood</span></span>
+                            ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedOutput > 0 ? (
-                              <span className="font-mono text-xs text-cipher-purple">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vout}</span>
                             )}

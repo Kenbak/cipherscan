@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 
-type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'muted';
+type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'amber' | 'muted';
 
 interface BadgeProps {
   children: ReactNode;
@@ -34,6 +34,7 @@ export function Badge({
     purple: 'badge-purple',
     green: 'badge-green',
     orange: 'badge-orange',
+    amber: 'badge-amber',
     muted: 'badge-muted',
   };
 

@@ -363,6 +363,16 @@
     background: rgba(194, 65, 12, 0.12);
   }
 
+  .badge-amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: #F59E0B;
+  }
+
+  .light .badge-amber {
+    background: rgba(217, 119, 6, 0.12);
+    color: #D97706;
+  }
+
   .badge-muted {
     background: var(--color-hover);
     color: var(--color-text-muted);

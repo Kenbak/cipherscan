@@ -10,7 +10,7 @@ import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge } from '@/components/ui';
 
 type FlowFilter = 'all' | 'shield' | 'deshield';
-type PoolFilter = 'all' | 'sapling' | 'orchard' | 'mixed';
+type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 
 interface ShieldedFlow {
   id: number;
@@ -39,10 +39,11 @@ function getFlowBadge(flowType: string) {
 }
 
 function getPoolBadge(pool: string) {
+  if (pool === 'ironwood') return <Badge color="amber">IRONWOOD</Badge>;
   if (pool === 'orchard') return <Badge color="purple">ORCHARD</Badge>;
   if (pool === 'sapling') return <Badge color="cyan">SAPLING</Badge>;
   if (pool === 'mixed') return <Badge color="orange">MIXED</Badge>;
-  return <Badge color="muted">{pool}</Badge>;
+  return <Badge color="muted">{pool.toUpperCase()}</Badge>;
 }
 
 export default function ShieldedTxsPage() {
@@ -105,6 +106,7 @@ export default function ShieldedTxsPage() {
 
   const poolFilters: { id: PoolFilter; label: string }[] = [
     { id: 'all', label: 'All Pools' },
+    { id: 'ironwood', label: 'Ironwood' },
     { id: 'orchard', label: 'Orchard' },
     { id: 'sapling', label: 'Sapling' },
     { id: 'mixed', label: 'Mixed' },

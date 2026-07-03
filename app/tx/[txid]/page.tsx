@@ -53,9 +53,11 @@ interface TransactionData {
   hasShieldedData: boolean;
   isCoinbase?: boolean;
   orchardActions?: number;
+  ironwoodActions?: number;
   valueBalance?: number;
   valueBalanceSapling?: number;
   valueBalanceOrchard?: number;
+  valueBalanceIronwood?: number;
   bindingSig?: string;
   bindingSigSapling?: string;
   finality?: string | null;
@@ -695,33 +697,29 @@ export default function TransactionPage() {
 
   // Detect coinbase: use API flag if available, otherwise check first input
   const isCoinbase = data.isCoinbase || (data.inputs.length > 0 && data.inputs[0].coinbase);
+  const hasIronwood = (data.ironwoodActions || 0) > 0;
   const hasOrchard = (data.orchardActions || 0) > 0;
   const hasSapling = data.hasShieldedData;
   const hasTransparentInputs = data.inputs.length > 0 && !isCoinbase;
   const hasTransparentOutputs = data.outputs.some(o => o.scriptPubKey?.addresses);
   const hasTransparent = hasTransparentInputs || hasTransparentOutputs;
+  const hasShielded = hasIronwood || hasOrchard || hasSapling;
 
-  // For Sapling: shieldedSpends = inputs, shieldedOutputs = outputs
   const hasSaplingSpends = data.shieldedSpends > 0;
   const hasSaplingOutputs = data.shieldedOutputs > 0;
 
-  // Determine shielding/unshielding direction using valueBalance
-  // valueBalance > 0 = ZEC coming OUT of shielded pool (unshielding)
-  // valueBalance < 0 = ZEC going INTO shielded pool (shielding)
-  const valueBalance = (data.valueBalanceSapling || 0) + (data.valueBalanceOrchard || 0);
+  const valueBalance = (data.valueBalanceSapling || 0) + (data.valueBalanceOrchard || 0) + (data.valueBalanceIronwood || 0);
 
-  // Shielding: transparent inputs → shielded (valueBalance < 0)
   const isShielding = hasTransparentInputs && !hasTransparentOutputs && valueBalance < 0;
-
-  // Unshielding: shielded → transparent outputs (valueBalance > 0)
   const isUnshielding = !hasTransparentInputs && hasTransparentOutputs && valueBalance > 0;
 
   const txType =
     isCoinbase ? 'COINBASE' :
+    hasIronwood && !hasTransparent ? 'IRONWOOD' :
     hasOrchard && !hasTransparent ? 'ORCHARD' :
-    (hasSapling || hasOrchard) && hasTransparent && isShielding ? 'SHIELDING' :
-    (hasSapling || hasOrchard) && hasTransparent && isUnshielding ? 'UNSHIELDING' :
-    (hasSapling || hasOrchard) && hasTransparent ? 'MIXED' :
+    hasShielded && hasTransparent && isShielding ? 'SHIELDING' :
+    hasShielded && hasTransparent && isUnshielding ? 'UNSHIELDING' :
+    hasShielded && hasTransparent ? 'MIXED' :
     hasSapling ? 'SHIELDED' :
     'REGULAR';
 
@@ -1246,6 +1244,10 @@ export default function TransactionPage() {
                 <InfoRow icon={Icons.Shield} label="Orchard Actions" value={data.orchardActions} tooltip="Number of Orchard actions" valueClass="text-cipher-purple" />
               )}
 
+              {(data.ironwoodActions || 0) > 0 && (
+                <InfoRow icon={Icons.Shield} label="Ironwood Actions" value={data.ironwoodActions} tooltip="Number of Ironwood actions (NU6.3)" valueClass="text-cipher-yellow" />
+              )}
+
               {data.valueBalanceSapling !== undefined && data.valueBalanceSapling !== 0 && (
                 <InfoRow icon={Icons.Currency} label="Sapling Value Balance" tooltip="Net value flow for the Sapling shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-cyan" value={
                   <span className="flex items-center gap-2">
@@ -1260,6 +1262,15 @@ export default function TransactionPage() {
                   <span className="flex items-center gap-2">
                     <span>{data.valueBalanceOrchard < 0 ? '+' : '-'}{Math.abs(data.valueBalanceOrchard).toFixed(8)} {CURRENCY}</span>
                     <span className="text-[10px] text-muted font-mono">{data.valueBalanceOrchard < 0 ? '→ Orchard Pool' : '← Orchard Pool'}</span>
+                  </span>
+                } />
+              )}
+
+              {data.valueBalanceIronwood !== undefined && data.valueBalanceIronwood !== 0 && (
+                <InfoRow icon={Icons.Currency} label="Ironwood Value Balance" tooltip="Net value flow for the Ironwood shielded pool (NU6.3). Positive = entering pool (shielding), negative = leaving pool (unshielding)." valueClass="text-cipher-yellow" value={
+                  <span className="flex items-center gap-2">
+                    <span>{data.valueBalanceIronwood < 0 ? '+' : '-'}{Math.abs(data.valueBalanceIronwood).toFixed(8)} {CURRENCY}</span>
+                    <span className="text-[10px] text-muted font-mono">{data.valueBalanceIronwood < 0 ? '→ Ironwood Pool' : '← Ironwood Pool'}</span>
                   </span>
                 } />
               )}

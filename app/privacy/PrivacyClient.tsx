@@ -78,6 +78,7 @@ interface PrivacyStats {
     sprout?: number;
     sapling?: number;
     orchard?: number;
+    ironwood?: number;
     transparent?: number;
     chainSupply?: number;
   };
@@ -494,6 +495,30 @@ export default function PrivacyClient() {
                       />
                     </div>
                   </div>
+
+                  {(stats.shieldedPool.ironwood || 0) > 0 && (
+                    <div>
+                      <div className="flex justify-between mb-2 items-center">
+                        <span className="text-cipher-yellow font-mono text-sm">Ironwood</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-secondary text-sm">
+                            {stats.shieldedPool.ironwood! >= 1000000
+                              ? `${(stats.shieldedPool.ironwood! / 1000000).toFixed(2)}M`
+                              : `${(stats.shieldedPool.ironwood! / 1000).toFixed(0)}K`} {CURRENCY}
+                          </span>
+                          <Badge color="amber">
+                            {((stats.shieldedPool.ironwood! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-700"
+                          style={{ width: `${(stats.shieldedPool.ironwood! / stats.shieldedPool.currentSize) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="pt-4 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
                     <span className="text-secondary font-mono text-sm">Total Shielded</span>

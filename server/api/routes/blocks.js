@@ -307,6 +307,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         merkle_root,
         final_sapling_root,
         final_orchard_root,
+        final_ironwood_root,
         bits,
         nonce,
         solution,
@@ -350,7 +351,9 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       `SELECT
         txid, block_height, block_hash, block_time, size, version, locktime,
         vin_count, vout_count, value_balance, value_balance_sapling,
-        value_balance_orchard, has_sapling, has_orchard, has_sprout,
+        value_balance_orchard, value_balance_ironwood,
+        has_sapling, has_orchard, has_ironwood, has_sprout,
+        ironwood_actions, orchard_actions,
         fee, total_input, total_output, is_coinbase,
         tx_index${stakingCols}
       FROM transactions

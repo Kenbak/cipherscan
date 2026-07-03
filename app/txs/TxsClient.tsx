@@ -20,11 +20,13 @@ interface Transaction {
   vout_count: number;
   has_sapling: boolean;
   has_orchard: boolean;
+  has_ironwood: boolean;
   has_sprout: boolean;
   is_coinbase: boolean;
   value_balance: number;
   value_balance_sapling: number;
   value_balance_orchard: number;
+  value_balance_ironwood: number;
   flow_type: string | null;
   tx_index?: number;
 }
@@ -42,9 +44,10 @@ interface PaginationState {
 
 function getTxBadge(tx: Transaction) {
   if (tx.is_coinbase) return <Badge color="green">COINBASE</Badge>;
+  if (tx.has_ironwood) return <Badge color="amber">IRONWOOD</Badge>;
   if (tx.has_orchard && tx.has_sapling) return <Badge color="purple">ORCHARD+SAPLING</Badge>;
   if (tx.has_orchard) return <Badge color="purple">ORCHARD</Badge>;
-  if (tx.has_sapling) return <Badge color="purple">SAPLING</Badge>;
+  if (tx.has_sapling) return <Badge color="cyan">SAPLING</Badge>;
   return <Badge color="muted">TRANSPARENT</Badge>;
 }
 

@@ -28,6 +28,7 @@ interface PoolOverview {
     sprout: number;
     sapling: number;
     orchard: number;
+    ironwood: number;
     transparent: number;
     shielded: number;
     chainSupply: number;
@@ -65,6 +66,7 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
   const shieldedPct = (shieldedZec / supply) * 100;
 
   const pools = [
+    { key: 'ironwood', label: 'Ironwood', zat: current.ironwood || 0, color: colors.ironwood },
     { key: 'orchard', label: 'Orchard', zat: current.orchard, color: colors.orchard },
     { key: 'sapling', label: 'Sapling', zat: current.sapling, color: colors.sapling },
     { key: 'sprout', label: 'Sprout', zat: current.sprout, color: colors.sprout },

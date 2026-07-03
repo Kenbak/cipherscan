@@ -15,7 +15,7 @@ import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 import { FlowLegend } from '@/components/pools/FlowLegend';
 
 type Period = '30d' | '90d' | '1y';
-type PoolFilter = 'all' | 'sapling' | 'orchard';
+type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard';
 
 interface FlowPoint {
   date: string;
@@ -54,8 +54,9 @@ export function FlowVolumeChart() {
 
   const poolOptions: { key: PoolFilter; label: string }[] = [
     { key: 'all', label: 'All' },
-    { key: 'sapling', label: 'Sapling' },
+    { key: 'ironwood', label: 'Ironwood' },
     { key: 'orchard', label: 'Orchard' },
+    { key: 'sapling', label: 'Sapling' },
   ];
 
   return (

@@ -124,9 +124,10 @@ async function fetchNetworkStatsOptimized() {
       const sprout = valuePools.find(p => p.id === 'sprout')?.chainValueZat || 0;
       const sapling = valuePools.find(p => p.id === 'sapling')?.chainValueZat || 0;
       const orchard = valuePools.find(p => p.id === 'orchard')?.chainValueZat || 0;
+      const ironwood = valuePools.find(p => p.id === 'ironwood')?.chainValueZat || 0;
       const lockbox = valuePools.find(p => p.id === 'lockbox')?.chainValueZat || 0;
 
-      const totalShielded = sprout + sapling + orchard;
+      const totalShielded = sprout + sapling + orchard + ironwood;
       const shieldedPercentage = chainSupplyZat > 0 ? (totalShielded / chainSupplyZat) * 100 : 0;
 
       // Get active upgrade
@@ -142,6 +143,7 @@ async function fetchNetworkStatsOptimized() {
         sprout: sprout / 100000000,
         sapling: sapling / 100000000,
         orchard: orchard / 100000000,
+        ironwood: ironwood / 100000000,
         lockbox: lockbox / 100000000,
         totalShielded: totalShielded / 100000000,
         shieldedPercentage: shieldedPercentage,

@@ -22,6 +22,7 @@ interface PoolPoint {
   sprout: number;
   sapling: number;
   orchard: number;
+  ironwood: number;
   transparent: number;
   shieldedSupplyPct: number | null;
 }
@@ -124,6 +125,7 @@ export function PoolDistributionChart() {
                   return <span style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : 'none' }}>{value}</span>;
                 }}
               />
+              <Area type="monotone" dataKey="ironwood" stackId="1" stroke={colors.ironwood} fill={colors.ironwood} fillOpacity={0.6} name="Ironwood" hide={hiddenSeries.has('ironwood')} />
               <Area type="monotone" dataKey="orchard" stackId="1" stroke={colors.orchard} fill={colors.orchard} fillOpacity={0.6} name="Orchard" hide={hiddenSeries.has('orchard')} />
               <Area type="monotone" dataKey="sapling" stackId="1" stroke={colors.sapling} fill={colors.sapling} fillOpacity={0.6} name="Sapling" hide={hiddenSeries.has('sapling')} />
               <Area type="monotone" dataKey="sprout" stackId="1" stroke={colors.sprout} fill={colors.sprout} fillOpacity={0.5} name="Sprout" hide={hiddenSeries.has('sprout')} />
@@ -177,8 +179,8 @@ export function PoolDistributionChart() {
       </ChartCard>
       <p className="text-xs text-muted leading-relaxed -mt-2">
         {view === 'pools'
-          ? 'Daily value pools from chain state (Orchard, Sapling, Sprout, Transparent). Orchard share growth over time is real data.'
-          : 'Shielded vs transparent supply from daily chain totals. Use Pools view for Sprout/Sapling/Orchard history when available.'}
+          ? 'Daily value pools from chain state (Ironwood, Orchard, Sapling, Sprout, Transparent).'
+          : 'Shielded vs transparent supply from daily chain totals. Use Pools view for per-pool history when available.'}
         {' '}Not transaction volume — see the Privacy page for tx adoption.
       </p>
     </div>

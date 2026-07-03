@@ -39,6 +39,7 @@ interface BlockData {
   merkleRoot?: string;
   finalSaplingRoot?: string;
   finalOrchardRoot?: string | null;
+  finalIronwoodRoot?: string | null;
   bits?: string;
   nonce?: string;
   solution?: string;
@@ -247,6 +248,7 @@ export default function BlockPage() {
             merkleRoot: blockData.merkle_root || blockData.merkleRoot,
             finalSaplingRoot: blockData.final_sapling_root || blockData.finalSaplingRoot,
             finalOrchardRoot: blockData.final_orchard_root || blockData.finalOrchardRoot || null,
+            finalIronwoodRoot: blockData.final_ironwood_root || blockData.finalIronwoodRoot || null,
             bits: blockData.bits,
             nonce: blockData.nonce,
             solution: blockData.solution,
@@ -808,6 +810,21 @@ export default function BlockPage() {
                 </div>
               </div>
             )}
+
+            {data.finalIronwoodRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2">
+                  <span className="mr-2 text-cipher-yellow"><Icons.Shield /></span>
+                  <span className="text-sm text-secondary">Final Ironwood Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Root hash of the Ironwood note commitment tree after processing this block. The successor to Orchard with enhanced privacy properties." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-secondary break-all">{data.finalIronwoodRoot}</code>
+                </div>
+              </div>
+            )}
           </div>
         )}
         </CardBody>
@@ -926,7 +943,9 @@ export default function BlockPage() {
                         ) : isCoinbase ? (
                           <Badge color="green">COINBASE</Badge>
                         ) : isShielded ? (
-                          tx.has_orchard || tx.orchard?.actions?.length > 0 ? (
+                          tx.has_ironwood ? (
+                            <Badge color="amber">IRONWOOD</Badge>
+                          ) : tx.has_orchard || tx.orchard?.actions?.length > 0 ? (
                             <Badge color="purple">ORCHARD</Badge>
                           ) : (
                             <Badge color="cyan">SAPLING</Badge>
@@ -952,11 +971,11 @@ export default function BlockPage() {
                             {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
+                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
-                            {(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
+                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
                           </span>
                         ) : (
                           <span className="text-xs text-muted font-mono">—</span>
@@ -970,11 +989,11 @@ export default function BlockPage() {
                             {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
                           </span>
                         ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
+                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
-                            {(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
+                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
                           </span>
                         ) : (
                           <span className="text-xs text-muted font-mono">—</span>

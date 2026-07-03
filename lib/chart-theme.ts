@@ -6,6 +6,7 @@ export function getChartColors(theme: 'dark' | 'light') {
     tooltipBg: isDark ? '#0f1419' : '#ffffff',
     tooltipBorder: isDark ? '#1e293b' : '#e2e8f0',
     tooltipText: isDark ? '#e2e8f0' : '#1e293b',
+    ironwood: '#F59E0B',
     orchard: '#22c55e',
     sapling: '#56D4C8',
     sprout: '#E8C48D',
