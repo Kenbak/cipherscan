@@ -96,7 +96,7 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
 
         <MetricWithTooltip
           label="Total Shielded"
-          tooltip="All ZEC currently held in Sprout, Sapling, and Orchard shielded pools"
+          tooltip="All ZEC currently held in Ironwood, Orchard, Sapling, and Sprout shielded pools"
           className="mb-5"
         >
           <div className="flex items-baseline gap-3 flex-wrap">

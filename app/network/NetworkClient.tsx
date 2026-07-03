@@ -345,9 +345,12 @@ export default function NetworkClient() {
                 </div>
 
                 <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex mb-4">
+                  {(stats.supply!.ironwood || 0) > 0 && (
+                    <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.ironwood / stats.supply!.chainSupply) * 100}%` }} title="Ironwood" />
+                  )}
                   <div className="h-full bg-cipher-green" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
                   <div className="h-full bg-cipher-cyan" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
-                  <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout" />
+                  <div className="h-full bg-cipher-orange" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout" />
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
 

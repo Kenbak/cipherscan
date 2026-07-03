@@ -217,9 +217,11 @@ export async function fetchTransactionFromPostgres(txid: string) {
       valueBalance: parseFloat(tx.value_balance) || 0,
       valueBalanceSapling: parseFloat(tx.value_balance_sapling) || 0,
       valueBalanceOrchard: parseFloat(tx.value_balance_orchard) || 0,
+      valueBalanceIronwood: parseFloat(tx.value_balance_ironwood) || 0,
       bindingSig: tx.binding_sig,
       bindingSigSapling: tx.binding_sig_sapling,
       orchard: tx.orchard_actions ? { actions: tx.orchard_actions } : undefined,
+      ironwood: tx.ironwood_actions ? { actions: tx.ironwood_actions } : undefined,
       vJoinSplit: tx.joinsplits || [],
       confirmations: parseInt(tx.confirmations) || 0,
       blockheight: parseInt(tx.blockHeight || tx.block_height),
@@ -233,8 +235,10 @@ export async function fetchTransactionFromPostgres(txid: string) {
       totalOutput: totalOutput, // Total outputs in ZEC
       shieldedSpends: shieldedSpends, // Count of shielded spends
       shieldedOutputs: shieldedOutputs, // Count of shielded outputs
-      orchardActions: orchardActions, // Count of Orchard actions
-      hasShieldedData: tx.hasSapling || tx.has_sapling || shieldedSpends > 0 || shieldedOutputs > 0, // Add hasShieldedData
+      orchardActions: orchardActions,
+      ironwoodActions: parseInt(tx.ironwood_actions) || 0,
+      hasIronwood: !!(tx.has_ironwood || (parseInt(tx.ironwood_actions) || 0) > 0),
+      hasShieldedData: tx.hasSapling || tx.has_sapling || tx.has_ironwood || shieldedSpends > 0 || shieldedOutputs > 0 || (parseInt(tx.ironwood_actions) || 0) > 0,
     };
   } catch (error) {
     console.error('Error fetching transaction from PostgreSQL API:', error);

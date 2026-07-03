@@ -61,7 +61,7 @@ export function PoolDistributionChart() {
   const yMin = pctValues.length ? Math.max(0, Math.floor(Math.min(...pctValues) - 2)) : 0;
   const yMax = pctValues.length ? Math.ceil(Math.max(...pctValues) + 2) : 100;
 
-  const canShowPools = hasPerPoolHistory || points.some((p) => p.orchard > 0);
+  const canShowPools = hasPerPoolHistory || points.some((p) => p.orchard > 0 || (p as any).ironwood > 0);
 
   const viewOptions: { key: View; label: string }[] = [
     { key: 'composition', label: 'ZEC' },

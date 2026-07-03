@@ -30,7 +30,7 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'daily-activity', title: 'Daily Activity', description: 'Shielded vs transparent transaction counts', category: 'privacy', href: '/privacy' },
   { id: 'anonymity-set', title: 'Anonymity Set', description: 'How many txs could be your source at each amount', category: 'privacy', href: '/privacy', isNew: true },
   { id: 'shielding-dist', title: 'Shielding Distribution', description: 'Shield/deshield histogram by amount bucket', category: 'privacy', href: '/privacy', isNew: true },
-  { id: 'pool-balances', title: 'Pool Balances', description: 'Sprout, Sapling, Orchard pool sizes over time', category: 'pools', href: '/pools' },
+  { id: 'pool-balances', title: 'Pool Balances', description: 'Ironwood, Orchard, Sapling, Sprout pool sizes over time', category: 'pools', href: '/pools' },
   { id: 'flow-volume', title: 'Shield/Deshield Flows', description: 'Daily ZEC flowing in/out of shielded pools', category: 'pools', href: '/pools' },
   { id: 'turnstile', title: 'Turnstile Tracker', description: 'Where deshielded ZEC goes after leaving pools', category: 'pools', href: '/turnstile' },
   { id: 'mining-dist', title: 'Pool Distribution', description: 'Mining pool block share', category: 'mining', href: '/mining' },

@@ -256,12 +256,14 @@ export default function TransactionPage() {
             locktime: parseInt(txData.locktime),
             shieldedSpends: txData.shieldedSpends || 0,
             shieldedOutputs: txData.shieldedOutputs || 0,
-            hasShieldedData: txData.hasSapling || txData.hasShielded || false,
+            hasShieldedData: txData.hasSapling || txData.hasShielded || txData.hasIronwood || false,
             isCoinbase: txData.isCoinbase || false,
             orchardActions: txData.orchardActions || 0,
+            ironwoodActions: txData.ironwoodActions || 0,
             valueBalance: parseFloat(txData.valueBalance || 0),
             valueBalanceSapling: parseFloat(txData.valueBalanceSapling || 0),
             valueBalanceOrchard: parseFloat(txData.valueBalanceOrchard || 0),
+            valueBalanceIronwood: parseFloat(txData.valueBalanceIronwood || 0),
             bindingSig: txData.bindingSig,
             bindingSigSapling: txData.bindingSigSapling,
             finality: txData.finality || null,
@@ -1483,7 +1485,21 @@ export default function TransactionPage() {
                     ))
                   )}
 
-                  {data.outputs.length === 0 && data.shieldedOutputs === 0 && (data.orchardActions || 0) === 0 && valueBalance >= 0 && (
+                  {/* Ironwood outputs */}
+                  {(data.ironwoodActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && (
+                    Array.from({ length: data.ironwoodActions || 0 }).map((_, index) => (
+                      <div key={`iw-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
+                        <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>
+                          <span className="text-[10px] text-cipher-yellow/50 font-mono">encrypted</span>
+                        </div>
+                        <span className="text-[10px] text-cipher-yellow/40 font-mono shrink-0">████████</span>
+                      </div>
+                    ))
+                  )}
+
+                  {data.outputs.length === 0 && data.shieldedOutputs === 0 && (data.orchardActions || 0) === 0 && (data.ironwoodActions || 0) === 0 && valueBalance >= 0 && (
                     <p className="text-xs text-muted font-mono py-2 text-center">No outputs</p>
                   )}
                 </div>

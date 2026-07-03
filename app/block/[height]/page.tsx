@@ -147,8 +147,8 @@ export default function BlockPage() {
           // Express API returns snake_case and values in satoshis, convert to camelCase and ZEC
           const transformedTransactions = (blockData.transactions || []).map((tx: any) => {
             // Check if it's a shielded transaction (has sapling/orchard activity)
-            const hasShieldedActivity = tx.has_sapling || tx.has_orchard ||
-              (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0);
+            const hasShieldedActivity = tx.has_sapling || tx.has_orchard || tx.has_ironwood ||
+              (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0) || (tx.ironwood_actions > 0);
 
             // Coinbase = no transparent inputs AND no shielded activity
             const isCoinbase = !hasShieldedActivity &&
@@ -208,7 +208,7 @@ export default function BlockPage() {
             }, 0);
 
             // Get shielded value balance (positive = leaving shielded pool, negative = entering)
-            const valueBalance = parseInt(tx.value_balance_sapling || 0) + parseInt(tx.value_balance_orchard || 0);
+            const valueBalance = parseInt(tx.value_balance_sapling || 0) + parseInt(tx.value_balance_orchard || 0) + parseInt(tx.value_balance_ironwood || 0);
 
             // Fee = what comes in (inputs + shielded leaving) - what goes out (outputs)
             const txFee = transparentInputs - transparentOutputs + valueBalance;

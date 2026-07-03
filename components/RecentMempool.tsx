@@ -26,7 +26,7 @@ function getTypeBadge(type: string) {
 }
 
 function classifyTxType(tx: any): 'shielded' | 'mixed' | 'transparent' {
-  const hasShielded = tx.hasOrchard || tx.hasSapling;
+  const hasShielded = tx.hasOrchard || tx.hasSapling || tx.hasIronwood;
   const hasTransparent = (tx.inputCount || 0) > 0 || (tx.outputCount || 0) > 0;
   if (hasShielded && hasTransparent) return 'mixed';
   if (hasShielded) return 'shielded';

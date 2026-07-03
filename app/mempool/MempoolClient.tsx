@@ -77,7 +77,7 @@ export default function MempoolClient() {
     if (msg.type === 'mempool_tx' && msg.data?.txid) {
       setData(prev => {
         if (!prev) return prev;
-        const hasShielded = msg.data.hasOrchard || msg.data.hasSapling;
+        const hasShielded = msg.data.hasOrchard || msg.data.hasSapling || msg.data.hasIronwood;
         const hasTransparent = (msg.data.inputCount || 0) > 0 || (msg.data.outputCount || 0) > 0;
         const type = hasShielded && hasTransparent ? 'mixed' : hasShielded ? 'shielded' : 'transparent';
         const newTx: MempoolTransaction = {
@@ -89,7 +89,9 @@ export default function MempoolClient() {
           vout: msg.data.outputCount || 0,
           vShieldedSpend: 0,
           vShieldedOutput: 0,
-          orchardActions: 0,
+          orchardActions: msg.data.orchardActions || 0,
+          ironwoodActions: msg.data.ironwoodActions || 0,
+          valueBalanceIronwood: msg.data.valueBalanceIronwood || 0,
           totalOutput: msg.data.totalOutput,
         };
         const txs = [newTx, ...prev.transactions.filter(t => t.txid !== msg.data.txid)];

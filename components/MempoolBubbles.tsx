@@ -708,7 +708,12 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
                 <span className="text-muted">Size</span>
                 <span className="text-primary font-mono">{(hoveredTx.size / 1024).toFixed(2)} KB</span>
               </div>
-              {hoveredTx.orchardActions ? (
+              {(hoveredTx as any).ironwoodActions ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted">Ironwood</span>
+                  <span className="text-cipher-yellow font-mono">{(hoveredTx as any).ironwoodActions} actions</span>
+                </div>
+              ) : hoveredTx.orchardActions ? (
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-muted">Orchard</span>
                   <span className="text-cipher-purple font-mono">{hoveredTx.orchardActions} actions</span>
