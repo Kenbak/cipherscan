@@ -186,7 +186,9 @@ function ActivationCountdown({ overview }: { overview: Overview }) {
           <div className="text-2xl font-bold font-mono text-primary">
             {blocksUntilActivation > 0
               ? `${blocksUntilActivation.toLocaleString()} blocks to go`
-              : 'Activation reached'}
+              : activationHeight
+                ? 'Activation reached'
+                : 'Activation height TBD'}
           </div>
           <div className="text-xs text-muted mt-1 font-mono">
             height {tipHeight.toLocaleString()} / {activationHeight?.toLocaleString() ?? '—'}
