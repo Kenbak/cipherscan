@@ -88,14 +88,14 @@ export function MigrationClient({
     let cancelled = false;
     const base = getApiUrl();
     Promise.all([
-      fetch(`${base}/api/migration/overview`).then((r) => r.json()).catch(() => null),
-      fetch(`${base}/api/migration/cohorts`).then((r) => r.json()).catch(() => null),
-      fetch(`${base}/api/migration/denominations`).then((r) => r.json()).catch(() => null),
+      fetch(`${base}/api/migration/overview`).then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${base}/api/migration/cohorts`).then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${base}/api/migration/denominations`).then((r) => r.ok ? r.json() : null).catch(() => null),
     ]).then(([o, c, d]) => {
       if (cancelled) return;
-      if (o) setOverview(o);
-      if (c) setCohorts(c);
-      if (d) setDenoms(d);
+      if (o?.success) setOverview(o);
+      if (c?.success) setCohorts(c);
+      if (d?.success) setDenoms(d);
     });
     return () => {
       cancelled = true;
@@ -103,7 +103,8 @@ export function MigrationClient({
   }, []);
 
   const activated = overview?.activated ?? false;
-  const hasMigrations = (overview?.migration.txCount ?? 0) > 0;
+  const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
+  const noData = !overview || !overview.migration;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -135,22 +136,43 @@ export function MigrationClient({
         <StatusBadge activated={activated} network={overview?.network} />
       </div>
 
-      {/* Activation countdown (pre-activation) */}
-      {!activated && overview && (
-        <ActivationCountdown overview={overview} />
+      {/* No data state (mainnet before activation height is set, or API unavailable) */}
+      {noData ? (
+        <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-8 text-center">
+          <div className="text-4xl mb-4" style={{ color: IRONWOOD }}>◇</div>
+          <h2 className="text-lg font-bold text-primary mb-2">Ironwood is coming to mainnet</h2>
+          <p className="text-sm text-secondary max-w-lg mx-auto leading-relaxed">
+            NU6.3 (Ironwood) is currently live on testnet. Once the mainnet activation height is announced,
+            this dashboard will show the migration countdown and fill with live data the moment the first
+            ZIP-318 migration transaction appears on-chain.
+          </p>
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-cipher-border bg-glass-3 px-4 py-2">
+            <span className="w-2 h-2 rounded-full bg-cipher-cyan animate-pulse" />
+            <span className="text-xs font-mono text-secondary">
+              Live on <a href="https://testnet.cipherscan.app/migration" className="text-cipher-cyan hover:underline">testnet</a> now
+            </span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Activation countdown (pre-activation) */}
+          {!activated && overview && (
+            <ActivationCountdown overview={overview} />
+          )}
+
+          {/* Supply audit — the headline */}
+          <SupplyAudit overview={overview} hasMigrations={hasMigrations} />
+
+          {/* Cohort waves */}
+          <CohortWaves cohorts={cohorts} activated={activated} />
+
+          {/* Denomination histogram + anonymity set */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <DenominationHistogram denoms={denoms} activated={activated} />
+            <AnonymitySet cohorts={cohorts} activated={activated} />
+          </div>
+        </>
       )}
-
-      {/* Supply audit — the headline */}
-      <SupplyAudit overview={overview} hasMigrations={hasMigrations} />
-
-      {/* Cohort waves */}
-      <CohortWaves cohorts={cohorts} activated={activated} />
-
-      {/* Denomination histogram + anonymity set */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-        <DenominationHistogram denoms={denoms} activated={activated} />
-        <AnonymitySet cohorts={cohorts} activated={activated} />
-      </div>
 
       {/* Methodology */}
       <Methodology />
