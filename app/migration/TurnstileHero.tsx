@@ -64,6 +64,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
   } = props;
 
   const [use3D, setUse3D] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
   const [paused, setPaused] = useState(false);
   const [lightMode, setLightMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,8 +126,16 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           blockPulseKey={blockPulseKey}
           paused={paused}
           lightMode={lightMode}
+          onReady={() => setSceneReady(true)}
         />
       </div>
+
+      {/* Loading shimmer while 3D initializes */}
+      {!sceneReady && (
+        <div className="absolute inset-0 z-[5] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-yellow rounded-full animate-spin" />
+        </div>
+      )}
 
       {/* DOM overlay — crisp, accessible numbers */}
       <div className="relative z-10 pointer-events-none select-text h-80 sm:h-[420px] flex flex-col justify-between p-5 sm:p-6">

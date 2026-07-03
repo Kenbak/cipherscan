@@ -259,9 +259,10 @@ export interface TurnstileSceneProps {
   blockPulseKey: number;
   /** When true the render loop is stopped (offscreen / tab hidden). */
   paused?: boolean;
+  onReady?: () => void;
 }
 
-export default function TurnstileScene({ activated, balanced, migratedPct, blockPulseKey, paused, lightMode }: TurnstileSceneProps) {
+export default function TurnstileScene({ activated, balanced, migratedPct, blockPulseKey, paused, lightMode, onReady }: TurnstileSceneProps) {
   const sprite = useMemo(() => makeSprite(), []);
   const pulseRef = useRef(0);
   const lastKey = useRef(blockPulseKey);
@@ -284,6 +285,7 @@ export default function TurnstileScene({ activated, balanced, migratedPct, block
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ background: 'transparent' }}
+      onCreated={onReady}
     >
       <ambientLight intensity={lightMode ? 1.2 : 0.4} />
       <Rig pulseRef={pulseRef} />
