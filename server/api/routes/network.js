@@ -563,18 +563,26 @@ router.get('/api/supply', async (req, res) => {
  */
 router.get('/api/blockchain-info', async (req, res) => {
   try {
-    const [blockchainInfo, networkInfo] = await Promise.all([
+    const [blockchainInfo, networkInfo, dbTip] = await Promise.all([
       callZebraRPC('getblockchaininfo'),
       callZebraRPC('getnetworkinfo').catch(() => null),
+      pool.query('SELECT MAX(height) AS h FROM blocks').then(r =>
+        r.rows.length ? Number(r.rows[0].h) || 0 : 0
+      ).catch(() => null),
     ]);
 
     if (!blockchainInfo) {
       return res.status(500).json({ error: 'Could not fetch blockchain info' });
     }
 
-    // Add build version from networkinfo if available
     if (networkInfo?.subversion) {
       blockchainInfo.build = networkInfo.subversion;
+    }
+
+    // Return the indexed height so consumers never request unindexed blocks
+    if (dbTip !== null) {
+      blockchainInfo.blocks = dbTip;
+      blockchainInfo.estimatedheight = dbTip;
     }
 
     res.json(blockchainInfo);
