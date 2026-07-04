@@ -115,19 +115,21 @@ router.get('/api/migration/overview', async (req, res) => {
         }
       } catch {}
 
-      // Supply audit: all value entering Ironwood from any source.
-      let orchardOutZat = 0, ironwoodInZat = 0;
+      // Supply audit: value entering Ironwood, split by source.
+      let orchardOutZat = 0, ironwoodInZat = 0, coinbaseInZat = 0;
       try {
         const audit = await pool.query(`
           SELECT
             COALESCE(SUM(CASE WHEN value_balance_orchard > 0 THEN value_balance_orchard ELSE 0 END), 0) AS orchard_out,
-            COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS ironwood_in
+            COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS ironwood_in,
+            COALESCE(SUM(CASE WHEN is_coinbase THEN ABS(value_balance_ironwood) ELSE 0 END), 0) AS coinbase_in
           FROM transactions
           WHERE has_ironwood = true AND value_balance_ironwood < 0
         `);
         if (audit.rows.length) {
           orchardOutZat = Number(audit.rows[0].orchard_out) || 0;
           ironwoodInZat = Number(audit.rows[0].ironwood_in) || 0;
+          coinbaseInZat = Number(audit.rows[0].coinbase_in) || 0;
         }
       } catch {}
 
@@ -147,9 +149,10 @@ router.get('/api/migration/overview', async (req, res) => {
         ? ironwoodPool / (orchardPool + ironwoodPool)
         : 0;
 
-      // Turnstile balanced: Ironwood inflow should match pool value from all sources
-      // (coinbase + migrations). Compare against the pool size from valuePools.
-      const turnstileBalanced = ironwoodInZat <= ironwoodPool || ironwoodInZat === 0;
+      // Turnstile balanced: coinbase creates new value (always valid). Only flag
+      // imbalance if non-coinbase migration inflow exceeds Orchard outflow.
+      const migrationInZat = ironwoodInZat - coinbaseInZat;
+      const turnstileBalanced = migrationInZat <= orchardOutZat || migrationInZat === 0;
 
       return {
         network,
@@ -162,7 +165,7 @@ router.get('/api/migration/overview', async (req, res) => {
           : Math.max(0, activationHeight - tipHeight),
         poolSizes: {
           orchardZat: orchardPool,
-          ironwoodZat: ironwoodPool,
+          ironwoodZat: ironwoodInZat || ironwoodPool,
           updatedAt: poolUpdatedAt,
         },
         migration: {
