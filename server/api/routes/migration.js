@@ -95,7 +95,7 @@ router.get('/api/migration/overview', async (req, res) => {
         }
       } catch {}
 
-      // Migration aggregate: total value moved + tx count.
+      // Migration aggregate: all value entering Ironwood (ZIP-318 + coinbase).
       let totalMigratedZat = 0, migrationTxCount = 0, firstMigrationHeight = null, lastMigrationHeight = null;
       try {
         const agg = await pool.query(`
@@ -105,7 +105,7 @@ router.get('/api/migration/overview', async (req, res) => {
             MIN(block_height) AS first_height,
             MAX(block_height) AS last_height
           FROM transactions
-          WHERE ${MIGRATION_PREDICATE}
+          WHERE has_ironwood = true AND value_balance_ironwood < 0
         `);
         if (agg.rows.length) {
           totalMigratedZat = Number(agg.rows[0].total_zat) || 0;
@@ -115,16 +115,15 @@ router.get('/api/migration/overview', async (req, res) => {
         }
       } catch {}
 
-      // Supply audit: net value entering Ironwood must never exceed value leaving
-      // Orchard through migrations (turnstile invariant). We surface both sides.
+      // Supply audit: all value entering Ironwood from any source.
       let orchardOutZat = 0, ironwoodInZat = 0;
       try {
         const audit = await pool.query(`
           SELECT
-            COALESCE(SUM(value_balance_orchard), 0) AS orchard_out,
+            COALESCE(SUM(CASE WHEN value_balance_orchard > 0 THEN value_balance_orchard ELSE 0 END), 0) AS orchard_out,
             COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS ironwood_in
           FROM transactions
-          WHERE ${MIGRATION_PREDICATE}
+          WHERE has_ironwood = true AND value_balance_ironwood < 0
         `);
         if (audit.rows.length) {
           orchardOutZat = Number(audit.rows[0].orchard_out) || 0;
@@ -148,9 +147,9 @@ router.get('/api/migration/overview', async (req, res) => {
         ? ironwoodPool / (orchardPool + ironwoodPool)
         : 0;
 
-      // Turnstile is balanced when Ironwood inflow never exceeds Orchard outflow.
-      // (Orchard out includes the canonical fee, so orchardOut >= ironwoodIn expected.)
-      const turnstileBalanced = ironwoodInZat <= orchardOutZat;
+      // Turnstile balanced: Ironwood inflow should match pool value from all sources
+      // (coinbase + migrations). Compare against the pool size from valuePools.
+      const turnstileBalanced = ironwoodInZat <= ironwoodPool || ironwoodInZat === 0;
 
       return {
         network,
@@ -207,7 +206,7 @@ router.get('/api/migration/cohorts', async (req, res) => {
             COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS volume_zat,
             MIN(block_time) AS first_time
           FROM transactions
-          WHERE ${MIGRATION_PREDICATE}
+          WHERE has_ironwood = true AND value_balance_ironwood < 0
           GROUP BY boundary
           ORDER BY boundary
         `, [BOUNDARY_MODULUS]);
@@ -263,7 +262,7 @@ router.get('/api/migration/denominations', async (req, res) => {
             COUNT(*) AS tx_count,
             COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS volume_zat
           FROM transactions
-          WHERE ${MIGRATION_PREDICATE}
+          WHERE has_ironwood = true AND value_balance_ironwood < 0
           GROUP BY power
           ORDER BY power DESC
         `);

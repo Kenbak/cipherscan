@@ -155,9 +155,13 @@ export function MigrationClient({
 
 
 
-      {/* Loading state */}
       {!loaded && !initialOverview && (
-        <div className="mt-8 h-80 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse" />
+        <div className="mt-8 h-80 sm:h-[420px] rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-2 border-cipher-border border-t-cipher-yellow rounded-full animate-spin" />
+            <span className="text-xs font-mono text-muted">Loading migration data…</span>
+          </div>
+        </div>
       )}
 
       {/* No data state (mainnet before activation height is set, or API unavailable) */}

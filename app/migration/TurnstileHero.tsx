@@ -134,10 +134,13 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         />
       </div>
 
-      {/* Loading shimmer while 3D initializes */}
+      {/* Loading state while 3D initializes */}
       {!sceneReady && (
-        <div className="absolute inset-0 z-[5] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-yellow rounded-full animate-spin" />
+        <div className="absolute inset-0 z-[5] flex items-center justify-center bg-cipher-surface/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-2 border-cipher-border border-t-cipher-yellow rounded-full animate-spin" />
+            <span className="text-xs font-mono text-muted">Loading visualization…</span>
+          </div>
         </div>
       )}
 
