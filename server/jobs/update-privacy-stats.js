@@ -134,7 +134,7 @@ async function updatePoolSizes() {
 
   assertZebraSynced(blockchainInfo);
 
-  let transparentPool = 0, sproutPool = 0, saplingPool = 0, orchardPool = 0, chainSupply = 0;
+  let transparentPool = 0, sproutPool = 0, saplingPool = 0, orchardPool = 0, ironwoodPool = 0, chainSupply = 0;
 
   for (const p of blockchainInfo.valuePools) {
     const val = parseInt(p.chainValueZat) || 0;
@@ -142,14 +142,15 @@ async function updatePoolSizes() {
     else if (p.id === 'sprout') sproutPool = val;
     else if (p.id === 'sapling') saplingPool = val;
     else if (p.id === 'orchard') orchardPool = val;
+    else if (p.id === 'ironwood') ironwoodPool = val;
   }
 
-  const shieldedPoolSize = sproutPool + saplingPool + orchardPool;
+  const shieldedPoolSize = sproutPool + saplingPool + orchardPool + ironwoodPool;
   if (blockchainInfo.chainSupply) chainSupply = parseInt(blockchainInfo.chainSupply.chainValueZat) || 0;
 
   log(`  Shielded: ${(shieldedPoolSize / 1e8).toFixed(2)} ZEC | Chain: ${(chainSupply / 1e8).toFixed(2)} ZEC`);
 
-  return { shieldedPoolSize, sproutPool, saplingPool, orchardPool, transparentPool, chainSupply, latestBlock: blockchainInfo.blocks || 0 };
+  return { shieldedPoolSize, sproutPool, saplingPool, orchardPool, ironwoodPool, transparentPool, chainSupply, latestBlock: blockchainInfo.blocks || 0 };
 }
 
 async function updateTransactionCounts() {
@@ -159,17 +160,17 @@ async function updateTransactionCounts() {
     SELECT
       COUNT(*) as total_transactions,
       COUNT(*) FILTER (WHERE is_coinbase) as coinbase_count,
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
-      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count,
+      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count,
       MAX(block_height) as latest_block
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
   const shieldedTypes = (await pool.query(`
     SELECT
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard) AND vin_count > 0 AND vout_count > 0) as mixed_count,
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard) AND vin_count = 0 AND vout_count = 0) as fully_shielded_count
-    FROM transactions WHERE block_height > 0 AND (has_sapling OR has_orchard) AND NOT is_coinbase
+      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count > 0 AND vout_count > 0) as mixed_count,
+      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count = 0 AND vout_count = 0) as fully_shielded_count
+    FROM transactions WHERE block_height > 0 AND (has_sapling OR has_orchard OR has_ironwood) AND NOT is_coinbase
   `)).rows[0];
 
   const blockCount = (await pool.query('SELECT COUNT(*) as total_blocks FROM blocks')).rows[0];
@@ -184,14 +185,14 @@ async function updateTransactionCounts() {
   const shieldedPercentage = totalTx > 0 ? (shieldedTx / totalTx) * 100 : 0;
 
   const avgPerDay = (await pool.query(`
-    SELECT COUNT(*) FILTER (WHERE has_sapling OR has_orchard) / 30.0 as avg
+    SELECT COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) / 30.0 as avg
     FROM transactions WHERE block_height > 0 AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')
   `)).rows[0];
 
   const trend = (await pool.query(`
     SELECT
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as recent,
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days') AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as previous
+      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as recent,
+      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days') AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as previous
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
@@ -236,7 +237,8 @@ async function updatePrivacyStats(pools, txStats) {
         transparent_tx = $10, coinbase_tx = $11, mixed_tx = $12,
         fully_shielded_tx = $13, shielded_percentage = $14,
         avg_shielded_per_day = $15, adoption_trend = $16,
-        last_block_scanned = $17, privacy_score = $19, updated_at = NOW()
+        last_block_scanned = $17, privacy_score = $19,
+        ironwood_pool_size = $20, updated_at = NOW()
       WHERE id = $18
     `, [
       pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
@@ -246,6 +248,7 @@ async function updatePrivacyStats(pools, txStats) {
       txStats.fullyShieldedTx, txStats.shieldedPercentage,
       txStats.avgShieldedPerDay, txStats.adoptionTrend,
       txStats.latestBlock, existing.rows[0].id, privacyScore,
+      pools.ironwoodPool,
     ]);
   } else {
     await pool.query(`
@@ -284,8 +287,8 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
 
   const dayStats = (await pool.query(`
     SELECT
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
-      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count
+      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
+      COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count
     FROM transactions WHERE block_height >= $1 AND block_height <= $2
   `, [startBlock, latestBlock])).rows[0];
 
