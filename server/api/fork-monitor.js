@@ -24,7 +24,7 @@ const MAINNET_NODES = [
 
 const TESTNET_NODES = [
   { name: 'zec.rocks testnet', host: 'testnet.zec.rocks', port: 443, tls: true },
-  { name: 'TazMiner LWD', host: 'lwd.tazminer.com', port: 9067, tls: false },
+  { name: 'TazMiner LWD', host: 'lwd.tazminer.com', port: 9067, tls: true },
   { name: 'TazMiner RPC', host: 'lwd.tazminer.com', port: 18232, tls: false, rpc: true },
 ];
 
