@@ -545,12 +545,19 @@ const zebraGrpc = new ZebraGrpcClient(
         try {
           const tx = await callZebraRPC('getrawtransaction', [change.txid, 1]);
           if (tx) {
+            const orchardActions = tx.orchard?.actions?.length || 0;
+            const ironwoodActions = tx.ironwood?.actions?.length || 0;
             const data = {
               txid: change.txid,
               size: tx.size || 0,
               fee: tx.fee || 0,
-              hasOrchard: (tx.orchard?.actions?.length || 0) > 0,
+              hasOrchard: orchardActions > 0,
               hasSapling: (tx.vShieldedSpend?.length || 0) > 0 || (tx.vShieldedOutput?.length || 0) > 0,
+              hasIronwood: ironwoodActions > 0,
+              orchardActions,
+              ironwoodActions,
+              valueBalanceOrchard: tx.orchard?.valueBalance || 0,
+              valueBalanceIronwood: tx.ironwood?.valueBalance || 0,
               inputCount: tx.vin?.length || 0,
               outputCount: tx.vout?.length || 0,
               time: Math.floor(Date.now() / 1000),

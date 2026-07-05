@@ -904,7 +904,9 @@ router.get('/api/network/protocol-stats', async (req, res) => {
           SUM(shielded_outputs)::bigint AS sapling_commitments,
           SUM(shielded_spends)::bigint AS sapling_nullifiers,
           SUM(orchard_actions)::bigint AS orchard_commitments,
-          SUM(orchard_actions)::bigint AS orchard_nullifiers
+          SUM(orchard_actions)::bigint AS orchard_nullifiers,
+          SUM(ironwood_actions)::bigint AS ironwood_commitments,
+          SUM(ironwood_actions)::bigint AS ironwood_nullifiers
         FROM transactions
       `),
       pool.query(`
@@ -912,7 +914,8 @@ router.get('/api/network/protocol-stats', async (req, res) => {
           date_trunc('month', to_timestamp(block_time))::date AS month,
           SUM(shielded_outputs)::bigint AS sapling_outputs,
           SUM(shielded_spends)::bigint AS sapling_spends,
-          SUM(orchard_actions)::bigint AS orchard_actions
+          SUM(orchard_actions)::bigint AS orchard_actions,
+          SUM(ironwood_actions)::bigint AS ironwood_actions
         FROM transactions
         WHERE block_time > 0
         GROUP BY month
@@ -926,17 +929,23 @@ router.get('/api/network/protocol-stats', async (req, res) => {
     let saplingNullCum = 0;
     let orchardCum = 0;
     let orchardNullCum = 0;
+    let ironwoodCum = 0;
+    let ironwoodNullCum = 0;
     const history = monthly.rows.map(row => {
       saplingCum += parseInt(row.sapling_outputs) || 0;
       saplingNullCum += parseInt(row.sapling_spends) || 0;
       orchardCum += parseInt(row.orchard_actions) || 0;
       orchardNullCum += parseInt(row.orchard_actions) || 0;
+      ironwoodCum += parseInt(row.ironwood_actions) || 0;
+      ironwoodNullCum += parseInt(row.ironwood_actions) || 0;
       return {
         month: row.month,
         saplingCommitments: saplingCum,
         saplingNullifiers: saplingNullCum,
         orchardCommitments: orchardCum,
         orchardNullifiers: orchardNullCum,
+        ironwoodCommitments: ironwoodCum,
+        ironwoodNullifiers: ironwoodNullCum,
       };
     });
 
@@ -947,6 +956,8 @@ router.get('/api/network/protocol-stats', async (req, res) => {
         saplingNullifiers: parseInt(t.sapling_nullifiers) || 0,
         orchardCommitments: parseInt(t.orchard_commitments) || 0,
         orchardNullifiers: parseInt(t.orchard_nullifiers) || 0,
+        ironwoodCommitments: parseInt(t.ironwood_commitments) || 0,
+        ironwoodNullifiers: parseInt(t.ironwood_nullifiers) || 0,
       },
       history,
       timestamp: Date.now(),

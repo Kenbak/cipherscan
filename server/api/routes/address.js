@@ -278,6 +278,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
           p.tx_index,
           t.has_sapling,
           t.has_orchard,
+          t.has_ironwood,
           COALESCE(p.value_in, 0) as input_value,
           COALESCE(p.value_out, 0) as output_value,
           other_in.addresses as sender_addresses,
@@ -313,7 +314,8 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
             t.size,
             t.tx_index,
             t.has_sapling,
-            t.has_orchard
+            t.has_orchard,
+            t.has_ironwood
           FROM transactions t
           WHERE t.txid IN (SELECT txid FROM address_txids)
           ORDER BY t.block_height DESC, t.tx_index DESC
@@ -327,6 +329,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
           tv.tx_index,
           tv.has_sapling,
           tv.has_orchard,
+          tv.has_ironwood,
           COALESCE(my_in.value, 0) as input_value,
           COALESCE(my_out.value, 0) as output_value,
           other_in.addresses as sender_addresses,
@@ -374,6 +377,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
         txIndex: tx.tx_index,
         hasSapling: tx.has_sapling,
         hasOrchard: tx.has_orchard,
+        hasIronwood: tx.has_ironwood,
         inputValue: parseFloat(tx.input_value),
         outputValue: parseFloat(tx.output_value),
         netChange,

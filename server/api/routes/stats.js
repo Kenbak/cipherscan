@@ -40,6 +40,7 @@ router.get('/api/privacy-stats', async (req, res) => {
         sprout_pool_size,
         sapling_pool_size,
         orchard_pool_size,
+        ironwood_pool_size,
         transparent_pool_size,
         chain_supply,
         shielded_percentage,
@@ -90,10 +91,11 @@ router.get('/api/privacy-stats', async (req, res) => {
         fullyShieldedTx: parseInt(stats.fully_shielded_tx),
       },
       shieldedPool: {
-        currentSize: parseInt(stats.shielded_pool_size) / 100000000, // Convert to ZEC
+        currentSize: parseInt(stats.shielded_pool_size) / 100000000,
         sprout: parseInt(stats.sprout_pool_size || 0) / 100000000,
         sapling: parseInt(stats.sapling_pool_size || 0) / 100000000,
         orchard: parseInt(stats.orchard_pool_size || 0) / 100000000,
+        ironwood: parseInt(stats.ironwood_pool_size || 0) / 100000000,
         transparent: parseInt(stats.transparent_pool_size || 0) / 100000000,
         chainSupply: parseInt(stats.chain_supply || 0) / 100000000,
       },

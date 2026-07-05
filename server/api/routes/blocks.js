@@ -455,31 +455,43 @@ router.get('/api/search/anchor/:root', async (req, res) => {
 
     // Search canonical blocks — UNION to leverage separate indexes
     const canonicalResult = await pool.query(
-      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
+      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address
         FROM blocks WHERE final_sapling_root = $1 LIMIT 10)
        UNION ALL
-       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address
         FROM blocks WHERE final_orchard_root = $1 LIMIT 10)
+       UNION ALL
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address
+        FROM blocks WHERE final_ironwood_root = $1 LIMIT 10)
        ORDER BY height DESC LIMIT 10`,
       [rootLower]
     );
 
     // Search orphaned blocks
     const orphanResult = await pool.query(
-      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
+      `(SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address, detected_at
         FROM orphaned_blocks WHERE final_sapling_root = $1 LIMIT 10)
        UNION ALL
-       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, miner_address, detected_at
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address, detected_at
         FROM orphaned_blocks WHERE final_orchard_root = $1 LIMIT 10)
+       UNION ALL
+       (SELECT height, hash, timestamp, final_sapling_root, final_orchard_root, final_ironwood_root, miner_address, detected_at
+        FROM orphaned_blocks WHERE final_ironwood_root = $1 LIMIT 10)
        ORDER BY height DESC LIMIT 10`,
       [rootLower]
     );
+
+    function matchedPoolField(row) {
+      if (row.final_ironwood_root === rootLower) return 'ironwood';
+      if (row.final_orchard_root === rootLower) return 'orchard';
+      return 'sapling';
+    }
 
     const canonical = canonicalResult.rows.map(row => ({
       height: parseInt(row.height),
       hash: row.hash,
       timestamp: parseInt(row.timestamp),
-      matchedField: row.final_sapling_root === rootLower ? 'sapling' : 'orchard',
+      matchedField: matchedPoolField(row),
       minerAddress: row.miner_address,
       minerPool: getPoolName(row.miner_address),
       chain: 'canonical',
@@ -489,7 +501,7 @@ router.get('/api/search/anchor/:root', async (req, res) => {
       height: parseInt(row.height),
       hash: row.hash,
       timestamp: row.timestamp ? parseInt(row.timestamp) : null,
-      matchedField: row.final_sapling_root === rootLower ? 'sapling' : 'orchard',
+      matchedField: matchedPoolField(row),
       minerAddress: row.miner_address,
       minerPool: getPoolName(row.miner_address),
       chain: 'orphaned',

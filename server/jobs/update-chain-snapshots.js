@@ -101,8 +101,8 @@ async function main() {
   await pool.query(
     `INSERT INTO chain_snapshots (
       block_height, chain_size_bytes, chain_supply_zat,
-      sprout_zat, sapling_zat, orchard_zat, transparent_zat
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      sprout_zat, sapling_zat, orchard_zat, ironwood_zat, transparent_zat
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       blockHeight,
       chainSize,
@@ -110,6 +110,7 @@ async function main() {
       pools.sprout || 0,
       pools.sapling || 0,
       pools.orchard || 0,
+      pools.ironwood || 0,
       pools.transparent || 0,
     ]
   );

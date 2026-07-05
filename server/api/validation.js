@@ -38,7 +38,7 @@ const schemas = {
     query: z.object({
       limit: z.coerce.number().int().min(1).max(100).default(50),
       offset: z.coerce.number().int().min(0).default(0),
-      pool: z.enum(['sapling', 'orchard']).optional(),
+      pool: z.enum(['sapling', 'orchard', 'ironwood']).optional(),
       type: z.enum(['fully-shielded', 'partial']).optional(),
       min_actions: z.coerce.number().int().min(0).default(0),
       skip_count: z.enum(['true', 'false']).optional(),

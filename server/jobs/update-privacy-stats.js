@@ -254,15 +254,15 @@ async function updatePrivacyStats(pools, txStats) {
     await pool.query(`
       INSERT INTO privacy_stats (
         shielded_pool_size, sprout_pool_size, sapling_pool_size,
-        orchard_pool_size, transparent_pool_size, chain_supply,
+        orchard_pool_size, ironwood_pool_size, transparent_pool_size, chain_supply,
         total_blocks, total_transactions, shielded_tx, transparent_tx,
         coinbase_tx, mixed_tx, fully_shielded_tx, shielded_percentage,
         privacy_score, avg_shielded_per_day, adoption_trend,
         last_block_scanned, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$18,$15,$16,$17,NOW())
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$19,$16,$17,$18,NOW())
     `, [
       pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
-      pools.orchardPool, pools.transparentPool, pools.chainSupply,
+      pools.orchardPool, pools.ironwoodPool, pools.transparentPool, pools.chainSupply,
       txStats.totalBlocks, txStats.totalTx, txStats.shieldedTx,
       txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
       txStats.fullyShieldedTx, txStats.shieldedPercentage,
@@ -312,11 +312,11 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
           shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
           pool_size = $5, privacy_score = $6,
           sprout_pool_size = $7, sapling_pool_size = $8, orchard_pool_size = $9,
-          transparent_pool_size = $10, chain_supply = $11,
+          ironwood_pool_size = $10, transparent_pool_size = $11, chain_supply = $12,
           created_at = NOW()
         WHERE date = $1
       `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
-        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.ironwoodPool, pools.transparentPool, pools.chainSupply]);
     } catch {
       await pool.query(`
         UPDATE privacy_trends_daily SET
@@ -330,10 +330,10 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
       await pool.query(`
         INSERT INTO privacy_trends_daily (
           date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score,
-          sprout_pool_size, sapling_pool_size, orchard_pool_size, transparent_pool_size, chain_supply, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          sprout_pool_size, sapling_pool_size, orchard_pool_size, ironwood_pool_size, transparent_pool_size, chain_supply, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       `, [today, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
-        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.ironwoodPool, pools.transparentPool, pools.chainSupply]);
     } catch {
       await pool.query(`
         INSERT INTO privacy_trends_daily (date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score, created_at)

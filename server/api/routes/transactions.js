@@ -856,13 +856,14 @@ router.get('/api/mempool', async (req, res) => {
         try {
           const tx = await callZebraRPC('getrawtransaction', [txid, 1]);
 
-          // Analyze transaction type (including Orchard support)
           const hasShieldedInputs = (tx.vShieldedSpend && tx.vShieldedSpend.length > 0) ||
                                    (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
-                                   (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
+                                   (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0) ||
+                                   (tx.ironwood && tx.ironwood.actions && tx.ironwood.actions.length > 0);
           const hasShieldedOutputs = (tx.vShieldedOutput && tx.vShieldedOutput.length > 0) ||
                                      (tx.vJoinSplit && tx.vJoinSplit.length > 0) ||
-                                     (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0);
+                                     (tx.orchard && tx.orchard.actions && tx.orchard.actions.length > 0) ||
+                                     (tx.ironwood && tx.ironwood.actions && tx.ironwood.actions.length > 0);
           const hasTransparentInputs = tx.vin && tx.vin.length > 0 && !tx.vin[0].coinbase;
           const hasTransparentOutputs = tx.vout && tx.vout.length > 0;
 
@@ -882,9 +883,9 @@ router.get('/api/mempool', async (req, res) => {
           // Sum transparent output value (shielded values are encrypted)
           const totalOutput = (tx.vout || []).reduce((sum, o) => sum + (o.value || 0), 0);
 
-          // Sapling/Orchard value balance — tells us net flow into/out of shielded pool
           const valueBalanceSapling = tx.valueBalance ?? 0;
           const valueBalanceOrchard = tx.orchard?.valueBalance ?? 0;
+          const valueBalanceIronwood = tx.ironwood?.valueBalance ?? 0;
 
           return {
             txid: tx.txid,
@@ -896,9 +897,12 @@ router.get('/api/mempool', async (req, res) => {
             vShieldedSpend: tx.vShieldedSpend?.length || 0,
             vShieldedOutput: tx.vShieldedOutput?.length || 0,
             orchardActions: tx.orchard?.actions?.length || 0,
+            ironwoodActions: tx.ironwood?.actions?.length || 0,
+            hasIronwood: (tx.ironwood?.actions?.length || 0) > 0,
             totalOutput,
             valueBalanceSapling,
             valueBalanceOrchard,
+            valueBalanceIronwood,
             version: tx.version,
           };
         } catch (error) {
@@ -967,10 +971,12 @@ router.get('/api/mempool/tx/:txid', async (req, res) => {
 
     const hasShieldedInputs = (tx.vShieldedSpend?.length > 0) ||
                                (tx.vJoinSplit?.length > 0) ||
-                               (tx.orchard?.actions?.length > 0);
+                               (tx.orchard?.actions?.length > 0) ||
+                               (tx.ironwood?.actions?.length > 0);
     const hasShieldedOutputs = (tx.vShieldedOutput?.length > 0) ||
                                 (tx.vJoinSplit?.length > 0) ||
-                                (tx.orchard?.actions?.length > 0);
+                                (tx.orchard?.actions?.length > 0) ||
+                                (tx.ironwood?.actions?.length > 0);
     const hasTransparentInputs = tx.vin?.length > 0 && !tx.vin[0]?.coinbase;
     const hasTransparentOutputs = tx.vout?.length > 0;
 
@@ -998,6 +1004,9 @@ router.get('/api/mempool/tx/:txid', async (req, res) => {
         shieldedSpends: tx.vShieldedSpend?.length || 0,
         shieldedOutputs: tx.vShieldedOutput?.length || 0,
         orchardActions: tx.orchard?.actions?.length || 0,
+        ironwoodActions: tx.ironwood?.actions?.length || 0,
+        hasIronwood: (tx.ironwood?.actions?.length || 0) > 0,
+        valueBalanceIronwood: tx.ironwood?.valueBalance ?? 0,
         totalOutput,
         outputs: (tx.vout || []).map(o => ({
           value: o.value || 0,

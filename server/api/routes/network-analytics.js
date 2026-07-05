@@ -310,10 +310,12 @@ function registerNetworkAnalyticsRoutes(router) {
       const useZat = format === 'zatoshi';
       const interval = periodToInterval(period);
       const hasPoolCols = await columnExists(pool, 'privacy_trends_daily', 'orchard_pool_size');
+      const hasIronwoodCol = hasPoolCols && await columnExists(pool, 'privacy_trends_daily', 'ironwood_pool_size');
 
       const cols = hasPoolCols
         ? `date, pool_size, shielded_percentage, chain_supply,
-           sprout_pool_size, sapling_pool_size, orchard_pool_size, transparent_pool_size`
+           sprout_pool_size, sapling_pool_size, orchard_pool_size,
+           ${hasIronwoodCol ? 'ironwood_pool_size,' : ''} transparent_pool_size`
         : `date, pool_size, shielded_percentage`;
 
       const result = await pool.query(
@@ -328,6 +330,7 @@ function registerNetworkAnalyticsRoutes(router) {
         const sproutZat = hasPoolCols ? (parseInt(r.sprout_pool_size, 10) || 0) : 0;
         const saplingZat = hasPoolCols ? (parseInt(r.sapling_pool_size, 10) || 0) : 0;
         const orchardZat = hasPoolCols ? (parseInt(r.orchard_pool_size, 10) || 0) : 0;
+        const ironwoodZat = hasIronwoodCol ? (parseInt(r.ironwood_pool_size, 10) || 0) : 0;
         const transparentZat = hasPoolCols ? (parseInt(r.transparent_pool_size, 10) || 0) : 0;
         const shieldedZat = parseInt(r.pool_size, 10) || 0;
         const chainSupplyZat = hasPoolCols ? (parseInt(r.chain_supply, 10) || 0) : 0;
@@ -339,6 +342,7 @@ function registerNetworkAnalyticsRoutes(router) {
             sproutZat: sproutZat.toString(),
             saplingZat: saplingZat.toString(),
             orchardZat: orchardZat.toString(),
+            ironwoodZat: ironwoodZat.toString(),
             transparentZat: transparentZat.toString(),
             chainSupplyZat: chainSupplyZat > 0 ? chainSupplyZat.toString() : null,
             shieldedSupplyPct: computeShieldedSupplyPct({
@@ -362,6 +366,7 @@ function registerNetworkAnalyticsRoutes(router) {
           sprout: sproutZat / ZAT,
           sapling: saplingZat / ZAT,
           orchard: orchardZat / ZAT,
+          ironwood: ironwoodZat / ZAT,
           transparent: transparentZat / ZAT,
           chainSupply: chainSupply > 0 ? chainSupply : null,
           shieldedSupplyPct: computeShieldedSupplyPct({
