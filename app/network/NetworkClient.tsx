@@ -561,7 +561,8 @@ function HoverTip({ tip, children, className = '' }: { tip?: string; children: R
   );
 }
 
-function formatNodeVersion(subversion: string): string {
+function formatNodeVersion(subversion: string | null | undefined): string {
+  if (!subversion) return '—';
   return subversion.replace(/^\/Zebra:?/i, '').replace(/\/$/, '').trim() || subversion;
 }
 
