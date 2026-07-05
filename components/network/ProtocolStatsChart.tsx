@@ -15,6 +15,8 @@ interface RawPoint {
   saplingNullifiers: number;
   orchardCommitments: number;
   orchardNullifiers: number;
+  ironwoodCommitments: number;
+  ironwoodNullifiers: number;
 }
 
 interface ChartPoint extends RawPoint {
@@ -46,7 +48,7 @@ export function ProtocolStatsChart() {
           setCurrent(d.current);
           // Filter out months before any meaningful data exists
           const meaningful = (d.history || []).filter((p: RawPoint) =>
-            p.saplingCommitments > 0 || p.orchardCommitments > 0
+            p.saplingCommitments > 0 || p.orchardCommitments > 0 || p.ironwoodCommitments > 0
           );
           setRawData(meaningful);
         }
@@ -135,6 +137,12 @@ export function ProtocolStatsChart() {
                   <span className="text-muted">Orchard tree: </span>
                   <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardCommitments)}</span>
                 </div>
+                {(current.ironwoodCommitments || 0) > 0 && (
+                  <div className="text-[10px] font-mono">
+                    <span className="text-muted">Ironwood tree: </span>
+                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -146,6 +154,12 @@ export function ProtocolStatsChart() {
                   <span className="text-muted">Orchard nullifiers: </span>
                   <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardNullifiers)}</span>
                 </div>
+                {(current.ironwoodNullifiers || 0) > 0 && (
+                  <div className="text-[10px] font-mono">
+                    <span className="text-muted">Ironwood nullifiers: </span>
+                    <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -202,6 +216,16 @@ export function ProtocolStatsChart() {
                 strokeWidth={1.5}
                 dot={false}
               />
+              <Area
+                type="monotone"
+                dataKey="ironwoodCommitments"
+                name="Ironwood notes"
+                stroke="#f59e0b"
+                fill="#f59e0b"
+                fillOpacity={0.15}
+                strokeWidth={1.5}
+                dot={false}
+              />
             </>
           ) : (
             <>
@@ -221,6 +245,16 @@ export function ProtocolStatsChart() {
                 name="Orchard nullifiers"
                 stroke="#34d399"
                 fill="#34d399"
+                fillOpacity={0.15}
+                strokeWidth={1.5}
+                dot={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="ironwoodNullifiers"
+                name="Ironwood nullifiers"
+                stroke="#f59e0b"
+                fill="#f59e0b"
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}

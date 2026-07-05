@@ -164,7 +164,7 @@ export default function AddressPage() {
   // Transform API transactions to frontend format
   const transformTransactions = (apiData: any, txList: any[]): Transaction[] => {
     return txList.map((tx: any) => {
-      const hasShieldedActivity = tx.hasOrchard || tx.hasSapling;
+      const hasShieldedActivity = tx.hasOrchard || tx.hasSapling || tx.hasIronwood;
       const isReceiving = tx.netChange > 0;
       const isSending = tx.netChange < 0;
 
