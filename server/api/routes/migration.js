@@ -56,6 +56,29 @@ function resolveNetwork() {
   return net === 'testnet' ? 'testnet' : 'mainnet';
 }
 
+// Reference node for testnet: zec.rocks lightwalletd gRPC
+const REFERENCE_GRPC_URL = 'testnet.zec.rocks:443';
+let referenceHeight = null;
+let referenceLastFetched = 0;
+
+async function fetchReferenceHeight() {
+  if (resolveNetwork() !== 'testnet') return null;
+  if (Date.now() - referenceLastFetched < 30000) return referenceHeight;
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync(
+      `grpcurl -max-time 3 ${REFERENCE_GRPC_URL} cash.z.wallet.sdk.rpc.CompactTxStreamer/GetLatestBlock 2>/dev/null`,
+      { timeout: 5000, encoding: 'utf8' }
+    );
+    const parsed = JSON.parse(out);
+    referenceHeight = parseInt(parsed.height) || null;
+    referenceLastFetched = Date.now();
+  } catch {
+    // Non-critical — don't block the response
+  }
+  return referenceHeight;
+}
+
 // Shared WHERE clause identifying a compliant Orchard → Ironwood migration tx.
 const MIGRATION_PREDICATE = `
   version = 6
@@ -154,12 +177,15 @@ router.get('/api/migration/overview', async (req, res) => {
       const migrationInZat = ironwoodInZat - coinbaseInZat;
       const turnstileBalanced = migrationInZat <= orchardOutZat || migrationInZat === 0;
 
+      const refHeight = await fetchReferenceHeight();
+
       return {
         network,
         activationHeight,
         tipHeight,
         activated,
         avgBlockTimeSecs,
+        referenceNode: refHeight ? { name: 'zec.rocks', height: refHeight } : null,
         blocksUntilActivation: activated || activationHeight == null
           ? 0
           : Math.max(0, activationHeight - tipHeight),
