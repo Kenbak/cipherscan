@@ -172,10 +172,10 @@ router.get('/api/migration/overview', async (req, res) => {
         ? ironwoodPool / (orchardPool + ironwoodPool)
         : 0;
 
-      // Turnstile balanced: coinbase creates new value (always valid). Only flag
-      // imbalance if non-coinbase migration inflow exceeds Orchard outflow.
-      const migrationInZat = ironwoodInZat - coinbaseInZat;
-      const turnstileBalanced = migrationInZat <= orchardOutZat || migrationInZat === 0;
+      // Turnstile balanced: value can enter Ironwood from coinbase (new supply),
+      // transparent (shielding), or Orchard (migration). All are valid. We flag
+      // imbalance only if our tracked inflows exceed what Zebra reports in the pool.
+      const turnstileBalanced = ironwoodInZat <= (ironwoodPool || ironwoodInZat);
 
       const refHeight = await fetchReferenceHeight();
 
