@@ -412,12 +412,15 @@ function CohortWaves({ cohorts, activated }: { cohorts: Cohorts | null; activate
             />
             <YAxis tick={{ fontSize: 10, fill: '#8b8b9e' }} width={40} />
             <Tooltip
+              cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
               contentStyle={{
-                background: '#12121a',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                fontSize: 11,
+                backgroundColor: 'var(--color-bg-card, #12121a)',
+                border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
+                borderRadius: '8px',
+                fontSize: 12,
               }}
+              itemStyle={{ color: 'var(--color-text-primary, #fff)' }}
+              labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
               labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
               formatter={(val: unknown, name: unknown) =>
                 name === 'volume'
@@ -460,12 +463,15 @@ function DenominationHistogram({
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#8b8b9e' }} />
             <YAxis tick={{ fontSize: 10, fill: '#8b8b9e' }} width={40} />
             <Tooltip
+              cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
               contentStyle={{
-                background: '#12121a',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                fontSize: 11,
+                backgroundColor: 'var(--color-bg-card, #12121a)',
+                border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
+                borderRadius: '8px',
+                fontSize: 12,
               }}
+              itemStyle={{ color: 'var(--color-text-primary, #fff)' }}
+              labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
               formatter={(val: unknown) => [Number(val).toLocaleString(), 'Outputs']}
             />
             <Bar dataKey="txCount" radius={[2, 2, 0, 0]}>
