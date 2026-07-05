@@ -233,12 +233,12 @@ class ForkMonitor {
 
   async _fetchNodeInfo() {
     const checks = MONITORED_NODES.map(async (node) => {
+      if (node.rpc) return this._fetchRpcNodeInfo(node);
       const client = this.clients.get(node.name);
       if (!client) return;
       try {
         const info = await this._getLightdInfo(client);
         const subversion = info.zcashdSubversion || '';
-        // Extract version from subversion string like "/Zebra:5.0.0/" or "/MagicBean:6.20.0/"
         const match = subversion.match(/\/([\w.-]+):([\d.]+)/);
         const nodeImpl = match ? match[1] : null;
         const nodeVersion = match ? match[2] : null;
@@ -250,6 +250,33 @@ class ForkMonitor {
       } catch (_) {}
     });
     await Promise.allSettled(checks);
+  }
+
+  async _fetchRpcNodeInfo(node) {
+    const http = require('http');
+    const url = `http://${node.host}:${node.port}/`;
+    try {
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getinfo', params: [] });
+      const result = await new Promise((resolve, reject) => {
+        const req = http.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeout: GRPC_DEADLINE_MS }, (res) => {
+          let data = '';
+          res.on('data', (c) => { data += c; });
+          res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+        });
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.write(body);
+        req.end();
+      });
+      if (result.result) {
+        const subversion = result.result.subversion || '';
+        const match = subversion.match(/\/([\w.-]+):([\d.]+)/);
+        this._updateStatus(node.name, {
+          nodeImpl: match ? match[1] : null,
+          version: match ? match[2] : null,
+        });
+      }
+    } catch (_) {}
   }
 
   _getLightdInfo(client) {
