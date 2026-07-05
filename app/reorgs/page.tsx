@@ -85,6 +85,8 @@ interface MonitoredNode {
   status: 'pending' | 'agree' | 'behind' | 'ahead' | 'fork' | 'syncing' | 'offline';
   lastChecked: string | null;
   error: string | null;
+  forkHeight: number | null;
+  commonAncestor: number | null;
 }
 
 interface NodesSummary {
@@ -595,6 +597,11 @@ export default function UnclesPage() {
                           <span className={`text-xs font-mono font-bold ${statusColor[node.status] || 'text-muted'}`}>
                             {statusLabel[node.status] || node.status}
                           </span>
+                          {node.status === 'fork' && node.commonAncestor != null && node.height != null && (
+                            <span className="block text-[10px] text-muted mt-0.5">
+                              depth: {node.height - node.commonAncestor} · split @ #{node.commonAncestor.toLocaleString()}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right text-xs text-muted font-mono">
                           {node.lastChecked ? formatRelativeTime(new Date(node.lastChecked).getTime() / 1000) : '—'}

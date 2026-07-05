@@ -53,6 +53,8 @@ class ForkMonitor {
         status: 'pending',
         lastChecked: null,
         error: null,
+        forkHeight: null,
+        commonAncestor: null,
       });
     }
   }
@@ -177,6 +179,15 @@ class ForkMonitor {
       if (status === 'fork') {
         console.warn(`   [ForkMonitor] FORK: ${node.name} at height ${remoteHeight} — ${remoteHash.slice(0, 16)} != ${ourHashAtRemoteHeight?.slice(0, 16)}`);
         await this._recordMismatch(node.name, remoteHeight, remoteHash, ourHashAtRemoteHeight);
+        const ancestor = await this._findCommonAncestor(client, node, remoteHeight);
+        if (ancestor) {
+          this._updateStatus(node.name, {
+            forkHeight: ancestor.forkHeight,
+            commonAncestor: ancestor.commonHeight,
+          });
+        }
+      } else {
+        this._updateStatus(node.name, { forkHeight: null, commonAncestor: null });
       }
     } catch (err) {
       this._updateStatus(node.name, { status: 'offline', error: err.message });
@@ -225,6 +236,15 @@ class ForkMonitor {
       this._updateStatus(node.name, { height: remoteHeight, hash: remoteHash, ourHash: ourHashAtRemoteHeight, status, error: null });
       if (status === 'fork') {
         await this._recordMismatch(node.name, remoteHeight, remoteHash, ourHashAtRemoteHeight);
+        const ancestor = await this._findCommonAncestorRpc(node, remoteHeight);
+        if (ancestor) {
+          this._updateStatus(node.name, {
+            forkHeight: ancestor.forkHeight,
+            commonAncestor: ancestor.commonHeight,
+          });
+        }
+      } else {
+        this._updateStatus(node.name, { forkHeight: null, commonAncestor: null });
       }
     } catch (err) {
       this._updateStatus(node.name, { status: 'offline', error: err.message });
@@ -310,6 +330,100 @@ class ForkMonitor {
     if (current) {
       Object.assign(current, updates, { lastChecked: new Date().toISOString() });
     }
+  }
+
+  async _findCommonAncestor(client, node, forkHeight) {
+    try {
+      let low = Math.max(1, forkHeight - 1000);
+      let high = forkHeight;
+      let commonHeight = null;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const dbResult = await this.pool.query('SELECT hash FROM blocks WHERE height = $1', [mid]);
+        if (dbResult.rows.length === 0) { high = mid - 1; continue; }
+
+        const ourHash = dbResult.rows[0].hash;
+        const remoteHash = await this._getBlockHashAtHeight(client, mid);
+        if (!remoteHash) break;
+
+        if (ourHash === remoteHash) {
+          commonHeight = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      if (commonHeight !== null) {
+        const depth = forkHeight - commonHeight;
+        console.warn(`   [ForkMonitor] ${node.name} fork depth: ${depth} blocks (common ancestor: ${commonHeight})`);
+        return { commonHeight, forkHeight: commonHeight + 1 };
+      }
+    } catch (err) {
+      console.error(`   [ForkMonitor] Common ancestor search failed for ${node.name}: ${err.message}`);
+    }
+    return null;
+  }
+
+  async _findCommonAncestorRpc(node, forkHeight) {
+    const http = require('http');
+    const url = `http://${node.host}:${node.port}/`;
+    const rpcCall = (method, params = []) => new Promise((resolve, reject) => {
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+      const req = http.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeout: GRPC_DEADLINE_MS }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+      req.write(body);
+      req.end();
+    });
+
+    try {
+      let low = Math.max(1, forkHeight - 1000);
+      let high = forkHeight;
+      let commonHeight = null;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const dbResult = await this.pool.query('SELECT hash FROM blocks WHERE height = $1', [mid]);
+        if (dbResult.rows.length === 0) { high = mid - 1; continue; }
+
+        const ourHash = dbResult.rows[0].hash;
+        const res = await rpcCall('getblockhash', [mid]);
+        const remoteHash = res.result || null;
+        if (!remoteHash) break;
+
+        if (ourHash === remoteHash) {
+          commonHeight = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      if (commonHeight !== null) {
+        const depth = forkHeight - commonHeight;
+        console.warn(`   [ForkMonitor] ${node.name} fork depth: ${depth} blocks (common ancestor: ${commonHeight})`);
+        return { commonHeight, forkHeight: commonHeight + 1 };
+      }
+    } catch (err) {
+      console.error(`   [ForkMonitor] Common ancestor RPC search failed for ${node.name}: ${err.message}`);
+    }
+    return null;
+  }
+
+  _getBlockHashAtHeight(client, height) {
+    return new Promise((resolve) => {
+      const deadline = new Date(Date.now() + GRPC_DEADLINE_MS);
+      client.getBlock({ height }, { deadline }, (err, response) => {
+        if (err || !response || !response.hash) { resolve(null); return; }
+        resolve(this._hashToHex(response.hash));
+      });
+    });
   }
 
   async _recordMismatch(nodeName, height, remoteHash, ourHash) {
