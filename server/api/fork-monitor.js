@@ -9,7 +9,7 @@
 const POLL_INTERVAL_MS = 60_000;
 const GRPC_DEADLINE_MS = 5_000;
 
-const MONITORED_NODES = [
+const MAINNET_NODES = [
   { name: 'Cake Wallet', host: 'zec-node.cakewallet.com', port: 443, tls: true },
   { name: 'zprivacy', host: 'zprivacy.online', port: 443, tls: true },
   { name: 'z0n.jp', host: 'lwd.z0n.jp', port: 443, tls: true },
@@ -21,6 +21,14 @@ const MONITORED_NODES = [
   { name: 'zec.rocks EU', host: 'eu.zec.rocks', port: 443, tls: true },
   { name: 'zec.rocks AP', host: 'ap.zec.rocks', port: 443, tls: true },
 ];
+
+const TESTNET_NODES = [
+  { name: 'zec.rocks testnet', host: 'testnet.zec.rocks', port: 443, tls: true },
+  { name: 'Stardust testnet', host: 'testnet.zec.stardust.rest', port: 443, tls: true },
+];
+
+const network = (process.env.ZCASH_NETWORK || process.env.NETWORK || 'mainnet').toLowerCase();
+const MONITORED_NODES = network === 'testnet' ? TESTNET_NODES : MAINNET_NODES;
 
 class ForkMonitor {
   constructor({ pool, grpc, CompactTxStreamer }) {
