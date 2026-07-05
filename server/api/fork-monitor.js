@@ -186,24 +186,46 @@ class ForkMonitor {
   async _checkRpcNode(node, ourTip) {
     const http = require('http');
     const url = `http://${node.host}:${node.port}/`;
-    try {
-      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getblockcount', params: [] });
-      const result = await new Promise((resolve, reject) => {
-        const req = http.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeout: GRPC_DEADLINE_MS }, (res) => {
-          let data = '';
-          res.on('data', (c) => { data += c; });
-          res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
-        });
-        req.on('error', reject);
-        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-        req.write(body);
-        req.end();
+    const rpcCall = (method, params = []) => new Promise((resolve, reject) => {
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+      const req = http.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeout: GRPC_DEADLINE_MS }, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
       });
-      const remoteHeight = result.result;
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+      req.write(body);
+      req.end();
+    });
+    try {
+      const [countRes, hashRes] = await Promise.all([
+        rpcCall('getblockcount'),
+        rpcCall('getbestblockhash'),
+      ]);
+      const remoteHeight = countRes.result;
+      const remoteHash = hashRes.result || null;
       if (!remoteHeight) throw new Error('No result');
-      const status = remoteHeight === ourTip.height ? 'agree'
-        : remoteHeight > ourTip.height ? 'ahead' : 'behind';
-      this._updateStatus(node.name, { height: remoteHeight, hash: null, ourHash: null, status, error: null });
+      let status = 'syncing';
+      let ourHashAtRemoteHeight = null;
+      if (remoteHeight === ourTip.height) {
+        ourHashAtRemoteHeight = ourTip.hash;
+        status = remoteHash === ourTip.hash ? 'agree' : 'fork';
+      } else if (remoteHeight > ourTip.height) {
+        status = 'ahead';
+      } else {
+        const dbResult = await this.pool.query('SELECT hash FROM blocks WHERE height = $1', [remoteHeight]);
+        if (dbResult.rows.length > 0) {
+          ourHashAtRemoteHeight = dbResult.rows[0].hash;
+          status = remoteHash === ourHashAtRemoteHeight ? 'behind' : 'fork';
+        } else {
+          status = 'behind';
+        }
+      }
+      this._updateStatus(node.name, { height: remoteHeight, hash: remoteHash, ourHash: ourHashAtRemoteHeight, status, error: null });
+      if (status === 'fork') {
+        await this._recordMismatch(node.name, remoteHeight, remoteHash, ourHashAtRemoteHeight);
+      }
     } catch (err) {
       this._updateStatus(node.name, { status: 'offline', error: err.message });
     }
