@@ -1076,6 +1076,29 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
 });
 
 /**
+ * GET /api/crosslink/block-hash/:height
+ * Returns the block hash at a given height. Used by external fork-finder scripts.
+ */
+router.get('/api/crosslink/block-hash/:height', async (req, res) => {
+  try {
+    const height = parseInt(req.params.height);
+    if (isNaN(height) || height < 0) {
+      return res.status(400).json({ success: false, error: 'invalid height' });
+    }
+    const hash = normalizeHash(
+      await callZebraRPC('getblockhash', [height]).catch(() => null)
+    );
+    if (!hash) {
+      return res.status(404).json({ success: false, error: 'block not found' });
+    }
+    res.json({ success: true, height, hash });
+  } catch (error) {
+    console.error('Block hash lookup error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get block hash' });
+  }
+});
+
+/**
  * POST /api/crosslink/fork-monitor/report
  * Voluntary node registration. Persisted to PostgreSQL with configurable TTL.
  */

@@ -69,7 +69,7 @@ export function Footer() {
               <Link href="/tools" className="footer-link text-xs font-mono">Developer Tools</Link>
               <Link href="/decrypt" className="footer-link text-xs font-mono">Decrypt Memo</Link>
               <Link href="/tools/blend-check" className="footer-link text-xs font-mono">Blend Check</Link>
-              {isMainnet && <Link href="/swap" className="footer-link text-xs font-mono">Buy ZEC</Link>}
+              {isMainnet && <a href="https://cipherswap.app" target="_blank" rel="noopener noreferrer" className="footer-link text-xs font-mono">Buy ZEC</a>}
               <Link href="/docs" className="footer-link text-xs font-mono">API Docs</Link>
               <a
                 href="https://cipherpay.app"

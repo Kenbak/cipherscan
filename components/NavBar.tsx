@@ -357,13 +357,15 @@ export function NavBar() {
                 {priceData && isMainnet && <div className="hidden lg:block w-px h-4 bg-gray-500/30" />}
 
                 {isMainnet && (
-                  <Link
-                    href="/swap"
+                  <a
+                    href="https://cipherswap.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
@@ -416,14 +418,16 @@ export function NavBar() {
                 )}
                 {priceData && isMainnet && <div className="w-px h-4 bg-gray-500/30" />}
                 {isMainnet && (
-                  <Link
-                    href="/swap"
+                  <a
+                    href="https://cipherswap.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
-                  </Link>
+                  </a>
                 )}
               </div>
 

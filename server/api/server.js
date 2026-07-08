@@ -28,7 +28,6 @@ const crosschainRouter = require('./routes/crosschain');
 const statsRouter = require('./routes/stats');
 const privacyRouter = require('./routes/privacy');
 const scanRouter = require('./routes/scan');
-const swapRouter = require('./routes/swap');
 const addressRouter = require('./routes/address');
 const blendCheckRouter = require('./routes/blend-check');
 const crosslinkRouter = require('./routes/crosslink');
@@ -367,9 +366,6 @@ app.use(privacyRouter);
 
 // Scan routes: /api/scan/*, /api/lightwalletd/*
 app.use(scanRouter);
-
-// Swap routes: /api/swap/*
-app.use(swapRouter);
 
 // Address routes: /api/address/*
 app.use(addressRouter);
