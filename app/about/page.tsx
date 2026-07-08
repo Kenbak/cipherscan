@@ -45,11 +45,11 @@ async function getLiveStats(): Promise<LiveStats> {
       totalTransactions: privacy?.totals?.totalTx ?? null,
       shieldedTxAnalyzed: privacy?.totals?.shieldedTx ?? null,
       chainSizeGB: network?.blockchain?.sizeGB ?? null,
-      apiEndpoints: network?.apiEndpoints ?? 99,
+      apiEndpoints: network?.apiEndpoints ?? 104,
       ...STATIC,
     };
   } catch {
-    return { blocksIndexed: null, totalTransactions: null, shieldedTxAnalyzed: null, chainSizeGB: null, apiEndpoints: 99, ...STATIC };
+    return { blocksIndexed: null, totalTransactions: null, shieldedTxAnalyzed: null, chainSizeGB: null, apiEndpoints: 104, ...STATIC };
   }
 }
 
