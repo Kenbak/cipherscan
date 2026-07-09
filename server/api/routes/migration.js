@@ -324,8 +324,91 @@ router.get('/api/migration/denominations', async (req, res) => {
 function labelForPower(power) {
   const v = Math.pow(10, power);
   if (v >= 1) return `${v} ZEC`;
-  // Trim floating point noise for sub-1 ZEC denominations.
   return `${Number(v.toPrecision(2))} ZEC`;
 }
+
+// ─── GET /api/migration/scatter ──────────────────────────────────────────────
+// Individual migration transactions with privacy classification.
+// Each tx is tagged as "denominated" (common power-of-ten amount within 0.1%
+// tolerance) or "distinctive" (unique amount that weakens privacy).
+
+const COMMON_DENOMINATIONS = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+const DENOM_TOLERANCE = 0.001; // 0.1% tolerance for fee rounding
+
+function classifyAmount(zec) {
+  for (const d of COMMON_DENOMINATIONS) {
+    if (Math.abs(zec - d) / d <= DENOM_TOLERANCE) return { denomination: d, privacy: 'denominated' };
+  }
+  return { denomination: null, privacy: 'distinctive' };
+}
+
+router.get('/api/migration/scatter', async (req, res) => {
+  try {
+    const network = resolveNetwork();
+    const data = await cached(`zcash:migration:scatter:${network}`, 60, async () => {
+      const result = await pool.query(`
+        SELECT
+          txid,
+          block_height,
+          block_time,
+          ABS(value_balance_ironwood) AS ironwood_in_zat,
+          value_balance_orchard AS orchard_out_zat,
+          is_coinbase
+        FROM transactions
+        WHERE has_ironwood = true AND value_balance_ironwood < 0
+        ORDER BY block_height ASC
+        LIMIT 500
+      `);
+
+      let denominatedCount = 0;
+      let distinctiveCount = 0;
+      let denominatedVolume = 0;
+      let distinctiveVolume = 0;
+
+      const txs = result.rows.map(r => {
+        const zat = Number(r.ironwood_in_zat);
+        const zec = zat / 1e8;
+        const classification = classifyAmount(zec);
+
+        if (classification.privacy === 'denominated') {
+          denominatedCount++;
+          denominatedVolume += zat;
+        } else {
+          distinctiveCount++;
+          distinctiveVolume += zat;
+        }
+
+        return {
+          txid: r.txid,
+          height: Number(r.block_height),
+          timestamp: r.block_time ? Number(r.block_time) : null,
+          amountZat: zat,
+          amountZec: zec,
+          orchardOutZat: Number(r.orchard_out_zat) || 0,
+          isCoinbase: r.is_coinbase,
+          privacy: classification.privacy,
+          matchedDenomination: classification.denomination,
+        };
+      });
+
+      const total = denominatedCount + distinctiveCount;
+      return {
+        network,
+        total,
+        denominatedCount,
+        distinctiveCount,
+        denominatedPercent: total > 0 ? Math.round((denominatedCount / total) * 100) : 0,
+        denominatedVolumeZat: denominatedVolume,
+        distinctiveVolumeZat: distinctiveVolume,
+        txs,
+      };
+    });
+
+    res.json({ success: true, ...data });
+  } catch (err) {
+    console.error('migration/scatter error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 module.exports = router;

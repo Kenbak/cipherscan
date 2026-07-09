@@ -6,10 +6,15 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  ScatterChart,
+  Scatter,
   XAxis,
   YAxis,
   Tooltip,
   Cell,
+  ZAxis,
+  CartesianGrid,
+  ReferenceLine,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { TurnstileHero } from './TurnstileHero';
@@ -61,6 +66,21 @@ interface Denominations {
   totalTx: number;
   bins: DenomBin[];
 }
+interface ScatterTx {
+  txid: string;
+  height: number;
+  timestamp: number | null;
+  amountZec: number;
+  privacy: 'denominated' | 'distinctive';
+  matchedDenomination: number | null;
+}
+interface ScatterData {
+  total: number;
+  denominatedCount: number;
+  distinctiveCount: number;
+  denominatedPercent: number;
+  txs: ScatterTx[];
+}
 
 function zec(zat: number): number {
   return zat / 1e8;
@@ -83,6 +103,7 @@ export function MigrationClient({
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
   const [denoms, setDenoms] = useState<Denominations | null>(initialDenominations);
+  const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
 
   // Refresh client-side against the network-appropriate API (testnet vs mainnet).
@@ -95,11 +116,13 @@ export function MigrationClient({
         fetch(`${base}/api/migration/overview`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/cohorts`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/denominations`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]).then(([o, c, d]) => {
+        fetch(`${base}/api/migration/scatter`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]).then(([o, c, d, s]) => {
         if (cancelled) return;
         if (o?.success) setOverview(o);
         if (c?.success) setCohorts(c);
         if (d?.success) setDenoms(d);
+        if (s?.success) setScatter(s);
         setLoaded(true);
       });
     };
@@ -216,6 +239,9 @@ export function MigrationClient({
             <DenominationHistogram denoms={displayDenoms} activated={activated} />
             <AnonymitySet cohorts={displayCohorts} activated={activated} />
           </div>
+
+          {/* Migration privacy scatter */}
+          <MigrationScatter scatter={scatter} activated={activated} />
         </>
       )}
 
@@ -504,6 +530,115 @@ function AnonymitySet({ cohorts, activated }: { cohorts: Cohorts | null; activat
         </div>
       ) : (
         <EmptyPanel activated={activated} label="anonymity sets" />
+      )}
+    </div>
+  );
+}
+
+const DENOMINATED_COLOR = '#34d399'; // emerald
+const DISTINCTIVE_COLOR = '#f97316'; // orange
+
+function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null; activated: boolean }) {
+  const denominatedData = (scatter?.txs ?? [])
+    .filter(tx => tx.privacy === 'denominated')
+    .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
+  const distinctiveData = (scatter?.txs ?? [])
+    .filter(tx => tx.privacy === 'distinctive')
+    .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
+
+  const hasData = (scatter?.total ?? 0) > 0;
+
+  return (
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
+        <div>
+          <h2 className="text-sm font-bold text-primary">Migration privacy analysis</h2>
+          <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
+            Each dot is one migration. <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = common denomination
+            (blends in with the crowd). <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount
+            (unique fingerprint that weakens privacy). The dashed lines show ideal denominations.
+          </p>
+        </div>
+        {scatter && hasData && (
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono px-2 py-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 text-emerald-400">
+              {scatter.denominatedPercent}% private
+            </span>
+            <span className="text-[10px] font-mono text-muted">
+              {scatter.denominatedCount} / {scatter.total} txs
+            </span>
+          </div>
+        )}
+      </div>
+
+      {hasData ? (
+        <>
+          <ResponsiveContainer width="100%" height={280}>
+            <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+              <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" />
+              <XAxis
+                dataKey="x"
+                type="number"
+                name="Block"
+                tick={{ fontSize: 10, fill: '#8b8b9e' }}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                domain={['dataMin', 'dataMax']}
+              />
+              <YAxis
+                dataKey="y"
+                type="number"
+                name="Amount"
+                tick={{ fontSize: 10, fill: '#8b8b9e' }}
+                scale="log"
+                domain={[0.005, 'auto']}
+                tickFormatter={(v) => v >= 1 ? `${v}` : `${v}`}
+                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8b8b9e' } }}
+              />
+              <ZAxis range={[40, 40]} />
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.2)' }}
+                content={({ payload }) => {
+                  if (!payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="bg-[#12121a] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono">
+                      <div className="text-muted mb-1">Block #{d.x?.toLocaleString()}</div>
+                      <div className="text-primary font-bold">{d.y?.toFixed(8)} ZEC</div>
+                      <div className="mt-1" style={{ color: d.privacy === 'denominated' ? DENOMINATED_COLOR : DISTINCTIVE_COLOR }}>
+                        {d.privacy === 'denominated' ? `Matches ${d.matched} ZEC denomination` : 'Distinctive amount'}
+                      </div>
+                      <div className="text-muted/60 mt-1 text-[10px]">{d.txid?.slice(0, 16)}...</div>
+                    </div>
+                  );
+                }}
+              />
+              {[0.01, 0.1, 1, 10, 100].map(d => (
+                <ReferenceLine key={d} y={d} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
+              ))}
+              <Scatter name="Denominated" data={denominatedData} fill={DENOMINATED_COLOR} fillOpacity={0.8} />
+              <Scatter name="Distinctive" data={distinctiveData} fill={DISTINCTIVE_COLOR} fillOpacity={0.8} />
+            </ScatterChart>
+          </ResponsiveContainer>
+
+          {/* Legend + stats */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-cipher-border/30">
+            <div className="flex items-center gap-4 text-[10px] font-mono">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DENOMINATED_COLOR }} />
+                Common denomination
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DISTINCTIVE_COLOR }} />
+                Distinctive amount
+              </span>
+            </div>
+            <div className="text-[10px] font-mono text-muted">
+              log scale · dashed lines = ideal denominations
+            </div>
+          </div>
+        </>
+      ) : (
+        <EmptyPanel activated={activated} label="migration scatter" />
       )}
     </div>
   );
