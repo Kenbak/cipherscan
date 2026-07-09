@@ -250,6 +250,31 @@ async function findLinkedTransactions(pool, txid, options = {}) {
     };
   }
 
+  // Cross-pool migrations (Orchard → Ironwood) have no transparent I/O but may have
+  // a non-zero transparent_value_zat from the fee. Check the actual tx for pool crossing.
+  if (!hasTransparentAddresses) {
+    const migrationCheck = await pool.query(`
+      SELECT has_ironwood, value_balance_orchard, value_balance_ironwood, vin_count, vout_count
+      FROM transactions WHERE txid = $1
+    `, [txid]);
+    if (migrationCheck.rows.length > 0) {
+      const mtx = migrationCheck.rows[0];
+      const isCrossPool = mtx.has_ironwood &&
+        (parseInt(mtx.value_balance_orchard) || 0) !== 0 &&
+        (parseInt(mtx.value_balance_ironwood) || 0) !== 0 &&
+        parseInt(mtx.vin_count) === 0 && parseInt(mtx.vout_count) === 0;
+      if (isCrossPool) {
+        return {
+          txid,
+          flowType: null,
+          hasShieldedActivity: false,
+          linkedTransactions: [],
+          message: 'Cross-pool migration (Orchard → Ironwood) — no privacy risk',
+        };
+      }
+    }
+  }
+
   // Get transparent addresses for the current transaction
   const currentAddresses = await getTransparentAddresses(pool, txid, tx.flow_type);
 

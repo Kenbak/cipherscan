@@ -715,8 +715,12 @@ export default function TransactionPage() {
   const isShielding = hasTransparentInputs && !hasTransparentOutputs && valueBalance < 0;
   const isUnshielding = !hasTransparentInputs && hasTransparentOutputs && valueBalance > 0;
 
+  const isMigration = hasOrchard && hasIronwood && !hasTransparent &&
+    (data.valueBalanceOrchard || 0) !== 0 && (data.valueBalanceIronwood || 0) !== 0;
+
   const txType =
     isCoinbase ? 'COINBASE' :
+    isMigration ? 'MIGRATION' :
     hasIronwood && !hasTransparent ? 'IRONWOOD' :
     hasOrchard && !hasTransparent ? 'ORCHARD' :
     hasShielded && hasTransparent && isShielding ? 'SHIELDING' :
@@ -784,6 +788,15 @@ export default function TransactionPage() {
         );
       }
       return `New ${CURRENCY} created as a block reward.`;
+    }
+
+    if (txType === 'MIGRATION') {
+      const ironwoodAmt = Math.abs(data.valueBalanceIronwood || 0);
+      return `Orchard → Ironwood pool migration. ${ironwoodAmt.toFixed(4)} ${CURRENCY} crosses the turnstile into the formally-verified Ironwood pool. Senders and recipients remain shielded.`;
+    }
+
+    if (txType === 'IRONWOOD') {
+      return 'Fully private transaction using the Ironwood shielded pool (NU6.3). All amounts, senders, and recipients are encrypted.';
     }
 
     if (txType === 'ORCHARD') {
@@ -937,6 +950,31 @@ export default function TransactionPage() {
       );
     }
 
+    if (txType === 'MIGRATION') {
+      const ironwoodAmt = Math.abs(data.valueBalanceIronwood || 0);
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <Badge color="purple" icon={<Icons.Shield />}>Orchard</Badge>
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-sm font-mono font-bold text-cipher-yellow">{ironwoodAmt.toFixed(4)} ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
+        </div>
+      );
+    }
+
+    if (txType === 'IRONWOOD') {
+      return (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
+          <FlowArrow /><FlowArrowDown />
+          <span className="text-cipher-yellow/40 font-mono text-sm">████████ ZEC</span>
+          <FlowArrow /><FlowArrowDown />
+          <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
+        </div>
+      );
+    }
+
     if (txType === 'ORCHARD' || txType === 'SHIELDED') {
       return (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
@@ -1036,6 +1074,8 @@ export default function TransactionPage() {
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <StatusBadge status="confirmed" />
           {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
+          {txType === 'MIGRATION' && <Badge color="amber" icon={<Icons.Shield />}>MIGRATION</Badge>}
+          {txType === 'IRONWOOD' && <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>}
           {(txType === 'ORCHARD' || txType === 'SHIELDED') && <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>}
           {txType === 'SHIELDING' && <Badge color="green" icon={<Icons.Shield />}>SHIELDING</Badge>}
           {txType === 'UNSHIELDING' && <Badge color="orange" icon={<Icons.Shield />}>UNSHIELDING</Badge>}
@@ -1193,9 +1233,27 @@ export default function TransactionPage() {
               } />
 
               <InfoRow icon={Icons.Database} label="Value" tooltip={
-                (txType === 'ORCHARD' || txType === 'SHIELDED')
-                  ? "Transaction amount is private and encrypted" : "Total amount transferred"
+                (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'IRONWOOD')
+                  ? "Transaction amount is private and encrypted"
+                  : txType === 'MIGRATION'
+                    ? "Amount crossing from Orchard to Ironwood pool"
+                    : "Total amount transferred"
               } value={
+                txType === 'MIGRATION' ? (
+                  <span className="font-semibold text-cipher-yellow">
+                    {Math.abs(data.valueBalanceIronwood || 0).toFixed(4)} {CURRENCY}
+                    <span className="text-xs text-muted font-normal ml-2">Orchard → Ironwood</span>
+                  </span>
+                ) :
+                txType === 'IRONWOOD' ? (
+                  <div className="flex items-center gap-3">
+                    <svg className="w-3.5 h-3.5 text-cipher-yellow shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-cipher-yellow/40 font-mono tracking-tight">████████</span>
+                    <span className="text-[10px] text-cipher-yellow/60 font-mono uppercase">encrypted</span>
+                  </div>
+                ) :
                 (txType === 'ORCHARD' || txType === 'SHIELDED') && (hasOrchard || hasSapling) ? (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-3">
