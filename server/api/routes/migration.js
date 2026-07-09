@@ -355,7 +355,7 @@ router.get('/api/migration/scatter', async (req, res) => {
           value_balance_orchard AS orchard_out_zat,
           is_coinbase
         FROM transactions
-        WHERE has_ironwood = true AND value_balance_ironwood < 0
+        WHERE ${MIGRATION_PREDICATE}
         ORDER BY block_height ASC
         LIMIT 500
       `);
