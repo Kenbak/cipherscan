@@ -18,11 +18,11 @@
 const express = require('express');
 const router = express.Router();
 
-// NU6.3 / Ironwood testnet activation height (confirmed in librustzcash
-// release/nu6.3_testnet_support). Mainnet height is not yet chosen.
+// NU6.3 / Ironwood activation heights.
+// Mainnet: height 3,428,143 (~July 28 2026 8AM EST). Announced by Sean Bowe.
 const ACTIVATION_HEIGHT = {
   testnet: 4134000,
-  mainnet: null,
+  mainnet: 3428143,
 };
 
 // Anchor boundary spacing (ZIP 318 provisional): height ≡ 0 mod M, M = 256

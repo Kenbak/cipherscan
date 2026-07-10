@@ -187,20 +187,20 @@ export function MigrationClient({
         </div>
       )}
 
-      {/* No data state (mainnet before activation height is set, or API unavailable) */}
+      {/* No data state (API unavailable) */}
       {noData ? (
         <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-8 text-center">
           <div className="text-4xl mb-4" style={{ color: IRONWOOD }}>◇</div>
-          <h2 className="text-lg font-bold text-primary mb-2">Ironwood is coming to mainnet</h2>
+          <h2 className="text-lg font-bold text-primary mb-2">Ironwood activates at block 3,428,143</h2>
           <p className="text-sm text-secondary max-w-lg mx-auto leading-relaxed">
-            NU6.3 (Ironwood) is currently live on testnet. Once the mainnet activation height is announced,
-            this dashboard will show the migration countdown and fill with live data the moment the first
-            ZIP-318 migration transaction appears on-chain.
+            NU6.3 (Ironwood) mainnet activation is set for block 3,428,143 (~July 28, 2026).
+            This dashboard will show the migration countdown and fill with live data the moment
+            the first ZIP-318 migration transaction appears on-chain.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-cipher-border bg-glass-3 px-4 py-2">
-            <span className="w-2 h-2 rounded-full bg-cipher-cyan animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-cipher-yellow animate-pulse" />
             <span className="text-xs font-mono text-secondary">
-              Live on <a href="https://testnet.cipherscan.app/migration" className="text-cipher-cyan hover:underline">testnet</a> now
+              Countdown active &middot; preview on <a href="https://testnet.cipherscan.app/migration" className="text-cipher-cyan hover:underline">testnet</a>
             </span>
           </div>
         </div>
