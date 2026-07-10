@@ -138,6 +138,12 @@ export function MigrationClient({
   const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
   const noData = loaded && (!overview || !overview.migration);
 
+  // Even without API data, we know the mainnet activation height.
+  const MAINNET_ACTIVATION = 3428143;
+  const knownActivationHeight = overview?.activationHeight ?? MAINNET_ACTIVATION;
+  const knownTip = overview?.tipHeight ?? 0;
+  const showPreActivationCountdown = !activated && !hasMigrations && knownActivationHeight > 0;
+
   const displayOverview = overview;
   const displayCohorts = cohorts;
   const displayDenoms = denoms;
@@ -187,23 +193,13 @@ export function MigrationClient({
         </div>
       )}
 
-      {/* No data state (API unavailable) */}
-      {noData ? (
-        <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-8 text-center">
-          <div className="text-4xl mb-4" style={{ color: IRONWOOD }}>◇</div>
-          <h2 className="text-lg font-bold text-primary mb-2">Ironwood activates at block 3,428,143</h2>
-          <p className="text-sm text-secondary max-w-lg mx-auto leading-relaxed">
-            NU6.3 (Ironwood) mainnet activation is set for block 3,428,143 (~July 28, 2026).
-            This dashboard will show the migration countdown and fill with live data the moment
-            the first ZIP-318 migration transaction appears on-chain.
-          </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-cipher-border bg-glass-3 px-4 py-2">
-            <span className="w-2 h-2 rounded-full bg-cipher-yellow animate-pulse" />
-            <span className="text-xs font-mono text-secondary">
-              Countdown active &middot; preview on <a href="https://testnet.cipherscan.app/migration" className="text-cipher-cyan hover:underline">testnet</a>
-            </span>
-          </div>
-        </div>
+      {/* Pre-activation countdown — big visual display */}
+      {(noData || showPreActivationCountdown) ? (
+        <IronwoodCountdown
+          activationHeight={knownActivationHeight}
+          tipHeight={knownTip}
+          avgBlockTimeSecs={(overview as any)?.avgBlockTimeSecs || 75}
+        />
       ) : (
         <>
           {/* 3D turnstile hero — falls back to the 2D countdown card */}
@@ -247,6 +243,130 @@ export function MigrationClient({
 
       {/* Methodology */}
       <Methodology />
+    </div>
+  );
+}
+
+function IronwoodCountdown({
+  activationHeight,
+  tipHeight,
+  avgBlockTimeSecs,
+}: {
+  activationHeight: number;
+  tipHeight: number;
+  avgBlockTimeSecs: number;
+}) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const blocksLeft = Math.max(0, activationHeight - tipHeight);
+  const etaSecs = blocksLeft * avgBlockTimeSecs;
+  const targetDate = new Date(now + etaSecs * 1000);
+  const progressPct = tipHeight > 0
+    ? Math.min(100, (tipHeight / activationHeight) * 100)
+    : 0;
+
+  const days = Math.floor(etaSecs / 86400);
+  const hours = Math.floor((etaSecs % 86400) / 3600);
+  const minutes = Math.floor((etaSecs % 3600) / 60);
+
+  return (
+    <div className="mt-8 rounded-2xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-[#0a0a12] p-6 sm:p-10 overflow-hidden relative">
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at 50% 0%, ${IRONWOOD}22 0%, transparent 60%)` }}
+      />
+      <div className="relative z-10">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5 mb-4">
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: IRONWOOD }} />
+            <span className="text-[10px] font-mono text-muted uppercase tracking-widest">NU6.3 Ironwood Mainnet</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-primary">Activation Countdown</h2>
+        </div>
+
+        {blocksLeft > 0 ? (
+          <>
+            <div className="flex items-center justify-center gap-3 sm:gap-5">
+              <CountdownUnit value={days} label="days" />
+              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+              <CountdownUnit value={hours} label="hours" />
+              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+              <CountdownUnit value={minutes} label="min" />
+            </div>
+
+            <div className="text-center mt-8">
+              <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight" style={{ color: IRONWOOD }}>
+                {blocksLeft.toLocaleString()}
+              </div>
+              <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
+            </div>
+
+            <div className="mt-8 max-w-2xl mx-auto">
+              <div className="h-3 rounded-full bg-glass-3 overflow-hidden border border-white/5">
+                <div
+                  className="h-full rounded-full transition-all duration-1000 relative"
+                  style={{
+                    width: `${progressPct.toFixed(2)}%`,
+                    background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-pulse" />
+                </div>
+              </div>
+              <div className="flex justify-between mt-2 text-[10px] font-mono text-muted">
+                <span>block {tipHeight > 0 ? tipHeight.toLocaleString() : '...'}</span>
+                <span className="font-semibold" style={{ color: IRONWOOD }}>
+                  {activationHeight.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center mt-6 text-sm font-mono text-secondary">
+              est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+          </>
+        ) : (
+          <div className="text-center">
+            <div className="text-4xl sm:text-5xl font-bold font-mono" style={{ color: IRONWOOD }}>
+              ACTIVATED
+            </div>
+            <div className="text-sm text-secondary mt-2">
+              Ironwood is live. Migration transactions will appear below.
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-cipher-border/30">
+          <a
+            href="https://testnet.cipherscan.app/migration"
+            className="text-[11px] font-mono text-cipher-cyan hover:underline"
+          >
+            Preview on testnet
+          </a>
+          <span className="text-muted/30">|</span>
+          <span className="text-[11px] font-mono text-muted">
+            {progressPct.toFixed(1)}% of blocks mined
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="w-16 sm:w-20 h-16 sm:h-20 rounded-xl border border-cipher-border/50 bg-glass-3 flex items-center justify-center">
+        <span className="text-2xl sm:text-3xl font-bold font-mono text-primary">
+          {String(value).padStart(2, '0')}
+        </span>
+      </div>
+      <span className="text-[10px] font-mono text-muted mt-1.5 uppercase tracking-wider">{label}</span>
     </div>
   );
 }
