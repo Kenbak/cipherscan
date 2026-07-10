@@ -145,7 +145,9 @@ export function MigrationClient({
   const MAINNET_ACTIVATION = 3428143;
   const knownActivationHeight = overview?.activationHeight ?? MAINNET_ACTIVATION;
   const knownTip = overview?.tipHeight || fallbackTip;
-  const showPreActivationCountdown = !activated && !hasMigrations && knownActivationHeight > 0;
+  // Only show countdown after data has loaded and we confirmed pre-activation.
+  // Prevents flash of mainnet countdown on testnet while data is loading.
+  const showPreActivationCountdown = loaded && !activated && !hasMigrations && knownActivationHeight > 0;
 
   const displayOverview = overview;
   const displayCohorts = cohorts;
@@ -197,7 +199,7 @@ export function MigrationClient({
       )}
 
       {/* Pre-activation countdown — big visual display */}
-      {(noData || showPreActivationCountdown) ? (
+      {showPreActivationCountdown ? (
         <IronwoodCountdown
           activationHeight={knownActivationHeight}
           tipHeight={knownTip}
