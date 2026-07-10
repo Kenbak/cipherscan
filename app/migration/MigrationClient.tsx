@@ -105,6 +105,7 @@ export function MigrationClient({
   const [denoms, setDenoms] = useState<Denominations | null>(initialDenominations);
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
+  const [fallbackTip, setFallbackTip] = useState<number>(0);
 
   // Refresh client-side against the network-appropriate API (testnet vs mainnet).
   // Polls so the block countdown ticks live as new blocks arrive.
@@ -117,12 +118,14 @@ export function MigrationClient({
         fetch(`${base}/api/migration/cohorts`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/denominations`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/scatter`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]).then(([o, c, d, s]) => {
+        fetch(`${base}/api/blockchain-info`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]).then(([o, c, d, s, chainInfo]) => {
         if (cancelled) return;
         if (o?.success) setOverview(o);
         if (c?.success) setCohorts(c);
         if (d?.success) setDenoms(d);
         if (s?.success) setScatter(s);
+        if (chainInfo?.blocks) setFallbackTip(chainInfo.blocks);
         setLoaded(true);
       });
     };
@@ -141,7 +144,7 @@ export function MigrationClient({
   // Even without API data, we know the mainnet activation height.
   const MAINNET_ACTIVATION = 3428143;
   const knownActivationHeight = overview?.activationHeight ?? MAINNET_ACTIVATION;
-  const knownTip = overview?.tipHeight ?? 0;
+  const knownTip = overview?.tipHeight || fallbackTip;
   const showPreActivationCountdown = !activated && !hasMigrations && knownActivationHeight > 0;
 
   const displayOverview = overview;
