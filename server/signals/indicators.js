@@ -143,7 +143,7 @@ async function computeCrosschainFlow(pool, targetDate) {
     FROM cross_chain_swaps
     WHERE swap_created_at >= ($1::date - ($2 || ' days')::interval)
       AND swap_created_at < ($1::date + '1 day'::interval)
-      AND status = 'COMPLETED'
+      AND status = 'SUCCESS'
   `, [targetDate, windowDays]);
 
   const { inflow_zec, outflow_zec, swap_count } = result.rows[0];
