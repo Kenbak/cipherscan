@@ -121,10 +121,11 @@ async function computeMinerPressure(pool, targetDate) {
   if (earned === 0) return null;
 
   const spendPct = (spent / earned) * 100;
-  const { neutralSpendPct } = config.minerPressure;
 
-  // 0% spent → +100 (very bullish), 100% spent → -100 (very bearish)
-  const score = linearScale(spendPct, 100, 0, -100, 100);
+  // Contrarian signal: miners selling aggressively = buy opportunity (bullish)
+  // Miners holding = supply overhang building = bearish
+  // 100% spent → +100 (contrarian bullish), 0% spent → -100 (supply overhang)
+  const score = linearScale(spendPct, 0, 100, -100, 100);
   return Math.round(clamp(score, -100, 100));
 }
 

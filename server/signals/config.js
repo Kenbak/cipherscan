@@ -36,11 +36,12 @@ module.exports = {
     zScoreClamp: 3.0, // ±3 std devs → ±100
   },
 
-  // Miner Sell Pressure parameters
+  // Miner Sell Pressure (Contrarian)
   minerPressure: {
     // Percentage of earned ZEC spent within the observation window
-    // High spending = bearish (inverted score)
-    // 100% spent → -100, 0% spent → +100, 50% → 0
+    // Contrarian: miners selling aggressively = buy opportunity (they create dips)
+    // Miners holding = supply overhang building (eventual sell pressure)
+    // 100% spent → +100 (bullish), 0% spent → -100 (bearish)
     neutralSpendPct: 50,
   },
 
