@@ -26,7 +26,7 @@ router.use(requireServiceKey);
 
 router.get('/latest', async (req, res) => {
   try {
-    const result = await req.app.locals.db.query(`
+    const result = await req.app.locals.pool.query(`
       SELECT signal_date, svr_7d, svr_30d, pool_momentum, miner_pressure,
              crosschain_flow, shielded_tx_momentum, composite_score, signal,
              price_usd, shielded_pool_pct
@@ -85,7 +85,7 @@ router.get('/history', async (req, res) => {
   try {
     const days = Math.min(parseInt(req.query.days) || 90, 400);
 
-    const result = await req.app.locals.db.query(`
+    const result = await req.app.locals.pool.query(`
       SELECT signal_date, svr_7d, svr_30d, pool_momentum, miner_pressure,
              crosschain_flow, shielded_tx_momentum, composite_score, signal,
              price_usd, shielded_pool_pct
@@ -120,7 +120,7 @@ router.get('/performance', async (req, res) => {
   try {
     const horizon = Math.min(parseInt(req.query.horizon) || 7, 30);
 
-    const result = await req.app.locals.db.query(`
+    const result = await req.app.locals.pool.query(`
       SELECT
         s.signal,
         COUNT(*) as count,
