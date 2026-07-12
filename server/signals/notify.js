@@ -44,6 +44,20 @@ async function sendTelegram(message) {
   if (!res.ok) throw new Error(`Telegram API ${res.status}: ${await res.text()}`);
 }
 
+async function fetchLivePrice() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd&include_24hr_change=true');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      price: data.zcash?.usd || null,
+      change24h: data.zcash?.usd_24h_change || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const result = await pool.query(`
     SELECT signal_date, composite_score, signal, svr_7d, svr_30d,
@@ -63,9 +77,11 @@ async function main() {
   const latest = result.rows[0];
   const prev = result.rows[1];
 
+  const live = await fetchLivePrice();
   const emoji = SIGNAL_EMOJI[latest.signal] || '⚪';
   const score = Number(latest.composite_score);
-  const price = latest.price_usd ? `$${Number(latest.price_usd).toFixed(2)}` : '—';
+  const price = live?.price ? `$${live.price.toFixed(2)}` : (latest.price_usd ? `$${Number(latest.price_usd).toFixed(2)}` : '—');
+  const change24h = live?.change24h ? ` (${live.change24h >= 0 ? '+' : ''}${live.change24h.toFixed(1)}%)` : '';
   const poolPct = latest.shielded_pool_pct ? `${Number(latest.shielded_pool_pct).toFixed(1)}%` : '—';
 
   // Trend arrow
@@ -82,7 +98,7 @@ async function main() {
 
   const message = [
     `${emoji} *ZEC Signal: ${latest.signal}*${trend}`,
-    `Score: ${score}/100 | Price: ${price}`,
+    `Score: ${score}/100 | Price: ${price}${change24h}`,
     ``,
     `*Indicators:*`,
     `• SVR 7d: ${ind(latest.svr_7d)} | 30d: ${ind(latest.svr_30d)}`,
