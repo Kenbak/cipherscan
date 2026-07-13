@@ -1,28 +1,72 @@
 /**
- * Trading Signals — Private API Route
+ * Trading Signals — Paid API Route (x402 / CipherPay)
  *
  * Endpoints:
- *   GET /api/signals/latest     — current signal + last 7 days
- *   GET /api/signals/history    — full signal history (optional ?days=90)
- *   GET /api/signals/backtest   — summary stats
+ *   GET /api/signals/latest      — current signal + last 7 days
+ *   GET /api/signals/history     — full signal history (optional ?days=90)
+ *   GET /api/signals/performance — backtest summary stats
  *
- * Protected by X-Service-Key header.
+ * Authentication (priority order):
+ *   1. X-Service-Key header (admin bypass for Telegram bot / internal)
+ *   2. Authorization: Bearer cps_... (CipherPay session — 24h unlimited)
+ *   3. Authorization: Payment <credential> (x402/MPP one-time payment)
+ *   4. No auth → 402 Payment Required
+ *
+ * Privacy: txids are never logged or persisted by this service.
+ * Fixed denomination (0.001 ZEC) for anonymity set.
  */
 
 const { Router } = require('express');
 const router = Router();
 
-// Auth middleware — requires X-Service-Key
-function requireServiceKey(req, res, next) {
-  const key = req.headers['x-service-key'] || req.query.key;
-  const expected = process.env.SIGNALS_API_KEY;
-  if (!expected || key !== expected) {
-    return res.status(401).json({ error: 'Unauthorized' });
+// x402 paywall — loaded asynchronously (ESM module in CJS context)
+let paywall = null;
+
+(async () => {
+  const address = process.env.CIPHERPAY_PAYOUT_ADDRESS;
+  const apiKey = process.env.CIPHERPAY_API_KEY;
+
+  if (!address || !apiKey) {
+    console.warn('[signals] CIPHERPAY_PAYOUT_ADDRESS or CIPHERPAY_API_KEY not set — paywall disabled, service-key only');
+    return;
   }
-  next();
+
+  try {
+    const { zcashPaywall } = await import('@cipherpay/x402/express');
+    paywall = zcashPaywall({
+      address,
+      apiKey,
+      description: 'CipherScan Trading Signals — 24h access',
+      amount: 0.001,
+      protocol: 'both',
+    });
+    console.log('[signals] x402 paywall initialized (0.001 ZEC / 24h session)');
+  } catch (err) {
+    console.error('[signals] x402 paywall failed to load:', err.message);
+  }
+})();
+
+// Dual-auth middleware: admin key bypass → x402 paywall → 503 if not ready
+function authMiddleware(req, res, next) {
+  const serviceKey = req.headers['x-service-key'];
+  const expected = process.env.SIGNALS_API_KEY;
+  if (expected && serviceKey === expected) {
+    return next();
+  }
+
+  if (!paywall) {
+    if (!process.env.CIPHERPAY_API_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return res.status(503).json({
+      error: 'Payment service initializing. Try again in a few seconds.',
+    });
+  }
+
+  return paywall(req, res, next);
 }
 
-router.use(requireServiceKey);
+router.use(authMiddleware);
 
 router.get('/latest', async (req, res) => {
   try {

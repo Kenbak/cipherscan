@@ -18,6 +18,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@cipherpay/x402": "^0.6.0",
     "@grpc/grpc-js": "^1.14.1",
     "@grpc/proto-loader": "^0.8.0",
     "cors": "^2.8.5",
