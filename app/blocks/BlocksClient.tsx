@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
-import { getCoinbaseClientEmoji } from '@/lib/coinbase-client';
+import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 
 interface Block {
   height: number;
@@ -219,18 +219,26 @@ export default function BlocksClient({
                         </Link>
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
-                        <div className="flex items-center gap-1.5">
-                          {getCoinbaseClientEmoji(block.coinbase_hex) && (
-                            <span className="text-sm leading-none" title="Block-template client marker">
-                              {getCoinbaseClientEmoji(block.coinbase_hex)}
-                            </span>
-                          )}
-                          {block.miner_pool ? (
-                            <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
-                          ) : (
-                            <span className="text-xs font-mono text-muted/40">—</span>
-                          )}
-                        </div>
+                        {(() => {
+                          const clientInfo = getCoinbaseClientInfo(block.coinbase_hex);
+                          const tooltip = clientInfo.name
+                            ? `${clientInfo.name}${clientInfo.version ? ' ' + clientInfo.version : ''}`
+                            : undefined;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              {clientInfo.emoji && (
+                                <span className="text-sm leading-none" title={tooltip}>
+                                  {clientInfo.emoji}
+                                </span>
+                              )}
+                              {block.miner_pool ? (
+                                <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
+                              ) : (
+                                <span className="text-xs font-mono text-muted/40">—</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border text-right">
                         <span className="font-mono text-sm text-primary">{block.transaction_count}</span>

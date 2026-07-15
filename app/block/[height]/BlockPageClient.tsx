@@ -10,7 +10,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
-import { getCoinbaseClientEmoji } from '@/lib/coinbase-client';
+import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 
 interface CanonicalBlockSummary {
   height: number;
@@ -305,6 +305,7 @@ export default function BlockPageClient({
   };
 
   const coinbaseClientEmoji = getCoinbaseClientEmoji(data?.coinbaseHex);
+  const coinbaseClientInfo = getCoinbaseClientInfo(data?.coinbaseHex);
 
   if (loading) {
     const Skeleton = ({ className = '' }: { className?: string }) => (
@@ -549,9 +550,14 @@ export default function BlockPageClient({
               )}
               {coinbaseClientEmoji && (
                 <Badge color="muted" className="text-sm leading-none">
-                  <span role="img" aria-label="Detected block-template client marker">
+                  <span role="img" aria-label={coinbaseClientInfo.name ? `Mined with ${coinbaseClientInfo.name}` : 'Block-template client marker'}>
                     {coinbaseClientEmoji}
                   </span>
+                  {coinbaseClientInfo.name && (
+                    <span className="ml-1 text-[10px] font-mono text-muted">
+                      {coinbaseClientInfo.name}{coinbaseClientInfo.version ? ` ${coinbaseClientInfo.version}` : ''}
+                    </span>
+                  )}
                 </Badge>
               )}
 
@@ -736,7 +742,7 @@ export default function BlockPageClient({
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="block-hash-bg p-2.5 rounded-lg border border-cipher-border">
-                    <code className="text-xs text-cipher-cyan break-all leading-relaxed">{data.coinbaseText}</code>
+                    <code className="text-xs text-cipher-cyan break-all leading-relaxed" style={{ fontFamily: 'var(--font-mono), ui-monospace, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"' }}>{data.coinbaseText}</code>
                   </div>
                   {data.coinbaseHex && (
                     <details className="group">
