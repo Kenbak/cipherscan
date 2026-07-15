@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
+const { decodeCoinbaseText } = require('../coinbase-data');
 
 // Dependencies will be injected via middleware
 let pool;
@@ -578,13 +579,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         );
         if (cbResult.rows[0]?.coinbase_hex) {
           coinbaseHex = cbResult.rows[0].coinbase_hex;
-          const buf = Buffer.from(coinbaseHex, 'hex');
-          let text = '';
-          for (let i = 0; i < buf.length; i++) {
-            const byte = buf[i];
-            text += (byte >= 0x20 && byte <= 0x7e) ? String.fromCharCode(byte) : '.';
-          }
-          coinbaseText = text;
+          coinbaseText = decodeCoinbaseText(coinbaseHex);
         }
       } catch (e) { /* non-critical */ }
     }

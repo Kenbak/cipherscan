@@ -132,6 +132,8 @@ export async function fetchBlockByHeightFromPostgres(heightOrHash: number | stri
       minerPool: block.miner_pool || null,
       minerPoolUrl: block.miner_pool_url || null,
       minerPoolRegion: block.miner_pool_region || null,
+      coinbaseHex: block.coinbase_hex || null,
+      coinbaseText: block.coinbase_text || null,
       finality: block.finality_status || null,
       isOrphaned: Boolean(block.isOrphaned),
       orphanSource: block.orphanSource || null,
