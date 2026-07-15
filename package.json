@@ -13,15 +13,12 @@
     "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js"
   },
   "overrides": {
-    "axios": "1.14.0"
+    "axios": "1.14.0",
+    "postcss": "8.5.19"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.3",
-    "@grpc/proto-loader": "^0.8.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
-    "@solana/spl-token": "^0.4.14",
-    "@solana/web3.js": "^1.98.4",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^22.10.5",
     "@types/pg": "^8.15.6",
@@ -31,13 +28,12 @@
     "@types/topojson-client": "^3.1.5",
     "@xyflow/react": "^12.10.2",
     "autoprefixer": "^10.4.21",
-    "bip39": "^3.1.0",
     "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
     "next": "^16.2.7",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
-    "postcss": "^8.5.1",
+    "postcss": "8.5.19",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -47,7 +43,6 @@
     "three": "^0.185.1",
     "topojson-client": "^3.1.0",
     "typescript": "^5.7.2",
-    "viem": "^2.47.0",
     "zcashname-sdk": "^0.7.2",
     "zod": "^4.3.6"
   }
