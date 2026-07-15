@@ -379,7 +379,7 @@ export default function WalletsClient() {
                         nameKey="name"
                       >
                         {usageData.map((entry, idx) => (
-                          <Cell key={entry.name} fill={USAGE_COLORS[idx % USAGE_COLORS.length]} />
+                          <Cell key={entry.name} fill={WALLET_COLORS[entry.name] || USAGE_COLORS_FALLBACK[idx % USAGE_COLORS_FALLBACK.length]} />
                         ))}
                       </Pie>
                       <RechartsTooltip
@@ -470,7 +470,14 @@ export default function WalletsClient() {
 // SUB-COMPONENTS
 // ============================================================================
 
-const USAGE_COLORS = ['#56D4C8', '#a78bfa', '#F4B728', '#22c55e', '#f59e0b', '#64748b'];
+const WALLET_COLORS: Record<string, string> = {
+  'Vizor': '#a78bfa',
+  'Zkool': '#F4B728',
+  'Brave': '#f59e0b',
+  'ZODL / Edge / Unstoppable': '#56D4C8',
+  'Unknown / Other': '#64748b',
+};
+const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
 
 function StatCard({
   label,
