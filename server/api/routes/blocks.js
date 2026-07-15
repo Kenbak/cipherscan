@@ -99,20 +99,20 @@ router.get('/api/blocks/list', async (req, res) => {
     let result;
     if (cursor === null) {
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
          FROM blocks ORDER BY height DESC LIMIT $1`,
         [limit]
       );
     } else if (direction === 'prev') {
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
          FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
         [cursor, limit]
       );
       result.rows.reverse();
     } else {
       result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address
+        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
          FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
         [cursor, limit]
       );
