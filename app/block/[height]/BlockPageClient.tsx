@@ -10,6 +10,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
+import { getCoinbaseClientEmoji } from '@/lib/coinbase-client';
 
 interface CanonicalBlockSummary {
   height: number;
@@ -303,6 +304,8 @@ export default function BlockPageClient({
     txSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const coinbaseClientEmoji = getCoinbaseClientEmoji(data?.coinbaseHex);
+
   if (loading) {
     const Skeleton = ({ className = '' }: { className?: string }) => (
       <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
@@ -518,7 +521,7 @@ export default function BlockPageClient({
         <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex flex-wrap items-center gap-3 mt-1">
               {!data.isOrphaned && (
                 <Link
                   href={`/block/${data.height - 1}`}
@@ -543,6 +546,13 @@ export default function BlockPageClient({
               )}
               {!data.isOrphaned && (
                 <Badge color="green">CANONICAL</Badge>
+              )}
+              {coinbaseClientEmoji && (
+                <Badge color="muted" className="text-sm leading-none">
+                  <span role="img" aria-label="Detected block-template client marker">
+                    {coinbaseClientEmoji}
+                  </span>
+                </Badge>
               )}
 
               {!data.isOrphaned && (

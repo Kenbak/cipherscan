@@ -6,21 +6,11 @@
 const express = require('express');
 const router = express.Router();
 const { getPoolName, getPoolInfo } = require('../mining-pools');
+const { decodeCoinbaseText } = require('../coinbase-data');
 
 let pool;
 let redisClient;
 let callZebraRPC;
-
-function decodeCoinbaseText(hex) {
-  if (!hex) return null;
-  const buf = Buffer.from(hex, 'hex');
-  let text = '';
-  for (let i = 0; i < buf.length; i++) {
-    const byte = buf[i];
-    text += (byte >= 0x20 && byte <= 0x7e) ? String.fromCharCode(byte) : '.';
-  }
-  return text;
-}
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
