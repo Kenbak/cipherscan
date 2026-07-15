@@ -147,6 +147,191 @@ test('API base normalization prevents duplicated API path segments', () => {
   );
 });
 
+test('block resolution is shared, cached, and preserves availability errors', async (t) => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+
+  const requests = [];
+  global.fetch = async (url, init) => {
+    const identifier = new URL(url).pathname.split('/').pop();
+    requests.push({ identifier, init });
+
+    if (identifier === '404') return new Response(null, { status: 404 });
+    if (identifier === '410') return new Response(null, { status: 410 });
+    if (identifier === '503') return new Response(null, { status: 503 });
+    if (identifier === '504') throw new Error('network unavailable');
+    if (identifier === '505') {
+      return new Response('{', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (identifier === '506') {
+      return new Response(JSON.stringify({ height: 506 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({
+      height: '123',
+      hash: 'b'.repeat(64),
+      transactionCount: '1',
+      isOrphaned: true,
+      canonicalBlock: { hash: 'c'.repeat(64) },
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  const fakeCache = (callback) => {
+    const entries = new Map();
+    return (...args) => {
+      const key = JSON.stringify(args);
+      if (!entries.has(key)) entries.set(key, callback(...args));
+      return entries.get(key);
+    };
+  };
+  const { getBlockResolution } = loadTypeScriptModule('lib/seo.ts', {
+    react: { cache: fakeCache },
+    '@/lib/network': {
+      getConfiguredNetwork: () => 'mainnet',
+      normalizeApiBaseUrl: (url) => url,
+    },
+  });
+
+  assert.deepEqual(await getBlockResolution('not-a-block'), { state: 'absent' });
+  assert.equal(requests.length, 0, 'invalid identifiers must not reach the API');
+  assert.deepEqual(await getBlockResolution('404'), { state: 'absent' });
+  assert.deepEqual(await getBlockResolution('410'), { state: 'absent' });
+  await assert.rejects(getBlockResolution('503'), /returned 503/);
+  await assert.rejects(getBlockResolution('504'), /is unavailable/);
+  await assert.rejects(getBlockResolution('505'), /invalid JSON/);
+  await assert.rejects(getBlockResolution('506'), /invalid block payload/);
+
+  const uppercaseHash = 'A'.repeat(64);
+  const first = await getBlockResolution(uppercaseHash);
+  const second = await getBlockResolution(uppercaseHash);
+  assert.equal(first, second, 'the request cache should return one shared resolution');
+  assert.equal(first.state, 'found');
+  assert.equal(first.block.canonicalBlock.hash, 'c'.repeat(64));
+  const hashRequests = requests.filter(({ identifier }) => identifier === uppercaseHash.toLowerCase());
+  assert.equal(hashRequests.length, 1, 'metadata and page consumers should share one API request');
+  assert.equal(hashRequests[0].init.next.revalidate, 30);
+});
+
+test('block metadata uses resolved canonical identity through the shared builder', async () => {
+  let resolution;
+  const metadataCalls = [];
+  const blockHash = 'd'.repeat(64);
+  const layoutModule = loadTypeScriptModule('app/block/[height]/layout.tsx', {
+    '@/lib/seo': {
+      buildPageMetadata: (options) => {
+        metadataCalls.push(options);
+        return options;
+      },
+      formatNumber: (value) => Number(value).toLocaleString('en-US'),
+      getBlockResolution: async () => resolution,
+      truncateHash: (value) => value,
+    },
+  });
+
+  resolution = {
+    state: 'found',
+    block: {
+      height: 123,
+      hash: blockHash,
+      timestamp: 0,
+      transactionCount: '1',
+      size: 1024,
+      isOrphaned: false,
+    },
+  };
+  await layoutModule.generateMetadata({ params: Promise.resolve({ height: blockHash }) });
+  assert.equal(metadataCalls.at(-1).path, '/block/123');
+  assert.equal(metadataCalls.at(-1).index, true);
+  assert.equal(metadataCalls.at(-1).indexOnTestnet, undefined);
+  assert.equal(metadataCalls.at(-1).description.includes('Contains 1 transaction'), true);
+
+  resolution = {
+    state: 'found',
+    block: {
+      height: 123,
+      hash: blockHash,
+      timestamp: 0,
+      transactionCount: 2,
+      isOrphaned: true,
+      canonicalBlock: { hash: 'e'.repeat(64) },
+    },
+  };
+  await layoutModule.generateMetadata({ params: Promise.resolve({ height: blockHash }) });
+  assert.equal(metadataCalls.at(-1).path, `/block/${blockHash}`);
+  assert.equal(metadataCalls.at(-1).index, true);
+
+  resolution = { state: 'absent' };
+  await layoutModule.generateMetadata({ params: Promise.resolve({ height: '999' }) });
+  assert.equal(metadataCalls.at(-1).path, '/block/999');
+  assert.equal(metadataCalls.at(-1).index, false);
+  assert.equal(metadataCalls.at(-1).canonical, false);
+  assert.equal(metadataCalls.at(-1).imageAlt, metadataCalls.at(-1).title);
+});
+
+test('shared metadata policy indexes blocks only on mainnet', () => {
+  const cases = [
+    { network: 'mainnet', baseUrl: 'https://cipherscan.app', index: true },
+    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', index: false },
+    { network: 'crosslink-testnet', baseUrl: 'https://crosslink.cipherscan.app', index: false },
+  ];
+
+  for (const testCase of cases) {
+    const seoModule = loadTypeScriptModule('lib/seo.ts', {
+      react: { cache: (callback) => callback },
+      '@/lib/network': {
+        getConfiguredNetwork: () => testCase.network,
+        normalizeApiBaseUrl: (url) => url,
+      },
+    });
+    const metadata = seoModule.buildPageMetadata({
+      title: 'Zcash Block #123 | CipherScan',
+      description: 'Block metadata policy test.',
+      path: '/block/123',
+      index: true,
+    });
+
+    assert.equal(metadata.robots.index, testCase.index);
+    assert.equal(metadata.robots.follow, true);
+    assert.equal(metadata.alternates.canonical, `${testCase.baseUrl}/block/123`);
+    assert.equal(metadata.openGraph.url, `${testCase.baseUrl}/block/123`);
+  }
+});
+
+test('block consumers share one resolver and transaction JSON-LD escapes opening tags', () => {
+  const blockLayout = fs.readFileSync(
+    path.join(repositoryRoot, 'app/block/[height]/layout.tsx'),
+    'utf8',
+  );
+  const blockPage = fs.readFileSync(
+    path.join(repositoryRoot, 'app/block/[height]/page.tsx'),
+    'utf8',
+  );
+  const txLayout = fs.readFileSync(
+    path.join(repositoryRoot, 'app/tx/[txid]/layout.tsx'),
+    'utf8',
+  );
+
+  assert.equal(blockLayout.includes('getBlockResolution(height)'), true);
+  assert.equal(blockPage.includes('getBlockResolution(identifier)'), true);
+  assert.equal(blockLayout.includes("from 'react'"), false);
+  assert.equal(blockPage.includes("from 'react'"), false);
+  assert.equal(blockLayout.includes('fetch('), false);
+  assert.equal(blockPage.includes('fetch('), false);
+  assert.equal(
+    txLayout.includes("JSON.stringify(transactionJsonLd).replace(/</g, '\\\\u003c')"),
+    true,
+  );
+});
+
 test('current sitemap shares one bounded ZNS refresh and preserves name URLs', async (t) => {
   const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
   const originalFetch = global.fetch;

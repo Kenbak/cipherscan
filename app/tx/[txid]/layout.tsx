@@ -244,7 +244,9 @@ export default async function TxLayout({ params, children }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(transactionJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(transactionJsonLd).replace(/</g, '\\u003c'),
+        }}
       />
       <section
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12"
