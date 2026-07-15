@@ -615,17 +615,32 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
       } catch (_) {}
     }
 
+    // conv_actions is a LOWER BOUND on the true ZIP-317 logical action count:
+    // we approximate the transparent contribution with max(vin,vout), but the
+    // spec counts by byte size (ceil(in/150), ceil(out/34)), which can only be
+    // >= the input/output count. Shielded counts are exact. Therefore a tx that
+    // follows the 5000 zat/action policy always pays fee = 5000 * true_actions
+    // where true_actions >= conv_actions, i.e. fee is (near) a multiple of 5000
+    // at or above 5000 * conv_actions.
+    //
+    // The ±2 zatoshi tolerance handles wallets that end up a few zats short of a
+    // round multiple due to "recipient pays fee" / dust-change handling (observed
+    // fees like 14999, 99998). Without it these standard-intent txs were wrongly
+    // counted as non-standard, inflating that bucket from ~3% to ~11%.
+    const NEAR_MULT = `(fee % 5000 <= 2 OR fee % 5000 >= 4998)`;
+    const STANDARD_FILTER = `${NEAR_MULT} AND fee >= 5000 * conv_actions - 2 AND fee < 20000 * conv_actions - 2`;
+    const PRIORITY_FILTER = `fee BETWEEN 20000 * conv_actions - 2 AND 20000 * conv_actions + 2`;
+    const CONV_ACTIONS = `GREATEST(2,
+      GREATEST(vin_count, vout_count) +
+      GREATEST(shielded_spends, shielded_outputs) +
+      orchard_actions +
+      COALESCE(ironwood_actions, 0)
+    )`;
+
     const [summaryResult, historyResult] = await Promise.all([
       pool.query(`
         WITH fee_calc AS (
-          SELECT
-            fee,
-            GREATEST(2,
-              GREATEST(vin_count, vout_count) +
-              GREATEST(shielded_spends, shielded_outputs) +
-              orchard_actions +
-              COALESCE(ironwood_actions, 0)
-            ) AS conv_actions
+          SELECT fee, ${CONV_ACTIONS} AS conv_actions
           FROM transactions
           WHERE block_height >= $1
             AND is_coinbase = false
@@ -634,23 +649,14 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
         )
         SELECT
           COUNT(*) AS total,
-          COUNT(*) FILTER (WHERE fee = 5000 * conv_actions) AS standard,
-          COUNT(*) FILTER (WHERE fee = 20000 * conv_actions) AS priority,
-          COUNT(*) FILTER (WHERE fee != 5000 * conv_actions AND fee != 20000 * conv_actions) AS non_standard
+          COUNT(*) FILTER (WHERE ${STANDARD_FILTER}) AS standard,
+          COUNT(*) FILTER (WHERE ${PRIORITY_FILTER}) AS priority
         FROM fee_calc
       `, [minHeight]),
 
       pool.query(`
         WITH fee_calc AS (
-          SELECT
-            fee,
-            block_time,
-            GREATEST(2,
-              GREATEST(vin_count, vout_count) +
-              GREATEST(shielded_spends, shielded_outputs) +
-              orchard_actions +
-              COALESCE(ironwood_actions, 0)
-            ) AS conv_actions
+          SELECT fee, block_time, ${CONV_ACTIONS} AS conv_actions
           FROM transactions
           WHERE block_height >= $1
             AND is_coinbase = false
@@ -659,9 +665,9 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
         )
         SELECT
           to_char(to_timestamp(block_time), 'YYYY-MM-DD') AS date,
-          COUNT(*) FILTER (WHERE fee = 5000 * conv_actions) AS standard,
-          COUNT(*) FILTER (WHERE fee = 20000 * conv_actions) AS priority,
-          COUNT(*) FILTER (WHERE fee != 5000 * conv_actions AND fee != 20000 * conv_actions) AS non_standard
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE ${STANDARD_FILTER}) AS standard,
+          COUNT(*) FILTER (WHERE ${PRIORITY_FILTER}) AS priority
         FROM fee_calc
         GROUP BY 1
         ORDER BY 1
@@ -672,7 +678,7 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
     const total = parseInt(s.total);
     const standard = parseInt(s.standard);
     const priority = parseInt(s.priority);
-    const nonStandard = parseInt(s.non_standard);
+    const nonStandard = Math.max(0, total - standard - priority);
 
     const response = {
       success: true,
@@ -683,12 +689,17 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
         priority: { count: priority, pct: total > 0 ? Math.round((priority / total) * 1000) / 10 : 0 },
         non_standard: { count: nonStandard, pct: total > 0 ? Math.round((nonStandard / total) * 1000) / 10 : 0 },
       },
-      history: historyResult.rows.map(r => ({
-        date: r.date,
-        standard: parseInt(r.standard),
-        priority: parseInt(r.priority),
-        non_standard: parseInt(r.non_standard),
-      })),
+      history: historyResult.rows.map(r => {
+        const dayTotal = parseInt(r.total);
+        const dayStd = parseInt(r.standard);
+        const dayPri = parseInt(r.priority);
+        return {
+          date: r.date,
+          standard: dayStd,
+          priority: dayPri,
+          non_standard: Math.max(0, dayTotal - dayStd - dayPri),
+        };
+      }),
     };
 
     if (redisClient) {
@@ -731,12 +742,21 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
       } catch (_) {}
     }
 
+    // Expiry delta is measured as (expiry_height - mined block_height). Because a
+    // wallet sets expiry = target_height + BUILD_DELTA at construction time and the
+    // tx is mined at some height >= target, the OBSERVED delta = BUILD_DELTA minus
+    // the confirmation delay (blocks waited to be mined). So a "+40" wallet produces
+    // a decaying distribution 40, 39, 38, ... not a single value. We therefore match
+    // a tight window just below each configured peak: this captures the bulk of each
+    // wallet's traffic (most txs confirm within a few blocks) while keeping windows
+    // non-overlapping. Cross-contamination (a +40 tx delayed >15 blocks landing in
+    // the +20 window) is rare and reflected in confidence levels.
     const result = await pool.query(`
       SELECT
         COUNT(*) FILTER (
           WHERE orchard_actions = 2 AND vin_count = 0 AND vout_count = 0
             AND has_orchard = true
-        ) AS zashi_2action,
+        ) AS sdk_2action,
 
         COUNT(*) FILTER (
           WHERE orchard_actions = 4 AND vin_count = 0 AND vout_count = 0
@@ -745,19 +765,19 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
 
         COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
-            AND (expiry_height - block_height) = 20
+            AND (expiry_height - block_height) BETWEEN 16 AND 20
             AND has_orchard = true
         ) AS brave_expiry20,
 
         COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
-            AND (expiry_height - block_height) = 40
+            AND (expiry_height - block_height) BETWEEN 36 AND 40
             AND has_orchard = true
-        ) AS reference_expiry40,
+        ) AS family_expiry40,
 
         COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
-            AND (expiry_height - block_height) = 100
+            AND (expiry_height - block_height) BETWEEN 90 AND 100
             AND (has_orchard = true OR has_sapling = true)
         ) AS zkool_expiry100,
 
@@ -781,80 +801,68 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
     `, [minHeight]);
 
     const r = result.rows[0];
+    const familyExpiry40 = parseInt(r.family_expiry40);
 
+    // The librustzcash "+40 family" (ZODL, Edge, Unstoppable, Vizor, post-Mar Zkool)
+    // is indistinguishable on the expiry signal alone — so the +40 count is attached
+    // ONCE to the family entry, not repeated per wallet. Wallets are only broken out
+    // where a distinguishing signal exists: Vizor by 4-action padding, Brave by
+    // non-zero nLockTime, Zkool historically by +100.
     const wallets = [
       {
-        name: 'ZODL (librustzcash)',
-        description: 'Reference wallet (formerly Zashi) using the official Zcash SDK',
+        name: 'librustzcash family',
+        description: 'ZODL (formerly Zashi), Edge, Unstoppable, and current Zkool all use the official Zcash SDK and are indistinguishable from one another on-chain.',
+        familyMembers: ['ZODL', 'Edge', 'Unstoppable', 'Zkool (current)'],
         signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash SDK (DEFAULT_TX_EXPIRY_DELTA)' },
-          expiry: { value: '+40 blocks', matchCount: parseInt(r.reference_expiry40), confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40' },
-          locktime: { value: '0', confidence: 'high', source: 'librustzcash (never set)' },
-          actionPadding: { value: '2 actions (min pad)', matchCount: parseInt(r.zashi_2action), confidence: 'high', source: 'orchard BundleType::Transactional pads to 2' },
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
+          expiry: { value: '+40 blocks', matchCount: familyExpiry40, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40 (window 36–40 for confirmation delay)' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash never sets nLockTime' },
+          actionPadding: { value: '2 actions (min)', matchCount: parseInt(r.sdk_2action), confidence: 'medium', source: 'orchard BundleType pads to 2 — shared baseline, not wallet-specific' },
         },
+        note: 'Count is the whole SDK family combined — we cannot split these apart from expiry alone.',
       },
       {
         name: 'Vizor',
-        description: 'Self-custody desktop wallet (chainapsis) with Flutter + Rust',
+        description: 'Self-custody desktop wallet (chainapsis), Flutter + Rust. Uses librustzcash but pads every tx to 4 Orchard actions.',
         signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash transaction builder' },
-          expiry: { value: '+40 blocks', matchCount: parseInt(r.reference_expiry40), confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
-          locktime: { value: '0', confidence: 'high', source: 'librustzcash (same as ZODL)' },
-          actionPadding: { value: '4 actions always', matchCount: parseInt(r.vizor_4action), confidence: 'high', source: 'source review — always 4 change notes' },
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash transaction builder' },
+          expiry: { value: '+40 blocks', confidence: 'medium', source: 'inherits librustzcash family (+40); not distinguishing' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash (never set)' },
+          actionPadding: { value: '4 actions always', matchCount: parseInt(r.vizor_4action), confidence: 'medium', source: 'source review — 4 change notes. Upper bound: 2–3 recipient sends from other wallets also reach 4 actions.' },
         },
+        note: '4-action count is an upper bound — multi-recipient sends from any wallet overlap here.',
       },
       {
         name: 'Brave',
-        description: 'Browser wallet with own C++ ZCash implementation',
+        description: 'Browser wallet with its own C++ ZCash implementation (not librustzcash).',
         signals: {
           fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (brave-core PR #32580)' },
-          expiry: { value: '+20 blocks', matchCount: parseInt(r.brave_expiry20), confidence: 'high', source: 'zcashd legacy default (ZIP-203), brave-core uses zcash_primitives 0.x' },
-          locktime: { value: 'Current height', matchCount: parseInt(r.nonzero_locktime_height), confidence: 'high', source: 'brave-core sets locktime = chain tip (anti-reorg)' },
-          actionPadding: { value: '2 actions (min)', confidence: 'medium', source: 'uses standard Orchard builder padding' },
+          expiry: { value: '+20 blocks', matchCount: parseInt(r.brave_expiry20), confidence: 'medium', source: 'zcashd legacy default (+20). Also matches legacy zcashd/zebra wallets.' },
+          locktime: { value: 'Current height', matchCount: parseInt(r.nonzero_locktime_height), confidence: 'high', source: 'brave-core sets nLockTime = chain tip — the cleanest non-SDK signal we have' },
+          actionPadding: { value: '2 actions (min)', confidence: 'medium', source: 'standard Orchard builder padding' },
         },
+        note: 'Non-zero nLockTime is the strongest discriminator: librustzcash never sets it.',
       },
       {
-        name: 'Zkool',
-        description: 'Successor to YWallet (hhanh00), multi-account Rust+Flutter wallet with Warp Sync 2',
+        name: 'Zkool (historical)',
+        description: 'Successor to YWallet (hhanh00). Used a distinctive +100 expiry delta until March 2026.',
         signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash FeeRule (zip317)' },
-          expiry: { value: '+100 (pre-Mar 2026), +40 (current)', matchCount: parseInt(r.zkool_expiry100), confidence: 'high', source: 'zkool2 commit 393bf2d fixed delta from 100→40 (Mar 10 2026)' },
-          locktime: { value: '0', confidence: 'high', source: 'uses librustzcash Builder (locktime=0 default)' },
-          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard builder via librustzcash' },
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash FeeRule (zip317)' },
+          expiry: { value: '+100 (pre-Mar 2026)', matchCount: parseInt(r.zkool_expiry100), confidence: 'high', source: 'zkool2 commit 393bf2d fixed delta 100→40 on Mar 10 2026' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash Builder (locktime=0)' },
+          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard builder' },
         },
-        note: 'Post-fix: indistinguishable from ZODL. Historical shielded txs with +100 are likely Zkool.',
+        note: 'Only historical txs are identifiable. Current Zkool folds into the librustzcash family.',
       },
       {
         name: 'YWallet (deprecated)',
         description: 'Deprecated mobile wallet, predecessor to Zkool. Custom Warp Sync engine.',
         signals: {
           fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (own builder)' },
-          expiry: { value: 'Unknown (custom builder)', confidence: 'low', source: 'deprecated, replaced by Zkool' },
+          expiry: { value: 'Unknown', confidence: 'low', source: 'custom builder, not verified' },
           locktime: { value: 'Unknown', confidence: 'low', source: 'custom builder' },
           actionPadding: { value: 'Unknown', confidence: 'low', source: 'deprecated' },
         },
-      },
-      {
-        name: 'Edge',
-        description: 'Multi-coin wallet using Zcash SDK (librustzcash)',
-        signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash SDK' },
-          expiry: { value: '+40 blocks', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
-          locktime: { value: '0', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
-          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard padding via SDK' },
-        },
-        note: 'Indistinguishable from ZODL on-chain',
-      },
-      {
-        name: 'Unstoppable',
-        description: 'Multi-coin wallet using Zcash SDK (librustzcash)',
-        signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash SDK' },
-          expiry: { value: '+40 blocks', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
-          locktime: { value: '0', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
-          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard padding via SDK' },
-        },
-        note: 'Indistinguishable from ZODL on-chain',
       },
     ];
 

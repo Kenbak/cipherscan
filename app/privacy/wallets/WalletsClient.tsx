@@ -42,6 +42,7 @@ interface WalletFingerprint {
   name: string;
   description?: string;
   note?: string;
+  familyMembers?: string[];
   signals: {
     fee: WalletSignal;
     expiry: WalletSignal;
@@ -472,9 +473,9 @@ export default function WalletsClient() {
 
 const WALLET_COLORS: Record<string, string> = {
   'Vizor': '#a78bfa',
-  'Zkool': '#F4B728',
+  'Zkool (historical)': '#F4B728',
   'Brave': '#f59e0b',
-  'ZODL / Edge / Unstoppable': '#56D4C8',
+  'librustzcash family (ZODL/Edge/etc.)': '#56D4C8',
   'Unknown / Other': '#64748b',
 };
 const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
@@ -585,6 +586,16 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
           <div className="px-4 pb-3 pt-1 border-t border-[var(--color-border)]">
             {wallet.description && (
               <p className="text-xs text-[var(--color-text-secondary)] mb-3">{wallet.description}</p>
+            )}
+            {wallet.familyMembers && wallet.familyMembers.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Includes:</span>
+                {wallet.familyMembers.map(m => (
+                  <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-[#56D4C8]/10 text-[#56D4C8] border border-[#56D4C8]/20">
+                    {m}
+                  </span>
+                ))}
+              </div>
             )}
             {wallet.note && (
               <p className="text-xs text-[var(--color-text-tertiary)] italic mb-3">{wallet.note}</p>
@@ -704,36 +715,35 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   const walletMap: { name: string; value: number; confidence: 'high' | 'medium' | 'low' }[] = [];
   let identified = 0;
 
-  const vizorCount = fingerprints.wallets.find(w => w.name === 'Vizor')?.signals.actionPadding.matchCount || 0;
-  const braveExpiry = fingerprints.wallets.find(w => w.name === 'Brave')?.signals.expiry.matchCount || 0;
-  const braveLocktime = fingerprints.wallets.find(w => w.name === 'Brave')?.signals.locktime.matchCount || 0;
-  const referenceExpiry = fingerprints.wallets.find(w => w.name === 'ZODL (librustzcash)')?.signals.expiry.matchCount || 0;
-  const zkoolExpiry = fingerprints.wallets.find(w => w.name === 'Zkool')?.signals.expiry.matchCount || 0;
+  const find = (name: string) => fingerprints.wallets.find(w => w.name === name);
+  const vizorCount = find('Vizor')?.signals.actionPadding.matchCount || 0;
+  const braveLocktime = find('Brave')?.signals.locktime.matchCount || 0;
+  const familyExpiry = find('librustzcash family')?.signals.expiry.matchCount || 0;
+  const zkoolExpiry = find('Zkool (historical)')?.signals.expiry.matchCount || 0;
 
-  // Vizor: uniquely identifiable by 4-action padding
+  // Vizor: distinguishable by 4-action padding (upper bound)
   if (vizorCount > 0) {
-    walletMap.push({ name: 'Vizor', value: vizorCount, confidence: 'high' });
+    walletMap.push({ name: 'Vizor', value: vizorCount, confidence: 'medium' });
     identified += vizorCount;
   }
 
-  // Zkool: uniquely identifiable by expiry+100 (pre-March 2026 bug)
+  // Zkool historical: distinguishable by expiry+100 (pre-March 2026)
   if (zkoolExpiry > 0) {
-    walletMap.push({ name: 'Zkool', value: zkoolExpiry, confidence: 'high' });
+    walletMap.push({ name: 'Zkool (historical)', value: zkoolExpiry, confidence: 'high' });
     identified += zkoolExpiry;
   }
 
-  // Brave: identifiable by expiry+20 combined with non-zero locktime
-  const braveCount = Math.max(braveExpiry, braveLocktime);
-  if (braveCount > 0) {
-    walletMap.push({ name: 'Brave', value: braveCount, confidence: 'medium' });
-    identified += braveCount;
+  // Brave: cleanest signal is non-zero nLockTime (librustzcash never sets it)
+  if (braveLocktime > 0) {
+    walletMap.push({ name: 'Brave', value: braveLocktime, confidence: 'medium' });
+    identified += braveLocktime;
   }
 
-  // SDK wallets (ZODL + Edge + Unstoppable): expiry+40 minus Vizor
-  // Since Vizor also uses librustzcash (expiry+40), subtract Vizor from the total
-  const sdkCount = Math.max(0, referenceExpiry - vizorCount);
+  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/current Zkool, minus the
+  // Vizor subset (which also uses +40 but is separated out by its 4-action padding).
+  const sdkCount = Math.max(0, familyExpiry - vizorCount);
   if (sdkCount > 0) {
-    walletMap.push({ name: 'ZODL / Edge / Unstoppable', value: sdkCount, confidence: 'medium' });
+    walletMap.push({ name: 'librustzcash family (ZODL/Edge/etc.)', value: sdkCount, confidence: 'medium' });
     identified += sdkCount;
   }
 
