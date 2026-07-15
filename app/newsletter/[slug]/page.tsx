@@ -63,6 +63,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
   const currentIdx = allIssues.findIndex((n) => n.slug === slug);
   const prevIssue = currentIdx < allIssues.length - 1 ? allIssues[currentIdx + 1] : null;
   const nextIssue = currentIdx > 0 ? allIssues[currentIdx - 1] : null;
+  const discussesIronwood = /\bironwood\b/i.test(issue.content);
   const baseUrl = getBaseUrl();
   const pageUrl = new URL(`/newsletter/${issue.slug}`, `${baseUrl}/`).toString();
   const description = getIssueDescription(issue.summary, issue.date);
@@ -170,6 +171,19 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
       )}
 
       <NewsletterContent content={issue.content} />
+
+      {discussesIronwood && (
+        <aside className="mt-10 rounded-xl border border-cipher-yellow/20 bg-cipher-yellow/5 p-5">
+          <p className="text-xs font-mono text-cipher-yellow uppercase tracking-wider">Live Zcash data</p>
+          <p className="text-sm text-secondary mt-2">
+            Continue from this dated report with CipherScan&apos;s current Zcash Ironwood upgrade and
+            Orchard migration data.
+          </p>
+          <Link href="/ironwood" className="inline-flex mt-3 text-sm font-mono text-cipher-cyan hover:underline">
+            Open the Zcash Ironwood tracker →
+          </Link>
+        </aside>
+      )}
 
       <nav className="mt-16 pt-8 border-t border-cipher-border flex items-center justify-between">
         {prevIssue ? (

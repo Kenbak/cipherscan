@@ -145,7 +145,13 @@ function PoolOverviewHero({ data }: { data: PoolOverview }) {
                 onMouseEnter={() => setHoveredPool(p.key)}
                 onMouseLeave={() => setHoveredPool(null)}
               >
-                <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">{p.label}</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">
+                  {p.key === 'ironwood' ? (
+                    <Link href="/ironwood" className="hover:text-cipher-yellow hover:underline">
+                      {p.label}
+                    </Link>
+                  ) : p.label}
+                </p>
                 <p className="text-lg font-bold font-mono tabular-nums text-primary">{formatZecCompact(zec)}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[10px] font-mono text-muted">{pct.toFixed(1)}%</span>

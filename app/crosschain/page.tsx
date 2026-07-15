@@ -436,6 +436,14 @@ export default function CrosschainPage() {
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
             </p>
           </div>
+          <a
+            href="https://cipherswap.app/"
+            target="_blank"
+            rel="noopener"
+            className="inline-flex mt-3 text-sm font-mono text-cipher-yellow hover:underline"
+          >
+            Buy ZEC on CipherSwap, CipherScan&apos;s sister site →
+          </a>
         </div>
 
         {/* Stats strip */}
@@ -744,7 +752,7 @@ export default function CrosschainPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">BUY_ZEC_LATENCY</h2>
+                  <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">INBOUND_ZEC_LATENCY</h2>
                   <span className="text-[10px] text-muted ml-2">Time until ZEC arrives</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

@@ -1,18 +1,81 @@
 # SEO editorial review
 
-Status: review copy. Some titles, descriptions, and homepage headings are
-currently applied on the SEO review branch so they can be inspected in context;
-they remain open to editorial revision. Newsletter body copy and summaries have
-not been changed unless noted under resolved links.
+Status: mixed review. Buy ZEC ownership and Ironwood claims/copy are approved;
+the remaining titles, descriptions, and homepage headings are applied on the
+SEO review branch so they can be inspected in context and remain open to
+editorial revision. Newsletter body copy and summaries have not been changed
+unless noted under resolved links.
 
 ## Priorities and copy principles
 
 1. Establish `CipherScan` as the unambiguous site and product entity.
 2. Make the homepage the strongest result for `Zcash`, `Zcash explorer`, and `Zcash block explorer` without repeating those phrases unnaturally.
-3. Give each tool and data page one clear search intent, with unique title, H1, description, and visible introduction.
-4. Give testnet pages their own intent around `Zcash testnet` and `TAZ`; do not reuse mainnet copy.
-5. Put complete transaction hashes, block hashes, addresses, names, and public keys in server-rendered content and structured data so exact-identifier searches can match them.
-6. Use approved title/description copy for Open Graph and Twitter metadata unless a shorter social variant is explicitly approved.
+3. Send `Buy ZEC` and `Buy Zcash` authority to CipherSwap, CipherScan's sister site; do not publish a competing purchase page or guide on CipherScan.
+4. Make one data-rich page authoritative for `Zcash Ironwood`, `Ironwood Zcash`, `NU6.3`, and Orchard-to-Ironwood migration searches.
+5. Give each tool and data page one clear search intent, with unique title, H1, description, and visible introduction.
+6. Give testnet pages their own intent around `Zcash testnet` and `TAZ`; do not reuse mainnet copy.
+7. Put complete transaction hashes, block hashes, addresses, names, and public keys in server-rendered content and structured data so exact-identifier searches can match them.
+8. Use approved title/description copy for Open Graph and Twitter metadata unless a shorter social variant is explicitly approved.
+
+## Buy ZEC ownership — resolved
+
+CipherSwap is CipherScan's sister site and owns both transactional and
+informational `Buy ZEC` / `Buy Zcash` intent. CipherScan will not publish a
+`/buy-zec`, `/buy-zcash`, or competing purchase guide. Followed links in the
+mainnet navigation, footer, retired `/swap` redirect, and relevant cross-chain
+context send users and authority directly to CipherSwap. CipherSwap remains a
+separate entity and is not added to CipherScan's `Organization.sameAs` list.
+
+| Page | Proposed title | Proposed visible H1 | Proposed meta description |
+| --- | --- | --- | --- |
+| CipherSwap homepage | `Buy Zcash (ZEC) from BTC, ETH & More \| CipherSwap` | `Buy Zcash (ZEC) from Any Supported Chain` | `Buy ZEC by swapping BTC, ETH, SOL, stablecoins, and other supported assets into Zcash. Review the provider, rate, fees, and destination before you send.` |
+
+CipherSwap's supported assets, payment providers, address support, fees, KYC,
+custody, and failure handling belong in its own repository and legal review.
+CipherScan's existing Terms and Privacy Policy still require a separate legal
+decision because they describe retired on-site swap behavior.
+
+## Ironwood copy and intent — approved
+
+Use the existing migration tracker as the single authoritative Ironwood page.
+It now lives at `/ironwood`; `/migration` redirects permanently. Navigation,
+sitemap, breadcrumb, internal links, canonical, Open Graph metadata, and
+structured data change in the same release. Do not create a separate
+`/learn/ironwood` page competing for the same narrow query.
+
+| Field | Approved copy |
+| --- | --- |
+| Title | `Zcash Ironwood Upgrade & Migration Tracker \| CipherScan` |
+| Visible H1 | `Zcash Ironwood Upgrade & Migration Tracker` |
+| Meta description | `Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on CipherScan.` |
+
+Approved visible introduction:
+
+> Zcash Ironwood is the formally-verified shielded pool introduced by NU6.3.
+> CipherScan tracks its activation, Orchard migration, verified shielded
+> supply, anonymity cohorts, and trustless turnstile activity directly from
+> the chain.
+
+Recommended visible sections:
+
+1. A concise answer to “What is Zcash Ironwood?” and the current activation
+   state at block 3,428,143.
+2. The existing live tracker, labelled precisely as observed chain data.
+3. What NU6.3 changes and why Ironwood has a separate note commitment tree,
+   nullifier set, value pool, and v6 transaction format.
+4. What the Orchard-to-Ironwood turnstile exposes and what remains shielded.
+5. Migration activity, pool balances, timing buckets, and privacy observations,
+   with proxy metrics clearly distinguished from protocol guarantees.
+6. Current wallet migration guidance based on the production plan implementers
+   are shipping now.
+7. Visible FAQs, primary sources, methodology, and a last-updated timestamp.
+
+Owner direction: preserve the existing formal-verification, power-of-ten
+migration, anonymity-cohort, `BALANCED`, verified-supply, and cryptographic
+validity claims. The proof is not public yet, but the claims are approved as
+true and should not be qualified. Wallets are implementing the migration plan
+now; ZIP 318 reaches finalized status after production use rather than before
+implementation. Preserve old newsletter activation targets as dated history.
 
 ## Main page copy proposals
 

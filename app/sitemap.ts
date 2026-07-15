@@ -22,6 +22,7 @@ interface StaticRoute {
   path: string;
   changeFrequency: ChangeFrequency;
   priority: number;
+  lastModified?: string;
 }
 
 const MAINNET_ROUTES: StaticRoute[] = [
@@ -39,7 +40,12 @@ const MAINNET_ROUTES: StaticRoute[] = [
   { path: '/rich-list', changeFrequency: 'daily', priority: 0.8 },
   { path: '/reorgs', changeFrequency: 'hourly', priority: 0.8 },
   { path: '/crosschain', changeFrequency: 'daily', priority: 0.8 },
-  { path: '/migration', changeFrequency: 'daily', priority: 0.8 },
+  {
+    path: '/ironwood',
+    changeFrequency: 'daily',
+    priority: 0.8,
+    lastModified: '2026-07-14T00:00:00.000Z',
+  },
   { path: '/turnstile', changeFrequency: 'hourly', priority: 0.8 },
   { path: '/usage-clock', changeFrequency: 'daily', priority: 0.7 },
   { path: '/zodl', changeFrequency: 'daily', priority: 0.7 },
@@ -223,9 +229,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticPages: MetadataRoute.Sitemap = routeConfig.map((route) => ({
     url: route.path === '/' ? `${baseUrl}/` : `${baseUrl}${route.path}`,
-    ...(route.path === '/newsletter' && latestNewsletterDate
-      ? { lastModified: latestNewsletterDate }
-      : {}),
+    ...(route.lastModified
+      ? { lastModified: new Date(route.lastModified) }
+      : route.path === '/newsletter' && latestNewsletterDate
+        ? { lastModified: latestNewsletterDate }
+        : {}),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));

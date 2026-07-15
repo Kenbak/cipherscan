@@ -130,6 +130,23 @@ test('ZNS JSON-RPC terminates when its deadline signal aborts', async () => {
   await assert.rejects(request, (error) => error.name === 'TimeoutError');
 });
 
+test('API base normalization prevents duplicated API path segments', () => {
+  const { normalizeApiBaseUrl } = loadTypeScriptModule('lib/network.ts');
+
+  assert.equal(
+    normalizeApiBaseUrl('https://api.crosslink.cipherscan.app'),
+    'https://api.crosslink.cipherscan.app',
+  );
+  assert.equal(
+    normalizeApiBaseUrl('https://crosslink.cipherscan.app/api'),
+    'https://crosslink.cipherscan.app',
+  );
+  assert.equal(
+    normalizeApiBaseUrl('  https://crosslink.cipherscan.app/API/  '),
+    'https://crosslink.cipherscan.app',
+  );
+});
+
 test('current sitemap shares one bounded ZNS refresh and preserves name URLs', async (t) => {
   const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
   const originalFetch = global.fetch;
@@ -176,6 +193,32 @@ test('current sitemap shares one bounded ZNS refresh and preserves name URLs', a
   assert.ok(results.every((entries) => entries.some(
     (entry) => entry.url === 'https://cipherscan.app/name/name4999',
   )));
+  assert.ok(results.every((entries) => entries.some(
+    (entry) => entry.url === 'https://cipherscan.app/ironwood',
+  )));
+  assert.ok(results.every((entries) => {
+    const ironwood = entries.find((entry) => entry.url === 'https://cipherscan.app/ironwood');
+    return ironwood?.lastModified?.toISOString() === '2026-07-14T00:00:00.000Z';
+  }));
+  assert.ok(results.every((entries) => entries.every(
+    (entry) => entry.url !== 'https://cipherscan.app/migration',
+  )));
+});
+
+test('legacy migration and swap routes permanently consolidate authority', async () => {
+  const configModule = loadTypeScriptModule('next.config.ts');
+  const redirects = await configModule.default.redirects();
+
+  assert.ok(redirects.some((redirect) => (
+    redirect.source === '/migration'
+    && redirect.destination === '/ironwood'
+    && redirect.permanent === true
+  )));
+  assert.ok(redirects.some((redirect) => (
+    redirect.source === '/swap'
+    && redirect.destination === 'https://cipherswap.app/'
+    && redirect.permanent === true
+  )));
 });
 
 test('testnet keeps its homepage-only sitemap without contacting ZNS', async () => {
@@ -210,4 +253,39 @@ test('testnet keeps its homepage-only sitemap without contacting ZNS', async () 
     changeFrequency: 'daily',
     priority: 1,
   }]);
+});
+
+test('Crosslink sitemap stays empty without contacting chain or name services', async () => {
+  const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
+  let externalCalls = 0;
+  const sitemapModule = loadTypeScriptModule('app/sitemap.ts', {
+    'next/cache': { unstable_cache: (callback) => callback },
+    '@/lib/newsletter': { getAllNewsletters: () => [] },
+    '@/lib/refresh-cache': refreshCache,
+    '@/lib/seo': {
+      getApiUrl: () => {
+        externalCalls += 1;
+        return 'https://api.crosslink.cipherscan.app';
+      },
+      getBaseUrl: () => {
+        externalCalls += 1;
+        return 'https://crosslink.cipherscan.app';
+      },
+      getNetwork: () => 'crosslink-testnet',
+    },
+    '@/lib/zns': {
+      getZnsStatus: async () => {
+        externalCalls += 1;
+        return { registered: 0 };
+      },
+      isValidName: () => true,
+      listZnsRegistrations: async () => {
+        externalCalls += 1;
+        return [];
+      },
+    },
+  });
+
+  assert.deepEqual(await sitemapModule.default(), []);
+  assert.equal(externalCalls, 0);
 });

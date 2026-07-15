@@ -1,6 +1,10 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import { getConfiguredNetwork, type AppNetwork } from '@/lib/network';
+import {
+  getConfiguredNetwork,
+  normalizeApiBaseUrl,
+  type AppNetwork,
+} from '@/lib/network';
 
 export type SeoNetwork = AppNetwork;
 
@@ -36,7 +40,7 @@ export function getApiUrl(): string {
     testnet: 'https://api.testnet.cipherscan.app',
     'crosslink-testnet': process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
   };
-  return urls[network];
+  return normalizeApiBaseUrl(urls[network]);
 }
 
 function absoluteUrl(path: string): string {

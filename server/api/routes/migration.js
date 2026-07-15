@@ -53,8 +53,23 @@ async function cached(key, ttl, fn) {
 
 function resolveNetwork() {
   const net = (process.env.ZCASH_NETWORK || process.env.NETWORK || 'mainnet').toLowerCase();
-  return net === 'testnet' ? 'testnet' : 'mainnet';
+  if (net === 'testnet') return 'testnet';
+  if (net === 'crosslink' || net === 'crosslink-testnet') return 'crosslink-testnet';
+  return 'mainnet';
 }
+
+// Crosslink is a separate experimental chain and does not inherit Zcash
+// mainnet's Ironwood schedule. Keep these endpoints unavailable until that
+// deployment has an explicit, verified activation policy.
+router.use('/api/migration', (req, res, next) => {
+  if (resolveNetwork() === 'crosslink-testnet') {
+    return res.status(404).json({
+      success: false,
+      error: 'Ironwood migration data is not available on Crosslink.',
+    });
+  }
+  next();
+});
 
 // Reference node for testnet: zec.rocks lightwalletd gRPC
 const REFERENCE_GRPC_URL = 'testnet.zec.rocks:443';

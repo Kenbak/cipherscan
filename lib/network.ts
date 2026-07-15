@@ -19,3 +19,13 @@ export function getConfiguredNetwork(): AppNetwork | undefined {
 
   return undefined;
 }
+
+/**
+ * Public API helpers append their own `/api/...` paths. Accept the legacy
+ * Crosslink setting that ended in `/api`, but normalize every configured base
+ * to an origin-style URL so callers cannot accidentally request `/api/api/...`.
+ */
+export function normalizeApiBaseUrl(value: string): string {
+  const withoutTrailingSlashes = value.trim().replace(/\/+$/, '');
+  return withoutTrailingSlashes.replace(/\/api$/i, '');
+}

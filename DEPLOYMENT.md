@@ -70,9 +70,9 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 | `NEXT_PUBLIC_NETWORK` | **Yes for builds** | Deployment identity: `mainnet`, `testnet`, or `crosslink-testnet`. Controls APIs, currency labels, canonical hosts, and indexation. |
 | `NEXT_PUBLIC_LIGHTWALLETD_HOST` | No | Lightwalletd hostname for client-side gRPC |
 | `NEXT_PUBLIC_LIGHTWALLETD_PORT` | No | Lightwalletd port (default 9067) |
-| `NEXT_PUBLIC_HELIUS_API_KEY` | No | Solana RPC for `/swap` page wallet checks |
+| `NEXT_PUBLIC_HELIUS_API_KEY` | No | Legacy Solana wallet checks; no active CipherScan route uses this key |
 | `NEAR_INTENTS_API_KEY` | No | NEAR Intents Explorer API (historical swap data) |
-| `NEAR_ONECLICK_API_KEY` | No | NEAR 1-Click Swap API for `/swap` execution |
+| `NEAR_ONECLICK_API_KEY` | No | Legacy swap execution integration; `/swap` now redirects to CipherSwap |
 | `NEXT_TELEMETRY_DISABLED` | Recommended | Set to `1` — disable Next.js telemetry |
 | `ZEBRA_GRPC_URL` | No | Zebra gRPC indexer address (e.g. `127.0.0.1:8230`) |
 

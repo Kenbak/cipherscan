@@ -48,6 +48,8 @@ interface Cohort {
   firstTime: number | null;
 }
 interface Cohorts {
+  success?: boolean;
+  network?: string;
   boundaryModulus: number;
   cohortCount: number;
   avgAnonymitySet: number;
@@ -63,6 +65,8 @@ interface DenomBin {
   volumeZat: number;
 }
 interface Denominations {
+  success?: boolean;
+  network?: string;
   totalTx: number;
   bins: DenomBin[];
 }
@@ -75,6 +79,8 @@ interface ScatterTx {
   matchedDenomination: number | null;
 }
 interface ScatterData {
+  success?: boolean;
+  network?: string;
   total: number;
   denominatedCount: number;
   distinctiveCount: number;
@@ -95,17 +101,20 @@ export function MigrationClient({
   initialOverview,
   initialCohorts,
   initialDenominations,
+  deploymentNetwork,
+  fallbackActivationHeight,
 }: {
   initialOverview: Overview | null;
   initialCohorts: Cohorts | null;
   initialDenominations: Denominations | null;
+  deploymentNetwork: 'mainnet' | 'testnet' | 'crosslink-testnet';
+  fallbackActivationHeight: number;
 }) {
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
   const [denoms, setDenoms] = useState<Denominations | null>(initialDenominations);
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
-  const [fallbackTip, setFallbackTip] = useState<number>(0);
 
   // Refresh client-side against the network-appropriate API (testnet vs mainnet).
   // Polls so the block countdown ticks live as new blocks arrive.
@@ -118,14 +127,12 @@ export function MigrationClient({
         fetch(`${base}/api/migration/cohorts`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/denominations`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${base}/api/migration/scatter`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${base}/api/blockchain-info`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]).then(([o, c, d, s, chainInfo]) => {
+      ]).then(([o, c, d, s]) => {
         if (cancelled) return;
-        if (o?.success) setOverview(o);
-        if (c?.success) setCohorts(c);
-        if (d?.success) setDenoms(d);
-        if (s?.success) setScatter(s);
-        if (chainInfo?.blocks) setFallbackTip(chainInfo.blocks);
+        if (o?.success && o.network === deploymentNetwork) setOverview(o);
+        if (c?.success && c.network === deploymentNetwork) setCohorts(c);
+        if (d?.success && d.network === deploymentNetwork) setDenoms(d);
+        if (s?.success && s.network === deploymentNetwork) setScatter(s);
         setLoaded(true);
       });
     };
@@ -141,13 +148,17 @@ export function MigrationClient({
   const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
   const noData = loaded && (!overview || !overview.migration);
 
-  // Even without API data, we know the mainnet activation height.
-  const MAINNET_ACTIVATION = 3428143;
-  const knownActivationHeight = overview?.activationHeight ?? MAINNET_ACTIVATION;
-  const knownTip = overview?.tipHeight || fallbackTip;
+  // Keep the fallback aligned with the deployment when its API is temporarily
+  // unavailable; a testnet response must never begin with mainnet data.
+  const knownActivationHeight = overview?.activationHeight ?? fallbackActivationHeight;
+  const knownTip = overview?.tipHeight || 0;
   // Only show countdown after data has loaded and we confirmed pre-activation.
   // Prevents flash of mainnet countdown on testnet while data is loading.
-  const showPreActivationCountdown = loaded && !activated && !hasMigrations && knownActivationHeight > 0;
+  const showPreActivationCountdown = loaded
+    && !activated
+    && !hasMigrations
+    && knownActivationHeight > 0
+    && knownTip > 0;
 
   const displayOverview = overview;
   const displayCohorts = cohorts;
@@ -161,16 +172,20 @@ export function MigrationClient({
         <span className="opacity-40">/</span>
         <Link href="/pools" className="hover:text-primary transition-colors">Pools</Link>
         <span className="opacity-40">/</span>
-        <span className="text-secondary">Migration</span>
+        <span className="text-secondary">Ironwood</span>
       </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Orchard <span className="text-muted font-normal">→</span>{' '}
-            <span style={{ color: IRONWOOD }}>Ironwood</span> Migration
+            Zcash <span style={{ color: IRONWOOD }}>Ironwood</span>{' '}Upgrade &amp; Migration Tracker
           </h1>
+          <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
+            Zcash Ironwood is the formally-verified shielded pool introduced by NU6.3. CipherScan tracks
+            its activation, Orchard migration, verified shielded supply, anonymity cohorts, and trustless
+            turnstile activity directly from the chain.
+          </p>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
             NU6.3 moves shielded value from Orchard into the formally-verified{' '}
             <span style={{ color: IRONWOOD }} className="font-semibold">Ironwood</span> pool through a
@@ -187,23 +202,36 @@ export function MigrationClient({
         )}
       </div>
 
+      <section className="mt-6 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+        <h2 className="text-sm font-bold text-primary">What the Zcash Ironwood upgrade changes</h2>
+        <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
+          Ironwood keeps Orchard&apos;s Action and Halo2 proof system while adding its own note commitment
+          tree, nullifier set, chain value pool, chain-history metadata, and v6 transaction format. Mainnet
+          activation is fixed at block 3,428,143; testnet activation is block 4,134,000.
+        </p>
+      </section>
 
-
-      {!loaded && !initialOverview && (
+      {!loaded && !initialOverview ? (
         <div className="mt-8 h-80 sm:h-[420px] rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-2 border-cipher-border border-t-cipher-yellow rounded-full animate-spin" />
             <span className="text-xs font-mono text-muted">Loading migration data…</span>
           </div>
         </div>
-      )}
-
-      {/* Pre-activation countdown — big visual display */}
-      {showPreActivationCountdown ? (
+      ) : noData ? (
+        <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-6 text-center">
+          <h2 className="text-sm font-bold text-primary">Migration data unavailable</h2>
+          <p className="text-xs text-muted mt-2">
+            CipherScan could not load Ironwood data for this network. Try again shortly.
+          </p>
+        </div>
+      ) : showPreActivationCountdown ? (
+        /* Pre-activation countdown — big visual display */
         <IronwoodCountdown
           activationHeight={knownActivationHeight}
           tipHeight={knownTip}
           avgBlockTimeSecs={(overview as any)?.avgBlockTimeSecs || 75}
+          deploymentNetwork={deploymentNetwork}
         />
       ) : (
         <>
@@ -246,6 +274,8 @@ export function MigrationClient({
         </>
       )}
 
+      <WalletMigrationGuide />
+
       {/* Methodology */}
       <Methodology />
     </div>
@@ -256,10 +286,12 @@ function IronwoodCountdown({
   activationHeight,
   tipHeight,
   avgBlockTimeSecs,
+  deploymentNetwork,
 }: {
   activationHeight: number;
   tipHeight: number;
   avgBlockTimeSecs: number;
+  deploymentNetwork: 'mainnet' | 'testnet' | 'crosslink-testnet';
 }) {
   const [now, setNow] = useState(Date.now());
 
@@ -278,6 +310,14 @@ function IronwoodCountdown({
   const days = Math.floor(etaSecs / 86400);
   const hours = Math.floor((etaSecs % 86400) / 3600);
   const minutes = Math.floor((etaSecs % 3600) / 60);
+  const networkLabel = deploymentNetwork === 'mainnet'
+    ? 'Mainnet'
+    : deploymentNetwork === 'testnet'
+      ? 'Testnet'
+      : 'Crosslink Testnet';
+  const alternateExplorer = deploymentNetwork === 'mainnet'
+    ? { href: 'https://testnet.cipherscan.app/ironwood', label: 'Preview on testnet' }
+    : { href: 'https://cipherscan.app/ironwood', label: 'View on mainnet' };
 
   return (
     <div className="mt-8 rounded-2xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-[#0a0a12] p-6 sm:p-10 overflow-hidden relative">
@@ -289,7 +329,9 @@ function IronwoodCountdown({
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5 mb-4">
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: IRONWOOD }} />
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest">NU6.3 Ironwood Mainnet</span>
+            <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
+              NU6.3 Ironwood {networkLabel}
+            </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-primary">Activation Countdown</h2>
         </div>
@@ -348,10 +390,10 @@ function IronwoodCountdown({
 
         <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-cipher-border/30">
           <a
-            href="https://testnet.cipherscan.app/migration"
+            href={alternateExplorer.href}
             className="text-[11px] font-mono text-cipher-cyan hover:underline"
           >
-            Preview on testnet
+            {alternateExplorer.label}
           </a>
           <span className="text-muted/30">|</span>
           <span className="text-[11px] font-mono text-muted">
@@ -776,6 +818,60 @@ function EmptyPanel({ activated }: { activated: boolean; label?: string }) {
         {activated ? 'No migrations indexed yet' : 'Populates at activation'}
       </p>
     </div>
+  );
+}
+
+function WalletMigrationGuide() {
+  return (
+    <section className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+      <h2 className="text-sm font-bold text-primary">How wallets migrate Orchard funds to Ironwood</h2>
+      <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
+        Wallet teams are implementing ZIP 318 as the production migration plan now. The specification
+        reaches its finalized state through the behavior proven in production, so supported wallets can
+        ship the migration flow while those operational details are settled.
+      </p>
+      <ol className="mt-4 grid gap-3 sm:grid-cols-2 text-xs text-secondary">
+        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
+          <span className="block font-mono text-[10px] text-muted mb-1">01 · PREPARE</span>
+          The wallet identifies Orchard funds and can split notes into migration-sized transfers.
+        </li>
+        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
+          <span className="block font-mono text-[10px] text-muted mb-1">02 · SCHEDULE</span>
+          The user approves a plan that spreads transfers across shared anchor-height windows.
+        </li>
+        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
+          <span className="block font-mono text-[10px] text-muted mb-1">03 · BROADCAST</span>
+          Supported wallets submit pre-signed transfers in the background when the operating system allows.
+        </li>
+        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
+          <span className="block font-mono text-[10px] text-muted mb-1">04 · RECOVER</span>
+          If a scheduled window is missed, the wallet prompts on the next open and continues the plan.
+        </li>
+      </ol>
+      <p className="text-xs text-muted mt-4 leading-relaxed">
+        Ironwood uses the same address as the user&apos;s Orchard receiver; wallets track it as a distinct
+        pool. Follow your wallet&apos;s release notes for availability and migration controls. CipherScan
+        observes the resulting chain activity but does not initiate wallet transfers.
+      </p>
+      <div className="flex flex-wrap gap-4 mt-4 text-[11px] font-mono">
+        <a
+          href="https://zips.z.cash/zip-0318"
+          target="_blank"
+          rel="noopener"
+          className="text-cipher-cyan hover:underline"
+        >
+          Read ZIP 318
+        </a>
+        <a
+          href="https://github.com/zcash/zips/issues/1315"
+          target="_blank"
+          rel="noopener"
+          className="text-cipher-cyan hover:underline"
+        >
+          Review the ZIP 318 implementation plan
+        </a>
+      </div>
+    </section>
   );
 }
 

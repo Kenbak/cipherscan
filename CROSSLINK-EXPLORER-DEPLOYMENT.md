@@ -415,7 +415,7 @@ These are the env vars that activate crosslink mode — no code changes needed:
 ```bash
 cat > /root/cipherscan-crosslink/.env.local << 'EOF'
 NEXT_PUBLIC_NETWORK=crosslink-testnet
-NEXT_PUBLIC_CROSSLINK_API_URL=https://crosslink.cipherscan.app/api
+NEXT_PUBLIC_CROSSLINK_API_URL=https://crosslink.cipherscan.app
 CROSSLINK_RPC_URL=http://127.0.0.1:8232
 NEXT_TELEMETRY_DISABLED=1
 EOF
@@ -451,7 +451,7 @@ systemctl start crosslink-frontend
 | Env Var | Effect |
 |---------|--------|
 | `NEXT_PUBLIC_NETWORK=crosslink-testnet` | `detectNetwork()` in `api-config.ts` returns `crosslink-testnet` server-side |
-| `NEXT_PUBLIC_CROSSLINK_API_URL` | Sets `POSTGRES_API_URLS['crosslink-testnet']` for API calls |
+| `NEXT_PUBLIC_CROSSLINK_API_URL` | Sets the origin-style `POSTGRES_API_URLS['crosslink-testnet']` base for API calls; omit the trailing `/api` because callers append it |
 | `CROSSLINK_RPC_URL` | Enables `lib/crosslink.ts` finality enrichment — without this, finality returns `null` gracefully |
 
 Client-side, network detection happens automatically from the `crosslink.cipherscan.app` hostname.

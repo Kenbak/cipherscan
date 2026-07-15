@@ -12,7 +12,11 @@
  * - crosslink.cipherscan.app → crosslink-testnet
  * - localhost → testnet (default)
  */
-import { getConfiguredNetwork, type AppNetwork } from '@/lib/network';
+import {
+  getConfiguredNetwork,
+  normalizeApiBaseUrl,
+  type AppNetwork,
+} from '@/lib/network';
 
 export type Network = AppNetwork;
 
@@ -41,7 +45,9 @@ export const NETWORK = detectNetwork();
 const POSTGRES_API_URLS: Record<Network, string> = {
   'mainnet': 'https://api.mainnet.cipherscan.app',
   'testnet': 'https://api.testnet.cipherscan.app',
-  'crosslink-testnet': process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
+  'crosslink-testnet': normalizeApiBaseUrl(
+    process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
+  ),
 };
 
 export const API_CONFIG = {

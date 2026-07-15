@@ -9,11 +9,17 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 
 1. Establish `CipherScan` as the unambiguous site and organization name.
 2. Rank the homepage and useful explorer pages for Zcash explorer searches.
-3. Make real block, transaction, address, and name entities discoverable by
+3. Send `Buy ZEC` and `Buy Zcash` search and referral authority to CipherSwap,
+   CipherScan's sister site, without creating a competing CipherScan purchase
+   page or guide.
+4. Make the existing migration tracker the authoritative result for `Zcash
+   Ironwood`, `Ironwood Zcash`, `NU6.3`, and Orchard-to-Ironwood migration
+   searches without competing pages.
+5. Make real block, transaction, address, and name entities discoverable by
    their exact identifiers without creating infinite empty URL spaces.
-4. Give Zcash testnet/TAZ one focused, indexable homepage while keeping its
+6. Give Zcash testnet/TAZ one focused, indexable homepage while keeping its
    developer data pages and the Crosslink deployment out of the index.
-5. Improve typo recovery through strong brand/entity signals and redirects,
+7. Improve typo recovery through strong brand/entity signals and redirects,
    not keyword-stuffed typo pages.
 
 ## SEO control surface
@@ -24,6 +30,8 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 | Crawler policy | `app/robots.ts`, route metadata | Mainnet/testnet allow crawling so page directives are visible; only the testnet homepage is indexable; Crosslink remains blocked and noindex; `/api/` is excluded |
 | XML discovery | `app/sitemap.ts`, `lib/newsletter/index.ts` | Mainnet static and dynamic discovery; testnet homepage only; Crosslink empty |
 | Redirects | `next.config.ts` | Permanent legacy-route aliases and canonical host/path consolidation |
+| Buy ZEC intent | CipherSwap homepage, followed global links, `/crosschain` context | CipherSwap owns both transactional and informational purchase intent; CipherScan does not publish a competing buying page or guide |
+| Ironwood intent | Canonical `/ironwood` upgrade and migration tracker | One mainnet-only evergreen Zcash Ironwood/NU6.3 explainer and live tracker; `/migration` redirects permanently; testnet remains useful but noindex |
 | Static page metadata | Route `layout.tsx` and `page.tsx` files | Unique title, description, canonical, OG, Twitter, robots, and page intent |
 | Dynamic entity metadata | `lib/seo.ts`, `app/block/[height]/layout.tsx`, `app/tx/[txid]/layout.tsx`, address/name layouts | Entity validation, state-aware indexation, immutable canonical identity, and exact identifier copy |
 | Dynamic rendering/status | Dynamic `page.tsx` files and API routes | Server-rendered H1/core facts, real 404/5xx behavior, and hydrated live data |
@@ -79,6 +87,11 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 - Limit testnet search discovery to its TAZ-focused homepage; keep child pages
   crawlable with `noindex, follow` and omit them from its sitemap.
 - Fix broken internal routes with permanent redirects.
+- Redirect the retired `/swap` route to CipherSwap so old links retain their
+  transactional intent and do not land on a 404.
+- Consolidate Ironwood upgrade and migration intent on `/ironwood`, permanently
+  redirect `/migration`, and update its sitemap, navigation, breadcrumb,
+  structured data, and contextual links together.
 - Fix nested and hardcoded canonical errors.
 - Complete OG/Twitter fallbacks and newsletter metadata.
 - Include omitted mainnet static routes/newsletters plus recent height-based
@@ -131,6 +144,27 @@ for the SEO foundation branch; editorial wording is reviewed separately in
   indexed pages, canonical selection, crawl errors, and exact-identifier tests.
 
 ## Deployment gates and operational follow-ups
+
+- Treat the CipherSwap homepage as the primary landing page for `Buy ZEC` and
+  `Buy Zcash`. A live audit on July 14, 2026 found a matching title and H1 but
+  no canonical URL, robots file, XML sitemap, or structured data. Add those in
+  the CipherSwap repository before expanding acquisition content.
+- Do not publish `/buy-zec`, `/buy-zcash`, or a purchase guide on CipherScan.
+  Any future buying guide belongs on CipherSwap. Keep followed links from the
+  mainnet navigation, footer, retired `/swap` route, and relevant cross-chain
+  context so authority reaches the sister site.
+
+- Treat `Zcash Ironwood` as the primary Ironwood query because the bare word is
+  shared by unrelated products and topics. Reuse the existing live migration
+  tracker as the canonical hub rather than publishing a competing explainer.
+  Keep the hub indexable only on mainnet; testnet and Crosslink variants remain
+  `noindex, follow` and outside their sitemaps.
+- Preserve the formal-verification, power-of-ten migration, anonymity-cohort,
+  verified-supply, and balanced-audit claims as approved product facts. The
+  underlying proof is not public yet, but the owner has confirmed the claims.
+- Publish wallet migration guidance from the production plan being implemented
+  now. ZIP 318 reaches its finalized state through production use; publication
+  status is not a reason to withhold current implementation guidance.
 
 - Deploy the indexer writer that records `transactions.block_height` and
   `transactions.block_hash` together before enabling the reorg-aware API

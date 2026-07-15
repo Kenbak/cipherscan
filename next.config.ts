@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/migration',
+        destination: '/ironwood',
+        permanent: true,
+      },
+      {
+        source: '/swap',
+        destination: 'https://cipherswap.app/',
+        permanent: true,
+      },
+      {
         source: '/flows',
         destination: '/crosschain',
         permanent: true,
