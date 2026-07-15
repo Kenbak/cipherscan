@@ -392,6 +392,7 @@ app.use('/api/signals', signalsRouter);
 // Count registered API routes (available as app.locals.apiRouteCount)
 function countApiRoutes(app) {
   let count = 0;
+  if (!app._router) return count;
   app._router.stack.forEach(layer => {
     if (layer.route && layer.route.path?.startsWith('/api/')) {
       count++;
