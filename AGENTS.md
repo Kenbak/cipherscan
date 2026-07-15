@@ -8,7 +8,8 @@ Treat SEO as part of the definition of done for every new or changed page, route
 
 - Set an explicit `robots` policy for the route; do not rely on inherited defaults for pages whose lifecycle or network matters.
 - Mainnet public content and useful tools should normally be `index, follow`.
-- The testnet homepage and useful testnet data/tool pages should be indexable with testnet-specific copy that identifies Zcash testnet and TAZ. Do not canonicalize testnet pages to mainnet equivalents when their data and intent differ.
+- Only the testnet homepage is indexable by default. Testnet child routes and dynamic blocks, transactions, and addresses must be `noindex, follow` and omitted from the sitemap so developers can find one clear Zcash testnet/TAZ entry point without creating a duplicate explorer index.
+- A future testnet-specific landing page may become indexable only with product-owner approval, distinct search intent and visible copy, an explicit `indexOnTestnet` opt-in, and sitemap inclusion. Do not canonicalize testnet pages to mainnet equivalents when their data and intent differ.
 - Keep Crosslink pages `noindex, follow` until the product owner changes that policy. They still need accurate metadata for sharing.
 - Filter, sort, search-result, error, and non-content URL variants should normally be canonicalized to the stable content URL or marked `noindex` as appropriate.
 - Keep `app/robots.ts`, page-level robots metadata, canonical tags, and sitemap inclusion consistent.
@@ -30,11 +31,11 @@ Treat SEO as part of the definition of done for every new or changed page, route
 
 ### 4. Handle dynamic URL lifecycles
 
-- New and mempool transactions may be indexed while pending. Once confirmed, preserve the same transaction URL and update its status/content.
+- On mainnet, new and mempool transactions may be indexed while pending. Once confirmed, preserve the same transaction URL and update its status/content. Testnet transaction pages remain `noindex, follow` in every lifecycle state.
 - If a pending transaction disappears and no record remains after the reorg/eviction retention window, switch it to `noindex` and return the correct missing-resource status rather than a soft 200.
 - Use the numeric block-height page as the canonical URL for a block on the current canonical chain. Keep block-hash lookup pages available, but canonicalize a canonical-chain hash lookup to its current height page so the two views do not compete in search.
-- Keep persistent orphan-block hash pages self-canonical and indexable when they contain useful data. Label them clearly, describe the reorg state, and link to the canonical replacement height. If a reorg changes the block at a height, update that height page to the replacement block while preserving the orphaned hash page.
-- Index address pages only when the address has authoritative public activity. Empty or private-only address lookups should remain useful `200` pages but `noindex`; malformed or checksum-invalid values should be 404 once authoritative validation is available. Keep address sitemap discovery bounded to protect crawl budget.
+- On mainnet, keep persistent orphan-block hash pages self-canonical and indexable when they contain useful data. Label them clearly, describe the reorg state, and link to the canonical replacement height. If a reorg changes the block at a height, update that height page to the replacement block while preserving the orphaned hash page. Testnet orphan pages remain `noindex, follow`.
+- On mainnet, index address pages only when the address has authoritative public activity. Empty, private-only, and all testnet address lookups should remain useful `200` pages but `noindex`; malformed or checksum-invalid values should be 404 once authoritative validation is available. Keep address sitemap discovery bounded to protect crawl budget.
 - Invalid syntax and resources known not to exist must return `404` (or `410` when deliberately retired). Do not render a not-found message with HTTP 200.
 - Cache existence/index lookups, but do not cache uncertain missing states long enough to hide newly arriving mempool or block data.
 
@@ -47,11 +48,11 @@ Treat SEO as part of the definition of done for every new or changed page, route
 
 ### 6. Connect the page to the crawl graph
 
-- Add stable indexable routes to `app/sitemap.ts` with the canonical URL, meaningful `lastModified`, suitable change frequency, and priority.
+- Add stable indexable routes to `app/sitemap.ts` with the canonical URL, meaningful `lastModified`, suitable change frequency, and priority. Under the current policy, the testnet sitemap contains only its homepage.
 - Add rolling dynamic URLs only when the sitemap can be refreshed reliably; use crawlable pagination/archive pages so older blocks and transactions remain discoverable after they leave the rolling window.
 - Add at least one normal HTML link from a relevant hub, navigation, footer, list, related-content module, or breadcrumb. Do not rely on client-only controls or sitemap discovery alone.
 - When adding pagination, use crawlable URLs and links, not only button state or API offsets.
-- When IndexNow is configured, notify it only after durable public URL state changes: a new canonical block, a transaction first entering the mempool, confirmation/reconfirmation, a drop or reorg state change, or newsletter publication/update. Do not submit every poll, private/API URLs, noindex pages, missing URLs, filter variants, or block-hash aliases that canonicalize to heights.
+- When IndexNow is configured, notify it only after durable public mainnet URL state changes: a new canonical block, a transaction first entering the mempool, confirmation/reconfirmation, a drop or reorg state change, or newsletter publication/update. Do not submit every poll, testnet/Crosslink pages under the current policy, private/API URLs, noindex pages, missing URLs, filter variants, or block-hash aliases that canonicalize to heights.
 - Treat IndexNow as a discovery hint for supported engines, not a replacement for internal links, canonical tags, sitemaps, or Google Search Console.
 - Check that no new link points through a redirect or to a missing route.
 

@@ -17,6 +17,9 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  # CI validates the primary public deployment. Every hosted build must also
+  # set its own network identity explicitly.
+  NEXT_PUBLIC_NETWORK: "mainnet"
   # Never phone home from CI.
   NEXT_TELEMETRY_DISABLED: "1"
 

@@ -12,8 +12,9 @@
  * - crosslink.cipherscan.app → crosslink-testnet
  * - localhost → testnet (default)
  */
+import { getConfiguredNetwork, type AppNetwork } from '@/lib/network';
 
-export type Network = 'mainnet' | 'testnet' | 'crosslink-testnet';
+export type Network = AppNetwork;
 
 /**
  * Detect network from domain (client-side safe)
@@ -22,10 +23,8 @@ function detectNetwork(): Network {
   // Explicit env override wins on both server and client (NEXT_PUBLIC_* is
   // inlined into the client bundle by Next.js). This is how a developer runs
   // the crosslink build against localhost.
-  const envNetwork = process.env.NEXT_PUBLIC_NETWORK as Network | undefined;
-  if (envNetwork === 'mainnet' || envNetwork === 'testnet' || envNetwork === 'crosslink-testnet') {
-    return envNetwork;
-  }
+  const configured = getConfiguredNetwork();
+  if (configured) return configured;
 
   // Server-side without env fallback → testnet.
   if (typeof window === 'undefined') return 'testnet';

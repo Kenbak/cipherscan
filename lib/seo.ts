@@ -1,21 +1,21 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
+import { getConfiguredNetwork, type AppNetwork } from '@/lib/network';
 
-export type SeoNetwork = 'mainnet' | 'testnet' | 'crosslink-testnet';
+export type SeoNetwork = AppNetwork;
 
 export function getNetwork(): SeoNetwork {
-  const configured = process.env.NEXT_PUBLIC_NETWORK;
+  const configured = getConfiguredNetwork();
+  if (configured) return configured;
 
-  if (configured === 'mainnet' || configured === 'testnet') {
-    return configured;
-  }
-
-  if (configured === 'crosslink' || configured === 'crosslink-testnet') {
-    return 'crosslink-testnet';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'NEXT_PUBLIC_NETWORK must be set to mainnet, testnet, or crosslink-testnet for production builds.',
+    );
   }
 
   // Local development has historically defaulted to testnet. Production
-  // deployments set NEXT_PUBLIC_NETWORK explicitly.
+  // builds fail above so a missing setting cannot publish the wrong network.
   return 'testnet';
 }
 
@@ -54,6 +54,7 @@ export interface BuildPageMetadataOptions {
   type?: 'website' | 'article';
   imageAlt?: string;
   networks?: SeoNetwork[];
+  indexOnTestnet?: boolean;
   canonical?: boolean;
 }
 
@@ -73,6 +74,7 @@ export function buildPageMetadata({
   type = 'website',
   imageAlt,
   networks,
+  indexOnTestnet = false,
   canonical: includeCanonical = true,
 }: BuildPageMetadataOptions): Metadata {
   const network = getNetwork();
@@ -80,7 +82,14 @@ export function buildPageMetadata({
   const image = absoluteUrl('/og-image.png?v=2');
   const isCrosslink = network === 'crosslink-testnet';
   const allowedOnNetwork = networks ? networks.includes(network) : true;
-  const shouldIndex = !isCrosslink && allowedOnNetwork && (index ?? true);
+  // Testnet is a developer utility rather than a second copy of the explorer
+  // index. Its homepage is the only default opt-in; any future testnet landing
+  // page must make a deliberate, reviewed indexOnTestnet decision.
+  const allowedOnTestnet = network !== 'testnet' || indexOnTestnet;
+  const shouldIndex = !isCrosslink
+    && allowedOnNetwork
+    && allowedOnTestnet
+    && (index ?? true);
   // noindex pages may still pass discovery and relationship signals through
   // their normal links. Crosslink is separately blocked in robots.ts while
   // that deployment remains closed to crawling.

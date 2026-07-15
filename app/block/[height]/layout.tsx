@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
 import { getApiUrl } from '@/lib/api-config';
-import { getBaseUrl, formatNumber, truncateHash } from '@/lib/seo';
+import { getBaseUrl, getNetwork, formatNumber, truncateHash } from '@/lib/seo';
 
 interface BlockMetadataData {
   height: number | string;
@@ -43,8 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const block = await getBlockMetadata(height);
   const baseUrl = getBaseUrl();
   const imageUrl = new URL('/og-image.png?v=2', `${baseUrl}/`).toString();
-  const configuredNetwork = process.env.NEXT_PUBLIC_NETWORK;
-  const isCrosslink = configuredNetwork === 'crosslink' || configuredNetwork === 'crosslink-testnet';
+  const shouldIndex = getNetwork() === 'mainnet';
 
   if (!block) {
     const title = `Zcash Block ${truncateHash(height)} Not Found | CipherScan`;
@@ -135,10 +134,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     robots: {
-      index: !isCrosslink,
+      index: shouldIndex,
       follow: true,
       googleBot: {
-        index: !isCrosslink,
+        index: shouldIndex,
         follow: true,
         'max-image-preview': 'large',
         'max-snippet': -1,

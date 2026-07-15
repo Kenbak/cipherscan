@@ -18,9 +18,9 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
-  // Both mainnet and the public Zcash testnet are crawlable. Page-level
-  // metadata can still noindex individual routes that are not useful on a
-  // particular deployment.
+  // Both mainnet and the public Zcash testnet are crawlable. Testnet child
+  // pages deliberately remain crawlable so engines can observe their
+  // page-level noindex; only the testnet homepage appears in its sitemap.
   return {
     rules: [
       {

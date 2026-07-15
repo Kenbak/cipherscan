@@ -51,20 +51,10 @@ const MAINNET_ROUTES: StaticRoute[] = [
   { path: '/terms', changeFrequency: 'yearly', priority: 0.2 },
 ];
 
-// Keep the public testnet sitemap focused on network-specific tools and data.
-// Other routes can be added once their visible copy and currency labels are
-// explicitly localized to TAZ/testnet.
+// Testnet is intentionally represented by one search result. Child pages stay
+// usable and crawlable, but they are noindex and therefore excluded here.
 const TESTNET_ROUTES: StaticRoute[] = [
   { path: '/', changeFrequency: 'daily', priority: 1.0 },
-  { path: '/blocks', changeFrequency: 'always', priority: 0.9 },
-  { path: '/txs', changeFrequency: 'always', priority: 0.9 },
-  { path: '/txs/shielded', changeFrequency: 'always', priority: 0.9 },
-  { path: '/mempool', changeFrequency: 'always', priority: 0.9 },
-  { path: '/network', changeFrequency: 'hourly', priority: 0.9 },
-  { path: '/reorgs', changeFrequency: 'hourly', priority: 0.8 },
-  { path: '/tools', changeFrequency: 'weekly', priority: 0.7 },
-  { path: '/tools/anchor-search', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/tools/broadcast', changeFrequency: 'monthly', priority: 0.7 },
 ];
 
 function toDateFromSeconds(value: unknown): Date | undefined {
@@ -226,8 +216,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const [recentChainPages, registeredNamePages] = await Promise.all([
-    getRecentChainPages(baseUrl),
-    network === 'mainnet' ? getRegisteredNamePages(baseUrl) : Promise.resolve([]),
+    network === 'mainnet'
+      ? getRecentChainPages(baseUrl)
+      : Promise.resolve([] as MetadataRoute.Sitemap),
+    network === 'mainnet'
+      ? getRegisteredNamePages(baseUrl)
+      : Promise.resolve([] as MetadataRoute.Sitemap),
   ]);
   const allPages = [
     ...staticPages,

@@ -11,8 +11,8 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 2. Rank the homepage and useful explorer pages for Zcash explorer searches.
 3. Make real block, transaction, address, and name entities discoverable by
    their exact identifiers without creating infinite empty URL spaces.
-4. Support the indexable Zcash testnet/TAZ experience while keeping the
-   Crosslink deployment out of the index for now.
+4. Give Zcash testnet/TAZ one focused, indexable homepage while keeping its
+   developer data pages and the Crosslink deployment out of the index.
 5. Improve typo recovery through strong brand/entity signals and redirects,
    not keyword-stuffed typo pages.
 
@@ -21,8 +21,8 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 | Concern | Primary files | Responsibility |
 | --- | --- | --- |
 | Site identity and defaults | `app/layout.tsx`, `lib/seo.ts` | Site URL, network identity, complete social defaults, robots defaults, and site JSON-LD |
-| Crawler policy | `app/robots.ts`, route metadata | Mainnet/testnet allow crawling; Crosslink remains blocked and noindex; `/api/` is excluded |
-| XML discovery | `app/sitemap.ts`, `lib/newsletter/index.ts` | Deployment-specific static URLs, all newsletter issues and registered Zcash Names, recent canonical chain entities, persistent orphan hashes, and a bounded set of active transparent addresses |
+| Crawler policy | `app/robots.ts`, route metadata | Mainnet/testnet allow crawling so page directives are visible; only the testnet homepage is indexable; Crosslink remains blocked and noindex; `/api/` is excluded |
+| XML discovery | `app/sitemap.ts`, `lib/newsletter/index.ts` | Mainnet static and dynamic discovery; testnet homepage only; Crosslink empty |
 | Redirects | `next.config.ts` | Permanent legacy-route aliases and canonical host/path consolidation |
 | Static page metadata | Route `layout.tsx` and `page.tsx` files | Unique title, description, canonical, OG, Twitter, robots, and page intent |
 | Dynamic entity metadata | `lib/seo.ts`, `app/block/[height]/layout.tsx`, `app/tx/[txid]/layout.tsx`, address/name layouts | Entity validation, state-aware indexation, immutable canonical identity, and exact identifier copy |
@@ -37,16 +37,17 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 | Entity or route | Mainnet | Testnet | Crosslink |
 | --- | --- | --- | --- |
 | Homepage | Index | Index; explicitly describe Zcash testnet and TAZ | Noindex |
-| Canonical-chain block heights | Index; primary canonical URL | Index; primary canonical URL | Noindex |
-| Canonical block-hash lookup aliases | Index/follow; canonical to current height | Same | Noindex |
-| Persistent orphan block hashes | Index with explicit orphan status | Index with explicit orphan status | Noindex |
-| Confirmed transactions | Index | Index | Noindex |
-| Mempool and confirming transactions | Index with short cache | Index with short cache | Noindex |
+| Static child pages and tools | Index when useful and complete | Noindex/follow; canonical stays on testnet | Noindex |
+| Canonical-chain block heights | Index; primary canonical URL | Noindex/follow; height remains the user-facing canonical | Noindex |
+| Canonical block-hash lookup aliases | Index/follow; canonical to current height | Noindex/follow; canonical to current height | Noindex |
+| Persistent orphan block hashes | Index with explicit orphan status | Noindex/follow with explicit orphan status | Noindex |
+| Confirmed transactions | Index | Noindex/follow | Noindex |
+| Mempool and confirming transactions | Index with short cache | Noindex/follow | Noindex |
 | Known dropped/reorg-removed transactions | Persistent explanatory page, noindex/follow | Same | Noindex |
 | Unknown or malformed entities | Real 404; no canonical | Real 404; no canonical | Real 404 |
-| Active public addresses | Index after checksum validation and evidence of activity | Index where supported | Noindex |
+| Active public addresses | Index after checksum validation and evidence of activity | Noindex/follow | Noindex |
 | Empty or shielded addresses without public evidence | Noindex/follow | Noindex/follow | Noindex |
-| Registered Zcash names | Index | Noindex until testnet support is confirmed | Noindex |
+| Registered Zcash names | Index | Noindex/follow under the homepage-only policy | Noindex |
 | Available names | Useful 200 tool page, noindex/follow | Noindex | Noindex |
 | Crosslink-only routes | Noindex or unavailable outside their deployment | Noindex | Noindex while the deployment is blocked |
 
@@ -59,9 +60,10 @@ for the SEO foundation branch; editorial wording is reviewed separately in
   canonical chain, it renders the block and canonicalizes to `/block/<height>`;
   it does not permanently redirect, so direct hash lookup remains usable and a
   later reorg can change the hash page's state safely.
-- A persistent orphan block at `/block/<hash>` is self-canonical and indexable,
-  clearly identifies its orphan status, and links to the replacement block's
-  canonical height URL.
+- A persistent mainnet orphan block at `/block/<hash>` is self-canonical and
+  indexable, clearly identifies its orphan status, and links to the replacement
+  block's canonical height URL. The same useful page remains `noindex, follow`
+  on testnet.
 - Transaction IDs are separate immutable entities at `/tx/<txid>`.
 - Hashes and transaction IDs are normalized to lowercase. Zcash addresses are
   not case-normalized. Zcash names are normalized to lowercase.
@@ -74,12 +76,14 @@ for the SEO foundation branch; editorial wording is reviewed separately in
 ### Phase 1 — foundation (this branch)
 
 - Unify deployment-aware metadata and robots policy.
+- Limit testnet search discovery to its TAZ-focused homepage; keep child pages
+  crawlable with `noindex, follow` and omit them from its sitemap.
 - Fix broken internal routes with permanent redirects.
 - Fix nested and hardcoded canonical errors.
 - Complete OG/Twitter fallbacks and newsletter metadata.
-- Include omitted static routes/newsletters plus recent height-based block and
-  transaction URLs, orphan hashes, active transparent addresses, and registered
-  Zcash Names in the sitemap.
+- Include omitted mainnet static routes/newsletters plus recent height-based
+  block and transaction URLs, orphan hashes, active transparent addresses, and
+  registered Zcash Names in the mainnet sitemap.
 - Correct block-to-transaction association to use block hashes during reorgs.
 - Improve block hash linking and canonical identity.
 - Add an SEO shipping checklist for future routes and features.
@@ -97,8 +101,9 @@ for the SEO foundation branch; editorial wording is reviewed separately in
   sitemaps (maximum 50,000 URLs per shard).
 - Expand address discovery beyond the bounded rolling set only after
   cryptographic checksum validation and crawl-budget review.
-- Add IndexNow notifications for durable state transitions: new block, pending
-  transaction first-seen, confirmation, drop/reorg, and newsletter publication.
+- Add mainnet IndexNow notifications for durable state transitions: new block,
+  pending transaction first-seen, confirmation, drop/reorg, and newsletter
+  publication. Do not submit testnet child pages while they remain noindex.
 
 ### Phase 4 — authoritative dynamic responses (partially implemented)
 
@@ -141,8 +146,9 @@ for the SEO foundation branch; editorial wording is reviewed separately in
   `https://cipherscan.app/*` permanent redirect at the Netlify/DNS edge; the
   application cannot enforce the first host-level hop by itself.
 - Implement IndexNow only after the durable block/transaction lifecycle event
-  source is available. Use separate mainnet/testnet host keys and do not submit
-  Crosslink, APIs, noindex URLs, filters, or canonical block-hash aliases.
+  source is available. Start with a mainnet host key and do not submit testnet,
+  Crosslink, APIs, noindex URLs, filters, or canonical block-hash aliases. Add
+  a testnet key only if a future page is explicitly approved for indexing.
 - The current compiled main stylesheet is approximately 19.3 KB with Brotli;
   Next.js already performs production CSS minification, so no compression
   dependency is required for the Ahrefs transfer-size finding.
@@ -153,8 +159,9 @@ for the SEO foundation branch; editorial wording is reviewed separately in
   indexable template.
 - Every indexable URL has a self or intentional entity canonical; `og:url`
   agrees with it and social images are present.
-- Mainnet and testnet robots files advertise their own sitemap; Crosslink
-  remains disallowed and emits page-level noindex.
+- Mainnet and testnet robots files advertise their own sitemap; the testnet
+  sitemap contains only `/`; Crosslink remains disallowed and emits page-level
+  noindex.
 - Invalid dynamic identifiers do not return indexable 200 responses.
 - Height and hash aliases do not form duplicate indexed block pages.
 - New routes cannot ship without an explicit sitemap, indexation, canonical,

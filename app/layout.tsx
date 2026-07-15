@@ -47,6 +47,7 @@ const siteCopy = network === 'mainnet'
 const rootPageMetadata = buildPageMetadata({
   ...siteCopy,
   path: '/',
+  indexOnTestnet: true,
 });
 
 export const metadata: Metadata = {
