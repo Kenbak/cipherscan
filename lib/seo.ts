@@ -146,33 +146,93 @@ export function buildPageMetadata({
   };
 }
 
-// --- Block metadata ---
+// --- Block resolution ---
 
-export interface BlockMeta {
-  height: number;
+export interface BlockRecord {
+  height: number | string;
   hash: string;
-  timestamp: number;
-  transactionCount: number;
-  size: number;
+  timestamp?: number | string | null;
+  transactionCount?: number | string | null;
+  transaction_count?: number | string | null;
+  transactions?: unknown[];
+  size?: number | string | null;
+  isOrphaned?: boolean;
+  canonicalBlock?: {
+    hash?: string | null;
+  } | null;
 }
 
-export const getBlockMeta = cache(async (height: string): Promise<BlockMeta | null> => {
+export type BlockResolution =
+  | { state: 'found'; block: BlockRecord }
+  | { state: 'absent' };
+
+export const BLOCK_HASH_PATTERN = /^[a-fA-F0-9]{64}$/;
+const BLOCK_HEIGHT_PATTERN = /^\d+$/;
+
+export function normalizeBlockIdentifier(identifier: string): string {
+  return BLOCK_HASH_PATTERN.test(identifier) ? identifier.toLowerCase() : identifier;
+}
+
+function isValidBlockIdentifier(identifier: string): boolean {
+  if (BLOCK_HASH_PATTERN.test(identifier)) return true;
+  if (!BLOCK_HEIGHT_PATTERN.test(identifier)) return false;
+
+  const height = Number(identifier);
+  return Number.isSafeInteger(height) && height >= 0;
+}
+
+function isBlockRecord(value: unknown): value is BlockRecord {
+  if (!value || typeof value !== 'object') return false;
+
+  const block = value as Partial<BlockRecord>;
+  const height = Number(block.height);
+  return typeof block.hash === 'string'
+    && BLOCK_HASH_PATTERN.test(block.hash)
+    && Number.isSafeInteger(height)
+    && height >= 0;
+}
+
+/**
+ * Resolve enough block data for both metadata and the initial page response.
+ *
+ * Invalid identifiers and authoritative 404/410 responses are absent.
+ * Temporary availability failures and malformed successful payloads throw so
+ * they cannot become false not-found responses or noindex metadata.
+ */
+export const getBlockResolution = cache(async (identifier: string): Promise<BlockResolution> => {
+  if (!isValidBlockIdentifier(identifier)) return { state: 'absent' };
+
+  const normalizedIdentifier = normalizeBlockIdentifier(identifier);
+  let response: Response;
+
   try {
-    const res = await fetch(`${getApiUrl()}/api/block/${height}`, {
+    response = await fetch(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return {
-      height: parseInt(data.height),
-      hash: data.hash,
-      timestamp: parseInt(data.timestamp),
-      transactionCount: data.transactionCount || (data.transactions?.length ?? 0),
-      size: parseInt(data.size),
-    };
-  } catch {
-    return null;
+  } catch (cause) {
+    throw new Error(`Block index is unavailable while resolving ${identifier}`, { cause });
   }
+
+  if (response.status === 404 || response.status === 410) {
+    return { state: 'absent' };
+  }
+
+  if (!response.ok) {
+    throw new Error(`Block index returned ${response.status} while resolving ${identifier}`);
+  }
+
+  let block: unknown;
+  try {
+    block = await response.json();
+  } catch (cause) {
+    throw new Error(`Block index returned invalid JSON while resolving ${identifier}`, { cause });
+  }
+
+  if (!isBlockRecord(block)) {
+    throw new Error(`Block index returned an invalid block payload for ${identifier}`);
+  }
+
+  return { state: 'found', block };
 });
 
 // --- Transaction metadata ---
