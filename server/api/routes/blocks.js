@@ -407,8 +407,20 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
 
     const poolInfo = getPoolInfo(block.miner_address);
     const coinbaseText = decodeCoinbaseText(block.coinbase_hex);
+
+    // next_block_hash is not populated by the Rust indexer; derive it dynamically
+    let nextBlockHash = block.next_block_hash;
+    if (!nextBlockHash && blockHeight < currentHeight) {
+      const nextResult = await pool.query(
+        'SELECT hash FROM blocks WHERE height = $1',
+        [blockHeight + 1]
+      );
+      nextBlockHash = nextResult.rows[0]?.hash || null;
+    }
+
     const response = {
       ...block,
+      next_block_hash: nextBlockHash,
       confirmations,
       transactions,
       transactionCount: transactions.length,
