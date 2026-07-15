@@ -1,16 +1,29 @@
-'use client';
+import type { Metadata } from 'next';
+import { API_CONFIG } from '@/lib/api-config';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import ShieldedTxsClient from './ShieldedTxsClient';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/utils';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { Pagination } from '@/components/Pagination';
-import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
-import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge } from '@/components/ui';
+const API_URL = API_CONFIG.POSTGRES_API_URL;
+const PAGE_SIZE = 25;
 
 type FlowFilter = 'all' | 'shield' | 'deshield';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
+type SearchParams = Record<string, string | string[] | undefined>;
+
+interface ShieldedTransactionsPageProps {
+  searchParams: Promise<SearchParams>;
+}
+
+interface ShieldedTransactionsRequest {
+  cursor: number | null;
+  cursorId: number | null;
+  direction: 'next' | 'prev';
+  page: number;
+  flow: FlowFilter;
+  pool: PoolFilter;
+  minZec: number;
+  pageParamConsistent: boolean;
+}
 
 interface ShieldedFlow {
   id: number;
@@ -23,224 +36,200 @@ interface ShieldedFlow {
   addresses: string[];
 }
 
-interface PaginationState {
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-  nextCursor: number | null;
-  nextCursorId: number | null;
-  prevCursor: number | null;
-  prevCursorId: number | null;
+function firstValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
-function getFlowBadge(flowType: string) {
-  return <ShieldFlowBadge type={resolveShieldFlowType({ flowType })} variant="compact" />;
+function parseNonNegativeInteger(value: string | undefined): number | null {
+  if (value === undefined || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
-function getPoolBadge(pool: string) {
-  if (pool === 'ironwood') return <Badge color="amber">IRONWOOD</Badge>;
-  if (pool === 'orchard') return <Badge color="purple">ORCHARD</Badge>;
-  if (pool === 'sapling') return <Badge color="cyan">SAPLING</Badge>;
-  if (pool === 'mixed') return <Badge color="orange">MIXED</Badge>;
-  return <Badge color="muted">{pool.toUpperCase()}</Badge>;
+function parsePositiveInteger(value: string | undefined): number | null {
+  const parsed = parseNonNegativeInteger(value);
+  return parsed !== null && parsed > 0 ? parsed : null;
 }
 
-export default function ShieldedTxsPage() {
-  const [flows, setFlows] = useState<ShieldedFlow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [flowFilter, setFlowFilter] = useState<FlowFilter>('all');
-  const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
-  const [minZec, setMinZec] = useState<number>(0);
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationState>({
-    total: 0, totalPages: 0, hasNext: false, hasPrev: false,
-    nextCursor: null, nextCursorId: null, prevCursor: null, prevCursorId: null,
+function parseFlow(value: string | undefined): FlowFilter {
+  return value === 'shield' || value === 'deshield' ? value : 'all';
+}
+
+function parsePool(value: string | undefined): PoolFilter {
+  return value === 'ironwood' || value === 'sapling' || value === 'orchard' || value === 'mixed'
+    ? value
+    : 'all';
+}
+
+function parseMinZec(value: string | undefined): number {
+  if (!value || !/^\d+(?:\.\d+)?$/.test(value)) return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 21_000_000 ? parsed : 0;
+}
+
+function parseShieldedTransactionsRequest(searchParams: SearchParams): ShieldedTransactionsRequest {
+  const cursor = parsePositiveInteger(firstValue(searchParams.cursor));
+  const cursorId = parseNonNegativeInteger(firstValue(searchParams.cursor_id));
+  const rawPage = firstValue(searchParams.page);
+  const requestedPage = parsePositiveInteger(rawPage);
+  const direction = cursor && firstValue(searchParams.direction) === 'prev' ? 'prev' : 'next';
+
+  return {
+    cursor,
+    cursorId: cursor === null ? null : (cursorId ?? 0),
+    direction,
+    page: cursor ? Math.max(2, requestedPage ?? 2) : 1,
+    flow: parseFlow(firstValue(searchParams.flow_type)),
+    pool: parsePool(firstValue(searchParams.pool)),
+    minZec: parseMinZec(firstValue(searchParams.min_zec)),
+    pageParamConsistent: rawPage === undefined
+      || (cursor !== null ? requestedPage !== null && requestedPage >= 2 : requestedPage === 1),
+  };
+}
+
+function hasFilters(request: ShieldedTransactionsRequest): boolean {
+  return request.flow !== 'all' || request.pool !== 'all' || request.minZec > 0;
+}
+
+function getArchiveCanonicalPath(request: ShieldedTransactionsRequest): string {
+  const params = new URLSearchParams();
+  if (request.flow !== 'all') params.set('flow_type', request.flow);
+  if (request.pool !== 'all') params.set('pool', request.pool);
+  if (request.minZec > 0) params.set('min_zec', String(request.minZec));
+  if (request.cursor !== null) {
+    params.set('cursor', String(request.cursor));
+    params.set('cursor_id', String(request.cursorId ?? 0));
+    params.set('direction', request.direction);
+  }
+  const query = params.toString();
+  return query ? `/txs/shielded?${query}` : '/txs/shielded';
+}
+
+export async function generateMetadata({
+  searchParams,
+}: ShieldedTransactionsPageProps): Promise<Metadata> {
+  const request = parseShieldedTransactionsRequest(await searchParams);
+  const isStableArchive = !hasFilters(request)
+    && (request.page === 1 || request.direction === 'next')
+    && request.pageParamConsistent;
+  const pageSuffix = request.page > 1 ? ` - Page ${request.page}` : '';
+
+  return buildPageMetadata({
+    title: `Zcash Shielded Transactions${pageSuffix} | CipherScan`,
+    description: request.page > 1
+      ? `Browse Zcash shielded transaction archive page ${request.page}, including shielding and unshielding flows across privacy pools.`
+      : 'Browse shielded Zcash transactions and track shielding and unshielding flows across Ironwood, Orchard, and Sapling privacy pools.',
+    path: isStableArchive ? getArchiveCanonicalPath(request) : '/txs/shielded',
+    index: isStableArchive,
+    keywords: ['zcash shielded transactions', 'zcash orchard', 'zcash sapling', 'shielded ZEC', 'zcash privacy'],
   });
+}
 
-  const fetchFlows = useCallback(async (cursor?: number | null, cursorId?: number | null, direction?: string, flow?: FlowFilter, pool?: PoolFilter, minAmount?: number) => {
-    setLoading(true);
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({
-        limit: '25',
-        flow_type: flow || flowFilter,
-        pool: pool || poolFilter,
-      });
-      const effectiveMin = minAmount !== undefined ? minAmount : minZec;
-      if (effectiveMin > 0) {
-        params.set('min_zec', String(effectiveMin));
-      }
-      if (cursor !== undefined && cursor !== null) {
-        params.set('cursor', String(cursor));
-        params.set('cursor_id', String(cursorId ?? 0));
-        params.set('direction', direction || 'next');
-      }
-      const res = await fetch(`${base}/api/shielded/list?${params}`);
-      const json = await res.json();
-      if (json.success) {
-        setFlows(json.flows);
-        setPagination(json.pagination);
-      }
-    } catch (err) {
-      console.error('Error fetching shielded flows:', err);
-    } finally {
-      setLoading(false);
+async function getInitialFlows(request: ShieldedTransactionsRequest) {
+  try {
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE + 1),
+      flow_type: request.flow,
+      pool: request.pool,
+    });
+    if (request.minZec > 0) params.set('min_zec', String(request.minZec));
+    if (request.cursor !== null) {
+      params.set('cursor', String(request.cursor));
+      params.set('cursor_id', String(request.cursorId ?? 0));
+      params.set('direction', request.direction);
     }
-  }, [flowFilter, poolFilter, minZec]);
 
-  useEffect(() => {
-    setPage(1);
-    fetchFlows(null, null, undefined, flowFilter, poolFilter, minZec);
-  }, [flowFilter, poolFilter, minZec]);
+    const res = await fetch(`${API_URL}/api/shielded/list?${params.toString()}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return { flows: [], pagination: null };
 
-  const goFirst = () => { setPage(1); fetchFlows(null, null, undefined); };
-  const goPrev = () => { setPage(p => p - 1); fetchFlows(pagination.prevCursor, pagination.prevCursorId, 'prev'); };
-  const goNext = () => { setPage(p => p + 1); fetchFlows(pagination.nextCursor, pagination.nextCursorId, 'next'); };
+    const json = await res.json();
+    if (!json.success) return { flows: [], pagination: null };
 
-  const flowFilters: { id: FlowFilter; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'shield', label: 'Shielding' },
-    { id: 'deshield', label: 'Unshielding' },
-  ];
+    const all: ShieldedFlow[] = json.flows || [];
+    const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
+    const flows = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
+    const firstFlow = flows[0] ?? null;
+    const lastFlow = flows[flows.length - 1] ?? null;
+    const apiPagination = json.pagination ?? {};
+    const total = Number(apiPagination.total) || 0;
 
-  const poolFilters: { id: PoolFilter; label: string }[] = [
-    { id: 'all', label: 'All Pools' },
-    { id: 'ironwood', label: 'Ironwood' },
-    { id: 'orchard', label: 'Orchard' },
-    { id: 'sapling', label: 'Sapling' },
-    { id: 'mixed', label: 'Mixed' },
-  ];
+    return {
+      flows,
+      pagination: {
+        ...apiPagination,
+        total,
+        totalPages: Math.ceil(total / PAGE_SIZE),
+        hasNext: request.direction === 'prev'
+          ? request.cursor !== null && flows.length > 0
+          : all.length > PAGE_SIZE,
+        hasPrev: request.page > 1,
+        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
+        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
+        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
+        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching initial shielded transactions:', error);
+    return { flows: [], pagination: null };
+  }
+}
 
-  const amountPresets = [
-    { value: 0, label: 'Any' },
-    { value: 10, label: '> 10 ZEC' },
-    { value: 100, label: '> 100 ZEC' },
-    { value: 1000, label: '> 1K ZEC' },
-  ];
+export default async function ShieldedTransactionsPage({
+  searchParams,
+}: ShieldedTransactionsPageProps) {
+  const request = parseShieldedTransactionsRequest(await searchParams);
+  const { flows, pagination } = await getInitialFlows(request);
+  const archiveKey = `${request.flow}:${request.pool}:${request.minZec}:${request.cursor ?? 'first'}:${request.cursorId ?? 0}:${request.direction}:${request.page}`;
+  const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
+  const uniqueTransactions = Array.from(new Map(flows.map((flow) => [flow.txid, flow])).values());
+  const collectionJsonLd = request.pageParamConsistent
+    && !hasFilters(request)
+    && request.direction === 'next'
+    && uniqueTransactions.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        '@id': `${collectionUrl}#collection`,
+        url: collectionUrl,
+        name: request.page > 1
+          ? `Zcash shielded transaction archive page ${request.page}`
+          : 'Latest Zcash shielded transactions',
+        isPartOf: { '@id': `${getBaseUrl()}/#website` },
+        mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: uniqueTransactions.map((flow, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            url: `${getBaseUrl()}/tx/${flow.txid.toLowerCase()}`,
+            name: `Zcash shielded transaction ${flow.txid.toLowerCase()}`,
+          })),
+        },
+      }
+    : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
-      {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> SHIELDED_TRANSACTIONS
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Shielded Transactions</h1>
-          <span className="text-xs font-mono text-muted">
-            {pagination.total.toLocaleString()} shielded txs
-          </span>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="filter-group inline-flex">
-          {flowFilters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFlowFilter(f.id)}
-              className={`filter-btn ${flowFilter === f.id ? 'filter-btn-active' : ''}`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <div className="filter-group inline-flex">
-          {poolFilters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setPoolFilter(f.id)}
-              className={`filter-btn ${poolFilter === f.id ? 'filter-btn-active' : ''}`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <div className="filter-group inline-flex">
-          {amountPresets.map(p => (
-            <button
-              key={p.value}
-              onClick={() => setMinZec(p.value)}
-              className={`filter-btn ${minZec === p.value ? 'filter-btn-active' : ''}`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Flow</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Pool</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 15 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-28 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-20 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-16 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-20 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-20 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : flows.map((flow) => (
-                <tr key={`${flow.txid}-${flow.flowType}`} className="group transition-colors duration-100 hover:bg-[var(--color-hover)]">
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <Link href={`/tx/${flow.txid}`} className="font-mono text-xs text-primary hover:text-cipher-purple transition-colors truncate block max-w-[120px] sm:max-w-[180px]">
-                      <span className="sm:hidden">{flow.txid.slice(0, 8)}...{flow.txid.slice(-4)}</span>
-                      <span className="hidden sm:inline">{flow.txid.slice(0, 12)}...{flow.txid.slice(-6)}</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    {getFlowBadge(flow.flowType)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
-                    {getPoolBadge(flow.pool)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="font-mono text-xs text-primary">{flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden sm:table-cell">
-                    <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
-                      #{flow.blockHeight.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ShieldFlowLegend />
-      </div>
-
-      {/* Pagination */}
-      <Pagination
-        page={page}
-        totalPages={pagination.totalPages}
-        hasNext={pagination.hasNext}
-        hasPrev={pagination.hasPrev}
-        onFirst={goFirst}
-        onPrev={goPrev}
-        onNext={goNext}
-        loading={loading}
+    <>
+      {collectionJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd).replace(/</g, '\\u003c') }}
+        />
+      )}
+      <ShieldedTxsClient
+        key={archiveKey}
+        initialFlows={flows}
+        initialPagination={pagination}
+        initialPage={request.page}
+        initialFlow={request.flow}
+        initialPool={request.pool}
+        initialMinZec={request.minZec}
+        initialCursor={request.cursor}
+        initialCursorId={request.cursorId}
+        initialDirection={request.direction}
       />
-    </div>
+    </>
   );
 }

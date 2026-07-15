@@ -72,7 +72,7 @@ export function Footer() {
               {isMainnet && <a href="https://cipherswap.app" target="_blank" rel="noopener noreferrer" className="footer-link text-xs font-mono">Buy ZEC</a>}
               <Link href="/docs" className="footer-link text-xs font-mono">API Docs</Link>
               <a
-                href="https://cipherpay.app"
+                href="https://www.cipherpay.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-link text-xs font-mono"

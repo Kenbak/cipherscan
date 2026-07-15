@@ -1,57 +1,241 @@
 import { MetadataRoute } from 'next';
-import { headers } from 'next/headers';
+import type { Registration } from 'zcashname-sdk';
+import { getAllNewsletters } from '@/lib/newsletter';
+import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
+import { getClient, isValidName } from '@/lib/zns';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const headersList = await headers();
-  const host = headersList.get('host') || 'cipherscan.app';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-  const baseUrl = `${protocol}://${host}`;
+// Dynamic chain/name discovery must not be frozen to an empty build-time
+// response when a public API is temporarily unreachable during deployment.
+export const dynamic = 'force-dynamic';
 
-  const now = new Date();
+type SitemapEntry = MetadataRoute.Sitemap[number];
+type ChangeFrequency = NonNullable<SitemapEntry['changeFrequency']>;
 
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: baseUrl, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
-    { url: `${baseUrl}/blocks`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
-    { url: `${baseUrl}/txs`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
-    { url: `${baseUrl}/txs/shielded`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
-    { url: `${baseUrl}/network`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
-    { url: `${baseUrl}/rich-list`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${baseUrl}/privacy-risks`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${baseUrl}/decrypt`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${baseUrl}/crosschain`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
-    { url: `${baseUrl}/mempool`, lastModified: now, changeFrequency: 'always', priority: 0.8 },
-    { url: `${baseUrl}/learn`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/newsletter`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${baseUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/docs`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${baseUrl}/tools`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${baseUrl}/tools/unit-converter`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${baseUrl}/tools/broadcast`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${baseUrl}/tools/decode`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${baseUrl}/tools/blend-check`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
-    { url: `${baseUrl}/reorgs`, lastModified: now, changeFrequency: 'hourly', priority: 0.8 },
-  ];
+interface StaticRoute {
+  path: string;
+  changeFrequency: ChangeFrequency;
+  priority: number;
+}
 
-  // Fetch recent blocks to give Google crawlable entry points
-  let blockPages: MetadataRoute.Sitemap = [];
-  try {
-    const apiBase = host.includes('testnet')
-      ? 'https://api.testnet.cipherscan.app'
-      : 'https://api.mainnet.cipherscan.app';
-    const res = await fetch(`${apiBase}/api/blocks?limit=50`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const data = await res.json();
-      blockPages = (data.blocks || []).map((b: { height: string; timestamp: string }) => ({
-        url: `${baseUrl}/block/${b.height}`,
-        lastModified: new Date(parseInt(b.timestamp) * 1000),
-        changeFrequency: 'monthly' as const,
-        priority: 0.5,
-      }));
+const MAINNET_ROUTES: StaticRoute[] = [
+  { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  { path: '/blocks', changeFrequency: 'always', priority: 0.9 },
+  { path: '/txs', changeFrequency: 'always', priority: 0.9 },
+  { path: '/txs/shielded', changeFrequency: 'always', priority: 0.9 },
+  { path: '/mempool', changeFrequency: 'always', priority: 0.9 },
+  { path: '/network', changeFrequency: 'hourly', priority: 0.9 },
+  { path: '/privacy', changeFrequency: 'daily', priority: 0.9 },
+  { path: '/privacy-risks', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/pools', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/mining', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/charts', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/rich-list', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/reorgs', changeFrequency: 'hourly', priority: 0.8 },
+  { path: '/crosschain', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/migration', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/turnstile', changeFrequency: 'hourly', priority: 0.8 },
+  { path: '/usage-clock', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/zodl', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/learn', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/newsletter', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/decrypt', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/tools', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/tools/anchor-search', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/tools/blend-check', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/tools/broadcast', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/tools/decode', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/tools/unit-converter', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/docs', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/about', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/privacy-policy', changeFrequency: 'yearly', priority: 0.2 },
+  { path: '/terms', changeFrequency: 'yearly', priority: 0.2 },
+];
+
+// Keep the public testnet sitemap focused on network-specific tools and data.
+// Other routes can be added once their visible copy and currency labels are
+// explicitly localized to TAZ/testnet.
+const TESTNET_ROUTES: StaticRoute[] = [
+  { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  { path: '/blocks', changeFrequency: 'always', priority: 0.9 },
+  { path: '/txs', changeFrequency: 'always', priority: 0.9 },
+  { path: '/txs/shielded', changeFrequency: 'always', priority: 0.9 },
+  { path: '/mempool', changeFrequency: 'always', priority: 0.9 },
+  { path: '/network', changeFrequency: 'hourly', priority: 0.9 },
+  { path: '/reorgs', changeFrequency: 'hourly', priority: 0.8 },
+  { path: '/tools', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/tools/anchor-search', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/tools/broadcast', changeFrequency: 'monthly', priority: 0.7 },
+];
+
+function toDateFromSeconds(value: unknown): Date | undefined {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+  const date = new Date(seconds * 1000);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function toNewsletterDate(value: string): Date | undefined {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function toDate(value: unknown): Date | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+async function getRecentChainPages(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+  const apiUrl = getApiUrl();
+  const [blocksResult, transactionsResult, orphanBlocksResult, addressesResult] = await Promise.allSettled([
+    fetch(`${apiUrl}/api/blocks?limit=100`, { next: { revalidate: 300 } }),
+    fetch(`${apiUrl}/api/transactions/list?limit=100&type=all`, { next: { revalidate: 300 } }),
+    fetch(`${apiUrl}/api/uncles?limit=100`, { next: { revalidate: 300 } }),
+    fetch(`${apiUrl}/api/rich-list?limit=100&offset=0`, { next: { revalidate: 3600 } }),
+  ]);
+
+  const entries: MetadataRoute.Sitemap = [];
+
+  if (blocksResult.status === 'fulfilled' && blocksResult.value.ok) {
+    try {
+      const data = await blocksResult.value.json();
+      for (const block of data.blocks || []) {
+        const height = Number(block.height);
+        if (!Number.isSafeInteger(height) || height < 0) continue;
+        entries.push({
+          url: `${baseUrl}/block/${height}`,
+          lastModified: toDateFromSeconds(block.timestamp),
+          changeFrequency: 'monthly',
+          priority: 0.6,
+        });
+      }
+    } catch {
+      // Static and newsletter URLs remain useful if the chain API is degraded.
     }
-  } catch {
-    // Non-critical — static pages still get indexed
   }
 
-  return [...staticPages, ...blockPages];
+  if (transactionsResult.status === 'fulfilled' && transactionsResult.value.ok) {
+    try {
+      const data = await transactionsResult.value.json();
+      for (const transaction of data.transactions || []) {
+        if (typeof transaction.txid !== 'string' || !/^[a-fA-F0-9]{64}$/.test(transaction.txid)) continue;
+        entries.push({
+          url: `${baseUrl}/tx/${transaction.txid.toLowerCase()}`,
+          lastModified: toDateFromSeconds(transaction.block_time ?? transaction.blockTime),
+          changeFrequency: 'monthly',
+          priority: 0.5,
+        });
+      }
+    } catch {
+      // Static and newsletter URLs remain useful if the chain API is degraded.
+    }
+  }
+
+  if (orphanBlocksResult.status === 'fulfilled' && orphanBlocksResult.value.ok) {
+    try {
+      const data = await orphanBlocksResult.value.json();
+      for (const block of data.orphanedBlocks || []) {
+        if (typeof block.hash !== 'string' || !/^[a-fA-F0-9]{64}$/.test(block.hash)) continue;
+        entries.push({
+          url: `${baseUrl}/block/${block.hash.toLowerCase()}`,
+          lastModified: toDate(block.detectedAt) ?? toDateFromSeconds(block.timestamp),
+          changeFrequency: 'never',
+          priority: 0.55,
+        });
+      }
+    } catch {
+      // Recent canonical chain URLs remain useful if reorg history is degraded.
+    }
+  }
+
+  if (addressesResult.status === 'fulfilled' && addressesResult.value.ok) {
+    try {
+      const data = await addressesResult.value.json();
+      for (const entry of data.addresses || []) {
+        if (typeof entry.address !== 'string' || entry.address.length < 20) continue;
+        entries.push({
+          url: `${baseUrl}/address/${encodeURIComponent(entry.address)}`,
+          lastModified: toDateFromSeconds(entry.lastSeen) ?? toDate(entry.lastSeen),
+          changeFrequency: 'weekly',
+          priority: 0.45,
+        });
+      }
+    } catch {
+      // Chain entity discovery remains useful if the rich-list API is degraded.
+    }
+  }
+
+  return entries;
+}
+
+async function getRegisteredNamePages(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+  try {
+    const client = getClient();
+    const status = await client.status();
+    const pageSize = 500;
+    // Keep one sitemap response bounded even if the registry eventually grows
+    // beyond today's size. It can be sharded when registrations exceed this.
+    const total = Math.min(Math.max(Number(status.registered) || 0, 0), 5000);
+    const registrations: Registration[] = [];
+
+    for (let offset = 0; offset < total; offset += pageSize) {
+      const page = await client.listAllRegistrations(pageSize, offset);
+      registrations.push(...page);
+      if (page.length < pageSize) break;
+    }
+
+    return registrations
+      .filter((registration) => typeof registration.name === 'string' && isValidName(registration.name))
+      .map((registration) => ({
+        url: `${baseUrl}/name/${encodeURIComponent(registration.name.toLowerCase())}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.45,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const network = getNetwork();
+
+  // Do not advertise URLs from the blocked Crosslink deployment.
+  if (network === 'crosslink-testnet') return [];
+
+  const baseUrl = getBaseUrl();
+  const routeConfig = network === 'mainnet' ? MAINNET_ROUTES : TESTNET_ROUTES;
+  const newsletters = network === 'mainnet' ? getAllNewsletters() : [];
+  const latestNewsletterDate = newsletters[0]
+    ? toNewsletterDate(newsletters[0].date)
+    : undefined;
+
+  const staticPages: MetadataRoute.Sitemap = routeConfig.map((route) => ({
+    url: route.path === '/' ? `${baseUrl}/` : `${baseUrl}${route.path}`,
+    ...(route.path === '/newsletter' && latestNewsletterDate
+      ? { lastModified: latestNewsletterDate }
+      : {}),
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+  }));
+
+  const newsletterPages: MetadataRoute.Sitemap = newsletters.map((issue) => ({
+    url: `${baseUrl}/newsletter/${encodeURIComponent(issue.slug)}`,
+    lastModified: toNewsletterDate(issue.date),
+    changeFrequency: 'never',
+    priority: 0.6,
+  }));
+
+  const [recentChainPages, registeredNamePages] = await Promise.all([
+    getRecentChainPages(baseUrl),
+    network === 'mainnet' ? getRegisteredNamePages(baseUrl) : Promise.resolve([]),
+  ]);
+  const allPages = [
+    ...staticPages,
+    ...newsletterPages,
+    ...recentChainPages,
+    ...registeredNamePages,
+  ];
+
+  // Guard against an API returning duplicate records.
+  return Array.from(new Map(allPages.map((entry) => [entry.url, entry])).values());
 }

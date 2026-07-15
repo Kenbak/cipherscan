@@ -139,7 +139,7 @@ export default function MempoolClient() {
             <span className="opacity-50">{'>'}</span> MEMPOOL
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Mempool
+            Zcash Mempool — Pending Transactions
           </h1>
           <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
             Transactions waiting to be mined into the next Zcash block, streamed in real
@@ -180,7 +180,7 @@ export default function MempoolClient() {
         </p>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Mempool
+            Zcash Mempool — Pending Transactions
           </h1>
           <div className="flex items-center gap-3">
             {autoRefresh && (

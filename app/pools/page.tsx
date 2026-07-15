@@ -264,7 +264,7 @@ export default function PoolsPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> POOL_ANALYTICS
         </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Shielded Pools</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Zcash Shielded Pools</h1>
         <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">
           Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays.
         </p>

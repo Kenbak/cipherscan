@@ -169,7 +169,7 @@ export default function PrivacyClient() {
             <span className="opacity-50">{'>'}</span> PRIVACY_DASHBOARD
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Privacy Metrics
+            Zcash Privacy Metrics
           </h1>
           <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
             Live metrics on how private the Zcash network actually is: the size of the
@@ -224,7 +224,7 @@ export default function PrivacyClient() {
           </p>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-              Privacy Metrics
+              Zcash Privacy Metrics
             </h1>
             <div className="flex items-center gap-3">
               <div className={`flex items-center gap-1.5 ${trendColor}`}>

@@ -1,6 +1,6 @@
-import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Developer Tools | CipherScan',
   description: 'Free Zcash developer tools: decode raw transactions, broadcast signed transactions, decrypt shielded memos, and more. Built on a live Zebra node.',
   keywords: [
@@ -11,17 +11,8 @@ export const metadata: Metadata = {
     'zcash blockchain tools',
     'ZEC developer',
   ],
-  openGraph: {
-    title: 'Zcash Developer Tools | CipherScan',
-    description: 'Decode, broadcast, and inspect Zcash transactions with free developer tools.',
-    url: 'https://cipherscan.app/tools',
-    siteName: 'CipherScan',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/tools',
-  },
-};
+  path: '/tools',
+});
 
 export default function ToolsLayout({ children }: { children: React.ReactNode }) {
   return children;

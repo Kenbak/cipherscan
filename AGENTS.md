@@ -1,0 +1,68 @@
+# CipherScan repository guidance
+
+## SEO shipping checklist
+
+Treat SEO as part of the definition of done for every new or changed page, route, or public feature. Before shipping, complete the applicable checks below.
+
+### 1. Decide indexation and network policy
+
+- Set an explicit `robots` policy for the route; do not rely on inherited defaults for pages whose lifecycle or network matters.
+- Mainnet public content and useful tools should normally be `index, follow`.
+- The testnet homepage and useful testnet data/tool pages should be indexable with testnet-specific copy that identifies Zcash testnet and TAZ. Do not canonicalize testnet pages to mainnet equivalents when their data and intent differ.
+- Keep Crosslink pages `noindex, follow` until the product owner changes that policy. They still need accurate metadata for sharing.
+- Filter, sort, search-result, error, and non-content URL variants should normally be canonicalized to the stable content URL or marked `noindex` as appropriate.
+- Keep `app/robots.ts`, page-level robots metadata, canonical tags, and sitemap inclusion consistent.
+
+### 2. Add complete, unique metadata
+
+- Give every indexable route a unique, intent-specific title and meta description. Do not inherit homepage copy on a child route.
+- Keep the primary topic first and include `CipherScan` once as the brand. Prefer natural language over repeated keyword variants.
+- Add a self-referencing absolute canonical, using the correct network host.
+- Add complete Open Graph and Twitter metadata: title, description, canonical URL, image, image dimensions/alt text where supported, site name, and card/type.
+- When a route replaces an older URL, update internal links and add a permanent redirect from the old URL.
+
+### 3. Server-render meaningful page content
+
+- Render one unique `<h1>` in the initial HTML response. A heading that appears only after client-side fetching does not count.
+- Server-render a short page introduction or meaningful data summary so loading shells are not duplicate thin pages.
+- For transaction hashes, block hashes, addresses, names, and public keys, include the complete identifier in server HTML even if the visual title uses a shortened form.
+- Keep title, H1, and visible introduction aligned while avoiding identical boilerplate across large sets of dynamic pages.
+
+### 4. Handle dynamic URL lifecycles
+
+- New and mempool transactions may be indexed while pending. Once confirmed, preserve the same transaction URL and update its status/content.
+- If a pending transaction disappears and no record remains after the reorg/eviction retention window, switch it to `noindex` and return the correct missing-resource status rather than a soft 200.
+- Use the numeric block-height page as the canonical URL for a block on the current canonical chain. Keep block-hash lookup pages available, but canonicalize a canonical-chain hash lookup to its current height page so the two views do not compete in search.
+- Keep persistent orphan-block hash pages self-canonical and indexable when they contain useful data. Label them clearly, describe the reorg state, and link to the canonical replacement height. If a reorg changes the block at a height, update that height page to the replacement block while preserving the orphaned hash page.
+- Index address pages only when the address has authoritative public activity. Empty or private-only address lookups should remain useful `200` pages but `noindex`; malformed or checksum-invalid values should be 404 once authoritative validation is available. Keep address sitemap discovery bounded to protect crawl budget.
+- Invalid syntax and resources known not to exist must return `404` (or `410` when deliberately retired). Do not render a not-found message with HTTP 200.
+- Cache existence/index lookups, but do not cache uncertain missing states long enough to hide newly arriving mempool or block data.
+
+### 5. Add structured data
+
+- Add the most specific valid JSON-LD type available and ensure it describes visible page content.
+- Use stable `@id` values and connect pages to the CipherScan `WebSite`/`Organization` entities.
+- Dynamic data cards should expose the full identifier, URL, network, lifecycle status, and relevant block/transaction facts. Do not invent unsupported schema properties or hidden claims.
+- Validate JSON-LD and keep it consistent with canonical, title, description, and visible data.
+
+### 6. Connect the page to the crawl graph
+
+- Add stable indexable routes to `app/sitemap.ts` with the canonical URL, meaningful `lastModified`, suitable change frequency, and priority.
+- Add rolling dynamic URLs only when the sitemap can be refreshed reliably; use crawlable pagination/archive pages so older blocks and transactions remain discoverable after they leave the rolling window.
+- Add at least one normal HTML link from a relevant hub, navigation, footer, list, related-content module, or breadcrumb. Do not rely on client-only controls or sitemap discovery alone.
+- When adding pagination, use crawlable URLs and links, not only button state or API offsets.
+- When IndexNow is configured, notify it only after durable public URL state changes: a new canonical block, a transaction first entering the mempool, confirmation/reconfirmation, a drop or reorg state change, or newsletter publication/update. Do not submit every poll, private/API URLs, noindex pages, missing URLs, filter variants, or block-hash aliases that canonicalize to heights.
+- Treat IndexNow as a discovery hint for supported engines, not a replacement for internal links, canonical tags, sitemaps, or Google Search Console.
+- Check that no new link points through a redirect or to a missing route.
+
+### 7. Verify before handoff
+
+- Test raw server HTML for title, description, canonical, robots, Open Graph/Twitter tags, structured data, and exactly one non-empty H1.
+- Test representative `200`, pending, confirmed, reorg/orphan, invalid, `404`, and redirect cases as applicable.
+- Confirm sitemap URLs are canonical, indexable, successful responses and use the correct mainnet/testnet host.
+- Confirm robots.txt does not contradict page metadata or sitemap inclusion.
+- Run the relevant typecheck, lint, unit, and route tests. Add regression coverage when introducing a new route class or lifecycle state.
+
+## Communication
+
+Call out any assumption or guess that affects indexation, canonical identity, visible copy, or content accuracy. Do not silently infer editorial claims.

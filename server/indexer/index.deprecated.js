@@ -426,7 +426,7 @@ async function indexBlock(height) {
     for (let i = 0; i < block.tx.length; i += TX_BATCH_SIZE) {
       const txBatch = block.tx.slice(i, i + TX_BATCH_SIZE);
       await Promise.allSettled(txBatch.map((txid, idx) =>
-        indexTransaction(txid, height, block.time, i + idx)
+        indexTransaction(txid, height, blockHash, block.time, i + idx)
       ));
     }
   }
@@ -436,7 +436,7 @@ async function indexBlock(height) {
   await redis.setEx(`block:hash:${blockHash}`, 3600, JSON.stringify(block));
 }
 
-async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
+async function indexTransaction(txid, blockHeight, blockHash, blockTime, txIndex) {
   try {
     // Use cache if available
     let tx = txCache.get(txid);
@@ -460,16 +460,21 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
 
     await db.query(`
       INSERT INTO transactions (
-        txid, block_height, block_time, version, locktime, size,
+        txid, block_height, block_hash, block_time, version, locktime, size,
         vin_count, vout_count, value_balance, value_balance_sapling, value_balance_orchard,
         has_sapling, has_orchard, has_sprout,
         shielded_spends, shielded_outputs, orchard_actions,
         tx_index, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
-      ON CONFLICT (txid) DO NOTHING
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW())
+      ON CONFLICT (txid) DO UPDATE SET
+        block_height = EXCLUDED.block_height,
+        block_hash = EXCLUDED.block_hash,
+        block_time = EXCLUDED.block_time,
+        tx_index = EXCLUDED.tx_index
     `, [
       txid,
       blockHeight,
+      blockHash,
       blockTime,
       tx.version,
       tx.locktime,
@@ -561,6 +566,8 @@ async function indexTransaction(txid, blockHeight, blockTime, txIndex) {
             pool, amount_sapling_zat, amount_orchard_zat, transparent_addresses, transparent_value_zat
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           ON CONFLICT (txid, flow_type) DO UPDATE SET
+            block_height = EXCLUDED.block_height,
+            block_time = EXCLUDED.block_time,
             transparent_addresses = EXCLUDED.transparent_addresses,
             transparent_value_zat = EXCLUDED.transparent_value_zat
         `, [

@@ -1,11 +1,12 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Terms of Service | CipherScan',
-  description: 'CipherScan terms of service — rules for using the platform.',
-  alternates: { canonical: 'https://cipherscan.app/terms' },
-};
+  description: 'Review the terms for using CipherScan\'s Zcash explorer, APIs, privacy tools, and blockchain data, including availability and liability limits.',
+  path: '/terms',
+  networks: ['mainnet'],
+});
 
 export default function TermsPage() {
   const updated = 'April 25, 2026';

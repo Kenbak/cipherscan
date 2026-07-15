@@ -14,6 +14,21 @@ const nextConfig: NextConfig = {
         destination: '/tools/blend-check',
         permanent: true,
       },
+      {
+        source: '/privacy-stats',
+        destination: '/privacy',
+        permanent: true,
+      },
+      {
+        source: '/privacy/risks',
+        destination: '/privacy-risks',
+        permanent: true,
+      },
+      {
+        source: '/blend-check',
+        destination: '/tools/blend-check',
+        permanent: true,
+      },
     ];
   },
   webpack: (config, { isServer }) => {

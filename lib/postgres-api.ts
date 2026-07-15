@@ -224,6 +224,8 @@ export async function fetchTransactionFromPostgres(txid: string) {
       ironwood: tx.ironwood_actions ? { actions: tx.ironwood_actions } : undefined,
       vJoinSplit: tx.joinsplits || [],
       confirmations: parseInt(tx.confirmations) || 0,
+      isCanonical: tx.isCanonical === true,
+      status: tx.status,
       blockheight: parseInt(tx.blockHeight || tx.block_height),
       blockHeight: parseInt(tx.blockHeight || tx.block_height), // Add camelCase version
       blocktime: parseInt(tx.blockTime || tx.block_time),

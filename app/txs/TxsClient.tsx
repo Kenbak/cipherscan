@@ -61,25 +61,46 @@ function getFlowBadge(tx: Transaction) {
 interface TxsClientProps {
   initialTxs?: Transaction[];
   initialPagination?: PaginationState | null;
+  initialPage?: number;
+  initialType?: TxType;
+  initialCursor?: number | null;
+  initialCursorIdx?: number | null;
+  initialDirection?: 'next' | 'prev';
 }
 
-export default function TxsClient({ initialTxs = [], initialPagination = null }: TxsClientProps) {
-  const hasInitialData = initialTxs.length > 0;
-  const skipFirstFetch = useRef(hasInitialData);
+export default function TxsClient({
+  initialTxs = [],
+  initialPagination = null,
+  initialPage = 1,
+  initialType = 'all',
+  initialCursor = null,
+  initialCursorIdx = null,
+  initialDirection = 'next',
+}: TxsClientProps) {
+  const PAGE_SIZE = 25;
+  const hasInitialData = initialPagination !== null || initialTxs.length > 0;
+  const fallbackStarted = useRef(false);
+  const previousTypeFilter = useRef<TxType>(initialType);
   const [txs, setTxs] = useState<Transaction[]>(initialTxs);
   const [loading, setLoading] = useState(!hasInitialData);
-  const [typeFilter, setTypeFilter] = useState<TxType>('all');
-  const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
+  const [page, setPage] = useState(initialPage);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
     total: 0, totalPages: 0, hasNext: false, hasPrev: false,
     nextCursor: null, nextCursorIdx: null, prevCursor: null, prevCursorIdx: null,
   });
 
-  const fetchTxs = useCallback(async (cursor?: number | null, cursorIdx?: number | null, direction?: string, type?: TxType) => {
+  const fetchTxs = useCallback(async (
+    cursor?: number | null,
+    cursorIdx?: number | null,
+    direction?: 'next' | 'prev',
+    type?: TxType,
+    targetPage = 1,
+  ) => {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: '25', type: type || typeFilter });
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1), type: type || typeFilter });
       if (cursor !== undefined && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('cursor_idx', String(cursorIdx ?? 0));
@@ -88,8 +109,26 @@ export default function TxsClient({ initialTxs = [], initialPagination = null }:
       const res = await fetch(`${base}/api/transactions/list?${params}`);
       const json = await res.json();
       if (json.success) {
-        setTxs(json.transactions);
-        setPagination(json.pagination);
+        const all: Transaction[] = json.transactions || [];
+        const reverseOffset = direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
+        const visibleTxs = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
+        const firstTx = visibleTxs[0] ?? null;
+        const lastTx = visibleTxs[visibleTxs.length - 1] ?? null;
+        const total = Number(json.pagination?.total) || 0;
+        setTxs(visibleTxs);
+        setPagination({
+          ...json.pagination,
+          total,
+          totalPages: Math.ceil(total / PAGE_SIZE),
+          hasNext: direction === 'prev'
+            ? cursor !== null && cursor !== undefined && visibleTxs.length > 0
+            : all.length > PAGE_SIZE,
+          hasPrev: targetPage > 1,
+          nextCursor: lastTx ? Number(lastTx.block_height) : null,
+          nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
+          prevCursor: firstTx ? Number(firstTx.block_height) : null,
+          prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
+        });
       }
     } catch (err) {
       console.error('Error fetching transactions:', err);
@@ -99,18 +138,44 @@ export default function TxsClient({ initialTxs = [], initialPagination = null }:
   }, [typeFilter]);
 
   useEffect(() => {
-    // Initial "all" page is server-rendered; skip the redundant mount fetch.
-    if (skipFirstFetch.current) {
-      skipFirstFetch.current = false;
-      return;
-    }
+    if (hasInitialData || fallbackStarted.current) return;
+    fallbackStarted.current = true;
+    setPage(initialPage);
+    fetchTxs(initialCursor, initialCursorIdx, initialDirection, initialType, initialPage);
+    // The initial request inputs are fixed for this keyed client instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (previousTypeFilter.current === typeFilter) return;
+    previousTypeFilter.current = typeFilter;
     setPage(1);
     fetchTxs(null, null, undefined, typeFilter);
   }, [typeFilter]);
 
-  const goFirst = () => { setPage(1); fetchTxs(null, null, undefined); };
-  const goPrev = () => { setPage(p => p - 1); fetchTxs(pagination.prevCursor, pagination.prevCursorIdx, 'prev'); };
-  const goNext = () => { setPage(p => p + 1); fetchTxs(pagination.nextCursor, pagination.nextCursorIdx, 'next'); };
+  const buildArchiveHref = (
+    cursor: number | null,
+    cursorIdx: number | null,
+    direction: 'next' | 'prev',
+    targetPage: number,
+  ) => {
+    const params = new URLSearchParams();
+    if (typeFilter !== 'all') params.set('type', typeFilter);
+    if (targetPage > 1 && cursor !== null) {
+      params.set('cursor', String(cursor));
+      params.set('cursor_idx', String(cursorIdx ?? 0));
+      params.set('direction', direction);
+      params.set('page', String(targetPage));
+    }
+    const query = params.toString();
+    return query ? `/txs?${query}` : '/txs';
+  };
+
+  const firstHref = buildArchiveHref(null, null, 'next', 1);
+  const prevHref = page <= 2
+    ? firstHref
+    : buildArchiveHref(pagination.prevCursor, pagination.prevCursorIdx, 'prev', page - 1);
+  const nextHref = buildArchiveHref(pagination.nextCursor, pagination.nextCursorIdx, 'next', page + 1);
 
   const filters: { id: TxType; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -127,7 +192,9 @@ export default function TxsClient({ initialTxs = [], initialPagination = null }:
           <span className="opacity-50">{'>'}</span> ALL_TRANSACTIONS
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Transactions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            {page > 1 ? `Zcash Transactions - Page ${page}` : 'Latest Zcash Transactions'}
+          </h1>
           <span className="text-xs font-mono text-muted">
             {pagination.total.toLocaleString()} transactions
           </span>
@@ -213,9 +280,9 @@ export default function TxsClient({ initialTxs = [], initialPagination = null }:
         totalPages={pagination.totalPages}
         hasNext={pagination.hasNext}
         hasPrev={pagination.hasPrev}
-        onFirst={goFirst}
-        onPrev={goPrev}
-        onNext={goNext}
+        firstHref={firstHref}
+        prevHref={prevHref}
+        nextHref={nextHref}
         loading={loading}
       />
     </div>

@@ -1,11 +1,12 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Privacy Policy | CipherScan',
-  description: 'CipherScan privacy policy — how we handle your data.',
-  alternates: { canonical: 'https://cipherscan.app/privacy-policy' },
-};
+  description: 'Read how CipherScan handles analytics, logs, local browser data, and public Zcash blockchain information while protecting visitor privacy.',
+  path: '/privacy-policy',
+  networks: ['mainnet'],
+});
 
 export default function PrivacyPolicyPage() {
   const updated = 'April 25, 2026';

@@ -8,7 +8,7 @@ import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { API_CONFIG, isCrosslinkNetwork } from '@/lib/api-config';
-import { isCrosslink } from '@/lib/config';
+import { isCrosslink, isTestnet } from '@/lib/config';
 
 interface Block {
   height: number;
@@ -114,23 +114,6 @@ async function getRiskStats(): Promise<RiskStats | null> {
 
 const crosslinkMode = isCrosslink;
 
-export const metadata = {
-  title: crosslinkMode
-    ? 'CipherScan - Zcash Crosslink Explorer'
-    : 'CipherScan - Zcash Block Explorer & Privacy Analytics',
-  description: crosslinkMode
-    ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks on the hybrid PoW/PoS network.'
-    : 'Zcash block explorer with privacy analytics. Search blocks, transactions, and addresses. View shielded pool stats, privacy scores, and network health. Open-source and privacy-first.',
-  openGraph: {
-    title: crosslinkMode
-      ? 'CipherScan - Zcash Crosslink Explorer'
-      : 'CipherScan - Zcash Block Explorer',
-    description: crosslinkMode
-      ? 'Explore the Zcash Crosslink feature net. Track finality, staking, validators, and blocks.'
-      : 'Zcash block explorer with privacy analytics. Search blocks, transactions, and addresses. View shielded pool stats and network health.',
-  },
-};
-
 export default async function Home() {
   const [initialBlocks, initialShieldedTxs, privacyStats, riskStats] = await Promise.all([
     getRecentBlocks(),
@@ -146,7 +129,11 @@ export default async function Home() {
         {/* Tagline - SEO friendly */}
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-6 sm:mb-8 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
-          {crosslinkMode ? 'Zcash Crosslink Explorer' : 'Zcash Block Explorer'}
+          {crosslinkMode
+            ? 'CipherScan: Zcash Crosslink Explorer'
+            : isTestnet
+              ? 'CipherScan: Zcash Testnet Explorer (TAZ)'
+              : 'CipherScan: Zcash Block Explorer'}
         </h1>
 
         {/* Search Section */}
@@ -156,8 +143,9 @@ export default async function Home() {
         <p className="text-xs text-muted mt-4 max-w-lg mx-auto leading-relaxed">
           {crosslinkMode
             ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
-            : 'Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.'
-          }
+            : isTestnet
+              ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
+              : 'Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.'}
         </p>
       </div>
 

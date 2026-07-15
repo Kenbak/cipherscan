@@ -3,9 +3,26 @@ import { NewsletterContent } from '@/components/newsletter/NewsletterContent';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+function getIssueDescription(summary: string, date: string): string {
+  const description = summary || `CipherScan Weekly issue published ${date}.`;
+  if (description.length <= 160) return description;
+
+  const candidate = description.slice(0, 159);
+  const sentenceEnd = Math.max(
+    candidate.lastIndexOf('.'),
+    candidate.lastIndexOf('!'),
+    candidate.lastIndexOf('?'),
+  );
+  if (sentenceEnd >= 90) return description.slice(0, sentenceEnd + 1);
+
+  const wordEnd = candidate.lastIndexOf(' ');
+  return `${description.slice(0, wordEnd > 0 ? wordEnd : 159).trimEnd()}…`;
 }
 
 export async function generateStaticParams() {
@@ -15,12 +32,25 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const issue = getNewsletter(slug);
-  if (!issue) return { title: 'Not Found | CipherScan' };
+  if (!issue) {
+    return buildPageMetadata({
+      title: 'Newsletter Issue Not Found | CipherScan',
+      description: 'This CipherScan Weekly newsletter issue could not be found.',
+      path: `/newsletter/${encodeURIComponent(slug)}`,
+      index: false,
+      canonical: false,
+      networks: ['mainnet'],
+    });
+  }
 
-  return {
-    title: `${issue.title} | CipherScan Weekly`,
-    description: issue.summary || `CipherScan Weekly issue from ${issue.date}`,
-  };
+  return buildPageMetadata({
+    title: `${issue.title} | CipherScan`,
+    description: getIssueDescription(issue.summary, issue.date),
+    path: `/newsletter/${issue.slug}`,
+    type: 'article',
+    networks: ['mainnet'],
+    imageAlt: `${issue.title} from CipherScan Weekly`,
+  });
 }
 
 export default async function NewsletterIssuePage({ params }: PageProps) {
@@ -33,9 +63,59 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
   const currentIdx = allIssues.findIndex((n) => n.slug === slug);
   const prevIssue = currentIdx < allIssues.length - 1 ? allIssues[currentIdx + 1] : null;
   const nextIssue = currentIdx > 0 ? allIssues[currentIdx - 1] : null;
+  const baseUrl = getBaseUrl();
+  const pageUrl = new URL(`/newsletter/${issue.slug}`, `${baseUrl}/`).toString();
+  const description = getIssueDescription(issue.summary, issue.date);
+  const datePublished = /^\d{4}-\d{2}-\d{2}$/.test(issue.date)
+    ? `${issue.date}T00:00:00.000Z`
+    : issue.date;
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    '@id': `${pageUrl}#article`,
+    url: pageUrl,
+    headline: issue.title,
+    description,
+    datePublished,
+    inLanguage: 'en-US',
+    image: `${baseUrl}/og-image.png?v=2`,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': pageUrl,
+    },
+    isPartOf: {
+      '@type': 'WebSite',
+      '@id': `${baseUrl}/#website`,
+      name: 'CipherScan',
+      url: `${baseUrl}/`,
+    },
+    author: {
+      '@type': 'Organization',
+      '@id': 'https://cipherscan.app/#organization',
+      name: 'CipherScan',
+      url: 'https://cipherscan.app',
+    },
+    publisher: {
+      '@type': 'Organization',
+      '@id': 'https://cipherscan.app/#organization',
+      name: 'CipherScan',
+      url: 'https://cipherscan.app',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://cipherscan.app/apple-touch-icon.png',
+      },
+    },
+  };
 
   return (
-    <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
+      <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
       <Link
         href="/newsletter"
         className="inline-flex items-center gap-2 text-sm font-mono text-muted hover:text-cipher-cyan transition-colors mb-8"
@@ -154,6 +234,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
           </div>
         </aside>
       )}
-    </div>
+      </div>
+    </>
   );
 }

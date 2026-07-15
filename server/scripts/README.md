@@ -126,3 +126,59 @@ curl -I https://crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz
 The snapshotter will **refuse to publish** if:
 - The finality gap is > 5 blocks
 - A configured cross-check reference explorer reports a different finalized hash
+
+## Transaction block identity rollout
+
+Canonical transaction APIs require both `transactions.block_height` and
+`transactions.block_hash` to match the same row in `blocks`. Before deploying
+the reorg-aware API queries, deploy the indexer writer change that records both
+fields, then use `backfill-transaction-block-hashes.js` against each network's
+database. The repository has no general database migration runner, so this is
+an explicit deployment operation rather than an application-startup mutation.
+
+The script is audit-only by default. It never derives a hash by joining on
+height alone. In verify/apply mode it requires all of the following before a
+row can change:
+
+1. Zebra `getrawtransaction(txid, 1)` returns a block hash.
+2. Zebra `getblock(blockhash, 1)` returns the same hash and includes the txid.
+3. That exact `(height, hash)` pair exists in the local canonical `blocks`
+   table.
+4. The canonical block row remains locked while the transaction and optional
+   denormalized rows are updated in one database transaction.
+
+From `server/scripts`, using the same environment-file convention as the other
+repair scripts:
+
+```bash
+# 1. SQL-only counts and samples. This makes no Zebra calls and never writes.
+npx dotenvx run -f ../api/.env -- node backfill-transaction-block-hashes.js --audit
+
+# 2. Pilot verification. Review would_update and all unresolved categories.
+npx dotenvx run -f ../api/.env -- node backfill-transaction-block-hashes.js --verify --limit=100 --verbose
+
+# 3. Apply the same guarded verification to a small batch.
+npx dotenvx run -f ../api/.env -- node backfill-transaction-block-hashes.js --apply --limit=100 --verbose
+
+# 4. Continue in bounded batches until missing_hash and malformed_hash are zero.
+npx dotenvx run -f ../api/.env -- node backfill-transaction-block-hashes.js --apply --limit=1000
+npx dotenvx run -f ../api/.env -- node backfill-transaction-block-hashes.js --audit
+```
+
+Run the sequence separately for mainnet and testnet with the corresponding
+database and Zebra environment. `--all` is available for a maintenance window,
+but bounded batches make RPC load and rollback scope easier to review.
+
+Valid hashes that do not match the current local canonical block are excluded
+by default because they may be intentionally retained stale/orphan identities.
+Audit them separately with `--include-mismatched --verify`; even with
+`--include-mismatched --apply`, the script updates a row only when Zebra and the
+local canonical block mapping agree. RPC failures, transactions with no block
+hash, missing local blocks, and membership mismatches remain unchanged and are
+reported for investigation.
+
+After the final audit, deploy the API reader changes and spot-check transaction
+lists, shielded statistics, a confirmed transaction, and a retained stale
+transaction. The production indexer must continue writing and updating height,
+hash, time, and transaction index together whenever a transaction is mined or
+re-mined.

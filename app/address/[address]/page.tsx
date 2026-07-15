@@ -402,9 +402,9 @@ export default function AddressPage() {
             <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_SHIELDED</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary">
               Shielded Address
-            </h1>
+            </h2>
             <div className="flex items-center gap-2">
               <Badge color="purple" icon={<Icons.Shield />}>
                 {isUnified ? 'UNIFIED' : 'SHIELDED'}
@@ -658,7 +658,7 @@ export default function AddressPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
         <div className="mb-8 animate-fade-in-up">
           <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_LOOKUP</span>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h1>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h2>
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="cyan">TRANSPARENT</Badge>
             <code className="text-xs text-secondary break-all font-mono">{address}</code>
@@ -694,7 +694,7 @@ export default function AddressPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
         <div className="mb-8 animate-fade-in-up">
           <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_LOOKUP</span>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h1>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h2>
           <div className="flex flex-wrap items-center gap-2">
             <code className="text-xs text-secondary break-all font-mono">{address}</code>
             <CopyButton text={address} label="address" />

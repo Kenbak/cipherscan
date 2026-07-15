@@ -1,11 +1,13 @@
 import { getAllNewsletters } from '@/lib/newsletter';
 import Link from 'next/link';
-import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Newsletter | CipherScan',
   description: 'Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. No tracking. No surveillance.',
-};
+  path: '/newsletter',
+  networks: ['mainnet'],
+});
 
 export default function NewsletterPage() {
   const newsletters = getAllNewsletters();

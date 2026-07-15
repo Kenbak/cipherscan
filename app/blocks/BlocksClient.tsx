@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -31,15 +31,22 @@ interface BlocksClientProps {
   initialBlocks?: Block[];
   initialTrailingBlock?: Block | null;
   initialPagination?: PaginationState | null;
+  initialCursor?: number | null;
+  initialDirection?: 'next' | 'prev';
+  initialPage?: number;
 }
 
 export default function BlocksClient({
   initialBlocks = [],
   initialTrailingBlock = null,
   initialPagination = null,
+  initialCursor = null,
+  initialDirection = 'next',
+  initialPage = 1,
 }: BlocksClientProps) {
   const PAGE_SIZE = 25;
-  const hasInitialData = initialBlocks.length > 0;
+  const hasInitialData = initialPagination !== null || initialBlocks.length > 0;
+  const fallbackStarted = useRef(false);
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [trailingBlock, setTrailingBlock] = useState<Block | null>(initialTrailingBlock);
   const [loading, setLoading] = useState(!hasInitialData);
@@ -47,7 +54,11 @@ export default function BlocksClient({
     page: 1, totalPages: 0, total: 0, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null,
   });
 
-  const fetchBlocks = useCallback(async (cursor?: number | null, direction?: string) => {
+  const fetchBlocks = useCallback(async (
+    cursor?: number | null,
+    direction?: 'next' | 'prev',
+    targetPage = 1,
+  ) => {
     setLoading(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -59,15 +70,28 @@ export default function BlocksClient({
       const res = await fetch(`${base}/api/blocks/list?${params}`);
       const json = await res.json();
       if (json.success) {
-        const all: Block[] = json.blocks;
-        if (all.length > PAGE_SIZE) {
+        const all: Block[] = json.blocks || [];
+        const reverseOffset = direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
+        const visibleBlocks = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
+        if (direction !== 'prev' && all.length > PAGE_SIZE) {
           setTrailingBlock(all[PAGE_SIZE]);
-          setBlocks(all.slice(0, PAGE_SIZE));
         } else {
           setTrailingBlock(null);
-          setBlocks(all);
         }
-        setPagination(json.pagination);
+        setBlocks(visibleBlocks);
+        setPagination({
+          ...json.pagination,
+          page: targetPage,
+          totalPages: Math.ceil((Number(json.pagination?.total) || 0) / PAGE_SIZE),
+          hasNext: direction === 'prev'
+            ? cursor !== null && cursor !== undefined && visibleBlocks.length > 0
+            : all.length > PAGE_SIZE,
+          hasPrev: targetPage > 1,
+          nextCursor: visibleBlocks.length > 0
+            ? Number(visibleBlocks[visibleBlocks.length - 1].height)
+            : null,
+          prevCursor: visibleBlocks.length > 0 ? Number(visibleBlocks[0].height) : null,
+        });
       }
     } catch (err) {
       console.error('Error fetching blocks:', err);
@@ -79,13 +103,27 @@ export default function BlocksClient({
   // Server-rendered initial data already covers the first page; only fetch
   // on mount when the server couldn't provide it.
   useEffect(() => {
-    if (!hasInitialData) fetchBlocks();
+    if (hasInitialData || fallbackStarted.current) return;
+    fallbackStarted.current = true;
+    fetchBlocks(initialCursor, initialDirection, initialPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchBlocks]);
+  }, []);
 
-  const goFirst = () => fetchBlocks(null, undefined);
-  const goPrev = () => fetchBlocks(pagination.prevCursor, 'prev');
-  const goNext = () => fetchBlocks(pagination.nextCursor, 'next');
+  const buildArchiveHref = (cursor: number | null, direction: 'next' | 'prev', page: number) => {
+    if (page <= 1 || cursor === null) return '/blocks';
+    const params = new URLSearchParams({
+      cursor: String(cursor),
+      direction,
+      page: String(page),
+    });
+    return `/blocks?${params.toString()}`;
+  };
+
+  const firstHref = '/blocks';
+  const prevHref = pagination.page <= 2
+    ? firstHref
+    : buildArchiveHref(pagination.prevCursor, 'prev', pagination.page - 1);
+  const nextHref = buildArchiveHref(pagination.nextCursor, 'next', pagination.page + 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -95,7 +133,9 @@ export default function BlocksClient({
           <span className="opacity-50">{'>'}</span> ALL_BLOCKS
         </p>
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Latest Zcash Blocks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            {pagination.page > 1 ? `Zcash Blocks - Page ${pagination.page}` : 'Latest Zcash Blocks'}
+          </h1>
           <span className="text-xs font-mono text-muted">
             {blocks.length > 0
               ? `Block #${blocks[0].height.toLocaleString()} to #${blocks[blocks.length - 1].height.toLocaleString()} · ${pagination.total.toLocaleString()} blocks`
@@ -172,7 +212,7 @@ export default function BlocksClient({
                         </div>
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
-                        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
+                        <Link href={`/block/${block.hash.toLowerCase()}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
                           {block.hash}
                         </Link>
                       </td>
@@ -234,9 +274,9 @@ export default function BlocksClient({
         totalPages={pagination.totalPages}
         hasNext={pagination.hasNext}
         hasPrev={pagination.hasPrev}
-        onFirst={goFirst}
-        onPrev={goPrev}
-        onNext={goNext}
+        firstHref={firstHref}
+        prevHref={prevHref}
+        nextHref={nextHref}
         loading={loading}
       />
     </div>

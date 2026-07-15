@@ -330,9 +330,14 @@ export default function CrosschainPage() {
   if (loading) {
     return (
       <div className="min-h-screen py-8 sm:py-12 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan" />
-          <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            ZEC Cross-Chain Analytics
+          </h1>
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan" />
+            <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
+          </div>
         </div>
       </div>
     );

@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
 import DecryptPageClient from '@/components/DecryptPageClient';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Zcash Decrypt Memo Tool - Decode Shielded Transaction Messages | CipherScan',
-  description: 'Free online tool to decrypt Zcash shielded transaction memos. Decode encrypted messages from Sapling and Orchard transactions using your viewing key. 100% client-side, your keys never leave your browser.',
+export const metadata = buildPageMetadata({
+  title: 'Decrypt Zcash Transaction Memos | CipherScan',
+  description: 'Decrypt Sapling and Orchard transaction memos in your browser using a Zcash viewing key. Your key never leaves your device.',
   keywords: [
     'zcash decrypt memo',
     'zcash memo tool',
@@ -21,31 +21,10 @@ export const metadata: Metadata = {
     'zcash transaction viewer',
     'UFVK decrypt',
   ],
-  openGraph: {
-    title: 'Zcash Decrypt Memo Tool - Decode Shielded Messages',
-    description: 'Free tool to decrypt Zcash shielded transaction memos using your viewing key. 100% client-side decryption, your keys never leave your browser.',
-    url: 'https://cipherscan.app/decrypt',
-    siteName: 'CipherScan',
-    type: 'website',
-    images: [
-      {
-        url: 'https://cipherscan.app/og-image.png?v=2',
-        width: 1200,
-        height: 630,
-        alt: 'CipherScan - Zcash Decrypt Memo Tool',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Zcash Decrypt Memo Tool | CipherScan',
-    description: 'Decrypt Zcash shielded transaction memos in your browser. No server, no tracking, 100% private.',
-    images: ['https://cipherscan.app/og-image.png?v=2'],
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/decrypt',
-  },
-};
+  path: '/decrypt',
+  imageAlt: 'CipherScan - Zcash Decrypt Memo Tool',
+  networks: ['mainnet'],
+});
 
 // JSON-LD structured data for the decrypt tool
 const jsonLd = {
