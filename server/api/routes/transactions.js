@@ -91,7 +91,6 @@ router.get('/api/transactions/list', async (req, res) => {
       result = await pool.query(
         `SELECT ${txCols}
          FROM transactions t
-         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
          WHERE true ${typeCondition}
          ORDER BY t.block_height DESC, t.tx_index DESC
          LIMIT $1`,
@@ -101,7 +100,6 @@ router.get('/api/transactions/list', async (req, res) => {
       result = await pool.query(
         `SELECT ${txCols}
          FROM transactions t
-         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
          WHERE (t.block_height > $1 OR (t.block_height = $1 AND t.tx_index > $2)) ${typeCondition}
          ORDER BY t.block_height ASC, t.tx_index ASC
          LIMIT $3`,
@@ -112,7 +110,6 @@ router.get('/api/transactions/list', async (req, res) => {
       result = await pool.query(
         `SELECT ${txCols}
          FROM transactions t
-         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
          WHERE (t.block_height < $1 OR (t.block_height = $1 AND t.tx_index < $2)) ${typeCondition}
          ORDER BY t.block_height DESC, t.tx_index DESC
          LIMIT $3`,
@@ -183,8 +180,7 @@ router.get('/api/shielded/list', async (req, res) => {
     const whereBase = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const canonicalFlowJoin = `FROM shielded_flows sf
-      JOIN transactions t ON t.txid = sf.txid AND t.block_height = sf.block_height
-      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash`;
+      JOIN transactions t ON t.txid = sf.txid AND t.block_height = sf.block_height`;
     let total;
     if (conditions.length === 0) {
       const countResult = await pool.query(
@@ -319,6 +315,8 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Query (including Rust indexer fields)
+    // No JOIN to blocks needed: all columns come from transactions table,
+    // and data integrity is maintained by the Rust indexer (deletes on reorg).
     const result = await pool.query(
       `SELECT
         t.txid,
@@ -337,7 +335,6 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         t.value_balance_sapling,
         t.value_balance_orchard
       FROM transactions t
-      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
       ${whereClause}
       ORDER BY t.block_height DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -352,7 +349,6 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
       const countResult = await pool.query(
         `SELECT COUNT(*) as total
         FROM transactions t
-        JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
         ${whereClause}`,
         queryParams.slice(0, -2)
       );
