@@ -1,8 +1,10 @@
 import { MetadataRoute } from 'next';
+import { unstable_cache } from 'next/cache';
 import type { Registration } from 'zcashname-sdk';
 import { getAllNewsletters } from '@/lib/newsletter';
+import { createRefreshCache } from '@/lib/refresh-cache';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
-import { getClient, isValidName } from '@/lib/zns';
+import { getZnsStatus, isValidName, listZnsRegistrations } from '@/lib/zns';
 
 // Dynamic chain/name discovery must not be frozen to an empty build-time
 // response when a public API is temporarily unreachable during deployment.
@@ -10,6 +12,11 @@ export const dynamic = 'force-dynamic';
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 type ChangeFrequency = NonNullable<SitemapEntry['changeFrequency']>;
+
+const ZNS_SITEMAP_REVALIDATE_SECONDS = 60 * 60;
+const ZNS_SITEMAP_MEMORY_TTL_MS = 5 * 60 * 1000;
+const ZNS_SITEMAP_RETRY_AFTER_MS = 30 * 1000;
+const ZNS_SITEMAP_REFRESH_TIMEOUT_MS = 10 * 1000;
 
 interface StaticRoute {
   path: string;
@@ -158,33 +165,48 @@ async function getRecentChainPages(baseUrl: string): Promise<MetadataRoute.Sitem
   return entries;
 }
 
-async function getRegisteredNamePages(baseUrl: string): Promise<MetadataRoute.Sitemap> {
-  try {
-    const client = getClient();
-    const status = await client.status();
-    const pageSize = 500;
-    // Keep one sitemap response bounded even if the registry eventually grows
-    // beyond today's size. It can be sharded when registrations exceed this.
-    const total = Math.min(Math.max(Number(status.registered) || 0, 0), 5000);
-    const registrations: Registration[] = [];
+async function refreshRegisteredNamePages(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+  const signal = AbortSignal.timeout(ZNS_SITEMAP_REFRESH_TIMEOUT_MS);
+  const status = await getZnsStatus(signal);
+  const pageSize = 500;
+  // Keep one sitemap response bounded even if the registry eventually grows
+  // beyond today's size. It can be sharded when registrations exceed this.
+  const total = Math.min(Math.max(Number(status.registered) || 0, 0), 5000);
+  const registrations: Registration[] = [];
 
-    for (let offset = 0; offset < total; offset += pageSize) {
-      const page = await client.listAllRegistrations(pageSize, offset);
-      registrations.push(...page);
-      if (page.length < pageSize) break;
-    }
-
-    return registrations
-      .filter((registration) => typeof registration.name === 'string' && isValidName(registration.name))
-      .map((registration) => ({
-        url: `${baseUrl}/name/${encodeURIComponent(registration.name.toLowerCase())}`,
-        changeFrequency: 'weekly' as const,
-        priority: 0.45,
-      }));
-  } catch {
-    return [];
+  for (let offset = 0; offset < total; offset += pageSize) {
+    const page = await listZnsRegistrations(pageSize, offset, signal);
+    registrations.push(...page);
+    if (page.length < pageSize) break;
   }
+
+  return registrations
+    .filter((registration) => typeof registration.name === 'string' && isValidName(registration.name))
+    .map((registration) => ({
+      url: `${baseUrl}/name/${encodeURIComponent(registration.name.toLowerCase())}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.45,
+    }));
 }
+
+const getRegisteredNamePagesFromDataCache = unstable_cache(
+  refreshRegisteredNamePages,
+  ['sitemap-zns-registrations-v1'],
+  {
+    revalidate: ZNS_SITEMAP_REVALIDATE_SECONDS,
+    tags: ['sitemap-zns-registrations'],
+  },
+);
+
+// The Next data cache shares completed values across requests and deployments
+// that provide a shared cache. This process-local layer also coalesces cold
+// misses and provides a short failure backoff when the upstream is unavailable.
+const getRegisteredNamePages = createRefreshCache({
+  load: getRegisteredNamePagesFromDataCache,
+  maxAgeMs: ZNS_SITEMAP_MEMORY_TTL_MS,
+  retryAfterMs: ZNS_SITEMAP_RETRY_AFTER_MS,
+  fallback: () => [] as MetadataRoute.Sitemap,
+});
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const network = getNetwork();

@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+    "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
     "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
     "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",
     "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js"
