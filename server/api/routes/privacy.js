@@ -34,9 +34,9 @@ router.use((req, res, next) => {
 router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
   try {
     const { transactions, pagination, riskBreakdown } = await queryPrivacyLinkageEdges(pool, {
-      limit: Number(req.query.limit),
-      offset: Number(req.query.offset),
-      minScore: Number(req.query.minScore),
+      limit: Number(req.query.limit) || undefined,
+      offset: Number(req.query.offset) || undefined,
+      minScore: req.query.minScore != null ? Number(req.query.minScore) : undefined,
       period: req.query.period,
       riskLevel: req.query.riskLevel,
       sort: req.query.sort,
