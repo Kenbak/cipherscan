@@ -125,6 +125,7 @@ export function NavBar() {
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
         { href: '/ironwood', label: 'Zcash Ironwood', desc: 'NU6.3 upgrade & migration tracker' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
+        { href: '/privacy/wallets', label: 'Wallet Analysis', desc: 'Fingerprints & anonymity sets' },
       ];
 
   const researchItems: MenuItem[] = [

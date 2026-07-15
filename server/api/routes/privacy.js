@@ -582,4 +582,299 @@ router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts
   }
 });
 
+// ============================================================================
+// FEE LANE ANONYMITY ANALYSIS (ZIP-317)
+// ============================================================================
+
+/**
+ * GET /api/privacy/fee-lanes?period=30d
+ *
+ * Computes fee-per-action buckets for shielded transactions using the ZIP-317
+ * formula: conventional_actions = max(2, logical_actions), where
+ * logical_actions = max(vin, vout) + max(sapling_spends, sapling_outputs)
+ *                   + orchard_actions + ironwood_actions.
+ *
+ * Buckets: standard (5000 zat/action), priority (20000), non-standard (other).
+ */
+router.get('/api/privacy/fee-lanes', async (req, res) => {
+  try {
+    const period = req.query.period || '30d';
+    const periodDays = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const days = periodDays[period] || 30;
+
+    const blocksPerDay = 1152;
+    const tipResult = await pool.query('SELECT MAX(height) as tip FROM blocks');
+    const tip = parseInt(tipResult.rows[0].tip);
+    const minHeight = tip - (days * blocksPerDay);
+
+    const cacheKey = `fee-lanes:${period}`;
+    if (redisClient) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) return res.json(JSON.parse(cached));
+      } catch (_) {}
+    }
+
+    const [summaryResult, historyResult] = await Promise.all([
+      pool.query(`
+        WITH fee_calc AS (
+          SELECT
+            fee,
+            GREATEST(2,
+              GREATEST(vin_count, vout_count) +
+              GREATEST(shielded_spends, shielded_outputs) +
+              orchard_actions +
+              COALESCE(ironwood_actions, 0)
+            ) AS conv_actions
+          FROM transactions
+          WHERE block_height >= $1
+            AND is_coinbase = false
+            AND fee > 0
+            AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)
+        )
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE fee = 5000 * conv_actions) AS standard,
+          COUNT(*) FILTER (WHERE fee = 20000 * conv_actions) AS priority,
+          COUNT(*) FILTER (WHERE fee != 5000 * conv_actions AND fee != 20000 * conv_actions) AS non_standard
+        FROM fee_calc
+      `, [minHeight]),
+
+      pool.query(`
+        WITH fee_calc AS (
+          SELECT
+            fee,
+            block_time,
+            GREATEST(2,
+              GREATEST(vin_count, vout_count) +
+              GREATEST(shielded_spends, shielded_outputs) +
+              orchard_actions +
+              COALESCE(ironwood_actions, 0)
+            ) AS conv_actions
+          FROM transactions
+          WHERE block_height >= $1
+            AND is_coinbase = false
+            AND fee > 0
+            AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)
+        )
+        SELECT
+          to_char(to_timestamp(block_time), 'YYYY-MM-DD') AS date,
+          COUNT(*) FILTER (WHERE fee = 5000 * conv_actions) AS standard,
+          COUNT(*) FILTER (WHERE fee = 20000 * conv_actions) AS priority,
+          COUNT(*) FILTER (WHERE fee != 5000 * conv_actions AND fee != 20000 * conv_actions) AS non_standard
+        FROM fee_calc
+        GROUP BY 1
+        ORDER BY 1
+      `, [minHeight]),
+    ]);
+
+    const s = summaryResult.rows[0];
+    const total = parseInt(s.total);
+    const standard = parseInt(s.standard);
+    const priority = parseInt(s.priority);
+    const nonStandard = parseInt(s.non_standard);
+
+    const response = {
+      success: true,
+      period,
+      totalShieldedTxs: total,
+      buckets: {
+        standard: { count: standard, pct: total > 0 ? Math.round((standard / total) * 1000) / 10 : 0 },
+        priority: { count: priority, pct: total > 0 ? Math.round((priority / total) * 1000) / 10 : 0 },
+        non_standard: { count: nonStandard, pct: total > 0 ? Math.round((nonStandard / total) * 1000) / 10 : 0 },
+      },
+      history: historyResult.rows.map(r => ({
+        date: r.date,
+        standard: parseInt(r.standard),
+        priority: parseInt(r.priority),
+        non_standard: parseInt(r.non_standard),
+      })),
+    };
+
+    if (redisClient) {
+      try { await redisClient.setEx(cacheKey, 3600, JSON.stringify(response)); } catch (_) {}
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [FEE LANES] Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute fee lane distribution' });
+  }
+});
+
+// ============================================================================
+// WALLET FINGERPRINTING
+// ============================================================================
+
+/**
+ * GET /api/privacy/wallet-fingerprints?period=30d
+ *
+ * Returns on-chain match counts for known wallet fingerprint patterns.
+ * Signals: action padding, expiry delta, nLockTime, fee strategy.
+ */
+router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
+  try {
+    const period = req.query.period || '30d';
+    const periodDays = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const days = periodDays[period] || 30;
+
+    const blocksPerDay = 1152;
+    const tipResult = await pool.query('SELECT MAX(height) as tip FROM blocks');
+    const tip = parseInt(tipResult.rows[0].tip);
+    const minHeight = tip - (days * blocksPerDay);
+
+    const cacheKey = `wallet-fingerprints:${period}`;
+    if (redisClient) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) return res.json(JSON.parse(cached));
+      } catch (_) {}
+    }
+
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (
+          WHERE orchard_actions = 2 AND vin_count = 0 AND vout_count = 0
+            AND has_orchard = true
+        ) AS zashi_2action,
+
+        COUNT(*) FILTER (
+          WHERE orchard_actions = 4 AND vin_count = 0 AND vout_count = 0
+            AND has_orchard = true
+        ) AS vizor_4action,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) = 20
+            AND has_orchard = true
+        ) AS brave_expiry20,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) = 40
+            AND has_orchard = true
+        ) AS reference_expiry40,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) = 100
+            AND (has_orchard = true OR has_sapling = true)
+        ) AS zkool_expiry100,
+
+        COUNT(*) FILTER (
+          WHERE locktime > 0 AND locktime < 500000000
+            AND has_orchard = true
+        ) AS nonzero_locktime_height,
+
+        COUNT(*) FILTER (
+          WHERE orchard_actions >= 2 AND vin_count = 0 AND vout_count = 0
+            AND has_orchard = true
+        ) AS total_fully_shielded_orchard,
+
+        COUNT(*) FILTER (
+          WHERE has_sapling = true OR has_orchard = true OR has_ironwood = true
+        ) AS total_shielded
+      FROM transactions
+      WHERE block_height >= $1
+        AND is_coinbase = false
+        AND fee > 0
+    `, [minHeight]);
+
+    const r = result.rows[0];
+
+    const wallets = [
+      {
+        name: 'ZODL (librustzcash)',
+        description: 'Reference wallet (formerly Zashi) using the official Zcash SDK',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash SDK (DEFAULT_TX_EXPIRY_DELTA)' },
+          expiry: { value: '+40 blocks', matchCount: parseInt(r.reference_expiry40), confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash (never set)' },
+          actionPadding: { value: '2 actions (min pad)', matchCount: parseInt(r.zashi_2action), confidence: 'high', source: 'orchard BundleType::Transactional pads to 2' },
+        },
+      },
+      {
+        name: 'Vizor',
+        description: 'Self-custody desktop wallet (chainapsis) with Flutter + Rust',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash transaction builder' },
+          expiry: { value: '+40 blocks', matchCount: parseInt(r.reference_expiry40), confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash (same as ZODL)' },
+          actionPadding: { value: '4 actions always', matchCount: parseInt(r.vizor_4action), confidence: 'high', source: 'source review — always 4 change notes' },
+        },
+      },
+      {
+        name: 'Brave',
+        description: 'Browser wallet with own C++ ZCash implementation',
+        signals: {
+          fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (brave-core PR #32580)' },
+          expiry: { value: '+20 blocks', matchCount: parseInt(r.brave_expiry20), confidence: 'high', source: 'zcashd legacy default (ZIP-203), brave-core uses zcash_primitives 0.x' },
+          locktime: { value: 'Current height', matchCount: parseInt(r.nonzero_locktime_height), confidence: 'high', source: 'brave-core sets locktime = chain tip (anti-reorg)' },
+          actionPadding: { value: '2 actions (min)', confidence: 'medium', source: 'uses standard Orchard builder padding' },
+        },
+      },
+      {
+        name: 'Zkool',
+        description: 'Successor to YWallet (hhanh00), multi-account Rust+Flutter wallet with Warp Sync 2',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash FeeRule (zip317)' },
+          expiry: { value: '+100 (pre-Mar 2026), +40 (current)', matchCount: parseInt(r.zkool_expiry100), confidence: 'high', source: 'zkool2 commit 393bf2d fixed delta from 100→40 (Mar 10 2026)' },
+          locktime: { value: '0', confidence: 'high', source: 'uses librustzcash Builder (locktime=0 default)' },
+          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard builder via librustzcash' },
+        },
+        note: 'Post-fix: indistinguishable from ZODL. Historical shielded txs with +100 are likely Zkool.',
+      },
+      {
+        name: 'YWallet (deprecated)',
+        description: 'Deprecated mobile wallet, predecessor to Zkool. Custom Warp Sync engine.',
+        signals: {
+          fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (own builder)' },
+          expiry: { value: 'Unknown (custom builder)', confidence: 'low', source: 'deprecated, replaced by Zkool' },
+          locktime: { value: 'Unknown', confidence: 'low', source: 'custom builder' },
+          actionPadding: { value: 'Unknown', confidence: 'low', source: 'deprecated' },
+        },
+      },
+      {
+        name: 'Edge',
+        description: 'Multi-coin wallet using Zcash SDK (librustzcash)',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash SDK' },
+          expiry: { value: '+40 blocks', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
+          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard padding via SDK' },
+        },
+        note: 'Indistinguishable from ZODL on-chain',
+      },
+      {
+        name: 'Unstoppable',
+        description: 'Multi-coin wallet using Zcash SDK (librustzcash)',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'uses librustzcash SDK' },
+          expiry: { value: '+40 blocks', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash SDK (same as ZODL)' },
+          actionPadding: { value: '2 actions (min)', confidence: 'high', source: 'standard Orchard padding via SDK' },
+        },
+        note: 'Indistinguishable from ZODL on-chain',
+      },
+    ];
+
+    const response = {
+      success: true,
+      period,
+      totalShielded: parseInt(r.total_shielded),
+      totalFullyShieldedOrchard: parseInt(r.total_fully_shielded_orchard),
+      wallets,
+    };
+
+    if (redisClient) {
+      try { await redisClient.setEx(cacheKey, 3600, JSON.stringify(response)); } catch (_) {}
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [WALLET FINGERPRINTS] Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute wallet fingerprints' });
+  }
+});
+
 module.exports = router;
