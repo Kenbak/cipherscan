@@ -24,13 +24,13 @@ async function getShieldedCountSince(pool, since, options = {}) {
   const query = `
     WITH shielded_txs AS (
       SELECT
-        txid,
-        block_time,
-        has_sapling,
-        has_orchard,
-        COALESCE(shielded_spends, 0) as shielded_spends,
-        COALESCE(shielded_outputs, 0) as shielded_outputs,
-        COALESCE(orchard_actions, 0) as orchard_actions,
+        t.txid,
+        t.block_time,
+        t.has_sapling,
+        t.has_orchard,
+        COALESCE(t.shielded_spends, 0) as shielded_spends,
+        COALESCE(t.shielded_outputs, 0) as shielded_outputs,
+        COALESCE(t.orchard_actions, 0) as orchard_actions,
         -- Determine if fully shielded (no transparent inputs/outputs)
         CASE
           WHEN (COALESCE(shielded_spends, 0) > 0 OR COALESCE(orchard_actions, 0) > 0)
@@ -45,13 +45,14 @@ async function getShieldedCountSince(pool, since, options = {}) {
           ELSE false
         END as is_fully_shielded
       FROM transactions t
-      WHERE block_time >= $1
+      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+      WHERE t.block_time >= $1
         AND (
-          has_sapling = true
-          OR has_orchard = true
-          OR COALESCE(shielded_spends, 0) > 0
-          OR COALESCE(shielded_outputs, 0) > 0
-          OR COALESCE(orchard_actions, 0) > 0
+          t.has_sapling = true
+          OR t.has_orchard = true
+          OR COALESCE(t.shielded_spends, 0) > 0
+          OR COALESCE(t.shielded_outputs, 0) > 0
+          OR COALESCE(t.orchard_actions, 0) > 0
         )
     )
     SELECT
@@ -104,14 +105,15 @@ async function getShieldedCountSimple(pool, since) {
 
   const query = `
     SELECT COUNT(*) as total
-    FROM transactions
-    WHERE block_time >= $1
+    FROM transactions t
+    JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+    WHERE t.block_time >= $1
       AND (
-        has_sapling = true
-        OR has_orchard = true
-        OR COALESCE(shielded_spends, 0) > 0
-        OR COALESCE(shielded_outputs, 0) > 0
-        OR COALESCE(orchard_actions, 0) > 0
+        t.has_sapling = true
+        OR t.has_orchard = true
+        OR COALESCE(t.shielded_spends, 0) > 0
+        OR COALESCE(t.shielded_outputs, 0) > 0
+        OR COALESCE(t.orchard_actions, 0) > 0
       )
   `;
 
@@ -144,19 +146,20 @@ async function getShieldedCountDaily(pool, since, until = null) {
 
   const query = `
     SELECT
-      DATE(TO_TIMESTAMP(block_time)) as date,
+      DATE(TO_TIMESTAMP(t.block_time)) as date,
       COUNT(*) as count
-    FROM transactions
-    WHERE block_time >= $1
-      AND block_time < $2
+    FROM transactions t
+    JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+    WHERE t.block_time >= $1
+      AND t.block_time < $2
       AND (
-        has_sapling = true
-        OR has_orchard = true
-        OR COALESCE(shielded_spends, 0) > 0
-        OR COALESCE(shielded_outputs, 0) > 0
-        OR COALESCE(orchard_actions, 0) > 0
+        t.has_sapling = true
+        OR t.has_orchard = true
+        OR COALESCE(t.shielded_spends, 0) > 0
+        OR COALESCE(t.shielded_outputs, 0) > 0
+        OR COALESCE(t.orchard_actions, 0) > 0
       )
-    GROUP BY DATE(TO_TIMESTAMP(block_time))
+    GROUP BY DATE(TO_TIMESTAMP(t.block_time))
     ORDER BY date ASC
   `;
 

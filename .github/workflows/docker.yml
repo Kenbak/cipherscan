@@ -69,5 +69,6 @@ jobs:
           tags: cipherscan-${{ matrix.name }}:ci
           build-args: |
             GIT_COMMIT=${{ github.sha }}
+            NEXT_PUBLIC_NETWORK=mainnet
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max

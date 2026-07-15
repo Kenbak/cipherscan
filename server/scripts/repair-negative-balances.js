@@ -11,6 +11,11 @@
  * Usage:
  *   npx dotenvx run -f ../api/.env -- node repair-negative-balances.js
  *   npx dotenvx run -f ../api/.env -- node repair-negative-balances.js --dry-run
+ *   npx dotenvx run -f ../api/.env -- node repair-negative-balances.js <txid> [...]
+ *
+ * Passing txids also refreshes their block identity from Zebra. Do not replace
+ * this with an UPDATE that derives block_hash from block_height: after a reorg,
+ * that can attach a legacy transaction to the replacement block incorrectly.
  */
 
 const { Pool } = require('pg');
@@ -86,7 +91,10 @@ async function findMissingTxids(address) {
 }
 
 async function fetchAndInsertTransaction(txid) {
-  const existing = await pool.query('SELECT txid FROM transactions WHERE txid = $1', [txid]);
+  const existing = await pool.query(
+    'SELECT txid, block_height, block_hash FROM transactions WHERE txid = $1',
+    [txid]
+  );
   const txExists = existing.rows.length > 0;
 
   const rawTx = await callZebraRPC('getrawtransaction', [txid, 1]);
@@ -96,7 +104,7 @@ async function fetchAndInsertTransaction(txid) {
     return { inserted: false, reason: 'fetch_failed' };
   }
 
-  const blockHash = rawTx.blockhash;
+  const blockHash = typeof rawTx.blockhash === 'string' ? rawTx.blockhash : null;
   let blockHeight = 0;
   let blockTime = 0;
 
@@ -104,6 +112,23 @@ async function fetchAndInsertTransaction(txid) {
     const block = await callZebraRPC('getblock', [blockHash, 1]);
     blockHeight = block.height;
     blockTime = block.time;
+  }
+
+  let identityUpdated = false;
+  if (txExists && blockHash) {
+    const current = existing.rows[0];
+    identityUpdated = current.block_hash !== blockHash
+      || parseInt(current.block_height) !== parseInt(blockHeight);
+
+    // rawTx.blockhash plus getblock(blockhash) is authoritative membership.
+    // Leave existing identity untouched when Zebra reports no block hash.
+    if (!DRY_RUN) {
+      await pool.query(`
+        UPDATE transactions
+        SET block_height = $2, block_hash = $3, block_time = $4
+        WHERE txid = $1
+      `, [txid, blockHeight, blockHash, blockTime]);
+    }
   }
 
   if (!txExists) {
@@ -118,15 +143,32 @@ async function fetchAndInsertTransaction(txid) {
       transparentOut += Math.round((out.value || 0) * 1e8);
     }
 
-    await pool.query(`
-      INSERT INTO transactions (txid, block_height, block_time, size, tx_index, version,
-        is_coinbase, has_sapling, has_orchard, vin_count, vout_count, total_output)
-      VALUES ($1, $2, $3, $4, 0, $5, $6, $7, $8, $9, $10, $11)
-      ON CONFLICT (txid) DO NOTHING
-    `, [txid, blockHeight, blockTime, rawTx.size || 0, rawTx.version || 0,
-        isCoinbase, hasSapling, hasOrchard, vinCount, voutCount, transparentOut]);
+    if (!DRY_RUN) {
+      await pool.query(`
+        INSERT INTO transactions (txid, block_height, block_hash, block_time, size, tx_index, version,
+          is_coinbase, has_sapling, has_orchard, vin_count, vout_count, total_output)
+        VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, $10, $11, $12)
+        ON CONFLICT (txid) DO NOTHING
+      `, [txid, blockHeight, blockHash, blockTime, rawTx.size || 0, rawTx.version || 0,
+          isCoinbase, hasSapling, hasOrchard, vinCount, voutCount, transparentOut]);
 
-    log(`    Inserted transaction ${txid} (block ${blockHeight})`);
+      log(`    Inserted transaction ${txid} (block ${blockHeight})`);
+    }
+  }
+
+  if (blockHash && !DRY_RUN) {
+    // Keep denormalized records aligned with the Zebra-verified identity when
+    // those optional tables are present.
+    for (const query of [
+      `UPDATE shielded_flows SET block_height = $2, block_time = $3 WHERE txid = $1`,
+      `UPDATE address_transactions SET block_height = $2, block_time = $3 WHERE txid = $1`,
+    ]) {
+      try {
+        await pool.query(query, [txid, blockHeight, blockTime]);
+      } catch (error) {
+        if (error.code !== '42P01') throw error;
+      }
+    }
   }
 
   let outputsInserted = 0;
@@ -136,12 +178,14 @@ async function fetchAndInsertTransaction(txid) {
     const address = addresses[0] || null;
     const scriptType = vout.scriptPubKey?.type || null;
 
-    await pool.query(`
-      INSERT INTO transaction_outputs (txid, vout_index, value, address, script_type)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (txid, vout_index) DO UPDATE SET
-        value = EXCLUDED.value, address = EXCLUDED.address, script_type = EXCLUDED.script_type
-    `, [txid, vout.n, value, address, scriptType]);
+    if (!DRY_RUN) {
+      await pool.query(`
+        INSERT INTO transaction_outputs (txid, vout_index, value, address, script_type)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (txid, vout_index) DO UPDATE SET
+          value = EXCLUDED.value, address = EXCLUDED.address, script_type = EXCLUDED.script_type
+      `, [txid, vout.n, value, address, scriptType]);
+    }
     outputsInserted++;
   }
 
@@ -166,16 +210,27 @@ async function fetchAndInsertTransaction(txid) {
       }
     }
 
-    await pool.query(`
-      INSERT INTO transaction_inputs (txid, vout_index, prev_txid, prev_vout, address, value)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (txid, vout_index) DO UPDATE SET
-        address = EXCLUDED.address, value = EXCLUDED.value
-    `, [txid, i, vin.txid || null, vin.vout || 0, prevAddress, prevValue]);
+    if (!DRY_RUN) {
+      await pool.query(`
+        INSERT INTO transaction_inputs (txid, vout_index, prev_txid, prev_vout, address, value)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (txid, vout_index) DO UPDATE SET
+          address = EXCLUDED.address, value = EXCLUDED.value
+      `, [txid, i, vin.txid || null, vin.vout || 0, prevAddress, prevValue]);
+    }
     inputsInserted++;
   }
 
-  return { inserted: true, txExists, blockHeight, outputsInserted, inputsInserted };
+  return {
+    dryRun: DRY_RUN,
+    inserted: !txExists,
+    txExists,
+    identityUpdated,
+    blockHeight,
+    blockHash,
+    outputsInserted,
+    inputsInserted,
+  };
 }
 
 async function repairAddress(address) {
@@ -228,17 +283,18 @@ async function repairAddress(address) {
 
 async function repairSpecificTxids(txids) {
   log(`Repairing ${txids.length} specific transactions...`);
+  if (DRY_RUN) log('Running in DRY RUN mode — Zebra will be queried but no database rows will change');
 
   for (const txid of txids) {
-    const existing = await pool.query('SELECT txid FROM transactions WHERE txid = $1', [txid]);
-    if (existing.rows.length > 0) {
-      log(`  ${txid} — already in DB, skipping`);
-      continue;
-    }
-
     try {
       const result = await fetchAndInsertTransaction(txid);
-      log(`  ${txid} — inserted (block ${result.blockHeight}, ${result.outputsInserted} outputs, ${result.inputsInserted} inputs)`);
+      const action = result.inserted
+        ? 'inserted'
+        : result.identityUpdated
+          ? 'refreshed block identity'
+          : 'verified block identity';
+      const prefix = DRY_RUN ? '[DRY RUN] would have ' : '';
+      log(`  ${txid} — ${prefix}${action} (block ${result.blockHeight}, ${result.outputsInserted} outputs, ${result.inputsInserted} inputs)`);
     } catch (e) {
       log(`  ${txid} — ERROR: ${e.message}`);
     }

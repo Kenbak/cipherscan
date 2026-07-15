@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
-import { isMainnet, MAINNET_URL, TESTNET_URL, NETWORK_LABEL } from '@/lib/config';
+import { isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, NETWORK_LABEL } from '@/lib/config';
 
 export function Footer() {
   const { theme } = useTheme();
@@ -53,6 +53,7 @@ export function Footer() {
               <Link href="/network" className="footer-link text-xs font-mono">Network</Link>
               <Link href="/rich-list" className="footer-link text-xs font-mono">Rich List</Link>
               <Link href="/privacy" className="footer-link text-xs font-mono">Privacy</Link>
+              {!isCrosslink && <Link href="/ironwood" className="footer-link text-xs font-mono">Zcash Ironwood</Link>}
               <Link href="/privacy-risks" className="footer-link text-xs font-mono">Privacy Risks</Link>
               {isMainnet && <Link href="/crosschain" className="footer-link text-xs font-mono">ZEC Crosschain</Link>}
               <Link href="/mempool" className="footer-link text-xs font-mono">Mempool</Link>
@@ -69,10 +70,10 @@ export function Footer() {
               <Link href="/tools" className="footer-link text-xs font-mono">Developer Tools</Link>
               <Link href="/decrypt" className="footer-link text-xs font-mono">Decrypt Memo</Link>
               <Link href="/tools/blend-check" className="footer-link text-xs font-mono">Blend Check</Link>
-              {isMainnet && <a href="https://cipherswap.app" target="_blank" rel="noopener noreferrer" className="footer-link text-xs font-mono">Buy ZEC</a>}
+              {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener" className="footer-link text-xs font-mono">CipherSwap — Buy ZEC</a>}
               <Link href="/docs" className="footer-link text-xs font-mono">API Docs</Link>
               <a
-                href="https://cipherpay.app"
+                href="https://www.cipherpay.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-link text-xs font-mono"

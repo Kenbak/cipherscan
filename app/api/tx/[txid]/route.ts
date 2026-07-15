@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { usePostgresApi } from '@/lib/api-config';
-import { fetchTransactionFromPostgres, getCurrentBlockHeightFromPostgres } from '@/lib/postgres-api';
+import { fetchTransactionFromPostgres } from '@/lib/postgres-api';
 import { getBlockFinality } from '@/lib/crosslink';
 
 /**
@@ -38,22 +38,17 @@ export async function GET(
       );
     }
 
-    // Calculate fresh confirmations based on current block height
-    let confirmations = transaction.confirmations || 0;
-
-    if (transaction.blockHeight) {
-      const currentHeight = usePostgresApi()
-        ? await getCurrentBlockHeightFromPostgres()
-        : await getCurrentBlockHeight();
-
-      if (currentHeight) {
-        confirmations = currentHeight - transaction.blockHeight + 1;
-        transaction.confirmations = confirmations;
-      }
-    }
+    // Both data sources calculate confirmations against an authoritative block
+    // identity. Recomputing from height alone would falsely reconfirm stale rows
+    // after a reorg, so preserve their result and clamp conflicts to zero.
+    const confirmations = Math.max(Number(transaction.confirmations) || 0, 0);
+    transaction.confirmations = confirmations;
 
     // Enrich with crosslink finality (returns null when not configured)
-    if (transaction.blockHash) {
+    if (
+      transaction.blockHash &&
+      (!('isCanonical' in transaction) || transaction.isCanonical !== false)
+    ) {
       const finality = await getBlockFinality(transaction.blockHash);
       if (finality) {
         (transaction as any).finality = finality;
@@ -93,41 +88,6 @@ export async function GET(
       { error: 'Failed to fetch transaction' },
       { status: 500 }
     );
-  }
-}
-
-// Helper function to get current block height
-async function getCurrentBlockHeight(): Promise<number | null> {
-  const rpcUrl = process.env.ZCASH_RPC_URL || 'http://localhost:18232';
-  const rpcCookie = process.env.ZCASH_RPC_COOKIE;
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (rpcCookie) {
-    headers['Authorization'] = `Basic ${Buffer.from(rpcCookie).toString('base64')}`;
-  }
-
-  try {
-    const response = await fetch(rpcUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        jsonrpc: '1.0',
-        id: 'blockcount',
-        method: 'getblockcount',
-        params: [],
-      }),
-      // Cache for 30 seconds (blocks are mined ~every 75s on Zcash)
-      next: { revalidate: 30 },
-    });
-
-    const data = await response.json();
-    return data.result || null;
-  } catch (error) {
-    console.error('Error fetching current block height:', error);
-    return null;
   }
 }
 

@@ -69,6 +69,14 @@ export default function PrivacyRisksPage() {
 function PrivacyRisksLoading() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+          Zcash Privacy Risk Analysis
+        </h1>
+        <p className="text-sm text-secondary mt-2">
+          Transactions where amount, timing, and withdrawal structure can reveal address ownership.
+        </p>
+      </div>
       <Card>
         <CardBody className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-orange border-t-transparent"></div>
@@ -298,7 +306,7 @@ function PrivacyRisksContent() {
         </p>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Privacy Risks
+            Zcash Privacy Risk Analysis
           </h1>
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">

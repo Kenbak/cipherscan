@@ -1,7 +1,7 @@
-import type { Metadata } from 'next';
 import AnchorSearchClient from './AnchorSearchClient';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Anchor Root Search - Wallet Debugging Tool | CipherScan',
   description: 'Search for Sapling and Orchard commitment tree anchor roots across canonical and orphaned blocks. Helps debug wallet sync issues and fork detection.',
   keywords: [
@@ -13,17 +13,8 @@ export const metadata: Metadata = {
     'commitment tree root',
     'zcash reorg',
   ],
-  openGraph: {
-    title: 'Anchor Root Search | CipherScan',
-    description: 'Search Sapling/Orchard anchor roots to debug wallet sync issues.',
-    url: 'https://cipherscan.app/tools/anchor-search',
-    siteName: 'CipherScan',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/tools/anchor-search',
-  },
-};
+  path: '/tools/anchor-search',
+});
 
 export default function AnchorSearchPage() {
   return (

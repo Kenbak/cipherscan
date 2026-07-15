@@ -711,7 +711,7 @@ export default function MiningPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> MINING
         </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Mining</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Zcash Mining</h1>
         <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">
           Hashrate, difficulty, block economics, pool distribution, and miner behavior.
         </p>

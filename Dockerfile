@@ -22,7 +22,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # Bake the source git commit into the image for traceability.
 ARG GIT_COMMIT=unknown
+ARG NEXT_PUBLIC_NETWORK
 ENV NEXT_PUBLIC_GIT_COMMIT=${GIT_COMMIT}
+ENV NEXT_PUBLIC_NETWORK=${NEXT_PUBLIC_NETWORK}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

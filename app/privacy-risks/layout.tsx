@@ -1,18 +1,12 @@
-import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Zcash Privacy Risk Scanner - Detect Deshielding & Batch Patterns | CipherScan',
-  description: 'Identify privacy risks in Zcash transactions: round-trip deshielding detection, batch patterns, timing analysis, and amount correlation. Advanced privacy intelligence.',
+export const metadata = buildPageMetadata({
+  title: 'Zcash Privacy Risk Analysis | CipherScan',
+  description: 'Find Zcash transactions with timing, amount, deshielding, or batch patterns that may reduce privacy. Explore risk signals on CipherScan.',
   keywords: ['zcash privacy risk', 'zcash deshielding', 'zcash batch detection', 'zcash transaction analysis', 'zcash privacy intelligence', 'ZEC privacy scanner', 'zcash round trip detection'],
-  openGraph: {
-    title: 'Zcash Privacy Risk Scanner | CipherScan',
-    description: 'Detect privacy risks in Zcash transactions: deshielding patterns, batch analysis, and timing correlation.',
-    url: 'https://cipherscan.app/privacy-risks',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/privacy-risks',
-  },
-};
+  path: '/privacy-risks',
+  networks: ['mainnet'],
+});
 
 export default function PrivacyRisksLayout({ children }: { children: React.ReactNode }) {
   return children;

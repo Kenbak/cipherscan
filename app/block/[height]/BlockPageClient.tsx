@@ -1,0 +1,1133 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { Tooltip } from '@/components/Tooltip';
+import { ExportButton } from '@/components/ExportButton';
+import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
+import { CURRENCY } from '@/lib/config';
+import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { StakingActionBadge } from '@/components/StakingActionBadge';
+
+interface CanonicalBlockSummary {
+  height: number;
+  hash: string;
+  timestamp: number | null;
+  transactionCount: number | null;
+  size: number | null;
+  minerAddress: string | null;
+  minerPool: string | null;
+  minerPoolUrl?: string | null;
+  minerPoolRegion?: string | null;
+}
+
+interface BlockData {
+  height: number;
+  hash: string;
+  timestamp: number;
+  transactions: any[];
+  transactionCount: number;
+  size: number;
+  difficulty: number;
+  confirmations: number;
+  previousBlockHash?: string;
+  nextBlockHash?: string;
+  version?: number;
+  merkleRoot?: string;
+  finalSaplingRoot?: string;
+  finalOrchardRoot?: string | null;
+  finalIronwoodRoot?: string | null;
+  bits?: string;
+  nonce?: string;
+  solution?: string;
+  totalFees?: number;
+  minerAddress?: string;
+  minerPool?: string | null;
+  minerPoolUrl?: string | null;
+  minerPoolRegion?: string | null;
+  finality?: string | null;
+  isOrphaned?: boolean;
+  orphanSource?: string | null;
+  orphanDetectedAt?: string | null;
+  canonicalBlock?: CanonicalBlockSummary | null;
+  coinbaseHex?: string | null;
+  coinbaseText?: string | null;
+}
+
+export interface BlockPageSummary {
+  height: number;
+  hash: string;
+  isOrphaned: boolean;
+}
+
+// Heroicons SVG Components
+const Icons = {
+  Hash: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Document: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  Check: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Database: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+    </svg>
+  ),
+  Cube: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  ),
+  Code: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  ),
+  Key: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+    </svg>
+  ),
+  Currency: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  User: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  Shield: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+};
+
+export default function BlockPageClient({
+  identifier,
+  initialSummary,
+}: {
+  identifier: string;
+  initialSummary: BlockPageSummary;
+}) {
+  const height = identifier;
+  const [data, setData] = useState<BlockData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'not-found' | 'unavailable' | null>(null);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const txSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+
+        // For testnet, call Express API directly; for mainnet, use Next.js API
+        const apiUrl = usePostgresApiClient()
+          ? `${getApiUrl()}/api/block/${height}`
+          : `/api/block/${height}`;
+
+        const response = await fetch(apiUrl);
+
+        if (response.status === 404 || response.status === 410) {
+          setData(null);
+          setLoadError('not-found');
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Block API returned ${response.status}`);
+        }
+
+        const blockData = await response.json();
+
+        // Transform data if coming from Express API
+        if (usePostgresApiClient()) {
+          // Express API returns snake_case and values in satoshis, convert to camelCase and ZEC
+          const transformedTransactions = (blockData.transactions || []).map((tx: any) => {
+            // Check if it's a shielded transaction (has sapling/orchard activity)
+            const hasShieldedActivity = tx.has_sapling || tx.has_orchard || tx.has_ironwood ||
+              (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0) || (tx.ironwood_actions > 0);
+
+            // Coinbase = no transparent inputs AND no shielded activity
+            const isCoinbase = !hasShieldedActivity &&
+              ((tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid));
+
+            // Transform inputs
+            const transformedInputs = isCoinbase
+              ? [{ coinbase: true }]
+              : (tx.inputs || []).map((input: any) => ({
+                  ...input,
+                  value: input.value ? parseFloat(input.value) / 100000000 : 0, // satoshis to ZEC
+                  txid: input.prev_txid,
+                  vout: input.prev_vout,
+                }));
+
+            // Transform outputs
+            const transformedOutputs = (tx.outputs || []).map((output: any) => ({
+              value: output.value ? parseFloat(output.value) / 100000000 : 0, // satoshis to ZEC
+              n: output.vout_index,
+              spent: output.spent || false,
+              scriptPubKey: {
+                hex: output.script_pubkey || '',
+                addresses: output.address ? [output.address] : [],
+              },
+            }));
+
+            return {
+              ...tx,
+              inputs: transformedInputs,
+              outputs: transformedOutputs,
+              vin: transformedInputs,
+              vout: transformedOutputs,
+              // Pass shielded info for type detection
+              hasShieldedActivity,
+              vShieldedSpend: tx.shielded_spends > 0 ? Array(tx.shielded_spends).fill({}) : [],
+              vShieldedOutput: tx.shielded_outputs > 0 ? Array(tx.shielded_outputs).fill({}) : [],
+              orchard: tx.orchard_actions > 0 ? { actions: Array(tx.orchard_actions).fill({}) } : null,
+            };
+          });
+
+          // Calculate total fees for all transactions in the block
+          // Formula: fee = transparentInputs - transparentOutputs + valueBalance
+          // This works for all tx types (shielding, deshielding, transparent, z-to-z)
+          const calculatedFees = (blockData.transactions || []).reduce((sum: number, tx: any) => {
+            // Skip coinbase transactions (they don't pay fees)
+            const isCoinbaseTx = tx.tx_index === 0;
+            if (isCoinbaseTx) return sum;
+
+            // Calculate transparent inputs sum
+            const transparentInputs = (tx.inputs || []).reduce((inputSum: number, input: any) => {
+              return inputSum + parseInt(input.value || 0);
+            }, 0);
+
+            // Calculate transparent outputs sum
+            const transparentOutputs = (tx.outputs || []).reduce((outputSum: number, output: any) => {
+              return outputSum + parseInt(output.value || 0);
+            }, 0);
+
+            // Get shielded value balance (positive = leaving shielded pool, negative = entering)
+            const valueBalance = parseInt(tx.value_balance_sapling || 0) + parseInt(tx.value_balance_orchard || 0) + parseInt(tx.value_balance_ironwood || 0);
+
+            // Fee = what comes in (inputs + shielded leaving) - what goes out (outputs)
+            const txFee = transparentInputs - transparentOutputs + valueBalance;
+            return sum + (txFee > 0 ? txFee : 0);
+          }, 0);
+
+          const totalFeesZatoshi = calculatedFees;
+
+          const canonicalBlock = blockData.canonicalBlock
+            ? {
+                height: parseInt(blockData.canonicalBlock.height),
+                hash: blockData.canonicalBlock.hash,
+                timestamp: blockData.canonicalBlock.timestamp
+                  ? parseInt(blockData.canonicalBlock.timestamp)
+                  : null,
+                transactionCount: blockData.canonicalBlock.transaction_count ?? null,
+                size: blockData.canonicalBlock.size ?? null,
+                minerAddress: blockData.canonicalBlock.miner_address || null,
+                minerPool: blockData.canonicalBlock.miner_pool || null,
+                minerPoolUrl: blockData.canonicalBlock.miner_pool_url || null,
+                minerPoolRegion: blockData.canonicalBlock.miner_pool_region || null,
+              }
+            : null;
+
+          const transformedData = {
+            height: parseInt(blockData.height),
+            hash: blockData.hash,
+            timestamp: blockData.timestamp ? parseInt(blockData.timestamp) : 0,
+            transactions: transformedTransactions,
+            transactionCount: blockData.transactionCount || transformedTransactions.length,
+            size: parseInt(blockData.size || 0),
+            difficulty: blockData.difficulty ? parseFloat(blockData.difficulty) : 0,
+            confirmations: parseInt(blockData.confirmations || 0),
+            previousBlockHash: blockData.previous_block_hash || blockData.previousBlockHash,
+            nextBlockHash: blockData.next_block_hash || blockData.nextBlockHash,
+            version: blockData.version ? parseInt(blockData.version) : undefined,
+            merkleRoot: blockData.merkle_root || blockData.merkleRoot,
+            finalSaplingRoot: blockData.final_sapling_root || blockData.finalSaplingRoot,
+            finalOrchardRoot: blockData.final_orchard_root || blockData.finalOrchardRoot || null,
+            finalIronwoodRoot: blockData.final_ironwood_root || blockData.finalIronwoodRoot || null,
+            bits: blockData.bits,
+            nonce: blockData.nonce,
+            solution: blockData.solution,
+            totalFees: totalFeesZatoshi / 100000000,
+            minerAddress: blockData.miner_address || blockData.minerAddress,
+            minerPool: blockData.miner_pool || null,
+            minerPoolUrl: blockData.miner_pool_url || null,
+            minerPoolRegion: blockData.miner_pool_region || null,
+            finality: blockData.finality || blockData.finality_status || null,
+            isOrphaned: Boolean(blockData.isOrphaned),
+            orphanSource: blockData.orphanSource || null,
+            orphanDetectedAt: blockData.orphanDetectedAt || null,
+            canonicalBlock,
+            coinbaseHex: blockData.coinbase_hex || null,
+            coinbaseText: blockData.coinbase_text || null,
+          };
+          setData(transformedData);
+        } else {
+          setData(blockData);
+        }
+      } catch (error) {
+        console.error('Error fetching block:', error);
+        setData(null);
+        setLoadError('unavailable');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [height]);
+
+  const scrollToTransactions = () => {
+    txSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  if (loading) {
+    const Skeleton = ({ className = '' }: { className?: string }) => (
+      <div className={`animate-pulse rounded bg-cipher-border ${className}`} />
+    );
+
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
+        <div className="mb-6">
+          <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
+          <div className="flex flex-wrap items-center gap-3 mt-1">
+            <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${initialSummary.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
+              {initialSummary.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #{initialSummary.height.toLocaleString()}
+            </h1>
+            <Badge color={initialSummary.isOrphaned ? 'orange' : 'green'}>
+              {initialSummary.isOrphaned ? 'ORPHAN' : 'CANONICAL'}
+            </Badge>
+          </div>
+          <p className="mt-3 text-xs sm:text-sm text-secondary">
+            {initialSummary.isOrphaned
+              ? 'This block is no longer part of the canonical Zcash chain.'
+              : 'This block is part of the canonical Zcash chain.'}{' '}
+            Full block hash:{' '}
+            <code className="font-mono text-primary break-all">{initialSummary.hash}</code>
+          </p>
+        </div>
+        <Card className="mb-6">
+          <CardBody>
+            <div className="space-y-4">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+              ))}
+              <Skeleton className="h-12 w-full rounded-lg" />
+            </div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="p-3 rounded-lg border border-cipher-border">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-10" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!data) {
+    const temporarilyUnavailable = loadError === 'unavailable';
+
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="text-center">
+          <CardBody className="py-16">
+            <div className="text-5xl mb-6">{temporarilyUnavailable ? '⚠️' : '🔍'}</div>
+            <h1 className="text-2xl font-bold font-mono text-primary mb-3">
+              {temporarilyUnavailable ? 'Block Data Temporarily Unavailable' : 'Block No Longer Available'}
+            </h1>
+            <p className="text-secondary mb-3">
+              {temporarilyUnavailable
+                ? 'CipherScan could not refresh this block from the block index. Please try again shortly.'
+                : 'This block is no longer present in the block index.'}
+            </p>
+            <p className="text-xs text-muted mb-6">
+              Last known status: {initialSummary.isOrphaned ? 'orphaned' : 'canonical'}. Full block hash:{' '}
+              <code className="font-mono text-secondary break-all">{initialSummary.hash}</code>
+            </p>
+            <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+              ← Back to Explorer
+            </Link>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  const InfoRow = ({ icon: Icon, label, value, tooltip, valueClass = "text-primary", clickable = false, onClick }: {
+    icon: React.ComponentType;
+    label: string;
+    value: React.ReactNode;
+    tooltip?: string;
+    valueClass?: string;
+    clickable?: boolean;
+    onClick?: () => void;
+  }) => (
+    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b block-info-border last:border-0 gap-2 sm:gap-0">
+      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
+        <span className="mr-2"><Icon /></span>
+        <span className="text-xs sm:text-sm">{label}</span>
+        {tooltip && (
+          <span className="ml-2">
+            <Tooltip content={tooltip} />
+          </span>
+        )}
+      </div>
+      <div
+        className={`flex-1 font-mono text-xs sm:text-sm ${valueClass} break-all ${clickable ? 'cursor-pointer hover:text-cipher-cyan transition-colors' : ''}`}
+        onClick={onClick}
+      >
+        {value}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 animate-fade-in">
+      {/* Orphaned Block Banner + Comparison */}
+      {data.isOrphaned && (
+        <div className="mb-6 space-y-4 animate-fade-in-up">
+          <div className="rounded-xl border border-orange-500/30 bg-orange-950/30 backdrop-blur-sm p-4 sm:p-5">
+            <div className="flex flex-col gap-3">
+              <Badge color="orange" className="self-start text-[10px] font-bold tracking-wider">ORPHANED BLOCK</Badge>
+              <p className="text-sm text-secondary">
+                This block was replaced during a chain reorganization and is no longer part of the canonical chain.
+              </p>
+              <p className="text-xs text-muted font-mono">
+                Transaction data is not available for orphaned blocks.
+                {data.orphanSource && (
+                  <span className="ml-2 text-secondary">Source: {data.orphanSource}</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-cipher-border bg-glass-2 backdrop-blur-sm p-4">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-3">Reorg comparison at #{data.height.toLocaleString()}</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Orphaned side */}
+              <div className="flex-1 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-950/30 to-red-950/20 p-3">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-orange">Orphaned</span>
+                <div className="mt-2 space-y-1.5">
+                  <code className="text-xs font-mono text-cipher-orange block" title={data.hash}>
+                    {data.hash.slice(0, 10)}...{data.hash.slice(-6)}
+                  </code>
+                  <div className="text-xs font-mono text-secondary">
+                    {data.minerPool ? (
+                      data.minerPoolUrl ? (
+                        <a href={data.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-orange hover:underline">{data.minerPool}</a>
+                      ) : (
+                        <span className="text-cipher-orange">{data.minerPool}</span>
+                      )
+                    ) : (
+                      <span className="text-muted">Unknown miner</span>
+                    )}
+                  </div>
+                  <div className="flex gap-3 text-xs font-mono text-muted">
+                    <span>{data.transactionCount} txs</span>
+                    <span>{data.timestamp ? formatRelativeTime(data.timestamp) : '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden sm:flex items-center justify-center px-1">
+                <span className="text-[10px] font-mono text-muted">vs</span>
+              </div>
+
+              {/* Canonical side */}
+              {data.canonicalBlock ? (
+                <div className="flex-1 rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-cyan-950/20 p-3">
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-green">Canonical</span>
+                  <div className="mt-2 space-y-1.5">
+                    <Link
+                      href={`/block/${data.canonicalBlock.height}`}
+                      className="text-xs font-mono text-cipher-green hover:underline block"
+                      title={data.canonicalBlock.hash}
+                    >
+                      {data.canonicalBlock.hash.slice(0, 10)}...{data.canonicalBlock.hash.slice(-6)}
+                    </Link>
+                    <div className="text-xs font-mono text-secondary">
+                      {data.canonicalBlock.minerPool ? (
+                        data.canonicalBlock.minerPoolUrl ? (
+                          <a href={data.canonicalBlock.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="text-cipher-green hover:underline">{data.canonicalBlock.minerPool}</a>
+                        ) : (
+                          <span className="text-cipher-green">{data.canonicalBlock.minerPool}</span>
+                        )
+                      ) : (
+                        <span className="text-muted">Unknown miner</span>
+                      )}
+                    </div>
+                    <div className="flex gap-3 text-xs font-mono text-muted">
+                      {data.canonicalBlock.transactionCount != null && (
+                        <span>{data.canonicalBlock.transactionCount} txs</span>
+                      )}
+                      {data.canonicalBlock.timestamp && (
+                        <span>{formatRelativeTime(data.canonicalBlock.timestamp)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-3 flex items-center justify-center">
+                  <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="mb-6 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
+            <div className="flex items-center gap-3 mt-1">
+              {!data.isOrphaned && (
+                <Link
+                  href={`/block/${data.height - 1}`}
+                  className={`p-1 rounded transition-colors ${
+                    data.previousBlockHash
+                      ? 'text-secondary hover:text-primary'
+                      : 'text-muted cursor-not-allowed pointer-events-none'
+                  }`}
+                  title="Previous Block"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+              )}
+
+              <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${data.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
+                {data.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #{data.height.toLocaleString()}
+              </h1>
+              {data.isOrphaned && (
+                <Badge color="orange">ORPHAN</Badge>
+              )}
+              {!data.isOrphaned && (
+                <Badge color="green">CANONICAL</Badge>
+              )}
+
+              {!data.isOrphaned && (
+                <Link
+                  href={`/block/${data.height + 1}`}
+                  className={`p-1 rounded transition-colors ${
+                    data.nextBlockHash
+                      ? 'text-secondary hover:text-primary'
+                      : 'text-muted cursor-not-allowed pointer-events-none'
+                  }`}
+                  title="Next Block"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+          </div>
+          {!data.isOrphaned && <ExportButton
+            data={{
+              height: data.height,
+              hash: data.hash,
+              timestamp: data.timestamp,
+              transactionCount: data.transactionCount,
+              size: data.size,
+              difficulty: data.difficulty,
+              confirmations: data.confirmations,
+              previousBlockHash: data.previousBlockHash,
+              nextBlockHash: data.nextBlockHash,
+              version: data.version,
+              merkleRoot: data.merkleRoot,
+              finalSaplingRoot: data.finalSaplingRoot,
+              bits: data.bits,
+              nonce: data.nonce,
+              solution: data.solution,
+              totalFees: data.totalFees,
+              minerAddress: data.minerAddress,
+              transactions: data.transactions?.map((tx: any) => ({
+                txid: tx.txid,
+                type: tx.vin?.[0]?.coinbase ? 'coinbase' : tx.hasShieldedActivity ? 'shielded' : 'regular',
+                inputs: tx.vin?.length || 0,
+                outputs: tx.vout?.length || 0,
+                amount: tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0) || 0
+              }))
+            }}
+            csvData={data.transactions}
+            filename={`block-${data.height}`}
+            type="both"
+            label="Export"
+            csvHeaders={['TXID', 'Type', 'Inputs', 'Outputs', 'Amount (ZEC)']}
+            csvMapper={(tx: any) => [
+              tx.txid,
+              tx.vin?.[0]?.coinbase ? 'Coinbase' : tx.hasShieldedActivity ? 'Shielded' : 'Regular',
+              String(tx.vin?.length || 0),
+              String(tx.vout?.length || 0),
+              tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0).toFixed(8) || '0'
+            ]}
+          />}
+        </div>
+        <p className="text-xs sm:text-sm text-secondary">
+          {data.isOrphaned
+            ? 'This block is no longer part of the canonical Zcash chain.'
+            : 'This block is part of the canonical Zcash chain.'}{' '}
+          Full block hash:{' '}
+          <code className="font-mono text-primary break-all">{data.hash}</code>
+        </p>
+      </div>
+
+      {/* Main Block Info */}
+      <Card className="mb-6">
+        <CardBody className="space-y-0">
+          <InfoRow
+            icon={Icons.Clock}
+            label="Timestamp"
+            value={
+              <span>
+                {formatRelativeTime(data.timestamp)}
+                <span className="text-muted ml-2">({formatDateUTC(data.timestamp)})</span>
+              </span>
+            }
+            tooltip="The date and time this block was mined"
+          />
+
+          <InfoRow
+            icon={Icons.Document}
+            label="Transactions"
+            value={
+              data.isOrphaned ? (
+                <span className="text-muted font-mono text-xs">
+                  {data.transactionCount} recorded — details not stored
+                </span>
+              ) : (
+                <span
+                  className="text-primary font-semibold cursor-pointer hover:text-cipher-cyan transition-colors"
+                  onClick={scrollToTransactions}
+                  title="Click to view all transactions"
+                >
+                  {data.transactionCount} transaction{data.transactionCount !== 1 ? 's' : ''} in this block
+                </span>
+              )
+            }
+            tooltip={data.isOrphaned ? 'Transaction data is not stored for orphaned blocks' : 'Total number of transactions included in this block'}
+            clickable={!data.isOrphaned}
+            onClick={data.isOrphaned ? undefined : scrollToTransactions}
+          />
+
+          {!data.isOrphaned && (
+            <InfoRow
+              icon={Icons.Check}
+              label="Confirmations"
+              value={
+                <span className={data.confirmations > 6 ? 'text-cipher-green font-semibold' : 'text-cipher-orange'}>
+                  {data.confirmations.toLocaleString()}
+                </span>
+              }
+              tooltip="Number of blocks mined after this one (6+ confirmations = secure)"
+            />
+          )}
+
+          {data.finality && !data.isOrphaned && (
+            <InfoRow
+              icon={Icons.Shield}
+              label="Finality"
+              value={
+                <span className={
+                  data.finality === 'Finalized'
+                    ? 'text-cipher-green font-semibold'
+                    : 'text-cipher-orange'
+                }>
+                  {data.finality === 'Finalized' ? 'Finalized' : 'Not Yet Finalized'}
+                </span>
+              }
+              tooltip="Crosslink finality status — Finalized blocks are irreversible via PoS consensus"
+            />
+          )}
+
+          <InfoRow
+            icon={Icons.Database}
+            label="Block Size"
+            value={`${(data.size / 1024).toFixed(2)} KB`}
+            tooltip="The size of this block in kilobytes"
+          />
+
+          {/* Fee Recipient (Miner) */}
+          {data.minerAddress && (
+            <InfoRow
+              icon={Icons.User}
+              label="Fee Recipient"
+              value={
+                <span className="flex flex-wrap items-center gap-2">
+                  <Link href={`/address/${data.minerAddress}`} className="text-cipher-cyan hover:underline break-all">
+                    {data.minerAddress}
+                  </Link>
+                  {data.minerPool && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-xs font-mono text-cipher-cyan border border-cipher-border whitespace-nowrap">
+                      {data.minerPoolUrl ? (
+                        <a href={data.minerPoolUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{data.minerPool}</a>
+                      ) : (
+                        data.minerPool
+                      )}
+                      {data.minerPoolRegion && <span className="text-muted">({data.minerPoolRegion})</span>}
+                    </span>
+                  )}
+                </span>
+              }
+              tooltip="The address that received the block reward and transaction fees"
+            />
+          )}
+
+          {/* Coinbase Message */}
+          {data.coinbaseText && (
+            <div className="py-3 border-b block-info-border">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-0">
+                <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
+                  <span className="mr-2"><Icons.Code /></span>
+                  <span className="text-xs sm:text-sm">Coinbase Data</span>
+                  <span className="ml-2">
+                    <Tooltip content="Arbitrary data embedded by the miner in the coinbase transaction. Often contains pool identification tags or messages." />
+                  </span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="block-hash-bg p-2.5 rounded-lg border border-cipher-border">
+                    <code className="text-xs text-cipher-cyan break-all leading-relaxed">{data.coinbaseText}</code>
+                  </div>
+                  {data.coinbaseHex && (
+                    <details className="group">
+                      <summary className="text-[10px] font-mono text-muted cursor-pointer hover:text-secondary transition-colors">
+                        Raw hex ({Math.floor(data.coinbaseHex.length / 2)} bytes)
+                      </summary>
+                      <div className="mt-1.5 block-hash-bg p-2 rounded border border-cipher-border">
+                        <code className="text-[10px] text-muted break-all">{data.coinbaseHex}</code>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Transaction Fees */}
+          {data.totalFees !== undefined && !data.isOrphaned && (
+            <InfoRow
+              icon={Icons.Currency}
+              label="Transaction Fees"
+              value={
+                <span className="font-semibold">
+                  {data.totalFees.toFixed(8)} {CURRENCY}
+                </span>
+              }
+              tooltip="Total fees paid by all transactions in this block"
+            />
+          )}
+
+          {/* Block Hash - Full Width */}
+          <div className="pt-4 border-t block-info-border mt-4">
+            <div className="flex items-center mb-2 text-secondary">
+              <span className="mr-2"><Icons.Hash /></span>
+              <span className="text-sm">Block Hash</span>
+              <span className="ml-2">
+                <Tooltip content="Unique cryptographic identifier for this block" />
+              </span>
+            </div>
+            <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+              <code className="text-xs text-secondary break-all">{data.hash}</code>
+            </div>
+          </div>
+
+          {/* More Details Toggle */}
+          {!data.isOrphaned && (
+            <button
+              onClick={() => setShowMoreDetails(!showMoreDetails)}
+              className="mt-8 pt-6 border-t block-info-border text-sm text-secondary hover:text-primary transition-colors flex items-center font-mono w-full"
+            >
+              <svg className={`w-4 h-4 mr-1 transition-transform ${showMoreDetails ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              {showMoreDetails ? 'Hide' : 'Show'} More Details
+            </button>
+          )}
+
+        {/* Additional Details (Collapsible) */}
+        {showMoreDetails && !data.isOrphaned && (
+          <div className="mt-4 pt-4 border-t block-info-border space-y-0">
+            <InfoRow
+              icon={Icons.Code}
+              label="Difficulty"
+              value={data.difficulty.toFixed(8)}
+              tooltip="Mining difficulty at the time this block was mined"
+            />
+
+            {data.version && (
+              <InfoRow
+                icon={Icons.Cube}
+                label="Version"
+                value={data.version}
+                tooltip="Block version number"
+              />
+            )}
+
+            {data.bits && (
+              <InfoRow
+                icon={Icons.Key}
+                label="Bits"
+                value={data.bits}
+                tooltip="Compact representation of the difficulty target"
+              />
+            )}
+
+            {data.nonce && (
+              <InfoRow
+                icon={Icons.Hash}
+                label="Nonce"
+                value={data.nonce}
+                tooltip="Random value used in mining to find a valid block hash"
+              />
+            )}
+
+            {data.merkleRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2 text-secondary">
+                  <span className="mr-2"><Icons.Key /></span>
+                  <span className="text-sm">Merkle Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Cryptographic hash that proves all transparent transactions in this block are valid and unmodified. Calculated from the transaction tree." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-muted break-all">{data.merkleRoot}</code>
+                </div>
+              </div>
+            )}
+
+            {data.finalSaplingRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2">
+                  <span className="mr-2 text-cipher-purple"><Icons.Shield /></span>
+                  <span className="text-sm text-secondary">Final Sapling Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Root hash of the Sapling note commitment tree after processing this block. This proves the existence of all shielded (private) transactions without revealing their details." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-secondary break-all">{data.finalSaplingRoot}</code>
+                </div>
+              </div>
+            )}
+
+            {data.finalOrchardRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2">
+                  <span className="mr-2 text-cipher-purple"><Icons.Shield /></span>
+                  <span className="text-sm text-secondary">Final Orchard Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Root hash of the Orchard note commitment tree after processing this block. Used by wallets as an anchor when constructing shielded spends." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-secondary break-all">{data.finalOrchardRoot}</code>
+                </div>
+              </div>
+            )}
+
+            {data.finalIronwoodRoot && (
+              <div className="pt-3">
+                <div className="flex items-center mb-2">
+                  <span className="mr-2 text-cipher-yellow"><Icons.Shield /></span>
+                  <span className="text-sm text-secondary">Final Ironwood Root</span>
+                  <span className="ml-2">
+                    <Tooltip content="Root hash of the Ironwood note commitment tree after processing this block. The successor to Orchard with enhanced privacy properties." />
+                  </span>
+                </div>
+                <div className="block-hash-bg p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-secondary break-all">{data.finalIronwoodRoot}</code>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        </CardBody>
+      </Card>
+
+      {/* Transactions Section */}
+      {!data.isOrphaned && <Card ref={txSectionRef}>
+        <CardHeader>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                Transactions
+              </h2>
+              <Badge color="muted">{data.transactionCount}</Badge>
+            </div>
+            <div className="flex items-center gap-1">
+              <Link
+                href={`/block/${data.height - 1}`}
+                className={`p-1.5 rounded transition-colors ${
+                  data.previousBlockHash
+                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title={`Block #${(data.height - 1).toLocaleString()}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <span className="text-xs font-mono text-muted">#{data.height.toLocaleString()}</span>
+              <Link
+                href={`/block/${data.height + 1}`}
+                className={`p-1.5 rounded transition-colors ${
+                  data.nextBlockHash
+                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
+                    : 'text-muted cursor-not-allowed pointer-events-none'
+                }`}
+                title={`Block #${(data.height + 1).toLocaleString()}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </CardHeader>
+        <CardBody>
+
+        {data.isOrphaned ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-secondary font-mono">Transaction data not stored for orphaned blocks</p>
+            {data.canonicalBlock && (
+              <Link
+                href={`/block/${data.canonicalBlock.height}`}
+                className="inline-block mt-3 text-xs font-mono text-cipher-green hover:underline"
+              >
+                View canonical block at #{data.canonicalBlock.height.toLocaleString()}
+              </Link>
+            )}
+          </div>
+        ) : !data.transactions || data.transactions.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-secondary font-mono text-sm">No transaction details available</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-6 px-6">
+            {/* Table Header */}
+            <div className="min-w-[900px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
+              <div className="col-span-1">#</div>
+              <div className="col-span-1">Type</div>
+              <div className="col-span-2">Hash</div>
+              <div className="col-span-2">From</div>
+              <div className="col-span-2">To</div>
+              <div className="col-span-1 text-center">Ins</div>
+              <div className="col-span-1 text-center">Outs</div>
+              <div className="col-span-1 text-center">Size</div>
+              <div className="col-span-1 text-right whitespace-nowrap">Amount ({CURRENCY})</div>
+            </div>
+
+            {/* Transaction Rows */}
+            <div className="space-y-2 min-w-[900px]">
+              {data.transactions.map((tx, index) => {
+                // Detect coinbase first (takes priority in display)
+                const isCoinbase = tx.vin?.[0]?.coinbase;
+
+                // Detect shielded transactions (Sapling, Orchard, or Sprout)
+                const isShielded = !isCoinbase && (
+                  tx.hasShieldedActivity || // From transformation (uses has_sapling, has_orchard)
+                  tx.has_sapling || tx.has_orchard || tx.has_sprout || // Direct from API
+                  (tx.vShieldedSpend?.length > 0 || tx.vShieldedOutput?.length > 0) || // Sapling
+                  (tx.orchard?.actions?.length > 0) || // Orchard
+                  (tx.vJoinSplit?.length > 0) // Sprout (legacy)
+                );
+                const totalOutput = tx.vout?.reduce((sum: number, out: any) => sum + (out.value || 0), 0) || 0;
+
+                // Get first input and output addresses
+                const fromAddress = !isCoinbase && tx.vin?.[0]?.address; // Enriched by API
+                const toAddress = tx.vout?.[0]?.scriptPubKey?.addresses?.[0];
+
+                const inputCount = tx.vin?.length || 0;
+                const outputCount = tx.vout?.length || 0;
+                const txSize = tx.size || 0;
+
+                return (
+                  <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
+                    <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                      {/* # Column */}
+                      <div className="col-span-1">
+                        <span className="text-xs font-mono text-muted">#{index + 1}</span>
+                      </div>
+
+                      {/* Type Column */}
+                      <div className="col-span-1">
+                        {tx.staking_action_type ? (
+                          <StakingActionBadge type={tx.staking_action_type} compact />
+                        ) : isCoinbase ? (
+                          <Badge color="green">COINBASE</Badge>
+                        ) : isShielded ? (
+                          tx.has_ironwood ? (
+                            <Badge color="amber">IRONWOOD</Badge>
+                          ) : tx.has_orchard || tx.orchard?.actions?.length > 0 ? (
+                            <Badge color="purple">ORCHARD</Badge>
+                          ) : (
+                            <Badge color="cyan">SAPLING</Badge>
+                          )
+                        ) : (
+                          <Badge color="muted">Regular</Badge>
+                        )}
+                      </div>
+
+                      {/* Hash Column */}
+                      <div className="col-span-2">
+                        <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" title={tx.txid}>
+                          {tx.txid.slice(0, 8)}...{tx.txid.slice(-6)}
+                        </code>
+                      </div>
+
+                      {/* From Column */}
+                      <div className="col-span-2">
+                        {isCoinbase ? (
+                          <span className="text-xs text-muted font-mono">Block Reward</span>
+                        ) : fromAddress ? (
+                          <span className="text-xs text-secondary font-mono truncate block" title={fromAddress}>
+                            {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
+                          </span>
+                        ) : isShielded ? (
+                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted font-mono">—</span>
+                        )}
+                      </div>
+
+                      {/* To Column */}
+                      <div className="col-span-2">
+                        {toAddress ? (
+                          <span className="text-xs text-secondary font-mono truncate block" title={toAddress}>
+                            {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
+                          </span>
+                        ) : isShielded ? (
+                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted font-mono">—</span>
+                        )}
+                      </div>
+
+                      {/* Inputs Column */}
+                      <div className="col-span-1 text-center">
+                        {isShielded && inputCount === 0 ? (
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} inputs`}>
+                            <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-secondary font-mono">
+                            {inputCount}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Outputs Column */}
+                      <div className="col-span-1 text-center">
+                        {isShielded && outputCount === 0 ? (
+                          <span className={(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'} title={`${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'} outputs`}>
+                            <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-secondary font-mono">
+                            {outputCount}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Size Column */}
+                      <div className="col-span-1 text-center">
+                        <span className="text-xs text-secondary font-mono">
+                          {txSize > 0 ? (txSize / 1024).toFixed(1) : '-'}
+                        </span>
+                      </div>
+
+                      {/* Amount Column */}
+                      <div className="col-span-1 text-right">
+                        {totalOutput > 0 ? (
+                          <div className="text-xs font-mono text-primary font-semibold">
+                            {totalOutput.toFixed(4)}
+                          </div>
+                        ) : isShielded ? (() => {
+                          const vbSapling = parseInt(tx.value_balance_sapling || 0);
+                          const vbOrchard = parseInt(tx.value_balance_orchard || 0);
+                          const vb = vbSapling + vbOrchard;
+                          if (vb !== 0) {
+                            const amountZec = Math.abs(vb) / 1e8;
+                            return (
+                              <div className="text-xs font-mono text-primary font-semibold" title={`${amountZec.toFixed(8)} ZEC (publicly visible)`}>
+                                {amountZec.toFixed(4)}
+                              </div>
+                            );
+                          }
+                          return (
+                            <span className={`flex items-center justify-end gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`} title="Amount hidden (shielded)">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            </span>
+                          );
+                        })() : null}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        </CardBody>
+      </Card>}
+    </div>
+  );
+}

@@ -20,10 +20,8 @@ jobs:
   npm-audit:
     name: npm audit
     runs-on: ubuntu-latest
-    # Report-only for now: the inherited tree has pre-existing high-severity
-    # advisories (e.g. bigint-buffer via @solana). Dependabot raises fixes
-    # as individual PRs; flip this off once the backlog is cleared.
-    continue-on-error: true
+    # The inherited root advisory backlog is cleared; high and critical npm
+    # findings now gate the PR instead of being report-only.
     strategy:
       fail-fast: false
       matrix:

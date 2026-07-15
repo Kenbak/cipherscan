@@ -172,7 +172,7 @@ router.post('/api/scan/orchard', async (req, res) => {
         t.block_height,
         b.timestamp
       FROM transactions t
-      JOIN blocks b ON t.block_height = b.height
+      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
       WHERE t.block_height BETWEEN $1 AND $2
         AND t.has_orchard = true
       ORDER BY t.block_height DESC`,

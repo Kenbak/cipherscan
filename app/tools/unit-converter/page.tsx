@@ -1,7 +1,7 @@
-import type { Metadata } from 'next';
 import UnitConverterClient from './UnitConverterClient';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'ZEC / Zatoshi Unit Converter | CipherScan',
   description: 'Convert between ZEC and zatoshis (1 ZEC = 100,000,000 zatoshis). Free Zcash unit converter for developers and users.',
   keywords: [
@@ -12,17 +12,9 @@ export const metadata: Metadata = {
     'ZEC converter',
     'zcash developer tool',
   ],
-  openGraph: {
-    title: 'ZEC / Zatoshi Unit Converter | CipherScan',
-    description: 'Convert between ZEC and zatoshis. 1 ZEC = 10^8 zatoshis.',
-    url: 'https://cipherscan.app/tools/unit-converter',
-    siteName: 'CipherScan',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/tools/unit-converter',
-  },
-};
+  path: '/tools/unit-converter',
+  networks: ['mainnet'],
+});
 
 export default function UnitConverterPage() {
   return (

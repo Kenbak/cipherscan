@@ -1,13 +1,13 @@
 import { MetadataRoute } from 'next';
+import { getBaseUrl, getNetwork } from '@/lib/seo';
 
 export default function robots(): MetadataRoute.Robots {
-  // Use mainnet as the canonical URL for robots/sitemap
-  const isMainnet = process.env.NEXT_PUBLIC_NETWORK === 'mainnet';
-  const baseUrl = isMainnet
-    ? 'https://cipherscan.app'
-    : 'https://testnet.cipherscan.app';
+  const network = getNetwork();
+  const baseUrl = getBaseUrl();
 
-  if (!isMainnet) {
+  // Crosslink remains private to search engines until its indexation policy is
+  // explicitly opened. Root page metadata also emits noindex as a safeguard.
+  if (network === 'crosslink-testnet') {
     return {
       rules: [
         {
@@ -18,6 +18,9 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
+  // Both mainnet and the public Zcash testnet are crawlable. Testnet child
+  // pages deliberately remain crawlable so engines can observe their
+  // page-level noindex; only the testnet homepage appears in its sitemap.
   return {
     rules: [
       {

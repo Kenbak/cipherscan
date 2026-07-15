@@ -219,7 +219,7 @@ router.get('/api/blocks', async (req, res) => {
 
 function parseBlockIdentifier(param) {
   if (/^[a-fA-F0-9]{64}$/.test(param)) {
-    return { type: 'hash', value: param };
+    return { type: 'hash', value: param.toLowerCase() };
   }
   if (/^\d+$/.test(param)) {
     const height = parseInt(param, 10);
@@ -342,7 +342,8 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const block = blockResult.rows[0];
     const blockHeight = parseInt(block.height);
 
-    // Get transactions for this block
+    // Bind transactions to the block's immutable hash. Heights can identify
+    // different blocks over time when the chain reorganizes.
     const staking = await checkStakingColumns(pool);
     const stakingCols = staking
       ? ', staking_action_type, staking_bond_key, staking_delegatee, staking_amount_zats'
@@ -357,9 +358,9 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         fee, total_input, total_output, is_coinbase,
         tx_index${stakingCols}
       FROM transactions
-      WHERE block_height = $1
+      WHERE block_hash = $1
       ORDER BY tx_index`,
-      [blockHeight]
+      [block.hash]
     );
 
     // Get all inputs and outputs for all transactions in this block (optimized: 2 queries instead of N)

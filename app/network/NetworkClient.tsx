@@ -761,7 +761,11 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
       )}
       <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-secondary mt-1">
         <span className={`w-1.5 h-1.5 rounded-full ${dotColor[color]}`}></span>
-        {name}
+        {name === 'Ironwood' ? (
+          <Link href="/ironwood" className="hover:text-cipher-yellow hover:underline">
+            {name}
+          </Link>
+        ) : name}
       </div>
     </div>
   );

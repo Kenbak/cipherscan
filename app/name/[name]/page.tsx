@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { isValidName } from '@/lib/zns';
 import type { Event, EventAction, Registration, Pricing } from 'zcashname-sdk';
 
-const ZCASHNAMES_URL = 'https://zcashnames.com';
+const ZCASHNAMES_URL = 'https://www.zcashnames.com';
 
 const ZATS_PER_ZEC = 100_000_000;
 const formatZec = (zats: number): string =>
@@ -36,16 +35,13 @@ export default function NamePage() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [pricing, setPricing] = useState<Pricing | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isValidName(name)) {
-      notFound();
-      return;
-    }
-
     async function fetchData() {
       try {
+        setError(null);
         const [res, eventsRes] = await Promise.all([
           fetch(`/api/name/${name}`),
           fetch(`/api/name/${name}/events`).catch(() => null),
@@ -63,10 +59,11 @@ export default function NamePage() {
             setPricing(data.pricing || null);
           }
         } else {
-          notFound();
+          throw new Error(`Name lookup failed with status ${res.status}`);
         }
       } catch (error) {
         console.error('Error fetching name:', error);
+        setError('Name data is temporarily unavailable. Please try again shortly.');
       } finally {
         setLoading(false);
       }
@@ -119,8 +116,18 @@ export default function NamePage() {
     );
   }
 
-  if (!registration && !pricing) {
-    return null;
+  if (error || (!registration && !pricing)) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardBody>
+            <p className="text-secondary">
+              {error || 'Name details are temporarily unavailable.'}
+            </p>
+          </CardBody>
+        </Card>
+      </div>
+    );
   }
 
   if (!registration) {
@@ -150,7 +157,7 @@ function RegisteredView({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h1 className="text-3xl font-mono">{name}</h1>
+            <h2 className="text-3xl font-mono">{name}</h2>
             <div className="flex gap-2">
               <Badge color={ACTION_COLOR[registration.last_action]}>
                 {registration.last_action}
@@ -299,7 +306,7 @@ function AvailableView({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h1 className="text-3xl font-mono">{name}</h1>
+            <h2 className="text-3xl font-mono">{name}</h2>
             <Badge color="green">AVAILABLE</Badge>
           </div>
         </CardHeader>

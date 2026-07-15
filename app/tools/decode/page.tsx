@@ -1,7 +1,7 @@
-import type { Metadata } from 'next';
 import DecodeClient from './DecodeClient';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Decode Raw Transaction - Parse Zcash TX Hex | CipherScan',
   description: 'Free tool to decode raw Zcash transaction hex into human-readable fields. View inputs, outputs, shielded data, and more without broadcasting.',
   keywords: [
@@ -13,17 +13,9 @@ export const metadata: Metadata = {
     'zebra decoderawtransaction',
     'zcash developer tool',
   ],
-  openGraph: {
-    title: 'Decode Raw Zcash Transaction | CipherScan',
-    description: 'Parse any raw Zcash transaction hex into human-readable fields.',
-    url: 'https://cipherscan.app/tools/decode',
-    siteName: 'CipherScan',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/tools/decode',
-  },
-};
+  path: '/tools/decode',
+  networks: ['mainnet'],
+});
 
 export default function DecodePage() {
   return (

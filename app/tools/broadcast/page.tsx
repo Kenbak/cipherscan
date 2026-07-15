@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
 import BroadcastClient from './BroadcastClient';
+import { buildPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Broadcast Transaction - Submit Raw Zcash TX | CipherScan',
-  description: 'Broadcast a pre-signed raw Zcash transaction to the network via a live Zebra node. No private keys required, transactions must be fully signed before submitting.',
+export const metadata = buildPageMetadata({
+  title: 'Broadcast a Zcash Transaction | CipherScan',
+  description: 'Broadcast a fully signed raw Zcash transaction through CipherScan\'s Zebra node. No private key is required or submitted.',
   keywords: [
     'broadcast zcash transaction',
     'sendrawtransaction zcash',
@@ -13,17 +13,8 @@ export const metadata: Metadata = {
     'zebra sendrawtransaction',
     'zcash developer tool',
   ],
-  openGraph: {
-    title: 'Broadcast Zcash Transaction | CipherScan',
-    description: 'Submit a pre-signed raw transaction to the Zcash network.',
-    url: 'https://cipherscan.app/tools/broadcast',
-    siteName: 'CipherScan',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://cipherscan.app/tools/broadcast',
-  },
-};
+  path: '/tools/broadcast',
+});
 
 export default function BroadcastPage() {
   return (

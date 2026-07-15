@@ -1,9 +1,11 @@
+import { getConfiguredNetwork } from '@/lib/network';
+
 // Auto-detect network based on domain or env variable
 function detectNetwork(): 'mainnet' | 'testnet' | 'crosslink' {
   // First check explicit env variable
-  if (process.env.NEXT_PUBLIC_NETWORK === 'mainnet') return 'mainnet';
-  if (process.env.NEXT_PUBLIC_NETWORK === 'crosslink-testnet' || process.env.NEXT_PUBLIC_NETWORK === 'crosslink') return 'crosslink';
-  if (process.env.NEXT_PUBLIC_NETWORK === 'testnet') return 'testnet';
+  const configured = getConfiguredNetwork();
+  if (configured === 'mainnet' || configured === 'testnet') return configured;
+  if (configured === 'crosslink-testnet') return 'crosslink';
 
   // Auto-detect from domain (client-side only)
   if (typeof window !== 'undefined') {

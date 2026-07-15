@@ -293,7 +293,7 @@ export default function LearnPage() {
                   <span>Get Testnet ZEC</span>
                 </a>
                 <a
-                  href="https://discord.gg/THspb5PM"
+                  href="https://discord.com/invite/THspb5PM"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
@@ -502,7 +502,7 @@ export default function LearnPage() {
                 <div className="mt-5 pt-4 border-t border-cipher-border">
                   <div className="text-xs text-muted mb-3">Names are permanent (no renewal fees), on-chain, and Orchard-only (fully shielded).</div>
                   <a
-                    href="https://zcashnames.com"
+                    href="https://www.zcashnames.com/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-primary btn-sm"
@@ -546,7 +546,7 @@ export default function LearnPage() {
                   <h4 className="text-xs font-mono text-muted uppercase tracking-wide mb-3">For Developers</h4>
                   <div className="space-y-0.5">
                     {[
-                      { href: 'https://zcashnames.com/docs/zns-developer-guide', label: 'ZNS Developer Guide' },
+                      { href: 'https://www.zcashnames.com/docs/zns-developer-guide', label: 'ZNS Developer Guide' },
                       { href: 'https://www.npmjs.com/package/zcashname-sdk', label: 'zcashname-sdk on npm' },
                       { href: 'https://github.com/zcashme/ZNS', label: 'ZNS Protocol (GitHub)' },
                     ].map(item => (
@@ -792,9 +792,9 @@ export default function LearnPage() {
                   <h3 className="text-xs font-mono text-muted uppercase tracking-wider mb-4">Specs & Standards</h3>
                   <div className="space-y-0.5">
                     {[
-                      { href: 'https://zcash.readthedocs.io/', label: 'Protocol Documentation' },
+                      { href: 'https://zcash.readthedocs.io/en/latest/rtd_pages/protocol.html', label: 'Protocol Documentation' },
                       { href: 'https://zips.z.cash/', label: 'ZIPs (Improvement Proposals)' },
-                      { href: 'https://crates.io/teams/github:zcash:crate-publishers', label: 'Zcash Crates' },
+                      { href: 'https://github.com/zcash/librustzcash', label: 'Zcash Rust Crates' },
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
@@ -902,11 +902,11 @@ export default function LearnPage() {
               Weekly Newsletter
             </Link>
             {[
-              { href: 'https://discord.gg/THspb5PM', label: 'Discord' },
+              { href: 'https://discord.com/invite/THspb5PM', label: 'Discord' },
               { href: 'https://testnet.zecfaucet.com/', label: 'Testnet Faucet' },
               { href: 'https://bountyzcash.org/', label: 'Bug Bounty' },
               { href: 'https://www.youtube.com/@AtmosphereLabsDev', label: 'YouTube' },
-              { href: 'https://www.scifi.money/', label: 'SciFi Money' },
+              { href: 'https://scifi.money/', label: 'SciFi Money' },
               { href: 'https://maxdesalle.com/mastering-zcash/', label: 'Mastering Zcash' },
             ].map(item => (
               <a

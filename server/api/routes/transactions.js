@@ -54,14 +54,15 @@ router.get('/api/transactions/list', async (req, res) => {
     // Build type filter
     let typeCondition = '';
     if (typeFilter === 'shielded') {
-      typeCondition = 'AND (has_sapling = true OR has_orchard = true OR has_ironwood = true)';
+      typeCondition = 'AND (t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)';
     } else if (typeFilter === 'transparent') {
-      typeCondition = 'AND has_sapling = false AND has_orchard = false AND has_ironwood = false AND is_coinbase = false';
+      typeCondition = 'AND t.has_sapling = false AND t.has_orchard = false AND t.has_ironwood = false AND t.is_coinbase = false';
     } else if (typeFilter === 'coinbase') {
-      typeCondition = 'AND is_coinbase = true';
+      typeCondition = 'AND t.is_coinbase = true';
     }
 
-    // Get total count — use pg_class estimate for unfiltered (instant vs 30s COUNT(*))
+    // Keep the unfiltered total as a fast planner estimate. Filtered counts use
+    // the same canonical identity join as the returned rows.
     let total;
     if (typeFilter === 'all') {
       const countResult = await pool.query(
@@ -69,34 +70,40 @@ router.get('/api/transactions/list', async (req, res) => {
       );
       total = parseInt(countResult.rows[0]?.count) || 0;
     } else {
-      // Filtered counts are much smaller scans thanks to indexes
       const countResult = await pool.query(
-        `SELECT COUNT(*) as count FROM transactions WHERE true ${typeCondition}`
+        `SELECT COUNT(*) as count
+         FROM transactions t
+         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+         WHERE true ${typeCondition}`
       );
-      total = parseInt(countResult.rows[0].count);
+      total = parseInt(countResult.rows[0]?.count) || 0;
     }
 
     let result;
-    const txCols = `txid, block_height, block_time, size, vin_count, vout_count,
-                has_sapling, has_orchard, has_ironwood, has_sprout, is_coinbase, value_balance,
-                value_balance_sapling, value_balance_orchard, value_balance_ironwood,
-                ironwood_actions, flow_type,
-                fee, total_input, total_output`;
+    const txCols = `t.txid, t.block_height, t.block_hash, t.block_time, t.tx_index,
+                t.size, t.vin_count, t.vout_count,
+                t.has_sapling, t.has_orchard, t.has_ironwood, t.has_sprout,
+                t.is_coinbase, t.value_balance,
+                t.value_balance_sapling, t.value_balance_orchard, t.value_balance_ironwood,
+                t.ironwood_actions, t.flow_type,
+                t.fee, t.total_input, t.total_output`;
     if (cursor === null) {
       result = await pool.query(
         `SELECT ${txCols}
-         FROM transactions
+         FROM transactions t
+         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
          WHERE true ${typeCondition}
-         ORDER BY block_height DESC, tx_index DESC
+         ORDER BY t.block_height DESC, t.tx_index DESC
          LIMIT $1`,
         [limit]
       );
     } else if (direction === 'prev') {
       result = await pool.query(
         `SELECT ${txCols}
-         FROM transactions
-         WHERE (block_height > $1 OR (block_height = $1 AND tx_index > $2)) ${typeCondition}
-         ORDER BY block_height ASC, tx_index ASC
+         FROM transactions t
+         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+         WHERE (t.block_height > $1 OR (t.block_height = $1 AND t.tx_index > $2)) ${typeCondition}
+         ORDER BY t.block_height ASC, t.tx_index ASC
          LIMIT $3`,
         [cursor, cursorIdx || 0, limit]
       );
@@ -104,9 +111,10 @@ router.get('/api/transactions/list', async (req, res) => {
     } else {
       result = await pool.query(
         `SELECT ${txCols}
-         FROM transactions
-         WHERE (block_height < $1 OR (block_height = $1 AND tx_index < $2)) ${typeCondition}
-         ORDER BY block_height DESC, tx_index DESC
+         FROM transactions t
+         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+         WHERE (t.block_height < $1 OR (t.block_height = $1 AND t.tx_index < $2)) ${typeCondition}
+         ORDER BY t.block_height DESC, t.tx_index DESC
          LIMIT $3`,
         [cursor, cursorIdx || 0, limit]
       );
@@ -160,21 +168,23 @@ router.get('/api/shielded/list', async (req, res) => {
     let paramIdx = 1;
 
     if (flowType !== 'all') {
-      conditions.push(`flow_type = $${paramIdx++}`);
+      conditions.push(`sf.flow_type = $${paramIdx++}`);
       params.push(flowType);
     }
     if (poolFilter !== 'all') {
-      conditions.push(`pool = $${paramIdx++}`);
+      conditions.push(`sf.pool = $${paramIdx++}`);
       params.push(poolFilter);
     }
     if (minZec > 0) {
-      conditions.push(`amount_zat >= $${paramIdx++}`);
+      conditions.push(`sf.amount_zat >= $${paramIdx++}`);
       params.push(Math.round(minZec * 1e8));
     }
 
     const whereBase = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    // Get total count — use pg_class estimate for unfiltered
+    const canonicalFlowJoin = `FROM shielded_flows sf
+      JOIN transactions t ON t.txid = sf.txid AND t.block_height = sf.block_height
+      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash`;
     let total;
     if (conditions.length === 0) {
       const countResult = await pool.query(
@@ -183,39 +193,40 @@ router.get('/api/shielded/list', async (req, res) => {
       total = parseInt(countResult.rows[0]?.count) || 0;
     } else {
       const countResult = await pool.query(
-        `SELECT COUNT(*) as count FROM shielded_flows ${whereBase}`,
+        `SELECT COUNT(*) as count ${canonicalFlowJoin} ${whereBase}`,
         params
       );
-      total = parseInt(countResult.rows[0].count);
+      total = parseInt(countResult.rows[0]?.count) || 0;
     }
 
     let result;
-    const selectCols = `id, txid, block_height, block_time, flow_type, amount_zat, pool, transparent_addresses`;
+    const selectCols = `sf.id, sf.txid, sf.block_height, sf.block_time,
+      sf.flow_type, sf.amount_zat, sf.pool, sf.transparent_addresses`;
 
     if (cursor === null) {
       result = await pool.query(
-        `SELECT ${selectCols} FROM shielded_flows
+        `SELECT ${selectCols} ${canonicalFlowJoin}
          ${whereBase ? whereBase + ' AND' : 'WHERE'} true
-         ORDER BY block_time DESC, id DESC
+         ORDER BY sf.block_time DESC, sf.id DESC
          LIMIT $${paramIdx}`,
         [...params, limit]
       );
     } else if (direction === 'prev') {
-      const cursorCond = `(block_time > $${paramIdx} OR (block_time = $${paramIdx} AND id > $${paramIdx + 1}))`;
+      const cursorCond = `(sf.block_time > $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id > $${paramIdx + 1}))`;
       result = await pool.query(
-        `SELECT ${selectCols} FROM shielded_flows
+        `SELECT ${selectCols} ${canonicalFlowJoin}
          ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
-         ORDER BY block_time ASC, id ASC
+         ORDER BY sf.block_time ASC, sf.id ASC
          LIMIT $${paramIdx + 2}`,
         [...params, cursor, cursorId || 0, limit]
       );
       result.rows.reverse();
     } else {
-      const cursorCond = `(block_time < $${paramIdx} OR (block_time = $${paramIdx} AND id < $${paramIdx + 1}))`;
+      const cursorCond = `(sf.block_time < $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id < $${paramIdx + 1}))`;
       result = await pool.query(
-        `SELECT ${selectCols} FROM shielded_flows
+        `SELECT ${selectCols} ${canonicalFlowJoin}
          ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
-         ORDER BY block_time DESC, id DESC
+         ORDER BY sf.block_time DESC, sf.id DESC
          LIMIT $${paramIdx + 2}`,
         [...params, cursor, cursorId || 0, limit]
       );
@@ -277,27 +288,27 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
 
     // Filter by pool type
     if (poolType === 'sapling') {
-      conditions.push(`(has_sapling = true)`);
+      conditions.push(`(t.has_sapling = true)`);
     } else if (poolType === 'orchard') {
-      conditions.push(`(has_orchard = true)`);
+      conditions.push(`(t.has_orchard = true)`);
     } else if (poolType === 'ironwood') {
-      conditions.push(`(has_ironwood = true)`);
+      conditions.push(`(t.has_ironwood = true)`);
     } else {
-      conditions.push(`(has_sapling = true OR has_orchard = true OR has_ironwood = true)`);
+      conditions.push(`(t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)`);
     }
 
     // Filter by transaction type
     if (txType === 'fully-shielded') {
       // Fully shielded: no transparent inputs/outputs
-      conditions.push(`(vin_count = 0 AND vout_count = 0)`);
+      conditions.push(`(t.vin_count = 0 AND t.vout_count = 0)`);
     } else if (txType === 'partial') {
       // Partial: has both transparent and shielded
-      conditions.push(`(vin_count > 0 OR vout_count > 0)`);
+      conditions.push(`(t.vin_count > 0 OR t.vout_count > 0)`);
     }
 
     // Filter by minimum actions
     if (minActions > 0) {
-      conditions.push(`(orchard_actions >= $${paramIndex} OR shielded_spends >= $${paramIndex} OR shielded_outputs >= $${paramIndex})`);
+      conditions.push(`(t.orchard_actions >= $${paramIndex} OR t.shielded_spends >= $${paramIndex} OR t.shielded_outputs >= $${paramIndex})`);
       queryParams.push(minActions);
       paramIndex++;
     }
@@ -312,8 +323,8 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
       `SELECT
         t.txid,
         t.block_height,
-        b.hash as block_hash,
-        b.timestamp as block_time,
+        t.block_hash,
+        t.block_time,
         t.has_sapling,
         t.has_orchard,
         t.shielded_spends,
@@ -326,7 +337,7 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         t.value_balance_sapling,
         t.value_balance_orchard
       FROM transactions t
-      JOIN blocks b ON t.block_height = b.height
+      JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
       ${whereClause}
       ORDER BY t.block_height DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -341,6 +352,7 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
       const countResult = await pool.query(
         `SELECT COUNT(*) as total
         FROM transactions t
+        JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
         ${whereClause}`,
         queryParams.slice(0, -2)
       );
@@ -400,35 +412,38 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     // Get transaction details (including Rust indexer fields)
     const txResult = await pool.query(
       `SELECT
-        txid,
-        block_height,
-        block_time,
-        size,
-        version,
-        locktime,
-        vin_count,
-        vout_count,
-        value_balance,
-        value_balance_sapling,
-        value_balance_orchard,
-        value_balance_ironwood,
-        has_sapling,
-        has_orchard,
-        has_ironwood,
-        has_sprout,
-        orchard_actions,
-        ironwood_actions,
-        shielded_spends,
-        shielded_outputs,
-        tx_index,
-        fee,
-        total_input,
-        total_output,
-        is_coinbase${(await checkStakingColumns(pool))
-          ? ', staking_action_type, staking_bond_key, staking_delegatee, staking_amount_zats'
+        t.txid,
+        t.block_height,
+        t.block_hash,
+        t.block_time,
+        t.size,
+        t.version,
+        t.locktime,
+        t.vin_count,
+        t.vout_count,
+        t.value_balance,
+        t.value_balance_sapling,
+        t.value_balance_orchard,
+        t.value_balance_ironwood,
+        t.has_sapling,
+        t.has_orchard,
+        t.has_ironwood,
+        t.has_sprout,
+        t.orchard_actions,
+        t.ironwood_actions,
+        t.shielded_spends,
+        t.shielded_outputs,
+        t.tx_index,
+        t.fee,
+        t.total_input,
+        t.total_output,
+        t.is_coinbase,
+        (b.hash IS NOT NULL) AS is_canonical${(await checkStakingColumns(pool))
+          ? ', t.staking_action_type, t.staking_bond_key, t.staking_delegatee, t.staking_amount_zats'
           : ''}
-      FROM transactions
-      WHERE txid = $1`,
+      FROM transactions t
+      LEFT JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+      WHERE t.txid = $1`,
       [txid]
     );
 
@@ -465,16 +480,14 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       [txid]
     );
 
-    // Get block hash
-    const blockResult = await pool.query(
-      `SELECT hash FROM blocks WHERE height = $1`,
-      [tx.block_height]
-    );
-
-    // Calculate confirmations
+    // Confirmations are meaningful only when both recorded identity fields
+    // match the canonical block row. Null/stale hashes stay at zero.
     const currentHeightResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
-    const currentHeight = currentHeightResult.rows[0]?.max_height || tx.block_height;
-    const confirmations = currentHeight - tx.block_height + 1;
+    const currentHeight = parseInt(currentHeightResult.rows[0]?.max_height) || 0;
+    const transactionHeight = parseInt(tx.block_height) || 0;
+    const confirmations = tx.is_canonical && currentHeight >= transactionHeight
+      ? currentHeight - transactionHeight + 1
+      : 0;
 
     // Get value balances (in ZEC)
     const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
@@ -564,8 +577,8 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     if (tx.is_coinbase) {
       try {
         const cbResult = await pool.query(
-          'SELECT coinbase_hex FROM blocks WHERE height = $1',
-          [tx.block_height]
+          'SELECT coinbase_hex FROM blocks WHERE hash = $1',
+          [tx.block_hash]
         );
         if (cbResult.rows[0]?.coinbase_hex) {
           coinbaseHex = cbResult.rows[0].coinbase_hex;
@@ -583,9 +596,12 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
-      blockHash: blockResult.rows[0]?.hash,
+      // Preserve the transaction's recorded block identity across reorgs.
+      blockHash: tx.block_hash,
       blockTime: tx.block_time,
       confirmations,
+      isCanonical: tx.is_canonical,
+      status: tx.is_canonical ? 'confirmed' : (tx.block_hash ? 'stale' : 'unknown'),
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,

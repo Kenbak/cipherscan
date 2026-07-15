@@ -169,7 +169,7 @@ export default function PrivacyClient() {
             <span className="opacity-50">{'>'}</span> PRIVACY_DASHBOARD
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Privacy Metrics
+            Zcash Privacy Metrics
           </h1>
           <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
             Live metrics on how private the Zcash network actually is: the size of the
@@ -224,7 +224,7 @@ export default function PrivacyClient() {
           </p>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-              Privacy Metrics
+              Zcash Privacy Metrics
             </h1>
             <div className="flex items-center gap-3">
               <div className={`flex items-center gap-1.5 ${trendColor}`}>
@@ -499,7 +499,9 @@ export default function PrivacyClient() {
                   {(stats.shieldedPool.ironwood || 0) > 0 && (
                     <div>
                       <div className="flex justify-between mb-2 items-center">
-                        <span className="text-cipher-yellow font-mono text-sm">Ironwood</span>
+                        <Link href="/ironwood" className="text-cipher-yellow font-mono text-sm hover:underline">
+                          Ironwood
+                        </Link>
                         <div className="flex items-center gap-2">
                           <span className="text-secondary text-sm">
                             {stats.shieldedPool.ironwood! >= 1000000
@@ -567,7 +569,7 @@ export default function PrivacyClient() {
                 {activeTab === 'adoption' && (
                   <>Share of non-coinbase transactions that touch Sapling or Orchard each day. This is <strong className="text-secondary font-normal">transaction volume</strong>, not ZEC in shielded pools — see Supply Shielded above.</>
                 )}
-                {activeTab === 'pool' && (<>Total ZEC held in shielded pools (Ironwood, Orchard, Sapling, Sprout). <a href="/pools" className="text-cipher-cyan hover:underline">View detailed pool analytics →</a></>)}
+                {activeTab === 'pool' && (<>Total ZEC held in shielded pools (Ironwood, Orchard, Sapling, Sprout). <Link href="/pools" className="text-cipher-cyan hover:underline">View detailed pool analytics</Link>{' · '}<Link href="/ironwood" className="text-cipher-yellow hover:underline">Track the Zcash Ironwood migration →</Link></>)}
                 {activeTab === 'activity' && 'Raw count of shielded vs transparent transactions per day (coinbase excluded from transparent).'}
                 {activeTab === 'score' && 'Composite privacy score from tx adoption, fully shielded usage, and pool size.'}
               </p>

@@ -36,6 +36,8 @@ interface BridgeData {
 
 interface TransactionData {
   txid: string;
+  status?: 'confirmed' | 'stale' | 'unknown';
+  isCanonical?: boolean;
   blockHeight: number;
   blockHash: string;
   timestamp: number;
@@ -136,9 +138,10 @@ const Icons = {
 export default function TransactionPage() {
   const params = useParams();
   const router = useRouter();
-  const txid = params.txid as string;
+  const txid = (params.txid as string).toLowerCase();
   const [data, setData] = useState<TransactionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lookupState, setLookupState] = useState<'available' | 'missing' | 'unavailable' | null>(null);
   const [blockFallbackChecked, setBlockFallbackChecked] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'io' | 'raw'>('summary');
@@ -210,10 +213,12 @@ export default function TransactionPage() {
               /* fall through to not-found */
             }
           }
-          throw new Error('Transaction not found');
+          setLookupState(response.status === 404 ? 'missing' : 'unavailable');
+          throw new Error(response.status === 404 ? 'Transaction not found' : 'Transaction lookup unavailable');
         }
 
         const txData = await response.json();
+        setLookupState('available');
 
         // Transform data if coming from Express API
         if (usePostgresApiClient()) {
@@ -241,6 +246,8 @@ export default function TransactionPage() {
 
           const transformedData = {
             txid: txData.txid,
+            status: txData.status,
+            isCanonical: txData.isCanonical,
             blockHeight: txData.blockHeight,
             blockHash: txData.blockHash,
             timestamp: parseInt(txData.blockTime),
@@ -291,6 +298,9 @@ export default function TransactionPage() {
         }
       } catch (error) {
         console.error('Error fetching transaction:', error);
+        if (!(error instanceof Error && error.message === 'Transaction not found')) {
+          setLookupState('unavailable');
+        }
         setData(null);
       } finally {
         setLoading(false);
@@ -312,7 +322,7 @@ export default function TransactionPage() {
 
   // Fallback: if tx not found, check if this hash is actually a block hash
   useEffect(() => {
-    if (loading || data || blockFallbackChecked) return;
+    if (loading || data || blockFallbackChecked || lookupState !== 'missing') return;
     if (!/^[a-fA-F0-9]{64}$/.test(txid)) return;
 
     setBlockFallbackChecked(true);
@@ -332,7 +342,7 @@ export default function TransactionPage() {
     };
 
     checkBlock();
-  }, [loading, data, txid, blockFallbackChecked, router]);
+  }, [loading, data, txid, blockFallbackChecked, lookupState, router]);
 
   // Check mempool if tx not found in confirmed DB
   const checkMempool = useCallback(async () => {
@@ -341,25 +351,30 @@ export default function TransactionPage() {
         ? `${getApiUrl()}/api/mempool/tx/${txid}`
         : `/api/mempool/tx/${txid}`;
       const res = await fetch(apiUrl);
-      if (!res.ok) return false;
+      if (!res.ok) {
+        setLookupState('unavailable');
+        return null;
+      }
       const result = await res.json();
       if (result.success && result.inMempool) {
+        setLookupState('available');
         setMempoolTx(result.transaction);
         return true;
       }
       return false;
     } catch {
-      return false;
+      setLookupState('unavailable');
+      return null;
     }
   }, [txid]);
 
   useEffect(() => {
-    if (loading || data || !blockFallbackChecked || mempoolChecked) return;
+    if (loading || data || !blockFallbackChecked || mempoolChecked || lookupState !== 'missing') return;
     if (!/^[a-fA-F0-9]{64}$/.test(txid)) return;
 
     setMempoolChecked(true);
     checkMempool();
-  }, [loading, data, blockFallbackChecked, txid, mempoolChecked, checkMempool]);
+  }, [loading, data, blockFallbackChecked, txid, mempoolChecked, lookupState, checkMempool]);
 
   // Poll for confirmation when tx is in mempool
   useEffect(() => {
@@ -386,6 +401,7 @@ export default function TransactionPage() {
         }
 
         const stillInMempool = await checkMempool();
+        if (stillInMempool === null) return;
         if (!stillInMempool && !droppedAt) {
           // Tx just left the mempool — it's being confirmed by the indexer
           droppedAt = Date.now();
@@ -496,7 +512,8 @@ export default function TransactionPage() {
 
   if (!data) {
     const isValidHash = /^[a-fA-F0-9]{64}$/.test(txid);
-    const isChecking = isValidHash && (!blockFallbackChecked || (!mempoolChecked && blockFallbackChecked));
+    const isUnavailable = lookupState === 'unavailable';
+    const isChecking = isValidHash && lookupState === 'missing' && (!blockFallbackChecked || (!mempoolChecked && blockFallbackChecked));
 
     // Mempool pending state
     if (mempoolTx) {
@@ -518,7 +535,7 @@ export default function TransactionPage() {
               <Badge color={txTypeColor as any}>{txTypeLabel}</Badge>
             </div>
             <div className="flex items-center gap-2 mt-3">
-              <h1 className="text-sm sm:text-base font-mono text-primary break-all">{txid}</h1>
+              <p className="text-sm sm:text-base font-mono text-primary break-all">{txid}</p>
               <CopyButton text={txid} label="txid" />
             </div>
           </div>
@@ -664,7 +681,7 @@ export default function TransactionPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
         <div className="mb-8">
           <span className="text-xs font-mono text-muted tracking-wider">&gt; TX_LOOKUP</span>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h1>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1">Transaction Details</h2>
         </div>
         <Card>
           <CardBody>
@@ -681,9 +698,13 @@ export default function TransactionPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <h2 className="text-lg font-semibold text-primary mb-2">Transaction Not Found</h2>
+                  <h2 className="text-lg font-semibold text-primary mb-2">
+                    {isUnavailable ? 'Transaction Status Unavailable' : 'Transaction Not Found'}
+                  </h2>
                   <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
-                    This transaction doesn&apos;t exist or hasn&apos;t been confirmed yet.
+                    {isUnavailable
+                      ? 'CipherScan could not reach the transaction data service. Try this lookup again shortly.'
+                      : 'This transaction is not in the indexed chain or current mempool.'}
                   </p>
                   <Link href="/" className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm">
                     &larr; Back to Explorer
@@ -1051,7 +1072,7 @@ export default function TransactionPage() {
         <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
-            <h1 className="text-sm sm:text-base md:text-lg font-mono text-primary mt-0.5 break-all">{data.txid.slice(0, 12)}...{data.txid.slice(-8)}</h1>
+            <p className="text-sm sm:text-base md:text-lg font-mono text-primary mt-0.5 break-all">{data.txid.slice(0, 12)}...{data.txid.slice(-8)}</p>
           </div>
           <ExportButton
             data={{
@@ -1072,7 +1093,13 @@ export default function TransactionPage() {
 
         {/* Row 2: Status badges */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <StatusBadge status="confirmed" />
+          {data.status === 'stale' || data.isCanonical === false ? (
+            <Badge color="orange">REORGANIZED</Badge>
+          ) : data.status === 'unknown' ? (
+            <Badge color="muted">UNKNOWN</Badge>
+          ) : (
+            <StatusBadge status="confirmed" />
+          )}
           {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
           {txType === 'MIGRATION' && <Badge color="amber" icon={<Icons.Shield />}>MIGRATION</Badge>}
           {txType === 'IRONWOOD' && <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>}

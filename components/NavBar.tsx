@@ -123,7 +123,7 @@ export function NavBar() {
         { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
         { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile' },
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
-        { href: '/migration', label: 'Ironwood Migration', desc: 'Orchard → Ironwood (NU6.3)' },
+        { href: '/ironwood', label: 'Zcash Ironwood', desc: 'NU6.3 upgrade & migration tracker' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
       ];
 
@@ -358,9 +358,10 @@ export function NavBar() {
 
                 {isMainnet && (
                   <a
-                    href="https://cipherswap.app"
+                    href="https://cipherswap.app/"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
+                    title="Buy ZEC on CipherSwap"
                     className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
@@ -419,9 +420,10 @@ export function NavBar() {
                 {priceData && isMainnet && <div className="w-px h-4 bg-gray-500/30" />}
                 {isMainnet && (
                   <a
-                    href="https://cipherswap.app"
+                    href="https://cipherswap.app/"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
+                    title="Buy ZEC on CipherSwap"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow"
                   >

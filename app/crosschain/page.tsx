@@ -330,9 +330,14 @@ export default function CrosschainPage() {
   if (loading) {
     return (
       <div className="min-h-screen py-8 sm:py-12 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan" />
-          <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            ZEC Cross-Chain Analytics
+          </h1>
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan" />
+            <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
+          </div>
         </div>
       </div>
     );
@@ -431,6 +436,14 @@ export default function CrosschainPage() {
               <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
             </p>
           </div>
+          <a
+            href="https://cipherswap.app/"
+            target="_blank"
+            rel="noopener"
+            className="inline-flex mt-3 text-sm font-mono text-cipher-yellow hover:underline"
+          >
+            Buy ZEC on CipherSwap, CipherScan&apos;s sister site →
+          </a>
         </div>
 
         {/* Stats strip */}
@@ -739,7 +752,7 @@ export default function CrosschainPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">BUY_ZEC_LATENCY</h2>
+                  <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">INBOUND_ZEC_LATENCY</h2>
                   <span className="text-[10px] text-muted ml-2">Time until ZEC arrives</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

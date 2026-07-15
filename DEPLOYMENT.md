@@ -28,11 +28,11 @@ See also: [server infrastructure wiki](https://github.com/Kenbak/cipherscan) and
 ```
 ┌─────────────┐     HTTPS      ┌──────────────┐
 │   Browser   │ ──────────────▶│  Caddy :443  │
-│  (Vercel)   │                └──────┬───────┘
+│  (Netlify)  │                └──────┬───────┘
 └─────────────┘                       │
                                       ▼
                               ┌───────────────┐
-                              │ Next.js :3000 │  (frontend — Vercel or systemd)
+                              │ Next.js :3000 │  (frontend — Netlify or systemd)
                               └───────┬───────┘
                                       │ REST / WS
                                       ▼
@@ -67,11 +67,10 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `NEXT_PUBLIC_NETWORK` | **Yes for builds** | Deployment identity: `mainnet`, `testnet`, or `crosslink-testnet`. Controls APIs, currency labels, canonical hosts, and indexation. |
 | `NEXT_PUBLIC_LIGHTWALLETD_HOST` | No | Lightwalletd hostname for client-side gRPC |
 | `NEXT_PUBLIC_LIGHTWALLETD_PORT` | No | Lightwalletd port (default 9067) |
-| `NEXT_PUBLIC_HELIUS_API_KEY` | No | Solana RPC for `/swap` page wallet checks |
 | `NEAR_INTENTS_API_KEY` | No | NEAR Intents Explorer API (historical swap data) |
-| `NEAR_ONECLICK_API_KEY` | No | NEAR 1-Click Swap API for `/swap` execution |
 | `NEXT_TELEMETRY_DISABLED` | Recommended | Set to `1` — disable Next.js telemetry |
 | `ZEBRA_GRPC_URL` | No | Zebra gRPC indexer address (e.g. `127.0.0.1:8230`) |
 
@@ -156,16 +155,29 @@ node zcg/milestone-3/verify.js http://localhost:3000
 
 ## Production Deployment
 
-### Frontend — Vercel
+### Frontend — Netlify
 
-The Next.js frontend deploys to Vercel:
+The same Next.js source deploys as three independent Netlify sites. The
+Netlify site name `cipherscan` is the testnet deployment; it is a legacy name,
+not the root-domain deployment.
 
-- **Mainnet:** `cipherscan.app`
-- **Testnet:** `testnet.cipherscan.app`
-- **Crosslink:** `crosslink.cipherscan.app`
+| Netlify site | Public host | `NEXT_PUBLIC_NETWORK` | PR preview pattern |
+| --- | --- | --- | --- |
+| `cipherscan-main` | `cipherscan.app` | `mainnet` | `deploy-preview-<PR>--cipherscan-main.netlify.app` |
+| `cipherscan` (rename to `cipherscan-testnet` when practical) | `testnet.cipherscan.app` | `testnet` | `deploy-preview-<PR>--cipherscan.netlify.app` |
+| `cipherscan-crosslink` | `crosslink.cipherscan.app` | `crosslink-testnet` | `deploy-preview-<PR>--cipherscan-crosslink.netlify.app` |
 
-Build command: `npm run build`  
-Environment variables set in Vercel dashboard (see Frontend table above).
+Build command: `npm run build`.
+
+Set `NEXT_PUBLIC_NETWORK` explicitly for the Production, Deploy Preview, and
+Branch deploy contexts of every site. Production builds fail when it is absent
+or invalid so a deployment cannot silently fall back to testnet. Netlify also
+sends `X-Robots-Tag: noindex` on deploy-preview hosts; application metadata is
+still verified per network before promotion.
+
+For Docker, pass the same value as the `NEXT_PUBLIC_NETWORK` build argument and
+runtime environment variable. `NEXT_PUBLIC_*` values are compiled into the
+browser bundle, so setting only the runtime variable is too late.
 
 ### API + Indexer — DigitalOcean (systemd)
 
@@ -185,7 +197,7 @@ Production runs on bare-metal DigitalOcean droplets with systemd units.
 **Start order:** PostgreSQL → Zebra → cipherscan-rust → lightwalletd → API → Caddy
 
 **Caddy** terminates TLS on ports 443/80 and reverse-proxies to:
-- Frontend (Vercel origin or local Next.js)
+- Frontend (Netlify origin or local Next.js)
 - API (`127.0.0.1:3001`)
 - lightwalletd gRPC (`127.0.0.1:9067`)
 
