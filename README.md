@@ -296,6 +296,6 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 <p align="center">
   <a href="https://github.com/Kenbak/cipherscan">GitHub</a> •
-  <a href="https://discord.gg/THspb5PM">Discord</a> •
+  <a href="https://discord.gg/zcash">Discord</a> •
   <a href="https://forum.zcashcommunity.com/">Forum</a>
 </p>
