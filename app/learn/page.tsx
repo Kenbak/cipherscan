@@ -293,7 +293,7 @@ export default function LearnPage() {
                   <span>Mine TAZ in browser</span>
                 </a>
                 <a
-                  href="https://discord.com/invite/THspb5PM"
+                  href="https://discord.gg/zcash"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
@@ -902,7 +902,7 @@ export default function LearnPage() {
               Weekly Newsletter
             </Link>
             {[
-              { href: 'https://discord.com/invite/THspb5PM', label: 'Discord' },
+              { href: 'https://discord.gg/zcash', label: 'Discord' },
               { href: 'http://pool.tazminer.com:3000', label: 'Mine TAZ in browser' },
               { href: 'https://bountyzcash.org/', label: 'Bug Bounty' },
               { href: 'https://www.youtube.com/@AtmosphereLabsDev', label: 'YouTube' },
