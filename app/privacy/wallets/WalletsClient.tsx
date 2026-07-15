@@ -320,57 +320,31 @@ export default function WalletsClient() {
       <section id="fingerprints" className="mb-12 scroll-mt-20">
         <h2 className="text-xl font-semibold mb-1">What your wallet reveals</h2>
         <p className="text-sm text-[var(--color-text-secondary)] mb-6">
-          Each wallet implementation leaves distinct on-chain patterns. Green cells are confirmed
-          signals we can measure today; amber signals need further indexer work; gray is unknown.
+          Each wallet leaves a unique on-chain signature. Tap a wallet to see details.
         </p>
 
         {fingerprints && (
-          <Card variant="standard">
-            <CardBody className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--color-border)]">
-                    <th className="text-left py-3 px-2 font-medium text-[var(--color-text-secondary)]">
-                      Wallet
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-[var(--color-text-secondary)]">
-                      Fee Strategy
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-[var(--color-text-secondary)]">
-                      Expiry Delta
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-[var(--color-text-secondary)]">
-                      nLockTime
-                    </th>
-                    <th className="text-left py-3 px-2 font-medium text-[var(--color-text-secondary)]">
-                      Action Padding
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fingerprints.wallets.map(wallet => (
-                    <WalletRow key={wallet.name} wallet={wallet} />
-                  ))}
-                </tbody>
-              </table>
+          <div className="space-y-3">
+            {fingerprints.wallets.map(wallet => (
+              <WalletCard key={wallet.name} wallet={wallet} />
+            ))}
 
-              {/* Legend */}
-              <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[var(--color-border)] text-xs text-[var(--color-text-secondary)]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  Confirmed (high confidence)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                  Inferred (medium confidence)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                  Unknown (low confidence)
-                </span>
-              </div>
-            </CardBody>
-          </Card>
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[var(--color-text-secondary)]">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-8 h-5 rounded-full bg-emerald-400/20 border border-emerald-400/40" />
+                Confirmed
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-8 h-5 rounded-full bg-amber-400/20 border border-amber-400/40" />
+                Inferred
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-8 h-5 rounded-full bg-slate-500/20 border border-slate-500/40" />
+                Unknown
+              </span>
+            </div>
+          </div>
         )}
       </section>
 
@@ -467,10 +441,16 @@ export default function WalletsClient() {
                           )}
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--color-text-tertiary)] pt-2 border-t border-[var(--color-border)]">
-                        The &quot;Unknown&quot; bucket includes SDK-based wallets indistinguishable from
-                        ZODL (YWallet, Edge, etc.) and transactions that don&apos;t match any known pattern.
-                      </p>
+                      <div className="text-xs text-[var(--color-text-tertiary)] pt-3 border-t border-[var(--color-border)] space-y-1.5">
+                        <p className="font-medium text-[var(--color-text-secondary)]">Why is &quot;Unknown&quot; so large?</p>
+                        <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                          <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
+                          <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
+                          <li>Transactions with expiry=0 (disabled) or missing data</li>
+                          <li>Wallets we haven&apos;t fingerprinted yet</li>
+                        </ul>
+                        <p className="text-[10px] italic">We prefer honesty over false precision.</p>
+                      </div>
                     </div>
                   )}
                 </CardBody>
@@ -560,84 +540,94 @@ function BatteryBar({
   );
 }
 
-function WalletRow({ wallet }: { wallet: WalletFingerprint }) {
+function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
   const [expanded, setExpanded] = useState(false);
+  const signals = Object.entries(wallet.signals) as [string, WalletSignal][];
+  const signalLabels: Record<string, string> = {
+    fee: 'Fee',
+    expiry: 'Expiry',
+    locktime: 'Lock',
+    actionPadding: 'Padding',
+  };
 
   return (
-    <>
-      <tr
-        className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-tertiary)] transition-colors cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <td className="py-3 px-2">
-          <div className="flex items-center gap-1.5">
+    <Card variant="compact" className="overflow-hidden">
+      <CardBody className="!p-0">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-[var(--color-bg-tertiary)] transition-colors"
+        >
+          <div className="flex items-center gap-2 sm:w-48 flex-shrink-0">
             <svg
-              className={`w-3 h-3 transition-transform flex-shrink-0 ${expanded ? 'rotate-90' : ''}`}
+              className={`w-3 h-3 transition-transform flex-shrink-0 text-[var(--color-text-tertiary)] ${expanded ? 'rotate-90' : ''}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            <div>
-              <span className="font-medium">{wallet.name}</span>
-              {wallet.note && (
-                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]">
-                  {wallet.note}
-                </span>
-              )}
+            <span className="font-medium text-sm">{wallet.name}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {signals.map(([key, signal]) => (
+              <SignalPill key={key} label={signalLabels[key]} signal={signal} />
+            ))}
+          </div>
+        </button>
+
+        {expanded && (
+          <div className="px-4 pb-3 pt-1 border-t border-[var(--color-border)]">
+            {wallet.description && (
+              <p className="text-xs text-[var(--color-text-secondary)] mb-3">{wallet.description}</p>
+            )}
+            {wallet.note && (
+              <p className="text-xs text-[var(--color-text-tertiary)] italic mb-3">{wallet.note}</p>
+            )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {signals.map(([key, signal]) => (
+                <div key={key} className="rounded-lg bg-[var(--color-bg-tertiary)] p-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] mb-1">
+                    {signalLabels[key]}
+                  </p>
+                  <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
+                  {signal.matchCount !== undefined && signal.matchCount > 0 && (
+                    <p className="text-[10px] text-[#56D4C8] font-medium">
+                      {formatNumber(signal.matchCount)} matches
+                    </p>
+                  )}
+                  <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1 leading-tight">
+                    {signal.source}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
-        </td>
-        <td className="py-3 px-2"><SignalCell signal={wallet.signals.fee} /></td>
-        <td className="py-3 px-2"><SignalCell signal={wallet.signals.expiry} /></td>
-        <td className="py-3 px-2"><SignalCell signal={wallet.signals.locktime} /></td>
-        <td className="py-3 px-2"><SignalCell signal={wallet.signals.actionPadding} /></td>
-      </tr>
-      {expanded && (
-        <tr className="bg-[var(--color-bg-tertiary)]">
-          <td colSpan={5} className="px-4 py-3">
-            <div className="text-xs text-[var(--color-text-secondary)] space-y-1.5">
-              {wallet.description && <p>{wallet.description}</p>}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                {Object.entries(wallet.signals).map(([key, signal]) => (
-                  <div key={key} className="bg-[var(--color-bg-secondary)] rounded p-2">
-                    <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] mb-0.5">
-                      {key === 'actionPadding' ? 'padding' : key}
-                    </p>
-                    <p className="font-mono text-[11px]">{signal.value}</p>
-                    <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">
-                      {signal.source}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+        )}
+      </CardBody>
+    </Card>
   );
 }
 
-function SignalCell({ signal }: { signal: WalletSignal }) {
-  const dotColor = {
-    high: 'bg-emerald-400',
-    medium: 'bg-amber-400',
-    low: 'bg-slate-500',
+function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) {
+  const styles = {
+    high: 'bg-emerald-400/15 border-emerald-400/30 text-emerald-300',
+    medium: 'bg-amber-400/15 border-amber-400/30 text-amber-300',
+    low: 'bg-slate-500/15 border-slate-500/30 text-slate-400',
   }[signal.confidence];
 
+  const shortValue = signal.value === 'Unknown' || signal.value === 'Unknown (custom builder)'
+    ? '?'
+    : signal.value.length > 12
+      ? signal.value.slice(0, 12) + '...'
+      : signal.value;
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5">
-        <span className={`w-2 h-2 rounded-full ${dotColor} flex-shrink-0`} />
-        <span className="text-xs font-mono">{signal.value}</span>
-      </div>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono ${styles}`}>
+      <span className="text-[9px] opacity-60 uppercase">{label}</span>
+      {shortValue}
       {signal.matchCount !== undefined && signal.matchCount > 0 && (
-        <span className="text-[10px] text-[var(--color-text-tertiary)] ml-3.5">
-          {formatNumber(signal.matchCount)} matches
-        </span>
+        <span className="text-[9px] opacity-70">({formatNumber(signal.matchCount)})</span>
       )}
-    </div>
+    </span>
   );
 }
 
