@@ -13,8 +13,13 @@
     "test:peer-client": "node --test server/tests/peer-client.test.js",
     "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
     "test:performance": "node --test server/tests/slow-page-performance.test.js",
+    "test:ttfb-probe": "node --test server/tests/ttfb-probe.test.js",
+    "test:isr-warmup": "node --test server/tests/isr-warmup.test.js",
+    "test:route-cache-build": "node --test server/tests/next-route-cache-build.test.js",
     "perf:analyze": "node scripts/perf/analyze-slow-pages.mjs",
     "perf:probe": "node scripts/perf/probe-slow-pages.mjs",
+    "perf:probe:ttfb": "node scripts/perf/probe-ttfb.mjs",
+    "perf:warm:isr": "node scripts/perf/warm-isr.mjs",
     "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
     "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",
     "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js"

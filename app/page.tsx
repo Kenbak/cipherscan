@@ -8,6 +8,10 @@ import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { API_CONFIG } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
+import { fetchWithDeadline } from '@/lib/server-fetch';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
+
+export const revalidate = 15;
 
 interface Block {
   height: number;
@@ -34,16 +38,21 @@ interface ShieldedTx {
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
 
+function upstreamError(context: string, status: number): Error {
+  return new Error(`${context} returned HTTP ${status}`);
+}
+
 async function getRecentBlocks(): Promise<Block[]> {
   try {
-    const response = await fetch(`${API_URL}/api/blocks?limit=5`, {
-      cache: 'no-store',
+    const response = await fetchWithDeadline(`${API_URL}/api/blocks?limit=5`, {
+      next: { revalidate: 15 },
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) throw upstreamError('Recent blocks', response.status);
 
     const data = await response.json();
-    return (data.blocks || []).map((b: any) => ({
+    if (!Array.isArray(data.blocks)) throw new Error('Recent blocks payload is malformed');
+    return data.blocks.map((b: any) => ({
       height: parseInt(b.height),
       hash: b.hash,
       timestamp: parseInt(b.timestamp),
@@ -52,23 +61,26 @@ async function getRecentBlocks(): Promise<Block[]> {
     }));
   } catch (error) {
     console.error('Error fetching blocks:', error);
-    return [];
+    return retainLastGoodOrBuildFallback([], error, 'homepage recent blocks');
   }
 }
 
 async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
   try {
-    const response = await fetch(`${API_URL}/api/tx/shielded?limit=5`, {
-      cache: 'no-store',
+    const response = await fetchWithDeadline(`${API_URL}/api/tx/shielded?limit=5`, {
+      next: { revalidate: 15 },
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) throw upstreamError('Recent shielded transactions', response.status);
 
     const data = await response.json();
-    return data.transactions || [];
+    if (!Array.isArray(data.transactions)) {
+      throw new Error('Recent shielded transactions payload is malformed');
+    }
+    return data.transactions;
   } catch (error) {
     console.error('Error fetching shielded txs:', error);
-    return [];
+    return retainLastGoodOrBuildFallback([], error, 'homepage recent shielded transactions');
   }
 }
 

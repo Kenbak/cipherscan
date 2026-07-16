@@ -159,6 +159,9 @@ test('all archive SSR fetches are cached and deadline-bound', async () => {
   const commonImports = {
     'react/jsx-runtime': jsxRuntime,
     '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+    '@/lib/isr-fallback': {
+      retainLastGoodOrBuildFallback: (fallback) => fallback,
+    },
     '@/lib/seo': {
       buildPageMetadata: (options) => options,
       getBaseUrl: () => 'https://cipherscan.app',
@@ -190,6 +193,53 @@ test('all archive SSR fetches are cached and deadline-bound', async () => {
   assert.ok(requests.some(({ url }) => url.includes('/api/shielded/list?')));
   assert.ok(requests.every(({ init }) => init.next.revalidate === 30));
   assert.ok(requests.every(({ init }) => init.cache !== 'no-store'));
+});
+
+test('latest list ISR throws on unavailable data while dynamic handlers keep shells', async () => {
+  const jsxRuntime = {
+    jsx: (type, props) => ({ type, props }),
+    jsxs: (type, props) => ({ type, props }),
+    Fragment: Symbol('Fragment'),
+  };
+  const cases = [
+    ['app/blocks/page.tsx', './BlocksClient'],
+    ['app/txs/page.tsx', './TxsClient'],
+    ['app/txs/shielded/page.tsx', './ShieldedTxsClient'],
+  ];
+  const failures = [
+    async () => new Response('unavailable', { status: 503 }),
+    async () => new Response(JSON.stringify({ success: true }), {
+      headers: { 'content-type': 'application/json' },
+    }),
+    async () => { throw new Error('network unavailable'); },
+  ];
+
+  for (const [relativePath, componentSpecifier] of cases) {
+    for (const failure of failures) {
+      const page = loadTypeScriptModule(relativePath, {
+        'react/jsx-runtime': jsxRuntime,
+        [componentSpecifier]: { __esModule: true, default: () => null },
+        '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+        '@/lib/isr-fallback': {
+          retainLastGoodOrBuildFallback: (_fallback, error) => { throw error; },
+        },
+        '@/lib/seo': {
+          buildPageMetadata: (options) => options,
+          getBaseUrl: () => 'https://cipherscan.app',
+        },
+        '@/lib/server-fetch': {
+          fetchWithDeadline: failure,
+          isServerRenderDeadlineError: () => true,
+        },
+      });
+
+      await assert.doesNotReject(page.default({ searchParams: Promise.resolve({}) }));
+      await assert.rejects(page.default({
+        searchParams: Promise.resolve({}),
+        unavailablePolicy: 'throw',
+      }));
+    }
+  }
 });
 
 test('server metadata uses lightweight endpoints with deadlines', async () => {
@@ -247,6 +297,132 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
   assert.match(requests[1].url, /\/api\/seo\/tx\/[a-f0-9]{64}$/);
   assert.match(requests[2].url, /\/api\/address\/t1example\?limit=1$/);
   assert.deepEqual(requests.map(({ init }) => init.next.revalidate), [30, 30, 60]);
+});
+
+test('ISR outage shells require the exact offline-build opt-in', () => {
+  const original = process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK;
+  const {
+    isIsrBuildFallbackEnabled,
+    retainLastGoodOrBuildFallback,
+  } = loadTypeScriptModule('lib/isr-fallback.ts');
+
+  try {
+    delete process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK;
+    assert.equal(isIsrBuildFallbackEnabled(), false);
+    assert.throws(
+      () => retainLastGoodOrBuildFallback('empty', new Error('offline'), 'test route'),
+      /offline/,
+    );
+
+    process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK = 'true';
+    assert.equal(isIsrBuildFallbackEnabled(), false);
+    assert.throws(
+      () => retainLastGoodOrBuildFallback('empty', null, 'test route'),
+      /test route is unavailable/,
+    );
+
+    process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK = '1';
+    assert.equal(isIsrBuildFallbackEnabled(), true);
+    assert.equal(
+      retainLastGoodOrBuildFallback('empty', new Error('offline'), 'test route'),
+      'empty',
+    );
+  } finally {
+    if (original === undefined) delete process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK;
+    else process.env.CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK = original;
+  }
+});
+
+test('future-block ISR propagates chain-tip outages instead of caching a not-found result', async () => {
+  const jsxRuntime = {
+    jsx: (type, props) => ({ type, props }),
+    jsxs: (type, props) => ({ type, props }),
+    Fragment: Symbol('Fragment'),
+  };
+  const failures = [
+    {
+      fetchWithDeadline: async () => new Response(null, { status: 503 }),
+      expected: /Chain tip returned HTTP 503/,
+    },
+    {
+      fetchWithDeadline: async () => new Response(JSON.stringify({ height: null }), {
+        headers: { 'content-type': 'application/json' },
+      }),
+      expected: /Chain tip payload is malformed/,
+    },
+  ];
+
+  for (const failure of failures) {
+    const page = loadTypeScriptModule('app/block/[height]/page.tsx', {
+      'react/jsx-runtime': jsxRuntime,
+      'next/navigation': {
+        notFound: () => { throw new Error('notFound must not run during a tip outage'); },
+      },
+      '@/lib/isr-fallback': {
+        retainLastGoodOrBuildFallback: (_fallback, error) => { throw error; },
+      },
+      '@/lib/seo': {
+        getApiUrl: () => 'https://api.invalid',
+        getBlockResolution: async () => ({ state: 'absent' }),
+      },
+      '@/lib/server-fetch': {
+        fetchWithDeadline: failure.fetchWithDeadline,
+      },
+      './BlockPageClient': { __esModule: true, default: () => null },
+      './FutureBlockView': { FutureBlockView: () => null },
+    });
+
+    await assert.rejects(
+      page.default({ params: Promise.resolve({ height: '9999999' }) }),
+      failure.expected,
+    );
+  }
+});
+
+test('homepage, rich list, and detail HTML opt into the Next full route cache', () => {
+  const source = (relativePath) => fs.readFileSync(
+    path.join(repositoryRoot, relativePath),
+    'utf8',
+  );
+  const home = source('app/page.tsx');
+  const richList = source('app/rich-list/page.tsx');
+
+  assert.match(home, /export const revalidate = 15/);
+  assert.doesNotMatch(home, /cache:\s*['"]no-store['"]/);
+  assert.equal((home.match(/fetchWithDeadline\(/g) || []).length, 2);
+  assert.equal((home.match(/retainLastGoodOrBuildFallback\(/g) || []).length, 2);
+
+  assert.match(richList, /export const revalidate = 60/);
+  assert.doesNotMatch(richList, /force-dynamic/);
+  assert.match(richList, /fetchWithDeadline\(/);
+  assert.match(richList, /retainLastGoodOrBuildFallback\(/);
+
+  const detailRoutes = [
+    ['app/block/[height]/layout.tsx', 'height', 30],
+    ['app/tx/[txid]/layout.tsx', 'txid', 30],
+    ['app/address/[address]/layout.tsx', 'address', 60],
+  ];
+  for (const [filename, param, seconds] of detailRoutes) {
+    const layout = source(filename);
+    assert.match(layout, new RegExp(`export const revalidate = ${seconds}`));
+    assert.match(layout, /export function generateStaticParams/);
+    assert.match(layout, new RegExp(`Array<\\{ ${param}: string \\}>`));
+    assert.match(layout, /return \[\];/);
+    assert.match(layout, /retainLastGoodOrBuildFallback/);
+  }
+
+  for (const filename of [
+    'app/blocks/latest/page.tsx',
+    'app/txs/latest/page.tsx',
+    'app/txs/shielded/latest/page.tsx',
+  ]) {
+    assert.match(source(filename), /unavailablePolicy: 'throw'/);
+  }
+
+  const addressPage = source('app/address/[address]/page.tsx');
+  assert.match(addressPage, /<Suspense/);
+  assert.match(addressPage, /<AddressPageContent \/>/);
+  assert.match(source('app/block/[height]/page.tsx'), /retainLastGoodOrBuildFallback/);
 });
 
 test('transaction SEO summary performs one bounded database query', async () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import TxsClient from './TxsClient';
@@ -9,9 +10,11 @@ const PAGE_SIZE = 25;
 
 type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';
 type SearchParams = Record<string, string | string[] | undefined>;
+type UnavailablePolicy = 'shell' | 'throw';
 
 interface TransactionsPageProps {
   searchParams: Promise<SearchParams>;
+  unavailablePolicy?: UnavailablePolicy;
 }
 
 interface TransactionsRequest {
@@ -92,7 +95,18 @@ export async function generateMetadata({ searchParams }: TransactionsPageProps):
   });
 }
 
-async function getInitialTxs(request: TransactionsRequest) {
+function unavailableTransactions(policy: UnavailablePolicy, error: unknown) {
+  const fallback = { txs: [], pagination: null, available: false };
+  return policy === 'throw'
+    ? retainLastGoodOrBuildFallback(fallback, error, 'latest transactions')
+    : fallback;
+}
+
+async function getInitialTxs(
+  request: TransactionsRequest,
+  unavailablePolicy: UnavailablePolicy,
+) {
+  let res: Response;
   try {
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE + 1),
@@ -104,20 +118,54 @@ async function getInitialTxs(request: TransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
+    res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) return { txs: [], pagination: null, available: false };
+  } catch (error) {
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial transactions:', error);
+    }
+    return unavailableTransactions(unavailablePolicy, error);
+  }
 
-    const json = await res.json();
-    if (!json.success) return { txs: [], pagination: null, available: false };
+  if (!res.ok) {
+    return unavailableTransactions(
+      unavailablePolicy,
+      new Error(`Latest transactions API returned HTTP ${res.status}`),
+    );
+  }
 
-    const all = json.transactions || [];
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch (error) {
+    return unavailableTransactions(unavailablePolicy, error);
+  }
+
+  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
+    return unavailableTransactions(
+      unavailablePolicy,
+      new Error('Latest transactions API reported failure'),
+    );
+  }
+  if (!('transactions' in json) || !Array.isArray(json.transactions)) {
+    return unavailableTransactions(
+      unavailablePolicy,
+      new Error('Latest transactions API returned malformed data'),
+    );
+  }
+
+  try {
+    const all = json.transactions;
     const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
     const txs = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
     const firstTx = txs[0] ?? null;
     const lastTx = txs[txs.length - 1] ?? null;
-    const apiPagination = json.pagination ?? {};
+    const apiPagination: Record<string, unknown> = 'pagination' in json
+      && json.pagination !== null
+      && typeof json.pagination === 'object'
+      ? json.pagination as Record<string, unknown>
+      : {};
     const total = Number(apiPagination.total) || 0;
 
     return {
@@ -138,16 +186,16 @@ async function getInitialTxs(request: TransactionsRequest) {
       available: true,
     };
   } catch (error) {
-    if (!isServerRenderDeadlineError(error)) {
-      console.error('Error fetching initial transactions:', error);
-    }
-    return { txs: [], pagination: null, available: false };
+    return unavailableTransactions(unavailablePolicy, error);
   }
 }
 
-export default async function TransactionsPage({ searchParams }: TransactionsPageProps) {
+export default async function TransactionsPage({
+  searchParams,
+  unavailablePolicy = 'shell',
+}: TransactionsPageProps) {
   const request = parseTransactionsRequest(await searchParams);
-  const { txs, pagination, available } = await getInitialTxs(request);
+  const { txs, pagination, available } = await getInitialTxs(request, unavailablePolicy);
   const archiveKey = `${request.type}:${request.cursor ?? 'first'}:${request.cursorIdx ?? 0}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const collectionJsonLd = request.pageParamConsistent

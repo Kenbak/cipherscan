@@ -9,6 +9,7 @@ import {
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import BlockPageClient, { type BlockPageSummary } from './BlockPageClient';
 import { FutureBlockView } from './FutureBlockView';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 
 function blockDescription(block: BlockRecord, height: number, hash: string): string {
   const transactionCount = Number(
@@ -23,17 +24,21 @@ function blockDescription(block: BlockRecord, height: number, hash: string): str
   return `Zcash block ${height.toLocaleString('en-US')} is ${status}, has hash ${hash}, and records ${count.toLocaleString('en-US')} transaction${count === 1 ? '' : 's'}.`;
 }
 
-async function getCurrentTipHeight(): Promise<number | null> {
-  try {
-    const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
-      next: { revalidate: 30 },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.height ?? data.blocks ?? null;
-  } catch {
-    return null;
+async function getCurrentTipHeight(): Promise<number> {
+  const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
+
+  const data = await res.json();
+  const rawHeight = data.height ?? data.blocks;
+  const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
+    ? Number.NaN
+    : Number(rawHeight);
+  if (!Number.isSafeInteger(tipHeight) || tipHeight < 0) {
+    throw new Error('Chain tip payload is malformed');
   }
+  return tipHeight;
 }
 
 export default async function BlockPage({
@@ -47,7 +52,7 @@ export default async function BlockPage({
     const requestedHeight = /^\d+$/.test(identifier) ? Number(identifier) : null;
     if (requestedHeight !== null && requestedHeight >= 0) {
       const tipHeight = await getCurrentTipHeight();
-      if (tipHeight !== null && requestedHeight > tipHeight) {
+      if (requestedHeight > tipHeight) {
         return <FutureBlockView targetHeight={requestedHeight} currentHeight={tipHeight} />;
       }
     }
@@ -55,11 +60,13 @@ export default async function BlockPage({
   }
 
   if (resolution.state === 'unavailable') {
-    return (
+    return retainLastGoodOrBuildFallback(
       <BlockPageClient
         identifier={normalizeBlockIdentifier(identifier)}
         initialSummary={null}
-      />
+      />,
+      new Error(`Block ${identifier} is unavailable`),
+      'block detail',
     );
   }
 
