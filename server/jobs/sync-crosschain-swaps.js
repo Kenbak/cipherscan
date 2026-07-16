@@ -109,7 +109,7 @@ async function nearRequest(endpoint, params = {}) {
 
 const EXPLORER_BATCH_SIZE = 1000;
 
-async function fetchSwapBatch(swapDirection, cursor, startTs) {
+async function fetchSwapBatch(swapDirection, cursor, startTs, endTs) {
   const params = {
     statuses: 'SUCCESS',
     numberOfTransactions: EXPLORER_BATCH_SIZE,
@@ -118,6 +118,7 @@ async function fetchSwapBatch(swapDirection, cursor, startTs) {
   if (swapDirection === 'inflow') params.toChainId = 'zec';
   else params.fromChainId = 'zec';
   if (startTs) params.startTimestamp = startTs;
+  if (endTs) params.endTimestamp = endTs;
 
   if (cursor) {
     params.lastDepositAddress = cursor.address;
@@ -629,7 +630,7 @@ async function selfHealFromBlockchain() {
 // Fetch and store swaps (one direction at a time)
 // ---------------------------------------------------------------------------
 
-async function syncDirection(direction, startTs) {
+async function syncDirection(direction, startTs, endTs) {
   let batch = 1;
   let cursor = null;
   let total = 0;
@@ -639,7 +640,7 @@ async function syncDirection(direction, startTs) {
   let maxCreatedAt = null;
 
   while (hasMore) {
-    const data = await fetchSwapBatch(direction, cursor, startTs);
+    const data = await fetchSwapBatch(direction, cursor, startTs, endTs);
     const txs = data.txs;
 
     if (txs.length === 0) break;
@@ -1061,11 +1062,12 @@ async function main() {
       const sliceEnd = new Date(now.getTime() - i * SLICE_DAYS * 86400000);
       const sliceStart = new Date(sliceEnd.getTime() - SLICE_DAYS * 86400000);
       const startTs = sliceStart.toISOString();
+      const endTs = sliceEnd.toISOString();
       log(`  Slice ${i + 1}/${MAX_SLICES}: ${sliceStart.toISOString().slice(0,10)} → ${sliceEnd.toISOString().slice(0,10)}`);
 
-      const inflowResult = await syncDirection('inflow', startTs);
+      const inflowResult = await syncDirection('inflow', startTs, endTs);
       await delay(RATE_LIMIT_MS);
-      const outflowResult = await syncDirection('outflow', startTs);
+      const outflowResult = await syncDirection('outflow', startTs, endTs);
       await delay(RATE_LIMIT_MS);
 
       const sliceTotal = inflowResult.count + outflowResult.count;
