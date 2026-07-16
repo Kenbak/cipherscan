@@ -206,7 +206,10 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
   let response: Response;
 
   try {
-    response = await fetch(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}`, {
+    // Metadata and the initial HTML only need canonical identity and summary
+    // fields. Avoid loading every transaction/input/output for crawlers and
+    // cold detail-page requests; the client fetches the full record separately.
+    response = await fetch(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
       next: { revalidate: 30 },
     });
   } catch (cause) {

@@ -72,6 +72,42 @@ function captureSitemapApiRoutes() {
   };
 }
 
+function captureBlockApiRoute() {
+  const handlers = new Map();
+  let middleware;
+  const router = {
+    use(callback) { middleware = callback; },
+    get(route, callback) { handlers.set(route, callback); },
+  };
+  loadJavaScriptModule('server/api/routes/blocks.js', {
+    express: { Router: () => router },
+    '../mining-pools': {
+      getPoolName: () => null,
+      getPoolInfo: () => ({ name: 'Example Pool', url: 'https://pool.invalid', region: 'US' }),
+    },
+    '../coinbase-data': { decodeCoinbaseText: () => null },
+  });
+
+  return async (identifier, query, pool) => {
+    const response = {
+      statusCode: 200,
+      headers: new Map(),
+      body: undefined,
+      set(name, value) { this.headers.set(name.toLowerCase(), value); return this; },
+      status(value) { this.statusCode = value; return this; },
+      json(value) { this.body = value; return this; },
+    };
+    const request = {
+      params: { heightOrHash: identifier },
+      query,
+      app: { locals: { pool, redisClient: null, callZebraRPC: null } },
+    };
+    middleware(request, response, () => {});
+    await handlers.get('/api/block/:heightOrHash')(request, response);
+    return response;
+  };
+}
+
 test('refresh cache coalesces misses and retains stale data during retry backoff', async () => {
   const { createRefreshCache } = loadTypeScriptModule('lib/refresh-cache.ts');
   let now = 0;
@@ -197,7 +233,7 @@ test('block resolution is shared, cached, and preserves availability errors', as
   const requests = [];
   global.fetch = async (url, init) => {
     const identifier = new URL(url).pathname.split('/').pop();
-    requests.push({ identifier, init });
+    requests.push({ url: String(url), identifier, init });
 
     if (identifier === '404') return new Response(null, { status: 404 });
     if (identifier === '410') return new Response(null, { status: 410 });
@@ -262,6 +298,51 @@ test('block resolution is shared, cached, and preserves availability errors', as
   const hashRequests = requests.filter(({ identifier }) => identifier === uppercaseHash.toLowerCase());
   assert.equal(hashRequests.length, 1, 'metadata and page consumers should share one API request');
   assert.equal(hashRequests[0].init.next.revalidate, 30);
+  assert.equal(new URL(requests.at(-1).url || 'https://invalid').searchParams.get('summary'), '1');
+});
+
+test('block summary feed avoids transaction detail fan-out', async () => {
+  const callRoute = captureBlockApiRoute();
+  const queries = [];
+  const pool = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      return {
+        rows: [{
+          height: '3413458',
+          hash: 'a'.repeat(64),
+          timestamp: '1784150000',
+          transaction_count: '7',
+          size: '4096',
+          miner_address: 't1example',
+        }],
+      };
+    },
+  };
+
+  const response = await callRoute('3413458', { summary: '1' }, pool);
+  assert.equal(response.statusCode, 200);
+  assert.equal(queries.length, 1, 'summary lookup should perform only the bounded block query');
+  assert.match(queries[0].sql, /FROM blocks/);
+  assert.deepEqual(queries[0].params, [3413458]);
+  assert.equal(queries.some(({ sql }) => /FROM transactions|transaction_inputs|transaction_outputs/.test(sql)), false);
+  assert.deepEqual(response.body, {
+    height: 3413458,
+    hash: 'a'.repeat(64),
+    timestamp: 1784150000,
+    transaction_count: 7,
+    transactionCount: 7,
+    size: 4096,
+    isOrphaned: false,
+    miner_address: 't1example',
+    miner_pool: 'Example Pool',
+    miner_pool_url: 'https://pool.invalid',
+    miner_pool_region: 'US',
+  });
+  assert.equal(
+    response.headers.get('cache-control'),
+    'public, s-maxage=30, stale-while-revalidate=300',
+  );
 });
 
 test('block metadata uses resolved canonical identity through the shared builder', async () => {
