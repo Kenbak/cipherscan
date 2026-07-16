@@ -81,18 +81,30 @@ async function nearRequest(endpoint, params = {}) {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
 
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${API_KEY}`, Accept: 'application/json' },
-    signal: AbortSignal.timeout(30000),
-  });
+  const MAX_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${API_KEY}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(60000),
+      });
 
-  if (res.status === 429) {
-    log('Rate limited, waiting 10s...');
-    await delay(10000);
-    return nearRequest(endpoint, params);
+      if (res.status === 429) {
+        log('Rate limited, waiting 10s...');
+        await delay(10000);
+        return nearRequest(endpoint, params);
+      }
+      if (!res.ok) throw new Error(`NEAR API ${res.status}: ${res.statusText}`);
+      return res.json();
+    } catch (err) {
+      if (attempt < MAX_RETRIES && (err.name === 'TimeoutError' || err.code === 'UND_ERR_ABORTED')) {
+        log(`  Timeout on attempt ${attempt}/${MAX_RETRIES}, retrying in 5s...`);
+        await delay(5000);
+        continue;
+      }
+      throw err;
+    }
   }
-  if (!res.ok) throw new Error(`NEAR API ${res.status}: ${res.statusText}`);
-  return res.json();
 }
 
 const EXPLORER_BATCH_SIZE = 1000;
