@@ -206,7 +206,7 @@ router.get('/api/migration/overview', async (req, res) => {
           : Math.max(0, activationHeight - tipHeight),
         poolSizes: {
           orchardZat: orchardPool,
-          ironwoodZat: ironwoodInZat || ironwoodPool,
+          ironwoodZat: ironwoodPool || ironwoodInZat,
           updatedAt: poolUpdatedAt,
         },
         migration: {
