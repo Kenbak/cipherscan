@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap-:slug.xml',
+        destination: '/sitemaps/:slug',
+      },
+    ];
+  },
   async redirects() {
     return [
       {

@@ -66,6 +66,7 @@ interface TxsClientProps {
   initialCursor?: number | null;
   initialCursorIdx?: number | null;
   initialDirection?: 'next' | 'prev';
+  initialUnavailable?: boolean;
 }
 
 export default function TxsClient({
@@ -76,6 +77,7 @@ export default function TxsClient({
   initialCursor = null,
   initialCursorIdx = null,
   initialDirection = 'next',
+  initialUnavailable = false,
 }: TxsClientProps) {
   const PAGE_SIZE = 25;
   const hasInitialData = initialPagination !== null || initialTxs.length > 0;
@@ -83,6 +85,7 @@ export default function TxsClient({
   const previousTypeFilter = useRef<TxType>(initialType);
   const [txs, setTxs] = useState<Transaction[]>(initialTxs);
   const [loading, setLoading] = useState(!hasInitialData);
+  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
   const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
   const [page, setPage] = useState(initialPage);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
@@ -107,6 +110,7 @@ export default function TxsClient({
         params.set('direction', direction || 'next');
       }
       const res = await fetch(`${base}/api/transactions/list?${params}`);
+      if (!res.ok) throw new Error(`Transaction list returned ${res.status}`);
       const json = await res.json();
       if (json.success) {
         const all: Transaction[] = json.transactions || [];
@@ -129,9 +133,13 @@ export default function TxsClient({
           prevCursor: firstTx ? Number(firstTx.block_height) : null,
           prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
         });
+        setDataAvailable(true);
+      } else {
+        setDataAvailable(false);
       }
     } catch (err) {
       console.error('Error fetching transactions:', err);
+      setDataAvailable(false);
     } finally {
       setLoading(false);
     }
@@ -196,7 +204,9 @@ export default function TxsClient({
             {page > 1 ? `Zcash Transactions - Page ${page}` : 'Latest Zcash Transactions'}
           </h1>
           <span className="text-xs font-mono text-muted">
-            {pagination.total.toLocaleString()} transactions
+            {!dataAvailable && txs.length === 0
+              ? 'Transaction data temporarily unavailable'
+              : `${pagination.total.toLocaleString()} transactions`}
           </span>
         </div>
       </div>

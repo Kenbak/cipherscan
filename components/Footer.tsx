@@ -58,6 +58,8 @@ export function Footer() {
               {isMainnet && <Link href="/crosschain" className="footer-link text-xs font-mono">ZEC Crosschain</Link>}
               <Link href="/mempool" className="footer-link text-xs font-mono">Mempool</Link>
               <Link href="/reorgs" className="footer-link text-xs font-mono">Fork Watch</Link>
+              <Link href="/charts" className="footer-link text-xs font-mono">Charts</Link>
+              {isMainnet && <Link href="/usage-clock" className="footer-link text-xs font-mono">Usage Clock</Link>}
             </div>
           </div>
 

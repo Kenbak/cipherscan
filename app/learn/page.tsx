@@ -502,7 +502,7 @@ export default function LearnPage() {
                 <div className="mt-5 pt-4 border-t border-cipher-border">
                   <div className="text-xs text-muted mb-3">Names are permanent (no renewal fees), on-chain, and Orchard-only (fully shielded).</div>
                   <a
-                    href="https://www.zcashnames.com/"
+                    href="https://www.zcashnames.com/waitlist"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-primary btn-sm"
