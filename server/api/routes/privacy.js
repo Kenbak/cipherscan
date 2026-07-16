@@ -73,12 +73,12 @@ router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
 router.get('/api/privacy/linkage-edges', validate('privacyLinkageEdges'), async (req, res) => {
   try {
     const result = await queryPrivacyLinkageEdges(pool, {
-      limit: Number(req.query.limit),
-      offset: Number(req.query.offset),
-      minScore: Number(req.query.minScore),
-      period: req.query.period,
-      riskLevel: req.query.riskLevel,
-      sort: req.query.sort,
+      limit: Number(req.query.limit ?? 20),
+      offset: Number(req.query.offset ?? 0),
+      minScore: Number(req.query.minScore ?? 40),
+      period: req.query.period || '7d',
+      riskLevel: req.query.riskLevel || 'ALL',
+      sort: req.query.sort || 'recent',
       txid: req.query.txid || null,
     });
 
