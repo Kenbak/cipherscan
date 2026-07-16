@@ -5,6 +5,7 @@ import {
   normalizeApiBaseUrl,
   type AppNetwork,
 } from '@/lib/network';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 
 export type SeoNetwork = AppNetwork;
 
@@ -164,7 +165,8 @@ export interface BlockRecord {
 
 export type BlockResolution =
   | { state: 'found'; block: BlockRecord }
-  | { state: 'absent' };
+  | { state: 'absent' }
+  | { state: 'unavailable' };
 
 export const BLOCK_HASH_PATTERN = /^[a-fA-F0-9]{64}$/;
 const BLOCK_HEIGHT_PATTERN = /^\d+$/;
@@ -196,8 +198,9 @@ function isBlockRecord(value: unknown): value is BlockRecord {
  * Resolve enough block data for both metadata and the initial page response.
  *
  * Invalid identifiers and authoritative 404/410 responses are absent.
- * Temporary availability failures and malformed successful payloads throw so
- * they cannot become false not-found responses or noindex metadata.
+ * Temporary availability failures and malformed successful payloads return an
+ * explicit unavailable state so they cannot become false not-found responses
+ * or hold the page open until the hosting platform times out.
  */
 export const getBlockResolution = cache(async (identifier: string): Promise<BlockResolution> => {
   if (!isValidBlockIdentifier(identifier)) return { state: 'absent' };
@@ -209,11 +212,11 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
     // Metadata and the initial HTML only need canonical identity and summary
     // fields. Avoid loading every transaction/input/output for crawlers and
     // cold detail-page requests; the client fetches the full record separately.
-    response = await fetch(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
+    response = await fetchWithDeadline(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
       next: { revalidate: 30 },
     });
-  } catch (cause) {
-    throw new Error(`Block index is unavailable while resolving ${identifier}`, { cause });
+  } catch {
+    return { state: 'unavailable' };
   }
 
   if (response.status === 404 || response.status === 410) {
@@ -221,18 +224,18 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
   }
 
   if (!response.ok) {
-    throw new Error(`Block index returned ${response.status} while resolving ${identifier}`);
+    return { state: 'unavailable' };
   }
 
   let block: unknown;
   try {
     block = await response.json();
-  } catch (cause) {
-    throw new Error(`Block index returned invalid JSON while resolving ${identifier}`, { cause });
+  } catch {
+    return { state: 'unavailable' };
   }
 
   if (!isBlockRecord(block)) {
-    throw new Error(`Block index returned an invalid block payload for ${identifier}`);
+    return { state: 'unavailable' };
   }
 
   return { state: 'found', block };
@@ -261,7 +264,7 @@ export type TxResolution =
 
 export const getTxResolution = cache(async (txid: string): Promise<TxResolution> => {
   try {
-    const res = await fetch(`${getApiUrl()}/api/tx/${txid}`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/api/seo/tx/${encodeURIComponent(txid)}`, {
       next: { revalidate: 30 },
     });
     if (res.ok) {
@@ -312,7 +315,7 @@ export const getTxMeta = cache(async (txid: string): Promise<TxMeta | null> => {
 
 async function getPendingTxResolution(txid: string): Promise<TxResolution> {
   try {
-    const mempoolRes = await fetch(`${getApiUrl()}/api/mempool/tx/${txid}`, {
+    const mempoolRes = await fetchWithDeadline(`${getApiUrl()}/api/mempool/tx/${encodeURIComponent(txid)}`, {
       next: { revalidate: 10 },
     });
     if (!mempoolRes.ok) return { state: 'unavailable' };
@@ -367,7 +370,7 @@ export type AddressResolution =
 
 export const getAddressResolution = cache(async (address: string): Promise<AddressResolution> => {
   try {
-    const res = await fetch(`${getApiUrl()}/api/address/${address}?limit=1`, {
+    const res = await fetchWithDeadline(`${getApiUrl()}/api/address/${encodeURIComponent(address)}?limit=1`, {
       next: { revalidate: 60 },
     });
     if (res.status === 404 || res.status === 410) return { state: 'absent' };

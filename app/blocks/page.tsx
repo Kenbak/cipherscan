@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import BlocksClient from './BlocksClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -81,7 +82,7 @@ async function getInitialBlocks(request: BlocksRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/blocks/list?${params.toString()}`, {
+    const res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) {
@@ -124,7 +125,9 @@ async function getInitialBlocks(request: BlocksRequest) {
       available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial blocks:', error);
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial blocks:', error);
+    }
     return { blocks: [], trailingBlock: null, pagination: null, available: false };
   }
 }

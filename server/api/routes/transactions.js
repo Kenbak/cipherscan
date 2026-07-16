@@ -397,6 +397,79 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
 // TRANSACTION BY ID
 // ============================================================================
 
+// Lightweight transaction metadata for server-rendered titles and JSON-LD.
+// Keep this separate from the detail endpoint, which loads inputs, outputs,
+// bridge matches, coinbase data, and optional staking columns.
+router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
+  try {
+    const { txid } = req.params;
+
+    if (!txid || !/^[a-fA-F0-9]{64}$/.test(txid)) {
+      return res.status(400).json({ error: 'Invalid transaction ID' });
+    }
+
+    const result = await pool.query(
+      `WITH chain AS (
+        SELECT MAX(height) AS max_height FROM blocks
+      )
+      SELECT
+        t.txid,
+        t.block_height,
+        t.block_hash,
+        t.block_time,
+        t.is_coinbase,
+        t.has_sapling,
+        t.has_orchard,
+        t.has_ironwood,
+        t.orchard_actions,
+        t.shielded_spends,
+        t.shielded_outputs,
+        t.fee,
+        (b.hash IS NOT NULL) AS is_canonical,
+        CASE
+          WHEN b.hash IS NOT NULL AND chain.max_height >= t.block_height
+            THEN chain.max_height - t.block_height + 1
+          ELSE 0
+        END AS confirmations
+      FROM transactions t
+      CROSS JOIN chain
+      LEFT JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+      WHERE t.txid = $1`,
+      [txid]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    const tx = result.rows[0];
+    const isCanonical = tx.is_canonical === true;
+
+    res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+    return res.json({
+      txid: tx.txid,
+      blockHeight: parseInt(tx.block_height) || 0,
+      blockHash: tx.block_hash,
+      blockTime: parseInt(tx.block_time) || 0,
+      confirmations: isCanonical ? (parseInt(tx.confirmations) || 0) : 0,
+      isCanonical,
+      status: isCanonical ? 'confirmed' : (tx.block_hash ? 'stale' : 'unknown'),
+      isCoinbase: tx.is_coinbase || false,
+      hasSapling: tx.has_sapling || false,
+      hasOrchard: tx.has_orchard || false,
+      hasIronwood: tx.has_ironwood || false,
+      hasShielded: Boolean(tx.has_sapling || tx.has_orchard || tx.has_ironwood),
+      orchardActions: parseInt(tx.orchard_actions) || 0,
+      shieldedSpends: parseInt(tx.shielded_spends) || 0,
+      shieldedOutputs: parseInt(tx.shielded_outputs) || 0,
+      fee: tx.fee ? Number(tx.fee) / 100000000 : 0,
+    });
+  } catch (error) {
+    console.error('Error fetching transaction metadata:', error);
+    return res.status(500).json({ error: 'Failed to fetch transaction metadata' });
+  }
+});
+
 // Get transaction by txid
 router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
   try {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import TxsClient from './TxsClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -103,7 +104,7 @@ async function getInitialTxs(request: TransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/transactions/list?${params.toString()}`, {
+    const res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) return { txs: [], pagination: null, available: false };
@@ -137,7 +138,9 @@ async function getInitialTxs(request: TransactionsRequest) {
       available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial transactions:', error);
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial transactions:', error);
+    }
     return { txs: [], pagination: null, available: false };
   }
 }

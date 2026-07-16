@@ -11,6 +11,7 @@ import {
   formatNumber,
   type TxMeta,
 } from '@/lib/seo';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 
 type Props = {
   params: Promise<{ txid: string }>;
@@ -30,7 +31,7 @@ type AlternateHashResolution = 'block' | 'finalizer' | 'absent' | 'unavailable';
 
 const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashResolution> => {
   try {
-    const blockResponse = await fetch(`${getApiUrl()}/api/block/${hash}`, {
+    const blockResponse = await fetchWithDeadline(`${getApiUrl()}/api/block/${hash}?summary=1`, {
       next: { revalidate: 30 },
     });
     if (blockResponse.ok) return 'block';
@@ -38,7 +39,7 @@ const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashRe
 
     if (getNetwork() !== 'crosslink-testnet') return 'absent';
 
-    const finalizerResponse = await fetch(`${getApiUrl()}/api/finalizer/${hash}`, {
+    const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/api/finalizer/${hash}`, {
       next: { revalidate: 30 },
     });
     if (finalizerResponse.ok) return 'finalizer';

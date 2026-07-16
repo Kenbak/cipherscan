@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import ShieldedTxsClient from './ShieldedTxsClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -139,7 +140,7 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/shielded/list?${params.toString()}`, {
+    const res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) return { flows: [], pagination: null, available: false };
@@ -173,7 +174,9 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
       available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial shielded transactions:', error);
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial shielded transactions:', error);
+    }
     return { flows: [], pagination: null, available: false };
   }
 }

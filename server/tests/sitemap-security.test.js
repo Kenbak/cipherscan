@@ -226,7 +226,7 @@ test('API base normalization prevents duplicated API path segments', () => {
   );
 });
 
-test('block resolution is shared, cached, and preserves availability errors', async (t) => {
+test('block resolution is shared, cached, and preserves unavailable states', async (t) => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
 
@@ -278,16 +278,19 @@ test('block resolution is shared, cached, and preserves availability errors', as
       getConfiguredNetwork: () => 'mainnet',
       normalizeApiBaseUrl: (url) => url,
     },
+    '@/lib/server-fetch': {
+      fetchWithDeadline: (url, init) => global.fetch(url, init),
+    },
   });
 
   assert.deepEqual(await getBlockResolution('not-a-block'), { state: 'absent' });
   assert.equal(requests.length, 0, 'invalid identifiers must not reach the API');
   assert.deepEqual(await getBlockResolution('404'), { state: 'absent' });
   assert.deepEqual(await getBlockResolution('410'), { state: 'absent' });
-  await assert.rejects(getBlockResolution('503'), /returned 503/);
-  await assert.rejects(getBlockResolution('504'), /is unavailable/);
-  await assert.rejects(getBlockResolution('505'), /invalid JSON/);
-  await assert.rejects(getBlockResolution('506'), /invalid block payload/);
+  assert.deepEqual(await getBlockResolution('503'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('504'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('505'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('506'), { state: 'unavailable' });
 
   const uppercaseHash = 'A'.repeat(64);
   const first = await getBlockResolution(uppercaseHash);
@@ -399,6 +402,12 @@ test('block metadata uses resolved canonical identity through the shared builder
   assert.equal(metadataCalls.at(-1).index, false);
   assert.equal(metadataCalls.at(-1).canonical, false);
   assert.equal(metadataCalls.at(-1).imageAlt, metadataCalls.at(-1).title);
+
+  resolution = { state: 'unavailable' };
+  await layoutModule.generateMetadata({ params: Promise.resolve({ height: '1000' }) });
+  assert.equal(metadataCalls.at(-1).path, '/block/1000');
+  assert.equal(metadataCalls.at(-1).index, false);
+  assert.equal(metadataCalls.at(-1).canonical, undefined);
 });
 
 test('shared metadata policy indexes blocks only on mainnet', () => {
@@ -414,6 +423,9 @@ test('shared metadata policy indexes blocks only on mainnet', () => {
       '@/lib/network': {
         getConfiguredNetwork: () => testCase.network,
         normalizeApiBaseUrl: (url) => url,
+      },
+      '@/lib/server-fetch': {
+        fetchWithDeadline: (url, init) => global.fetch(url, init),
       },
     });
     const metadata = seoModule.buildPageMetadata({
@@ -663,6 +675,9 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     '@/lib/seo': {
       buildPageMetadata: (options) => options,
       getBaseUrl: () => 'https://cipherscan.app',
+    },
+    '@/lib/server-fetch': {
+      fetchWithDeadline: (url, init) => global.fetch(url, init),
     },
   });
   const txs = loadPage('app/txs/page.tsx', './TxsClient');
