@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { pathToFileURL } = require('node:url');
 const ts = require('typescript');
 
 const repositoryRoot = path.resolve(__dirname, '../..');
@@ -67,6 +68,39 @@ function responseRecorder() {
     json(value) { this.body = value; return this; },
   };
 }
+
+test('page probe measures headers and complete response body separately', async () => {
+  const probeUrl = pathToFileURL(
+    path.join(repositoryRoot, 'scripts/perf/probe-slow-pages.mjs'),
+  ).href;
+  const { probePageLoad } = await import(probeUrl);
+  let clock = 0;
+  let bodyConsumed = false;
+  const result = await probePageLoad('https://cipherscan.invalid/blocks', {
+    now: () => clock,
+    fetchImpl: async () => {
+      clock = 20;
+      return {
+        ok: true,
+        status: 200,
+        async arrayBuffer() {
+          bodyConsumed = true;
+          clock = 75;
+          return new ArrayBuffer(0);
+        },
+      };
+    },
+  });
+
+  assert.equal(bodyConsumed, true);
+  assert.deepEqual(result, {
+    ttfb: 20,
+    load: 75,
+    afterTtfb: 55,
+    status: 200,
+    ok: true,
+  });
+});
 
 test('server-render fetches abort a hung origin inside their deadline', async () => {
   const {
