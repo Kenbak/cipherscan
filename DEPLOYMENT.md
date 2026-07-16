@@ -68,6 +68,8 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `NEXT_PUBLIC_NETWORK` | **Yes for builds** | Deployment identity: `mainnet`, `testnet`, or `crosslink-testnet`. Controls APIs, currency labels, canonical hosts, and indexation. |
+| `SITEMAP_BLOCK_MIN_HEIGHT` | No | Mainnet-only lower bound for advertised block sitemap shards. Leave unset with `SITEMAP_BLOCK_MAX_HEIGHT` to disable block shards. Must be divisible by 50,000. |
+| `SITEMAP_BLOCK_MAX_HEIGHT` | No | Mainnet-only inclusive upper bound for advertised block sitemap shards. Must end a complete 50,000-height bucket (for example, `3449999`). |
 | `NEXT_PUBLIC_LIGHTWALLETD_HOST` | No | Lightwalletd hostname for client-side gRPC |
 | `NEXT_PUBLIC_LIGHTWALLETD_PORT` | No | Lightwalletd port (default 9067) |
 | `NEAR_INTENTS_API_KEY` | No | NEAR Intents Explorer API (historical swap data) |
@@ -178,6 +180,37 @@ still verified per network before promotion.
 For Docker, pass the same value as the `NEXT_PUBLIC_NETWORK` build argument and
 runtime environment variable. `NEXT_PUBLIC_*` values are compiled into the
 browser bundle, so setting only the runtime variable is too late.
+
+### Sitemap rollout
+
+The mainnet `/sitemap.xml` endpoint is a sitemap index. Its core, content, and
+tools children are independent of chain APIs; dynamic children fail with a
+retryable `503` instead of publishing an empty successful sitemap. Testnet
+retains a homepage-only sitemap, and Crosslink does not advertise one.
+
+Deploy the split sitemap with `SITEMAP_BLOCK_MIN_HEIGHT` and
+`SITEMAP_BLOCK_MAX_HEIGHT` unset. Submit `/sitemap.xml`, `/sitemap-core.xml`,
+`/sitemap-content.xml`, and `/sitemap-tools.xml` separately in Google Search
+Console. After those files have processed successfully for seven days, choose
+the two fixed pilot buckets from the authoritative mainnet tip:
+
+```text
+bucketStart = floor(tip / 50000) * 50000
+SITEMAP_BLOCK_MIN_HEIGHT = bucketStart - 50000
+SITEMAP_BLOCK_MAX_HEIGHT = bucketStart + 49999
+```
+
+For a tip near `3,412,933`, configure `3350000` through `3449999`. Values that
+are missing, invalid, or not aligned disable all block shards, and arbitrary
+range filenames return `404`.
+
+Observe the pilot for 28 days before extending the lower bound by one 50,000
+height bucket. Expand only when core indexing remains at least 90%, core
+coverage has not fallen by more than five percentage points, sitemap fetch
+errors remain zero, Googlebot-facing 5xx responses remain below 0.1%, page p95
+has not regressed by more than 20%, and at least 20% of the block pilot is
+indexed with an upward trend. If a gate fails, keep existing shards advertised
+and pause expansion.
 
 ### API + Indexer — DigitalOcean (systemd)
 

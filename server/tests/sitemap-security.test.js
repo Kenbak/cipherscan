@@ -12,6 +12,7 @@ function loadTypeScriptModule(relativePath, imports = {}) {
   const output = ts.transpileModule(source, {
     compilerOptions: {
       esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
     },
@@ -27,6 +28,84 @@ function loadTypeScriptModule(relativePath, imports = {}) {
   const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', output);
   evaluate(module.exports, localRequire, module, filename, path.dirname(filename));
   return module.exports;
+}
+
+function loadJavaScriptModule(relativePath, imports = {}) {
+  const filename = path.join(repositoryRoot, relativePath);
+  const source = fs.readFileSync(filename, 'utf8');
+  const module = { exports: {} };
+  const localRequire = (specifier) => {
+    if (Object.prototype.hasOwnProperty.call(imports, specifier)) {
+      return imports[specifier];
+    }
+    return require(specifier);
+  };
+  const evaluate = new Function('exports', 'require', 'module', '__filename', '__dirname', source);
+  evaluate(module.exports, localRequire, module, filename, path.dirname(filename));
+  return module.exports;
+}
+
+function captureSitemapApiRoutes() {
+  const handlers = new Map();
+  let middleware;
+  const router = {
+    use(callback) { middleware = callback; },
+    get(route, callback) { handlers.set(route, callback); },
+  };
+  loadJavaScriptModule('server/api/routes/sitemaps.js', {
+    express: { Router: () => router },
+  });
+
+  return async (route, query, pool) => {
+    const response = {
+      statusCode: 200,
+      headers: new Map(),
+      body: undefined,
+      set(name, value) { this.headers.set(name.toLowerCase(), value); return this; },
+      status(value) { this.statusCode = value; return this; },
+      json(value) { this.body = value; return this; },
+    };
+    const request = { query, app: { locals: { pool } } };
+    middleware(request, response, () => {});
+    await handlers.get(route)(request, response);
+    return response;
+  };
+}
+
+function captureBlockApiRoute() {
+  const handlers = new Map();
+  let middleware;
+  const router = {
+    use(callback) { middleware = callback; },
+    get(route, callback) { handlers.set(route, callback); },
+  };
+  loadJavaScriptModule('server/api/routes/blocks.js', {
+    express: { Router: () => router },
+    '../mining-pools': {
+      getPoolName: () => null,
+      getPoolInfo: () => ({ name: 'Example Pool', url: 'https://pool.invalid', region: 'US' }),
+    },
+    '../coinbase-data': { decodeCoinbaseText: () => null },
+  });
+
+  return async (identifier, query, pool) => {
+    const response = {
+      statusCode: 200,
+      headers: new Map(),
+      body: undefined,
+      set(name, value) { this.headers.set(name.toLowerCase(), value); return this; },
+      status(value) { this.statusCode = value; return this; },
+      json(value) { this.body = value; return this; },
+    };
+    const request = {
+      params: { heightOrHash: identifier },
+      query,
+      app: { locals: { pool, redisClient: null, callZebraRPC: null } },
+    };
+    middleware(request, response, () => {});
+    await handlers.get('/api/block/:heightOrHash')(request, response);
+    return response;
+  };
 }
 
 test('refresh cache coalesces misses and retains stale data during retry backoff', async () => {
@@ -147,14 +226,14 @@ test('API base normalization prevents duplicated API path segments', () => {
   );
 });
 
-test('block resolution is shared, cached, and preserves availability errors', async (t) => {
+test('block resolution is shared, cached, and preserves unavailable states', async (t) => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
 
   const requests = [];
   global.fetch = async (url, init) => {
     const identifier = new URL(url).pathname.split('/').pop();
-    requests.push({ identifier, init });
+    requests.push({ url: String(url), identifier, init });
 
     if (identifier === '404') return new Response(null, { status: 404 });
     if (identifier === '410') return new Response(null, { status: 410 });
@@ -199,16 +278,19 @@ test('block resolution is shared, cached, and preserves availability errors', as
       getConfiguredNetwork: () => 'mainnet',
       normalizeApiBaseUrl: (url) => url,
     },
+    '@/lib/server-fetch': {
+      fetchWithDeadline: (url, init) => global.fetch(url, init),
+    },
   });
 
   assert.deepEqual(await getBlockResolution('not-a-block'), { state: 'absent' });
   assert.equal(requests.length, 0, 'invalid identifiers must not reach the API');
   assert.deepEqual(await getBlockResolution('404'), { state: 'absent' });
   assert.deepEqual(await getBlockResolution('410'), { state: 'absent' });
-  await assert.rejects(getBlockResolution('503'), /returned 503/);
-  await assert.rejects(getBlockResolution('504'), /is unavailable/);
-  await assert.rejects(getBlockResolution('505'), /invalid JSON/);
-  await assert.rejects(getBlockResolution('506'), /invalid block payload/);
+  assert.deepEqual(await getBlockResolution('503'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('504'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('505'), { state: 'unavailable' });
+  assert.deepEqual(await getBlockResolution('506'), { state: 'unavailable' });
 
   const uppercaseHash = 'A'.repeat(64);
   const first = await getBlockResolution(uppercaseHash);
@@ -219,6 +301,51 @@ test('block resolution is shared, cached, and preserves availability errors', as
   const hashRequests = requests.filter(({ identifier }) => identifier === uppercaseHash.toLowerCase());
   assert.equal(hashRequests.length, 1, 'metadata and page consumers should share one API request');
   assert.equal(hashRequests[0].init.next.revalidate, 30);
+  assert.equal(new URL(requests.at(-1).url || 'https://invalid').searchParams.get('summary'), '1');
+});
+
+test('block summary feed avoids transaction detail fan-out', async () => {
+  const callRoute = captureBlockApiRoute();
+  const queries = [];
+  const pool = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      return {
+        rows: [{
+          height: '3413458',
+          hash: 'a'.repeat(64),
+          timestamp: '1784150000',
+          transaction_count: '7',
+          size: '4096',
+          miner_address: 't1example',
+        }],
+      };
+    },
+  };
+
+  const response = await callRoute('3413458', { summary: '1' }, pool);
+  assert.equal(response.statusCode, 200);
+  assert.equal(queries.length, 1, 'summary lookup should perform only the bounded block query');
+  assert.match(queries[0].sql, /FROM blocks/);
+  assert.deepEqual(queries[0].params, [3413458]);
+  assert.equal(queries.some(({ sql }) => /FROM transactions|transaction_inputs|transaction_outputs/.test(sql)), false);
+  assert.deepEqual(response.body, {
+    height: 3413458,
+    hash: 'a'.repeat(64),
+    timestamp: 1784150000,
+    transaction_count: 7,
+    transactionCount: 7,
+    size: 4096,
+    isOrphaned: false,
+    miner_address: 't1example',
+    miner_pool: 'Example Pool',
+    miner_pool_url: 'https://pool.invalid',
+    miner_pool_region: 'US',
+  });
+  assert.equal(
+    response.headers.get('cache-control'),
+    'public, s-maxage=30, stale-while-revalidate=300',
+  );
 });
 
 test('block metadata uses resolved canonical identity through the shared builder', async () => {
@@ -275,6 +402,12 @@ test('block metadata uses resolved canonical identity through the shared builder
   assert.equal(metadataCalls.at(-1).index, false);
   assert.equal(metadataCalls.at(-1).canonical, false);
   assert.equal(metadataCalls.at(-1).imageAlt, metadataCalls.at(-1).title);
+
+  resolution = { state: 'unavailable' };
+  await layoutModule.generateMetadata({ params: Promise.resolve({ height: '1000' }) });
+  assert.equal(metadataCalls.at(-1).path, '/block/1000');
+  assert.equal(metadataCalls.at(-1).index, false);
+  assert.equal(metadataCalls.at(-1).canonical, undefined);
 });
 
 test('shared metadata policy indexes blocks only on mainnet', () => {
@@ -290,6 +423,9 @@ test('shared metadata policy indexes blocks only on mainnet', () => {
       '@/lib/network': {
         getConfiguredNetwork: () => testCase.network,
         normalizeApiBaseUrl: (url) => url,
+      },
+      '@/lib/server-fetch': {
+        fetchWithDeadline: (url, init) => global.fetch(url, init),
       },
     });
     const metadata = seoModule.buildPageMetadata({
@@ -332,67 +468,61 @@ test('block consumers share one resolver and transaction JSON-LD escapes opening
   );
 });
 
-test('current sitemap shares one bounded ZNS refresh and preserves name URLs', async (t) => {
-  const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
-  const originalFetch = global.fetch;
-  t.after(() => { global.fetch = originalFetch; });
-  global.fetch = async () => ({ ok: true, json: async () => ({}) });
-
-  let statusCalls = 0;
-  let registrationCalls = 0;
-  const signals = [];
-  const sitemapModule = loadTypeScriptModule('app/sitemap.ts', {
-    'next/cache': { unstable_cache: (callback) => callback },
-    '@/lib/newsletter': { getAllNewsletters: () => [] },
-    '@/lib/refresh-cache': refreshCache,
-    '@/lib/seo': {
-      getApiUrl: () => 'https://api.mainnet.cipherscan.app',
-      getBaseUrl: () => 'https://cipherscan.app',
-      getNetwork: () => 'mainnet',
-    },
-    '@/lib/zns': {
-      getZnsStatus: async (signal) => {
-        statusCalls += 1;
-        signals.push(signal);
-        return { registered: 5000 };
-      },
-      isValidName: (name) => /^[a-z0-9]{1,62}$/.test(name),
-      listZnsRegistrations: async (limit, offset, signal) => {
-        registrationCalls += 1;
-        signals.push(signal);
-        return Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` }));
-      },
-    },
-  });
-
-  const results = await Promise.all([
-    sitemapModule.default(),
-    sitemapModule.default(),
-    sitemapModule.default(),
+test('sitemap serializers escape, deduplicate, bound, and omit ignored fields', () => {
+  const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
+  const xml = sitemap.serializeUrlSet([
+    { url: 'https://cipherscan.app/a?x=1&y=<two>', lastModified: '2026-07-15' },
+    { url: 'https://cipherscan.app/a?x=1&y=<two>' },
   ]);
 
-  assert.equal(statusCalls, 1);
-  assert.equal(registrationCalls, 10);
-  assert.equal(signals.length, 11);
-  assert.ok(signals.every((signal) => signal instanceof AbortSignal));
-  assert.ok(results.every((entries) => entries.some(
-    (entry) => entry.url === 'https://cipherscan.app/name/name4999',
-  )));
-  assert.ok(results.every((entries) => entries.some(
-    (entry) => entry.url === 'https://cipherscan.app/ironwood',
-  )));
-  assert.ok(results.every((entries) => {
-    const ironwood = entries.find((entry) => entry.url === 'https://cipherscan.app/ironwood');
-    return ironwood?.lastModified?.toISOString() === '2026-07-14T00:00:00.000Z';
+  assert.equal((xml.match(/<url>/g) || []).length, 1);
+  assert.match(xml, /x=1&amp;y=&lt;two&gt;/);
+  assert.match(xml, /<lastmod>2026-07-15T00:00:00.000Z<\/lastmod>/);
+  assert.equal(xml.includes('<priority>'), false);
+  assert.equal(xml.includes('<changefreq>'), false);
+
+  const tooMany = Array.from({ length: sitemap.MAX_SITEMAP_URLS + 1 }, (_, index) => ({
+    url: `https://cipherscan.app/block/${index}`,
   }));
-  assert.ok(results.every((entries) => entries.every(
-    (entry) => entry.url !== 'https://cipherscan.app/migration',
+  assert.throws(() => sitemap.serializeUrlSet(tooMany), /cannot contain more than/);
+});
+
+test('sitemap cohorts are disjoint and block ranges require aligned explicit configuration', () => {
+  const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
+  const ranges = sitemap.getConfiguredBlockSitemapRanges('3350000', '3449999');
+  assert.deepEqual(ranges, [
+    { start: 3350000, end: 3399999, slug: 'blocks-3350000-3399999' },
+    { start: 3400000, end: 3449999, slug: 'blocks-3400000-3449999' },
+  ]);
+  assert.deepEqual(sitemap.getConfiguredBlockSitemapRanges(undefined, undefined), []);
+  assert.deepEqual(sitemap.getConfiguredBlockSitemapRanges('3350001', '3449999'), []);
+  assert.equal(sitemap.getBlockSitemapRange('blocks-1-50000', ranges), null);
+
+  const newsletters = [{
+    slug: '2026-07-15', title: 'Issue', summary: '', date: '2026-07-15', issue: 1, content: '',
+  }];
+  const core = sitemap.getStaticSitemapEntries('core', 'https://cipherscan.app', newsletters);
+  const content = sitemap.getStaticSitemapEntries('content', 'https://cipherscan.app', newsletters);
+  const tools = sitemap.getStaticSitemapEntries('tools', 'https://cipherscan.app', newsletters);
+  const allUrls = [...core, ...content, ...tools].map((entry) => entry.url);
+
+  assert.equal(new Set(allUrls).size, allUrls.length);
+  assert.ok(allUrls.includes('https://cipherscan.app/privacy/wallets'));
+  assert.ok(allUrls.includes('https://cipherscan.app/newsletter/2026-07-15'));
+  assert.ok(allUrls.includes('https://cipherscan.app/tools/unit-converter'));
+  assert.equal(allUrls.includes('https://cipherscan.app/migration'), false);
+
+  const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://cipherscan.app', ranges);
+  assert.ok(indexEntries.some(({ url }) => url === 'https://cipherscan.app/sitemap-core.xml'));
+  assert.ok(indexEntries.some(({ url }) => (
+    url === 'https://cipherscan.app/sitemap-blocks-3400000-3449999.xml'
   )));
 });
 
 test('legacy migration and swap routes permanently consolidate authority', async () => {
   const configModule = loadTypeScriptModule('next.config.ts');
   const redirects = await configModule.default.redirects();
+  const rewrites = await configModule.default.rewrites();
 
   assert.ok(redirects.some((redirect) => (
     redirect.source === '/migration'
@@ -404,73 +534,252 @@ test('legacy migration and swap routes permanently consolidate authority', async
     && redirect.destination === 'https://cipherswap.app/'
     && redirect.permanent === true
   )));
-});
-
-test('testnet keeps its homepage-only sitemap without contacting ZNS', async () => {
-  const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
-  let znsCalls = 0;
-  const sitemapModule = loadTypeScriptModule('app/sitemap.ts', {
-    'next/cache': { unstable_cache: (callback) => callback },
-    '@/lib/newsletter': { getAllNewsletters: () => [] },
-    '@/lib/refresh-cache': refreshCache,
-    '@/lib/seo': {
-      getApiUrl: () => 'https://api.testnet.cipherscan.app',
-      getBaseUrl: () => 'https://testnet.cipherscan.app',
-      getNetwork: () => 'testnet',
-    },
-    '@/lib/zns': {
-      getZnsStatus: async () => {
-        znsCalls += 1;
-        return { registered: 1 };
-      },
-      isValidName: () => true,
-      listZnsRegistrations: async () => {
-        znsCalls += 1;
-        return [{ name: 'shouldnotappear' }];
-      },
-    },
-  });
-
-  const entries = await sitemapModule.default();
-  assert.equal(znsCalls, 0);
-  assert.deepEqual(entries, [{
-    url: 'https://testnet.cipherscan.app/',
-    changeFrequency: 'daily',
-    priority: 1,
+  assert.deepEqual(rewrites, [{
+    source: '/sitemap-:slug.xml',
+    destination: '/sitemaps/:slug',
   }]);
 });
 
-test('Crosslink sitemap stays empty without contacting chain or name services', async () => {
+test('root sitemap is a mainnet index, a testnet homepage set, and an empty Crosslink set', async () => {
+  const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
+  const cases = [
+    { network: 'mainnet', baseUrl: 'https://cipherscan.app', root: 'sitemapindex' },
+    { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', root: 'urlset' },
+    { network: 'crosslink-testnet', baseUrl: null, root: 'urlset' },
+  ];
+
+  for (const testCase of cases) {
+    let baseUrlCalls = 0;
+    const route = loadTypeScriptModule('app/sitemap.xml/route.ts', {
+      '@/lib/seo': {
+        getNetwork: () => testCase.network,
+        getBaseUrl: () => {
+          baseUrlCalls += 1;
+          return testCase.baseUrl;
+        },
+      },
+      '@/lib/sitemaps': sitemap,
+    });
+    const response = route.GET();
+    const xml = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /application\/xml/);
+    assert.match(xml, new RegExp(`<${testCase.root}`));
+
+    if (testCase.network === 'mainnet') {
+      assert.match(xml, /https:\/\/cipherscan\.app\/sitemap-core\.xml/);
+      assert.equal(xml.includes('<priority>'), false);
+    } else if (testCase.network === 'testnet') {
+      assert.match(xml, /https:\/\/testnet\.cipherscan\.app\//);
+      assert.equal(xml.includes('/blocks'), false);
+    } else {
+      assert.equal(baseUrlCalls, 0);
+      assert.equal(xml.includes('<url>'), false);
+    }
+  }
+});
+
+test('child sitemap isolates static cohorts and returns explicit 404/503 failures', async (t) => {
+  const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
-  let externalCalls = 0;
-  const sitemapModule = loadTypeScriptModule('app/sitemap.ts', {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+
+  const loadRoute = (network = 'mainnet') => loadTypeScriptModule('app/sitemaps/[slug]/route.ts', {
     'next/cache': { unstable_cache: (callback) => callback },
     '@/lib/newsletter': { getAllNewsletters: () => [] },
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
-      getApiUrl: () => {
-        externalCalls += 1;
-        return 'https://api.crosslink.cipherscan.app';
-      },
-      getBaseUrl: () => {
-        externalCalls += 1;
-        return 'https://crosslink.cipherscan.app';
-      },
-      getNetwork: () => 'crosslink-testnet',
+      getApiUrl: () => 'https://api.mainnet.cipherscan.app',
+      getBaseUrl: () => 'https://cipherscan.app',
+      getNetwork: () => network,
     },
+    '@/lib/sitemaps': sitemap,
+    '@/lib/zns': {
+      getZnsStatus: async () => ({ registered: 0 }),
+      isValidName: () => true,
+      listZnsRegistrations: async () => [],
+    },
+  });
+
+  global.fetch = async () => new Response(null, { status: 503 });
+  const route = loadRoute();
+  const core = await route.GET(new Request('https://cipherscan.app/sitemaps/core'), {
+    params: Promise.resolve({ slug: 'core' }),
+  });
+  assert.equal(core.status, 200);
+  assert.match(await core.text(), /https:\/\/cipherscan\.app\/privacy\/wallets/);
+
+  const unavailable = await route.GET(new Request('https://cipherscan.app/sitemaps/addresses'), {
+    params: Promise.resolve({ slug: 'addresses' }),
+  });
+  assert.equal(unavailable.status, 503);
+  assert.equal(unavailable.headers.get('retry-after'), '60');
+
+  const unknown = await route.GET(new Request('https://cipherscan.app/sitemaps/blocks-1-50000'), {
+    params: Promise.resolve({ slug: 'blocks-1-50000' }),
+  });
+  assert.equal(unknown.status, 404);
+
+  const testnetRoute = loadRoute('testnet');
+  const testnetChild = await testnetRoute.GET(new Request('https://testnet.cipherscan.app/sitemaps/core'), {
+    params: Promise.resolve({ slug: 'core' }),
+  });
+  assert.equal(testnetChild.status, 404);
+});
+
+test('ZNS child sitemap coalesces one bounded registration refresh', async () => {
+  const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
+  const refreshCache = loadTypeScriptModule('lib/refresh-cache.ts');
+  let statusCalls = 0;
+  let registrationCalls = 0;
+  const route = loadTypeScriptModule('app/sitemaps/[slug]/route.ts', {
+    'next/cache': { unstable_cache: (callback) => callback },
+    '@/lib/newsletter': { getAllNewsletters: () => [] },
+    '@/lib/refresh-cache': refreshCache,
+    '@/lib/seo': {
+      getApiUrl: () => 'https://api.mainnet.cipherscan.app',
+      getBaseUrl: () => 'https://cipherscan.app',
+      getNetwork: () => 'mainnet',
+    },
+    '@/lib/sitemaps': sitemap,
     '@/lib/zns': {
       getZnsStatus: async () => {
-        externalCalls += 1;
-        return { registered: 0 };
+        statusCalls += 1;
+        return { registered: 5000 };
       },
-      isValidName: () => true,
-      listZnsRegistrations: async () => {
-        externalCalls += 1;
-        return [];
+      isValidName: (name) => /^name\d+$/.test(name),
+      listZnsRegistrations: async (limit, offset) => {
+        registrationCalls += 1;
+        return Array.from({ length: limit }, (_, index) => ({ name: `name${offset + index}` }));
       },
     },
   });
 
-  assert.deepEqual(await sitemapModule.default(), []);
-  assert.equal(externalCalls, 0);
+  const responses = await Promise.all(Array.from({ length: 3 }, () => route.GET(
+    new Request('https://cipherscan.app/sitemaps/names'),
+    { params: Promise.resolve({ slug: 'names' }) },
+  )));
+  const bodies = await Promise.all(responses.map((response) => response.text()));
+  assert.equal(statusCalls, 1);
+  assert.equal(registrationCalls, 10);
+  assert.ok(bodies.every((body) => body.includes('https://cipherscan.app/name/name4999')));
+});
+
+test('transaction archive metadata indexes only unfiltered first pages', async () => {
+  const jsxRuntime = { jsx: () => null, jsxs: () => null, Fragment: Symbol('Fragment') };
+  const loadPage = (relativePath, componentSpecifier) => loadTypeScriptModule(relativePath, {
+    'react/jsx-runtime': jsxRuntime,
+    [componentSpecifier]: { __esModule: true, default: () => null },
+    '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.mainnet.cipherscan.app' } },
+    '@/lib/seo': {
+      buildPageMetadata: (options) => options,
+      getBaseUrl: () => 'https://cipherscan.app',
+    },
+    '@/lib/server-fetch': {
+      fetchWithDeadline: (url, init) => global.fetch(url, init),
+    },
+  });
+  const txs = loadPage('app/txs/page.tsx', './TxsClient');
+  const shielded = loadPage('app/txs/shielded/page.tsx', './ShieldedTxsClient');
+
+  const txFirst = await txs.generateMetadata({ searchParams: Promise.resolve({}) });
+  const txArchive = await txs.generateMetadata({
+    searchParams: Promise.resolve({ cursor: '100', cursor_idx: '1', direction: 'next', page: '2' }),
+  });
+  const txFilter = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'coinbase' }) });
+  assert.equal(txFirst.index, true);
+  assert.equal(txArchive.index, false);
+  assert.match(txArchive.path, /^\/txs\?cursor=/);
+  assert.equal(txFilter.index, false);
+  assert.equal(txFilter.path, '/txs');
+
+  const shieldedFirst = await shielded.generateMetadata({ searchParams: Promise.resolve({}) });
+  const shieldedArchive = await shielded.generateMetadata({
+    searchParams: Promise.resolve({ cursor: '100', cursor_id: '1', direction: 'next', page: '2' }),
+  });
+  const shieldedFilter = await shielded.generateMetadata({
+    searchParams: Promise.resolve({ pool: 'orchard' }),
+  });
+  assert.equal(shieldedFirst.index, true);
+  assert.equal(shieldedArchive.index, false);
+  assert.match(shieldedArchive.path, /^\/txs\/shielded\?cursor=/);
+  assert.equal(shieldedFilter.index, false);
+  assert.equal(shieldedFilter.path, '/txs/shielded');
+});
+
+test('sitemap API feeds enforce bounds and canonical transaction identity', async () => {
+  const callRoute = captureSitemapApiRoutes();
+  const queries = [];
+  const pool = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      if (sql.includes('MAX(height)')) return { rows: [{ tip: 3_450_001 }] };
+      if (sql.includes('FROM blocks')) {
+        return { rows: [{ height: 3_400_000, timestamp: 1_784_000_000 }] };
+      }
+      return {
+        rows: Array.from({ length: 100 }, (_, index) => ({
+          txid: index.toString(16).padStart(64, '0'),
+          block_time: 1_784_000_000 - index,
+        })),
+      };
+    },
+  };
+
+  const invalid = await callRoute('/api/sitemaps/blocks', {
+    start: '0',
+    end: '50000',
+  }, pool);
+  assert.equal(invalid.statusCode, 400);
+  assert.equal(queries.length, 0, 'invalid ranges must not query PostgreSQL');
+
+  const blocks = await callRoute('/api/sitemaps/blocks', {
+    start: '3400000',
+    end: '3449999',
+  }, pool);
+  assert.equal(blocks.statusCode, 200);
+  assert.deepEqual(blocks.body.blocks, [{ height: 3_400_000, timestamp: 1_784_000_000 }]);
+  assert.equal(blocks.body.complete, true);
+  assert.deepEqual(queries[0].params, [3_400_000, 3_449_999]);
+
+  queries.length = 0;
+  const transactions = await callRoute('/api/sitemaps/transactions/recent', {}, pool);
+  assert.equal(transactions.statusCode, 200);
+  assert.equal(transactions.body.transactions.length, 100);
+  assert.match(queries[0].sql, /JOIN blocks b ON b\.height = t\.block_height AND b\.hash = t\.block_hash/);
+  assert.match(queries[0].sql, /ORDER BY t\.block_height DESC, t\.tx_index DESC/);
+  assert.deepEqual(queries[0].params, [100]);
+  assert.equal(queries[0].sql.includes('mempool'), false);
+});
+
+test('crawl graph avoids canonical block aliases and known shared redirect targets', () => {
+  const blocksClient = fs.readFileSync(
+    path.join(repositoryRoot, 'app/blocks/BlocksClient.tsx'),
+    'utf8',
+  );
+  const reorgs = fs.readFileSync(path.join(repositoryRoot, 'app/reorgs/page.tsx'), 'utf8');
+  const footer = fs.readFileSync(path.join(repositoryRoot, 'components/Footer.tsx'), 'utf8');
+  const richListPage = fs.readFileSync(path.join(repositoryRoot, 'app/rich-list/page.tsx'), 'utf8');
+  const richListClient = fs.readFileSync(
+    path.join(repositoryRoot, 'app/rich-list/RichListClient.tsx'),
+    'utf8',
+  );
+
+  assert.equal(blocksClient.includes('href={`/block/${block.hash.toLowerCase()}`'), false);
+  assert.equal(reorgs.includes('href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`'), false);
+  assert.match(footer, /href="https:\/\/www\.cipherpay\.app\/"/);
+  assert.equal(footer.includes('https://www.cipherpay.app/en'), false);
+  assert.match(footer, /href="\/charts"/);
+  assert.match(footer, /href="\/usage-clock"/);
+  assert.match(richListPage, /next: \{ revalidate: 60 \}/);
+  assert.match(richListClient, /initialAddresses/);
+  assert.match(richListClient, /href=\{`\/address\/\$\{entry\.address\}`\}/);
+
+  const content = fs.readFileSync(
+    path.join(repositoryRoot, 'content/newsletter/weekly-2026-05-03.md'),
+    'utf8',
+  );
+  assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-28xj-328h-72vm'), false);
+  assert.equal(content.includes('github.com/ZcashFoundation/zebra/security/advisories/GHSA-jg86-rwhm-fhg4'), false);
 });

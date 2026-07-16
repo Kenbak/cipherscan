@@ -44,6 +44,7 @@ interface ShieldedTxsClientProps {
   initialCursor?: number | null;
   initialCursorId?: number | null;
   initialDirection?: 'next' | 'prev';
+  initialUnavailable?: boolean;
 }
 
 function getFlowBadge(flowType: string) {
@@ -68,6 +69,7 @@ export default function ShieldedTxsClient({
   initialCursor = null,
   initialCursorId = null,
   initialDirection = 'next',
+  initialUnavailable = false,
 }: ShieldedTxsClientProps) {
   const PAGE_SIZE = 25;
   const hasInitialData = initialPagination !== null || initialFlows.length > 0;
@@ -79,6 +81,7 @@ export default function ShieldedTxsClient({
   });
   const [flows, setFlows] = useState<ShieldedFlow[]>(initialFlows);
   const [loading, setLoading] = useState(!hasInitialData);
+  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
   const [flowFilter, setFlowFilter] = useState<FlowFilter>(initialFlow);
   const [poolFilter, setPoolFilter] = useState<PoolFilter>(initialPool);
   const [minZec, setMinZec] = useState<number>(initialMinZec);
@@ -115,6 +118,7 @@ export default function ShieldedTxsClient({
         params.set('direction', direction || 'next');
       }
       const res = await fetch(`${base}/api/shielded/list?${params}`);
+      if (!res.ok) throw new Error(`Shielded transaction list returned ${res.status}`);
       const json = await res.json();
       if (json.success) {
         const all: ShieldedFlow[] = json.flows || [];
@@ -137,9 +141,13 @@ export default function ShieldedTxsClient({
           prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
           prevCursorId: firstFlow ? Number(firstFlow.id) : null,
         });
+        setDataAvailable(true);
+      } else {
+        setDataAvailable(false);
       }
     } catch (err) {
       console.error('Error fetching shielded flows:', err);
+      setDataAvailable(false);
     } finally {
       setLoading(false);
     }
@@ -235,7 +243,9 @@ export default function ShieldedTxsClient({
               : 'Latest Zcash Shielded Transactions'}
           </h1>
           <span className="text-xs font-mono text-muted">
-            {pagination.total.toLocaleString()} shielded txs
+            {!dataAvailable && flows.length === 0
+              ? 'Shielded transaction data temporarily unavailable'
+              : `${pagination.total.toLocaleString()} shielded txs`}
           </span>
         </div>
       </div>

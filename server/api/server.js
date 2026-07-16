@@ -36,6 +36,7 @@ const poolsRouter = require('./routes/pools');
 const miningRouter = require('./routes/mining');
 const analyticsRouter = require('./routes/analytics');
 const migrationRouter = require('./routes/migration');
+const sitemapsRouter = require('./routes/sitemaps');
 const signalsRouter = require('../signals/api');
 
 // Import privacy linkage functions
@@ -385,6 +386,7 @@ app.use(analyticsRouter);
 
 // Orchard → Ironwood migration routes: /api/migration/*
 app.use(migrationRouter);
+app.use(sitemapsRouter);
 
 // Private trading signals: /api/signals/* (service-key protected)
 app.use('/api/signals', signalsRouter);

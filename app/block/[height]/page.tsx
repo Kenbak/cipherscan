@@ -31,6 +31,15 @@ export default async function BlockPage({
     notFound();
   }
 
+  if (resolution.state === 'unavailable') {
+    return (
+      <BlockPageClient
+        identifier={normalizeBlockIdentifier(identifier)}
+        initialSummary={null}
+      />
+    );
+  }
+
   const block = resolution.block;
   const height = Number(block.height);
   const hash = block.hash.toLowerCase();

@@ -219,7 +219,7 @@ export default function UnclesPage() {
           <div>
             <span className="text-[10px] text-muted font-mono uppercase">Hash</span>
             <Link
-              href={`/block/${block.hash}`}
+              href={isOrphan ? `/block/${block.hash}` : `/block/${height}`}
               className={`text-xs font-mono break-all hover:underline block mt-0.5 ${isOrphan ? 'text-cipher-orange' : 'text-cipher-green'}`}
             >
               {block.hash}
@@ -441,7 +441,7 @@ export default function UnclesPage() {
                         <td className="px-4 py-3 hidden md:table-cell">
                           {(block.canonicalBlock?.hash || block.canonicalHash) ? (
                             <Link
-                              href={`/block/${block.canonicalBlock?.hash || block.canonicalHash}`}
+                              href={`/block/${block.height}`}
                               className="text-xs text-cipher-green font-mono hover:underline"
                               title={block.canonicalBlock?.hash || block.canonicalHash || ''}
                               onClick={e => e.stopPropagation()}

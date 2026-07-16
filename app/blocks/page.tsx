@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import BlocksClient from './BlocksClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -81,13 +82,17 @@ async function getInitialBlocks(request: BlocksRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/blocks/list?${params.toString()}`, {
-      cache: 'no-store',
+    const res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
+      next: { revalidate: 30 },
     });
-    if (!res.ok) return { blocks: [], trailingBlock: null, pagination: null };
+    if (!res.ok) {
+      return { blocks: [], trailingBlock: null, pagination: null, available: false };
+    }
 
     const json = await res.json();
-    if (!json.success) return { blocks: [], trailingBlock: null, pagination: null };
+    if (!json.success) {
+      return { blocks: [], trailingBlock: null, pagination: null, available: false };
+    }
 
     const all = json.blocks || [];
     // A reverse query returns one boundary row from the preceding page when
@@ -117,16 +122,19 @@ async function getInitialBlocks(request: BlocksRequest) {
         nextCursor: lastBlock ? Number(lastBlock.height) : null,
         prevCursor: firstBlock ? Number(firstBlock.height) : null,
       },
+      available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial blocks:', error);
-    return { blocks: [], trailingBlock: null, pagination: null };
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial blocks:', error);
+    }
+    return { blocks: [], trailingBlock: null, pagination: null, available: false };
   }
 }
 
 export default async function BlocksPage({ searchParams }: BlocksPageProps) {
   const request = parseBlocksRequest(await searchParams);
-  const { blocks, trailingBlock, pagination } = await getInitialBlocks(request);
+  const { blocks, trailingBlock, pagination, available } = await getInitialBlocks(request);
   const archiveKey = `${request.cursor ?? 'first'}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const collectionJsonLd = request.pageParamConsistent
@@ -167,6 +175,7 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
         initialCursor={request.cursor}
         initialDirection={request.direction}
         initialPage={request.page}
+        initialUnavailable={!available}
       />
 
       {/* Static page description — server-rendered for indexing */}

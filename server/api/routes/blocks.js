@@ -332,6 +332,31 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
     const block = blockResult.rows[0];
     const blockHeight = parseInt(block.height);
 
+    // The server-rendered block page only needs enough data to establish the
+    // canonical URL and render a meaningful summary. Loading every transaction,
+    // input, and output here made crawler requests fan out into expensive detail
+    // queries and caused historical block pages to time out under concurrent
+    // crawling. Keep the full response as the default for API consumers.
+    if (req.query.summary === '1') {
+      const poolInfo = getPoolInfo(block.miner_address);
+      const transactionCount = Number(block.transaction_count) || 0;
+
+      res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+      return res.json({
+        height: blockHeight,
+        hash: block.hash,
+        timestamp: block.timestamp ? parseInt(block.timestamp) : null,
+        transaction_count: transactionCount,
+        transactionCount,
+        size: Number(block.size) || 0,
+        isOrphaned: false,
+        miner_address: block.miner_address,
+        miner_pool: poolInfo?.name || null,
+        miner_pool_url: poolInfo?.url || null,
+        miner_pool_region: poolInfo?.region || null,
+      });
+    }
+
     // Bind transactions to the block's immutable hash. Heights can identify
     // different blocks over time when the chain reorganizes.
     const staking = await checkStakingColumns(pool);

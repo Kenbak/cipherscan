@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import ShieldedTxsClient from './ShieldedTxsClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -120,7 +121,7 @@ export async function generateMetadata({
       ? `Browse Zcash shielded transaction archive page ${request.page}, including shielding and unshielding flows across privacy pools.`
       : 'Browse shielded Zcash transactions and track shielding and unshielding flows across Ironwood, Orchard, and Sapling privacy pools.',
     path: isStableArchive ? getArchiveCanonicalPath(request) : '/txs/shielded',
-    index: isStableArchive,
+    index: isStableArchive && request.page === 1,
     keywords: ['zcash shielded transactions', 'zcash orchard', 'zcash sapling', 'shielded ZEC', 'zcash privacy'],
   });
 }
@@ -139,13 +140,13 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/shielded/list?${params.toString()}`, {
-      cache: 'no-store',
+    const res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
+      next: { revalidate: 30 },
     });
-    if (!res.ok) return { flows: [], pagination: null };
+    if (!res.ok) return { flows: [], pagination: null, available: false };
 
     const json = await res.json();
-    if (!json.success) return { flows: [], pagination: null };
+    if (!json.success) return { flows: [], pagination: null, available: false };
 
     const all: ShieldedFlow[] = json.flows || [];
     const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
@@ -170,10 +171,13 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
         prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
         prevCursorId: firstFlow ? Number(firstFlow.id) : null,
       },
+      available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial shielded transactions:', error);
-    return { flows: [], pagination: null };
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial shielded transactions:', error);
+    }
+    return { flows: [], pagination: null, available: false };
   }
 }
 
@@ -181,7 +185,7 @@ export default async function ShieldedTransactionsPage({
   searchParams,
 }: ShieldedTransactionsPageProps) {
   const request = parseShieldedTransactionsRequest(await searchParams);
-  const { flows, pagination } = await getInitialFlows(request);
+  const { flows, pagination, available } = await getInitialFlows(request);
   const archiveKey = `${request.flow}:${request.pool}:${request.minZec}:${request.cursor ?? 'first'}:${request.cursorId ?? 0}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const uniqueTransactions = Array.from(new Map(flows.map((flow) => [flow.txid, flow])).values());
@@ -229,6 +233,7 @@ export default async function ShieldedTransactionsPage({
         initialCursor={request.cursor}
         initialCursorId={request.cursorId}
         initialDirection={request.direction}
+        initialUnavailable={!available}
       />
     </>
   );

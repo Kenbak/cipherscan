@@ -9,6 +9,9 @@
     "lint": "next lint",
     "test:peer-client": "node --test server/tests/peer-client.test.js",
     "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
+    "test:performance": "node --test server/tests/slow-page-performance.test.js",
+    "perf:analyze": "node scripts/perf/analyze-slow-pages.mjs",
+    "perf:probe": "node scripts/perf/probe-slow-pages.mjs",
     "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
     "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",
     "privacy:backtest": "node server/scripts/backtest-privacy-linkage.js"

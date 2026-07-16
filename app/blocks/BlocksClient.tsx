@@ -36,6 +36,7 @@ interface BlocksClientProps {
   initialCursor?: number | null;
   initialDirection?: 'next' | 'prev';
   initialPage?: number;
+  initialUnavailable?: boolean;
 }
 
 export default function BlocksClient({
@@ -45,6 +46,7 @@ export default function BlocksClient({
   initialCursor = null,
   initialDirection = 'next',
   initialPage = 1,
+  initialUnavailable = false,
 }: BlocksClientProps) {
   const PAGE_SIZE = 25;
   const hasInitialData = initialPagination !== null || initialBlocks.length > 0;
@@ -52,6 +54,7 @@ export default function BlocksClient({
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [trailingBlock, setTrailingBlock] = useState<Block | null>(initialTrailingBlock);
   const [loading, setLoading] = useState(!hasInitialData);
+  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
     page: 1, totalPages: 0, total: 0, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null,
   });
@@ -70,6 +73,7 @@ export default function BlocksClient({
         params.set('direction', direction || 'next');
       }
       const res = await fetch(`${base}/api/blocks/list?${params}`);
+      if (!res.ok) throw new Error(`Block list returned ${res.status}`);
       const json = await res.json();
       if (json.success) {
         const all: Block[] = json.blocks || [];
@@ -94,9 +98,13 @@ export default function BlocksClient({
             : null,
           prevCursor: visibleBlocks.length > 0 ? Number(visibleBlocks[0].height) : null,
         });
+        setDataAvailable(true);
+      } else {
+        setDataAvailable(false);
       }
     } catch (err) {
       console.error('Error fetching blocks:', err);
+      setDataAvailable(false);
     } finally {
       setLoading(false);
     }
@@ -139,7 +147,9 @@ export default function BlocksClient({
             {pagination.page > 1 ? `Zcash Blocks - Page ${pagination.page}` : 'Latest Zcash Blocks'}
           </h1>
           <span className="text-xs font-mono text-muted">
-            {blocks.length > 0
+            {!dataAvailable && blocks.length === 0
+              ? 'Block data temporarily unavailable'
+              : blocks.length > 0
               ? `Block #${blocks[0].height.toLocaleString()} to #${blocks[blocks.length - 1].height.toLocaleString()} · ${pagination.total.toLocaleString()} blocks`
               : `${pagination.total.toLocaleString()} blocks`}
           </span>
@@ -214,7 +224,7 @@ export default function BlocksClient({
                         </div>
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
-                        <Link href={`/block/${block.hash.toLowerCase()}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]">
+                        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]" title={`Canonical block ${block.height.toLocaleString()}`}>
                           {block.hash}
                         </Link>
                       </td>

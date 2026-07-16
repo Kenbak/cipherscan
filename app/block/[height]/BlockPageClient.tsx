@@ -127,7 +127,7 @@ export default function BlockPageClient({
   initialSummary,
 }: {
   identifier: string;
-  initialSummary: BlockPageSummary;
+  initialSummary: BlockPageSummary | null;
 }) {
   const height = identifier;
   const [data, setData] = useState<BlockData | null>(null);
@@ -317,19 +317,32 @@ export default function BlockPageClient({
         <div className="mb-6">
           <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
           <div className="flex flex-wrap items-center gap-3 mt-1">
-            <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${initialSummary.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
-              {initialSummary.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #{initialSummary.height.toLocaleString()}
+            <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${initialSummary?.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
+              {initialSummary
+                ? `${initialSummary.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #${initialSummary.height.toLocaleString()}`
+                : 'Zcash Block'}
             </h1>
-            <Badge color={initialSummary.isOrphaned ? 'orange' : 'green'}>
-              {initialSummary.isOrphaned ? 'ORPHAN' : 'CANONICAL'}
-            </Badge>
+            {initialSummary && (
+              <Badge color={initialSummary.isOrphaned ? 'orange' : 'green'}>
+                {initialSummary.isOrphaned ? 'ORPHAN' : 'CANONICAL'}
+              </Badge>
+            )}
           </div>
           <p className="mt-3 text-xs sm:text-sm text-secondary">
-            {initialSummary.isOrphaned
-              ? 'This block is no longer part of the canonical Zcash chain.'
-              : 'This block is part of the canonical Zcash chain.'}{' '}
-            Full block hash:{' '}
-            <code className="font-mono text-primary break-all">{initialSummary.hash}</code>
+            {initialSummary ? (
+              <>
+                {initialSummary.isOrphaned
+                  ? 'This block is no longer part of the canonical Zcash chain.'
+                  : 'This block is part of the canonical Zcash chain.'}{' '}
+                Full block hash:{' '}
+                <code className="font-mono text-primary break-all">{initialSummary.hash}</code>
+              </>
+            ) : (
+              <>
+                Loading block identifier:{' '}
+                <code className="font-mono text-primary break-all">{identifier}</code>
+              </>
+            )}
           </p>
         </div>
         <Card className="mb-6">
@@ -381,10 +394,17 @@ export default function BlockPageClient({
                 ? 'CipherScan could not refresh this block from the block index. Please try again shortly.'
                 : 'This block is no longer present in the block index.'}
             </p>
-            <p className="text-xs text-muted mb-6">
-              Last known status: {initialSummary.isOrphaned ? 'orphaned' : 'canonical'}. Full block hash:{' '}
-              <code className="font-mono text-secondary break-all">{initialSummary.hash}</code>
-            </p>
+            {initialSummary ? (
+              <p className="text-xs text-muted mb-6">
+                Last known status: {initialSummary.isOrphaned ? 'orphaned' : 'canonical'}. Full block hash:{' '}
+                <code className="font-mono text-secondary break-all">{initialSummary.hash}</code>
+              </p>
+            ) : (
+              <p className="text-xs text-muted mb-6">
+                Block identifier:{' '}
+                <code className="font-mono text-secondary break-all">{identifier}</code>
+              </p>
+            )}
             <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
               ← Back to Explorer
             </Link>

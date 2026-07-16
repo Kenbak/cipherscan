@@ -29,6 +29,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     });
   }
 
+  if (resolution.state === 'unavailable') {
+    const title = `Zcash Block ${truncateHash(height)} Status Unknown | CipherScan`;
+    return buildPageMetadata({
+      title,
+      description: `CipherScan cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
+      path: `/block/${encodeURIComponent(height)}`,
+      index: false,
+      imageAlt: title,
+    });
+  }
+
   const block = resolution.block;
   const blockHeight = Number(block.height);
   const timestamp = Number(block.timestamp);

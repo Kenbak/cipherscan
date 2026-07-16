@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
+import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import TxsClient from './TxsClient';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
@@ -86,7 +87,7 @@ export async function generateMetadata({ searchParams }: TransactionsPageProps):
       ? `Browse Zcash transaction archive page ${request.page}, with transaction hashes, block heights, transaction types, sizes, and confirmation times.`
       : 'Browse the latest Zcash transactions including shielded, transparent, and coinbase transactions. Real-time transaction explorer.',
     path: isStableArchive ? getArchiveCanonicalPath(request) : '/txs',
-    index: isStableArchive,
+    index: isStableArchive && request.page === 1,
     keywords: ['zcash transactions', 'zcash transaction explorer', 'ZEC transactions', 'zcash shielded transactions', 'zcash tx'],
   });
 }
@@ -103,13 +104,13 @@ async function getInitialTxs(request: TransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetch(`${API_URL}/api/transactions/list?${params.toString()}`, {
-      cache: 'no-store',
+    const res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
+      next: { revalidate: 30 },
     });
-    if (!res.ok) return { txs: [], pagination: null };
+    if (!res.ok) return { txs: [], pagination: null, available: false };
 
     const json = await res.json();
-    if (!json.success) return { txs: [], pagination: null };
+    if (!json.success) return { txs: [], pagination: null, available: false };
 
     const all = json.transactions || [];
     const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
@@ -134,16 +135,19 @@ async function getInitialTxs(request: TransactionsRequest) {
         prevCursor: firstTx ? Number(firstTx.block_height) : null,
         prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
       },
+      available: true,
     };
   } catch (error) {
-    console.error('Error fetching initial transactions:', error);
-    return { txs: [], pagination: null };
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial transactions:', error);
+    }
+    return { txs: [], pagination: null, available: false };
   }
 }
 
 export default async function TransactionsPage({ searchParams }: TransactionsPageProps) {
   const request = parseTransactionsRequest(await searchParams);
-  const { txs, pagination } = await getInitialTxs(request);
+  const { txs, pagination, available } = await getInitialTxs(request);
   const archiveKey = `${request.type}:${request.cursor ?? 'first'}:${request.cursorIdx ?? 0}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const collectionJsonLd = request.pageParamConsistent
@@ -188,6 +192,7 @@ export default async function TransactionsPage({ searchParams }: TransactionsPag
         initialCursor={request.cursor}
         initialCursorIdx={request.cursorIdx}
         initialDirection={request.direction}
+        initialUnavailable={!available}
       />
 
       {/* Static page description — server-rendered for indexing */}
