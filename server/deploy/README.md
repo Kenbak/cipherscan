@@ -32,18 +32,21 @@ crontab server/deploy/crontab.production
 
 ## PostgreSQL backups
 
-The backup script streams a custom-format dump directly to the Hetzner Storage
-Box. It never creates a full dump on the server's root disk.
+The backup script mounts the Hetzner Storage Box over SSHFS and writes a
+custom-format dump directly to that mount. It never creates a full dump on the
+server's root disk. The temporary remote filename is verified and atomically
+renamed before the success marker is updated.
 
 Prerequisites:
 
 1. Add the server's SSH public key to the Storage Box.
 2. Verify key-only access on port 23.
-3. Run `server/deploy/backup-postgres.sh` once manually.
-4. Confirm a non-empty `.dump` exists remotely and record a restore drill.
+3. Install SSHFS (`apt install sshfs` on Ubuntu).
+4. Run `server/deploy/backup-postgres.sh` once manually.
+5. Confirm a non-empty `.dump` exists remotely and record a restore drill.
 
-Override `DATABASE`, `STORAGEBOX`, `STORAGEBOX_PORT`, `REMOTE_DIR`, or
-`RETENTION_DAYS` through the environment when needed.
+Override `DATABASE`, `STORAGEBOX`, `STORAGEBOX_PORT`, `STORAGEBOX_PATH`,
+`MOUNT_DIR`, or `RETENTION_DAYS` through the environment when needed.
 
 Restore into a new database:
 

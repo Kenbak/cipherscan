@@ -83,6 +83,7 @@ async function nearRequest(endpoint, params = {}) {
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${API_KEY}`, Accept: 'application/json' },
+    signal: AbortSignal.timeout(30000),
   });
 
   if (res.status === 429) {
@@ -94,17 +95,51 @@ async function nearRequest(endpoint, params = {}) {
   return res.json();
 }
 
-async function fetchSwapPage(direction, page, startTs) {
+const EXPLORER_BATCH_SIZE = 1000;
+
+async function fetchSwapBatch(swapDirection, cursor, startTs) {
   const params = {
     statuses: 'SUCCESS',
-    perPage: 100,
-    page,
+    numberOfTransactions: EXPLORER_BATCH_SIZE,
+    direction: 'next',
   };
-  if (direction === 'inflow') params.toChainId = 'zec';
+  if (swapDirection === 'inflow') params.toChainId = 'zec';
   else params.fromChainId = 'zec';
   if (startTs) params.startTimestamp = startTs;
 
-  return nearRequest('/transactions-pages', params);
+  if (cursor) {
+    params.lastDepositAddress = cursor.address;
+    params.lastDepositMemo = cursor.memo || '';
+  }
+
+  const txs = await nearRequest('/transactions', params);
+  if (!Array.isArray(txs)) {
+    throw new Error('NEAR API returned an invalid transaction batch');
+  }
+
+  const last = txs.at(-1);
+  const nextCursor = last?.depositAddress
+    ? {
+        address: last.depositAddress,
+        memo: last.depositMemo || '',
+        key: `${last.depositAddress}\u0000${last.depositMemo || ''}`,
+      }
+    : null;
+  const cursorRepeated = nextCursor !== null && nextCursor.key === cursor?.key;
+
+  if (cursorRepeated) {
+    log('NEAR Explorer cursor did not advance; stopping before replaying the same batch');
+    return { txs: [], nextCursor: null, hasMore: false };
+  }
+
+  return {
+    txs,
+    nextCursor,
+    hasMore:
+      txs.length === EXPLORER_BATCH_SIZE &&
+      nextCursor !== null &&
+      !cursorRepeated,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -398,11 +433,12 @@ async function refetchMissingTxids() {
   const startTs = new Date(oldestRow.swap_created_at).toISOString();
 
   for (const direction of ['inflow', 'outflow']) {
-    let page = 1;
-    while (page <= MAX_PAGES_PER_DIR) {
+    let batch = 1;
+    let cursor = null;
+    while (batch <= MAX_PAGES_PER_DIR) {
       try {
-        const data = await fetchSwapPage(direction, page, startTs);
-        const txs = data.data || [];
+        const data = await fetchSwapBatch(direction, cursor, startTs);
+        const txs = data.txs;
         if (txs.length === 0) break;
 
         for (const tx of txs) {
@@ -427,11 +463,12 @@ async function refetchMissingTxids() {
           }
         }
 
-        if (page >= (data.totalPages || 1)) break;
-        page++;
+        if (!data.hasMore) break;
+        cursor = data.nextCursor;
+        batch++;
         await delay(RATE_LIMIT_MS);
       } catch (e) {
-        log(`  refetch error on ${direction} page ${page}: ${e.message}`);
+        log(`  refetch error on ${direction} batch ${batch}: ${e.message}`);
         break;
       }
     }
@@ -581,7 +618,8 @@ async function selfHealFromBlockchain() {
 // ---------------------------------------------------------------------------
 
 async function syncDirection(direction, startTs) {
-  let page = 1;
+  let batch = 1;
+  let cursor = null;
   let total = 0;
   let hasMore = true;
   let missingZecTxid = 0;
@@ -589,8 +627,8 @@ async function syncDirection(direction, startTs) {
   let maxCreatedAt = null;
 
   while (hasMore) {
-    const data = await fetchSwapPage(direction, page, startTs);
-    const txs = data.data || [];
+    const data = await fetchSwapBatch(direction, cursor, startTs);
+    const txs = data.txs;
 
     if (txs.length === 0) break;
 
@@ -608,11 +646,12 @@ async function syncDirection(direction, startTs) {
       }
     }
 
-    hasMore = page < (data.totalPages || 1);
-    page++;
+    hasMore = data.hasMore;
+    cursor = data.nextCursor;
 
     if (hasMore) {
-      log(`  ${direction} page ${page - 1}/${data.totalPages} (${total} swaps so far)`);
+      log(`  ${direction} batch ${batch} (${total} swaps so far)`);
+      batch++;
       await delay(RATE_LIMIT_MS);
     }
   }

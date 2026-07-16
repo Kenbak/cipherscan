@@ -69,18 +69,19 @@ async function rpcCall(method, params) {
 
 function parsePoolsFromResult(info) {
   let shieldedPoolSize = 0, chainSupply = 0;
-  let sproutPool = 0, saplingPool = 0, orchardPool = 0, transparentPool = 0;
+  let sproutPool = 0, saplingPool = 0, orchardPool = 0, ironwoodPool = 0, transparentPool = 0;
 
   for (const p of (info.valuePools || [])) {
     const val = parseInt(p.chainValueZat) || 0;
     if (p.id === 'sprout') sproutPool = val;
     else if (p.id === 'sapling') saplingPool = val;
     else if (p.id === 'orchard') orchardPool = val;
+    else if (p.id === 'ironwood') ironwoodPool = val;
     else if (p.id === 'transparent') transparentPool = val;
     if (p.id !== 'transparent' && p.id !== 'lockbox') shieldedPoolSize += val;
   }
   if (info.chainSupply) chainSupply = parseInt(info.chainSupply.chainValueZat) || 0;
-  return { shieldedPoolSize, chainSupply, sproutPool, saplingPool, orchardPool, transparentPool };
+  return { shieldedPoolSize, chainSupply, sproutPool, saplingPool, orchardPool, ironwoodPool, transparentPool };
 }
 
 async function getPoolSize() {
@@ -105,8 +106,8 @@ async function main() {
   const allTimeStats = (await pool.query(`
     SELECT
       COUNT(*) as total,
-      COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded,
-      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard) AND vin_count = 0 AND vout_count = 0 AND NOT is_coinbase) as fully_shielded
+      COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded,
+      COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count = 0 AND vout_count = 0 AND NOT is_coinbase) as fully_shielded
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
@@ -127,8 +128,8 @@ async function main() {
 
     const dayStats = (await pool.query(`
       SELECT
-        COUNT(*) FILTER (WHERE has_sapling OR has_orchard) as shielded_count,
-        COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard) as transparent_count,
+        COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
+        COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count,
         MAX(block_height) as max_height
       FROM transactions
       WHERE block_time >= $1 AND block_time < $2 AND block_height > 0
@@ -171,19 +172,20 @@ async function main() {
           shielded_count = $2, transparent_count = $3, shielded_percentage = $4,
           pool_size = $5, privacy_score = $6,
           sprout_pool_size = $7, sapling_pool_size = $8, orchard_pool_size = $9,
-          transparent_pool_size = $10, chain_supply = $11
+          ironwood_pool_size = $10, transparent_pool_size = $11, chain_supply = $12
         WHERE date = $1
       `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
-        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.ironwoodPool, pools.transparentPool, pools.chainSupply]);
       updated++;
     } else {
       await pool.query(`
         INSERT INTO privacy_trends_daily (
           date, shielded_count, transparent_count, shielded_percentage, pool_size, privacy_score,
-          sprout_pool_size, sapling_pool_size, orchard_pool_size, transparent_pool_size, chain_supply, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          sprout_pool_size, sapling_pool_size, orchard_pool_size, ironwood_pool_size,
+          transparent_pool_size, chain_supply, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       `, [dateStr, shieldedCount, transparentCount, shieldedPercentage, pools.shieldedPoolSize, privacyScore,
-        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.transparentPool, pools.chainSupply]);
+        pools.sproutPool, pools.saplingPool, pools.orchardPool, pools.ironwoodPool, pools.transparentPool, pools.chainSupply]);
       inserted++;
     }
 

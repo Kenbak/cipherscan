@@ -1,0 +1,23 @@
+[Unit]
+Description=CipherScan Lightwalletd (Mainnet)
+After=network-online.target zebrad-mainnet.service
+Wants=network-online.target zebrad-mainnet.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/lightwalletd
+ExecStart=/root/lightwalletd/lightwalletd \
+  --config /root/lightwalletd/lightwalletd.yml \
+  --grpc-bind-addr 127.0.0.1:9067 \
+  --http-bind-addr= \
+  --no-tls-very-insecure
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lightwalletd
+
+[Install]
+WantedBy=multi-user.target
