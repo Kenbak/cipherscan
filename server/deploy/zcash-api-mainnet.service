@@ -1,0 +1,18 @@
+[Unit]
+Description=CipherScan API (Mainnet)
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/cipherscan/server/api
+Environment=NODE_ENV=production
+Environment=NODE_PATH=/root/cipherscan/server/api/node_modules
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

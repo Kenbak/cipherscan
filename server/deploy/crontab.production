@@ -1,0 +1,19 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+CRON_TZ=UTC
+
+*/5 * * * * flock -n /run/cipherscan-sync-swaps.lock bash -lc 'cd /root/cipherscan/server/jobs && node sync-crosschain-swaps.js' >> /var/log/cipherscan/sync-swaps.log 2>&1
+*/10 * * * * flock -n /run/cipherscan-sync-nodes.lock bash -lc 'cd /root/cipherscan/server/jobs && node sync-nodes.js' >> /var/log/cipherscan/sync-nodes.log 2>&1
+*/5 * * * * flock -n /run/cipherscan-turnstile.lock bash -lc 'cd /root/cipherscan/server/jobs && node refresh-turnstile.js' >> /var/log/cipherscan/refresh-turnstile.log 2>&1
+0 * * * * flock -n /run/cipherscan-privacy-stats.lock bash -lc 'cd /root/cipherscan/server/jobs && node update-privacy-stats.js' >> /var/log/cipherscan/privacy-stats.log 2>&1
+0 * * * * flock -n /run/cipherscan-chain-snapshots.lock bash -lc 'cd /root/cipherscan/server/jobs && node update-chain-snapshots.js' >> /var/log/cipherscan/chain-snapshots.log 2>&1
+0 3 * * * flock -n /run/cipherscan-mining-behavior.lock bash -lc 'cd /root/cipherscan/server/jobs && node snapshot-mining-behavior.js' >> /var/log/cipherscan/mining-behavior.log 2>&1
+0 3 * * * flock -n /run/cipherscan-miner-destinations.lock bash -lc 'cd /root/cipherscan/server/jobs && node snapshot-miner-destinations.js' >> /var/log/cipherscan/miner-destinations.log 2>&1
+*/30 * * * * flock -n /run/cipherscan-pattern-scanners.lock /root/cipherscan/server/jobs/run-pattern-scanners.sh >> /var/log/cipherscan/pattern-scanner.log 2>&1
+0 4 * * * flock -n /run/cipherscan-zec-prices.lock bash -lc 'cd /root/cipherscan/server/scripts && node backfill-zec-prices.js' >> /var/log/cipherscan/zec-prices.log 2>&1
+0 2 * * * /root/cipherscan/server/deploy/backup-postgres.sh >> /var/log/cipherscan/backup.log 2>&1
+0 * * * * flock -n /run/cipherscan-signals-compute.lock bash -lc 'cd /root/cipherscan/server/signals && node compute.js' >> /var/log/cipherscan/signals-compute.log 2>&1
+0 6 * * * flock -n /run/cipherscan-signals-notify.lock bash -lc 'cd /root/cipherscan/server/signals && node notify.js' >> /var/log/cipherscan/signals-notify.log 2>&1
+
+# lightwalletd monitoring is intentionally omitted until its service and
+# monitor-lightwalletd.sh are restored and committed.

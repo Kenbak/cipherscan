@@ -1,0 +1,16 @@
+[Unit]
+Description=Zebra Zcash Node (Mainnet)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/zebrad -c /root/.config/zebrad/zebrad.toml start
+Restart=always
+RestartSec=10
+TimeoutStopSec=300
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target
