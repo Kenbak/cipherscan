@@ -1039,9 +1039,56 @@ async function main() {
   let lastSync = stateResult.rows[0]?.last_sync_timestamp;
 
   if (isBackfill) {
-    log('BACKFILL MODE: fetching all historical data');
-    lastSync = null;
-  } else if (lastSync) {
+    log('BACKFILL MODE: fetching historical data in time slices');
+    const SLICE_DAYS = 7;
+    const MAX_SLICES = 12; // ~84 days back
+    const now = new Date();
+    let totalBackfilled = 0;
+
+    for (let i = 0; i < MAX_SLICES; i++) {
+      const sliceEnd = new Date(now.getTime() - i * SLICE_DAYS * 86400000);
+      const sliceStart = new Date(sliceEnd.getTime() - SLICE_DAYS * 86400000);
+      const startTs = sliceStart.toISOString();
+      log(`  Slice ${i + 1}/${MAX_SLICES}: ${sliceStart.toISOString().slice(0,10)} → ${sliceEnd.toISOString().slice(0,10)}`);
+
+      const inflowResult = await syncDirection('inflow', startTs);
+      await delay(RATE_LIMIT_MS);
+      const outflowResult = await syncDirection('outflow', startTs);
+      await delay(RATE_LIMIT_MS);
+
+      const sliceTotal = inflowResult.count + outflowResult.count;
+      totalBackfilled += sliceTotal;
+      log(`  Slice ${i + 1} done: ${sliceTotal} swaps`);
+
+      if (sliceTotal === 0) {
+        log('  Empty slice — stopping backfill (no older data)');
+        break;
+      }
+    }
+
+    await backfillZecAddresses();
+    await updateAmountStats();
+    await refreshMaterializedViews();
+
+    const newestTs = await pool.query(
+      "SELECT MAX(swap_created_at) AS ts FROM cross_chain_swaps"
+    );
+    if (newestTs.rows[0]?.ts) {
+      await pool.query(`
+        INSERT INTO sync_state (job_name, last_sync_timestamp, total_synced, updated_at)
+        VALUES ('crosschain_swaps', $1, $2, NOW())
+        ON CONFLICT (job_name) DO UPDATE SET
+          last_sync_timestamp = $1, total_synced = sync_state.total_synced + $2, updated_at = NOW()
+      `, [newestTs.rows[0].ts, totalBackfilled]);
+      log(`Watermark advanced to ${newestTs.rows[0].ts}`);
+    }
+
+    log(`=== Backfill complete: ${totalBackfilled} total swaps ===`);
+    await pool.end();
+    return;
+  }
+
+  if (lastSync) {
     // Apply a 12-hour overlap window so late-arriving or status-changing
     // swaps are re-read. Upsert semantics keep this idempotent.
     const OVERLAP_HOURS = 12;
