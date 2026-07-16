@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+    "test:peer-client": "node --test server/tests/peer-client.test.js",
     "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
     "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
     "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",

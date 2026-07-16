@@ -3,6 +3,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { ChartWatermark } from '@/components/ChartWatermark';
+import {
+  NodeClientDistribution,
+  type NodeClientStats,
+} from '@/components/network/NodeClientDistribution';
 import { feature } from 'topojson-client';
 
 // ==========================================================================
@@ -12,7 +16,7 @@ import { feature } from 'topojson-client';
 interface NodeLocation {
   country: string;
   countryCode: string;
-  city: string;
+  city?: string | null;
   lat: number;
   lon: number;
   nodeCount: number;
@@ -145,6 +149,7 @@ export function NodeMap() {
   const [stats, setStats] = useState<NodeStats | null>(null);
   const [trends, setTrends] = useState<NodeTrends | null>(null);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
+  const [clientStats, setClientStats] = useState<NodeClientStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
@@ -184,6 +189,7 @@ export function NodeMap() {
         setStats(statsData.stats);
         setTrends(statsData.trends || null);
         setTopCountries(statsData.topCountries || []);
+        setClientStats(statsData.clients || null);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching nodes:', err);
@@ -508,6 +514,12 @@ export function NodeMap() {
           </div>
         </div>
       </div>
+
+      {clientStats && (
+        <div className="border-t border-cipher-border px-4 py-4 sm:px-6">
+          <NodeClientDistribution clients={clientStats} />
+        </div>
+      )}
 
       {/* Trends */}
       {trends && (

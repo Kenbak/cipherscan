@@ -76,19 +76,8 @@ function rollingAverage(values, window) {
   return out;
 }
 
-async function findEraStartBlock(callZebraRPC, currentHeight, currentTotal) {
-  const step = 25000;
-  for (let h = currentHeight; h > 0; h -= step) {
-    const sub = await callZebraRPC('getblocksubsidy', [h]);
-    if (sub?.totalblocksubsidy !== currentTotal) {
-      return Math.min(currentHeight, h + 1);
-    }
-  }
-  return 1;
-}
-
 async function discoverNextHalving(callZebraRPC, currentHeight) {
-  const current = await callZebraRPC('getblocksubsidy');
+  const current = await callZebraRPC('getblocksubsidy', [currentHeight]);
   const currentTotal = current?.totalblocksubsidy;
   if (!currentTotal) throw new Error('Could not read current block subsidy');
 
@@ -98,23 +87,14 @@ async function discoverNextHalving(callZebraRPC, currentHeight) {
 
   for (let h = currentHeight + coarseStep; h <= currentHeight + maxScan; h += coarseStep) {
     const sub = await callZebraRPC('getblocksubsidy', [h]);
-    if (sub?.totalblocksubsidy < currentTotal) {
+    if (sub?.totalblocksubsidy != null && sub.totalblocksubsidy < currentTotal) {
       coarseHit = h;
       break;
     }
   }
 
   if (!coarseHit) {
-    return {
-      halvingBlock: null,
-      blocksRemaining: null,
-      currentSubsidy: currentTotal,
-      nextSubsidy: null,
-      minerReward: current.miner ?? currentTotal,
-      nextMinerReward: null,
-      fundingStreams: current.fundingstreamstotal ?? 0,
-      lockbox: current.lockboxtotal ?? 0,
-    };
+    throw new Error(`No subsidy reduction found within ${maxScan.toLocaleString()} blocks`);
   }
 
   let lo = Math.max(currentHeight + 1, coarseHit - coarseStep);
@@ -127,7 +107,32 @@ async function discoverNextHalving(callZebraRPC, currentHeight) {
   }
 
   const nextSubsidy = await callZebraRPC('getblocksubsidy', [lo]);
-  const eraStart = await findEraStartBlock(callZebraRPC, currentHeight, currentTotal);
+  // Find the prior subsidy transition, then binary-search its exact height.
+  let sameSubsidyHeight = currentHeight;
+  let priorEraHeight = null;
+  while (sameSubsidyHeight > 0) {
+    const probeHeight = Math.max(0, sameSubsidyHeight - coarseStep);
+    const subsidy = await callZebraRPC('getblocksubsidy', [probeHeight]);
+    if (subsidy?.totalblocksubsidy !== currentTotal) {
+      priorEraHeight = probeHeight;
+      break;
+    }
+    if (probeHeight === 0) break;
+    sameSubsidyHeight = probeHeight;
+  }
+
+  let eraStart = 1;
+  if (priorEraHeight != null) {
+    let startLo = priorEraHeight + 1;
+    let startHi = sameSubsidyHeight;
+    while (startLo < startHi) {
+      const mid = Math.floor((startLo + startHi) / 2);
+      const subsidy = await callZebraRPC('getblocksubsidy', [mid]);
+      if (subsidy?.totalblocksubsidy === currentTotal) startHi = mid;
+      else startLo = mid + 1;
+    }
+    eraStart = startLo;
+  }
   const eraLength = lo - eraStart;
   const progress = eraLength > 0 ? ((currentHeight - eraStart) / eraLength) * 100 : 0;
 
@@ -211,14 +216,17 @@ function densifyDailySupply(points) {
 function registerNetworkAnalyticsRoutes(router) {
   router.get('/api/network/halving', async (req, res) => {
     try {
-      const pool = req.app.locals.pool;
       const callZebraRPC = req.app.locals.callZebraRPC;
       const redisClient = req.app.locals.redisClient;
       const cached = await getFromRedisCache(redisClient, HALVING_CACHE_KEY);
-      if (cached) return res.json({ success: true, ...cached, cached: true });
+      if (cached && cached.halvingBlock != null) return res.json({ success: true, ...cached, cached: true });
 
-      const heightRow = await pool.query('SELECT MAX(height) AS height FROM blocks');
-      const currentHeight = parseInt(heightRow.rows[0]?.height, 10) || 0;
+      // Use Zebra for both height and subsidy so backfills cannot mix a stale
+      // database height with live-chain subsidy values.
+      const currentHeight = Number(await callZebraRPC('getblockcount'));
+      if (!Number.isSafeInteger(currentHeight) || currentHeight < 1) {
+        throw new Error('Could not read current Zebra height');
+      }
       const halving = await discoverNextHalving(callZebraRPC, currentHeight);
 
       const avgBlockTime = 75;
@@ -232,7 +240,10 @@ function registerNetworkAnalyticsRoutes(router) {
           : null,
       };
 
-      if (setRedisCache) await setRedisCache(redisClient, HALVING_CACHE_KEY, payload, HALVING_CACHE_TTL);
+      // Only cache if we have real halving data (avoid persisting broken null state)
+      if (setRedisCache && payload.halvingBlock != null) {
+        await setRedisCache(redisClient, HALVING_CACHE_KEY, payload, HALVING_CACHE_TTL);
+      }
       res.json({ success: true, ...payload, cached: false });
     } catch (error) {
       console.error('❌ [HALVING] Error:', error);
@@ -553,4 +564,4 @@ function registerNetworkAnalyticsRoutes(router) {
   });
 }
 
-module.exports = { registerNetworkAnalyticsRoutes };
+module.exports = { registerNetworkAnalyticsRoutes, discoverNextHalving };

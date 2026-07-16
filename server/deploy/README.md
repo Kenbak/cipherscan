@@ -30,6 +30,16 @@ After block coverage is complete and validated:
 crontab server/deploy/crontab.production
 ```
 
+## Node map
+
+The node map resolves peer IP geolocation via the free ip-api.com batch endpoint
+(no API key required). Lookups happen server-side during the cron job; no client
+IPs are exposed to the frontend.
+
+1. Apply `cipherscan-rust/schema/migrations/010_node_map.sql`.
+2. Run `node server/jobs/sync-nodes.js` once and verify the aggregated node
+   endpoints before installing the production crontab.
+
 ## PostgreSQL backups
 
 The backup script mounts the Hetzner Storage Box over SSHFS and writes a

@@ -685,14 +685,19 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Network',
     method: 'GET',
     path: '/api/network/peers',
-    description: 'Get information about connected Zcash network peers.',
+    description: 'Get privacy-preserving aggregate information about peers currently connected to CipherScan.',
     params: [],
     example: `curl ${baseUrl}/api/network/peers`,
     response: {
       success: true,
       count: 35,
-      peers: [
-        { id: 1, addr: '192.168.1.1:8233', ip: '192.168.1.1', inbound: false, version: 170100, subver: '/Zebra:2.2.0/', pingtime: 0.05, conntime: 1699000000 }
+      inbound: 8,
+      outbound: 27,
+      avgPingMs: 51.4,
+      clientDistribution: [
+        { client: 'Zebra', count: 25 },
+        { client: 'Zakura', count: 7 },
+        { client: 'zcashd', count: 3 }
       ]
     }
   },
@@ -701,13 +706,55 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Network',
     method: 'GET',
     path: '/api/network/nodes',
-    description: 'Get geographic distribution of Zcash nodes for map visualization.',
+    description: 'Get coarse, aggregated geographic distribution of observed Zcash nodes. Individual IPs, ISPs, cities, and precise coordinates are never returned.',
     params: [],
     example: `curl ${baseUrl}/api/network/nodes`,
     response: {
       success: true,
       locations: [
-        { country: 'United States', countryCode: 'US', city: 'New York', lat: 40.71, lon: -74.01, nodeCount: 12, avgPingMs: 45 }
+        { country: 'United States', countryCode: 'US', lat: 41, lon: -74, nodeCount: 12, avgPingMs: 45 }
+      ]
+    }
+  },
+  {
+    id: 'network-node-stats',
+    category: 'Network',
+    method: 'GET',
+    path: '/api/network/nodes/stats',
+    description: 'Get observed node counts, geographic concentration, trends, and Zebra/Zakura/zcashd client diversity.',
+    params: [],
+    example: `curl ${baseUrl}/api/network/nodes/stats`,
+    response: {
+      success: true,
+      stats: { activeNodes: 190, countries: 31, torNodes: 4 },
+      clients: {
+        observedNodes: 168,
+        identifiedNodes: 168,
+        coveragePercentage: 100,
+        distribution: [
+          { client: 'Zebra', count: 129 },
+          { client: 'Zakura', count: 23 },
+          { client: 'zcashd', count: 13 },
+          { client: 'Seeder', count: 3 }
+        ]
+      }
+    }
+  },
+  {
+    id: 'network-node-history',
+    category: 'Network',
+    method: 'GET',
+    path: '/api/network/node-history',
+    description: 'Get privacy-preserving node-count and client-diversity snapshots.',
+    params: [
+      { name: 'period', type: 'string', required: false, description: '24h, 7d, 30d, or 90d (default: 30d)' }
+    ],
+    example: `curl "${baseUrl}/api/network/node-history?period=30d"`,
+    response: {
+      success: true,
+      period: '30d',
+      snapshots: [
+        { time: '2026-07-16T00:00:00Z', activeNodes: 190, identifiedClientNodes: 168, clientCounts: { Zebra: 129, Zakura: 23, zcashd: 13, Seeder: 3 } }
       ]
     }
   },

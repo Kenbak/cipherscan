@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
+const { parsePeerClient } = require('../../lib/peer-client');
 
 // Dependencies injected via middleware
 let pool;
@@ -386,7 +387,7 @@ router.get('/api/network/health', async (req, res) => {
 
 /**
  * GET /api/network/peers
- * Get detailed information about connected peers
+ * Get privacy-preserving aggregate information about connected peers.
  */
 router.get('/api/network/peers', async (req, res) => {
   try {
@@ -403,31 +404,35 @@ router.get('/api/network/peers', async (req, res) => {
       });
     }
 
-    // Format peer data for frontend
-    const peers = peerInfo.map((peer, index) => {
-      const addr = peer.addr || peer.address || 'unknown';
-      const ip = addr.split(':')[0];
-
-      return {
-        id: index + 1,
-        addr: addr,
-        ip: ip,
-        inbound: peer.inbound !== undefined ? peer.inbound : false,
-        version: peer.version || null,
-        subver: peer.subver || null,
-        pingtime: peer.pingtime || null,
-        conntime: peer.conntime || null,
-      };
-    });
+    const clientCounts = {};
+    let inbound = 0;
+    let outbound = 0;
+    let pingTotal = 0;
+    let pingSamples = 0;
+    for (const peer of peerInfo) {
+      const { clientImpl } = parsePeerClient(peer.subver);
+      clientCounts[clientImpl] = (clientCounts[clientImpl] || 0) + 1;
+      if (peer.inbound) inbound++;
+      else outbound++;
+      if (Number.isFinite(peer.pingtime) && peer.pingtime >= 0) {
+        pingTotal += peer.pingtime * 1000;
+        pingSamples++;
+      }
+    }
 
     res.json({
       success: true,
-      count: peers.length,
-      peers,
+      count: peerInfo.length,
+      inbound,
+      outbound,
+      avgPingMs: pingSamples > 0 ? Number((pingTotal / pingSamples).toFixed(1)) : null,
+      clientDistribution: Object.entries(clientCounts)
+        .map(([client, count]) => ({ client, count }))
+        .sort((a, b) => b.count - a.count || a.client.localeCompare(b.client)),
       timestamp: Date.now(),
     });
 
-    console.log(`✅ [PEERS] Returned ${peers.length} peers`);
+    console.log(`✅ [PEERS] Returned aggregates for ${peerInfo.length} peers`);
   } catch (error) {
     console.error('❌ [PEERS] Error fetching peers:', error);
     res.status(500).json({
@@ -634,19 +639,19 @@ router.get('/api/circulating-supply', async (req, res) => {
  */
 router.get('/api/network/nodes', async (req, res) => {
   try {
-    // Return nodes aggregated by city/country (no individual IPs exposed)
+    // Return coarse geographic cells only: no IP, ISP, exact city, or precise
+    // coordinates leave the server.
     const result = await pool.query(`
       SELECT 
         country,
         country_code,
-        city,
-        ROUND(lat::numeric, 2) as lat,
-        ROUND(lon::numeric, 2) as lon,
+        ROUND(lat::numeric, 0) as lat,
+        ROUND(lon::numeric, 0) as lon,
         COUNT(*) as node_count,
         ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms
       FROM nodes 
       WHERE is_active = TRUE AND lat IS NOT NULL
-      GROUP BY country, country_code, city, ROUND(lat::numeric, 2), ROUND(lon::numeric, 2)
+      GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
       ORDER BY node_count DESC
     `);
 
@@ -655,7 +660,6 @@ router.get('/api/network/nodes', async (req, res) => {
       locations: result.rows.map(row => ({
         country: row.country,
         countryCode: row.country_code,
-        city: row.city,
         lat: parseFloat(row.lat),
         lon: parseFloat(row.lon),
         nodeCount: parseInt(row.node_count),
@@ -678,7 +682,7 @@ router.get('/api/network/nodes', async (req, res) => {
  */
 router.get('/api/network/nodes/stats', async (req, res) => {
   try {
-    const [statsResult, topCountries, trends] = await Promise.all([
+    const [statsResult, topCountries, trends, clients, versions] = await Promise.all([
       pool.query(`
         SELECT 
           COUNT(*) FILTER (WHERE is_active) as active_nodes,
@@ -713,11 +717,36 @@ router.get('/api/network/nodes/stats', async (req, res) => {
            WHERE snapshot_time >= NOW() - INTERVAL '30 days'
            ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
       `).catch(() => ({ rows: [{}] })),
+      pool.query(`
+        SELECT client_impl, COUNT(*)::int AS node_count
+        FROM nodes
+        WHERE is_active = TRUE AND observed_via = 'peer'
+        GROUP BY client_impl
+        ORDER BY node_count DESC, client_impl ASC
+      `),
+      pool.query(`
+        SELECT client_impl, client_version, COUNT(*)::int AS node_count
+        FROM nodes
+        WHERE is_active = TRUE
+          AND observed_via = 'peer'
+          AND client_version IS NOT NULL
+        GROUP BY client_impl, client_version
+        ORDER BY node_count DESC, client_impl ASC, client_version DESC
+        LIMIT 12
+      `),
     ]);
 
     const row = statsResult.rows[0];
     const activeNodes = parseInt(row.active_nodes) || 0;
     const trendRow = trends.rows[0] || {};
+    const clientDistribution = clients.rows.map((client) => ({
+      client: client.client_impl || 'Unknown',
+      count: Number(client.node_count) || 0,
+    }));
+    const observedClientNodes = clientDistribution.reduce((sum, client) => sum + client.count, 0);
+    const identifiedClientNodes = clientDistribution
+      .filter((client) => client.client !== 'Unknown')
+      .reduce((sum, client) => sum + client.count, 0);
 
     const calcChange = (prev) => {
       if (!prev || prev === 0) return null;
@@ -745,6 +774,19 @@ router.get('/api/network/nodes/stats', async (req, res) => {
         countryCode: r.country_code,
         nodeCount: parseInt(r.node_count),
       })),
+      clients: {
+        observedNodes: observedClientNodes,
+        identifiedNodes: identifiedClientNodes,
+        coveragePercentage: observedClientNodes > 0
+          ? Number(((identifiedClientNodes / observedClientNodes) * 100).toFixed(1))
+          : 0,
+        distribution: clientDistribution,
+        versions: versions.rows.map((version) => ({
+          client: version.client_impl || 'Unknown',
+          version: version.client_version,
+          count: Number(version.node_count) || 0,
+        })),
+      },
       timestamp: Date.now(),
     });
   } catch (error) {
@@ -774,7 +816,9 @@ router.get('/api/network/node-history', async (req, res) => {
         countries,
         inbound_nodes,
         outbound_nodes,
-        avg_ping_ms
+        avg_ping_ms,
+        identified_client_nodes,
+        client_counts
       FROM node_snapshots
       WHERE snapshot_time >= NOW() - INTERVAL '${interval}'
       ORDER BY snapshot_time ASC
@@ -791,6 +835,8 @@ router.get('/api/network/node-history', async (req, res) => {
         inboundNodes: r.inbound_nodes,
         outboundNodes: r.outbound_nodes,
         avgPingMs: r.avg_ping_ms ? parseFloat(r.avg_ping_ms) : null,
+        identifiedClientNodes: r.identified_client_nodes,
+        clientCounts: r.client_counts || {},
       })),
       timestamp: Date.now(),
     });

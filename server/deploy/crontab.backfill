@@ -5,5 +5,5 @@ CRON_TZ=UTC
 # Keep only independent ingestion and disaster-recovery jobs active while the
 # chain database is incomplete. Install crontab.production after backfill.
 */5 * * * * flock -n /run/cipherscan-sync-swaps.lock bash -lc 'cd /root/cipherscan/server/jobs && node sync-crosschain-swaps.js' >> /var/log/cipherscan/sync-swaps.log 2>&1
-*/10 * * * * flock -n /run/cipherscan-sync-nodes.lock bash -lc 'cd /root/cipherscan/server/jobs && node sync-nodes.js' >> /var/log/cipherscan/sync-nodes.log 2>&1
+*/15 * * * * flock -n /run/cipherscan-sync-nodes.lock bash -lc 'cd /root/cipherscan/server/jobs && node sync-nodes.js' >> /var/log/cipherscan/sync-nodes.log 2>&1
 0 2 * * * /root/cipherscan/server/deploy/backup-postgres.sh >> /var/log/cipherscan/backup.log 2>&1
