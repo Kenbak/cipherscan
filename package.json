@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+    "test:ironwood-accounting": "NODE_PATH=server/api/node_modules node --test server/tests/ironwood-accounting.test.js",
     "test:peer-client": "node --test server/tests/peer-client.test.js",
     "test:sitemap-security": "node --test server/tests/sitemap-security.test.js",
     "test:performance": "node --test server/tests/slow-page-performance.test.js",

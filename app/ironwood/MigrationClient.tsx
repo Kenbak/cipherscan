@@ -30,7 +30,14 @@ interface Overview {
   tipHeight: number;
   activated: boolean;
   blocksUntilActivation: number;
-  poolSizes: { orchardZat: number; ironwoodZat: number; updatedAt: string | null };
+  poolSizes: {
+    orchardZat: number;
+    ironwoodZat: number;
+    updatedAt: string | null;
+    source: 'zebra' | 'privacy_stats';
+    sourceHeight: number;
+    isLive: boolean;
+  };
   migration: {
     totalMigratedZat: number;
     txCount: number;
@@ -38,7 +45,19 @@ interface Overview {
     lastHeight: number | null;
     migratedPercent: number;
   };
-  supplyAudit: { orchardOutZat: number; ironwoodInZat: number; balanced: boolean };
+  supplyAudit: {
+    orchardOutZat: number;
+    coinbaseInZat: number;
+    ironwoodInZat: number;
+    ironwoodOutZat: number;
+    indexedNetZat: number;
+    authoritativePoolZat: number;
+    differenceZat: number;
+    accountingHeight: number;
+    sourceHeight: number;
+    status: 'balanced' | 'syncing' | 'stale' | 'mismatch';
+    balanced: boolean | null;
+  };
 }
 interface Cohort {
   boundary: number;
@@ -116,31 +135,45 @@ export function MigrationClient({
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
 
-  // Refresh client-side against the network-appropriate API (testnet vs mainnet).
-  // Polls so the block countdown ticks live as new blocks arrive.
+  // Keep the authoritative pool snapshot near-live without repeatedly running
+  // the heavier cohort, denomination, and scatter queries.
   useEffect(() => {
     let cancelled = false;
     const base = getApiUrl();
-    const load = () => {
-      Promise.all([
-        fetch(`${base}/api/migration/overview`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${base}/api/migration/cohorts`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${base}/api/migration/denominations`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${base}/api/migration/scatter`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]).then(([o, c, d, s]) => {
+    const fetchJson = (path: string) =>
+      fetch(`${base}${path}`, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+    const loadOverview = () => {
+      fetchJson('/api/migration/overview').then((result) => {
         if (cancelled) return;
-        if (o?.success && o.network === deploymentNetwork) setOverview(o);
-        if (c?.success && c.network === deploymentNetwork) setCohorts(c);
-        if (d?.success && d.network === deploymentNetwork) setDenoms(d);
-        if (s?.success && s.network === deploymentNetwork) setScatter(s);
+        if (result?.success && result.network === deploymentNetwork) setOverview(result);
         setLoaded(true);
       });
     };
-    load();
-    const id = setInterval(load, 20000);
+
+    const loadAnalytics = () => {
+      Promise.all([
+        fetchJson('/api/migration/cohorts'),
+        fetchJson('/api/migration/denominations'),
+        fetchJson('/api/migration/scatter'),
+      ]).then(([c, d, s]) => {
+        if (cancelled) return;
+        if (c?.success && c.network === deploymentNetwork) setCohorts(c);
+        if (d?.success && d.network === deploymentNetwork) setDenoms(d);
+        if (s?.success && s.network === deploymentNetwork) setScatter(s);
+      });
+    };
+
+    loadOverview();
+    loadAnalytics();
+    const overviewId = setInterval(loadOverview, 10000);
+    const analyticsId = setInterval(loadAnalytics, 60000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      clearInterval(overviewId);
+      clearInterval(analyticsId);
     };
   }, []);
 
@@ -520,6 +553,18 @@ function SupplyAudit({
 }) {
   const audit = overview?.supplyAudit;
   const ironwoodZat = overview?.poolSizes.ironwoodZat ?? 0;
+  const auditLabel = audit?.status === 'balanced'
+    ? 'RECONCILED'
+    : audit?.status === 'syncing'
+      ? 'SYNCING'
+      : audit?.status === 'stale'
+        ? 'STALE SOURCE'
+        : 'MISMATCH';
+  const auditStyle = audit?.status === 'balanced'
+    ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
+    : audit?.status === 'syncing' || audit?.status === 'stale'
+      ? 'text-amber-300 border-amber-300/30 bg-amber-300/10'
+      : 'text-red-400 border-red-400/30 bg-red-400/10';
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
@@ -527,14 +572,10 @@ function SupplyAudit({
         <h2 className="text-sm font-bold text-primary">Turnstile audit</h2>
         {audit && (
           <span
-            className={`text-[10px] font-mono px-2 py-1 rounded-md border ${
-              audit.balanced
-                ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
-                : 'text-red-400 border-red-400/30 bg-red-400/10'
-            }`}
-            title="Ironwood inflow must never exceed Orchard outflow through the turnstile."
+            className={`text-[10px] font-mono px-2 py-1 rounded-md border ${auditStyle}`}
+            title="Reconciles indexed Ironwood inflows minus outflows against Zebra's authoritative pool balance."
           >
-            {audit.balanced ? 'BALANCED' : 'IMBALANCE'}
+            {auditLabel}
           </span>
         )}
       </div>
@@ -548,11 +589,18 @@ function SupplyAudit({
           {ironwoodZat > 0 ? `${fmtZec(ironwoodZat)} ZEC` : '—'}
         </div>
         <div className="text-[10px] text-muted mt-1 max-w-md leading-relaxed">
-          ZEC that has been cryptographically proven valid by passing through the turnstile into Ironwood.
+          Current net Ironwood pool balance reported by Zebra and independently reconciled
+          against indexed inflows and outflows.
         </div>
+        {overview?.poolSizes && (
+          <div className="text-[10px] text-muted mt-2 font-mono">
+            {overview.poolSizes.isLive ? 'LIVE · ZEBRA' : 'FALLBACK SNAPSHOT'}
+            {' · '}BLOCK {overview.poolSizes.sourceHeight.toLocaleString()}
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Stat label="Migrated total" value={hasMigrations ? `${fmtZec(overview!.migration.totalMigratedZat)} ZEC` : '—'} />
         <Stat label="Migration txs" value={hasMigrations ? overview!.migration.txCount.toLocaleString() : '—'} />
         <Stat
@@ -563,6 +611,15 @@ function SupplyAudit({
         <Stat
           label="Ironwood in"
           value={audit && hasMigrations ? `${fmtZec(audit.ironwoodInZat)} ZEC` : '—'}
+          color={IRONWOOD}
+        />
+        <Stat
+          label="Ironwood out"
+          value={audit && hasMigrations ? `${fmtZec(audit.ironwoodOutZat)} ZEC` : '—'}
+        />
+        <Stat
+          label="Indexed net"
+          value={audit && hasMigrations ? `${fmtZec(audit.indexedNetZat)} ZEC` : '—'}
           color={IRONWOOD}
         />
       </div>

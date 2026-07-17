@@ -29,11 +29,12 @@ const ACTIVATION_HEIGHT = {
 // (~5.3h at 75s blocks). Migrations sharing a boundary form an anonymity cohort.
 const BOUNDARY_MODULUS = 256;
 
-let pool, redisClient;
+let pool, redisClient, callZebraRPC;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   redisClient = req.app.locals.redisClient;
+  callZebraRPC = req.app.locals.callZebraRPC;
   next();
 });
 
@@ -109,67 +110,151 @@ async function getTipHeight() {
   return r.rows.length ? Number(r.rows[0].h) || 0 : 0;
 }
 
+function parsePoolZat(value) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function extractZebraPoolSnapshot(blockchainInfo) {
+  if (!blockchainInfo || !Array.isArray(blockchainInfo.valuePools)) return null;
+
+  const height = Number(blockchainInfo.blocks);
+  const pools = new Map(blockchainInfo.valuePools.map((entry) => [entry.id, entry]));
+  const orchardZat = parsePoolZat(pools.get('orchard')?.chainValueZat);
+  const ironwoodZat = parsePoolZat(pools.get('ironwood')?.chainValueZat);
+
+  if (!Number.isSafeInteger(height) || height < 0 || orchardZat === null || ironwoodZat === null) {
+    return null;
+  }
+
+  return {
+    orchardZat,
+    ironwoodZat,
+    height,
+    updatedAt: new Date().toISOString(),
+    source: 'zebra',
+    isLive: true,
+  };
+}
+
+function buildSupplyAudit({
+  ironwoodInZat,
+  ironwoodOutZat,
+  authoritativePoolZat,
+  accountingHeight,
+  sourceHeight,
+  source,
+}) {
+  const indexedNetZat = ironwoodInZat - ironwoodOutZat;
+  const differenceZat = authoritativePoolZat - indexedNetZat;
+
+  let status = 'balanced';
+  if (source !== 'zebra') status = 'stale';
+  else if (differenceZat !== 0 && accountingHeight < sourceHeight) status = 'syncing';
+  else if (differenceZat !== 0) status = 'mismatch';
+
+  return {
+    ironwoodInZat,
+    ironwoodOutZat,
+    indexedNetZat,
+    authoritativePoolZat,
+    differenceZat,
+    accountingHeight,
+    sourceHeight,
+    status,
+    balanced: status === 'balanced' ? true : status === 'mismatch' ? false : null,
+  };
+}
+
 // ─── GET /api/migration/overview ────────────────────────────────────────────
 
 router.get('/api/migration/overview', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const network = resolveNetwork();
     const activationHeight = ACTIVATION_HEIGHT[network];
-    const data = await cached(`zcash:migration:overview:${network}`, 15, async () => {
-      const tipHeight = await getTipHeight();
+    const data = await cached(`zcash:migration:overview:v2:${network}`, 5, async () => {
+      const dbTipHeight = await getTipHeight();
+
+      // Zebra's valuePools are authoritative for the current net pool balances.
+      // Keep the hourly privacy_stats snapshot only as a disclosed availability
+      // fallback; cumulative transaction inflow is never a pool-balance fallback.
+      let poolSnapshot = null;
+      if (typeof callZebraRPC === 'function') {
+        try {
+          const blockchainInfo = await callZebraRPC('getblockchaininfo', [], { timeout: 2500 });
+          poolSnapshot = extractZebraPoolSnapshot(blockchainInfo);
+          if (!poolSnapshot) {
+            console.warn('[MIGRATION] Zebra returned invalid valuePools');
+          }
+        } catch (error) {
+          console.warn('[MIGRATION] Live Zebra pool lookup failed:', error.message);
+        }
+      }
+
+      if (!poolSnapshot) {
+        try {
+          const snapshotResult = await pool.query(`
+            SELECT orchard_pool_size, ironwood_pool_size, last_block_scanned, updated_at
+            FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+          `);
+          const snapshot = snapshotResult.rows[0];
+          const orchardZat = parsePoolZat(snapshot?.orchard_pool_size);
+          const ironwoodZat = parsePoolZat(snapshot?.ironwood_pool_size);
+          const height = Number(snapshot?.last_block_scanned);
+          if (orchardZat !== null && ironwoodZat !== null && Number.isSafeInteger(height)) {
+            poolSnapshot = {
+              orchardZat,
+              ironwoodZat,
+              height,
+              updatedAt: snapshot.updated_at,
+              source: 'privacy_stats',
+              isLive: false,
+            };
+          }
+        } catch (error) {
+          console.error('[MIGRATION] Stored pool snapshot lookup failed:', error.message);
+        }
+      }
+
+      if (!poolSnapshot) {
+        throw new Error('No authoritative or stored Ironwood pool snapshot is available');
+      }
+
+      const tipHeight = poolSnapshot.isLive ? poolSnapshot.height : dbTipHeight;
       const activated = activationHeight != null && tipHeight >= activationHeight;
 
-      // Latest pool sizes (Orchard shrinking, Ironwood growing).
-      let orchardPool = 0, ironwoodPool = 0, poolUpdatedAt = null;
-      try {
-        const s = await pool.query(`
-          SELECT orchard_pool_size, ironwood_pool_size, updated_at
-          FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
-        `);
-        if (s.rows.length) {
-          orchardPool = Number(s.rows[0].orchard_pool_size) || 0;
-          ironwoodPool = Number(s.rows[0].ironwood_pool_size) || 0;
-          poolUpdatedAt = s.rows[0].updated_at;
-        }
-      } catch {}
-
-      // Migration aggregate: all value entering Ironwood (ZIP-318 + coinbase).
-      let totalMigratedZat = 0, migrationTxCount = 0, firstMigrationHeight = null, lastMigrationHeight = null;
-      try {
-        const agg = await pool.query(`
-          SELECT
-            COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS total_zat,
-            COUNT(*) AS tx_count,
-            MIN(block_height) AS first_height,
-            MAX(block_height) AS last_height
-          FROM transactions
-          WHERE has_ironwood = true AND value_balance_ironwood < 0
-        `);
-        if (agg.rows.length) {
-          totalMigratedZat = Number(agg.rows[0].total_zat) || 0;
-          migrationTxCount = Number(agg.rows[0].tx_count) || 0;
-          firstMigrationHeight = agg.rows[0].first_height != null ? Number(agg.rows[0].first_height) : null;
-          lastMigrationHeight = agg.rows[0].last_height != null ? Number(agg.rows[0].last_height) : null;
-        }
-      } catch {}
-
-      // Supply audit: value entering Ironwood, split by source.
-      let orchardOutZat = 0, ironwoodInZat = 0, coinbaseInZat = 0;
-      try {
-        const audit = await pool.query(`
-          SELECT
-            COALESCE(SUM(CASE WHEN value_balance_orchard > 0 THEN value_balance_orchard ELSE 0 END), 0) AS orchard_out,
-            COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS ironwood_in,
-            COALESCE(SUM(CASE WHEN is_coinbase THEN ABS(value_balance_ironwood) ELSE 0 END), 0) AS coinbase_in
-          FROM transactions
-          WHERE has_ironwood = true AND value_balance_ironwood < 0
-        `);
-        if (audit.rows.length) {
-          orchardOutZat = Number(audit.rows[0].orchard_out) || 0;
-          ironwoodInZat = Number(audit.rows[0].ironwood_in) || 0;
-          coinbaseInZat = Number(audit.rows[0].coinbase_in) || 0;
-        }
-      } catch {}
+      // One scan yields the gross ledger and migration metadata. Negative
+      // Ironwood value balance enters the pool; positive balance leaves it.
+      const ledgerResult = await pool.query(`
+        SELECT
+          COALESCE(SUM(-value_balance_ironwood)
+            FILTER (WHERE value_balance_ironwood < 0), 0) AS ironwood_in,
+          COALESCE(SUM(value_balance_ironwood)
+            FILTER (WHERE value_balance_ironwood > 0), 0) AS ironwood_out,
+          COALESCE(SUM(value_balance_orchard)
+            FILTER (WHERE value_balance_ironwood < 0 AND value_balance_orchard > 0), 0) AS orchard_out,
+          COALESCE(SUM(-value_balance_ironwood)
+            FILTER (WHERE value_balance_ironwood < 0 AND is_coinbase), 0) AS coinbase_in,
+          COUNT(*) FILTER (WHERE value_balance_ironwood < 0) AS inflow_tx_count,
+          MIN(block_height) FILTER (WHERE value_balance_ironwood < 0) AS first_inflow_height,
+          MAX(block_height) FILTER (WHERE value_balance_ironwood < 0) AS last_inflow_height
+        FROM transactions
+        WHERE has_ironwood = true
+      `);
+      const ledger = ledgerResult.rows[0];
+      const ironwoodInZat = Number(ledger.ironwood_in) || 0;
+      const ironwoodOutZat = Number(ledger.ironwood_out) || 0;
+      const orchardOutZat = Number(ledger.orchard_out) || 0;
+      const coinbaseInZat = Number(ledger.coinbase_in) || 0;
+      const migrationTxCount = Number(ledger.inflow_tx_count) || 0;
+      const firstMigrationHeight = ledger.first_inflow_height != null
+        ? Number(ledger.first_inflow_height)
+        : null;
+      const lastMigrationHeight = ledger.last_inflow_height != null
+        ? Number(ledger.last_inflow_height)
+        : null;
+      const totalMigratedZat = ironwoodInZat;
 
       // Average block time from recent blocks (last 100)
       let avgBlockTimeSecs = 75;
@@ -183,14 +268,18 @@ router.get('/api/migration/overview', async (req, res) => {
         }
       } catch {}
 
-      const migratedFraction = (orchardPool + ironwoodPool) > 0
-        ? ironwoodPool / (orchardPool + ironwoodPool)
+      const migratedFraction = (poolSnapshot.orchardZat + poolSnapshot.ironwoodZat) > 0
+        ? poolSnapshot.ironwoodZat / (poolSnapshot.orchardZat + poolSnapshot.ironwoodZat)
         : 0;
 
-      // Turnstile is always balanced: our DB only records confirmed on-chain txs,
-      // so inflows are definitionally valid. The pool size shown uses the live DB
-      // total which is the authoritative source (privacy_stats lags by up to 1h).
-      const turnstileBalanced = true;
+      const supplyAudit = buildSupplyAudit({
+        ironwoodInZat,
+        ironwoodOutZat,
+        authoritativePoolZat: poolSnapshot.ironwoodZat,
+        accountingHeight: dbTipHeight,
+        sourceHeight: poolSnapshot.height,
+        source: poolSnapshot.source,
+      });
 
       const refHeight = await fetchReferenceHeight();
 
@@ -205,9 +294,12 @@ router.get('/api/migration/overview', async (req, res) => {
           ? 0
           : Math.max(0, activationHeight - tipHeight),
         poolSizes: {
-          orchardZat: orchardPool,
-          ironwoodZat: ironwoodPool || ironwoodInZat,
-          updatedAt: poolUpdatedAt,
+          orchardZat: poolSnapshot.orchardZat,
+          ironwoodZat: poolSnapshot.ironwoodZat,
+          updatedAt: poolSnapshot.updatedAt,
+          source: poolSnapshot.source,
+          sourceHeight: poolSnapshot.height,
+          isLive: poolSnapshot.isLive,
         },
         migration: {
           totalMigratedZat,
@@ -218,8 +310,8 @@ router.get('/api/migration/overview', async (req, res) => {
         },
         supplyAudit: {
           orchardOutZat,
-          ironwoodInZat,
-          balanced: turnstileBalanced,
+          coinbaseInZat,
+          ...supplyAudit,
         },
       };
     });
