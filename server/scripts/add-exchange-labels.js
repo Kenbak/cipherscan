@@ -46,6 +46,21 @@ const NEW_LABELS = [
   { address: 't1e2ivMHX7shmSBhBmGzWxeVN3F9MPvDk8R', label: 'Grayscale Zcash Trust', category: 'exchange', description: 'Grayscale ZCSH fund custody' },
   { address: 't1YjihZAttWbUQJYGgwhEvdGJLbTVcVGGez', label: 'Kucoin Cold Wallet', category: 'exchange', description: 'Kucoin cold storage' },
   { address: 't1Ku2KLyndDPsR32jwnrTMd3yvi9tfFP8ML', label: 'Bridge Hot Wallet', category: 'bridge', description: 'Cross-chain bridge hot wallet' },
+
+  // Binance
+  { address: 't1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMH', label: 'Binance Cold Wallet', category: 'exchange', description: 'Binance cold storage' },
+  { address: 't1VxyLUKaK2tvj5iMRQagued6qpxPNvRkk7', label: 'Binance Cold Wallet', category: 'exchange', description: 'Binance cold storage' },
+  { address: 't1XP8Pjju5eMYVfXiFNNjkjY8kt5ZLL4maJ', label: 'Binance', category: 'exchange', description: 'Binance hot wallet' },
+  { address: 't1PaCpkUPc5cM6FH9jSfFTUVC3DgrYRgxfj', label: 'Binance', category: 'exchange', description: 'Binance hot wallet' },
+
+  // Gemini
+  { address: 't3aPMe94jMKyrgkbH5SSukimvdMFJ59EFhP', label: 'Gemini Cold Wallet', category: 'exchange', description: 'Gemini cold storage / custody' },
+  { address: 't3hdTwzcVVGEqDdNKJTBfWvWyaFYNJv7KkA', label: 'Gemini Custody', category: 'exchange', description: 'Gemini institutional custody' },
+
+  // Kraken
+  { address: 't1g47g7wNA55q5PWYHWb6X5JxzhMqwaknjC', label: 'Kraken Hot Wallet', category: 'exchange', description: 'Kraken hot wallet' },
+  { address: 't1e4VsqHKoMNbFp1RdnzXnedfher8gGA5kJ', label: 'Kraken Cold Wallet', category: 'exchange', description: 'Kraken cold storage' },
+  { address: 't1QGQUHitjvXhZLJXgp7772CTEwAfYBRQXr', label: 'Kraken Deposit', category: 'exchange', description: 'Kraken deposit address' },
 ];
 
 async function main() {
