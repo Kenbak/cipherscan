@@ -45,7 +45,7 @@ const NEW_LABELS = [
   { address: 't1d3xisKP7tfdmNtXr2oDqFToBn1K1gKjSi', label: 'Grayscale Zcash Trust', category: 'exchange', description: 'Grayscale ZCSH fund custody' },
   { address: 't1e2ivMHX7shmSBhBmGzWxeVN3F9MPvDk8R', label: 'Grayscale Zcash Trust', category: 'exchange', description: 'Grayscale ZCSH fund custody' },
   { address: 't1YjihZAttWbUQJYGgwhEvdGJLbTVcVGGez', label: 'Kucoin Cold Wallet', category: 'exchange', description: 'Kucoin cold storage' },
-  { address: 't1Ku2KLyndDPsR32jwnrTMd3yvi9tfFP8ML', label: 'Bridge Hot Wallet', category: 'bridge', description: 'Cross-chain bridge hot wallet' },
+  { address: 't1Ku2KLyndDPsR32jwnrTMd3yvi9tfFP8ML', label: 'NEAR Intent Bridge', category: 'bridge', description: 'NEAR Intent cross-chain bridge' },
 
   // Binance
   { address: 't1RyCw14wRXrh3mp21uxgr9ynjem7cNUkMH', label: 'Binance Cold Wallet', category: 'exchange', description: 'Binance cold storage' },
