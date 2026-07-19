@@ -61,6 +61,19 @@ const NEW_LABELS = [
   { address: 't1g47g7wNA55q5PWYHWb6X5JxzhMqwaknjC', label: 'Kraken Hot Wallet', category: 'exchange', description: 'Kraken hot wallet' },
   { address: 't1e4VsqHKoMNbFp1RdnzXnedfher8gGA5kJ', label: 'Kraken Cold Wallet', category: 'exchange', description: 'Kraken cold storage' },
   { address: 't1QGQUHitjvXhZLJXgp7772CTEwAfYBRQXr', label: 'Kraken Deposit', category: 'exchange', description: 'Kraken deposit address' },
+
+  // Gemini (additional)
+  { address: 't3fygNh4yTRdhirVn6qu1QAtTUvZNFmGtbH', label: 'Gemini Custody', category: 'exchange', description: 'Gemini institutional custody' },
+
+  // Binance (additional)
+  { address: 't1PKBiv7mtzD9bNafYaqyxaENeiNDbpKxxQ', label: 'Binance Hot Wallet', category: 'exchange', description: 'Binance hot wallet' },
+
+  // Coinbase
+  { address: 't1L3mP83QYtcVc5r48sB4tYaPiA31z78WPw', label: 'Coinbase Cold Wallet', category: 'exchange', description: 'Coinbase cold storage' },
+
+  // Other
+  { address: 't3ev37Q2uL1sfTsiJQJiWJoFzQpDhmnUwYo', label: 'ZIP-271 Disbursement Multisig', category: 'foundation', description: 'Zcash protocol disbursement multisig (ZIP-271)' },
+  { address: 't1KbKkQ7WisJF52sSepMjYokQJbkJCJ1i3C', label: 'Hyperunit Hot Wallet', category: 'exchange', description: 'Hyperunit exchange hot wallet' },
 ];
 
 async function main() {
