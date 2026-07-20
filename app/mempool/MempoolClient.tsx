@@ -192,6 +192,16 @@ export default function MempoolClient() {
                 <span className="text-xs text-muted font-mono">LIVE</span>
               </div>
             )}
+            <Link
+              href="/mempool/live"
+              className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+              title="Open fullscreen ambient mode"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+              Screensaver
+            </Link>
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`filter-btn ${autoRefresh ? 'filter-btn-active' : ''}`}

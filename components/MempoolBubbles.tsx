@@ -773,33 +773,35 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
         </div>
       )}
 
-      {/* Legend */}
-      <div
-        className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
-        style={{
-          background: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-        }}
-      >
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/40 border border-cipher-cyan/70" />
-          <span>T · Transparent</span>
+      {/* Legend — hidden in fullscreen/ambient to avoid clutter */}
+      {!isFullscreen && !ambient && (
+        <div
+          className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
+          style={{
+            background: 'var(--color-surface)',
+            borderColor: 'var(--color-border)',
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/40 border border-cipher-cyan/70" />
+            <span>T · Transparent</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
+            <span>M · Mixed</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/50 border border-cipher-purple/80" />
+            <span>S · Shielded</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cipher-orange/40 border border-cipher-orange/70" />
-          <span>M · Mixed</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cipher-purple/50 border border-cipher-purple/80" />
-          <span>S · Shielded</span>
-        </div>
-      </div>
+      )}
 
-      {/* Fullscreen toggle button */}
+      {/* Fullscreen toggle button — bottom-left to stay out of the way */}
       {!ambient && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-4 right-[140px] z-20 p-1.5 rounded-lg bg-glass-4 border border-glass-6 text-muted hover:text-white hover:bg-glass-8 transition-all opacity-50 hover:opacity-100"
+          className="absolute bottom-3 left-3 z-20 p-2 rounded-lg bg-glass-4 border border-glass-6 text-muted hover:text-white hover:bg-glass-8 transition-all opacity-40 hover:opacity-100"
           title={isFullscreen ? 'Exit fullscreen (ESC)' : 'Fullscreen screensaver mode'}
         >
           {isFullscreen ? (
@@ -814,25 +816,38 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
         </button>
       )}
 
-      {/* Ambient mode stats overlay */}
-      {(isFullscreen || ambient) && stats && (
-        <div
-          className="absolute bottom-6 left-6 font-mono text-[11px] tracking-wider pointer-events-none select-none transition-opacity duration-1000"
-          style={{ opacity: cursorVisible ? 0.7 : 0.3 }}
-        >
-          <div className="text-white/70">{stats.total} pending</div>
-          <div className="text-cipher-purple/70">{stats.shieldedPct}% shielded</div>
-        </div>
-      )}
-
-      {/* CipherScan watermark in fullscreen/ambient */}
+      {/* Ambient/fullscreen overlays */}
       {(isFullscreen || ambient) && (
-        <div
-          className="absolute bottom-6 right-6 font-mono text-[10px] tracking-widest pointer-events-none select-none uppercase transition-opacity duration-1000"
-          style={{ opacity: cursorVisible ? 0.4 : 0.15, color: 'rgba(255,255,255,0.5)' }}
-        >
-          CipherScan
-        </div>
+        <>
+          {/* Stats bottom-left */}
+          {stats && (
+            <div
+              className="absolute bottom-6 left-6 font-mono text-[11px] tracking-wider pointer-events-none select-none transition-opacity duration-1000"
+              style={{ opacity: cursorVisible ? 0.7 : 0.3 }}
+            >
+              <div className="text-white/70">{stats.total} pending</div>
+              <div className="text-cipher-purple/70">{stats.shieldedPct}% shielded</div>
+            </div>
+          )}
+
+          {/* Watermark bottom-right */}
+          <div
+            className="absolute bottom-6 right-6 font-mono text-[10px] tracking-widest pointer-events-none select-none uppercase transition-opacity duration-1000"
+            style={{ opacity: cursorVisible ? 0.4 : 0.15, color: 'rgba(255,255,255,0.5)' }}
+          >
+            CipherScan
+          </div>
+
+          {/* Compact legend in ambient — top-right area, fades with cursor */}
+          <div
+            className="absolute top-5 right-6 flex items-center gap-3 font-mono text-[9px] pointer-events-none select-none transition-opacity duration-1000"
+            style={{ opacity: cursorVisible ? 0.5 : 0.2 }}
+          >
+            <span className="text-cipher-cyan/70">T</span>
+            <span className="text-cipher-orange/70">M</span>
+            <span className="text-cipher-purple/70">S</span>
+          </div>
+        </>
       )}
 
       {/* Empty state overlay */}
