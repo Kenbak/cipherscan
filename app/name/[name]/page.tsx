@@ -5,7 +5,15 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import type { Event, EventAction, Registration, Pricing } from 'zcashname-sdk';
+type EventAction = 'CLAIM' | 'RELEASE' | 'TRANSFER' | 'UPDATE' | 'LIST' | 'SETPRICE' | 'BUY' | 'DELIST';
+interface Event { id: string; action: EventAction; name: string; owner?: string; timestamp: number; txid: string; height: number; price?: number; }
+interface Registration {
+  name: string; owner: string; address: string; pubkey?: string;
+  data?: Record<string, string>; created: number; updated: number; expires: number;
+  txid: string; height: number; last_action: EventAction;
+  listing?: { price: number; seller: string };
+}
+interface Pricing { tiers: number[]; }
 
 const ZCASHNAMES_URL = 'https://www.zcashnames.com';
 
@@ -24,6 +32,7 @@ const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' |
   UPDATE: 'purple',
   DELIST: 'orange',
   RELEASE: 'muted',
+  TRANSFER: 'cyan',
 };
 
 export default function NamePage() {
@@ -342,7 +351,7 @@ function AvailableView({
                   </tr>
                 </thead>
                 <tbody>
-                  {pricing.tiers.map((zats, i) => {
+                  {pricing.tiers.map((zats: number, i: number) => {
                     const isLast = i === pricing.tiers.length - 1;
                     const label = isLast ? `${i + 1}+` : `${i + 1}`;
                     return (
