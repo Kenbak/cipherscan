@@ -819,23 +819,21 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       {/* Ambient/fullscreen overlays */}
       {(isFullscreen || ambient) && (
         <>
-          {/* Stats bottom-left */}
-          {stats && (
-            <div
-              className="absolute bottom-6 left-6 font-mono text-[11px] tracking-wider pointer-events-none select-none transition-opacity duration-1000"
-              style={{ opacity: cursorVisible ? 0.7 : 0.3 }}
-            >
-              <div className="text-white/70">{stats.total} pending</div>
-              <div className="text-cipher-purple/70">{stats.shieldedPct}% shielded</div>
-            </div>
-          )}
-
-          {/* Watermark bottom-right */}
+          {/* Bottom-left: watermark + stats */}
           <div
-            className="absolute bottom-6 right-6 font-mono text-[10px] tracking-widest pointer-events-none select-none uppercase transition-opacity duration-1000"
-            style={{ opacity: cursorVisible ? 0.4 : 0.15, color: 'rgba(255,255,255,0.5)' }}
+            className="absolute bottom-6 left-6 font-mono pointer-events-none select-none transition-opacity duration-1000"
+            style={{ opacity: cursorVisible ? 0.7 : 0.25 }}
           >
-            CipherScan
+            <div className="text-[11px] text-white/50 tracking-widest uppercase mb-1">
+              CipherScan {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
+            </div>
+            {stats && (
+              <div className="text-[10px] tracking-wider">
+                <span className="text-white/50">{stats.total} pending</span>
+                <span className="text-white/20 mx-1.5">·</span>
+                <span className="text-cipher-purple/60">{stats.shieldedPct}% shielded</span>
+              </div>
+            )}
           </div>
 
           {/* Compact legend in ambient — top-right area, fades with cursor */}
