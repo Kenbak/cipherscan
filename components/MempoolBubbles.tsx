@@ -454,27 +454,39 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         b.bobPhase += 0.008 + (i % 5) * 0.001; // Slightly different bob speed per bubble
 
         const isDragged = dragRef.current?.id === b.id;
+        const isHoveredNow = hoveredRef.current === b.id;
         if (b.state !== 'popping' && !isDragged) {
-          // Per-bubble wander — each bubble drifts in its own slowly rotating
-          // direction so they feel like individual entities, not a clump.
-          // The phase/bobPhase seeds were assigned at creation so directions differ.
-          const wanderAngle = b.phase * 0.4 + b.bobPhase * 0.7;
-          const wanderStrength = 0.015;
-          b.vx += Math.cos(wanderAngle) * wanderStrength;
-          b.vy += Math.sin(wanderAngle) * wanderStrength;
+          if (isHoveredNow) {
+            // Hovered bubble holds still so the tooltip stays readable —
+            // no wander, no repulsion, just firm damping to a stop.
+            b.vx *= 0.75;
+            b.vy *= 0.75;
+          } else {
+            // Per-bubble wander — each bubble drifts in its own slowly rotating
+            // direction so they feel like individual entities, not a clump.
+            // The phase/bobPhase seeds were assigned at creation so directions differ.
+            const wanderAngle = b.phase * 0.4 + b.bobPhase * 0.7;
+            const wanderStrength = 0.015;
+            b.vx += Math.cos(wanderAngle) * wanderStrength;
+            b.vy += Math.sin(wanderAngle) * wanderStrength;
 
-          // Cursor gravity well — bubbles gently repel from the pointer
-          const m = mouseRef.current;
-          if (m.active) {
-            const dxm = b.x - m.x;
-            const dym = b.y - m.y;
-            const distM = Math.hypot(dxm, dym);
-            const repelRange = 110;
-            if (distM < repelRange && distM > 0.5) {
-              const f = (1 - distM / repelRange) * 0.35;
-              b.vx += (dxm / distM) * f;
-              b.vy += (dym / distM) * f;
-              b.excited = Math.max(b.excited, 20);
+            // Cursor gravity well — bubbles gently drift away from the pointer.
+            // The dead zone (bubble radius + margin) means a bubble is never
+            // pushed while the cursor is on or near it, and the push stays
+            // under the calm speed cap so bubbles are always catchable for
+            // hover/click — they part around the cursor, they don't flee it.
+            const m = mouseRef.current;
+            if (m.active) {
+              const dxm = b.x - m.x;
+              const dym = b.y - m.y;
+              const distM = Math.hypot(dxm, dym);
+              const deadZone = b.radius + 14;
+              const repelRange = 110;
+              if (distM < repelRange && distM > deadZone) {
+                const f = (1 - distM / repelRange) * 0.12;
+                b.vx += (dxm / distM) * f;
+                b.vy += (dym / distM) * f;
+              }
             }
           }
 
