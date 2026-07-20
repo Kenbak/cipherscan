@@ -40,6 +40,8 @@ interface Bubble {
 interface MempoolBubblesProps {
   transactions: MempoolTransaction[];
   className?: string;
+  ambient?: boolean;
+  stats?: { total: number; shieldedPct: number } | null;
 }
 
 // Resolve theme-aware colors from CSS variables at runtime so bubbles
@@ -122,7 +124,7 @@ function sizeToRadius(size: number): number {
 }
 
 
-export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesProps) {
+export function MempoolBubbles({ transactions, className = '', ambient = false, stats = null }: MempoolBubblesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bubblesRef = useRef<Bubble[]>([]);
   const animFrameRef = useRef<number>(0);
@@ -133,7 +135,44 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
   const colorsRef = useRef(buildColors(themeRef.current));
   const [hoveredTx, setHoveredTx] = useState<MempoolTransaction | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const cursorTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+  // Fullscreen API
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // Auto-hide cursor in fullscreen or ambient mode
+  useEffect(() => {
+    if (!isFullscreen && !ambient) return;
+    const resetCursor = () => {
+      setCursorVisible(true);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 4000);
+    };
+    resetCursor();
+    const el = containerRef.current;
+    el?.addEventListener('mousemove', resetCursor);
+    return () => {
+      el?.removeEventListener('mousemove', resetCursor);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, [isFullscreen, ambient]);
 
   // Watch for theme changes (light/dark class on <html>)
   useEffect(() => {
@@ -646,13 +685,17 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
   }, []);
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative w-full ${className} ${isFullscreen || ambient ? 'bg-[#08090f]' : ''}`}
+      style={{ cursor: (isFullscreen || ambient) && !cursorVisible ? 'none' : undefined }}
+    >
       <canvas
         ref={canvasRef}
         onMouseMove={handleMouseMove}
         onClick={handleClick}
         onMouseLeave={handleMouseLeave}
-        className="w-full h-full rounded-xl"
+        className={`w-full h-full ${isFullscreen || ambient ? '' : 'rounded-xl'}`}
       />
 
       {/* HUD corner brackets */}
@@ -751,6 +794,46 @@ export function MempoolBubbles({ transactions, className = '' }: MempoolBubblesP
           <span>S · Shielded</span>
         </div>
       </div>
+
+      {/* Fullscreen toggle button */}
+      {!ambient && (
+        <button
+          onClick={toggleFullscreen}
+          className="absolute top-4 right-[140px] z-20 p-1.5 rounded-lg bg-glass-4 border border-glass-6 text-muted hover:text-white hover:bg-glass-8 transition-all opacity-50 hover:opacity-100"
+          title={isFullscreen ? 'Exit fullscreen (ESC)' : 'Fullscreen screensaver mode'}
+        >
+          {isFullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          )}
+        </button>
+      )}
+
+      {/* Ambient mode stats overlay */}
+      {(isFullscreen || ambient) && stats && (
+        <div
+          className="absolute bottom-6 left-6 font-mono text-[11px] tracking-wider pointer-events-none select-none transition-opacity duration-1000"
+          style={{ opacity: cursorVisible ? 0.7 : 0.3 }}
+        >
+          <div className="text-white/70">{stats.total} pending</div>
+          <div className="text-cipher-purple/70">{stats.shieldedPct}% shielded</div>
+        </div>
+      )}
+
+      {/* CipherScan watermark in fullscreen/ambient */}
+      {(isFullscreen || ambient) && (
+        <div
+          className="absolute bottom-6 right-6 font-mono text-[10px] tracking-widest pointer-events-none select-none uppercase transition-opacity duration-1000"
+          style={{ opacity: cursorVisible ? 0.4 : 0.15, color: 'rgba(255,255,255,0.5)' }}
+        >
+          CipherScan
+        </div>
+      )}
 
       {/* Empty state overlay */}
       {transactions.length === 0 && (

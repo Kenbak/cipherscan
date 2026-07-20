@@ -107,6 +107,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run once on mount
 
+  // Reconnect when tab becomes visible again (handles OS sleep / tab throttling)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && !wsRef.current) {
+        connect();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [connect]);
+
   return {
     isConnected,
     lastMessage,

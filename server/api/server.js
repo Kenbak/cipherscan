@@ -492,6 +492,27 @@ wss.on('connection', async (ws, req) => {
   ws.on('error', cleanup);
 });
 
+// Keep WebSocket connections alive for long-running clients (screensaver mode).
+// Sends a ping every 30s; terminates unresponsive clients after 35s.
+const WS_PING_INTERVAL = 30_000;
+const wsAliveCheck = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      clients.delete(ws);
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, WS_PING_INTERVAL);
+
+wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+});
+
+wss.on('close', () => clearInterval(wsAliveCheck));
+
 // Broadcast message to all connected clients (local + Redis Pub/Sub).
 // serviceExtra: optional object merged into data for raw_mempool subscribers only.
 async function broadcastToAll(message, serviceExtra = null) {

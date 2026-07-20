@@ -242,6 +242,7 @@ export default function MempoolClient() {
             <MempoolBubbles
               transactions={data?.transactions ?? []}
               className="h-[350px] sm:h-[420px]"
+              stats={data?.stats ? { total: data.count, shieldedPct: Math.round(data.stats.shieldedPercentage) } : null}
             />
           </CardBody>
         </Card>
