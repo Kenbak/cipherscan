@@ -687,7 +687,7 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
   return (
     <div
       ref={containerRef}
-      className={`relative w-full ${className} ${isFullscreen || ambient ? 'bg-[#08090f]' : ''}`}
+      className={`relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-[#08090f]' : ''}`}
       style={{ cursor: (isFullscreen || ambient) && !cursorVisible ? 'none' : undefined }}
     >
       <canvas
@@ -704,14 +704,14 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-cyan/20 rounded-bl pointer-events-none" />
       <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-cyan/20 rounded-br pointer-events-none" />
 
-      {/* Top-left HUD label */}
-      <div className="absolute top-4 left-6 font-mono text-[9px] text-cipher-cyan/30 tracking-widest pointer-events-none select-none">
+      {/* Top-left HUD label — shifts down in ambient to avoid EXIT button overlap */}
+      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-[9px] text-cipher-cyan/30 tracking-widest pointer-events-none select-none`}>
         MEMPOOL_LIVE // {transactions.length} TX
       </div>
 
       {/* Top-right timestamp */}
       <div
-        className="absolute top-4 right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none"
+        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none`}
         style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}
       >
         {new Date().toISOString().slice(11, 19)} UTC
