@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { MempoolBubbles } from '@/components/MempoolBubbles';
+import { MempoolBubbles, type MempoolBubblesHandle } from '@/components/MempoolBubbles';
 
 interface MempoolTransaction {
   txid: string;
@@ -48,6 +48,8 @@ export default function MempoolClient() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showTable, setShowTable] = useState(true);
+  const [blockPulse, setBlockPulse] = useState(0);
+  const bubblesRef = useRef<MempoolBubblesHandle>(null);
   const usePostgresApi = usePostgresApiClient();
 
   const fetchMempool = async () => {
@@ -103,6 +105,9 @@ export default function MempoolClient() {
         const txs = prev.transactions.filter(t => t.txid !== msg.data.txid);
         return { ...prev, transactions: txs, count: Math.max(0, prev.count - 1), showing: txs.length };
       });
+    } else if (msg.type === 'new_block') {
+      // Trigger the shockwave animation on the bubble canvas
+      setBlockPulse(p => p + 1);
     }
   }, []);
 
@@ -178,38 +183,9 @@ export default function MempoolClient() {
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
           <span className="opacity-50">{'>'}</span> MEMPOOL_VIEWER
         </p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash Mempool — Pending Transactions
-          </h1>
-          <div className="flex items-center gap-3">
-            {autoRefresh && (
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
-                </span>
-                <span className="text-xs text-muted font-mono">LIVE</span>
-              </div>
-            )}
-            <Link
-              href="/mempool/live"
-              className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted hover:text-cipher-cyan transition-colors"
-              title="Open fullscreen ambient mode"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-              </svg>
-              Screensaver
-            </Link>
-            <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`filter-btn ${autoRefresh ? 'filter-btn-active' : ''}`}
-            >
-              {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
-            </button>
-          </div>
-        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+          Zcash Mempool — Pending Transactions
+        </h1>
         <p className="text-sm text-secondary mt-2">
           Pending transactions waiting to be mined
         </p>
@@ -247,12 +223,67 @@ export default function MempoolClient() {
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
       <div className="mb-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        {/* Section header — same pattern as chart sections on /mining and /pools */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+            <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">MEMPOOL_LIVE</h3>
+            {autoRefresh && wsConnected && (
+              <span className="relative flex h-1.5 w-1.5 ml-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* LIVE / PAUSED segmented pill — same pattern as PeriodSelector */}
+            <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3 flex-shrink-0">
+              {([true, false] as const).map(on => (
+                <button
+                  key={String(on)}
+                  onClick={() => setAutoRefresh(on)}
+                  className={`px-2 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+                    autoRefresh === on
+                      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+                      : 'text-muted hover:text-primary'
+                  }`}
+                >
+                  {on ? 'LIVE' : 'PAUSED'}
+                </button>
+              ))}
+            </div>
+            {/* Fullscreen */}
+            <button
+              onClick={() => bubblesRef.current?.toggleFullscreen()}
+              className="p-1.5 rounded-md bg-glass-3 text-muted hover:text-cipher-cyan transition-colors"
+              title="Fullscreen (ESC to exit)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            </button>
+            {/* Screensaver mode */}
+            <Link
+              href="/mempool/live"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+              title="Ambient screensaver mode — great on a second monitor"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              SCREENSAVER
+            </Link>
+          </div>
+        </div>
         <Card className="overflow-hidden">
           <CardBody className="!p-0">
             <MempoolBubbles
+              ref={bubblesRef}
               transactions={data?.transactions ?? []}
               className="h-[350px] sm:h-[420px]"
               stats={data?.stats ? { total: data.count, shieldedPct: Math.round(data.stats.shieldedPercentage) } : null}
+              blockPulse={blockPulse}
             />
           </CardBody>
         </Card>
@@ -265,7 +296,7 @@ export default function MempoolClient() {
           <path strokeLinecap="round" d="M12 16v-4M12 8h.01" />
         </svg>
         <p className="leading-relaxed">
-          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-cyan font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open.
+          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-cyan font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
         </p>
       </div>
 

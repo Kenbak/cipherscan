@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { MempoolBubbles } from '@/components/MempoolBubbles';
@@ -23,7 +24,18 @@ interface MempoolTransaction {
 export default function MempoolLiveClient() {
   const [transactions, setTransactions] = useState<MempoolTransaction[]>([]);
   const [stats, setStats] = useState<{ total: number; shieldedPct: number }>({ total: 0, shieldedPct: 0 });
+  const [blockPulse, setBlockPulse] = useState(0);
   const usePostgresApi = usePostgresApiClient();
+  const router = useRouter();
+
+  // ESC returns to the regular mempool page
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') router.push('/mempool');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router]);
 
   const fetchMempool = async () => {
     try {
@@ -72,6 +84,8 @@ export default function MempoolLiveClient() {
         setStats(s => ({ ...s, total: txs.length }));
         return txs;
       });
+    } else if (msg.type === 'new_block') {
+      setBlockPulse(p => p + 1);
     }
   }, []);
 
@@ -96,17 +110,16 @@ export default function MempoolLiveClient() {
         className="h-full"
         ambient
         stats={stats}
+        blockPulse={blockPulse}
       />
 
-      {/* Back to mempool — visible on hover/mouse movement */}
+      {/* Back to mempool — HUD style, visible on mouse movement */}
       <Link
         href="/mempool"
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all duration-300 opacity-0 group-hover/live:opacity-100 font-mono text-[11px] tracking-wider"
+        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-[#08090f]/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        EXIT
+        [ EXIT ]
+        <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
       </Link>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface MempoolTransaction {
@@ -35,6 +35,8 @@ interface Bubble {
   popProgress: number;
   rippleRadius: number;
   rippleOpacity: number;
+  /** Frames remaining with a raised speed cap (after fling/repulsion/shockwave) */
+  excited: number;
 }
 
 interface MempoolBubblesProps {
@@ -42,6 +44,12 @@ interface MempoolBubblesProps {
   className?: string;
   ambient?: boolean;
   stats?: { total: number; shieldedPct: number } | null;
+  /** Increment to trigger the block-mined shockwave */
+  blockPulse?: number;
+}
+
+export interface MempoolBubblesHandle {
+  toggleFullscreen: () => void;
 }
 
 // Resolve theme-aware colors from CSS variables at runtime so bubbles
@@ -124,7 +132,8 @@ function sizeToRadius(size: number): number {
 }
 
 
-export function MempoolBubbles({ transactions, className = '', ambient = false, stats = null }: MempoolBubblesProps) {
+export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesProps>(
+  function MempoolBubbles({ transactions, className = '', ambient = false, stats = null, blockPulse = 0 }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bubblesRef = useRef<Bubble[]>([]);
   const animFrameRef = useRef<number>(0);
@@ -138,6 +147,23 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const cursorTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Cursor position for the gravity-well repulsion effect
+  const mouseRef = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
+  // Active drag state (drag-and-fling)
+  const dragRef = useRef<{
+    id: string;
+    moved: boolean;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    offsetX: number;
+    offsetY: number;
+    vx: number;
+    vy: number;
+  } | null>(null);
+  // Expanding shockwave when a block is mined
+  const waveRef = useRef<{ active: boolean; r: number }>({ active: false, r: 0 });
   const router = useRouter();
 
   // Fullscreen API
@@ -150,6 +176,15 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       document.exitFullscreen().catch(() => {});
     }
   }, []);
+
+  useImperativeHandle(ref, () => ({ toggleFullscreen }), [toggleFullscreen]);
+
+  // Trigger the shockwave whenever a new block is mined
+  useEffect(() => {
+    if (blockPulse > 0) {
+      waveRef.current = { active: true, r: 0 };
+    }
+  }, [blockPulse]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -236,6 +271,7 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
           popProgress: 0,
           rippleRadius: 0,
           rippleOpacity: 0.6,
+          excited: 0,
         });
       }
     }
@@ -361,6 +397,28 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
 
+      // === BLOCK-MINED SHOCKWAVE ===
+      // Expanding ring from the center; bubbles on the wavefront get kicked outward.
+      const wave = waveRef.current;
+      const waveMaxR = Math.hypot(w, h) * 0.62;
+      if (wave.active) {
+        wave.r += Math.max(w, h) * 0.022;
+        const wcx = w / 2;
+        const wcy = h / 2;
+        for (const b of bubblesRef.current) {
+          if (b.state === 'dead') continue;
+          const dxw = b.x - wcx;
+          const dyw = b.y - wcy;
+          const distW = Math.hypot(dxw, dyw) || 1;
+          if (Math.abs(distW - wave.r) < 40) {
+            b.vx += (dxw / distW) * 2.4;
+            b.vy += (dyw / distW) * 2.4;
+            b.excited = Math.max(b.excited, 70);
+          }
+        }
+        if (wave.r > waveMaxR) wave.active = false;
+      }
+
       for (let i = 0; i < bubblesRef.current.length; i++) {
         const b = bubblesRef.current[i];
 
@@ -395,7 +453,8 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
         b.phase += 0.012;
         b.bobPhase += 0.008 + (i % 5) * 0.001; // Slightly different bob speed per bubble
 
-        if (b.state !== 'popping') {
+        const isDragged = dragRef.current?.id === b.id;
+        if (b.state !== 'popping' && !isDragged) {
           // Per-bubble wander — each bubble drifts in its own slowly rotating
           // direction so they feel like individual entities, not a clump.
           // The phase/bobPhase seeds were assigned at creation so directions differ.
@@ -403,6 +462,21 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
           const wanderStrength = 0.015;
           b.vx += Math.cos(wanderAngle) * wanderStrength;
           b.vy += Math.sin(wanderAngle) * wanderStrength;
+
+          // Cursor gravity well — bubbles gently repel from the pointer
+          const m = mouseRef.current;
+          if (m.active) {
+            const dxm = b.x - m.x;
+            const dym = b.y - m.y;
+            const distM = Math.hypot(dxm, dym);
+            const repelRange = 110;
+            if (distM < repelRange && distM > 0.5) {
+              const f = (1 - distM / repelRange) * 0.35;
+              b.vx += (dxm / distM) * f;
+              b.vy += (dym / distM) * f;
+              b.excited = Math.max(b.excited, 20);
+            }
+          }
 
           // Very gentle pull toward the canvas center — only kicks in when a
           // bubble has drifted far from the middle, otherwise it's negligible.
@@ -423,13 +497,16 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
           b.vx *= 0.96;
           b.vy *= 0.96;
 
-          // Soft speed cap so motion stays calm
+          // Soft speed cap so ambient motion stays calm. "Excited" bubbles
+          // (flung, repelled, or hit by the block shockwave) get a temporary
+          // higher cap so the energy reads on screen, then settle back down.
           const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-          const maxSpeed = 0.6;
+          const maxSpeed = b.excited > 0 ? 7 : 0.6;
           if (speed > maxSpeed) {
             b.vx = (b.vx / speed) * maxSpeed;
             b.vy = (b.vy / speed) * maxSpeed;
           }
+          if (b.excited > 0) b.excited -= 1;
 
           b.x += b.vx;
           b.y += b.vy;
@@ -617,6 +694,26 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
         ctx.restore();
       }
 
+      // Shockwave ring (drawn on top of bubbles)
+      if (wave.active) {
+        const waveAlpha = Math.max(0, 0.4 * (1 - wave.r / waveMaxR));
+        if (waveAlpha > 0.01) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(w / 2, h / 2, wave.r, 0, Math.PI * 2);
+          ctx.stroke();
+          // Softer trailing ring for depth
+          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha * 0.35})`;
+          ctx.lineWidth = 7;
+          ctx.beginPath();
+          ctx.arc(w / 2, h / 2, Math.max(0, wave.r - 10), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
       animFrameRef.current = requestAnimationFrame(animate);
     };
 
@@ -624,7 +721,7 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
     return () => cancelAnimationFrame(animFrameRef.current);
   }, []);
 
-  // Mouse interaction
+  // Mouse interaction — hover, cursor repulsion tracking, and drag-and-fling
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -632,6 +729,28 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
+    mouseRef.current = { x: mx, y: my, active: true };
+
+    // Active drag: bubble follows the pointer, velocity tracked for the fling
+    const drag = dragRef.current;
+    if (drag) {
+      const b = bubblesRef.current.find(bb => bb.id === drag.id);
+      if (b) {
+        const dx = mx - drag.lastX;
+        const dy = my - drag.lastY;
+        b.x = mx + drag.offsetX;
+        b.y = my + drag.offsetY;
+        // Smoothed velocity so the fling uses recent motion, not one jittery frame
+        drag.vx = drag.vx * 0.65 + dx * 0.35;
+        drag.vy = drag.vy * 0.65 + dy * 0.35;
+        drag.lastX = mx;
+        drag.lastY = my;
+        if (Math.hypot(mx - drag.startX, my - drag.startY) > 5) drag.moved = true;
+        canvas.style.cursor = 'grabbing';
+        setHoveredTx(null);
+      }
+      return;
+    }
 
     let found: Bubble | null = null;
     for (const b of bubblesRef.current) {
@@ -646,7 +765,7 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
 
     if (found) {
       hoveredRef.current = found.id;
-      canvas.style.cursor = 'pointer';
+      canvas.style.cursor = 'grab';
 
       const tx = transactions.find(t => t.txid === found!.id);
       if (tx) {
@@ -660,7 +779,7 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
     }
   }, [transactions]);
 
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -673,15 +792,46 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       const dx = mx - b.x;
       const dy = my - b.y;
       if (dx * dx + dy * dy < b.radius * b.radius) {
-        router.push(`/tx/${b.txid}`);
+        dragRef.current = {
+          id: b.id,
+          moved: false,
+          startX: mx,
+          startY: my,
+          lastX: mx,
+          lastY: my,
+          offsetX: b.x - mx,
+          offsetY: b.y - my,
+          vx: 0,
+          vy: 0,
+        };
         break;
       }
     }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const b = bubblesRef.current.find(bb => bb.id === drag.id);
+    if (b) {
+      if (!drag.moved) {
+        // Simple click — open the transaction
+        router.push(`/tx/${b.txid}`);
+      } else {
+        // Fling: hand the drag velocity to the bubble (clamped)
+        b.vx = Math.max(-14, Math.min(14, drag.vx));
+        b.vy = Math.max(-14, Math.min(14, drag.vy));
+        b.excited = 90;
+      }
+    }
+    dragRef.current = null;
   }, [router]);
 
   const handleMouseLeave = useCallback(() => {
     hoveredRef.current = null;
     setHoveredTx(null);
+    mouseRef.current.active = false;
+    dragRef.current = null;
   }, []);
 
   return (
@@ -693,7 +843,8 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       <canvas
         ref={canvasRef}
         onMouseMove={handleMouseMove}
-        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         className={`w-full h-full ${isFullscreen || ambient ? '' : 'rounded-xl'}`}
       />
@@ -797,22 +948,15 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
         </div>
       )}
 
-      {/* Fullscreen toggle button — bottom-left to stay out of the way */}
-      {!ambient && (
+      {/* Exit affordance — HUD style, only visible while fullscreen */}
+      {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute bottom-3 left-3 z-20 p-2 rounded-lg bg-glass-4 border border-glass-6 text-muted hover:text-white hover:bg-glass-8 transition-all opacity-40 hover:opacity-100"
-          title={isFullscreen ? 'Exit fullscreen (ESC)' : 'Fullscreen screensaver mode'}
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-[#08090f]/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300"
+          style={{ opacity: cursorVisible ? 1 : 0 }}
         >
-          {isFullscreen ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-            </svg>
-          )}
+          [ EXIT ]
+          <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
         </button>
       )}
 
@@ -867,4 +1011,4 @@ export function MempoolBubbles({ transactions, className = '', ambient = false, 
       )}
     </div>
   );
-}
+});
