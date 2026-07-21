@@ -43,6 +43,12 @@
   --color-secondary: var(--color-text-secondary);
   --color-muted: var(--color-text-muted);
 
+  /* Semantic status colors — theme-aware (danger/warning flip per theme) */
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--color-green);
+  --color-info: var(--color-cyan);
+
   /* Glass overlays (theme-aware) */
   --color-glass-2: var(--glass-2);
   --color-glass-3: var(--glass-3);
@@ -206,6 +212,11 @@
   --color-deshielding: var(--color-orange);
   --color-shielded-state: var(--color-purple);
 
+  /* Semantic status colors — use text-danger/text-warning etc. in markup,
+     never physical palette colors (text-red-400) for themeable UI */
+  --danger: #F87171;
+  --warning: #FB923C;
+
   /* Text */
   --color-text-primary: #E5E7EB;
   --color-text-secondary: #9CA3AF;
@@ -293,6 +304,10 @@
   --color-shielding: var(--color-green);
   --color-deshielding: var(--color-orange);
   --color-shielded-state: var(--color-purple);
+
+  /* Semantic status colors — darker for light-surface contrast */
+  --danger: #DC2626;
+  --warning: #C2410C;
 
   /* Text - high contrast for readability */
   --color-text-primary: #0F172A;
@@ -824,13 +839,6 @@
   .text-muted {
     color: var(--color-text-muted);
   }
-
-  /* ===== LIGHT MODE: TAILWIND COLOR CONTRAST FIXES ===== */
-  /* Tailwind's 400-level reds/oranges wash out on light backgrounds.
-     These overrides boost them to 600-level equivalents for readability. */
-  .light .text-red-400 { color: #DC2626; }
-  .light .text-orange-400 { color: var(--color-orange); }
-  .light .bg-orange-400\/70 { background-color: rgba(194, 65, 12, 0.7); }
 
   /* ===== DONATE BUTTON ===== */
   .donate-btn {

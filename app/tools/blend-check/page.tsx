@@ -71,7 +71,7 @@ function formatZec(n: number): string {
 function getScoreColor(score: number): string {
   if (score >= 70) return 'text-cipher-green';
   if (score >= 40) return 'text-cipher-orange';
-  return 'text-red-400';
+  return 'text-danger';
 }
 
 function getScoreBg(score: number): string {
@@ -254,7 +254,7 @@ export default function BlendCheckPage() {
               )}
 
               {error && (
-                <div className="text-red-400 text-xs font-mono mt-5">{error}</div>
+                <div className="text-danger text-xs font-mono mt-5">{error}</div>
               )}
             </CardBody>
           </Card>

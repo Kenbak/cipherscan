@@ -108,7 +108,7 @@ export function CrosslinkStats() {
           label="Peers"
           value={stats.peerCount}
           sub="connected"
-          color={stats.peerCount < 5 ? 'text-red-400' : 'text-primary'}
+          color={stats.peerCount < 5 ? 'text-danger' : 'text-primary'}
           tooltip={STAT_TOOLTIPS['Peers']}
         />
         <Link href="/validators" className="hover:bg-[var(--color-hover)] transition-colors">

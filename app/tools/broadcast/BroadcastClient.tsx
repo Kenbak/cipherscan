@@ -306,7 +306,7 @@ export default function BroadcastClient() {
                       <span className="text-xs sm:text-sm">Error</span>
                     </div>
                     <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
-                      <code className="text-xs text-red-400 break-all block">{result.error}</code>
+                      <code className="text-xs text-danger break-all block">{result.error}</code>
                     </div>
                     {(() => {
                       const hint = getErrorHint(result.error || '');

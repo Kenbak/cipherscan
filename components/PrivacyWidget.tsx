@@ -233,7 +233,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
                 <Tooltip content="Transactions where shielding patterns may reveal address links" />
               </div>
               <div className="flex items-baseline gap-1">
-                <span className={`text-lg sm:text-xl font-semibold font-mono ${hasHighRisk ? 'text-red-400' : 'text-cipher-orange'}`}>
+                <span className={`text-lg sm:text-xl font-semibold font-mono ${hasHighRisk ? 'text-danger' : 'text-cipher-orange'}`}>
                   {riskStats!.total}
                 </span>
                 <span className="text-[10px] text-muted font-mono">7d</span>

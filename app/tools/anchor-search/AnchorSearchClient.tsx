@@ -87,7 +87,7 @@ export default function AnchorSearchClient() {
             {loading ? 'Searching...' : 'Search'}
           </button>
         </div>
-        {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
+        {error && <p className="mt-2 text-danger text-sm">{error}</p>}
       </form>
 
       {result && (
@@ -153,7 +153,7 @@ export default function AnchorSearchClient() {
               <div className="space-y-2">
                 {result.orphaned.map((block) => (
                   <div key={block.hash} className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <span className="text-red-400 font-mono text-sm">
+                    <span className="text-danger font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded font-mono ${

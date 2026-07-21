@@ -23,7 +23,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     direction === 'up'
       ? 'text-cipher-green'
       : direction === 'down'
-        ? 'text-red-400'
+        ? 'text-danger'
         : 'text-muted';
 
   return (

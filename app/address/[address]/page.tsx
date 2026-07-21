@@ -907,7 +907,7 @@ export default function AddressPage() {
                   <span>·</span>
                   <span className="text-cipher-green">{crossChain.entryCount} in</span>
                   <span>·</span>
-                  <span className="text-red-400">{crossChain.exitCount} out</span>
+                  <span className="text-danger">{crossChain.exitCount} out</span>
                 </div>
               )}
             </div>
@@ -954,7 +954,7 @@ export default function AddressPage() {
                   <Badge color="cyan">{crossChain.totalSwaps}</Badge>
                 </div>
                 <span className="text-xs sm:text-sm text-muted font-normal font-mono sm:ml-auto">
-                  ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol · <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-red-400">{crossChain.exitCount} out</span>
+                  ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol · <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-danger">{crossChain.exitCount} out</span>
                 </span>
               </div>
             </CardHeader>
@@ -1203,7 +1203,7 @@ export default function AddressPage() {
                           </span>
                         ) : (
                           <span className={`text-sm font-mono font-semibold ${
-                            tx.type === 'received' ? 'text-cipher-green' : 'text-red-500 dark:text-red-400'
+                            tx.type === 'received' ? 'text-cipher-green' : 'text-danger'
                           }`}>
                             {tx.type === 'received' ? '+' : '-'}{Math.abs(tx.amount).toFixed(4)}
                           </span>

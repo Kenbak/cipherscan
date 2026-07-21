@@ -380,7 +380,7 @@ export default function CrosschainPage() {
           {isInflow ? (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-cipher-green/15 text-cipher-green text-[10px] font-bold rounded border border-cipher-green/20">IN</span>
           ) : (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-500/15 text-red-400 text-[10px] font-bold rounded border border-red-500/20">OUT</span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-500/15 text-danger text-[10px] font-bold rounded border border-red-500/20">OUT</span>
           )}
           <span className="text-[10px] text-muted font-mono sm:hidden">{formatRelativeTime(swap.timestamp)}</span>
         </div>
@@ -495,7 +495,7 @@ export default function CrosschainPage() {
                       <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">VOLUME_TRENDS</h2>
                     </div>
                     {trendChange !== 0 && (
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${trendChange > 0 ? 'bg-cipher-green/20 text-cipher-green' : 'bg-red-500/20 text-red-400'}`}>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${trendChange > 0 ? 'bg-cipher-green/20 text-cipher-green' : 'bg-red-500/20 text-danger'}`}>
                         {trendChange > 0 ? '+' : ''}{trendChange.toFixed(1)}%
                       </span>
                     )}
@@ -580,7 +580,7 @@ export default function CrosschainPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                    <h2 className="text-sm font-bold font-mono text-red-400 uppercase tracking-wider">OUTFLOWS</h2>
+                    <h2 className="text-sm font-bold font-mono text-danger uppercase tracking-wider">OUTFLOWS</h2>
                   </div>
                   <span className="text-xs font-mono text-muted">{formatUSD(totalOutflows)} / 24h</span>
                 </div>
@@ -780,7 +780,7 @@ export default function CrosschainPage() {
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-red-400 uppercase tracking-wider">SELL_ZEC_LATENCY</h2>
+                  <h2 className="text-sm font-bold font-mono text-danger uppercase tracking-wider">SELL_ZEC_LATENCY</h2>
                   <span className="text-[10px] text-muted ml-2">ZEC deposit confirmation time</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

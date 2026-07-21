@@ -84,7 +84,7 @@ export default function DocsPage() {
             </p>
             <p>
               <strong className="text-primary">Rate Limiting:</strong> If you exceed 100 requests per minute,
-              you&apos;ll receive a <code className="text-red-400">429 Too Many Requests</code> response.
+              you&apos;ll receive a <code className="text-danger">429 Too Many Requests</code> response.
             </p>
             <p>
               <strong className="text-primary">Values:</strong> Monetary amounts in responses are in{' '}
@@ -198,11 +198,11 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
               <span className="text-secondary">Not found. The requested block, transaction, address, or name does not exist.</span>
             </div>
             <div className="flex gap-4 items-start">
-              <code className="text-red-400 font-mono shrink-0 w-12">429</code>
+              <code className="text-danger font-mono shrink-0 w-12">429</code>
               <span className="text-secondary">Rate limit exceeded. Wait and retry. Limit: 100 requests per minute per IP.</span>
             </div>
             <div className="flex gap-4 items-start">
-              <code className="text-red-400 font-mono shrink-0 w-12">500</code>
+              <code className="text-danger font-mono shrink-0 w-12">500</code>
               <span className="text-secondary">Server error. The node or database may be temporarily unavailable.</span>
             </div>
           </div>

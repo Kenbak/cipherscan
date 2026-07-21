@@ -582,7 +582,7 @@ export function ScanMyTransactions() {
           {/* Scan Period */}
           <div>
             <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-              Scan Period <span className="text-red-400">*</span>
+              Scan Period <span className="text-danger">*</span>
             </label>
             <select
               value={scanPeriod}
@@ -607,7 +607,7 @@ export function ScanMyTransactions() {
           {scanPeriod === 'birthday' && (
             <div>
               <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-                Wallet Birthday Block <span className="text-red-400">*</span>
+                Wallet Birthday Block <span className="text-danger">*</span>
               </label>
               <input
                 type="number"
@@ -680,7 +680,7 @@ export function ScanMyTransactions() {
                   <button
                     onClick={cancelScan}
                     disabled={cancelRequested}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 hover:text-red-300 font-mono text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg text-danger hover:text-red-300 font-mono text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Cancel scan"
                   >
                     <Icons.X />
@@ -716,7 +716,7 @@ export function ScanMyTransactions() {
           {scanError && (
             <div className="bg-red-900/10 dark:bg-red-900/10 bg-red-50 border border-red-500/30 rounded-lg p-4 sm:p-6">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-danger">
                   <Icons.X />
                 </div>
                 <div className="flex-1">

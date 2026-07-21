@@ -238,7 +238,7 @@ export default async function TxLayout({ params, children }: Props) {
     : status === 'Pending'
       ? 'text-cipher-yellow border-cipher-yellow/30 bg-cipher-yellow/5'
       : status === 'Reorganized'
-        ? 'text-orange-400 border-orange-400/30 bg-orange-400/5'
+        ? 'text-warning border-warning/30 bg-warning/5'
         : 'text-muted border-cipher-border bg-glass-2';
 
   return (

@@ -119,7 +119,7 @@ export default function WalletsClient() {
         <h1 className="text-3xl font-bold mb-4">Wallet Anonymity Analysis</h1>
         <Card variant="standard">
           <CardBody>
-            <p className="text-red-400">{error}</p>
+            <p className="text-danger">{error}</p>
           </CardBody>
         </Card>
       </div>

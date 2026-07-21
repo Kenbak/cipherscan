@@ -206,7 +206,7 @@ export default function PrivacyClient() {
 
   const trendColor =
     stats.metrics.adoptionTrend === 'growing' ? 'text-cipher-green' :
-    stats.metrics.adoptionTrend === 'declining' ? 'text-red-400' :
+    stats.metrics.adoptionTrend === 'declining' ? 'text-danger' :
     'text-secondary';
 
   const trendIcon =
@@ -326,7 +326,7 @@ export default function PrivacyClient() {
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       stats.metrics.adoptionTrend === 'growing' ? 'bg-cipher-green/10 text-cipher-green' :
-                      stats.metrics.adoptionTrend === 'declining' ? 'bg-red-500/10 text-red-400' :
+                      stats.metrics.adoptionTrend === 'declining' ? 'bg-red-500/10 text-danger' :
                       'bg-cipher-surface text-secondary'
                     }`}>
                       {trendIcon}

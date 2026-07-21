@@ -52,7 +52,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
                   <code className="text-cipher-cyan font-mono">{param.name}</code>
                   <span className="text-muted">({param.type})</span>
                   {param.required && (
-                    <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">required</span>
+                    <span className="text-[10px] font-bold text-danger uppercase tracking-wider">required</span>
                   )}
                 </div>
                 <span className="text-secondary">- {param.description}</span>

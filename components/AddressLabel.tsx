@@ -108,7 +108,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
         {showEditButton && !labelInfo.isOfficial && (
           <button
             onClick={handleRemove}
-            className="text-gray-500 hover:text-red-400 transition-colors"
+            className="text-gray-500 hover:text-danger transition-colors"
             title="Remove label"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

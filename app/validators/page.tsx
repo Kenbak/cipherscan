@@ -405,7 +405,7 @@ export default function ValidatorsPage() {
                             ? 'text-cipher-cyan'
                             : pct >= 30
                             ? 'text-cipher-orange'
-                            : 'text-red-400';
+                            : 'text-danger';
                           return (
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-16 h-1.5 rounded-full bg-cipher-border-alpha/50 overflow-hidden hidden sm:block">

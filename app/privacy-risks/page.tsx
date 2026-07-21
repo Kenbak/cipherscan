@@ -350,7 +350,7 @@ function PrivacyRisksContent() {
                 </svg>
                 {tab.label}
                 {tab.key === 'batch' && batchStats && batchStats.highRisk > 0 && (
-                  <span className="text-[10px] font-mono bg-red-500/10 text-red-400/70 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
+                  <span className="text-[10px] font-mono bg-red-500/10 text-danger/70 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
                     {batchStats.highRisk}
                   </span>
                 )}
@@ -383,7 +383,7 @@ function PrivacyRisksContent() {
               {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => {
                 const isActive = (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level;
                 const activeStyle = level === 'HIGH'
-                  ? 'bg-red-500/8 text-red-400/80 font-bold'
+                  ? 'bg-red-500/8 text-danger/80 font-bold'
                   : level === 'MEDIUM'
                   ? 'bg-amber-500/8 text-amber-400/80 font-bold'
                   : 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold';
@@ -449,7 +449,7 @@ function PrivacyRisksContent() {
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${
                         item.tone === 'HIGH'
-                          ? 'bg-red-500/10 text-red-400'
+                          ? 'bg-red-500/10 text-danger'
                           : item.tone === 'MEDIUM'
                             ? 'bg-cipher-yellow/10 text-cipher-yellow'
                             : 'bg-cipher-cyan/10 text-cipher-cyan'
@@ -499,7 +499,7 @@ function PrivacyRisksContent() {
               ) : error ? (
                 <Card>
                   <CardBody className="py-16 text-center">
-                    <p className="text-red-400">{error}</p>
+                    <p className="text-danger">{error}</p>
                   </CardBody>
                 </Card>
               ) : transactions.length === 0 ? (
@@ -561,7 +561,7 @@ function PrivacyRisksContent() {
               ) : batchError ? (
                 <Card>
                   <CardBody className="py-16 text-center">
-                    <p className="text-red-400">{batchError}</p>
+                    <p className="text-danger">{batchError}</p>
                   </CardBody>
                 </Card>
               ) : batchPatterns.length === 0 ? (
@@ -623,7 +623,7 @@ function PrivacyRisksContent() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-secondary">High Risk</span>
-                  <span className="text-base font-mono font-bold text-red-400 tabular-nums">
+                  <span className="text-base font-mono font-bold text-danger tabular-nums">
                     {currentStats?.highRisk || 0}
                   </span>
                 </div>

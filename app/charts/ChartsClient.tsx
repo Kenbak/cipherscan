@@ -413,8 +413,8 @@ function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; lo
       </div>
       <div className="grid grid-cols-3 gap-6 w-full max-w-[220px]">
         <div className="text-center">
-          <div className="text-lg font-bold font-mono text-red-400">{data.high}</div>
-          <div className="text-[8px] font-mono text-red-400/60 uppercase">High</div>
+          <div className="text-lg font-bold font-mono text-danger">{data.high}</div>
+          <div className="text-[8px] font-mono text-danger/60 uppercase">High</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold font-mono text-amber-400">{data.medium}</div>

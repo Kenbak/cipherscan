@@ -112,14 +112,14 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
             : 'bg-cipher-orange/10 border border-cipher-orange/20'
           : 'bg-cipher-green/10 border border-cipher-green/20'
       }`}>
-        <svg className={`w-3.5 h-3.5 shrink-0 ${hasRisk ? isHigh ? 'text-red-400' : 'text-cipher-orange' : 'text-cipher-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-3.5 h-3.5 shrink-0 ${hasRisk ? isHigh ? 'text-danger' : 'text-cipher-orange' : 'text-cipher-green'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {hasRisk ? (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           ) : (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           )}
         </svg>
-        <span className={hasRisk ? isHigh ? 'text-red-400' : 'text-cipher-orange' : 'text-cipher-green'}>
+        <span className={hasRisk ? isHigh ? 'text-danger' : 'text-cipher-orange' : 'text-cipher-green'}>
           {hasRisk
             ? `Privacy: ${data.highestScore}/100 — Round-trip pattern detected`
             : 'Privacy: No round-trip detected'
@@ -182,10 +182,10 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
       {/* Header — same visual language as privacy-risks page */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className={`w-3.5 h-3.5 ${isHigh ? 'text-danger' : 'text-cipher-yellow'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-red-400' : 'text-cipher-yellow'}`}>
+          <span className={`text-xs font-mono font-semibold tracking-wide uppercase ${isHigh ? 'text-danger' : 'text-cipher-yellow'}`}>
             {isHigh ? 'High' : 'Med'}
             <span className="opacity-30 mx-1">·</span>
             {data.highestScore}/100

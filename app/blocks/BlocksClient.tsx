@@ -190,7 +190,7 @@ export default function BlocksClient({
                   'fast':      'text-cipher-cyan',
                   'normal':    'text-cipher-green',
                   'slow':      'text-amber-400',
-                  'very-slow': 'text-red-400',
+                  'very-slow': 'text-danger',
                 };
                 const barColors = {
                   'fast':      'bg-cipher-cyan/50',

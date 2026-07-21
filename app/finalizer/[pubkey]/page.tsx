@@ -417,7 +417,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
     ? 'text-cipher-cyan'
     : participation_pct >= 30
     ? 'text-cipher-orange'
-    : 'text-red-400';
+    : 'text-danger';
 
   const barColor = participation_pct >= 95
     ? 'bg-cipher-green'

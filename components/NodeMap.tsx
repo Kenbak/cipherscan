@@ -290,7 +290,7 @@ export function NodeMap() {
                   <span className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
                   {trends?.change24h !== null && trends?.change24h !== undefined && (
                     <span className={`text-[10px] font-mono font-semibold ${
-                      trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-red-400' : 'text-muted'
+                      trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-danger' : 'text-muted'
                     }`}>
                       {trends.change24h > 0 ? '+' : ''}{trends.change24h}%
                     </span>
@@ -535,7 +535,7 @@ export function NodeMap() {
                 <div key={label} className="flex items-center gap-1">
                   <span className="text-[10px] text-muted font-mono">{label}</span>
                   <span className={`text-xs font-mono font-semibold ${
-                    value > 0 ? 'text-cipher-green' : value < 0 ? 'text-red-400' : 'text-muted'
+                    value > 0 ? 'text-cipher-green' : value < 0 ? 'text-danger' : 'text-muted'
                   }`}>
                     {value > 0 ? '+' : ''}{value}%
                   </span>
