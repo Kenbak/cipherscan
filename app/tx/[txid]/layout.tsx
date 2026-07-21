@@ -12,6 +12,7 @@ import {
   type TxMeta,
 } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
+import { CopyButton } from '@/components/CopyButton';
 
 type Props = {
   params: Promise<{ txid: string }>;
@@ -258,8 +259,11 @@ export default async function TxLayout({ params, children }: Props) {
           <span className="block text-lg sm:text-xl font-semibold tracking-tight text-primary">
             Zcash Transaction
           </span>
-          <span className="block mt-2 text-sm sm:text-base font-mono font-normal text-primary break-all">
-            {normalizedTxid}
+          <span className="mt-2 flex items-center gap-2 min-w-0">
+            <span className="text-sm sm:text-base font-mono font-normal text-primary break-all">
+              {normalizedTxid}
+            </span>
+            <CopyButton text={normalizedTxid} size="sm" className="shrink-0" />
           </span>
         </h1>
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -267,7 +271,6 @@ export default async function TxLayout({ params, children }: Props) {
             {status}
           </span>
           <span className="text-xs font-mono text-muted">{networkName}</span>
-          {txType && <span className="text-xs font-mono text-muted">{txType}</span>}
         </div>
         <p className="sr-only">{statusDescription}</p>
       </section>
