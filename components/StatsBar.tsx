@@ -211,7 +211,7 @@ export function StatsBar() {
             )}
 
             {stats.privacyScore !== null && (
-              <span className="hidden xl:contents">
+              <span className="hidden 2xl:contents">
                 <StatItem href="/privacy" label="Privacy Score">
                   <span className={stats.privacyScore < 30 ? 'text-danger' : stats.privacyScore < 60 ? 'text-warning' : 'text-cipher-green'}>
                     {stats.privacyScore}/100
