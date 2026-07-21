@@ -210,22 +210,24 @@ export function NavBar() {
                 </a>
               )}
 
-              {/* Network switcher dropdown — desktop only */}
+              {/* Network switcher — globe icon dropdown, desktop only */}
               <div className="hidden md:block relative">
                 <button
                   onClick={() => toggleDropdown('network')}
-                  className={`flex items-center gap-1 text-[11px] font-mono px-2 py-1.5 rounded-md transition-colors duration-150 ${
+                  className={`p-2 rounded-md transition-colors duration-150 ${
                     openDropdown === 'network' ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
                   }`}
+                  title={isMainnet ? 'Mainnet' : isCrosslink ? 'Crosslink' : 'Testnet'}
                 >
-                  <span>{isMainnet ? 'Mainnet' : isCrosslink ? 'Crosslink' : 'Testnet'}</span>
-                  <svg className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'network' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.6 9h16.8M3.6 15h16.8" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a15.3 15.3 0 014 9 15.3 15.3 0 01-4 9 15.3 15.3 0 01-4-9 15.3 15.3 0 014-9z" />
                   </svg>
                 </button>
 
                 {openDropdown === 'network' && (
-                  <div className="absolute right-0 mt-1 w-44 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-right">
+                  <div className="absolute right-0 mt-1 w-36 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-right">
                     <a
                       href={MAINNET_URL}
                       className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${

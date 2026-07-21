@@ -75,7 +75,7 @@
   --color-cipher-cyan-bright: #00D4FF;
   --color-cipher-cyan-glow: #00E5FF;
   --color-cipher-cyan-muted: #5EBBCE;
-  --color-cipher-green-bright: #00E676;
+  --color-cipher-green-bright: #34D399;
   --color-cipher-purple-bright: #A78BFA;
   --color-cipher-purple-glow: #C4B5FD;
   --color-cipher-yellow-bright: #F4B728;
@@ -197,7 +197,7 @@
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-cyan-rgb: 0 212 255;
-  --color-green-rgb: 0 230 118;
+  --color-green-rgb: 52 211 153;
   --color-yellow-rgb: 244 183 40;
   --color-purple-rgb: 167 139 250;
   --color-orange-rgb: 255 107 53;
@@ -206,7 +206,7 @@
   --color-cyan: #00D4FF;
   --color-cyan-glow: #00E5FF;
   --color-cyan-muted: #5EBBCE;
-  --color-green: #00E676;
+  --color-green: #34D399;
   --color-yellow: #F4B728;
   --color-purple: #A78BFA;
   --color-purple-glow: #C4B5FD;
@@ -230,7 +230,7 @@
   /* Text */
   --color-text-primary: #E5E7EB;
   --color-text-secondary: #9CA3AF;
-  --color-text-muted: #6B7280;
+  --color-text-muted: #9CA3AF;
 
   /* Node map */
   --color-map-dot: rgba(55, 65, 81, 0.45);
@@ -376,7 +376,7 @@
 
 /* Light Theme Overrides */
 .light {
-  --color-bg: #F4F5F7;
+  --color-bg: #F7F8FC;
   --color-elevated: #ECEEF2;
   --color-surface: #F8FAFC;
   --color-surface-solid: #F8FAFC;
