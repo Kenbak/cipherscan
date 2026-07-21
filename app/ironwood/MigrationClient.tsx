@@ -353,7 +353,7 @@ function IronwoodCountdown({
     : { href: 'https://cipherscan.app/ironwood', label: 'View on mainnet' };
 
   return (
-    <div className="mt-8 rounded-2xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-[#0a0a12] p-6 sm:p-10 overflow-hidden relative">
+    <div className="mt-8 rounded-2xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-cipher-bg-dark p-6 sm:p-10 overflow-hidden relative">
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at 50% 0%, ${IRONWOOD}22 0%, transparent 60%)` }}

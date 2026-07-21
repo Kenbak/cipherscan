@@ -64,3 +64,4 @@ rust-indexer/
 # Cursor IDE
 .cursor/
 .agents/
+screenshots/

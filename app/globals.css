@@ -221,6 +221,11 @@
   --danger: #F87171;
   --warning: #FB923C;
 
+  /* Ambient page-background gradients (none in light mode) */
+  --body-ambient:
+    radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
+
   /* Text */
   --color-text-primary: #E5E7EB;
   --color-text-secondary: #9CA3AF;
@@ -414,6 +419,9 @@
   --danger: #DC2626;
   --warning: #C2410C;
 
+  /* Light mode — clean, no ambient gradients */
+  --body-ambient: none;
+
   /* Text - high contrast for readability */
   --color-text-primary: #0F172A;
   --color-text-secondary: #475569;
@@ -543,9 +551,7 @@
     transition-duration: var(--duration-normal);
     background-color: var(--color-bg);
     color: var(--color-text-primary);
-    background-image:
-      radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
+    background-image: var(--body-ambient);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -560,11 +566,6 @@
     pointer-events: none;
     z-index: 9999;
   } */
-
-  /* Light mode — clean, no ambient gradients */
-  .light body {
-    background-image: none;
-  }
 
   code {
     @apply font-mono;

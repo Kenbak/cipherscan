@@ -314,14 +314,13 @@ export function NodeMap() {
       </div>
 
       {/* Dot Matrix Map */}
-      <div className="relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="relative overflow-hidden bg-cipher-bg">
         <ChartWatermark size="map" />
         {/* Active filter indicator */}
         {selectedCountryData && (
           <button
             onClick={() => setSelectedCountry(null)}
-            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition-all hover:border-cipher-cyan/60"
-            style={{ backgroundColor: 'var(--color-surface-solid)' }}
+            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition-all hover:border-cipher-cyan/60 bg-cipher-surface-solid"
           >
             <span>{getFlagEmoji(selectedCountryData.countryCode)}</span>
             <span className="text-cipher-cyan font-semibold">{selectedCountryData.country}</span>
@@ -476,7 +475,7 @@ export function NodeMap() {
 
         {/* Hover tooltip (country + count only, no city) */}
         {hoveredNode && (
-            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none" style={{ backgroundColor: 'var(--color-surface-solid)' }}>
+            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
             <div className="flex items-center gap-2">
               <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
               <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
@@ -493,7 +492,7 @@ export function NodeMap() {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none" style={{ backgroundColor: 'var(--color-surface-solid)' }}>
+        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none bg-cipher-surface-solid">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: NODE_TIERS.high.fill, boxShadow: `0 0 6px ${NODE_TIERS.high.glow}` }}></span>

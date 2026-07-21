@@ -45,8 +45,7 @@ export function InteractiveCompositionBar({
   return (
     <div className={className}>
       <div
-        className="h-3 rounded-full overflow-hidden flex mb-3"
-        style={{ backgroundColor: 'var(--color-bg)' }}
+        className="h-3 rounded-full overflow-hidden flex mb-3 bg-cipher-bg"
         role="img"
         aria-label="Composition breakdown"
       >
