@@ -1,9 +1,147 @@
 @import "tailwindcss";
-@config "../tailwind.config.ts";
 @source "../components";
 @source "../app";
 @source "../lib";
-@source "../pages";
+
+/* Class-based dark: variant — <html> carries .dark/.light (see ThemeContext).
+   Matches the selector the v3 config bridge generated (descendants of .dark). */
+@custom-variant dark (&:is(.dark *));
+
+/* ===== DESIGN TOKENS (Tailwind v4 @theme) =====
+ *
+ * Single source of truth for every design token. The runtime CSS variables
+ * (defined in :root below, flipped by .light) hold the actual per-theme
+ * values; these @theme blocks expose them as Tailwind utilities.
+ *
+ * Rules:
+ * - Theme-aware tokens live in `@theme inline` and reference runtime vars.
+ * - Static tokens (type scale, radii, motion) live in the plain `@theme`.
+ * - Never add a @theme variable whose name collides with a runtime var.
+ */
+
+/* Theme-aware tokens — inlined into utilities so they follow the runtime
+   variables that flip between dark and light themes. */
+@theme inline {
+  /* Backgrounds / surfaces (theme-aware) */
+  --color-cipher-bg: var(--color-bg);
+  --color-cipher-elevated: var(--color-elevated);
+  --color-cipher-surface: var(--color-surface);
+  --color-cipher-hover: var(--color-hover);
+  --color-cipher-active: var(--color-active);
+  --color-cipher-border: var(--color-border);
+  --color-cipher-border-alpha: rgb(var(--color-border-rgb));
+
+  /* Brand (theme-aware via RGB channel vars) */
+  --color-cipher-cyan: rgb(var(--color-cyan-rgb));
+  --color-cipher-green: rgb(var(--color-green-rgb));
+  --color-cipher-purple: rgb(var(--color-purple-rgb));
+  --color-cipher-yellow: rgb(var(--color-yellow-rgb));
+  --color-cipher-orange: rgb(var(--color-orange-rgb));
+
+  /* Semantic text colors — generate text-primary / text-secondary / text-muted */
+  --color-primary: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-muted: var(--color-text-muted);
+
+  /* Glass overlays (theme-aware) */
+  --color-glass-2: var(--glass-2);
+  --color-glass-3: var(--glass-3);
+  --color-glass-4: var(--glass-4);
+  --color-glass-6: var(--glass-6);
+  --color-glass-8: var(--glass-8);
+  --color-glass-12: var(--glass-12);
+  --color-glass-18: var(--glass-18);
+
+  /* Fonts — reference next/font variables set on <body> */
+  --font-sans: var(--font-geist-sans), Geist, 'SF Pro Display', system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: var(--font-geist-sans), Geist, 'SF Pro Display', system-ui, sans-serif;
+}
+
+/* Static tokens — identical in both themes. */
+@theme {
+  /* Static brand accents (intentionally not theme-aware; matches v3 config) */
+  --color-cipher-cyan-bright: #00D4FF;
+  --color-cipher-cyan-glow: #00E5FF;
+  --color-cipher-cyan-muted: #5EBBCE;
+  --color-cipher-green-bright: #00E676;
+  --color-cipher-purple-bright: #A78BFA;
+  --color-cipher-purple-glow: #C4B5FD;
+  --color-cipher-yellow-bright: #F4B728;
+  --color-cipher-yellow-glow: #FFD060;
+  --color-cipher-yellow-muted: #C9A035;
+  --color-cipher-orange-bright: #FF6B35;
+
+  /* Forced-theme colors (deliberately static) */
+  --color-cipher-bg-dark: #08090F;
+  --color-cipher-surface-dark: #14161F;
+  --color-cipher-bg-light: #FAFBFC;
+  --color-cipher-surface-light: #FFFFFF;
+  --color-cipher-border-light: #E2E8F0;
+
+  /* Type scale (Major Third — 1.250) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 2.375rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 1.1;
+  --text-5xl: 3.75rem;
+  --text-5xl--line-height: 1.05;
+
+  /* Letter spacing */
+  --tracking-tighter: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.05em;
+
+  /* Border radius hierarchy (bare `rounded` = 8px) */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadow elevation levels (v3 overrides preserved) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.04), 0 16px 32px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.06), 0 32px 64px rgba(0, 0, 0, 0.12);
+
+  /* Animations (scan/shimmer keyframes live in @layer utilities below) */
+  --animate-fade-in: fadeIn 0.5s ease-out;
+  --animate-fade-in-up: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scale-in: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  --animate-slide-in-right: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slideInRight {
+    0% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+}
 
 /**
  * CIPHERSCAN Design System v2.0
@@ -183,7 +321,8 @@
 @layer base {
   /* Dark mode (default) */
   body {
-    @apply font-sans transition-colors duration-normal;
+    @apply font-sans transition-colors;
+    transition-duration: var(--duration-normal);
     background-color: var(--color-bg);
     color: var(--color-text-primary);
     background-image:

@@ -1,6 +1,8 @@
 /**
  * Classes emitted by longformMarkdown() via dangerouslySetInnerHTML.
- * Listed in tailwind.config.ts safelist so purge keeps the matching CSS rules.
+ * These are hand-written CSS classes in app/globals.css (nl-* newsletter
+ * prose styles), so they are always included in the bundle regardless of
+ * Tailwind's on-demand utility generation.
  */
 export const LONGFORM_HTML_CLASS_LIST = [
   'nl-stat-breakdown',
