@@ -32,7 +32,7 @@ export function CopyButton({
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1500);
       }}
-      className={`${px} text-neutral-500 dark:text-neutral-400 hover:text-cipher-cyan transition-colors shrink-0 rounded ${className}`}
+      className={`${px} text-muted hover:text-cipher-cyan transition-colors shrink-0 rounded ${className}`}
       title={copied ? 'Copied!' : label || 'Copy'}
       aria-label={label || 'Copy to clipboard'}
     >

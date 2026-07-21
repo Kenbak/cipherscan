@@ -13,3 +13,12 @@ export { Input, Textarea, SearchInput } from './Input';
 // Filter components
 export { FilterGroup, FilterButton } from './FilterGroup';
 export { PeriodPillTags } from './PeriodPillTags';
+
+// Headers
+export { PageHeader, SectionHeader } from './SectionHeader';
+
+// Data display
+export { HashLink } from './HashLink';
+export { MetricCard } from './MetricCard';
+export { InfoRow } from './InfoRow';
+export { EmptyState, SkeletonTable } from './EmptyState';
