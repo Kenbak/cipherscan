@@ -26,7 +26,7 @@ function formatCompact(num: number): string {
 
 function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1 text-[11px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+    <Link href={href} className="flex items-center gap-1 text-xs font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
       <span className="text-muted/50">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>

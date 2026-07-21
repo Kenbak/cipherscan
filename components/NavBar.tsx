@@ -160,7 +160,7 @@ export function NavBar() {
                 <div key={cat.id} className="relative">
                   <button
                     onClick={() => toggleDropdown(cat.id)}
-                    className={`flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
+                    className={`flex items-center gap-1 text-[13px] font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
                       openDropdown === cat.id ? 'text-cipher-cyan bg-cipher-hover' : 'text-muted hover:text-primary'
                     }`}
                   >
