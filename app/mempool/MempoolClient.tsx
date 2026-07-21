@@ -195,17 +195,13 @@ export default function MempoolClient() {
           className="px-1"
           actions={
             <>
-            {/* LIVE / PAUSED segmented pill — same pattern as PeriodSelector */}
-            <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3 flex-shrink-0">
+            {/* LIVE / PAUSED segmented pill — canonical filter-group pattern */}
+            <div className="filter-group flex-shrink-0">
               {([true, false] as const).map(on => (
                 <button
                   key={String(on)}
                   onClick={() => setAutoRefresh(on)}
-                  className={`px-2 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
-                    autoRefresh === on
-                      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
-                      : 'text-muted hover:text-primary'
-                  }`}
+                  className={`filter-btn ${autoRefresh === on ? 'filter-btn-active' : ''}`}
                 >
                   {on ? 'LIVE' : 'PAUSED'}
                 </button>

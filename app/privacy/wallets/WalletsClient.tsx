@@ -10,6 +10,7 @@ import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { PageSectionNav } from '@/components/PageSectionNav';
 
 const SECTIONS = [
@@ -128,29 +129,24 @@ export default function WalletsClient() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Wallet Anonymity Analysis</h1>
-          <p className="text-secondary mt-1">
-            How distinguishable is your wallet on-chain?
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {PERIODS.map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                period === p
-                  ? 'bg-cipher-cyan text-cipher-bg-dark font-medium'
-                  : 'bg-cipher-hover text-secondary hover:text-primary'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="WALLET_ANALYSIS"
+        title="Wallet Anonymity Analysis"
+        subtitle="How distinguishable is your wallet on-chain?"
+        actions={
+          <div className="filter-group">
+            {PERIODS.map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`filter-btn ${period === p ? 'filter-btn-active' : ''}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Wallet analysis sections" />
 

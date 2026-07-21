@@ -320,11 +320,6 @@
   --focus-ring: 0 0 0 3px rgba(0, 212, 255, 0.1);
 
   /* Filter groups */
-  --filter-group-bg: transparent;
-  --filter-group-border: var(--color-border);
-  --filter-btn-bg: var(--color-surface);
-  --filter-btn-bg-hover: var(--color-hover);
-  --filter-btn-bg-active: var(--glass-6);
   --filter-danger-bg: rgba(248, 113, 113, 0.08);
   --filter-warning-bg: rgba(251, 191, 36, 0.08);
   --amber-strong: #FBBF24;
@@ -483,11 +478,6 @@
   --focus-ring: 0 0 0 3px rgba(14, 116, 144, 0.1);
 
   /* Filter groups */
-  --filter-group-bg: var(--color-elevated);
-  --filter-group-border: #E2E8F0;
-  --filter-btn-bg: transparent;
-  --filter-btn-bg-hover: #E2E8F0;
-  --filter-btn-bg-active: var(--glass-4);
   --filter-danger-bg: rgba(220, 38, 38, 0.06);
   --filter-warning-bg: rgba(245, 158, 11, 0.06);
   --amber-strong: #D97706;
@@ -809,54 +799,58 @@
   }
 
   /* ===== FILTER GROUPS — Terminal Aesthetic ===== */
+  /* Segmented pill control — the one tab/filter pattern app-wide.
+     Matches the period selectors on /mining and the LIVE/PAUSED toggle
+     on /mempool. Active option = cyan tint pill. */
   .filter-group {
-    display: flex;
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--filter-group-bg);
-    border: 1px solid var(--filter-group-border);
+    display: inline-flex;
+    gap: 0;
+    padding: 2px;
+    border-radius: var(--radius-md);
+    background: var(--glass-3);
   }
 
   .filter-btn {
-    padding: var(--space-2) var(--space-3);
+    padding: 4px 10px;
     font-size: 11px;
     font-family: var(--font-mono), monospace;
     font-weight: 500;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    background: var(--filter-btn-bg);
+    white-space: nowrap;
+    background: transparent;
     color: var(--color-text-muted);
     border: none;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--duration-fast) var(--ease-out-expo);
   }
 
   .filter-btn:hover:not(.filter-btn-active):not(.filter-btn-danger):not(.filter-btn-warning) {
-    background: var(--filter-btn-bg-hover);
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
   }
 
   .filter-btn-active {
-    background: var(--filter-btn-bg-active);
-    color: var(--color-text-primary);
-    box-shadow: inset 0 -2px 0 var(--color-cyan);
+    background: rgb(var(--color-cyan-rgb) / 0.15);
+    color: var(--color-cyan);
+    font-weight: 700;
   }
 
   .filter-btn-danger {
     background: var(--filter-danger-bg);
     color: var(--danger);
-    box-shadow: inset 0 -2px 0 var(--danger);
+    font-weight: 700;
   }
 
   .filter-btn-warning {
     background: var(--filter-warning-bg);
     color: var(--amber-strong);
-    box-shadow: inset 0 -2px 0 var(--amber-strong);
+    font-weight: 700;
   }
 
   @media (min-width: 640px) {
     .filter-btn {
-      padding: var(--space-2) var(--space-4);
+      padding: 5px 12px;
       font-size: 12px;
     }
   }

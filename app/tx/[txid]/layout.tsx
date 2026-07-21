@@ -270,12 +270,6 @@ export default async function TxLayout({ params, children }: Props) {
           {txType && <span className="text-xs font-mono text-muted">{txType}</span>}
         </div>
         <p className="mt-3 max-w-3xl text-sm text-secondary">{statusDescription}</p>
-        {tx && tx.blockHeight > 0 && status !== 'Pending' && (
-          <p className="mt-2 text-xs font-mono text-muted">
-            {status === 'Reorganized' ? 'Recorded block' : 'Block'} #{formatNumber(tx.blockHeight)}
-            {status === 'Confirmed' ? ` · ${formatNumber(tx.confirmations)} confirmation${tx.confirmations === 1 ? '' : 's'}` : ''}
-          </p>
-        )}
       </section>
       {children}
     </>

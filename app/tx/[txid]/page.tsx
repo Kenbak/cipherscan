@@ -11,6 +11,7 @@ import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
 import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Tabs } from '@/components/ui/Tabs';
 import { StakingActionBadge, stakingActionLabel } from '@/components/StakingActionBadge';
 import { displayPubkey } from '@/lib/utils';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
@@ -1065,41 +1066,19 @@ export default function TransactionPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
 
       {/* ================================================================
-          HERO SECTION
+          HERO SECTION — the page H1 + full txid render server-side in
+          layout.tsx (SEO); this section only adds client-enriched badges,
+          the flow visual, and the export control.
           ================================================================ */}
       <div className="mb-6 animate-fade-in-up">
-        {/* Row 1: Header + Export */}
-        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3">
-          <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-mono text-muted tracking-wider">&gt; TX_DETAILS</span>
-            <p className="text-sm sm:text-base md:text-lg font-mono text-primary mt-0.5 break-all">{data.txid.slice(0, 12)}...{data.txid.slice(-8)}</p>
-          </div>
-          <ExportButton
-            data={{
-              txid: data.txid, blockHeight: data.blockHeight, blockHash: data.blockHash,
-              timestamp: data.timestamp, confirmations: data.confirmations, fee: data.fee,
-              size: data.size, version: data.version, locktime: data.locktime,
-              totalInput: data.totalInput, totalOutput: data.totalOutput,
-              shieldedSpends: data.shieldedSpends, shieldedOutputs: data.shieldedOutputs,
-              orchardActions: data.orchardActions,
-              inputs: data.inputs.map((i: any) => ({ address: i.address || 'shielded', value: i.value, coinbase: i.coinbase || false })),
-              outputs: data.outputs.map((o: any) => ({ address: o.scriptPubKey?.addresses?.[0] || 'shielded', value: o.value, index: o.n, spent: o.spent || false }))
-            }}
-            filename={`tx-${data.txid.slice(0, 16)}`}
-            type="json"
-            label="Export"
-          />
-        </div>
-
-        {/* Row 2: Status badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Row 1: Type badges + Export */}
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
           {data.status === 'stale' || data.isCanonical === false ? (
             <Badge color="orange">REORGANIZED</Badge>
           ) : data.status === 'unknown' ? (
             <Badge color="muted">UNKNOWN</Badge>
-          ) : (
-            <StatusBadge status="confirmed" />
-          )}
+          ) : null}
           {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
           {txType === 'MIGRATION' && <Badge color="amber" icon={<Icons.Shield />}>MIGRATION</Badge>}
           {txType === 'IRONWOOD' && <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>}
@@ -1117,6 +1096,22 @@ export default function TransactionPage() {
               {allBridges[0].direction === 'entry' ? 'BRIDGE IN' : 'BRIDGE OUT'}
             </Badge>
           )}
+          </div>
+          <ExportButton
+            data={{
+              txid: data.txid, blockHeight: data.blockHeight, blockHash: data.blockHash,
+              timestamp: data.timestamp, confirmations: data.confirmations, fee: data.fee,
+              size: data.size, version: data.version, locktime: data.locktime,
+              totalInput: data.totalInput, totalOutput: data.totalOutput,
+              shieldedSpends: data.shieldedSpends, shieldedOutputs: data.shieldedOutputs,
+              orchardActions: data.orchardActions,
+              inputs: data.inputs.map((i: any) => ({ address: i.address || 'shielded', value: i.value, coinbase: i.coinbase || false })),
+              outputs: data.outputs.map((o: any) => ({ address: o.scriptPubKey?.addresses?.[0] || 'shielded', value: o.value, index: o.n, spent: o.spent || false }))
+            }}
+            filename={`tx-${data.txid.slice(0, 16)}`}
+            type="json"
+            label="Export"
+          />
         </div>
 
         {/* Hero card: flow + summary + privacy as one unified block */}
@@ -1169,25 +1164,16 @@ export default function TransactionPage() {
       {/* ================================================================
           TAB BAR
           ================================================================ */}
-      <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        <div className="flex items-center gap-6 border-b border-cipher-border">
-          {(['summary', 'io', 'raw'] as const).map((tab) => {
-            const labels = { summary: 'Overview', io: 'Inputs / Outputs', raw: 'Raw' };
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
-                  activeTab === tab
-                    ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
-                    : 'text-muted hover:text-secondary'
-                }`}
-              >
-                {labels[tab]}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mb-6 animate-fade-in-up stagger-2">
+        <Tabs
+          tabs={[
+            { id: 'summary', label: 'Overview' },
+            { id: 'io', label: 'Inputs / Outputs' },
+            { id: 'raw', label: 'Raw' },
+          ]}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       {/* ================================================================
@@ -1662,22 +1648,20 @@ function RawTransactionTab({ txid, rawData, setRawData, rawLoading, setRawLoadin
   return (
     <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => setShowDecoded(false)}
-          className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${
-            !showDecoded ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
-          }`}
-        >
-          Hex
-        </button>
-        <button
-          onClick={() => setShowDecoded(true)}
-          className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${
-            showDecoded ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
-          }`}
-        >
-          Decoded JSON
-        </button>
+        <div className="filter-group">
+          <button
+            onClick={() => setShowDecoded(true)}
+            className={`filter-btn ${showDecoded ? 'filter-btn-active' : ''}`}
+          >
+            Decoded JSON
+          </button>
+          <button
+            onClick={() => setShowDecoded(false)}
+            className={`filter-btn ${!showDecoded ? 'filter-btn-active' : ''}`}
+          >
+            Hex
+          </button>
+        </div>
         <button
           onClick={copyHex}
           className="ml-auto px-3 py-1.5 text-xs font-mono text-muted hover:text-primary transition-colors"
