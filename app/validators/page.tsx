@@ -110,22 +110,24 @@ export default function ValidatorsPage() {
 
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="card p-4 text-center">
+          <div className="card p-4 text-center min-w-0">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalizers</span>
-            <span className="text-2xl font-mono font-bold text-primary">{data.finalizerCount}</span>
+            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.finalizerCount}</span>
           </div>
-          <div className="card p-4 text-center">
+          <div className="card p-4 text-center min-w-0">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Total Stake</span>
-            <span className="text-2xl font-mono font-bold text-primary">{data.totalStakeZec.toFixed(2)}</span>
-            <span className="text-[10px] font-mono text-muted block">{CURRENCY}</span>
+            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">
+              {data.totalStakeZec.toFixed(2)}
+              <span className="text-[10px] font-medium text-muted ml-1">{CURRENCY}</span>
+            </span>
           </div>
-          <div className="card p-4 text-center">
+          <div className="card p-4 text-center min-w-0">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalized</span>
-            <span className="text-2xl font-mono font-bold text-primary">{data.finalizedHeight.toLocaleString()}</span>
+            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.finalizedHeight.toLocaleString()}</span>
           </div>
-          <div className="card p-4 text-center">
+          <div className="card p-4 text-center min-w-0">
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">PoW Tip</span>
-            <span className="text-2xl font-mono font-bold text-primary">{data.tipHeight.toLocaleString()}</span>
+            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.tipHeight.toLocaleString()}</span>
           </div>
         </div>
       )}

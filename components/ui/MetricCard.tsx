@@ -46,8 +46,8 @@ export function MetricCard({
         {icon && <span className="text-muted [&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>}
         <span className="text-[10px] font-mono text-muted uppercase tracking-widest">{label}</span>
       </div>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className={`text-xl sm:text-2xl font-bold font-mono tabular-nums ${valueColor}`}>
+      <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+        <span className={`text-xl sm:text-2xl font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
           {value}
         </span>
         {typeof delta === 'number' && Number.isFinite(delta) && (

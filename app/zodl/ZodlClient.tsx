@@ -169,9 +169,9 @@ export function ZodlClient({
             { label: 'Shielded', value: `${(summary.networkShieldedRatio * 100).toFixed(1)}%`, color: '' , style: { color: SEG.shielded.color } },
             { label: 'To exchange / bridge', value: `${(summary.networkOfframpRatio * 100).toFixed(1)}%`, color: '', style: { color: SEG.offramp.color } },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-cipher-border bg-cipher-surface p-4">
-              <div className={`text-xl font-bold font-mono ${s.color}`} style={(s as any).style}>{s.value}</div>
-              <div className="text-[10px] text-muted uppercase tracking-wider mt-1 font-mono">{s.label}</div>
+            <div key={s.label} className="rounded-xl border border-cipher-border bg-cipher-surface p-4 min-w-0">
+              <div className={`text-base sm:text-xl font-bold font-mono tabular-nums whitespace-nowrap ${s.color}`} style={(s as any).style}>{s.value}</div>
+              <div className="text-[10px] text-muted uppercase tracking-wider mt-1 font-mono truncate">{s.label}</div>
             </div>
           ))}
         </div>

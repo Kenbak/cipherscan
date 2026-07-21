@@ -600,40 +600,57 @@ function SupplyAudit({
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Stat label="Migrated total" value={hasMigrations ? `${fmtZec(overview!.migration.totalMigratedZat)} ZEC` : '—'} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <Stat label="Migrated total" unit="ZEC" value={hasMigrations ? fmtZec(overview!.migration.totalMigratedZat) : '—'} />
         <Stat label="Migration txs" value={hasMigrations ? overview!.migration.txCount.toLocaleString() : '—'} />
         <Stat
           label="Orchard out"
-          value={audit && hasMigrations ? `${fmtZec(audit.orchardOutZat)} ZEC` : '—'}
-          color={ORCHARD}
+          unit="ZEC"
+          value={audit && hasMigrations ? fmtZec(audit.orchardOutZat) : '—'}
+          tone="orchard"
         />
         <Stat
           label="Ironwood in"
-          value={audit && hasMigrations ? `${fmtZec(audit.ironwoodInZat)} ZEC` : '—'}
-          color={IRONWOOD}
+          unit="ZEC"
+          value={audit && hasMigrations ? fmtZec(audit.ironwoodInZat) : '—'}
+          tone="ironwood"
         />
         <Stat
           label="Ironwood out"
-          value={audit && hasMigrations ? `${fmtZec(audit.ironwoodOutZat)} ZEC` : '—'}
+          unit="ZEC"
+          value={audit && hasMigrations ? fmtZec(audit.ironwoodOutZat) : '—'}
         />
         <Stat
           label="Indexed net"
-          value={audit && hasMigrations ? `${fmtZec(audit.indexedNetZat)} ZEC` : '—'}
-          color={IRONWOOD}
+          unit="ZEC"
+          value={audit && hasMigrations ? fmtZec(audit.indexedNetZat) : '—'}
+          tone="ironwood"
         />
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+function Stat({ label, value, unit, tone = 'default' }: {
+  label: string;
+  value: string;
+  unit?: string;
+  tone?: 'default' | 'orchard' | 'ironwood';
+}) {
+  const valueColor = {
+    default: 'text-primary',
+    orchard: 'text-cipher-purple-bright',
+    ironwood: 'text-cipher-yellow-bright',
+  }[tone];
   return (
-    <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
-      <div className="text-lg font-bold font-mono" style={color ? { color } : undefined}>
+    <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3 min-w-0">
+      <div className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
         {value}
+        {unit && value !== '—' && (
+          <span className="text-[10px] font-medium text-muted ml-1 align-baseline">{unit}</span>
+        )}
       </div>
-      <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono">{label}</div>
+      <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono truncate">{label}</div>
     </div>
   );
 }
