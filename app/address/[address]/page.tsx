@@ -1277,7 +1277,7 @@ export default function AddressPage() {
                           p === currentPage ? (
                             <span
                               key={idx}
-                              className="px-3 py-1.5 text-sm rounded bg-cipher-cyan text-cipher-bg font-semibold"
+                              className="btn btn-primary btn-sm"
                             >
                               {p}
                             </span>

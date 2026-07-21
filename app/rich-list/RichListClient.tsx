@@ -217,7 +217,7 @@ export default function RichListClient({
             <p className="text-secondary mb-6">{error}</p>
             <button
               onClick={() => { setError(null); setPage(1); }}
-              className="px-6 py-2 bg-cipher-cyan text-cipher-bg font-semibold rounded-lg hover:bg-cipher-yellow transition-colors"
+              className="btn btn-primary btn-md"
             >
               Retry
             </button>
