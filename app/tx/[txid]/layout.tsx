@@ -234,14 +234,6 @@ export default async function TxLayout({ params, children }: Props) {
     },
   };
 
-  const statusClass = status === 'Confirmed'
-    ? 'text-cipher-green border-cipher-green/30 bg-cipher-green/5'
-    : status === 'Pending'
-      ? 'text-cipher-yellow border-cipher-yellow/30 bg-cipher-yellow/5'
-      : status === 'Reorganized'
-        ? 'text-warning border-warning/30 bg-warning/5'
-        : 'text-muted border-cipher-border bg-glass-2';
-
   return (
     <>
       <script
@@ -266,12 +258,6 @@ export default async function TxLayout({ params, children }: Props) {
             <CopyButton text={normalizedTxid} size="sm" className="shrink-0" />
           </span>
         </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-mono font-medium uppercase tracking-wide ${statusClass}`}>
-            {status}
-          </span>
-          <span className="text-xs font-mono text-muted">{networkName}</span>
-        </div>
         <p className="sr-only">{statusDescription}</p>
       </section>
       {children}

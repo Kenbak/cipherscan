@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { CURRENCY } from '@/lib/config';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 import { HashLink } from '@/components/ui/HashLink';
@@ -148,7 +149,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
 
         <p className="text-[11px] text-muted leading-relaxed">
           This transaction {flowVerb}{' '}
-          <span className="text-primary font-medium">{amountZec} ZEC</span>
+          <span className="text-primary font-medium">{amountZec} {CURRENCY}</span>
           {address && (
             <>
               {data.flowType === 'shield' ? ' from ' : ' to '}
@@ -194,7 +195,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
       <div className="space-y-2">
         <p className="text-sm text-secondary leading-relaxed">
           This transaction {isDeshield ? 'unshields' : 'shields'}{' '}
-          <span className="text-primary font-medium">{data.amount.toFixed(4)} ZEC</span>
+          <span className="text-primary font-medium">{data.amount.toFixed(4)} {CURRENCY}</span>
           {currentAddress && (
             <>
               {isDeshield ? ' to ' : ' from '}
@@ -258,7 +259,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
               an observer can correlate the transactions and link your transparent addresses.
             </p>
             <p className="mt-2 text-muted">
-              The only foolproof way to defeat this is to <strong className="text-primary">ZODL</strong> — hold your ZEC in the shielded pool longer.
+              The only foolproof way to defeat this is to <strong className="text-primary">ZODL</strong> — hold your {CURRENCY} in the shielded pool longer.
             </p>
           </div>
         )}

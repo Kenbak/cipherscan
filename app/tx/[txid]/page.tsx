@@ -642,7 +642,7 @@ export default function TransactionPage() {
                 {mempoolTx.outputs && mempoolTx.outputs.length > 0 && mempoolTx.totalOutput > 0 && (
                   <div className="flex items-center justify-between py-2 border-b border-cipher-border">
                     <span className="text-xs font-mono text-muted">Transparent Value</span>
-                    <span className="text-sm font-mono text-primary">{mempoolTx.totalOutput.toFixed(8)} ZEC</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.totalOutput.toFixed(8)} {CURRENCY}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between py-2">
@@ -661,7 +661,7 @@ export default function TransactionPage() {
                         <Link href={`/address/${out.address}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate max-w-[60%]">
                           {out.address}
                         </Link>
-                        <span className="text-xs font-mono text-primary">{out.value.toFixed(8)} ZEC</span>
+                        <span className="text-xs font-mono text-primary">{out.value.toFixed(8)} {CURRENCY}</span>
                       </div>
                     ))}
                   </div>
@@ -772,7 +772,7 @@ export default function TransactionPage() {
           ? <AddressDisplay address={addr} className="text-xs inline" />
           : <span className="text-cipher-purple font-mono">a shielded address</span>;
         const zecAmt = b.zecAmount
-          ? `${b.zecAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ZEC`
+          ? `${b.zecAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${CURRENCY}`
           : null;
 
         if (b.direction === 'entry') {
@@ -787,7 +787,7 @@ export default function TransactionPage() {
         }
         return (
           <>
-            {zecAmt || 'ZEC'} was bridged out by {addrNode} to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
+            {zecAmt || CURRENCY} was bridged out by {addrNode} to {b.otherAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 })} {b.otherToken} on {b.otherChain.toUpperCase()} via NEAR Intents.
             {b.otherAmountUsd > 0 && (
               <span className="text-muted"> (≈${b.otherAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
             )}
@@ -952,7 +952,7 @@ export default function TransactionPage() {
             <span className="text-muted sm:hidden">↓</span>
             <div className="flex items-center gap-2">
               <TokenChainIcon token="ZEC" chain="zec" size={24} />
-              <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || '?'} ZEC</span>
+              <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || '?'} {CURRENCY}</span>
             </div>
           </div>
         );
@@ -961,7 +961,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <TokenChainIcon token="ZEC" chain="zec" size={24} />
-            <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || ''} ZEC</span>
+            <span className="text-sm font-mono text-primary">{b.zecAmount?.toLocaleString(undefined, { maximumFractionDigits: 4 }) || ''} {CURRENCY}</span>
           </div>
           <span className="text-muted hidden sm:inline">→</span>
           <span className="text-muted sm:hidden">↓</span>
@@ -979,7 +979,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <Badge color="purple" icon={<Icons.Shield />}>Orchard</Badge>
           <FlowArrow /><FlowArrowDown />
-          <span className="text-sm font-mono font-bold text-cipher-yellow">{ironwoodAmt.toFixed(4)} ZEC</span>
+          <span className="text-sm font-mono font-bold text-cipher-yellow">{ironwoodAmt.toFixed(4)} {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
         </div>
@@ -991,7 +991,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
           <FlowArrow /><FlowArrowDown />
-          <span className="text-cipher-yellow/40 font-mono text-sm">████████ ZEC</span>
+          <span className="text-cipher-yellow/40 font-mono text-sm">████████ {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           <Badge color="amber" icon={<Icons.Shield />}>Ironwood</Badge>
         </div>
@@ -1003,7 +1003,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <Badge color="purple" icon={<Icons.Shield />}>Shielded</Badge>
           <FlowArrow /><FlowArrowDown />
-          <span className="text-cipher-purple/40 font-mono text-sm">████████ ZEC</span>
+          <span className="text-cipher-purple/40 font-mono text-sm">████████ {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           <Badge color="purple" icon={<Icons.Shield />}>Shielded</Badge>
         </div>
@@ -1016,7 +1016,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           {fromAddr ? <AddressDisplay address={fromAddr} className="text-xs" /> : <span className="text-sm text-secondary font-mono">Transparent</span>}
           <FlowArrow /><FlowArrowDown />
-          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} ZEC</span>
+          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           <Badge color="purple" icon={<Icons.Shield />}>Shielded Pool</Badge>
         </div>
@@ -1029,7 +1029,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <Badge color="purple" icon={<Icons.Shield />}>Shielded Pool</Badge>
           <FlowArrow /><FlowArrowDown />
-          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} ZEC</span>
+          <span className="text-sm font-mono text-primary">{Math.abs(valueBalance).toFixed(4)} {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-secondary font-mono">Transparent</span>}
         </div>
@@ -1042,7 +1042,7 @@ export default function TransactionPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
           <Badge color="green" icon={<Icons.Currency />}>Block Reward</Badge>
           <FlowArrow /><FlowArrowDown />
-          <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} ZEC</span>
+          <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
           {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
         </div>
@@ -1056,7 +1056,7 @@ export default function TransactionPage() {
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
         {fromAddr ? <AddressDisplay address={fromAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
         <FlowArrow /><FlowArrowDown />
-        <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} ZEC</span>
+        <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} {CURRENCY}</span>
         <FlowArrow /><FlowArrowDown />
         {toAddr ? <AddressDisplay address={toAddr} className="text-xs" /> : <span className="text-sm text-muted">—</span>}
       </div>
@@ -1071,11 +1071,6 @@ export default function TransactionPage() {
           ================================================================ */}
       <div className="flex items-center justify-between gap-2 mb-4 animate-fade-in-up">
         <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-          {data.status === 'stale' || data.isCanonical === false ? (
-            <Badge color="orange">REORGANIZED</Badge>
-          ) : data.status === 'unknown' ? (
-            <Badge color="muted">UNKNOWN</Badge>
-          ) : null}
           {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
           {txType === 'MIGRATION' && <Badge color="amber" icon={<Icons.Shield />}>MIGRATION</Badge>}
           {txType === 'IRONWOOD' && <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>}
@@ -1093,6 +1088,16 @@ export default function TransactionPage() {
               {allBridges[0].direction === 'entry' ? 'BRIDGE IN' : 'BRIDGE OUT'}
             </Badge>
           )}
+          {data.status === 'stale' || data.isCanonical === false ? (
+            <StatusBadge status="reorganized" />
+          ) : data.status === 'unknown' ? (
+            <Badge color="muted">UNKNOWN</Badge>
+          ) : (
+            <StatusBadge status="confirmed" />
+          )}
+          <span className="text-xs font-mono text-muted">
+            {process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'Zcash testnet (TAZ)' : process.env.NEXT_PUBLIC_NETWORK === 'crosslink-testnet' ? 'Zcash Crosslink testnet' : 'Zcash mainnet'}
+          </span>
         </div>
         <ExportButton
           data={{
@@ -1509,9 +1514,9 @@ export default function TransactionPage() {
                     <div className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                       <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.outputs.length}</span>
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>
-                        <span className="text-[11px] text-cipher-purple font-mono truncate">
-                          {(data.valueBalanceOrchard || 0) < 0 ? 'Orchard' : 'Sapling'} Pool
+                        <Badge color={(data.valueBalanceIronwood || 0) < 0 ? 'amber' : 'purple'} icon={<Icons.Shield />}>SHIELDED</Badge>
+                        <span className={`text-[11px] font-mono truncate ${(data.valueBalanceIronwood || 0) < 0 ? 'text-cipher-yellow' : 'text-cipher-purple'}`}>
+                          {(data.valueBalanceIronwood || 0) < 0 ? 'Ironwood' : (data.valueBalanceOrchard || 0) < 0 ? 'Orchard' : 'Sapling'} Pool
                         </span>
                       </div>
                       <span className="text-[11px] font-mono text-cipher-purple font-semibold shrink-0">{Math.abs(valueBalance).toFixed(8)}</span>

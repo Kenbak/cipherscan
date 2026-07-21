@@ -52,7 +52,7 @@ export function Badge({
  * Pre-configured badges for common statuses.
  */
 interface StatusBadgeProps {
-  status: 'confirmed' | 'pending' | 'shielded' | 'transparent' | 'warning';
+  status: 'confirmed' | 'pending' | 'reorganized' | 'shielded' | 'transparent' | 'warning';
   className?: string;
 }
 
@@ -64,6 +64,15 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
       icon: (
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+    },
+    reorganized: {
+      label: 'REORGANIZED',
+      color: 'orange',
+      icon: (
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
       ),
     },

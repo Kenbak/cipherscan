@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
+import { CURRENCY } from '@/lib/config';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
 import { HashLink } from '@/components/ui/HashLink';
@@ -183,7 +184,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
         <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
           <p className="text-base font-medium leading-relaxed text-primary text-balance">
-            {tx.shieldAmount.toFixed(4)} ZEC moved from {shieldAddress ? <AddressDisplay address={shieldAddress} className="text-xs inline" /> : 'a transparent source'} into the shielded pool,
+            {tx.shieldAmount.toFixed(4)} {CURRENCY} moved from {shieldAddress ? <AddressDisplay address={shieldAddress} className="text-xs inline" /> : 'a transparent source'} into the shielded pool,
             then {timeDeltaDisplay} reappeared at {deshieldAddress ? <AddressDisplay address={deshieldAddress} className="text-xs inline" /> : 'a transparent destination'}.
           </p>
           <p className="mt-2 text-sm text-secondary">
@@ -204,7 +205,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         </div>
 
         <span className="font-mono text-sm font-semibold text-primary tabular-nums">
-          {tx.shieldAmount.toFixed(4)} ZEC
+          {tx.shieldAmount.toFixed(4)} {CURRENCY}
         </span>
         <div className="flex items-center mx-2 sm:mx-4">
           <div className="risk-connector-line" />
@@ -214,7 +215,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           <div className="risk-connector-line" />
         </div>
         <span className="font-mono text-sm font-semibold text-primary tabular-nums text-right">
-          {tx.deshieldAmount.toFixed(4)} ZEC
+          {tx.deshieldAmount.toFixed(4)} {CURRENCY}
         </span>
 
         <div className="flex items-center gap-1 min-w-0">

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
+import { CURRENCY } from '@/lib/config';
 import { HashLink } from '@/components/ui/HashLink';
 
 // Animated dots component for loading states (pure CSS for performance)
@@ -805,7 +806,7 @@ export function ScanMyTransactions() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-muted font-bold uppercase tracking-wider">Amount:</span>
                           <span className="text-cipher-green font-mono font-semibold">
-                            +{result.amount.toString().replace(/\.?0+$/, '')} ZEC
+                            +{result.amount.toString().replace(/\.?0+$/, '')} {CURRENCY}
                           </span>
                         </div>
                         <span className="text-muted">•</span>
