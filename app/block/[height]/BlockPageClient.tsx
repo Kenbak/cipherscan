@@ -9,6 +9,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { InfoRow as SharedInfoRow } from '@/components/ui/InfoRow';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 
@@ -414,6 +415,8 @@ export default function BlockPageClient({
     );
   }
 
+  // Adapter over the shared InfoRow primitive: this page passes icons as
+  // components and uses a `clickable` flag; keep its call sites unchanged.
   const InfoRow = ({ icon: Icon, label, value, tooltip, valueClass = "text-primary", clickable = false, onClick }: {
     icon: React.ComponentType;
     label: string;
@@ -423,23 +426,14 @@ export default function BlockPageClient({
     clickable?: boolean;
     onClick?: () => void;
   }) => (
-    <div className="flex flex-col sm:flex-row sm:items-start py-3 border-b block-info-border last:border-0 gap-2 sm:gap-0">
-      <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
-        <span className="mr-2"><Icon /></span>
-        <span className="text-xs sm:text-sm">{label}</span>
-        {tooltip && (
-          <span className="ml-2">
-            <Tooltip content={tooltip} />
-          </span>
-        )}
-      </div>
-      <div
-        className={`flex-1 font-mono text-xs sm:text-sm ${valueClass} break-all ${clickable ? 'cursor-pointer hover:text-cipher-cyan transition-colors' : ''}`}
-        onClick={onClick}
-      >
-        {value}
-      </div>
-    </div>
+    <SharedInfoRow
+      label={label}
+      value={value}
+      icon={<Icon />}
+      tooltip={tooltip}
+      valueClass={valueClass}
+      onClick={clickable ? onClick : undefined}
+    />
   );
 
   return (
@@ -762,7 +756,7 @@ export default function BlockPageClient({
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="block-hash-bg p-2.5 rounded-lg border border-cipher-border">
-                    <code className="text-xs text-cipher-cyan break-all leading-relaxed" style={{ fontFamily: 'var(--font-mono), ui-monospace, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"' }}>{data.coinbaseText}</code>
+                    <code className="text-xs text-cipher-cyan break-all leading-relaxed font-mono-emoji">{data.coinbaseText}</code>
                   </div>
                   {data.coinbaseHex && (
                     <details className="group">

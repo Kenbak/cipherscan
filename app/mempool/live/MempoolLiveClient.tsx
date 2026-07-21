@@ -104,7 +104,7 @@ export default function MempoolLiveClient() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#08090f] group/live">
+    <div className="fixed inset-0 z-[9999] bg-cipher-bg-dark group/live">
       <MempoolBubbles
         transactions={transactions}
         className="h-full"
@@ -116,7 +116,7 @@ export default function MempoolLiveClient() {
       {/* Back to mempool — HUD style, visible on mouse movement */}
       <Link
         href="/mempool"
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-[#08090f]/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
+        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
       >
         [ EXIT ]
         <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>

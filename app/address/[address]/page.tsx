@@ -418,7 +418,7 @@ export default function AddressPage() {
 
         {/* Address Component Viewer */}
         {isUnified && (
-          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <div className="mb-6 animate-fade-in-up stagger-2">
             <Card>
               <CardBody>
                 <div className="flex items-center gap-2 mb-4">
@@ -459,7 +459,7 @@ export default function AddressPage() {
                     </div>
 
                     {/* Tab Content */}
-                    <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                    <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4">
                       {selectedAddressTab === 'unified' && (
                         <div>
                           <div className="flex items-center gap-2 mb-2">
@@ -515,7 +515,7 @@ export default function AddressPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                  <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4">
                     <div className="flex items-start gap-2">
                       <code className="text-xs text-secondary break-all font-mono flex-1">{address}</code>
                       <CopyButton text={address} label="address" />
@@ -529,13 +529,13 @@ export default function AddressPage() {
 
         {/* Non-unified shielded addresses */}
         {!isUnified && (
-          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <div className="mb-6 animate-fade-in-up stagger-2">
             <Card>
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS</span>
                 </div>
-                <div className="flex items-start gap-2 p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04]">
+                <div className="flex items-start gap-2 p-4 rounded-lg bg-cipher-surface/50 border border-glass-4">
                   <code className="text-xs text-secondary break-all font-mono flex-1">{address}</code>
                   <CopyButton text={address} label="address" />
                 </div>
@@ -545,13 +545,13 @@ export default function AddressPage() {
         )}
 
         {/* Privacy Status Card */}
-        <Card className="mb-6 overflow-hidden relative animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <Card className="mb-6 overflow-hidden relative animate-fade-in-up stagger-3">
           {/* Atmospheric overlays */}
           <div className="absolute inset-0 bg-gradient-to-br from-cipher-purple/[0.06] via-transparent to-cipher-cyan/[0.02] pointer-events-none" />
           <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgb(var(--color-purple-rgb)_/_0.015)_10px,rgb(var(--color-purple-rgb)_/_0.015)_20px)] pointer-events-none" />
           {/* Scan line */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-purple/30 to-transparent animate-[scan_4s_ease-in-out_infinite]" style={{ animation: 'scan 4s ease-in-out infinite' }} />
+            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-purple/30 to-transparent animate-scan" />
           </div>
 
           <CardBody className="relative">
@@ -616,7 +616,7 @@ export default function AddressPage() {
         </Card>
 
         {/* Decrypt Tools — compact inline */}
-        <div className="p-4 rounded-xl bg-cipher-surface/50 border border-white/[0.04] animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="p-4 rounded-xl bg-cipher-surface/50 border border-glass-4 animate-fade-in-up stagger-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <svg className="w-4 h-4 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -666,10 +666,10 @@ export default function AddressPage() {
           </div>
         </div>
 
-        <Card className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <Card className="animate-fade-in-up stagger-2">
           <CardBody>
             <div className="text-center py-12">
-              <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-white/[0.04] flex items-center justify-center">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-xl bg-cipher-surface border border-glass-4 flex items-center justify-center">
                 <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
@@ -678,7 +678,7 @@ export default function AddressPage() {
               <p className="text-sm text-secondary max-w-md mx-auto mb-6">
                 Valid transparent address with no transaction history.
               </p>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cipher-surface rounded-lg text-xs text-muted font-mono border border-white/[0.04]">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cipher-surface rounded-lg text-xs text-muted font-mono border border-glass-4">
                 <span className="w-1.5 h-1.5 rounded-full bg-cipher-cyan" />
                 Balance: 0 ZEC
               </div>
@@ -701,7 +701,7 @@ export default function AddressPage() {
           </div>
         </div>
 
-        <Card className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <Card className="animate-fade-in-up stagger-2">
           <CardBody>
             <div className="flex items-center gap-2 mb-6">
               <span className="text-xs font-mono text-muted tracking-wider">&gt; STATUS</span>
@@ -722,7 +722,7 @@ export default function AddressPage() {
               </div>
             </div>
 
-            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-white/[0.04] mb-4">
+            <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4 mb-4">
               <span className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-3">&gt; TECHNICAL_DETAILS</span>
               <ul className="text-xs text-secondary space-y-2 font-mono">
                 <li className="flex items-start gap-2">
@@ -871,7 +871,7 @@ export default function AddressPage() {
       </div>
 
       {/* Hero Card */}
-      <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="mb-6 animate-fade-in-up stagger-2">
         <Card>
           <CardBody>
             <div className="flex flex-col items-center text-center space-y-3 py-2">
@@ -916,7 +916,7 @@ export default function AddressPage() {
       </div>
 
       {/* Tab Bar */}
-      <div id="transactions-section" className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '125ms' }}>
+      <div id="transactions-section" className="mb-6 md:mb-8 animate-fade-in-up stagger-3">
         <div className="flex items-center gap-6 border-b border-cipher-border mb-0">
           <button
             onClick={() => setActiveTab('transactions')}
@@ -945,7 +945,7 @@ export default function AddressPage() {
 
       {/* Tab Content */}
       {activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="animate-fade-in-up stagger-4">
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
@@ -1044,7 +1044,7 @@ export default function AddressPage() {
         </div>
       ) : (
         /* Transactions Tab */
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="animate-fade-in-up stagger-4">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">

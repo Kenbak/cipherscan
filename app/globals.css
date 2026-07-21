@@ -1578,6 +1578,11 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+  /* Mono with emoji fallback — for miner-tag / coinbase text that mixes hex and emoji */
+  .font-mono-emoji {
+    font-family: var(--font-geist-mono), ui-monospace, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  }
+
   /* Newsletter content styles */
   .newsletter-content {
     word-break: break-word;

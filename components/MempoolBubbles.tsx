@@ -849,7 +849,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-[#08090f]' : ''}`}
+      className={`relative w-full overflow-hidden ${className} ${isFullscreen || ambient ? 'bg-cipher-bg-dark' : ''}`}
       style={{ cursor: (isFullscreen || ambient) && !cursorVisible ? 'none' : undefined }}
     >
       <canvas
@@ -874,8 +874,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
 
       {/* Top-right timestamp */}
       <div
-        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none`}
-        style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}
+        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none text-muted/60`}
       >
         {new Date().toISOString().slice(11, 19)} UTC
       </div>
@@ -964,7 +963,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-[#08090f]/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-cipher-cyan hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]
@@ -1012,10 +1011,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>
-            <p
-              className="font-mono text-[10px] mt-1"
-              style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}
-            >
+            <p className="font-mono text-[10px] mt-1 text-muted/50">
               awaiting pending transactions
             </p>
           </div>

@@ -192,7 +192,7 @@ export default function MempoolClient() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
         <Card variant="compact">
           <CardBody>
             <span className="text-xs text-muted uppercase tracking-wide">Total TXs</span>
@@ -222,7 +222,7 @@ export default function MempoolClient() {
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
-      <div className="mb-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <div className="mb-2 animate-fade-in-up stagger-3">
         {/* Section header — same pattern as chart sections on /mining and /pools */}
         <div className="flex items-center justify-between mb-4 px-1">
           <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function MempoolClient() {
 
       {/* Transaction Table */}
       {data && data.count > 0 && (
-        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="animate-fade-in-up stagger-4">
           {/* Section header */}
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export default function MempoolClient() {
       )}
 
       {/* Info Card */}
-      <Card variant="glass" className="mt-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+      <Card variant="glass" className="mt-8 animate-fade-in-up stagger-5">
         <CardBody>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
