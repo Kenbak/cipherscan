@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import {
   buildPageMetadata,
   formatNumber,
+  getApiUrl,
   getBlockResolution,
   truncateHash,
 } from '@/lib/seo';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 
 type Props = {
   params: Promise<{ height: string }>;
@@ -16,6 +18,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolution = await getBlockResolution(height);
 
   if (resolution.state === 'absent') {
+    // Check if this is a future block (valid height above tip)
+    if (/^\d+$/.test(height)) {
+      try {
+        const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, { next: { revalidate: 30 } });
+        if (res.ok) {
+          const data = await res.json();
+          const tipHeight = data.height ?? data.blocks;
+          if (typeof tipHeight === 'number' && Number(height) > tipHeight) {
+            const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
+            const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks (~${Math.round((Number(height) - tipHeight) * 75 / 3600)} hours).`;
+            return buildPageMetadata({
+              title,
+              description,
+              path: `/block/${height}`,
+              index: false,
+              canonical: false,
+              imageAlt: title,
+            });
+          }
+        }
+      } catch {}
+    }
+
     const title = `Zcash Block ${truncateHash(height)} Not Found | CipherScan`;
     const description = `CipherScan could not find Zcash block ${truncateHash(height)}.`;
 

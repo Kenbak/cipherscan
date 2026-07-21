@@ -1,11 +1,14 @@
 import { notFound } from 'next/navigation';
 import {
   getBaseUrl,
+  getApiUrl,
   getBlockResolution,
   normalizeBlockIdentifier,
   type BlockRecord,
 } from '@/lib/seo';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 import BlockPageClient, { type BlockPageSummary } from './BlockPageClient';
+import { FutureBlockView } from './FutureBlockView';
 
 function blockDescription(block: BlockRecord, height: number, hash: string): string {
   const transactionCount = Number(
@@ -20,6 +23,19 @@ function blockDescription(block: BlockRecord, height: number, hash: string): str
   return `Zcash block ${height.toLocaleString('en-US')} is ${status}, has hash ${hash}, and records ${count.toLocaleString('en-US')} transaction${count === 1 ? '' : 's'}.`;
 }
 
+async function getCurrentTipHeight(): Promise<number | null> {
+  try {
+    const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.height ?? data.blocks ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function BlockPage({
   params,
 }: {
@@ -28,6 +44,13 @@ export default async function BlockPage({
   const { height: identifier } = await params;
   const resolution = await getBlockResolution(identifier);
   if (resolution.state === 'absent') {
+    const requestedHeight = /^\d+$/.test(identifier) ? Number(identifier) : null;
+    if (requestedHeight !== null && requestedHeight >= 0) {
+      const tipHeight = await getCurrentTipHeight();
+      if (tipHeight !== null && requestedHeight > tipHeight) {
+        return <FutureBlockView targetHeight={requestedHeight} currentHeight={tipHeight} />;
+      }
+    }
     notFound();
   }
 
