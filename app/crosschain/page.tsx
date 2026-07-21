@@ -467,7 +467,7 @@ export default function CrosschainPage() {
         </div>
 
         {/* Tab bar */}
-        <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="mb-6 animate-fade-in-up stagger-5">
           <div className="filter-group inline-flex">
             {tabs.map(tab => (
               <button
@@ -813,7 +813,7 @@ export default function CrosschainPage() {
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div className="mt-8 text-center animate-fade-in-up stagger-6">
           <p className="text-[10px] text-muted font-mono">
             Powered by{' '}
             <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>

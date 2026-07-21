@@ -202,15 +202,15 @@ export default function WalletsClient() {
                 <BatteryBar buckets={feeLanes.buckets} />
                 <div className="flex items-center gap-4 mt-3 text-xs text-[var(--color-text-secondary)]">
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm" style={{ background: '#56D4C8' }} />
+                    <span className="w-3 h-3 rounded-sm bg-cipher-teal" />
                     Standard (5000 zat)
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm" style={{ background: '#F4B728' }} />
+                    <span className="w-3 h-3 rounded-sm bg-cipher-yellow-bright" />
                     Priority (20000 zat)
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }} />
+                    <span className="w-3 h-3 rounded-sm bg-amber-500" />
                     Non-Standard
                   </span>
                 </div>
@@ -286,24 +286,24 @@ export default function WalletsClient() {
                 <p className="text-sm leading-relaxed">
                   {feeLanes.buckets.standard.pct >= 90 ? (
                     <span>
-                      <strong className="text-[#56D4C8]">{feeLanes.buckets.standard.pct}%</strong>{' '}
+                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
                       of shielded transactions pay the standard fee — you blend into a large crowd.
                       Non-standard fees account for only{' '}
-                      <strong className="text-[#f59e0b]">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
+                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
                       of traffic, making them a fingerprinting risk for those users.
                     </span>
                   ) : feeLanes.buckets.standard.pct >= 70 ? (
                     <span>
-                      <strong className="text-[#56D4C8]">{feeLanes.buckets.standard.pct}%</strong>{' '}
+                      <strong className="text-cipher-teal">{feeLanes.buckets.standard.pct}%</strong>{' '}
                       of shielded transactions use the standard fee lane. While this is a decent
                       anonymity set, the{' '}
-                      <strong className="text-[#f59e0b]">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
+                      <strong className="text-amber-500">{feeLanes.buckets.non_standard.pct}%</strong>{' '}
                       using non-standard fees could improve their privacy by switching to ZIP-317 compliant wallets.
                     </span>
                   ) : (
                     <span>
                       Only{' '}
-                      <strong className="text-[#f59e0b]">{feeLanes.buckets.standard.pct}%</strong>{' '}
+                      <strong className="text-amber-500">{feeLanes.buckets.standard.pct}%</strong>{' '}
                       of shielded transactions use the standard fee, which means fee-based fingerprinting
                       is currently a significant privacy risk on the network.
                     </span>
@@ -591,7 +591,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
                 <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Includes:</span>
                 {wallet.familyMembers.map(m => (
-                  <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-[#56D4C8]/10 text-[#56D4C8] border border-[#56D4C8]/20">
+                  <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
                     {m}
                   </span>
                 ))}
@@ -608,7 +608,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
                   </p>
                   <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
                   {signal.matchCount !== undefined && signal.matchCount > 0 && (
-                    <p className="text-[10px] text-[#56D4C8] font-medium">
+                    <p className="text-[10px] text-cipher-teal font-medium">
                       {formatNumber(signal.matchCount)} matches
                     </p>
                   )}

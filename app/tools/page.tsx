@@ -91,7 +91,7 @@ export default function ToolsPage() {
       </div>
 
       {/* Tool Cards */}
-      <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="space-y-4 animate-fade-in-up stagger-2">
         {tools.map((tool) => {
           const IconComponent = tool.icon;
           return (
@@ -121,7 +121,7 @@ export default function ToolsPage() {
       </div>
 
       {/* API Reference */}
-      <div className="mt-10 sm:mt-12 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <div className="mt-10 sm:mt-12 animate-fade-in-up stagger-3">
         <Card variant="glass">
           <CardBody>
             <h3 className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">

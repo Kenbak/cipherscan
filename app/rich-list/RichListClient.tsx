@@ -160,7 +160,7 @@ export default function RichListClient({
 
       {/* Concentration Summary Cards */}
       {concentration && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 animate-fade-in-up stagger-2">
           <Card variant="compact">
             <CardBody>
               <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
@@ -208,7 +208,7 @@ export default function RichListClient({
       )}
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <div className="card p-0 overflow-hidden animate-fade-in-up stagger-3">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -320,7 +320,7 @@ export default function RichListClient({
       )}
 
       {/* Note */}
-      <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+      <div className="mt-8 text-center animate-fade-in-up stagger-4">
         <p className="text-[11px] text-muted font-mono">
           Transparent addresses only &middot; Shielded balances are private by design
         </p>

@@ -82,7 +82,7 @@ export default function AnchorSearchClient() {
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-cipher-cyan-bright text-[#08090F] font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="px-6 py-3 bg-cipher-cyan-bright text-cipher-bg-dark font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {loading ? 'Searching...' : 'Search'}
           </button>

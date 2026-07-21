@@ -331,9 +331,9 @@ function ResidualTooltip({ active, payload }: any) {
         fontSize: 11,
       }}
     >
-      <div style={{ color: 'var(--color-text-secondary)', marginBottom: 4 }}>{d.label}:00 UTC</div>
-      <div style={{ color: 'var(--color-text-muted)' }}>actual {d.actual}% of the day</div>
-      <div style={{ color: 'var(--color-text-muted)' }}>expected {d.predicted}% (humans only)</div>
+      <div className="text-secondary mb-1">{d.label}:00 UTC</div>
+      <div className="text-muted">actual {d.actual}% of the day</div>
+      <div className="text-muted">expected {d.predicted}% (humans only)</div>
       <div style={{ color: up ? '#FF6B35' : '#5B9CF6', marginTop: 4, fontWeight: 700 }}>
         {up ? '+' : ''}{d.residual} pts · {up ? 'busier than people explain' : 'quieter than expected'}
       </div>
@@ -539,7 +539,7 @@ export function UsageClockClient({
       {/* ===================== HERO: dial + thesis ===================== */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 items-stretch">
         {/* Dial */}
-        <div className="rounded-2xl border border-cipher-border p-4 sm:p-6 flex flex-col" style={{ backgroundColor: '#070b10' }}>
+        <div className="rounded-2xl border border-cipher-border p-4 sm:p-6 flex flex-col bg-cipher-bg-dark">
           <div className="max-w-[440px] w-full mx-auto">
             <RadialClock
               hourly={hourly}
@@ -616,12 +616,12 @@ export function UsageClockClient({
       </div>
 
       {/* ===================== GEOGRAPHIC PANEL (demoted) ===================== */}
-      <div className="mt-6 rounded-xl border border-cipher-border overflow-hidden relative" style={{ backgroundColor: '#070b10' }}>
+      <div className="mt-6 rounded-xl border border-cipher-border overflow-hidden relative bg-cipher-bg-dark">
         <div className="px-4 py-2.5 border-b border-cipher-border/60 flex items-center justify-between">
           <span className="text-[11px] font-mono font-bold text-secondary uppercase tracking-wider">Sun &amp; network · live</span>
           <div className="flex items-center gap-3 text-[10px] font-mono">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cipher-yellow-bright" /> <span className="text-muted">node, lit</span></span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#F4B728', opacity: 0.3 }} /> <span className="text-muted">node, dark</span></span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cipher-yellow-bright/30" /> <span className="text-muted">node, dark</span></span>
           </div>
         </div>
         <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} className="w-full h-auto block" style={{ maxHeight: 340 }}>

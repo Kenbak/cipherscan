@@ -322,7 +322,7 @@ function PrivacyRisksContent() {
       </div>
 
       {/* Two-column layout: main + sidebar */}
-      <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-6 animate-fade-in-up stagger-2">
 
         {/* ── Main Column ── */}
         <div className="min-w-0">

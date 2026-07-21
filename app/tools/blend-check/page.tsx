@@ -206,7 +206,7 @@ export default function BlendCheckPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* ── Left Column: Input + Score + Split ── */}
-        <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="space-y-6 animate-fade-in-up stagger-2">
 
           {/* Amount input */}
           <Card>
@@ -261,7 +261,7 @@ export default function BlendCheckPage() {
 
           {/* Verdict */}
           {hasResult && (
-            <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <Card className="animate-fade-in-up stagger-3">
               <CardBody>
                 <div className="flex items-start gap-4">
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${getScoreBg(score)}/10 border border-cipher-border`}>
@@ -296,7 +296,7 @@ export default function BlendCheckPage() {
 
           {/* Quick suggestion */}
           {bestNearby && (
-            <Card interactive onClick={() => handleSuggestionClick(bestNearby.amount)} className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <Card interactive onClick={() => handleSuggestionClick(bestNearby.amount)} className="animate-fade-in-up stagger-4">
               <CardBody>
                 <div className="flex items-center justify-between">
                   <div>
@@ -317,7 +317,7 @@ export default function BlendCheckPage() {
 
           {/* Split Plan */}
           {splitResult && hasResult && (
-            <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <Card className="animate-fade-in-up stagger-5">
               <CardHeader>
                 <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
                   Split Plan
@@ -476,7 +476,7 @@ export default function BlendCheckPage() {
         </div>
 
         {/* ── Right Column: Results + Nearby + Explainer ── */}
-        <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="space-y-6 animate-fade-in-up stagger-3">
 
           {hasResult ? (
             <>

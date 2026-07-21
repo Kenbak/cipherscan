@@ -69,6 +69,7 @@
 /* Static tokens — identical in both themes. */
 @theme {
   /* Static brand accents (intentionally not theme-aware; matches v3 config) */
+  --color-cipher-teal: #56D4C8;
   --color-cipher-cyan-bright: #00D4FF;
   --color-cipher-cyan-glow: #00E5FF;
   --color-cipher-cyan-muted: #5EBBCE;
