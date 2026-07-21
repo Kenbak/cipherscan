@@ -45,6 +45,10 @@ function* walk(dir) {
 
 const ARBITRARY_HEX = /\b(?:text|bg|border|from|to|via|ring|fill|stroke)-\[#[0-9a-fA-F]{3,8}\]/g;
 const INLINE_VAR_COLOR = /style=\{\{[^}]*(?:color|background(?:Color)?):\s*['"]var\(--color-[^}]*\}\}/g;
+// bg-[var(--color-hover)] etc. — the token utility (bg-cipher-hover) is the
+// one sanctioned spelling. This also catches references to variables that
+// don't exist (which silently render nothing).
+const ARBITRARY_VAR = /\b(?:text|bg|border|divide|from|to|via|ring|fill|stroke)-\[var\(--[a-z0-9-]+\)\]/g;
 
 for (const dir of SCAN_DIRS) {
   for (const file of walk(join(ROOT, dir))) {
@@ -58,6 +62,9 @@ for (const dir of SCAN_DIRS) {
       }
       for (const m of line.matchAll(INLINE_VAR_COLOR)) {
         violations.push(`${rel}:${i + 1} static inline var() color — use the utility class instead`);
+      }
+      for (const m of line.matchAll(ARBITRARY_VAR)) {
+        violations.push(`${rel}:${i + 1} arbitrary var() utility "${m[0]}" — use the token utility spelling (e.g. bg-cipher-hover)`);
       }
     });
   }

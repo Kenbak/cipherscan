@@ -14,14 +14,17 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  children,
   className = '',
 }: {
   /** Mono uppercase label, e.g. "MINING" — rendered as "> MINING" */
   eyebrow: string;
   title: ReactNode;
   subtitle?: ReactNode;
-  /** Optional right-aligned controls (export button, period selector, ...) */
+  /** Optional right-aligned controls (count, export button, period selector, ...) */
   actions?: ReactNode;
+  /** Optional extra header content rendered below the title row (quote, banner) */
+  children?: ReactNode;
   className?: string;
 }) {
   return (
@@ -33,11 +36,12 @@ export function PageHeader({
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">{title}</h1>
           {subtitle && (
-            <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">{subtitle}</p>
+            <div className="text-sm text-secondary mt-2 max-w-2xl font-sans">{subtitle}</div>
           )}
         </div>
         {actions && <div className="shrink-0">{actions}</div>}
       </div>
+      {children}
     </div>
   );
 }

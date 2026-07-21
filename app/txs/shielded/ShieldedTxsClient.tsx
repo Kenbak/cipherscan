@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge } from '@/components/ui';
+import { Badge, PageHeader } from '@/components/ui';
 
 type FlowFilter = 'all' | 'shield' | 'deshield';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
@@ -232,23 +232,19 @@ export default function ShieldedTxsClient({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> SHIELDED_TRANSACTIONS
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            {page > 1
-              ? `Zcash Shielded Transactions - Page ${page}`
-              : 'Latest Zcash Shielded Transactions'}
-          </h1>
+      <PageHeader
+        eyebrow="SHIELDED_TRANSACTIONS"
+        title={page > 1
+          ? `Zcash Shielded Transactions - Page ${page}`
+          : 'Latest Zcash Shielded Transactions'}
+        actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && flows.length === 0
               ? 'Shielded transaction data temporarily unavailable'
               : `${pagination.total.toLocaleString()} shielded txs`}
           </span>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
@@ -314,7 +310,7 @@ export default function ShieldedTxsClient({
                   </tr>
                 ))
               ) : flows.map((flow) => (
-                <tr key={`${flow.txid}-${flow.flowType}`} className="group transition-colors duration-100 hover:bg-[var(--color-hover)]">
+                <tr key={`${flow.txid}-${flow.flowType}`} className="group transition-colors duration-100 hover:bg-cipher-hover">
                   <td className="px-4 h-[44px] border-b border-cipher-border">
                     <Link href={`/tx/${flow.txid}`} className="font-mono text-xs text-primary hover:text-cipher-purple transition-colors truncate block max-w-[120px] sm:max-w-[180px]">
                       <span className="sm:hidden">{flow.txid.slice(0, 8)}...{flow.txid.slice(-4)}</span>

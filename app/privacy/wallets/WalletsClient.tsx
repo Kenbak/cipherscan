@@ -100,15 +100,15 @@ export default function WalletsClient() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-2">Wallet Anonymity Analysis</h1>
-        <p className="text-[var(--color-text-secondary)] mb-8">
+        <p className="text-secondary mb-8">
           Analyzing on-chain wallet fingerprints...
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 rounded-lg animate-pulse bg-[var(--color-bg-tertiary)]" />
+            <div key={i} className="h-24 rounded-lg animate-pulse bg-cipher-hover" />
           ))}
         </div>
-        <div className="h-64 rounded-lg animate-pulse bg-[var(--color-bg-tertiary)]" />
+        <div className="h-64 rounded-lg animate-pulse bg-cipher-hover" />
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function WalletsClient() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold">Wallet Anonymity Analysis</h1>
-          <p className="text-[var(--color-text-secondary)] mt-1">
+          <p className="text-secondary mt-1">
             How distinguishable is your wallet on-chain?
           </p>
         </div>
@@ -142,8 +142,8 @@ export default function WalletsClient() {
               onClick={() => setPeriod(p)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 period === p
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                  ? 'bg-cipher-cyan text-cipher-bg-dark font-medium'
+                  : 'bg-cipher-hover text-secondary hover:text-primary'
               }`}
             >
               {p}
@@ -159,7 +159,7 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       <section id="fee-lanes" className="mb-12 scroll-mt-20">
         <h2 className="text-xl font-semibold mb-1">Do you blend in?</h2>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+        <p className="text-sm text-secondary mb-6">
           ZIP-317 defines a standard fee of 5,000 zat per logical action. Transactions paying this
           rate share the largest anonymity set.
         </p>
@@ -192,15 +192,15 @@ export default function WalletsClient() {
             <Card variant="standard" className="mb-6">
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                  <span className="text-sm font-medium text-secondary">
                     Fee Lane Distribution
                   </span>
-                  <span className="text-xs text-[var(--color-text-tertiary)]">
+                  <span className="text-xs text-muted">
                     ({formatNumber(feeLanes.totalShieldedTxs)} shielded txs in {period})
                   </span>
                 </div>
                 <BatteryBar buckets={feeLanes.buckets} />
-                <div className="flex items-center gap-4 mt-3 text-xs text-[var(--color-text-secondary)]">
+                <div className="flex items-center gap-4 mt-3 text-xs text-secondary">
                   <span className="flex items-center gap-1">
                     <span className="w-3 h-3 rounded-sm bg-cipher-teal" />
                     Standard (5000 zat)
@@ -220,7 +220,7 @@ export default function WalletsClient() {
             {/* Stacked area chart */}
             <Card variant="standard" className="mb-6">
               <CardBody>
-                <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-4">
+                <h3 className="text-sm font-medium text-secondary mb-4">
                   Fee Lane Evolution Over Time
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -320,7 +320,7 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       <section id="fingerprints" className="mb-12 scroll-mt-20">
         <h2 className="text-xl font-semibold mb-1">What your wallet reveals</h2>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+        <p className="text-sm text-secondary mb-6">
           Each wallet leaves a unique on-chain signature. Tap a wallet to see details.
         </p>
 
@@ -331,7 +331,7 @@ export default function WalletsClient() {
             ))}
 
             {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[var(--color-text-secondary)]">
+            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-secondary">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-8 h-5 rounded-full bg-emerald-400/20 border border-emerald-400/40" />
                 Confirmed
@@ -354,7 +354,7 @@ export default function WalletsClient() {
       {/* ================================================================ */}
       <section id="usage" className="mb-12 scroll-mt-20">
         <h2 className="text-xl font-semibold mb-1">Who uses what</h2>
-        <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+        <p className="text-sm text-secondary mb-6">
           Estimated wallet usage based on on-chain fingerprint matching. Confidence varies — see
           methodology below.
         </p>
@@ -364,7 +364,7 @@ export default function WalletsClient() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <Card variant="standard">
                 <CardBody>
-                  <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-4">
+                  <h3 className="text-sm font-medium text-secondary mb-4">
                     Estimated Distribution (last {period})
                   </h3>
                   <ResponsiveContainer width="100%" height={280}>
@@ -409,13 +409,13 @@ export default function WalletsClient() {
 
               <Card variant="standard">
                 <CardBody>
-                  <h3 className="text-sm font-medium text-[var(--color-text-secondary)] mb-4">
+                  <h3 className="text-sm font-medium text-secondary mb-4">
                     On-Chain Ceiling
                   </h3>
                   {fingerprints && (
                     <div className="space-y-4">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[var(--color-text-secondary)]">
+                        <span className="text-secondary">
                           Total shielded txs ({period})
                         </span>
                         <span className="text-2xl font-bold font-mono">
@@ -423,7 +423,7 @@ export default function WalletsClient() {
                         </span>
                       </div>
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[var(--color-text-secondary)]">
+                        <span className="text-secondary">
                           Fully-shielded Orchard
                         </span>
                         <span className="text-2xl font-bold font-mono">
@@ -431,7 +431,7 @@ export default function WalletsClient() {
                         </span>
                       </div>
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[var(--color-text-secondary)]">
+                        <span className="text-secondary">
                           Identified by fingerprint
                         </span>
                         <span className="text-2xl font-bold font-mono">
@@ -442,8 +442,8 @@ export default function WalletsClient() {
                           )}
                         </span>
                       </div>
-                      <div className="text-xs text-[var(--color-text-tertiary)] pt-3 border-t border-[var(--color-border)] space-y-1.5">
-                        <p className="font-medium text-[var(--color-text-secondary)]">Why is &quot;Unknown&quot; so large?</p>
+                      <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
+                        <p className="font-medium text-secondary">Why is &quot;Unknown&quot; so large?</p>
                         <ul className="list-disc list-inside space-y-0.5 text-[11px]">
                           <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
                           <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
@@ -500,11 +500,11 @@ function StatCard({
   return (
     <Card variant="compact">
       <CardBody>
-        <p className="text-xs text-[var(--color-text-secondary)] mb-1">{label}</p>
+        <p className="text-xs text-secondary mb-1">{label}</p>
         <p className="text-3xl font-bold font-mono" style={{ color: accentColor }}>
           {value}
         </p>
-        <p className="text-xs text-[var(--color-text-tertiary)] mt-1">{subtext}</p>
+        <p className="text-xs text-muted mt-1">{subtext}</p>
       </CardBody>
     </Card>
   );
@@ -563,11 +563,11 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
       <CardBody className="!p-0">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-[var(--color-bg-tertiary)] transition-colors"
+          className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
         >
           <div className="flex items-center gap-2 sm:w-48 flex-shrink-0">
             <svg
-              className={`w-3 h-3 transition-transform flex-shrink-0 text-[var(--color-text-tertiary)] ${expanded ? 'rotate-90' : ''}`}
+              className={`w-3 h-3 transition-transform flex-shrink-0 text-muted ${expanded ? 'rotate-90' : ''}`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -583,13 +583,13 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
         </button>
 
         {expanded && (
-          <div className="px-4 pb-3 pt-1 border-t border-[var(--color-border)]">
+          <div className="px-4 pb-3 pt-1 border-t border-cipher-border">
             {wallet.description && (
-              <p className="text-xs text-[var(--color-text-secondary)] mb-3">{wallet.description}</p>
+              <p className="text-xs text-secondary mb-3">{wallet.description}</p>
             )}
             {wallet.familyMembers && wallet.familyMembers.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Includes:</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted">Includes:</span>
                 {wallet.familyMembers.map(m => (
                   <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
                     {m}
@@ -598,12 +598,12 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
               </div>
             )}
             {wallet.note && (
-              <p className="text-xs text-[var(--color-text-tertiary)] italic mb-3">{wallet.note}</p>
+              <p className="text-xs text-muted italic mb-3">{wallet.note}</p>
             )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {signals.map(([key, signal]) => (
-                <div key={key} className="rounded-lg bg-[var(--color-bg-tertiary)] p-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] mb-1">
+                <div key={key} className="rounded-lg bg-cipher-hover p-2.5">
+                  <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
                     {signalLabels[key]}
                   </p>
                   <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
@@ -612,7 +612,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
                       {formatNumber(signal.matchCount)} matches
                     </p>
                   )}
-                  <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1 leading-tight">
+                  <p className="text-[10px] text-muted mt-1 leading-tight">
                     {signal.source}
                   </p>
                 </div>
@@ -670,7 +670,7 @@ function MethodologyAccordion() {
           </svg>
         </button>
         {open && (
-          <div className="mt-4 space-y-3 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          <div className="mt-4 space-y-3 text-xs text-secondary leading-relaxed">
             <p>
               <strong>On-chain fingerprint matching:</strong> We count transactions matching each
               wallet&apos;s known signature. Signals used: Orchard action count (padding),

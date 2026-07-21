@@ -69,7 +69,7 @@ export function Pagination({
   loading = false,
 }: PaginationProps) {
   const firstClassName = 'px-3 py-1.5 text-xs font-mono text-muted hover:text-primary transition-colors';
-  const pageClassName = 'px-3 py-1.5 text-xs font-mono text-secondary border border-cipher-border rounded hover:text-primary hover:border-[var(--color-text-muted)] transition-colors';
+  const pageClassName = 'px-3 py-1.5 text-xs font-mono text-secondary border border-cipher-border rounded hover:text-primary hover:border-muted transition-colors';
 
   return (
     <nav aria-label="Pagination" className="flex items-center justify-center gap-3 mt-6">

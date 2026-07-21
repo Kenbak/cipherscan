@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui';
 import { getApiUrl } from '@/lib/api-config';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -463,18 +464,11 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header */}
-      <div className="mb-8">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> CHARTS
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-          Charts & Analytics
-        </h1>
-        <p className="text-sm text-secondary mt-2 max-w-2xl">
-          Every on-chain metric we track. Click any chart to explore the full interactive version.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="CHARTS"
+        title="Charts & Analytics"
+        subtitle="Every on-chain metric we track. Click any chart to explore the full interactive version."
+      />
 
       {/* Search + Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8">

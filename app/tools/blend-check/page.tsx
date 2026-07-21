@@ -223,7 +223,7 @@ export default function BlendCheckPage() {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0.00"
-                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-[var(--color-hover)] text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
+                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
                   autoFocus
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted font-mono text-lg">
@@ -284,7 +284,7 @@ export default function BlendCheckPage() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 w-full h-1.5 rounded-full bg-[var(--color-hover)] overflow-hidden">
+                <div className="mt-4 w-full h-1.5 rounded-full bg-cipher-hover overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${getScoreBg(score)}`}
                     style={{ width: `${Math.max(score, 3)}%` }}
@@ -393,7 +393,7 @@ export default function BlendCheckPage() {
                                 <div className={`flex-1 mb-2 px-4 py-3 rounded-lg border transition-all ${
                                   piece.isRemainder && piece.blendScore < 40
                                     ? 'border-cipher-orange/20 bg-cipher-orange/5'
-                                    : 'border-cipher-border bg-[var(--color-hover)]'
+                                    : 'border-cipher-border bg-cipher-hover'
                                 }`}>
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -405,7 +405,7 @@ export default function BlendCheckPage() {
                                       )}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <div className="w-10 h-1 rounded-full bg-[var(--color-hover)] overflow-hidden">
+                                      <div className="w-10 h-1 rounded-full bg-cipher-hover overflow-hidden">
                                         <div
                                           className={`h-full rounded-full ${getScoreBg(piece.blendScore)}`}
                                           style={{ width: `${Math.max(piece.blendScore, 5)}%` }}
@@ -493,7 +493,7 @@ export default function BlendCheckPage() {
                       const d = result.periods[p];
                       const labels: Record<string, string> = { '24h': '24 Hours', '7d': '7 Days', '30d': '30 Days', 'all': 'All Time' };
                       return (
-                        <div key={p} className="rounded-xl border border-cipher-border bg-[var(--color-hover)] p-4">
+                        <div key={p} className="rounded-xl border border-cipher-border bg-cipher-hover p-4">
                           <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
                             {labels[p]}
                           </div>
@@ -550,13 +550,13 @@ export default function BlendCheckPage() {
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-all text-left group ${
                               isSelected
                                 ? 'border-cipher-cyan/30 bg-cipher-cyan/5'
-                                : 'border-transparent hover:border-cipher-border hover:bg-[var(--color-hover)]'
+                                : 'border-transparent hover:border-cipher-border hover:bg-cipher-hover'
                             }`}
                           >
                             <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-cyan font-semibold' : 'text-primary'}`}>
                               {formatZec(np.amount)}
                             </span>
-                            <div className="flex-1 h-1.5 rounded-full bg-[var(--color-hover)] overflow-hidden">
+                            <div className="flex-1 h-1.5 rounded-full bg-cipher-hover overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${getScoreBg(np.blendScore)}`}
                                 style={{ width: `${Math.max(np.blendScore, 4)}%` }}

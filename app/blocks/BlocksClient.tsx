@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -137,15 +138,10 @@ export default function BlocksClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
-      {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> ALL_BLOCKS
-        </p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            {pagination.page > 1 ? `Zcash Blocks - Page ${pagination.page}` : 'Latest Zcash Blocks'}
-          </h1>
+      <PageHeader
+        eyebrow="ALL_BLOCKS"
+        title={pagination.page > 1 ? `Zcash Blocks - Page ${pagination.page}` : 'Latest Zcash Blocks'}
+        actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && blocks.length === 0
               ? 'Block data temporarily unavailable'
@@ -153,8 +149,8 @@ export default function BlocksClient({
               ? `Block #${blocks[0].height.toLocaleString()} to #${blocks[blocks.length - 1].height.toLocaleString()} · ${pagination.total.toLocaleString()} blocks`
               : `${pagination.total.toLocaleString()} blocks`}
           </span>
-        </div>
-      </div>
+        }
+      />
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
@@ -208,7 +204,7 @@ export default function BlocksClient({
                   return (
                     <tr
                       key={block.height}
-                      className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
+                      className="group transition-colors duration-100 hover:bg-cipher-hover"
                     >
                       <td className="px-4 h-[44px] border-b border-cipher-border">
                         <div className="flex items-center gap-2">

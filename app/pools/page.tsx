@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { Card, CardBody } from '@/components/ui/Card';
+import { PageHeader } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { PoolDistributionChart } from '@/components/network/PoolDistributionChart';
 import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
@@ -266,15 +267,11 @@ export default function PoolsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="mb-8 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> POOL_ANALYTICS
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">Zcash Shielded Pools</h1>
-        <p className="text-sm text-secondary mt-2 max-w-2xl font-sans">
-          Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="POOL_ANALYTICS"
+        title="Zcash Shielded Pools"
+        subtitle="Track how ZEC moves between transparent and shielded pools. Where it goes, and whether it stays."
+      />
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Pool analytics sections" />
 

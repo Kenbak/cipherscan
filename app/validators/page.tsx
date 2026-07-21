@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { CopyButton } from '@/components/CopyButton';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { CURRENCY } from '@/lib/config';
 import { displayPubkey } from '@/lib/utils';
 import { getFinalizerLabel, finalizerAvatarStyle } from '@/lib/finalizer-labels';
@@ -97,17 +98,11 @@ export default function ValidatorsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="mb-8 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> FINALIZER_ROSTER
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-          Finalizer Roster
-        </h1>
-        <p className="text-sm text-secondary mt-2">
-          Active validators securing the Crosslink PoS finality layer
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="FINALIZER_ROSTER"
+        title="Finalizer Roster"
+        subtitle="Active validators securing the Crosslink PoS finality layer"
+      />
 
       <div className="mb-6">
         <StakingDayBanner />
@@ -293,7 +288,7 @@ export default function ValidatorsPage() {
                   return (
                     <tr
                       key={member.identity}
-                      className="group transition-colors duration-100 hover:bg-[var(--color-hover)]"
+                      className="group transition-colors duration-100 hover:bg-cipher-hover"
                     >
                       <td className="px-3 sm:px-4 h-[60px] border-b border-cipher-border">
                         <span className="font-mono text-sm text-muted">#{i + 1}</span>

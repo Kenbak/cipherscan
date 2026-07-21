@@ -70,7 +70,7 @@ export function RecentBlocksTable() {
               <th className="text-right px-4 py-3">Time</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border-subtle)]">
+          <tbody className="divide-y divide-cipher-border-subtle">
             {blocks.map((b) => (
               <tr key={b.height} className="hover:bg-cipher-bg/30 transition-colors">
                 <td className="px-4 py-2.5">

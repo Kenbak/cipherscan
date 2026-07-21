@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -164,20 +165,11 @@ export default function PrivacyClient() {
     // contains the page heading and intro (matters for SEO and first paint).
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="mb-8 animate-fade-in">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> PRIVACY_DASHBOARD
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash Privacy Metrics
-          </h1>
-          <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
-            Live metrics on how private the Zcash network actually is: the size of the
-            Sapling and Orchard shielded pools, the share of transactions that shield,
-            deshield, or stay fully shielded, and a network-wide privacy score computed
-            from on-chain behavior.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="PRIVACY_DASHBOARD"
+          title="Zcash Privacy Metrics"
+          subtitle="Live metrics on how private the Zcash network actually is: the size of the Sapling and Orchard shielded pools, the share of transactions that shield, deshield, or stay fully shielded, and a network-wide privacy score computed from on-chain behavior."
+        />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-purple border-t-transparent"></div>
           <p className="text-secondary ml-4 font-mono">Loading privacy statistics...</p>
@@ -217,15 +209,10 @@ export default function PrivacyClient() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
-        {/* Header - cypherpunk style */}
-        <div className="mb-8 animate-fade-in">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> PRIVACY_DASHBOARD
-          </p>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-              Zcash Privacy Metrics
-            </h1>
+        <PageHeader
+          eyebrow="PRIVACY_DASHBOARD"
+          title="Zcash Privacy Metrics"
+          actions={
             <div className="flex items-center gap-3">
               <div className={`flex items-center gap-1.5 ${trendColor}`}>
                 {trendIcon}
@@ -235,7 +222,8 @@ export default function PrivacyClient() {
                 {new Date(stats.lastUpdated).toLocaleTimeString()}
               </span>
             </div>
-          </div>
+          }
+        >
           {/* Eric Hughes quote */}
           <div className="mt-3 flex items-center gap-2">
             <div className="w-[2px] h-8 bg-gradient-to-b from-cipher-purple/60 to-cipher-purple/0 rounded-full"></div>
@@ -248,7 +236,7 @@ export default function PrivacyClient() {
               </p>
             </div>
           </div>
-        </div>
+        </PageHeader>
 
         {/* Privacy Score + Key Metrics | Recent Shielded Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">

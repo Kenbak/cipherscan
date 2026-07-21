@@ -368,7 +368,7 @@ export default function UnclesPage() {
                 </thead>
                 <tbody>
                   {forks.map((fork) => (
-                    <tr key={fork.id} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
+                    <tr key={fork.id} className="border-b border-cipher-border hover:bg-cipher-hover transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
                           #{fork.forkHeight.toLocaleString()}
@@ -425,7 +425,7 @@ export default function UnclesPage() {
                   {orphans.map((block) => (
                     <React.Fragment key={block.id}>
                       <tr
-                        className={`border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors cursor-pointer ${expandedOrphan === block.id ? 'bg-[var(--color-hover)]' : ''}`}
+                        className={`border-b border-cipher-border hover:bg-cipher-hover transition-colors cursor-pointer ${expandedOrphan === block.id ? 'bg-cipher-hover' : ''}`}
                         onClick={() => setExpandedOrphan(expandedOrphan === block.id ? null : block.id)}
                       >
                         <td className="px-4 py-3">
@@ -484,7 +484,7 @@ export default function UnclesPage() {
                       </tr>
                       {expandedOrphan === block.id && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-4 bg-[var(--color-surface)]">
+                          <td colSpan={7} className="px-4 py-4 bg-cipher-surface">
                             <div className="flex flex-col lg:flex-row gap-3">
                               <BlockSideCard
                                 label="Orphaned Block"
@@ -565,7 +565,7 @@ export default function UnclesPage() {
                       syncing: 'Syncing',
                     };
                     return (
-                      <tr key={node.name} className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors">
+                      <tr key={node.name} className="border-b border-cipher-border hover:bg-cipher-hover transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-primary font-medium">
                           {node.name}
                         </td>
@@ -624,7 +624,7 @@ export default function UnclesPage() {
             Node operators can help monitor chain health by reporting their tip block hash.
             If your node sees a different block at the same height, it will be recorded as a potential fork.
           </p>
-          <div className="bg-[var(--color-surface)] rounded-lg p-4 border border-cipher-border">
+          <div className="bg-cipher-surface rounded-lg p-4 border border-cipher-border">
             <code className="text-xs text-cipher-cyan font-mono block mb-2">
               POST {API_URL}/api/uncle/report
             </code>

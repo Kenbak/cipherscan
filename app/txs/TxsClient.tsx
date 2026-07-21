@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge } from '@/components/ui';
+import { Badge, PageHeader } from '@/components/ui';
 
 type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';
 
@@ -194,22 +194,17 @@ export default function TxsClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
-      {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> ALL_TRANSACTIONS
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            {page > 1 ? `Zcash Transactions - Page ${page}` : 'Latest Zcash Transactions'}
-          </h1>
+      <PageHeader
+        eyebrow="ALL_TRANSACTIONS"
+        title={page > 1 ? `Zcash Transactions - Page ${page}` : 'Latest Zcash Transactions'}
+        actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && txs.length === 0
               ? 'Transaction data temporarily unavailable'
               : `${pagination.total.toLocaleString()} transactions`}
           </span>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="mb-4">
@@ -253,7 +248,7 @@ export default function TxsClient({
                   </tr>
                 ))
               ) : txs.map((tx) => (
-                <tr key={tx.txid} className="group transition-colors duration-100 hover:bg-[var(--color-hover)]">
+                <tr key={tx.txid} className="group transition-colors duration-100 hover:bg-cipher-hover">
                   <td className="px-4 h-[44px] border-b border-cipher-border">
                     <Link href={`/tx/${tx.txid}`} className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors truncate block max-w-[120px] sm:max-w-[180px]">
                       <span className="sm:hidden">{tx.txid.slice(0, 8)}...{tx.txid.slice(-4)}</span>

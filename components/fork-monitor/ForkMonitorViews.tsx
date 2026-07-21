@@ -227,7 +227,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                   onClick={() => setScale(mode)}
                   className={`px-3 py-1.5 transition-colors ${
                     scale === mode
-                      ? 'bg-[var(--color-hover)] text-primary'
+                      ? 'bg-cipher-hover text-primary'
                       : 'text-muted hover:text-secondary'
                   }`}
                 >
@@ -380,7 +380,7 @@ export function AnchorsTable({ anchors }: { anchors: Anchor[] }) {
           {anchors.map((a) => (
             <tr
               key={a.height}
-              className="border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors"
+              className="border-b border-cipher-border hover:bg-cipher-hover transition-colors"
             >
               <td className="px-4 py-3 font-mono text-xs text-cipher-cyan">h{a.height.toLocaleString()}</td>
               <td className="px-4 py-3 text-xs text-muted hidden sm:table-cell">{a.label}</td>
@@ -449,7 +449,7 @@ export function CheckerPanel({
             value={checkHeight}
             onChange={(e) => setCheckHeight(e.target.value)}
             placeholder="e.g. 40762, 41800"
-            className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40"
+            className="flex-1 px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40"
             onKeyDown={(e) => e.key === 'Enter' && onCheck()}
           />
           <button
@@ -494,7 +494,7 @@ export function CheckerPanel({
           value={bulkInput}
           onChange={(e) => setBulkInput(e.target.value)}
           placeholder={'39573 00228574fad9f6b8d88e8ad1edcee00565eb86cffa…\n39574 006e0a84682c81d539965fd0f3698e0d61bbd3bfc9…'}
-          className="w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded-lg text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 resize-y"
+          className="w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 resize-y"
           rows={3}
           spellCheck={false}
         />
@@ -584,7 +584,7 @@ export function NodeRegistryPanel({
   parseSamples,
 }: NodeRegistryProps) {
   const inputClass =
-    'w-full px-3 py-2 text-xs font-mono bg-[var(--color-bg)] border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40';
+    'w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40';
 
   return (
     <div>
@@ -655,7 +655,7 @@ export function NodeRegistryPanel({
                 type="button"
                 onClick={() => setReportTtl(ttl)}
                 className={`px-3 py-1.5 transition-colors ${
-                  reportTtl === ttl ? 'bg-[var(--color-hover)] text-primary' : 'text-muted hover:text-secondary'
+                  reportTtl === ttl ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-secondary'
                 }`}
               >
                 {ttl}
@@ -715,7 +715,7 @@ export function NodeRegistryPanel({
                 return (
                   <tr
                     key={n.name}
-                    className={`border-b border-cipher-border hover:bg-[var(--color-hover)] transition-colors ${stale ? 'opacity-50' : ''}`}
+                    className={`border-b border-cipher-border hover:bg-cipher-hover transition-colors ${stale ? 'opacity-50' : ''}`}
                   >
                     <td className="px-4 py-3 font-mono text-xs text-primary">{n.name}</td>
                     <td className="px-4 py-3 text-center font-mono text-xs text-secondary">h{n.tip.toLocaleString()}</td>

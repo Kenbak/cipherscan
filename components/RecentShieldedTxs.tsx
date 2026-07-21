@@ -115,7 +115,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
           {txs.map((tx, i) => (
             <tr
               key={tx.txid}
-              className="group transition-colors duration-100 hover:bg-[var(--color-hover)] animate-fade-in-up"
+              className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms` }}
             >
               <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { isMainnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -421,14 +422,7 @@ export default function CrosschainPage() {
     <div className="min-h-screen py-8 sm:py-12 px-4">
       <div className="max-w-7xl mx-auto">
 
-        {/* Header — cypherpunk terminal style */}
-        <div className="mb-8 animate-fade-in">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> CROSSCHAIN
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            ZEC Cross-Chain Analytics
-          </h1>
+        <PageHeader eyebrow="CROSSCHAIN" title="ZEC Cross-Chain Analytics">
           <div className="flex items-start gap-3 mt-3">
             <div className="w-[2px] h-8 bg-gradient-to-b from-cipher-purple/60 to-cipher-purple/0 shrink-0 mt-0.5" />
             <p className="text-sm text-muted font-mono italic">
@@ -444,7 +438,7 @@ export default function CrosschainPage() {
           >
             Buy ZEC on CipherSwap, CipherScan&apos;s sister site →
           </a>
-        </div>
+        </PageHeader>
 
         {/* Stats strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

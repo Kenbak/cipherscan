@@ -6,6 +6,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { isCrosslink } from '@/lib/config';
 
 import { formatHashrate } from '@/lib/format-numbers';
@@ -201,19 +202,11 @@ export default function NetworkClient() {
     // state still carries the page's H1 and intro (matters for SEO).
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="mb-8">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> NETWORK_STATUS
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Network Overview
-          </h1>
-          <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
-            Live Zcash network statistics: block height, hashrate, difficulty, peer count,
-            circulating supply, shielded pool balances, and mining pool distribution —
-            indexed directly from a Zebra full node.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="NETWORK_STATUS"
+          title="Network Overview"
+          subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
+        />
         <div className="mb-6 h-24 bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="mb-8 h-[300px] bg-cipher-border-alpha/30 rounded-lg animate-pulse" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -257,17 +250,11 @@ export default function NetworkClient() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header - cypherpunk style */}
-      <div className="mb-8 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> NETWORK_STATUS
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Network Overview
-          </h1>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="NETWORK_STATUS"
+        title="Network Overview"
+        subtitle="Live Zcash network statistics: block height, hashrate, difficulty, peer count, circulating supply, shielded pool balances, and mining pool distribution — indexed directly from a Zebra full node."
+      />
 
       <NetworkSectionNav />
 

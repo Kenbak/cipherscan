@@ -7,6 +7,7 @@ import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { MempoolBubbles, type MempoolBubblesHandle } from '@/components/MempoolBubbles';
 
 interface MempoolTransaction {
@@ -139,19 +140,11 @@ export default function MempoolClient() {
     // initial HTML carries real content (matters for SEO and first paint).
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="mb-8">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-            <span className="opacity-50">{'>'}</span> MEMPOOL
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash Mempool — Pending Transactions
-          </h1>
-          <p className="text-sm text-muted leading-relaxed max-w-3xl mt-3">
-            Transactions waiting to be mined into the next Zcash block, streamed in real
-            time. Shielded, transparent, and mixed transactions are labeled as they enter
-            the queue.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="MEMPOOL_VIEWER"
+          title="Zcash Mempool — Pending Transactions"
+          subtitle="Transactions waiting to be mined into the next Zcash block, streamed in real time. Shielded, transparent, and mixed transactions are labeled as they enter the queue."
+        />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent" />
           <p className="text-secondary ml-4 font-mono">Loading mempool...</p>
@@ -178,18 +171,11 @@ export default function MempoolClient() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header - cypherpunk style */}
-      <div className="mb-8 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> MEMPOOL_VIEWER
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-          Zcash Mempool — Pending Transactions
-        </h1>
-        <p className="text-sm text-secondary mt-2">
-          Pending transactions waiting to be mined
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="MEMPOOL_VIEWER"
+        title="Zcash Mempool — Pending Transactions"
+        subtitle="Transactions waiting to be mined into the next Zcash block, streamed in real time. Shielded, transparent, and mixed transactions are labeled as they enter the queue."
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
@@ -347,7 +333,7 @@ export default function MempoolClient() {
                       return (
                         <tr
                           key={tx.txid}
-                          className="group transition-colors duration-100 hover:bg-[var(--color-hover)] animate-fade-in-up"
+                          className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
                           style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
                         >
                           <td className="px-4 h-[44px] border-b border-cipher-border">

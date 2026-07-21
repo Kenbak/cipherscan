@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui';
 import { API_CONFIG } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -141,22 +142,17 @@ export default function RichListClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header */}
-      <div className="mb-8 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> RICH_LIST
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Top Addresses
-          </h1>
-          {pagination && (
+      <PageHeader
+        eyebrow="RICH_LIST"
+        title="Top Addresses"
+        actions={
+          pagination ? (
             <span className="text-xs text-muted font-mono">
               {pagination.total.toLocaleString()} addresses with balance
             </span>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* Concentration Summary Cards */}
       {concentration && (
@@ -234,7 +230,7 @@ export default function RichListClient({
                   </tr>
                 ))
               ) : addresses.map((entry) => (
-                <tr key={entry.address} className="group transition-colors duration-100 hover:bg-[var(--color-hover)]">
+                <tr key={entry.address} className="group transition-colors duration-100 hover:bg-cipher-hover">
                   <td className="px-4 h-[44px] border-b border-cipher-border">
                     <span className="text-muted font-mono text-xs">{entry.rank}</span>
                   </td>

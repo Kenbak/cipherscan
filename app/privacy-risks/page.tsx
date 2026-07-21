@@ -7,6 +7,7 @@ import { RiskyTxCard } from '@/components/RiskyTxCard';
 import { BatchPatternCard, BatchPattern } from '@/components/BatchPatternCard';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/SectionHeader';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -299,15 +300,11 @@ function PrivacyRisksContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      {/* Header */}
-      <div className="mb-6 animate-fade-in">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> PRIVACY_ANALYSIS
-        </p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash Privacy Risk Analysis
-          </h1>
+      <PageHeader
+        eyebrow="PRIVACY_ANALYSIS"
+        title="Zcash Privacy Risk Analysis"
+        subtitle="Transactions where amount, timing, and withdrawal structure can reveal address ownership."
+        actions={
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
@@ -315,11 +312,8 @@ function PrivacyRisksContent() {
             </span>
             <Badge color="green">LIVE</Badge>
           </div>
-        </div>
-        <p className="text-sm text-secondary mt-2">
-          Transactions where amount, timing, and withdrawal structure can reveal address ownership.
-        </p>
-      </div>
+        }
+      />
 
       {/* Two-column layout: main + sidebar */}
       <div className="lg:grid lg:grid-cols-[1fr_260px] lg:gap-6 animate-fade-in-up stagger-2">
