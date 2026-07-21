@@ -182,7 +182,7 @@ function ChartGridCard({ chart, chartData, accent }: { chart: ChartEntry; chartD
   return (
     <Link
       href={chart.href}
-      className="group block rounded-xl border border-cipher-border/40 bg-card overflow-hidden transition-all duration-200 hover:border-white/15 hover:shadow-lg hover:shadow-black/10"
+      className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition-all duration-200 hover:border-white/15 hover:shadow-lg hover:shadow-black/10"
     >
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
@@ -546,7 +546,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
       )}
 
       {filtered.length === 0 && (
-        <div className="mt-12 py-16 text-center rounded-xl border border-cipher-border/30 bg-card">
+        <div className="mt-12 py-16 text-center rounded-xl border border-cipher-border/30 bg-cipher-surface">
           <p className="text-secondary text-sm">No charts matching &ldquo;{search}&rdquo;</p>
           <button
             onClick={() => { setSearch(''); setCategory('all'); }}
@@ -573,7 +573,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
               <Link
                 key={v.id}
                 href={v.href}
-                className="group block rounded-xl border border-cipher-border/40 bg-card overflow-hidden transition-all duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
+                className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition-all duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
               >
                 <div className="h-[180px] relative overflow-hidden pointer-events-none">
                   <LiveVizPreview id={v.id} riskData={riskCounts} />

@@ -187,7 +187,7 @@ export function ProtocolStatsChart() {
             domain={period === 'all' || period === '4y' ? [0, 'auto'] : ['dataMin', 'auto']}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
+            contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
             labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
             formatter={(value) => formatMillions(Number(value))}
           />
@@ -265,7 +265,7 @@ export function ProtocolStatsChart() {
             dataKey="label"
             height={20}
             stroke="var(--color-border-subtle)"
-            fill="var(--color-bg-card)"
+            fill="var(--color-surface-solid)"
             travellerWidth={8}
             tickFormatter={() => ''}
           />

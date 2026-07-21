@@ -246,7 +246,7 @@ export function NodeMap() {
 
   if (loading && worldDots.length === 0) {
     return (
-      <div className="bg-cipher-card border border-cipher-border rounded-xl p-6">
+      <div className="bg-cipher-surface border border-cipher-border rounded-xl p-6">
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
           <span className="ml-3 text-secondary font-mono">Loading node map...</span>
@@ -257,7 +257,7 @@ export function NodeMap() {
 
   if (error && locations.length === 0) {
     return (
-      <div className="bg-cipher-card border border-cipher-border rounded-xl p-6">
+      <div className="bg-cipher-surface border border-cipher-border rounded-xl p-6">
         <div className="text-center py-12">
           <p className="text-secondary mb-2">Node map unavailable</p>
           <p className="text-xs text-muted font-mono">{error}</p>
@@ -267,7 +267,7 @@ export function NodeMap() {
   }
 
   return (
-    <div className="bg-cipher-card border border-cipher-border rounded-xl overflow-hidden">
+    <div className="bg-cipher-surface border border-cipher-border rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

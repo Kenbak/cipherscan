@@ -196,7 +196,7 @@ function edgeStroke(type: string): string {
     case 'PAIR_LINK': return 'var(--color-cyan, #56D4C8)';
     case 'transparent_output': return 'var(--color-yellow, #E8C48D)';
     case 'pool_entry': return 'var(--color-purple, #A78BFA)';
-    default: return 'var(--color-blue, #5B9CF6)';
+    default: return 'var(--color-cipher-blue)';
   }
 }
 

@@ -88,6 +88,34 @@ for (const block of lightBlocks) {
   }
 }
 
+// Undefined variable references — var(--x) used anywhere (TSX or CSS) must
+// resolve to a variable defined in the stylesheets. Catches silent no-ops
+// like the never-defined --color-bg-card / --color-text-tertiary bugs.
+{
+  const cssSources = ['app/globals.css', 'app/newsletter/newsletter.css']
+    .map((p) => readFileSync(join(ROOT, p), 'utf8'))
+    .join('\n');
+  const defined = new Set([...cssSources.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gim)].map((m) => m[1]));
+  // Defined outside the stylesheets: next/font injects the geist vars,
+  // Tailwind owns --tw-*, React Flow owns --xy-*.
+  const external = /^--(font-geist|tw-|xy-)/;
+
+  for (const dir of SCAN_DIRS) {
+    for (const file of walk(join(ROOT, dir))) {
+      const rel = file.slice(ROOT.length);
+      const src = readFileSync(file, 'utf8');
+      src.split('\n').forEach((line, i) => {
+        for (const m of line.matchAll(/var\((--[a-z0-9-]+)/g)) {
+          const name = m[1];
+          if (!defined.has(name) && !external.test(name)) {
+            violations.push(`${rel}:${i + 1} var(${name}) is never defined — the declaration silently does nothing`);
+          }
+        }
+      });
+    }
+  }
+}
+
 if (violations.length > 0) {
   console.error('Design-token violations:\n');
   for (const v of violations) console.error(`  ${v}`);

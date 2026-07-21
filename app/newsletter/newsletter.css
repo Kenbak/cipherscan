@@ -366,7 +366,7 @@
   }
 
   .nl-link:hover {
-    color: var(--color-cyan-bright, #6ee0d6);
+    color: var(--color-cyan-glow);
     text-decoration-color: var(--color-cyan);
   }
 
@@ -393,7 +393,7 @@
   }
 
   .nl-story-source:hover {
-    color: var(--color-cyan-bright, #6ee0d6);
+    color: var(--color-cyan-glow);
   }
 
   .nl-code {

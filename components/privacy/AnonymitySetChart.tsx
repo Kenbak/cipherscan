@@ -80,7 +80,7 @@ export function AnonymitySetChart() {
                 cursor={{ fill: 'rgba(167, 139, 250, 0.08)' }}
                 contentStyle={{
                   backgroundColor: 'var(--tooltip-bg, #1F2937)',
-                  border: '1px solid var(--tooltip-border, #374151)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   padding: '12px',
                   color: colors.tooltipText,

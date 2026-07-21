@@ -664,7 +664,7 @@ function CohortWaves({ cohorts, activated }: { cohorts: Cohorts | null; activate
             <Tooltip
               cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
               contentStyle={{
-                backgroundColor: 'var(--color-bg-card, #12121a)',
+                backgroundColor: 'var(--color-surface-solid)',
                 border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
                 borderRadius: '8px',
                 fontSize: 12,
@@ -715,7 +715,7 @@ function DenominationHistogram({
             <Tooltip
               cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
               contentStyle={{
-                backgroundColor: 'var(--color-bg-card, #12121a)',
+                backgroundColor: 'var(--color-surface-solid)',
                 border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
                 borderRadius: '8px',
                 fontSize: 12,

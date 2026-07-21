@@ -77,7 +77,7 @@ export default function AnchorSearchClient() {
             value={root}
             onChange={(e) => setRoot(e.target.value)}
             placeholder="Enter 64-char hex anchor root (Sapling or Orchard)..."
-            className="flex-1 px-4 py-3 bg-cipher-card border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-cyan/50"
+            className="flex-1 px-4 py-3 bg-cipher-surface border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-cyan/50"
           />
           <button
             type="submit"
@@ -98,7 +98,7 @@ export default function AnchorSearchClient() {
               ? 'bg-red-500/5 border-red-500/30'
               : result.found
                 ? 'bg-cipher-cyan/5 border-cipher-cyan/30'
-                : 'bg-cipher-card border-cipher-border'
+                : 'bg-cipher-surface border-cipher-border'
           }`}>
             <div className="flex items-start gap-3">
               <span className="text-lg">
@@ -124,7 +124,7 @@ export default function AnchorSearchClient() {
               </h3>
               <div className="space-y-2">
                 {result.canonical.map((block) => (
-                  <div key={block.hash} className="p-3 bg-cipher-card border border-cipher-border rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div key={block.hash} className="p-3 bg-cipher-surface border border-cipher-border rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </Link>
@@ -172,7 +172,7 @@ export default function AnchorSearchClient() {
           )}
 
           {!result.found && (
-            <div className="p-4 bg-cipher-card border border-cipher-border rounded-lg">
+            <div className="p-4 bg-cipher-surface border border-cipher-border rounded-lg">
               <p className="text-muted text-sm">
                 No blocks found with this anchor root. This could mean:
               </p>
