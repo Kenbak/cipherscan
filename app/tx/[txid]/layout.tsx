@@ -269,7 +269,7 @@ export default async function TxLayout({ params, children }: Props) {
           <span className="text-xs font-mono text-muted">{networkName}</span>
           {txType && <span className="text-xs font-mono text-muted">{txType}</span>}
         </div>
-        <p className="mt-3 max-w-3xl text-sm text-secondary">{statusDescription}</p>
+        <p className="sr-only">{statusDescription}</p>
       </section>
       {children}
     </>

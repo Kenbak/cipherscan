@@ -1124,9 +1124,12 @@ export default function TransactionPage() {
                 {renderHeroFlow()}
               </div>
 
-              {/* Human-readable summary */}
+              {/* Human-readable summary + confirmation status */}
               <p className="text-sm text-muted leading-relaxed">
                 {generateTxSummary()}
+                {data.blockHeight > 0 && (
+                  <> Included in canonical Zcash block <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">#{data.blockHeight.toLocaleString()}</Link> with {data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''}.</>
+                )}
               </p>
 
               {/* Bridge explorer links */}
@@ -1184,19 +1187,6 @@ export default function TransactionPage() {
         <div>
           <Card className="mb-6">
             <CardBody className="space-y-0">
-              {/* Transaction Hash */}
-              <div className="pb-3 border-b block-info-border">
-                <div className="flex items-center mb-2 text-secondary">
-                  <span className="mr-2"><Icons.Hash /></span>
-                  <span className="text-sm">Transaction Hash</span>
-                  <span className="ml-2"><Tooltip content="Unique identifier for this transaction" /></span>
-                </div>
-                <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border flex items-center max-w-full">
-                  <code className="text-xs text-primary break-all block min-w-0 flex-1">{data.txid}</code>
-                  <CopyButton text={data.txid} label="txhash" />
-                </div>
-              </div>
-
               <InfoRow icon={Icons.Cube} label="Block" tooltip="The block that includes this transaction" value={
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">#{data.blockHeight.toLocaleString()}</Link>
