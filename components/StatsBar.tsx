@@ -147,12 +147,12 @@ export function StatsBar() {
             )}
 
             {stats.avgBlockTime !== null && (
-              <>
+              <span className="hidden xl:contents">
                 <StatItem href="/network" label="Block Time">
                   {stats.avgBlockTime}s
                 </StatItem>
                 <Sep />
-              </>
+              </span>
             )}
 
             {stats.hashrate && (
@@ -211,14 +211,14 @@ export function StatsBar() {
             )}
 
             {stats.privacyScore !== null && (
-              <>
+              <span className="hidden xl:contents">
                 <StatItem href="/privacy" label="Privacy Score">
                   <span className={stats.privacyScore < 30 ? 'text-danger' : stats.privacyScore < 60 ? 'text-warning' : 'text-cipher-green'}>
                     {stats.privacyScore}/100
                   </span>
                 </StatItem>
                 <Sep />
-              </>
+              </span>
             )}
 
             {/* Price */}

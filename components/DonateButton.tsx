@@ -55,8 +55,8 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
   };
 
   const qrSize = 180;
-  const logoSize = Math.round(qrSize * 0.14);
-  const clearZone = Math.round(qrSize * 0.22);
+  const logoSize = Math.round(qrSize * 0.09);
+  const clearZone = Math.round(qrSize * 0.25);
 
   const modalContent = showModal ? (
     <div
@@ -109,7 +109,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                     level="H"
                     marginSize={1}
                     bgColor={isDark ? '#08090F' : '#F5F7FA'}
-                    fgColor="var(--color-cyan)"
+                    fgColor={isDark ? '#FFFFFF' : '#0F172A'}
                     imageSettings={{
                       src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
                       height: clearZone,
