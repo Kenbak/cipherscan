@@ -251,7 +251,7 @@ export default function PrivacyClient() {
         </div>
 
         {/* Privacy Score + Key Metrics | Recent Shielded Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">
 
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
@@ -384,7 +384,7 @@ export default function PrivacyClient() {
         </div>
 
         {/* Transaction Types + Pool Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up stagger-3">
           {/* Transaction Types */}
           <Card>
             <CardBody>
@@ -536,7 +536,7 @@ export default function PrivacyClient() {
 
         {/* Charts Section with Tabs */}
         {stats.trends.daily.length > 0 && (
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div className="mb-8 animate-fade-in-up stagger-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
               <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">HISTORICAL_TRENDS</h2>
@@ -821,13 +821,13 @@ export default function PrivacyClient() {
         )}
 
         {/* Anonymity Set + Shielding Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: '220ms' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-5">
           <AnonymitySetChart />
           <ShieldingDistributionChart />
         </div>
 
         {/* Cross-links */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in-up stagger-6">
           <Link
             href="/turnstile"
             className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-cyan/40 transition-all bg-card"
@@ -867,7 +867,7 @@ export default function PrivacyClient() {
         </div>
 
         {/* Info Footer */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+        <div className="animate-fade-in-up stagger-6">
         <Card variant="glass">
           <CardBody>
             <h3 className="text-lg font-bold mb-4 text-primary">About Privacy Metrics</h3>

@@ -212,7 +212,7 @@ export function MigrationClient({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash <span style={{ color: IRONWOOD }}>Ironwood</span>{' '}Upgrade &amp; Migration Tracker
+            Zcash <span className="text-cipher-yellow-bright">Ironwood</span>{' '}Upgrade &amp; Migration Tracker
           </h1>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
             Zcash Ironwood is the formally-verified shielded pool introduced by NU6.3. CipherScan tracks
@@ -221,7 +221,7 @@ export function MigrationClient({
           </p>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
             NU6.3 moves shielded value from Orchard into the formally-verified{' '}
-            <span style={{ color: IRONWOOD }} className="font-semibold">Ironwood</span> pool through a
+            <span className="font-semibold text-cipher-yellow-bright">Ironwood</span> pool through a
             trustless turnstile. The migration is engineered to be{' '}
             <span className="text-primary font-semibold">uniform on purpose</span> — power-of-ten amounts,
             shared timing cohorts — so that individual moves blend together. This is what that looks like
@@ -361,7 +361,7 @@ function IronwoodCountdown({
       <div className="relative z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5 mb-4">
-            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: IRONWOOD }} />
+            <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-yellow-bright" />
             <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
               NU6.3 Ironwood {networkLabel}
             </span>
@@ -380,7 +380,7 @@ function IronwoodCountdown({
             </div>
 
             <div className="text-center mt-8">
-              <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight" style={{ color: IRONWOOD }}>
+              <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight text-cipher-yellow-bright">
                 {blocksLeft.toLocaleString()}
               </div>
               <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
@@ -400,7 +400,7 @@ function IronwoodCountdown({
               </div>
               <div className="flex justify-between mt-2 text-[10px] font-mono text-muted">
                 <span>block {tipHeight > 0 ? tipHeight.toLocaleString() : '...'}</span>
-                <span className="font-semibold" style={{ color: IRONWOOD }}>
+                <span className="font-semibold text-cipher-yellow-bright">
                   {activationHeight.toLocaleString()}
                 </span>
               </div>
@@ -412,7 +412,7 @@ function IronwoodCountdown({
           </>
         ) : (
           <div className="text-center">
-            <div className="text-4xl sm:text-5xl font-bold font-mono" style={{ color: IRONWOOD }}>
+            <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-yellow-bright">
               ACTIVATED
             </div>
             <div className="text-sm text-secondary mt-2">
@@ -517,7 +517,7 @@ function ActivationCountdown({ overview }: { overview: Overview }) {
             The moment they do, this dashboard fills in automatically.
           </p>
           {blocksUntilActivation > 0 && (
-            <div className="text-[11px] font-mono" style={{ color: IRONWOOD }}>
+            <div className="text-[11px] font-mono text-cipher-yellow-bright">
               {progressPct.toFixed(1)}% complete
             </div>
           )}
@@ -536,7 +536,7 @@ function ActivationCountdown({ overview }: { overview: Overview }) {
           </div>
           <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted">
             <span>current: {tipHeight.toLocaleString()}</span>
-            <span style={{ color: IRONWOOD }}>NU6.3 @ {activationHeight.toLocaleString()}</span>
+            <span className="text-cipher-yellow-bright">NU6.3 @ {activationHeight.toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -585,7 +585,7 @@ function SupplyAudit({
         <div className="text-[10px] uppercase tracking-wider text-muted font-mono mb-1">
           Verified shielded supply
         </div>
-        <div className="text-2xl font-bold font-mono" style={{ color: IRONWOOD }}>
+        <div className="text-2xl font-bold font-mono text-cipher-yellow-bright">
           {ironwoodZat > 0 ? `${fmtZec(ironwoodZat)} ZEC` : '—'}
         </div>
         <div className="text-[10px] text-muted mt-1 max-w-md leading-relaxed">

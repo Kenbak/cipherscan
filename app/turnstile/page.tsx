@@ -42,7 +42,7 @@ export default function TurnstilePage() {
         </div>
       </div>
 
-      <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <div className="animate-fade-in-up stagger-2">
         <TurnstileTracker />
       </div>
 

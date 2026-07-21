@@ -278,11 +278,11 @@ export default function PoolsPage() {
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Pool analytics sections" />
 
-      <section id="overview" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+      <section id="overview" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-2">
         {overview ? <PoolOverviewHero data={overview} /> : <PoolOverviewSkeleton />}
       </section>
 
-      <section id="supply" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <section id="supply" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-3">
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
@@ -295,7 +295,7 @@ export default function PoolsPage() {
         <PoolDistributionChart />
       </section>
 
-      <section id="flows" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+      <section id="flows" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-4">
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
@@ -309,7 +309,7 @@ export default function PoolsPage() {
         <FlowVolumeChart />
       </section>
 
-      <section id="turnstile" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+      <section id="turnstile" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-5">
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
@@ -323,7 +323,7 @@ export default function PoolsPage() {
         <TurnstileTracker />
       </section>
 
-      <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+      <section className="mb-12 animate-fade-in-up stagger-6">
         <RecentFlows />
       </section>
     </div>

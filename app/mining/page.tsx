@@ -138,7 +138,7 @@ function DistributionSection() {
   ];
 
   return (
-    <section id="distribution" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+    <section id="distribution" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-2">
       <ChartCard
         title="MINING_POOL_DISTRIBUTION"
         height={360}
@@ -232,7 +232,7 @@ function RankingSection() {
   }, [period]);
 
   return (
-    <section id="ranking" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+    <section id="ranking" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-3">
       <Card>
         <CardBody>
           <div className="flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap">
@@ -404,7 +404,7 @@ function HashrateShareSection() {
   const cursorStyle = { fill: 'rgba(255,255,255,0.03)', stroke: 'rgba(255,255,255,0.1)' };
 
   return (
-    <section id="hashrate" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+    <section id="hashrate" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-4">
       <ChartCard
         title="POOL_NETWORK_BLOCK_SHARE"
         height={380}
@@ -578,7 +578,7 @@ function MinerBehaviorSection() {
   }));
 
   return (
-    <section id="behavior" className="scroll-mt-36 mb-12 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+    <section id="behavior" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-5">
       <div className="mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">

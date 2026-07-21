@@ -26,9 +26,11 @@
   --color-cipher-bg: var(--color-bg);
   --color-cipher-elevated: var(--color-elevated);
   --color-cipher-surface: var(--color-surface);
+  --color-cipher-surface-solid: var(--color-surface-solid);
   --color-cipher-hover: var(--color-hover);
   --color-cipher-active: var(--color-active);
   --color-cipher-border: var(--color-border);
+  --color-cipher-border-subtle: var(--color-border-subtle);
   --color-cipher-border-alpha: rgb(var(--color-border-rgb));
 
   /* Brand (theme-aware via RGB channel vars) */

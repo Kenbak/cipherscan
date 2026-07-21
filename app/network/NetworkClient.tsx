@@ -289,7 +289,7 @@ export default function NetworkClient() {
 
         {/* On Crosslink: show the block activity chart (peer map has tiny sample size).
             On mainnet/testnet: show the geographic node map. */}
-        <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="mb-8 animate-fade-in-up stagger-3">
           <Suspense fallback={
             <div className="card p-8 flex items-center justify-center min-h-[300px]">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
@@ -301,7 +301,7 @@ export default function NetworkClient() {
 
         {stats.supply && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 animate-fade-in-up" style={{ animationDelay: '120ms' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 animate-fade-in-up stagger-3">
               <Suspense fallback={<div className="card h-48 animate-pulse" />}>
                 <SupplyEmissionPanel
                   circulating={emission?.circulating ?? stats.supply.chainSupply}
@@ -319,7 +319,7 @@ export default function NetworkClient() {
           </>
         )}
 
-        <div className="animate-fade-in-up" style={{ animationDelay: '160ms' }}>
+        <div className="animate-fade-in-up stagger-4">
           <Suspense fallback={<div className="card h-64 animate-pulse" />}>
             <RecentBlocksTable />
           </Suspense>
@@ -364,7 +364,7 @@ export default function NetworkClient() {
                 </div>
 
                 {breakdown && breakdown.categories.length > 0 && (
-                  <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
+                  <div className="border-t border-cipher-border-subtle pt-4 mt-4">
                     <div className="flex items-center justify-between gap-3">
                       <button
                         type="button"
@@ -535,10 +535,7 @@ function breakdownColor(category: string): string {
 
 function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div
-      className="mb-8 pt-6 border-t"
-      style={{ borderColor: 'var(--color-border-subtle)' }}
-    >
+    <div className="mb-8 pt-6 border-t border-cipher-border-subtle">
       <h2 className="text-lg sm:text-xl font-bold font-mono text-primary uppercase tracking-wider">{title}</h2>
       {subtitle && <p className="text-xs text-muted font-mono mt-1.5 normal-case tracking-normal">{subtitle}</p>}
     </div>
@@ -552,8 +549,7 @@ function HoverTip({ tip, children, className = '' }: { tip?: string; children: R
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-[10px] leading-snug text-secondary rounded-md border opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
-        style={{ backgroundColor: 'var(--color-surface-solid)', borderColor: 'var(--color-border-subtle)' }}
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-[10px] leading-snug text-secondary rounded-md border bg-cipher-surface-solid border-cipher-border-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
       >
         {tip}
       </div>
@@ -618,10 +614,7 @@ function OverviewHeroStrip({
           </div>
         </div>
 
-        <div
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t text-xs font-mono"
-          style={{ borderColor: 'var(--color-border-subtle)' }}
-        >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-cipher-border-subtle text-xs font-mono">
           <div className="flex items-center gap-2 min-w-0">
             <span className="relative flex h-2 w-2 flex-shrink-0">
               {isHealthy && (
@@ -667,7 +660,7 @@ function ChainInfoStrip({
   const latestBlockAgo = `${Math.floor((Date.now() / 1000 - stats.blockchain.latestBlockTime) / 60)}m ago`;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in-up" style={{ animationDelay: '140ms' }}>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-fade-in-up stagger-4">
       <ChainInfoChip
         label="Lockbox"
         value={`${supply.lockbox.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`}

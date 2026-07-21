@@ -280,7 +280,7 @@ function NodeMapMiniViz() {
   });
 
   return (
-    <div className="h-full w-full relative bg-[#0a0f14] dark:bg-[#0a0f14]">
+    <div className="h-full w-full relative bg-cipher-bg-dark">
       <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
         {landDots.map((d, i) => (
           <circle key={i} cx={d.x} cy={d.y} r={1.5} fill="#1e293b" />
@@ -360,7 +360,7 @@ function MempoolMiniViz() {
   };
 
   return (
-    <div className="h-full w-full relative bg-[#0a0f14] dark:bg-[#0a0f14] overflow-hidden">
+    <div className="h-full w-full relative bg-cipher-bg-dark overflow-hidden">
       <style>{`
         @keyframes float-bubble {
           0%, 100% { transform: translate(0, 0); }
@@ -402,11 +402,11 @@ function MempoolMiniViz() {
 }
 
 function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; low: number; total?: number } | null }) {
-  if (!data) return <div className="h-full w-full bg-[#0a0f14]" />;
+  if (!data) return <div className="h-full w-full bg-cipher-bg-dark" />;
   const total = data.total || (data.high + data.medium + data.low);
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0f14] dark:bg-[#0a0f14] p-5 relative">
+    <div className="h-full w-full flex flex-col items-center justify-center bg-cipher-bg-dark p-5 relative">
       <div className="text-center mb-4">
         <div className="text-3xl font-bold font-mono text-white">{total.toLocaleString()}</div>
         <div className="text-[9px] font-mono text-white/50 uppercase mt-1">detected (7d)</div>
