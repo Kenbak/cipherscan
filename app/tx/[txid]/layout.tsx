@@ -266,7 +266,7 @@ export default async function TxLayout({ params, children }: Props) {
             <CopyButton text={normalizedTxid} size="sm" className="shrink-0" />
           </span>
         </h1>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-mono font-medium uppercase tracking-wide ${statusClass}`}>
             {status}
           </span>
