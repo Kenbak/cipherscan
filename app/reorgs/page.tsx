@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
 import { API_CONFIG } from '@/lib/api-config';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Card, CardBody, Badge, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
 
@@ -94,6 +93,170 @@ interface NodesSummary {
   online: number;
   forking: number;
 }
+
+const forkColumns: DataTableColumn<ForkEvent>[] = [
+  {
+    id: 'height',
+    header: 'Height',
+    cell: (fork) => (
+      <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
+        #{fork.forkHeight.toLocaleString()}
+      </Link>
+    ),
+  },
+  {
+    id: 'depth',
+    header: 'Depth',
+    align: 'center',
+    cell: (fork) => (
+      <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
+        {fork.depth} block{fork.depth !== 1 ? 's' : ''}
+      </Badge>
+    ),
+  },
+  {
+    id: 'blocks',
+    header: 'Blocks',
+    align: 'center',
+    cell: (fork) => (
+      <span className="font-mono text-xs text-secondary">
+        {fork.orphanedCount || fork.comparisons?.length || '—'}
+      </span>
+    ),
+  },
+  {
+    id: 'source',
+    header: 'Source',
+    cell: (fork) => (
+      <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
+        {fork.source}
+      </Badge>
+    ),
+  },
+  {
+    id: 'description',
+    header: 'Description',
+    className: 'hidden sm:table-cell',
+    cell: (fork) => (
+      <span className="text-xs text-secondary truncate block max-w-[250px]">
+        {fork.description || '—'}
+      </span>
+    ),
+  },
+  {
+    id: 'detected',
+    header: 'Detected',
+    align: 'right',
+    cell: (fork) => (
+      <span className="text-xs text-muted font-mono whitespace-nowrap">
+        {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
+      </span>
+    ),
+  },
+];
+
+const NODE_STATUS_COLOR: Record<string, string> = {
+  agree: 'text-cipher-green',
+  behind: 'text-cipher-yellow',
+  ahead: 'text-cipher-cyan',
+  fork: 'text-cipher-orange',
+  offline: 'text-red-500',
+  pending: 'text-muted',
+  syncing: 'text-muted',
+};
+
+const NODE_STATUS_LABEL: Record<string, string> = {
+  agree: 'Agrees',
+  behind: 'Behind',
+  ahead: 'Ahead',
+  fork: 'FORK',
+  offline: 'Offline',
+  pending: 'Pending',
+  syncing: 'Syncing',
+};
+
+const nodeColumns: DataTableColumn<MonitoredNode>[] = [
+  {
+    id: 'node',
+    header: 'Node',
+    cell: (node) => (
+      <span className="font-mono text-xs text-primary font-medium">{node.name}</span>
+    ),
+  },
+  {
+    id: 'host',
+    header: 'Host',
+    className: 'hidden sm:table-cell',
+    cell: (node) => <code className="text-xs text-muted font-mono">{node.host}</code>,
+  },
+  {
+    id: 'version',
+    header: 'Version',
+    align: 'center',
+    className: 'hidden sm:table-cell',
+    cell: (node) =>
+      node.version ? (
+        <span className="text-xs font-mono text-secondary">
+          {node.nodeImpl ? `${node.nodeImpl} ` : ''}{node.version}
+        </span>
+      ) : (
+        <span className="text-xs text-muted">—</span>
+      ),
+  },
+  {
+    id: 'height',
+    header: 'Height',
+    align: 'center',
+    cell: (node) => (
+      <span className="font-mono text-xs text-secondary">
+        {node.height ? node.height.toLocaleString() : '—'}
+      </span>
+    ),
+  },
+  {
+    id: 'tipHash',
+    header: 'Tip Hash',
+    className: 'hidden md:table-cell',
+    cell: (node) =>
+      node.hash ? (
+        <HashLink
+          value={node.hash}
+          lead={10}
+          tail={6}
+          linkClassName={`text-xs font-mono ${node.status === 'fork' ? 'text-cipher-orange' : 'text-secondary'}`}
+        />
+      ) : (
+        <span className="text-xs text-muted">—</span>
+      ),
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    align: 'center',
+    cell: (node) => (
+      <>
+        <span className={`text-xs font-mono font-bold ${NODE_STATUS_COLOR[node.status] || 'text-muted'}`}>
+          {NODE_STATUS_LABEL[node.status] || node.status}
+        </span>
+        {node.status === 'fork' && node.commonAncestor != null && node.height != null && (
+          <span className="block text-[10px] text-muted mt-0.5">
+            depth: {node.height - node.commonAncestor} · split @ #{node.commonAncestor.toLocaleString()}
+          </span>
+        )}
+      </>
+    ),
+  },
+  {
+    id: 'lastCheck',
+    header: 'Last Check',
+    align: 'right',
+    cell: (node) => (
+      <span className="text-xs text-muted font-mono">
+        {node.lastChecked ? formatRelativeTime(new Date(node.lastChecked).getTime() / 1000) : '—'}
+      </span>
+    ),
+  },
+];
 
 export default function UnclesPage() {
   const [tab, setTab] = useState<'forks' | 'orphans' | 'nodes'>('forks');
@@ -352,268 +515,142 @@ export default function UnclesPage() {
 
       {/* Fork Events — Summary list */}
       {!loading && !error && tab === 'forks' && forks.length > 0 && (
-        <Card>
-          <CardBody className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-cipher-border">
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Depth</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Blocks</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Source</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Description</th>
-                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Detected</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {forks.map((fork) => (
-                    <tr key={fork.id} className="border-b border-cipher-border hover:bg-cipher-hover transition-colors">
-                      <td className="px-4 py-3">
-                        <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
-                          #{fork.forkHeight.toLocaleString()}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
-                          {fork.depth} block{fork.depth !== 1 ? 's' : ''}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
-                        {fork.orphanedCount || fork.comparisons?.length || '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
-                          {fork.source}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className="text-xs text-secondary truncate block max-w-[250px]">
-                          {fork.description || '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-muted font-mono whitespace-nowrap">
-                        {fork.detectedAt ? formatRelativeTime(new Date(fork.detectedAt).getTime() / 1000) : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+        <DataTable
+          columns={forkColumns}
+          rows={forks}
+          rowKey={(fork) => fork.id}
+        />
       )}
 
       {/* Orphaned Blocks Table with expandable comparison */}
+      {/* Expandable rows — DataTable doesn't support expansion yet; classes mirror its conventions */}
       {!loading && !error && tab === 'orphans' && orphans.length > 0 && (
-        <Card>
-          <CardBody className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-cipher-border">
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Orphaned Hash</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden md:table-cell">Canonical Hash</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">TXs</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Miner</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Source</th>
-                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orphans.map((block) => (
-                    <React.Fragment key={block.id}>
-                      <tr
-                        className={`border-b border-cipher-border hover:bg-cipher-hover transition-colors cursor-pointer ${expandedOrphan === block.id ? 'bg-cipher-hover' : ''}`}
-                        onClick={() => setExpandedOrphan(expandedOrphan === block.id ? null : block.id)}
-                      >
-                        <td className="px-4 py-3">
-                          <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-xs" onClick={e => e.stopPropagation()}>
-                            #{block.height.toLocaleString()}
+        <div className="card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Orphaned Hash</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Canonical Hash</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Miner</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Source</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orphans.map((block) => (
+                  <React.Fragment key={block.id}>
+                    <tr
+                      className={`group transition-colors duration-100 hover:bg-cipher-hover cursor-pointer ${expandedOrphan === block.id ? 'bg-cipher-hover' : ''}`}
+                      onClick={() => setExpandedOrphan(expandedOrphan === block.id ? null : block.id)}
+                    >
+                      <td className="px-4 h-[44px] border-b border-cipher-border">
+                        <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-xs" onClick={e => e.stopPropagation()}>
+                          #{block.height.toLocaleString()}
+                        </Link>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border">
+                        <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash} onClick={e => e.stopPropagation()}>
+                          {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
+                        </Link>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border hidden md:table-cell">
+                        {(block.canonicalBlock?.hash || block.canonicalHash) ? (
+                          <Link
+                            href={`/block/${block.height}`}
+                            className="text-xs text-cipher-green font-mono hover:underline"
+                            title={block.canonicalBlock?.hash || block.canonicalHash || ''}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
+                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
                           </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash} onClick={e => e.stopPropagation()}>
-                            {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          {(block.canonicalBlock?.hash || block.canonicalHash) ? (
-                            <Link
-                              href={`/block/${block.height}`}
-                              className="text-xs text-cipher-green font-mono hover:underline"
-                              title={block.canonicalBlock?.hash || block.canonicalHash || ''}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
-                              {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
+                        ) : (
+                          <span className="text-xs text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-center font-mono text-xs text-secondary">
+                        {block.transactionCount ?? '—'}
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
+                        {isUnknownPool(block.minerPool) ? (
+                          block.minerAddress ? (
+                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                              {truncateAddress(block.minerAddress)}
                             </Link>
                           ) : (
                             <span className="text-xs text-muted">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
-                          {block.transactionCount ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                          {isUnknownPool(block.minerPool) ? (
-                            block.minerAddress ? (
-                              <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
-                                {truncateAddress(block.minerAddress)}
-                              </Link>
-                            ) : (
-                              <span className="text-xs text-muted">—</span>
-                            )
-                          ) : block.minerAddress ? (
-                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
-                              {block.minerPool}
-                            </Link>
-                          ) : (
-                            <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'cyan' : 'muted'}>
-                            {block.source}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right text-xs text-muted font-mono whitespace-nowrap">
-                          {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
-                        </td>
-                      </tr>
-                      {expandedOrphan === block.id && (
-                        <tr>
-                          <td colSpan={7} className="px-4 py-4 bg-cipher-surface">
-                            <div className="flex flex-col lg:flex-row gap-3">
+                          )
+                        ) : block.minerAddress ? (
+                          <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                            {block.minerPool}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
+                        )}
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border">
+                        <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'cyan' : 'muted'}>
+                          {block.source}
+                        </Badge>
+                      </td>
+                      <td className="px-4 h-[44px] border-b border-cipher-border text-right text-xs text-muted font-mono whitespace-nowrap">
+                        {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
+                      </td>
+                    </tr>
+                    {expandedOrphan === block.id && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-4 bg-cipher-surface">
+                          <div className="flex flex-col lg:flex-row gap-3">
+                            <BlockSideCard
+                              label="Orphaned Block"
+                              block={{
+                                hash: block.hash,
+                                timestamp: block.timestamp,
+                                transactionCount: block.transactionCount,
+                                size: block.size,
+                                minerAddress: block.minerAddress,
+                                minerPool: block.minerPool,
+                              }}
+                              variant="orphan"
+                              height={block.height}
+                            />
+                            <div className="hidden lg:flex items-center justify-center px-2">
+                              <div className="text-muted font-mono text-xs">vs</div>
+                            </div>
+                            {block.canonicalBlock ? (
                               <BlockSideCard
-                                label="Orphaned Block"
-                                block={{
-                                  hash: block.hash,
-                                  timestamp: block.timestamp,
-                                  transactionCount: block.transactionCount,
-                                  size: block.size,
-                                  minerAddress: block.minerAddress,
-                                  minerPool: block.minerPool,
-                                }}
-                                variant="orphan"
+                                label="Canonical Block"
+                                block={block.canonicalBlock}
+                                variant="canonical"
                                 height={block.height}
                               />
-                              <div className="hidden lg:flex items-center justify-center px-2">
-                                <div className="text-muted font-mono text-xs">vs</div>
+                            ) : (
+                              <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-4 flex items-center justify-center">
+                                <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
                               </div>
-                              {block.canonicalBlock ? (
-                                <BlockSideCard
-                                  label="Canonical Block"
-                                  block={block.canonicalBlock}
-                                  variant="canonical"
-                                  height={block.height}
-                                />
-                              ) : (
-                                <div className="flex-1 rounded-lg border border-cipher-border bg-glass-2 p-4 flex items-center justify-center">
-                                  <span className="text-xs text-muted font-mono">Canonical block not indexed</span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Monitored Nodes Table */}
       {!loading && !error && tab === 'nodes' && (
-        <Card>
-          <CardBody className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-cipher-border">
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Node</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Host</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Version</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
-                    <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden md:table-cell">Tip Hash</th>
-                    <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Status</th>
-                    <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Last Check</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nodes.map((node) => {
-                    const statusColor: Record<string, string> = {
-                      agree: 'text-cipher-green',
-                      behind: 'text-cipher-yellow',
-                      ahead: 'text-cipher-cyan',
-                      fork: 'text-cipher-orange',
-                      offline: 'text-red-500',
-                      pending: 'text-muted',
-                      syncing: 'text-muted',
-                    };
-                    const statusLabel: Record<string, string> = {
-                      agree: 'Agrees',
-                      behind: 'Behind',
-                      ahead: 'Ahead',
-                      fork: 'FORK',
-                      offline: 'Offline',
-                      pending: 'Pending',
-                      syncing: 'Syncing',
-                    };
-                    return (
-                      <tr key={node.name} className="border-b border-cipher-border hover:bg-cipher-hover transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-primary font-medium">
-                          {node.name}
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                          <code className="text-xs text-muted font-mono">{node.host}</code>
-                        </td>
-                        <td className="px-4 py-3 text-center hidden sm:table-cell">
-                          {node.version ? (
-                            <span className="text-xs font-mono text-secondary">
-                              {node.nodeImpl ? `${node.nodeImpl} ` : ''}{node.version}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-xs text-secondary">
-                          {node.height ? node.height.toLocaleString() : '—'}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          {node.hash ? (
-                            <code className={`text-xs font-mono ${node.status === 'fork' ? 'text-cipher-orange' : 'text-secondary'}`}>
-                              {node.hash.slice(0, 10)}...{node.hash.slice(-6)}
-                            </code>
-                          ) : (
-                            <span className="text-xs text-muted">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`text-xs font-mono font-bold ${statusColor[node.status] || 'text-muted'}`}>
-                            {statusLabel[node.status] || node.status}
-                          </span>
-                          {node.status === 'fork' && node.commonAncestor != null && node.height != null && (
-                            <span className="block text-[10px] text-muted mt-0.5">
-                              depth: {node.height - node.commonAncestor} · split @ #{node.commonAncestor.toLocaleString()}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right text-xs text-muted font-mono">
-                          {node.lastChecked ? formatRelativeTime(new Date(node.lastChecked).getTime() / 1000) : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
+        <DataTable
+          columns={nodeColumns}
+          rows={nodes}
+          rowKey={(node) => node.name}
+        />
       )}
 
       {/* Report Endpoint Info */}

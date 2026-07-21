@@ -39,7 +39,10 @@ export function DataTable<T>({
   empty,
   footer,
   stickyHeader = false,
+  size = 'default',
   className = '',
+  bare = false,
+  rowClassName,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -52,12 +55,19 @@ export function DataTable<T>({
   footer?: ReactNode;
   /** Pin the header row while the table scrolls (needs a bounded container) */
   stickyHeader?: boolean;
+  /** Row density: default 44px archive rows, comfortable 52px preview widgets */
+  size?: 'default' | 'comfortable';
+  /** Skip the card wrapper — for tables embedded inside an existing Card */
+  bare?: boolean;
+  /** Extra classes per row (stale dimming, entry animations) */
+  rowClassName?: (row: T, index: number) => string;
   className?: string;
 }) {
   const showEmpty = !loading && rows.length === 0 && empty;
+  const rowHeight = size === 'comfortable' ? 'h-[52px]' : 'h-[44px]';
 
   return (
-    <div className={`card p-0 overflow-hidden ${className}`}>
+    <div className={bare ? className : `card p-0 overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className={stickyHeader ? 'sticky top-0 z-10 bg-cipher-surface-solid' : undefined}>
@@ -91,12 +101,12 @@ export function DataTable<T>({
               : rows.map((row, i) => (
                   <tr
                     key={rowKey(row, i)}
-                    className="group transition-colors duration-100 hover:bg-cipher-hover"
+                    className={`group transition-colors duration-100 hover:bg-cipher-hover ${rowClassName?.(row, i) ?? ''}`}
                   >
                     {columns.map((col) => (
                       <td
                         key={col.id}
-                        className={`px-4 h-[44px] border-b border-cipher-border ${ALIGN[col.align ?? 'left']} ${col.className ?? ''}`}
+                        className={`px-4 ${rowHeight} border-b border-cipher-border ${ALIGN[col.align ?? 'left']} ${col.className ?? ''}`}
                       >
                         {col.cell(row, i)}
                       </td>

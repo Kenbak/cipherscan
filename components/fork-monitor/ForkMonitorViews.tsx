@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { Anchor, CheckResult, ForkMonitorData, NodeRef, RegisteredNode } from './types';
 import { branchLabel, fmtAgo, statusMeta, truncHash } from './utils';
 
@@ -363,47 +365,54 @@ export function GuidancePanel({ data }: { data: ForkMonitorData }) {
 // Anchors table
 // ---------------------------------------------------------------------------
 
+const anchorColumns: DataTableColumn<Anchor>[] = [
+  {
+    id: 'height',
+    header: 'Height',
+    cell: (a) => <span className="font-mono text-xs text-cipher-cyan">h{a.height.toLocaleString()}</span>,
+  },
+  {
+    id: 'label',
+    header: 'Label',
+    className: 'hidden sm:table-cell',
+    cell: (a) => <span className="text-xs text-muted">{a.label}</span>,
+  },
+  {
+    id: 'cipherscan',
+    header: 'CipherScan',
+    cell: (a) => (
+      <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
+        <code>{truncHash(a.cipherscan_hash, 10)}</code>
+        {a.cipherscan_hash && <CopyButton text={a.cipherscan_hash} />}
+      </span>
+    ),
+  },
+  {
+    id: 'ctaz',
+    header: 'cTAZ',
+    cell: (a) => (
+      <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
+        <code>{truncHash(a.ctaz_hash, 10)}</code>
+        {a.ctaz_hash && <CopyButton text={a.ctaz_hash} />}
+      </span>
+    ),
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    align: 'right',
+    cell: (a) => <MatchState match={a.match} compact />,
+  },
+];
+
 export function AnchorsTable({ anchors }: { anchors: Anchor[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-cipher-border">
-            <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Height</th>
-            <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Label</th>
-            <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">CipherScan</th>
-            <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">cTAZ</th>
-            <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {anchors.map((a) => (
-            <tr
-              key={a.height}
-              className="border-b border-cipher-border hover:bg-cipher-hover transition-colors"
-            >
-              <td className="px-4 py-3 font-mono text-xs text-cipher-cyan">h{a.height.toLocaleString()}</td>
-              <td className="px-4 py-3 text-xs text-muted hidden sm:table-cell">{a.label}</td>
-              <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
-                  <code>{truncHash(a.cipherscan_hash, 10)}</code>
-                  {a.cipherscan_hash && <CopyButton text={a.cipherscan_hash} />}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
-                  <code>{truncHash(a.ctaz_hash, 10)}</code>
-                  {a.ctaz_hash && <CopyButton text={a.ctaz_hash} />}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <MatchState match={a.match} compact />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      columns={anchorColumns}
+      rows={anchors}
+      rowKey={(a) => a.height}
+      bare
+    />
   );
 }
 
@@ -694,64 +703,85 @@ export function NodeRegistryPanel({
       </div>
 
       {data.nodes.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-cipher-border">
-                <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Node</th>
-                <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Tip</th>
-                <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden md:table-cell">Hash</th>
-                <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3">Peers</th>
-                <th className="text-center text-[11px] uppercase tracking-wider text-muted px-4 py-3 hidden sm:table-cell">Mining</th>
-                <th className="text-left text-[11px] uppercase tracking-wider text-muted px-4 py-3">Branch</th>
-                <th className="text-right text-[11px] uppercase tracking-wider text-muted px-4 py-3">Seen</th>
-                <th className="w-10" />
-              </tr>
-            </thead>
-            <tbody>
-              {data.nodes.map((n: RegisteredNode) => {
-                const nodeTtlMs = n.ttl === '1h' ? 3_600_000 : 86_400_000;
-                const stale = Date.now() - n.reported_at > nodeTtlMs * 0.75;
-                return (
-                  <tr
-                    key={n.name}
-                    className={`border-b border-cipher-border hover:bg-cipher-hover transition-colors ${stale ? 'opacity-50' : ''}`}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-primary">{n.name}</td>
-                    <td className="px-4 py-3 text-center font-mono text-xs text-secondary">h{n.tip.toLocaleString()}</td>
-                    <td className="px-4 py-3 hidden md:table-cell font-mono text-xs text-secondary">
-                      {truncHash(n.tip_hash, 8)}
-                    </td>
-                    <td className="px-4 py-3 text-center font-mono text-xs text-secondary">{n.peers ?? '—'}</td>
-                    <td className="px-4 py-3 text-center font-mono text-xs text-muted hidden sm:table-cell">
-                      {n.mining === true ? 'on' : n.mining === false ? 'off' : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge color={branchBadgeColor(n.branch)}>{branchLabel(n.branch)}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs text-muted whitespace-nowrap">
-                      {fmtAgo(n.reported_at)}
-                      <span className="opacity-60 ml-1">{n.ttl || '1h'}</span>
-                    </td>
-                    <td className="px-2 py-3">
-                      <button
-                        type="button"
-                        onClick={() => onDelete(n.name)}
-                        className="text-muted hover:text-secondary text-xs p-1"
-                        title={`Remove ${n.name}`}
-                        aria-label={`Remove ${n.name}`}
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          bare
+          columns={[
+            {
+              id: 'node',
+              header: 'Node',
+              cell: (n: RegisteredNode) => <span className="font-mono text-xs text-primary">{n.name}</span>,
+            },
+            {
+              id: 'tip',
+              header: 'Tip',
+              align: 'center',
+              cell: (n) => <span className="font-mono text-xs text-secondary">h{n.tip.toLocaleString()}</span>,
+            },
+            {
+              id: 'hash',
+              header: 'Hash',
+              className: 'hidden md:table-cell',
+              cell: (n) => <span className="font-mono text-xs text-secondary">{truncHash(n.tip_hash, 8)}</span>,
+            },
+            {
+              id: 'peers',
+              header: 'Peers',
+              align: 'center',
+              cell: (n) => <span className="font-mono text-xs text-secondary">{n.peers ?? '—'}</span>,
+            },
+            {
+              id: 'mining',
+              header: 'Mining',
+              align: 'center',
+              className: 'hidden sm:table-cell',
+              cell: (n) => (
+                <span className="font-mono text-xs text-muted">
+                  {n.mining === true ? 'on' : n.mining === false ? 'off' : '—'}
+                </span>
+              ),
+            },
+            {
+              id: 'branch',
+              header: 'Branch',
+              cell: (n) => <Badge color={branchBadgeColor(n.branch)}>{branchLabel(n.branch)}</Badge>,
+            },
+            {
+              id: 'seen',
+              header: 'Seen',
+              align: 'right',
+              cell: (n) => (
+                <span className="font-mono text-xs text-muted whitespace-nowrap">
+                  {fmtAgo(n.reported_at)}
+                  <span className="opacity-60 ml-1">{n.ttl || '1h'}</span>
+                </span>
+              ),
+            },
+            {
+              id: 'remove',
+              header: '',
+              align: 'right',
+              cell: (n) => (
+                <button
+                  type="button"
+                  onClick={() => onDelete(n.name)}
+                  className="text-muted hover:text-secondary text-xs p-1"
+                  title={`Remove ${n.name}`}
+                  aria-label={`Remove ${n.name}`}
+                >
+                  ×
+                </button>
+              ),
+            },
+          ]}
+          rows={data.nodes}
+          rowKey={(n) => n.name}
+          rowClassName={(n) => {
+            const nodeTtlMs = n.ttl === '1h' ? 3_600_000 : 86_400_000;
+            return Date.now() - n.reported_at > nodeTtlMs * 0.75 ? 'opacity-50' : '';
+          }}
+        />
       ) : (
-        <p className="text-xs text-muted text-center py-8">No nodes reported yet.</p>
+        <EmptyState title="No nodes reported yet." />
       )}
     </div>
   );

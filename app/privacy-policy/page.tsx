@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { buildPageMetadata } from '@/lib/seo';
+import { PageHeader } from '@/components/ui/SectionHeader';
 
 export const metadata = buildPageMetadata({
   title: 'Privacy Policy | CipherScan',
@@ -13,11 +14,11 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-      <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-        <span className="opacity-50">{'>'}</span> LEGAL
-      </p>
-      <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Privacy Policy</h1>
-      <p className="text-sm text-muted font-mono mb-10">Last updated: {updated}</p>
+      <PageHeader
+        eyebrow="LEGAL"
+        title="Privacy Policy"
+        subtitle={<span className="font-mono">Last updated: {updated}</span>}
+      />
 
       <div className="prose-legal space-y-8 text-sm text-secondary leading-relaxed">
         <section>

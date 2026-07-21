@@ -9,6 +9,7 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { MetricCard } from '@/components/ui/MetricCard';
+import { HashLink } from '@/components/ui/HashLink';
 import { MempoolBubbles, type MempoolBubblesHandle } from '@/components/MempoolBubbles';
 
 interface MempoolTransaction {
@@ -286,6 +287,8 @@ export default function MempoolClient() {
 
           {showTable && (
             <div className="card p-0 overflow-hidden">
+              {/* Live-entry row animations — DataTable lacks per-row classes;
+                  th/td classes mirror its conventions exactly */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -309,13 +312,7 @@ export default function MempoolClient() {
                           style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
                         >
                           <td className="px-4 h-[44px] border-b border-cipher-border">
-                            <Link
-                              href={`/tx/${tx.txid}`}
-                              className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors truncate block max-w-[120px] sm:max-w-[180px]"
-                            >
-                              <span className="sm:hidden">{tx.txid.slice(0, 8)}...{tx.txid.slice(-4)}</span>
-                              <span className="hidden sm:inline">{tx.txid.slice(0, 12)}...{tx.txid.slice(-6)}</span>
-                            </Link>
+                            <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={12} tail={6} responsive />
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border">
                             <Badge color={getTypeBadgeColor(tx.type)}>
@@ -377,10 +374,7 @@ export default function MempoolClient() {
       {/* Info Card */}
       <Card variant="glass" className="mt-8 animate-fade-in-up stagger-5">
         <CardBody>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">ABOUT_MEMPOOL</h3>
-          </div>
+          <SectionHeader label="ABOUT_MEMPOOL" />
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
               <p className="font-medium text-primary">Mempool</p>

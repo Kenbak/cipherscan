@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/SectionHeader';
 
 // Icons with consistent className prop
 const Icons = {
@@ -260,12 +261,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-10 sm:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3 animate-fade-in">
-                <span className="opacity-50">{'>'}</span> LEARN_ZCASH
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-5">
-                Learn Zcash
-              </h1>
+              <PageHeader eyebrow="LEARN_ZCASH" title="Learn Zcash" className="!mb-5" />
               <p className="text-secondary leading-relaxed mb-6">
                 Zcash is the leading privacy cryptocurrency. Unlike Bitcoin, where every transaction is public,
                 Zcash lets you send and receive money with <strong className="text-primary">encrypted amounts, addresses, and memos</strong> — verified by zero-knowledge proofs without revealing any private data.

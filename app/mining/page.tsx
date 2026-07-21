@@ -11,7 +11,7 @@ import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { Card, CardBody } from '@/components/ui/Card';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/components/ui';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
@@ -236,80 +236,91 @@ function RankingSection() {
     <section id="ranking" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-3">
       <Card>
         <CardBody>
-          <div className="flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-              <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_RANKING</h2>
-            </div>
-            <PeriodSelector value={period} onChange={setPeriod} />
-          </div>
+          <SectionHeader label="POOL_RANKING" actions={<PeriodSelector value={period} onChange={setPeriod} />} />
 
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-10 skeleton-bg rounded animate-pulse" />
-              ))}
-            </div>
+            <SkeletonTable rows={5} rowHeight="h-10" />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-glass-4">
-                    <th className="text-left py-2 pr-3">#</th>
-                    <th className="text-left py-2 pr-3">Pool</th>
-                    <th className="text-right py-2 pr-3">Blocks</th>
-                    <th className="text-right py-2 pr-3">Share</th>
-                    <th className="text-right py-2 pr-3 hidden sm:table-cell">Avg Interval</th>
-                    <th className="text-right py-2 hidden md:table-cell">Total Fees</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ranking.map((pool) => (
-                    <tr key={pool.address} className="border-t border-glass-4 hover:bg-glass-3 transition-colors">
-                      <td className="py-2.5 pr-3 text-muted">{pool.rank}</td>
-                      <td className="py-2.5 pr-3">
-                        <div className="flex items-center gap-2">
+            <>
+              <DataTable
+                bare
+                columns={[
+                  {
+                    id: 'rank',
+                    header: '#',
+                    cell: (pool: PoolRank) => <span className="font-mono text-xs text-muted">{pool.rank}</span>,
+                  },
+                  {
+                    id: 'pool',
+                    header: 'Pool',
+                    cell: (pool) => (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length] }}
+                        />
+                        <span className="font-mono text-xs text-primary font-medium">{pool.name}</span>
+                        {pool.region && (
+                          <span className="text-[9px] font-mono text-muted px-1 py-0.5 bg-glass-3 rounded">{pool.region}</span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'blocks',
+                    header: 'Blocks',
+                    align: 'right',
+                    cell: (pool) => (
+                      <span className="font-mono text-xs tabular-nums text-primary">{pool.blocks.toLocaleString()}</span>
+                    ),
+                  },
+                  {
+                    id: 'share',
+                    header: 'Share',
+                    align: 'right',
+                    cell: (pool) => (
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 bg-glass-3 rounded-full overflow-hidden hidden sm:block">
                           <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length] }}
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(pool.share * 100, 100)}%`,
+                              backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length],
+                            }}
                           />
-                          <span className="text-primary font-medium">{pool.name}</span>
-                          {pool.region && (
-                            <span className="text-[9px] text-muted px-1 py-0.5 bg-glass-3 rounded">{pool.region}</span>
-                          )}
                         </div>
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-primary">
-                        {pool.blocks.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 pr-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 bg-glass-3 rounded-full overflow-hidden hidden sm:block">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${Math.min(pool.share * 100, 100)}%`,
-                                backgroundColor: POOL_COLORS[(pool.rank - 1) % POOL_COLORS.length],
-                              }}
-                            />
-                          </div>
-                          <span className="tabular-nums text-primary">{formatPct(pool.share)}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 pr-3 text-right tabular-nums text-muted hidden sm:table-cell">
+                        <span className="font-mono text-xs tabular-nums text-primary">{formatPct(pool.share)}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'interval',
+                    header: 'Avg Interval',
+                    align: 'right',
+                    className: 'hidden sm:table-cell',
+                    cell: (pool) => (
+                      <span className="font-mono text-xs tabular-nums text-muted">
                         {pool.avgBlockInterval ? `${Math.round(pool.avgBlockInterval)}s` : '—'}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums text-muted hidden md:table-cell">
-                        {formatZec(pool.totalFeesZat)} ZEC
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    ),
+                  },
+                  {
+                    id: 'fees',
+                    header: 'Total Fees',
+                    align: 'right',
+                    className: 'hidden md:table-cell',
+                    cell: (pool) => (
+                      <span className="font-mono text-xs tabular-nums text-muted">{formatZec(pool.totalFeesZat)} ZEC</span>
+                    ),
+                  },
+                ]}
+                rows={ranking}
+                rowKey={(pool) => pool.address}
+              />
               <p className="text-[10px] text-muted font-mono mt-3">
                 {total.toLocaleString()} total blocks in {period}
               </p>
-            </div>
+            </>
           )}
         </CardBody>
       </Card>

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
+import { HashLink, SkeletonTable } from '@/components/ui';
 
 interface ShieldedTx {
   txid: string;
@@ -75,40 +75,22 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
 
   if (loading) {
     return (
-      <div className="card p-0 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <tr key={i} className="animate-pulse">
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-28 skeleton-bg rounded" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-5 skeleton-bg rounded" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border hidden sm:table-cell"><div className="h-3 w-16 skeleton-bg rounded ml-auto" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-3 w-14 skeleton-bg rounded ml-auto" /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="card p-4">
+        <SkeletonTable rows={5} rowHeight="h-[52px]" />
       </div>
     );
   }
 
   return (
     <div className={nested ? '' : 'card p-0 overflow-hidden'}>
+      {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}
       <table className="w-full">
         <thead>
           <tr>
-            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Type</th>
-            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
-            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Type</th>
+            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
+            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
           </tr>
         </thead>
         <tbody>
@@ -118,13 +100,10 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
               className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms` }}
             >
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
-                <Link href={`/tx/${tx.txid}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-cipher-purple transition-colors truncate block max-w-[120px] sm:max-w-none">
-                  <span className="sm:hidden">{tx.txid.slice(0, 6)}...{tx.txid.slice(-4)}</span>
-                  <span className="hidden sm:inline">{tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}</span>
-                </Link>
+              <td className="px-4 h-[52px] border-b border-cipher-border">
+                <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} responsive accent="purple" />
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
+              <td className="px-4 h-[52px] border-b border-cipher-border">
                 <ShieldFlowBadge
                   type={resolveShieldFlowType({
                     type: tx.type,
@@ -134,10 +113,10 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                   variant="compact"
                 />
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right hidden sm:table-cell">
+              <td className="px-4 h-[52px] border-b border-cipher-border text-right hidden sm:table-cell">
                 <span className="font-mono text-xs text-muted">#{tx.blockHeight.toLocaleString()}</span>
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+              <td className="px-4 h-[52px] border-b border-cipher-border text-right">
                 <span className="text-xs sm:text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.blockTime)}</span>
               </td>
             </tr>

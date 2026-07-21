@@ -7,7 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
 import { Card, CardBody } from '@/components/ui/Card';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, SectionHeader, DataTable } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { PoolDistributionChart } from '@/components/network/PoolDistributionChart';
 import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
@@ -199,46 +199,49 @@ function RecentFlows() {
   return (
     <Card>
       <CardBody>
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">RECENT_LARGE_FLOWS</h2>
-          </div>
-          <Link href="/txs/shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
-            View All
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
-            <thead>
-              <tr className="text-muted text-[10px] uppercase tracking-wider">
-                <th className="text-left pb-2 pr-4">Type</th>
-                <th className="text-left pb-2 pr-4">Pool</th>
-                <th className="text-right pb-2 pr-4">Amount</th>
-                <th className="text-right pb-2">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flows.map((f, i) => {
-                const flowType = f.flowType === 'shield' ? 'shielding' : 'unshielding';
-                return (
-                  <tr key={`${f.txid}-${i}`} className="border-t border-glass-4">
-                    <td className="py-2 pr-4">
-                      <ShieldFlowBadge type={flowType} variant="full" />
-                    </td>
-                    <td className="py-2 pr-4 text-muted capitalize">{f.pool}</td>
-                    <td className="py-2 pr-4 text-right tabular-nums text-primary">
-                      {(f.amountZec || 0).toFixed(2)} ZEC
-                    </td>
-                    <td className="py-2 text-right text-muted">
-                      {f.blockTime ? formatTimeAgo(f.blockTime) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <SectionHeader
+          label="RECENT_LARGE_FLOWS"
+          actions={
+            <Link href="/txs/shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
+              View All
+            </Link>
+          }
+        />
+        <DataTable
+          bare
+          columns={[
+            {
+              id: 'type',
+              header: 'Type',
+              cell: (f: RecentFlow) => (
+                <ShieldFlowBadge type={f.flowType === 'shield' ? 'shielding' : 'unshielding'} variant="full" />
+              ),
+            },
+            {
+              id: 'pool',
+              header: 'Pool',
+              cell: (f) => <span className="font-mono text-xs text-muted capitalize">{f.pool}</span>,
+            },
+            {
+              id: 'amount',
+              header: 'Amount',
+              align: 'right',
+              cell: (f) => (
+                <span className="font-mono text-xs tabular-nums text-primary">{(f.amountZec || 0).toFixed(2)} ZEC</span>
+              ),
+            },
+            {
+              id: 'time',
+              header: 'Time',
+              align: 'right',
+              cell: (f) => (
+                <span className="font-mono text-xs text-muted">{f.blockTime ? formatTimeAgo(f.blockTime) : '—'}</span>
+              ),
+            },
+          ]}
+          rows={flows}
+          rowKey={(f, i) => `${f.txid}-${i}`}
+        />
         <FlowLegend className="mt-4 pt-4 border-t border-glass-4" />
       </CardBody>
     </Card>

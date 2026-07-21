@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/SectionHeader';
 import { getApiUrl } from '@/lib/api-config';
 
 interface ReferenceHash {
@@ -94,12 +95,7 @@ export default function BootstrapPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       <div className="mb-6">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
-          <span className="opacity-50">{'>'}</span> BOOTSTRAP
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
-          Zebra Crosslink Bootstrap
-        </h1>
+        <PageHeader eyebrow="BOOTSTRAP" title="Zebra Crosslink Bootstrap" className="!mb-2" />
         <p className="text-sm text-secondary leading-relaxed">
           Skip the multi-hour genesis resync by restoring your local Zebra cache from this
           snapshot of our node&apos;s state. Useful when your node hits the ~block-1120 sidechain

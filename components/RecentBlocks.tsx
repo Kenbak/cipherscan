@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { HashLink, SkeletonTable } from '@/components/ui';
 
 interface Block {
   height: number;
@@ -84,40 +85,22 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
 
   if (loading) {
     return (
-      <div className="card p-0 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Block</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <tr key={i} className="animate-pulse">
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-4 w-24 skeleton-bg rounded" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border hidden sm:table-cell"><div className="h-3 w-32 skeleton-bg rounded" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-3 w-8 skeleton-bg rounded ml-auto" /></td>
-                <td className="px-4 py-4 border-b border-cipher-border"><div className="h-3 w-16 skeleton-bg rounded ml-auto" /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="card p-4">
+        <SkeletonTable rows={5} rowHeight="h-[52px]" />
       </div>
     );
   }
 
   return (
     <div className="card p-0 overflow-hidden">
+      {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}
       <table className="w-full">
         <thead>
           <tr>
-            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Block</th>
-            <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
-            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
-            <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Block</th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
+            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
+            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
           </tr>
         </thead>
         <tbody>
@@ -127,20 +110,18 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
               className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
               style={{ animationDelay: `${i * 30}ms` }}
             >
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border">
+              <td className="px-4 h-[52px] border-b border-cipher-border">
                 <Link href={`/block/${block.height}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-cipher-cyan transition-colors">
                   #{block.height.toLocaleString()}
                 </Link>
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border hidden sm:table-cell">
-                <span className="font-mono text-xs text-muted">
-                  {block.hash.slice(0, 8)}...{block.hash.slice(-6)}
-                </span>
+              <td className="px-4 h-[52px] border-b border-cipher-border hidden sm:table-cell">
+                <HashLink value={block.hash} lead={8} tail={6} linkClassName="font-mono text-xs text-muted" />
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+              <td className="px-4 h-[52px] border-b border-cipher-border text-right">
                 <span className="font-mono text-xs sm:text-sm text-primary">{block.transactions}</span>
               </td>
-              <td className="px-3 sm:px-4 h-[52px] border-b border-cipher-border text-right">
+              <td className="px-4 h-[52px] border-b border-cipher-border text-right">
                 <span className="text-xs sm:text-sm text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
               </td>
             </tr>
