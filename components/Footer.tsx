@@ -11,133 +11,76 @@ export function Footer() {
   const { theme } = useTheme();
 
   return (
-    <footer className="footer-container border-t border-cipher-border mt-12 sm:mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-6 sm:gap-8">
-
-          {/* Branding */}
-          <div className="col-span-2 sm:col-span-4 lg:col-span-3">
-            <Link href="/" className="inline-flex items-center gap-2 mb-3 group">
-              <Image
-                src="/logo.png"
-                alt="CipherScan Logo"
-                width={24}
-                height={24}
-                quality={100}
-                unoptimized
-                className="group-hover:scale-105 transition-transform"
-              />
-              <span className="font-mono text-sm font-bold text-cipher-cyan tracking-wider">
-                CIPHERSCAN
-              </span>
-            </Link>
-            <p className="text-xs text-muted leading-relaxed mb-3">
-              Privacy-first Zcash blockchain explorer.
-            </p>
-            <p className="text-[10px] text-muted/40 font-mono flex items-center gap-1.5">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Shielded data remains private
-            </p>
-          </div>
-
+    <footer className="footer-container border-t border-cipher-border mt-12 sm:mt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Links grid — centered */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto">
           {/* Explore */}
-          <div className="col-span-1 lg:col-span-2">
-            <span className="text-[10px] font-mono text-muted/50 uppercase tracking-widest block mb-3">
-              Explore
-            </span>
-            <div className="flex flex-col gap-1.5">
-              <Link href="/blocks" className="footer-link text-xs font-mono">Blocks</Link>
-              <Link href="/txs" className="footer-link text-xs font-mono">Transactions</Link>
-              <Link href="/network" className="footer-link text-xs font-mono">Network</Link>
-              <Link href="/rich-list" className="footer-link text-xs font-mono">Rich List</Link>
-              <Link href="/privacy" className="footer-link text-xs font-mono">Privacy</Link>
-              {!isCrosslink && <Link href="/ironwood" className="footer-link text-xs font-mono">Zcash Ironwood</Link>}
-              <Link href="/privacy-risks" className="footer-link text-xs font-mono">Privacy Risks</Link>
-              {isMainnet && <Link href="/crosschain" className="footer-link text-xs font-mono">ZEC Crosschain</Link>}
-              <Link href="/mempool" className="footer-link text-xs font-mono">Mempool</Link>
-              <Link href="/reorgs" className="footer-link text-xs font-mono">Fork Watch</Link>
-              <Link href="/charts" className="footer-link text-xs font-mono">Charts</Link>
-              {isMainnet && <Link href="/usage-clock" className="footer-link text-xs font-mono">Usage Clock</Link>}
+          <div>
+            <span className="text-[10px] font-mono text-muted/40 uppercase tracking-widest block mb-2">Explore</span>
+            <div className="flex flex-col gap-1">
+              <Link href="/blocks" className="footer-link text-[11px] font-mono">Blocks</Link>
+              <Link href="/txs" className="footer-link text-[11px] font-mono">Transactions</Link>
+              <Link href="/network" className="footer-link text-[11px] font-mono">Network</Link>
+              <Link href="/charts" className="footer-link text-[11px] font-mono">Charts</Link>
+              <Link href="/mempool" className="footer-link text-[11px] font-mono">Mempool</Link>
+              {!isCrosslink && <Link href="/rich-list" className="footer-link text-[11px] font-mono">Rich List</Link>}
+              <Link href="/reorgs" className="footer-link text-[11px] font-mono">Forks & Reorgs</Link>
             </div>
           </div>
+
+          {/* Analytics */}
+          {!isCrosslink && (
+            <div>
+              <span className="text-[10px] font-mono text-muted/40 uppercase tracking-widest block mb-2">Analytics</span>
+              <div className="flex flex-col gap-1">
+                <Link href="/privacy" className="footer-link text-[11px] font-mono">Privacy Score</Link>
+                <Link href="/pools" className="footer-link text-[11px] font-mono">Shielded Pools</Link>
+                <Link href="/ironwood" className="footer-link text-[11px] font-mono">Zcash Ironwood</Link>
+                <Link href="/privacy-risks" className="footer-link text-[11px] font-mono">Risk Scanner</Link>
+                {isMainnet && <Link href="/zodl" className="footer-link text-[11px] font-mono">Miner ZODL</Link>}
+                {isMainnet && <Link href="/crosschain" className="footer-link text-[11px] font-mono">Cross-Chain</Link>}
+              </div>
+            </div>
+          )}
 
           {/* Tools */}
-          <div className="col-span-1 lg:col-span-2">
-            <span className="text-[10px] font-mono text-muted/50 uppercase tracking-widest block mb-3">
-              Tools
-            </span>
-            <div className="flex flex-col gap-1.5">
-              <Link href="/tools" className="footer-link text-xs font-mono">Developer Tools</Link>
-              <Link href="/decrypt" className="footer-link text-xs font-mono">Decrypt Memo</Link>
-              <Link href="/tools/blend-check" className="footer-link text-xs font-mono">Blend Check</Link>
-              {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener" className="footer-link text-xs font-mono">CipherSwap — Buy ZEC</a>}
-              <Link href="/docs" className="footer-link text-xs font-mono">API Docs</Link>
-              <a
-                href="https://www.cipherpay.app/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-link text-xs font-mono"
-              >
-                CipherPay
-              </a>
+          <div>
+            <span className="text-[10px] font-mono text-muted/40 uppercase tracking-widest block mb-2">Tools</span>
+            <div className="flex flex-col gap-1">
+              <Link href="/tools" className="footer-link text-[11px] font-mono">Dev Tools</Link>
+              <Link href="/decrypt" className="footer-link text-[11px] font-mono">Decrypt Memo</Link>
+              <Link href="/tools/blend-check" className="footer-link text-[11px] font-mono">Blend Check</Link>
+              <Link href="/docs" className="footer-link text-[11px] font-mono">API Docs</Link>
+              {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener" className="footer-link text-[11px] font-mono">CipherSwap</a>}
+              <a href="https://www.cipherpay.app/" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">CipherPay</a>
             </div>
           </div>
 
-          {/* Resources */}
-          <div className="col-span-1 lg:col-span-2">
-            <span className="text-[10px] font-mono text-muted/50 uppercase tracking-widest block mb-3">
-              Resources
-            </span>
-            <div className="flex flex-col gap-1.5">
-              <Link href="/learn" className="footer-link text-xs font-mono">Learn Zcash</Link>
-              <Link href="/newsletter" className="footer-link text-xs font-mono">Newsletter</Link>
-              <Link href="/about" className="footer-link text-xs font-mono">About</Link>
-            </div>
-          </div>
-
-          {/* Community */}
-          <div className="col-span-1 lg:col-span-3">
-            <span className="text-[10px] font-mono text-muted/50 uppercase tracking-widest block mb-3">
-              Community
-            </span>
-            <div className="flex flex-col gap-1.5">
+          {/* Resources + Community merged */}
+          <div>
+            <span className="text-[10px] font-mono text-muted/40 uppercase tracking-widest block mb-2">Resources</span>
+            <div className="flex flex-col gap-1">
+              <Link href="/learn" className="footer-link text-[11px] font-mono">Learn Zcash</Link>
+              <Link href="/newsletter" className="footer-link text-[11px] font-mono">Newsletter</Link>
+              <Link href="/about" className="footer-link text-[11px] font-mono">About</Link>
               <DonateButton variant="link" />
-              <a
-                href="https://twitter.com/cipherscan_app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-link text-xs font-mono"
-              >
-                X / Twitter
-              </a>
-              <a
-                href="https://github.com/Kenbak/cipherscan"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-link text-xs font-mono"
-              >
-                GitHub
-              </a>
-              <a
-                href="https://www.youtube.com/@AtmosphereLabsDev"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer-link text-xs font-mono"
-              >
-                YouTube
-              </a>
+              <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">X / Twitter</a>
+              <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">GitHub</a>
+              <a href="https://www.youtube.com/@AtmosphereLabsDev" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">YouTube</a>
             </div>
           </div>
         </div>
 
-        {/* Status bar */}
-        <div className="mt-8 pt-5">
-          <div className="h-px footer-border border-t mb-5" aria-hidden />
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            {/* Left — copyright + powered by + legal */}
+        {/* Bottom bar */}
+        <div className="mt-6 pt-4 border-t border-cipher-border/30">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-[10px] font-mono text-muted/30">
+              <Link href="/" className="inline-flex items-center gap-1 mr-1">
+                <Image src="/logo.png" alt="CipherScan" width={14} height={14} quality={100} unoptimized />
+                <span className="font-bold text-cipher-cyan tracking-wider">CIPHERSCAN</span>
+              </Link>
+              <span className="text-muted/20">|</span>
               <span>© {new Date().getFullYear()} CipherScan</span>
               <span className="text-muted/20">|</span>
               <span>Powered by <span className="text-muted/50">Zebrad</span></span>
@@ -147,9 +90,7 @@ export function Footer() {
               <Link href="/terms" className="hover:text-muted/60 transition-colors">Terms</Link>
             </div>
 
-            {/* Right — terminal status toggles */}
             <div className="flex items-center gap-3">
-              {/* Network toggle */}
               <div className="flex items-center gap-1">
                 <a
                   href={isMainnet ? TESTNET_URL : MAINNET_URL}
@@ -161,8 +102,6 @@ export function Footer() {
                   [ {NETWORK_LABEL} ]
                 </span>
               </div>
-
-              {/* Theme toggle */}
               <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <span className="text-[10px] font-mono text-muted/40 uppercase">

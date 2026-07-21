@@ -2,20 +2,13 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
-import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
-
-
-interface PriceData {
-  price: number;
-  change24h: number;
-}
 
 interface MenuItem {
   href: string;
@@ -23,70 +16,36 @@ interface MenuItem {
   desc: string;
 }
 
+interface NavCategory {
+  id: string;
+  label: string;
+  items: MenuItem[];
+}
+
 export function NavBar() {
-  const [priceData, setPriceData] = useState<PriceData | null>(null);
-  const [mempoolCount, setMempoolCount] = useState<number | null>(null);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const toolsRef = useRef<HTMLDivElement>(null);
+  const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const isHomePage = pathname === '/';
   const { theme } = useTheme();
 
+  const closeAll = useCallback(() => {
+    setOpenDropdown(null);
+    setMobileMenuOpen(false);
+    setMobileAccordion(null);
+  }, []);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setToolsOpen(false);
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const response = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`);
-        if (response.ok) {
-          const data = await response.json();
-          setPriceData({
-            price: data.price,
-            change24h: data.change24h,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching price:', error);
-      }
-    };
-
-    fetchPrice();
-    const priceInterval = setInterval(fetchPrice, 60000);
-    return () => clearInterval(priceInterval);
-  }, []);
-
-  const usePostgresApi = usePostgresApiClient();
-
-  useEffect(() => {
-    const fetchMempoolCount = async () => {
-      try {
-        const apiUrl = usePostgresApi
-          ? `${getApiUrl()}/api/mempool`
-          : '/api/mempool';
-
-        const response = await fetch(apiUrl);
-        if (!response.ok) return;
-
-        const result = await response.json();
-        if (result.success) {
-          setMempoolCount(result.count ?? result.transactions?.length ?? 0);
-        }
-      } catch {}
-    };
-
-    fetchMempoolCount();
-    const interval = setInterval(fetchMempoolCount, 15000);
-    return () => clearInterval(interval);
-  }, [usePostgresApi]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -98,14 +57,15 @@ export function NavBar() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    setMobileMenuOpen(false);
-    setToolsOpen(false);
-  }, [pathname]);
+    closeAll();
+  }, [pathname, closeAll]);
 
-  const blockchainItems: MenuItem[] = [
+  // Build category arrays (network-aware)
+  const exploreItems: MenuItem[] = [
     { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },
     { href: '/txs', label: 'Transactions', desc: 'Recent transactions' },
     { href: '/network', label: 'Network', desc: 'Hashrate, peers & difficulty' },
+    { href: '/charts', label: 'Charts', desc: 'All metrics in one place' },
     ...(isCrosslink
       ? [
           { href: '/chain', label: 'Chain View', desc: 'PoW + PoS chain visualizer' },
@@ -115,29 +75,24 @@ export function NavBar() {
       : [
           { href: '/mining', label: 'Mining', desc: 'Pool distribution & miner behavior' },
         ]),
+    ...(isCrosslink ? [] : [{ href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' }]),
+    { href: '/reorgs', label: 'Forks & Reorgs', desc: 'Chain forks & orphaned blocks' },
+    ...(isCrosslink ? [{ href: '/fork-monitor', label: 'Fork Monitor', desc: 'Chain forks & node health' }] : []),
   ];
 
-  const privacyItems: MenuItem[] = isCrosslink
-    ? [{ href: '/fork-monitor', label: 'Fork Monitor', desc: 'Chain forks & node health' }]
+  const analyticsItems: MenuItem[] = isCrosslink
+    ? []
     : [
-        { href: '/privacy', label: 'Privacy', desc: 'Shielded pool metrics' },
+        { href: '/privacy', label: 'Privacy Score', desc: 'Network privacy health' },
         { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile' },
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
         { href: '/ironwood', label: 'Zcash Ironwood', desc: 'NU6.3 upgrade & migration tracker' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
         { href: '/privacy/wallets', label: 'Wallet Analysis', desc: 'Fingerprints & anonymity sets' },
+        ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),
+        ...(isMainnet ? [{ href: '/usage-clock', label: 'Usage Clock', desc: 'Activity rhythm vs geography' }] : []),
+        ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
       ];
-
-  const researchItems: MenuItem[] = [
-    { href: '/charts', label: 'Charts', desc: 'All metrics in one place' },
-    ...(isMainnet ? [{ href: '/usage-clock', label: 'Usage Clock', desc: 'Activity rhythm vs node geography' }] : []),
-    ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),
-    ...(isCrosslink ? [] : [
-      { href: '/rich-list', label: 'Rich List', desc: 'Top addresses by balance' },
-    ]),
-    { href: '/reorgs', label: 'Forks & Reorgs', desc: 'Chain forks & orphaned blocks' },
-    ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
-  ];
 
   const toolsItems: MenuItem[] = [
     { href: '/tools', label: 'Dev Tools', desc: 'All tools & API reference' },
@@ -146,72 +101,172 @@ export function NavBar() {
   ];
 
   const resourcesItems: MenuItem[] = [
-    { href: '/learn', label: 'Learn Zcash', desc: 'Beginner guide' },
-    ...(isCrosslink
-      ? [{ href: '/learn/crosslink', label: 'Learn Crosslink', desc: 'PoW+PoS finality & staking' }]
-      : []),
-    { href: '/newsletter', label: 'Newsletter', desc: 'Weekly Zcash intelligence' },
     { href: '/docs', label: 'API Docs', desc: 'Developer reference' },
+    { href: '/learn', label: 'Learn Zcash', desc: 'Beginner guide' },
+    ...(isCrosslink ? [{ href: '/learn/crosslink', label: 'Learn Crosslink', desc: 'PoW+PoS finality & staking' }] : []),
+    { href: '/newsletter', label: 'Newsletter', desc: 'Weekly Zcash intelligence' },
     { href: '/about', label: 'About', desc: 'Our story & mission' },
   ];
+
+  const categories: NavCategory[] = [
+    { id: 'explore', label: 'Explore', items: exploreItems },
+    ...(analyticsItems.length > 0 ? [{ id: 'analytics', label: 'Analytics', items: analyticsItems }] : []),
+    { id: 'tools', label: 'Tools', items: toolsItems },
+    { id: 'resources', label: 'Resources', items: resourcesItems },
+  ];
+
+  const toggleDropdown = (id: string) => {
+    setOpenDropdown(prev => prev === id ? null : id);
+  };
 
   const DropdownLink = ({ item, onClick }: { item: MenuItem; onClick: () => void }) => (
     <Link
       href={item.href}
       onClick={onClick}
-      className="flex flex-col px-2.5 py-1.5 dropdown-item rounded-md transition-colors duration-150"
+      className="flex flex-col px-3 py-2 dropdown-item rounded-md transition-colors duration-150"
     >
       <span className="text-[13px] font-mono">{item.label}</span>
-      <span className="text-[9px] text-muted leading-tight">{item.desc}</span>
+      <span className="text-[10px] text-muted leading-tight">{item.desc}</span>
     </Link>
-  );
-
-  const SectionLabel = ({ label }: { label: string }) => (
-    <div className="px-2.5 pt-1.5 pb-0.5">
-      <span className="text-[9px] font-mono text-muted tracking-widest uppercase">{label}</span>
-    </div>
   );
 
   return (
     <>
-      <nav className="navbar-container backdrop-blur-xl border-b sticky top-0 z-50">
+      <nav className="navbar-container backdrop-blur-xl border-b sticky top-0 z-50" ref={navRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 gap-4">
-            {/* Logo — clean, no subtitle */}
-            <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group flex-shrink-0">
+          <div className="flex justify-between items-center h-14 gap-3">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
               <Image
-                src={theme === 'light' ? '/logo.png' : '/logo.png'}
+                src="/logo.png"
                 alt="CipherScan Logo"
                 width={24}
                 height={24}
                 quality={100}
                 unoptimized
-                className="transition-transform duration-200 group-hover:scale-105 sm:w-10 sm:h-10 object-contain"
+                className="transition-transform duration-200 group-hover:scale-105 sm:w-8 sm:h-8 object-contain"
               />
               <div>
-                <span className="text-sm sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
+                <span className="text-sm sm:text-base font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
                   CIPHERSCAN
                 </span>
-                <p className={`text-[10px] sm:text-xs font-mono ${NETWORK_COLOR}`}>[ {NETWORK_LABEL} ]</p>
+                <p className={`text-[9px] sm:text-[10px] font-mono ${NETWORK_COLOR} leading-tight`}>[ {NETWORK_LABEL} ]</p>
               </div>
             </Link>
 
-            {/* Search Bar (only on non-home pages) */}
+            {/* Desktop: Horizontal category dropdowns */}
+            <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
+              {categories.map(cat => (
+                <div key={cat.id} className="relative">
+                  <button
+                    onClick={() => toggleDropdown(cat.id)}
+                    className={`flex items-center gap-1 text-xs font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
+                      openDropdown === cat.id ? 'text-cipher-cyan bg-cipher-hover' : 'text-muted hover:text-primary'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <svg
+                      className={`w-3 h-3 transition-transform duration-200 ${openDropdown === cat.id ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {openDropdown === cat.id && (
+                    <div className="absolute left-0 mt-1 w-56 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-left">
+                      {cat.items.map(item => (
+                        <DropdownLink key={item.href} item={item} onClick={() => setOpenDropdown(null)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+            </div>
+
+            {/* Desktop: Search (non-home) */}
             {!isHomePage && (
-              <div className="hidden md:block flex-1 max-w-md mx-4">
+              <div className="hidden md:block flex-1 max-w-xs">
                 <SearchBar compact />
               </div>
             )}
 
-            {/* Right side — 5 elements max: Explore, Price, Buy ZEC, hamburger (mobile) */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Mobile Menu Button */}
+            {/* Right: utilities */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Buy ZEC — mainnet only, desktop */}
+              {isMainnet && (
+                <a
+                  href="https://cipherswap.app/"
+                  target="_blank"
+                  rel="noopener"
+                  title="Buy ZEC on CipherSwap"
+                  className="hidden md:flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150 px-2 py-1"
+                >
+                  <span className="text-cipher-yellow/50">&gt;</span>
+                  Buy ZEC
+                </a>
+              )}
+
+              {/* Network switcher dropdown — desktop only */}
+              <div className="hidden md:block relative">
+                <button
+                  onClick={() => toggleDropdown('network')}
+                  className={`flex items-center gap-1 text-[11px] font-mono px-2 py-1.5 rounded-md transition-colors duration-150 ${
+                    openDropdown === 'network' ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
+                  }`}
+                >
+                  <span>{isMainnet ? 'Mainnet' : isCrosslink ? 'Crosslink' : 'Testnet'}</span>
+                  <svg className={`w-3 h-3 transition-transform duration-200 ${openDropdown === 'network' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {openDropdown === 'network' && (
+                  <div className="absolute right-0 mt-1 w-44 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-right">
+                    <a
+                      href={MAINNET_URL}
+                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                        isMainnet ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
+                      }`}
+                    >
+                      Mainnet
+                    </a>
+                    <a
+                      href={TESTNET_URL}
+                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                        !isMainnet && !isCrosslink ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
+                      }`}
+                    >
+                      Testnet
+                    </a>
+                    <a
+                      href={CROSSLINK_URL}
+                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                        isCrosslink ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
+                      }`}
+                    >
+                      Crosslink
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Theme + Donate — desktop only */}
+              <div className="hidden md:flex items-center gap-1">
+                <ThemeToggle />
+                <DonateButton compact />
+              </div>
+
+              {/* Mobile: hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2 rounded-md text-muted hover:text-cipher-cyan transition-all duration-150"
                 aria-label="Menu"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {mobileMenuOpen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
@@ -219,157 +274,6 @@ export function NavBar() {
                   )}
                 </svg>
               </button>
-
-              {/* Mempool link (Desktop) */}
-              <Link
-                href="/mempool"
-                className="hidden md:flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
-              >
-                {mempoolCount !== null && mempoolCount > 0 && (
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-50"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
-                  </span>
-                )}
-                <span>Mempool</span>
-                {mempoolCount !== null && mempoolCount > 0 && (
-                  <span className="text-secondary">{mempoolCount}</span>
-                )}
-              </Link>
-
-              {/* Explore Dropdown (Desktop) — the "everything drawer" */}
-              <div className="hidden md:block relative" ref={toolsRef}>
-                <button
-                  onClick={() => setToolsOpen(!toolsOpen)}
-                  className="flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan px-2 py-2 rounded-md transition-colors duration-150"
-                >
-                  <span>Explore</span>
-                  <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {toolsOpen && (
-                  <div className="absolute right-0 mt-2 w-[480px] max-h-[calc(100vh-4.5rem)] overflow-y-auto dropdown-menu rounded-lg shadow-xl border p-1.5 z-50 animate-scale-in origin-top-right">
-                    <div className="grid grid-cols-2 gap-0.5">
-                      {/* Left column — Blockchain + Privacy + Research */}
-                      <div>
-                        <SectionLabel label="Blockchain" />
-                        {blockchainItems.map((item) => (
-                          <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
-                        ))}
-                        <div className="border-t border-cipher-border my-1 mx-2.5" />
-                        <SectionLabel label="Privacy" />
-                        {privacyItems.map((item) => (
-                          <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
-                        ))}
-                        {researchItems.length > 0 && (
-                          <>
-                            <div className="border-t border-cipher-border my-1 mx-2.5" />
-                            <SectionLabel label="Research" />
-                            {researchItems.map((item) => (
-                              <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
-                            ))}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Right column — Tools + Resources */}
-                      <div>
-                        <SectionLabel label="Tools" />
-                        {toolsItems.map((item) => (
-                          <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
-                        ))}
-                        <div className="border-t border-cipher-border my-1 mx-2.5" />
-                        <SectionLabel label="Resources" />
-                        {resourcesItems.map((item) => (
-                          <DropdownLink key={item.href} item={item} onClick={() => setToolsOpen(false)} />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Utility footer — Network, Theme, Donate */}
-                    <div className="border-t border-cipher-border mt-1.5 pt-1.5 px-1">
-                      <div className="flex items-center justify-between">
-                        {/* Network switcher */}
-                        <div className="flex items-center gap-1">
-                          <a
-                            href={TESTNET_URL}
-                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
-                              !isMainnet && !isCrosslink
-                                ? 'bg-cipher-cyan/15 text-cipher-cyan'
-                                : 'text-muted hover:text-primary'
-                            }`}
-                          >
-                            TESTNET
-                          </a>
-                          <a
-                            href={MAINNET_URL}
-                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
-                              isMainnet
-                                ? 'bg-cipher-yellow/15 text-cipher-yellow'
-                                : 'text-muted hover:text-primary'
-                            }`}
-                          >
-                            MAINNET
-                          </a>
-                          <a
-                            href={CROSSLINK_URL}
-                            className={`text-[10px] font-mono px-2 py-1 rounded transition-all duration-150 ${
-                              isCrosslink
-                                ? 'bg-purple-500/15 text-purple-400'
-                                : 'text-muted hover:text-primary'
-                            }`}
-                          >
-                            CROSSLINK
-                          </a>
-                        </div>
-
-                        {/* Theme + Donate */}
-                        <div className="flex items-center gap-1">
-                          <ThemeToggle />
-                          <DonateButton compact />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Conversion zone — divider + price + Buy ZEC as plain text */}
-              <div className="hidden md:flex items-center gap-3">
-                <div className="w-px h-4 bg-gray-500/30" />
-
-                {priceData && (
-                  <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]">
-                    <span className="text-muted">ZEC</span>
-                    <span className="text-muted">${priceData.price.toFixed(2)}</span>
-                    <span className={priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
-                      [{priceData.change24h >= 0 ? '↑' : '↓'}{Math.abs(priceData.change24h).toFixed(1)}%]
-                    </span>
-                  </div>
-                )}
-
-                {priceData && isMainnet && <div className="hidden lg:block w-px h-4 bg-gray-500/30" />}
-
-                {isMainnet && (
-                  <a
-                    href="https://cipherswap.app/"
-                    target="_blank"
-                    rel="noopener"
-                    title="Buy ZEC on CipherSwap"
-                    className="flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150"
-                  >
-                    <span className="text-cipher-yellow/50">&gt;</span>
-                    Buy ZEC
-                  </a>
-                )}
-              </div>
             </div>
           </div>
 
@@ -382,7 +286,7 @@ export function NavBar() {
         </div>
       </nav>
 
-      {/* Mobile Full-Screen Overlay Drawer */}
+      {/* Mobile Full-Screen Overlay Drawer with Accordion Categories */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
           <div
@@ -392,181 +296,106 @@ export function NavBar() {
 
           <div className="absolute inset-y-0 right-0 w-full max-w-sm flex flex-col mobile-drawer shadow-2xl animate-slide-in-right">
             {/* Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b navbar-border flex-shrink-0">
+            <div className="flex items-center justify-between h-14 px-4 border-b navbar-border flex-shrink-0">
               <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 rounded-md text-muted hover:text-cipher-cyan transition-all"
                 aria-label="Close menu"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-              {/* Market zone — price + Buy ZEC on one line */}
-              <div className="flex items-center mx-2.5 mb-3 pb-3 border-b navbar-border gap-3">
-                {priceData && (
-                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                    <span className="text-muted">ZEC</span>
-                    <span className="text-muted">${priceData.price.toFixed(2)}</span>
-                    <span className={priceData.change24h >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
-                      [{priceData.change24h >= 0 ? '↑' : '↓'}{Math.abs(priceData.change24h).toFixed(1)}%]
-                    </span>
-                  </div>
-                )}
-                {priceData && isMainnet && <div className="w-px h-4 bg-gray-500/30" />}
-                {isMainnet && (
+            {/* Scrollable body with accordion categories */}
+            <div className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+              {categories.map(cat => (
+                <div key={cat.id}>
+                  <button
+                    onClick={() => setMobileAccordion(prev => prev === cat.id ? null : cat.id)}
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-md transition-colors duration-150 text-left mobile-menu-item"
+                  >
+                    <span className="text-[10px] font-mono text-muted tracking-widest uppercase">{cat.label}</span>
+                    <svg
+                      className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${mobileAccordion === cat.id ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {mobileAccordion === cat.id && (
+                    <div className="pb-2 animate-fade-in">
+                      {cat.items.map(item => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex flex-col px-3 py-2 ml-2 mobile-menu-item rounded-md transition-colors duration-150"
+                        >
+                          <span className="text-sm font-mono">{item.label}</span>
+                          <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+
+              {/* Buy ZEC — mainnet only */}
+              {isMainnet && (
+                <div className="px-3 pt-3">
                   <a
                     href="https://cipherswap.app/"
                     target="_blank"
                     rel="noopener"
-                    title="Buy ZEC on CipherSwap"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-1 font-mono text-xs font-bold text-cipher-yellow"
+                    className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg font-mono text-sm font-bold text-cipher-yellow border border-cipher-yellow/30 hover:bg-cipher-yellow/10 transition-all"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
                   </a>
-                )}
-              </div>
-
-              {/* Mempool — promoted link */}
-              <Link
-                href="/mempool"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150 mb-1"
-              >
-                {mempoolCount !== null && mempoolCount > 0 && (
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-50"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
-                  </span>
-                )}
-                <span className="text-sm font-mono">Mempool</span>
-                {mempoolCount !== null && mempoolCount > 0 && (
-                  <span className="text-[11px] font-mono text-muted">{mempoolCount}</span>
-                )}
-              </Link>
-
-              <div className="border-t navbar-border my-2" />
-
-              {/* Blockchain */}
-              <SectionLabel label="Blockchain" />
-              {blockchainItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
-                >
-                  <span className="text-sm font-mono">{item.label}</span>
-                  <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
-                </Link>
-              ))}
-
-              <div className="border-t navbar-border my-2" />
-
-              {/* Privacy */}
-              <SectionLabel label="Privacy" />
-              {privacyItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
-                >
-                  <span className="text-sm font-mono">{item.label}</span>
-                  <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
-                </Link>
-              ))}
-
-              {researchItems.length > 0 && (
-                <>
-                  <div className="border-t navbar-border my-2" />
-                  <SectionLabel label="Research" />
-                  {researchItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
-                    >
-                      <span className="text-sm font-mono">{item.label}</span>
-                      <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
-                    </Link>
-                  ))}
-                </>
+                </div>
               )}
 
-              <div className="border-t navbar-border my-2" />
-
-              {/* Tools */}
-              <SectionLabel label="Tools" />
-              {toolsItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
-                >
-                  <span className="text-sm font-mono">{item.label}</span>
-                  <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
-                </Link>
-              ))}
-
-              <div className="border-t navbar-border my-2" />
-
-              {/* Resources */}
-              <SectionLabel label="Resources" />
-              {resourcesItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col px-2.5 py-2.5 mobile-menu-item rounded-md transition-colors duration-150"
-                >
-                  <span className="text-sm font-mono">{item.label}</span>
-                  <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
-                </Link>
-              ))}
-
-              {/* Status bar — terminal style */}
+              {/* Footer — network switcher + utilities */}
               <div className="pt-4 mt-2 border-t navbar-border">
-                <div className="flex items-center justify-between px-2.5">
-                  {/* Network */}
-                  <div className="flex items-center gap-1.5">
-                    {!isMainnet && !isCrosslink && (
-                      <span className="text-[10px] font-mono text-cipher-cyan">[ TESTNET ]</span>
-                    )}
-                    {isMainnet && (
-                      <span className="text-[10px] font-mono text-cipher-yellow">[ MAINNET ]</span>
-                    )}
-                    {isCrosslink && (
-                      <span className="text-[10px] font-mono text-purple-400">[ CROSSLINK ]</span>
-                    )}
-                    {!isCrosslink && (
-                      <a href={CROSSLINK_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
-                        CROSSLINK
-                      </a>
-                    )}
-                    {!isMainnet && (
-                      <a href={MAINNET_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
-                        MAINNET
-                      </a>
-                    )}
-                    {isMainnet && (
-                      <a href={TESTNET_URL} className="text-[10px] font-mono text-muted/40 hover:text-muted transition-colors">
-                        TESTNET
-                      </a>
-                    )}
+                <div className="flex flex-col gap-3 px-3">
+                  {/* Network links */}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={MAINNET_URL}
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                        isMainnet ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
+                      }`}
+                    >
+                      Mainnet
+                    </a>
+                    <a
+                      href={TESTNET_URL}
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                        !isMainnet && !isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
+                      }`}
+                    >
+                      Testnet
+                    </a>
+                    <a
+                      href={CROSSLINK_URL}
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                        isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
+                      }`}
+                    >
+                      Crosslink
+                    </a>
                   </div>
 
                   {/* Theme + Donate */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-end gap-2">
                     <DonateButton compact />
                     <ThemeToggle />
                   </div>

@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
-import { PrivacyWidget, type PrivacyStats, type RiskStats } from '@/components/PrivacyWidget';
 import { RecentBlocks } from '@/components/RecentBlocks';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
-import { API_CONFIG, isCrosslinkNetwork } from '@/lib/api-config';
+import { API_CONFIG } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
 
 interface Block {
@@ -73,61 +72,20 @@ async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
   }
 }
 
-async function getPrivacyStats(): Promise<PrivacyStats | null> {
-  try {
-    const response = await fetch(`${API_URL}/api/privacy-stats`, {
-      next: { revalidate: 30 },
-    });
-
-    if (!response.ok) return null;
-
-    const result = await response.json();
-    return result.success ? result.data : result;
-  } catch (error) {
-    console.error('Error fetching privacy stats:', error);
-    return null;
-  }
-}
-
-async function getRiskStats(): Promise<RiskStats | null> {
-  try {
-    const response = await fetch(`${API_URL}/api/privacy/risks?limit=1&period=7d`, {
-      next: { revalidate: 30 },
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (data.success && data.stats) {
-      return {
-        total: data.stats.total,
-        highRisk: data.stats.highRisk,
-        mediumRisk: data.stats.mediumRisk,
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching risk stats:', error);
-    return null;
-  }
-}
-
 const crosslinkMode = isCrosslink;
 
 export default async function Home() {
-  const [initialBlocks, initialShieldedTxs, privacyStats, riskStats] = await Promise.all([
+  const [initialBlocks, initialShieldedTxs] = await Promise.all([
     getRecentBlocks(),
     getRecentShieldedTxs(),
-    crosslinkMode ? Promise.resolve(null) : getPrivacyStats(),
-    crosslinkMode ? Promise.resolve(null) : getRiskStats(),
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-10">
       {/* Hero Section - z-index for dropdown to appear above widgets */}
-      <div className="text-center mb-12 sm:mb-16 relative z-30">
+      <div className="text-center mb-8 sm:mb-10 relative z-30">
         {/* Tagline - SEO friendly */}
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-6 sm:mb-8 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary mb-2 sm:mb-3 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
           {crosslinkMode
             ? 'CipherScan: Zcash Crosslink Explorer'
@@ -135,22 +93,22 @@ export default async function Home() {
               ? 'CipherScan: Zcash Testnet Explorer (TAZ)'
               : 'CipherScan: Zcash Block Explorer'}
         </h1>
+        <p className="text-xs sm:text-sm text-muted/60 mb-5 sm:mb-6 max-w-lg mx-auto text-center leading-relaxed">
+          {crosslinkMode
+            ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
+            : isTestnet
+              ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
+              : 'Explore blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health — all in real time.'}
+        </p>
 
         {/* Search Section */}
         <div>
           <SearchBar />
         </div>
-        <p className="text-xs text-muted mt-4 max-w-lg mx-auto leading-relaxed">
-          {crosslinkMode
-            ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
-            : isTestnet
-              ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-              : 'Search blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health in real time.'}
-        </p>
       </div>
 
-      {/* Crosslink: Network Stats + Staking Day | Standard: Privacy Widget */}
-      {crosslinkMode ? (
+      {/* Crosslink: Network Stats + Staking Day */}
+      {crosslinkMode && (
         <div className="relative z-10 space-y-4">
           <CrosslinkStats />
           <StakingDayBanner />
@@ -170,10 +128,6 @@ export default async function Home() {
               Join Season 1 →
             </a>
           </div>
-        </div>
-      ) : (
-        <div className="relative z-10">
-          <PrivacyWidget initialStats={privacyStats} initialRiskStats={riskStats} />
         </div>
       )}
 
@@ -201,9 +155,9 @@ export default async function Home() {
           </div>
         </>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-8 mt-8 sm:mt-12 lg:mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-6 sm:mt-8 lg:mt-10">
           <div>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 RECENT_BLOCKS
@@ -229,7 +183,7 @@ export default async function Home() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 SHIELDED_ACTIVITY
@@ -251,8 +205,8 @@ export default async function Home() {
       )}
 
       {/* Pending Mempool */}
-      <div className="mt-8 sm:mt-12 lg:mt-16">
-        <div className="flex items-center justify-between mb-5">
+      <div className="mt-6 sm:mt-8 lg:mt-10">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
             <span className="text-muted opacity-50">{'>'}</span>
             MEMPOOL

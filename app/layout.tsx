@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { NavBar } from "@/components/NavBar";
+import { StatsBar } from "@/components/StatsBar";
 import { Footer } from "@/components/Footer";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ChainSyncBanner } from "@/components/ChainSyncBanner";
@@ -116,6 +117,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <MaintenanceBanner />
       <ChainSyncBanner />
       <NavBar />
+      <StatsBar />
       <main className="min-h-screen">{children}</main>
       <Footer />
     </>

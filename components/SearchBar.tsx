@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { detectAddressType } from '@/lib/zcash';
 import { findAddressByLabel, searchAddressesByLabel, fetchOfficialLabels } from '@/lib/address-labels';
 import { isValidName } from '@/lib/zns';
+import { isMainnet } from '@/lib/config';
 
 interface SearchBarProps {
-  compact?: boolean; // Mode compact pour la navbar
+  compact?: boolean;
+  subtitle?: string;
 }
 
 interface LabelSuggestion {
@@ -29,7 +31,7 @@ const categoryConfig: Record<string, { color: string; bg: string }> = {
   'custom': { color: 'text-gray-400', bg: 'bg-gray-400/10' },
 };
 
-export function SearchBar({ compact = false }: SearchBarProps) {
+export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<LabelSuggestion[]>([]);
@@ -256,9 +258,9 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   // Compact version for navbar
   if (compact) {
     return (
-      <form onSubmit={handleSearch} className="flex-1 max-w-md">
+      <form onSubmit={handleSearch} className="flex-1 max-w-lg">
         <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-sm">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-cipher-cyan font-mono text-xs">
             {'>'}
           </div>
           <input
@@ -268,7 +270,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             onKeyDown={handleKeyDown}
             onFocus={() => query.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
             placeholder="Search address, tx hash, block number, or name..."
-            className="w-full pl-8 pr-3 py-2 text-sm search-input"
+            className="w-full pl-7 pr-3 py-2 text-xs font-mono search-input"
           />
           <SuggestionsDropdown />
         </div>
@@ -278,7 +280,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
 
   // Full version for homepage - Enhanced
   return (
-    <form onSubmit={handleSearch} className="max-w-3xl mx-auto px-2 sm:px-0 relative z-50">
+    <form onSubmit={handleSearch} className="max-w-2xl mx-auto px-2 sm:px-0 relative z-50">
       {/* Search Container with Glow Effect */}
       <div className="relative group">
         {/* Ambient glow on focus — single color, wide spread, barely visible */}
@@ -306,8 +308,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               if (query.length >= 2 && suggestions.length > 0) setShowSuggestions(true);
             }}
             onBlur={() => setIsFocused(false)}
-            placeholder="Search address, tx hash, block number, or name..."
-            className={`w-full pl-10 sm:pl-12 pr-28 sm:pr-36 py-4 sm:py-5 text-sm sm:text-base font-mono
+            placeholder="Search address, tx hash, block, or name..."
+            className={`w-full pl-10 sm:pl-12 pr-24 lg:pr-36 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
               search-input-hero border-2 rounded-xl text-primary
               placeholder:text-muted transition-all duration-300
               ${isFocused
@@ -318,7 +320,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           />
 
           {/* Keyboard shortcut hint */}
-          <div className="hidden sm:flex absolute right-28 sm:right-36 top-1/2 -translate-y-1/2 items-center gap-1 text-muted">
+          <div className={`hidden lg:flex absolute right-36 top-1/2 -translate-y-1/2 items-center gap-1 text-muted transition-opacity ${query ? 'opacity-0 pointer-events-none' : ''}`}>
             <kbd className="kbd-hint">⌘</kbd>
             <kbd className="kbd-hint">K</kbd>
           </div>
@@ -342,8 +344,8 @@ export function SearchBar({ compact = false }: SearchBarProps) {
       </div>
 
       {/* Example Buttons */}
-      <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center items-center">
-        <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Try:</span>
+      <div className="mt-2 sm:mt-2.5 flex flex-wrap gap-1.5 sm:gap-2 items-center">
+        <span className="text-[9px] text-muted/50 font-mono uppercase tracking-wider">Try:</span>
         <button
           type="button"
           onClick={() => setQuery('354939')}
@@ -353,20 +355,23 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         </button>
         <button
           type="button"
-          onClick={() => setQuery('t1abc...')}
+          onClick={() => setQuery(isMainnet ? 't1a7l33nnr9qnhekptmjacyj95a565tcns09' : 'tmYWZuRKmdZwgKAxtV9RZRAuPsnWrLkyUtT')}
           className="example-tag example-tag-default"
         >
           t-address
         </button>
         <button
           type="button"
-          onClick={() => setQuery('zs1...')}
+          onClick={() => setQuery(isMainnet
+            ? 'u1a7l33nnr9qnhekptmjacyj95a565tcns09xvyxmt777xnk2q6c6s0jrthgme6dkeevc24zue9yqlmspdla5fw5mjws9'
+            : 'utest1qz2c9w98v9xavajc8ml5zd459902alt62tndt3sktsx0hd3gd20evhwfrqq834335a7lmw4a4mx79pnhczxvs50w5'
+          )}
           className="example-tag example-tag-default"
         >
           u-address
-          
         </button>
       </div>
+
     </form>
   );
 }

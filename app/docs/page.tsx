@@ -98,7 +98,7 @@ export default function DocsPage() {
         <div className="space-y-12">
           {categories.map((category) => (
             <section key={category.name} className="space-y-6">
-              <div className="sticky top-16 docs-category-header backdrop-blur py-4 z-10 border-b border-cipher-border flex items-center justify-between">
+              <div className="sticky top-[88px] docs-category-header backdrop-blur py-4 z-10 border-b border-cipher-border flex items-center justify-between">
                 <h2 className="text-2xl sm:text-3xl font-bold font-mono text-primary">
                   {category.name}
                 </h2>
