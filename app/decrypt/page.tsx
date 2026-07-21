@@ -63,7 +63,7 @@ const faqJsonLd = {
       name: 'How do I decrypt a Zcash memo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'To decrypt a Zcash memo, you need a Unified Full Viewing Key (UFVK) from a compatible wallet like YWallet, Zkool, or Zingo. Enter the transaction ID and your viewing key in the CipherScan Decrypt Memo tool. All decryption happens client-side in your browser using WebAssembly, your keys are never sent to any server.',
+        text: 'To decrypt a Zcash memo, you need a Unified Full Viewing Key (UFVK) from a compatible wallet like Vizor, Zodl, or Zingo. Enter the transaction ID and your viewing key in the CipherScan Decrypt Memo tool. All decryption happens client-side in your browser using WebAssembly, your keys are never sent to any server.',
       },
     },
     {
@@ -95,7 +95,7 @@ const faqJsonLd = {
       name: 'Where do I get a Unified Full Viewing Key (UFVK)?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'You can export a UFVK from compatible Zcash wallets including YWallet (mobile & desktop), Zkool (mobile), and Zingo CLI (command-line). The viewing key lets you decrypt and view transactions without the ability to spend funds.',
+        text: 'You can export a UFVK from compatible Zcash wallets including Vizor (mobile), Zodl (mobile & web), and Zingo CLI (command-line). The viewing key lets you decrypt and view transactions without the ability to spend funds.',
       },
     },
   ],
@@ -150,7 +150,7 @@ export default function DecryptPage() {
                 <h3 className="font-semibold text-primary mb-2">Where do I get a viewing key?</h3>
                 <p className="text-sm text-secondary leading-relaxed">
                   Export a Unified Full Viewing Key (UFVK) from compatible wallets:
-                  YWallet (mobile & desktop), Zkool (mobile), or Zingo CLI (command-line).
+                  Vizor (mobile), Zodl (mobile & web), or Zingo CLI (command-line).
                   The UFVK allows viewing transactions without spending ability.
                 </p>
               </div>

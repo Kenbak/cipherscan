@@ -81,11 +81,11 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 lg:py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-12">
       {/* Hero Section - z-index for dropdown to appear above widgets */}
       <div className="text-center mb-8 sm:mb-10 relative z-30">
         {/* Tagline - SEO friendly */}
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-primary mb-2 sm:mb-3 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
+        <h1 className="text-xl sm:text-2xl lg:text-[1.75rem] font-semibold text-primary mb-2 sm:mb-3 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
           {crosslinkMode
             ? 'CipherScan: Zcash Crosslink Explorer'

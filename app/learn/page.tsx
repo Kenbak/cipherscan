@@ -626,8 +626,8 @@ export default function LearnPage() {
                     <div className="text-secondary">More &rarr; Export Private Data</div>
                   </div>
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
-                    <div className="font-medium text-primary mb-1">YWallet</div>
-                    <div className="text-secondary">More &rarr; Seed & Keys &rarr; Show Sub Keys</div>
+                    <div className="font-medium text-primary mb-1">Vizor</div>
+                    <div className="text-secondary">Settings &rarr; Backup &rarr; Export Viewing Key</div>
                   </div>
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
                     <div className="font-medium text-primary mb-1">Zingo CLI</div>
@@ -691,19 +691,19 @@ export default function LearnPage() {
               </CardBody>
             </Card>
 
-            {/* YWallet */}
+            {/* Vizor */}
             <Card variant="compact" className="card-interactive">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">YWallet</h3>
+                  <h3 className="font-bold text-primary text-lg">Vizor</h3>
                   <Badge color="cyan">ADVANCED</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
-                  Multi-sig, viewing key export, detailed transaction history. Power user favorite.
+                  Privacy-first Zcash wallet with shielded-by-default transactions, memo support, and a clean mobile experience.
                 </p>
-                <a href="https://ywallet.app/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm w-full justify-center">
+                <a href="https://vizor.cash/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm w-full justify-center">
                   <Icons.ExternalLink className="w-3.5 h-3.5" />
-                  ywallet.app
+                  vizor.cash
                 </a>
               </CardBody>
             </Card>

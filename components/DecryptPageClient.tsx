@@ -118,13 +118,13 @@ export default function DecryptPageClient() {
               <p className="text-xs text-muted uppercase tracking-wide mb-3">Compatible wallets:</p>
               <div className="grid sm:grid-cols-3 gap-3">
                 <a
-                  href="https://ywallet.app/"
+                  href="https://vizor.cash/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="card card-compact card-interactive text-center"
                 >
-                  <span className="text-sm font-medium text-cipher-cyan">YWallet</span>
-                  <span className="text-xs text-muted block mt-1">Mobile & Desktop</span>
+                  <span className="text-sm font-medium text-cipher-cyan">Vizor</span>
+                  <span className="text-xs text-muted block mt-1">Mobile</span>
                 </a>
                 <a
                   href="https://github.com/hhanh00/zkool2"
