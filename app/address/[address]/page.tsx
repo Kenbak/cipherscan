@@ -11,6 +11,7 @@ import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { HashLink } from '@/components/ui/HashLink';
 import { decodeUnifiedAddress, UnifiedAddressComponents } from '@/lib/wasm-loader';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 
@@ -1088,11 +1089,8 @@ export default function AddressPage() {
                       </div>
 
                       {/* Hash Column */}
-                      <div className="col-span-3 flex items-center">
-                        <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono">
-                          {tx.txid.slice(0, 10)}...{tx.txid.slice(-6)}
-                        </code>
-                        <CopyButton text={tx.txid} label={`tx-${index}`} />
+                      <div className="col-span-3">
+                        <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} linkClassName="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" />
                       </div>
 
                       {/* Block Column */}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
+import { HashLink } from '@/components/ui/HashLink';
 
 interface RiskyTransaction {
   shieldTxid: string;
@@ -35,10 +36,6 @@ interface RiskyTransaction {
 
 interface RiskyTxCardProps {
   tx: RiskyTransaction;
-}
-
-function truncateTxid(txid: string): string {
-  return `${txid.slice(0, 8)}…${txid.slice(-6)}`;
 }
 
 function TxLink({ href }: { href: string }) {
@@ -224,7 +221,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           {shieldAddress ? (
             <AddressDisplay address={shieldAddress} className="text-[11px]" />
           ) : (
-            <span className="font-mono text-[11px] text-muted truncate">{truncateTxid(tx.shieldTxid)}</span>
+            <HashLink value={tx.shieldTxid} copy={false} linkClassName="font-mono text-[11px] text-muted truncate" />
           )}
           <TxLink href={`/tx/${tx.shieldTxid}`} />
         </div>
@@ -234,7 +231,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           {deshieldAddress ? (
             <AddressDisplay address={deshieldAddress} className="text-[11px]" />
           ) : (
-            <span className="font-mono text-[11px] text-muted truncate">{truncateTxid(tx.deshieldTxid)}</span>
+            <HashLink value={tx.deshieldTxid} copy={false} linkClassName="font-mono text-[11px] text-muted truncate" />
           )}
         </div>
       </div>

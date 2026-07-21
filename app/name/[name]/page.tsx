@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { HashLink } from '@/components/ui/HashLink';
 type EventAction = 'CLAIM' | 'RELEASE' | 'TRANSFER' | 'UPDATE' | 'LIST' | 'SETPRICE' | 'BUY' | 'DELIST';
 interface Event { id: string; action: EventAction; name: string; owner?: string; timestamp: number; txid: string; height: number; price?: number; }
 interface Registration {
@@ -20,9 +21,6 @@ const ZCASHNAMES_URL = 'https://www.zcashnames.com';
 const ZATS_PER_ZEC = 100_000_000;
 const formatZec = (zats: number): string =>
   `${(zats / ZATS_PER_ZEC).toLocaleString(undefined, { maximumFractionDigits: 8 })} ZEC`;
-
-const truncate = (s: string): string =>
-  s.length > 20 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s;
 
 const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' | 'muted'> = {
   CLAIM: 'green',
@@ -196,15 +194,7 @@ function RegisteredView({
         </CardHeader>
         <CardBody>
           <Field label="Transaction">
-            <div className="flex items-center">
-              <Link
-                href={`/tx/${registration.txid}`}
-                className="font-mono text-sm hover:text-cipher-cyan transition-colors"
-              >
-                {truncate(registration.txid)}
-              </Link>
-              <CopyButton text={registration.txid} label="txid" />
-            </div>
+            <HashLink value={registration.txid} href={`/tx/${registration.txid}`} />
           </Field>
           <Field label="Block">
             <div className="flex items-center">
@@ -277,12 +267,7 @@ function RegisteredView({
                         </Link>
                       </td>
                       <td className="py-2 pr-4 font-mono">
-                        <Link
-                          href={`/tx/${e.txid}`}
-                          className="hover:text-cipher-cyan transition-colors"
-                        >
-                          {truncate(e.txid)}
-                        </Link>
+                        <HashLink value={e.txid} href={`/tx/${e.txid}`} copy={false} />
                       </td>
                       <td className="py-2 font-mono">
                         {e.price != null ? formatZec(e.price) : '—'}

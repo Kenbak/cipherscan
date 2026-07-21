@@ -11,6 +11,7 @@ import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
 import { getFinalizerLabel, finalizerAvatarStyle, type FinalizerLabel } from '@/lib/finalizer-labels';
 import { CopyButton } from '@/components/CopyButton';
+import { HashLink } from '@/components/ui/HashLink';
 
 function FinalizerHero({
   pubkey,
@@ -26,7 +27,6 @@ function FinalizerHero({
   isSigningNow: boolean;
 }) {
   const [showFullPubkey, setShowFullPubkey] = useState(false);
-  const truncated = `${pubkey.slice(0, 10)}…${pubkey.slice(-10)}`;
 
   return (
     <div className="mb-6 animate-fade-in">
@@ -97,7 +97,7 @@ function FinalizerHero({
               className="font-mono text-xs sm:text-sm text-secondary block-hash-bg px-3 py-1.5 rounded border border-cipher-border min-w-0 truncate sm:break-all sm:whitespace-normal flex-1"
               title={pubkey}
             >
-              {showFullPubkey ? pubkey : truncated}
+              {showFullPubkey ? pubkey : pubkey.length > 23 ? `${pubkey.slice(0, 10)}…${pubkey.slice(-10)}` : pubkey}
             </code>
             <button
               onClick={() => setShowFullPubkey((v) => !v)}
@@ -391,9 +391,7 @@ export default function FinalizerPage() {
                         {a.amount_zec !== null ? a.amount_zec.toFixed(4) : '—'}
                       </td>
                       <td className="px-3 sm:px-4 py-3">
-                        <Link href={`/tx/${a.txid}`} className="text-cipher-cyan hover:underline font-mono text-xs">
-                          {a.txid.slice(0, 12)}…{a.txid.slice(-6)}
-                        </Link>
+                        <HashLink value={a.txid} href={`/tx/${a.txid}`} lead={12} tail={6} copy={false} />
                       </td>
                     </tr>
                   ))}
@@ -599,9 +597,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
                     className="border-b border-cipher-border-alpha/50 hover:bg-cipher-hover/40 transition-colors"
                   >
                     <td className="px-3 sm:px-4 py-3">
-                      <code className="font-mono text-xs text-secondary">
-                        {d.bondKey.slice(0, 12)}…{d.bondKey.slice(-6)}
-                      </code>
+                      <HashLink value={d.bondKey} lead={12} tail={6} copy={false} />
                     </td>
                     <td className="px-3 sm:px-4 py-3 text-right font-mono text-primary">
                       {d.stakedAmountZec > 0 ? d.stakedAmountZec.toFixed(4) : '—'}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
+import { HashLink } from '@/components/ui/HashLink';
 
 interface LinkedTransaction {
   txid: string;
@@ -51,11 +52,6 @@ interface PrivacyRiskInlineProps {
   variant?: 'compact' | 'full';
   embedded?: boolean;
 }
-
-function truncateTxid(txid: string): string {
-  return `${txid.slice(0, 8)}...${txid.slice(-6)}`;
-}
-
 
 export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: PrivacyRiskInlineProps) {
   const [data, setData] = useState<LinkabilityData | null>(null);
@@ -233,9 +229,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
         <span>Linked transaction:</span>
-        <Link href={`/tx/${topMatch.txid}`} className="font-mono text-primary hover:text-cipher-cyan transition-colors break-all">
-          {truncateTxid(topMatch.txid)}
-        </Link>
+        <HashLink value={topMatch.txid} href={`/tx/${topMatch.txid}`} copy={false} />
       </div>
 
       {graph && graph.nodes.length > 0 && graph.edges.length > 0 && (

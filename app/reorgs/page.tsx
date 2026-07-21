@@ -4,13 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
 import { API_CONFIG } from '@/lib/api-config';
-import { Card, CardBody, Badge, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
+import { Card, CardBody, Badge, DataTable, HashLink, EmptyState, type DataTableColumn } from '@/components/ui';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
-
-function truncateAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
 
 function isUnknownPool(pool: string | null | undefined) {
   return !pool || /^Unknown/i.test(pool);
@@ -321,9 +317,7 @@ export default function UnclesPage() {
     if (isUnknownPool(pool)) {
       if (minerAddress) {
         return (
-          <Link href={`/address/${minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline" title={minerAddress}>
-            {truncateAddress(minerAddress)}
-          </Link>
+          <HashLink value={minerAddress} href={`/address/${minerAddress}`} lead={6} tail={4} copy={false} />
         );
       }
       return <span className="text-xs text-muted font-mono">—</span>;
@@ -478,37 +472,37 @@ export default function UnclesPage() {
         </button>
       </div>
 
-      {/* Loading */}
       {loading && (
         <Card>
-          <CardBody className="text-center py-12">
-            <div className="animate-pulse text-muted font-mono text-sm">Loading reorg data...</div>
+          <CardBody>
+            <EmptyState title="Loading reorg data..." />
           </CardBody>
         </Card>
       )}
 
-      {/* Error */}
       {error && !loading && (
         <Card>
-          <CardBody className="text-center py-12">
-            <p className="text-cipher-orange font-mono text-sm mb-4">{error}</p>
-            <button onClick={fetchData} className="text-xs font-mono text-cipher-cyan hover:underline">
-              Retry
-            </button>
+          <CardBody>
+            <EmptyState
+              title={error}
+              action={
+                <button onClick={fetchData} className="text-xs font-mono text-cipher-cyan hover:underline">
+                  Retry
+                </button>
+              }
+            />
           </CardBody>
         </Card>
       )}
 
-      {/* Empty State */}
       {!loading && !error && orphans.length === 0 && forks.length === 0 && (
         <Card>
-          <CardBody className="text-center py-16">
-            <div className="text-4xl mb-4">&#x1f6e1;&#xfe0f;</div>
-            <h2 className="text-lg font-bold font-mono text-primary mb-2">No Reorg Events Recorded</h2>
-            <p className="text-xs text-muted max-w-md mx-auto">
-              Chain reorganization events will appear here when detected.
-              External nodes can report competing tips via the <code className="text-cipher-cyan">POST /api/uncle/report</code> endpoint.
-            </p>
+          <CardBody>
+            <EmptyState
+              icon="🛡️"
+              title="No Reorg Events Recorded"
+              description={<>Chain reorganization events will appear here when detected. External nodes can report competing tips via the <code className="text-cipher-cyan">POST /api/uncle/report</code> endpoint.</>}
+            />
           </CardBody>
         </Card>
       )}
@@ -551,22 +545,21 @@ export default function UnclesPage() {
                           #{block.height.toLocaleString()}
                         </Link>
                       </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border">
-                        <Link href={`/block/${block.hash}`} className="text-xs text-cipher-orange font-mono hover:underline" title={block.hash} onClick={e => e.stopPropagation()}>
-                          {block.hash.slice(0, 10)}...{block.hash.slice(-6)}
-                        </Link>
+                      <td className="px-4 h-[44px] border-b border-cipher-border" onClick={e => e.stopPropagation()}>
+                        <HashLink value={block.hash} href={`/block/${block.hash}`} lead={10} tail={6} copy={false} linkClassName="text-xs font-mono text-cipher-orange hover:underline" />
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border hidden md:table-cell">
                         {(block.canonicalBlock?.hash || block.canonicalHash) ? (
-                          <Link
-                            href={`/block/${block.height}`}
-                            className="text-xs text-cipher-green font-mono hover:underline"
-                            title={block.canonicalBlock?.hash || block.canonicalHash || ''}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(0, 10)}...
-                            {(block.canonicalBlock?.hash || block.canonicalHash)!.slice(-6)}
-                          </Link>
+                          <span onClick={e => e.stopPropagation()}>
+                            <HashLink
+                              value={(block.canonicalBlock?.hash || block.canonicalHash)!}
+                              href={`/block/${block.height}`}
+                              lead={10}
+                              tail={6}
+                              copy={false}
+                              linkClassName="text-xs font-mono text-cipher-green hover:underline"
+                            />
+                          </span>
                         ) : (
                           <span className="text-xs text-muted">—</span>
                         )}
@@ -577,9 +570,9 @@ export default function UnclesPage() {
                       <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
                         {isUnknownPool(block.minerPool) ? (
                           block.minerAddress ? (
-                            <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-secondary hover:text-cipher-cyan truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
-                              {truncateAddress(block.minerAddress)}
-                            </Link>
+                            <span onClick={e => e.stopPropagation()}>
+                              <HashLink value={block.minerAddress} href={`/address/${block.minerAddress}`} lead={6} tail={4} copy={false} />
+                            </span>
                           ) : (
                             <span className="text-xs text-muted">—</span>
                           )

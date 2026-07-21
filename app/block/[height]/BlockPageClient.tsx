@@ -10,6 +10,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { InfoRow as SharedInfoRow } from '@/components/ui/InfoRow';
+import { HashLink } from '@/components/ui/HashLink';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 
@@ -463,9 +464,7 @@ export default function BlockPageClient({
               <div className="flex-1 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-950/30 to-red-950/20 p-3">
                 <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-orange">Orphaned</span>
                 <div className="mt-2 space-y-1.5">
-                  <code className="text-xs font-mono text-cipher-orange block" title={data.hash}>
-                    {data.hash.slice(0, 10)}...{data.hash.slice(-6)}
-                  </code>
+                  <HashLink value={data.hash} lead={10} tail={6} copy={false} linkClassName="text-xs font-mono text-cipher-orange block" />
                   <div className="text-xs font-mono text-secondary">
                     {data.minerPool ? (
                       data.minerPoolUrl ? (
@@ -493,13 +492,14 @@ export default function BlockPageClient({
                 <div className="flex-1 rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-cyan-950/20 p-3">
                   <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-green">Canonical</span>
                   <div className="mt-2 space-y-1.5">
-                    <Link
+                    <HashLink
+                      value={data.canonicalBlock.hash}
                       href={`/block/${data.canonicalBlock.height}`}
-                      className="text-xs font-mono text-cipher-green hover:underline block"
-                      title={data.canonicalBlock.hash}
-                    >
-                      {data.canonicalBlock.hash.slice(0, 10)}...{data.canonicalBlock.hash.slice(-6)}
-                    </Link>
+                      lead={10}
+                      tail={6}
+                      copy={false}
+                      linkClassName="text-xs font-mono text-cipher-green hover:underline block"
+                    />
                     <div className="text-xs font-mono text-secondary">
                       {data.canonicalBlock.minerPool ? (
                         data.canonicalBlock.minerPoolUrl ? (
@@ -1042,9 +1042,7 @@ export default function BlockPageClient({
 
                       {/* Hash Column */}
                       <div className="col-span-2">
-                        <code className="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" title={tx.txid}>
-                          {tx.txid.slice(0, 8)}...{tx.txid.slice(-6)}
-                        </code>
+                        <HashLink value={tx.txid} href={`/tx/${tx.txid}`} copy={false} linkClassName="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" />
                       </div>
 
                       {/* From Column */}
@@ -1052,9 +1050,7 @@ export default function BlockPageClient({
                         {isCoinbase ? (
                           <span className="text-xs text-muted font-mono">Block Reward</span>
                         ) : fromAddress ? (
-                          <span className="text-xs text-secondary font-mono truncate block" title={fromAddress}>
-                            {fromAddress.slice(0, 8)}...{fromAddress.slice(-6)}
-                          </span>
+                          <HashLink value={fromAddress} copy={false} linkClassName="text-xs text-secondary font-mono truncate block" />
                         ) : isShielded ? (
                           <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1070,9 +1066,7 @@ export default function BlockPageClient({
                       {/* To Column */}
                       <div className="col-span-2">
                         {toAddress ? (
-                          <span className="text-xs text-secondary font-mono truncate block" title={toAddress}>
-                            {toAddress.slice(0, 8)}...{toAddress.slice(-6)}
-                          </span>
+                          <HashLink value={toAddress} copy={false} linkClassName="text-xs text-secondary font-mono truncate block" />
                         ) : isShielded ? (
                           <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

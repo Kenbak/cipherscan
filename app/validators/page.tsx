@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { CopyButton } from '@/components/CopyButton';
+import { HashLink } from '@/components/ui/HashLink';
 import { PageHeader } from '@/components/ui/SectionHeader';
 import { CURRENCY } from '@/lib/config';
 import { displayPubkey } from '@/lib/utils';
@@ -285,7 +286,6 @@ export default function ValidatorsPage() {
                     : 0;
                   const display = displayPubkey(member.identity);
                   const label = getFinalizerLabel(member.identity);
-                  const truncated = `${display.slice(0, 10)}...${display.slice(-6)}`;
 
                   return (
                     <tr
@@ -347,14 +347,10 @@ export default function ValidatorsPage() {
                                 <span className="block text-sm font-semibold text-primary group-hover/link:text-cipher-cyan transition-colors">
                                   {label.name}
                                 </span>
-                                <span className="block text-[11px] font-mono text-muted leading-tight mt-0.5">
-                                  {truncated}
-                                </span>
+                                <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-[11px] font-mono text-muted leading-tight" />
                               </>
                             ) : (
-                              <span className="block text-sm font-mono text-primary group-hover/link:text-cipher-cyan transition-colors">
-                                {truncated}
-                              </span>
+                              <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-sm font-mono text-primary group-hover/link:text-cipher-cyan transition-colors" />
                             )}
                           </Link>
                           <CopyButton
@@ -438,7 +434,7 @@ export default function ValidatorsPage() {
                   : 0;
                 const label = getFinalizerLabel(member.identity);
                 const display = displayPubkey(member.identity);
-                const name = label?.name ?? `${display.slice(0, 10)}...${display.slice(-6)}`;
+                const name = label?.name ?? (display.length > 19 ? `${display.slice(0, 10)}...${display.slice(-6)}` : display);
                 return (
                   <div
                     key={member.identity}

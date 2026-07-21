@@ -12,6 +12,7 @@ import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Tabs } from '@/components/ui/Tabs';
+import { HashLink } from '@/components/ui/HashLink';
 import { StakingActionBadge, stakingActionLabel } from '@/components/StakingActionBadge';
 import { displayPubkey } from '@/lib/utils';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
@@ -1218,15 +1219,13 @@ export default function TransactionPage() {
                       {data.stakingAction.delegatee && (
                         <span className="text-xs text-muted">
                           to{' '}
-                          <Link
+                          <HashLink
+                            value={displayPubkey(data.stakingAction.delegatee)}
                             href={`/finalizer/${data.stakingAction.delegatee}`}
-                            className="text-cipher-cyan hover:underline font-mono"
-                          >
-                            {(() => {
-                              const display = displayPubkey(data.stakingAction.delegatee);
-                              return `${display.slice(0, 12)}…${display.slice(-6)}`;
-                            })()}
-                          </Link>
+                            lead={12}
+                            tail={6}
+                            copy={false}
+                          />
                         </span>
                       )}
                     </div>

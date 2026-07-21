@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
+import { HashLink } from '@/components/ui/HashLink';
 
 // Animated dots component for loading states (pure CSS for performance)
 function AnimatedDots() {
@@ -814,12 +815,7 @@ export function ScanMyTransactions() {
                     {/* Transaction */}
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-muted font-bold uppercase tracking-wider whitespace-nowrap">TX:</span>
-                      <Link
-                        href={`/tx/${result.txid}`}
-                        className="font-mono text-cipher-cyan hover:text-cipher-green hover:underline truncate transition-colors"
-                      >
-                        {result.txid.slice(0, 12)}...{result.txid.slice(-8)}
-                      </Link>
+                      <HashLink value={result.txid} href={`/tx/${result.txid}`} lead={12} tail={8} copy={false} />
                     </div>
 
                     {/* Separator */}

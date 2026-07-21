@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   AnchorsTable,
   CheckerPanel,
@@ -189,19 +190,23 @@ export default function ForkMonitorPage() {
 
       {loading && (
         <Card>
-          <CardBody className="text-center py-12">
-            <div className="animate-pulse text-muted font-mono text-sm">Loading fork monitor…</div>
+          <CardBody>
+            <EmptyState title="Loading fork monitor..." />
           </CardBody>
         </Card>
       )}
 
       {error && !loading && (
         <Card>
-          <CardBody className="text-center py-12">
-            <p className="text-cipher-orange font-mono text-sm mb-4">{error}</p>
-            <button type="button" onClick={fetchData} className="btn-sm btn-ghost">
-              Retry
-            </button>
+          <CardBody>
+            <EmptyState
+              title={error}
+              action={
+                <button type="button" onClick={fetchData} className="btn-sm btn-ghost">
+                  Retry
+                </button>
+              }
+            />
           </CardBody>
         </Card>
       )}
