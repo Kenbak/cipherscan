@@ -22,3 +22,4 @@ export { HashLink } from './HashLink';
 export { MetricCard } from './MetricCard';
 export { InfoRow } from './InfoRow';
 export { EmptyState, SkeletonTable } from './EmptyState';
+export { DataTable, type DataTableColumn } from './DataTable';

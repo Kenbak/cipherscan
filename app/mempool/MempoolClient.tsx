@@ -7,7 +7,8 @@ import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { PageHeader } from '@/components/ui/SectionHeader';
+import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { MempoolBubbles, type MempoolBubblesHandle } from '@/components/MempoolBubbles';
 
 interface MempoolTransaction {
@@ -179,49 +180,21 @@ export default function MempoolClient() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 animate-fade-in-up stagger-2">
-        <Card variant="compact">
-          <CardBody>
-            <span className="text-xs text-muted uppercase tracking-wide">Total TXs</span>
-            <div className="text-2xl font-bold text-primary font-mono mt-1">{data?.count || 0}</div>
-          </CardBody>
-        </Card>
-        <Card variant="compact">
-          <CardBody>
-            <span className="text-xs text-muted uppercase tracking-wide">Shielded</span>
-            <div className="text-2xl font-bold text-cipher-purple font-mono mt-1">{data?.stats.shielded || 0}</div>
-          </CardBody>
-        </Card>
-        <Card variant="compact">
-          <CardBody>
-            <span className="text-xs text-muted uppercase tracking-wide">Transparent</span>
-            <div className="text-2xl font-bold text-secondary font-mono mt-1">{data?.stats.transparent || 0}</div>
-          </CardBody>
-        </Card>
-        <Card variant="compact">
-          <CardBody>
-            <span className="text-xs text-muted uppercase tracking-wide">Privacy Score</span>
-            <div className="text-2xl font-bold text-cipher-cyan font-mono mt-1">
-              {data?.stats.shieldedPercentage.toFixed(0) || 0}%
-            </div>
-          </CardBody>
-        </Card>
+        <MetricCard label="Total TXs" value={data?.count || 0} />
+        <MetricCard label="Shielded" value={data?.stats.shielded || 0} accent="purple" />
+        <MetricCard label="Transparent" value={data?.stats.transparent || 0} />
+        <MetricCard label="Privacy Score" value={`${data?.stats.shieldedPercentage.toFixed(0) || 0}%`} accent="cyan" />
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
       <div className="mb-2 animate-fade-in-up stagger-3">
         {/* Section header — same pattern as chart sections on /mining and /pools */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">MEMPOOL_LIVE</h3>
-            {autoRefresh && wsConnected && (
-              <span className="relative flex h-1.5 w-1.5 ml-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cipher-green"></span>
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
+        <SectionHeader
+          label="MEMPOOL_LIVE"
+          live={autoRefresh && wsConnected}
+          className="px-1"
+          actions={
+            <>
             {/* LIVE / PAUSED segmented pill — same pattern as PeriodSelector */}
             <div className="inline-flex gap-0 p-0.5 rounded-md bg-glass-3 flex-shrink-0">
               {([true, false] as const).map(on => (
@@ -260,8 +233,9 @@ export default function MempoolClient() {
               </svg>
               SCREENSAVER
             </Link>
-          </div>
-        </div>
+            </>
+          }
+        />
         <Card className="overflow-hidden">
           <CardBody className="!p-0">
             <MempoolBubbles
@@ -290,12 +264,12 @@ export default function MempoolClient() {
       {data && data.count > 0 && (
         <div className="animate-fade-in-up stagger-4">
           {/* Section header */}
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-              <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">PENDING_TRANSACTIONS</h3>
+          <SectionHeader
+            label="PENDING_TRANSACTIONS"
+            className="px-1"
+            actions={
+              <>
               <Badge color="cyan">{data.showing} of {data.count}</Badge>
-            </div>
             <button
               onClick={() => setShowTable(!showTable)}
               className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors font-mono"
@@ -310,7 +284,9 @@ export default function MempoolClient() {
               </svg>
               {showTable ? 'Hide' : 'Show'}
             </button>
-          </div>
+              </>
+            }
+          />
 
           {showTable && (
             <div className="card p-0 overflow-hidden">

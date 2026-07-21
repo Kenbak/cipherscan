@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge, PageHeader } from '@/components/ui';
+import { Badge, PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 
 type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';
 
@@ -57,6 +57,55 @@ function getFlowBadge(tx: Transaction) {
   if (type === 'mixed' && !tx.flow_type) return null;
   return <ShieldFlowBadge type={type} variant="compact" />;
 }
+
+const txColumns: DataTableColumn<Transaction>[] = [
+  {
+    id: 'txid',
+    header: 'TxID',
+    skeletonWidth: 'w-28',
+    cell: (tx) => (
+      <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={12} tail={6} responsive />
+    ),
+  },
+  { id: 'type', header: 'Type', cell: (tx) => getTxBadge(tx) },
+  {
+    id: 'flow',
+    header: 'Flow',
+    className: 'hidden lg:table-cell',
+    skeletonWidth: 'w-16',
+    cell: (tx) => getFlowBadge(tx),
+  },
+  {
+    id: 'block',
+    header: 'Block',
+    align: 'right',
+    className: 'hidden sm:table-cell',
+    cell: (tx) => (
+      <Link href={`/block/${tx.block_height}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
+        #{tx.block_height.toLocaleString()}
+      </Link>
+    ),
+  },
+  {
+    id: 'size',
+    header: 'Size',
+    align: 'right',
+    className: 'hidden md:table-cell',
+    skeletonWidth: 'w-14',
+    cell: (tx) => (
+      <span className="font-mono text-xs text-muted">{tx.size ? `${(tx.size / 1024).toFixed(1)} KB` : '—'}</span>
+    ),
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (tx) => (
+      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(tx.block_time)}</span>
+    ),
+  },
+];
 
 interface TxsClientProps {
   initialTxs?: Transaction[];
@@ -222,62 +271,12 @@ export default function TxsClient({
       </div>
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Flow</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Size</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 15 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-28 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-20 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-16 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-20 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden md:table-cell"><div className="h-4 w-14 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : txs.map((tx) => (
-                <tr key={tx.txid} className="group transition-colors duration-100 hover:bg-cipher-hover">
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <Link href={`/tx/${tx.txid}`} className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors truncate block max-w-[120px] sm:max-w-[180px]">
-                      <span className="sm:hidden">{tx.txid.slice(0, 8)}...{tx.txid.slice(-4)}</span>
-                      <span className="hidden sm:inline">{tx.txid.slice(0, 12)}...{tx.txid.slice(-6)}</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    {getTxBadge(tx)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
-                    {getFlowBadge(tx)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden sm:table-cell">
-                    <Link href={`/block/${tx.block_height}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
-                      #{tx.block_height.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
-                    <span className="font-mono text-xs text-muted">{tx.size ? `${(tx.size / 1024).toFixed(1)} KB` : '—'}</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(tx.block_time)}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={txColumns}
+        rows={txs}
+        rowKey={(tx) => tx.txid}
+        loading={loading}
+      />
 
       {/* Pagination */}
       <Pagination

@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge, PageHeader } from '@/components/ui';
+import { Badge, PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 
 type FlowFilter = 'all' | 'shield' | 'deshield';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
@@ -58,6 +58,55 @@ function getPoolBadge(pool: string) {
   if (pool === 'mixed') return <Badge color="orange">MIXED</Badge>;
   return <Badge color="muted">{pool.toUpperCase()}</Badge>;
 }
+
+const flowColumns: DataTableColumn<ShieldedFlow>[] = [
+  {
+    id: 'txid',
+    header: 'TxID',
+    skeletonWidth: 'w-28',
+    cell: (flow) => (
+      <HashLink value={flow.txid} href={`/tx/${flow.txid}`} lead={12} tail={6} responsive accent="purple" />
+    ),
+  },
+  { id: 'flow', header: 'Flow', cell: (flow) => getFlowBadge(flow.flowType) },
+  {
+    id: 'pool',
+    header: 'Pool',
+    className: 'hidden lg:table-cell',
+    skeletonWidth: 'w-16',
+    cell: (flow) => getPoolBadge(flow.pool),
+  },
+  {
+    id: 'amount',
+    header: 'Amount',
+    align: 'right',
+    cell: (flow) => (
+      <span className="font-mono text-xs text-primary">
+        {flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC
+      </span>
+    ),
+  },
+  {
+    id: 'block',
+    header: 'Block',
+    align: 'right',
+    className: 'hidden sm:table-cell',
+    cell: (flow) => (
+      <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
+        #{flow.blockHeight.toLocaleString()}
+      </Link>
+    ),
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (flow) => (
+      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
+    ),
+  },
+];
 
 export default function ShieldedTxsClient({
   initialFlows = [],
@@ -284,63 +333,13 @@ export default function ShieldedTxsClient({
       </div>
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Flow</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Pool</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Block</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 15 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-28 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-20 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-16 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-20 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-20 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : flows.map((flow) => (
-                <tr key={`${flow.txid}-${flow.flowType}`} className="group transition-colors duration-100 hover:bg-cipher-hover">
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <Link href={`/tx/${flow.txid}`} className="font-mono text-xs text-primary hover:text-cipher-purple transition-colors truncate block max-w-[120px] sm:max-w-[180px]">
-                      <span className="sm:hidden">{flow.txid.slice(0, 8)}...{flow.txid.slice(-4)}</span>
-                      <span className="hidden sm:inline">{flow.txid.slice(0, 12)}...{flow.txid.slice(-6)}</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    {getFlowBadge(flow.flowType)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
-                    {getPoolBadge(flow.pool)}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="font-mono text-xs text-primary">{flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden sm:table-cell">
-                    <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
-                      #{flow.blockHeight.toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ShieldFlowLegend />
-      </div>
+      <DataTable
+        columns={flowColumns}
+        rows={flows}
+        rowKey={(flow) => `${flow.txid}-${flow.flowType}`}
+        loading={loading}
+        footer={<ShieldFlowLegend />}
+      />
 
       {/* Pagination */}
       <Pagination

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { API_CONFIG } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -54,11 +54,6 @@ function categoryColor(cat: string | null): BadgeColor {
   if (c === 'defi' || c === 'bridge') return 'green';
   if (c === 'custodian' || c === 'fund') return 'purple';
   return 'muted';
-}
-
-function truncateAddress(addr: string) {
-  if (addr.length <= 16) return addr;
-  return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
 }
 
 function formatZec(amount: number): string {
@@ -119,6 +114,98 @@ export default function RichListClient({
   }, [page]);
 
   const labeledCount = addresses.filter(a => a.label).length;
+
+  // Columns close over zecPrice/concentration state for USD values and share %.
+  const richListColumns: DataTableColumn<RichListEntry>[] = [
+    {
+      id: 'rank',
+      header: '#',
+      className: 'w-12',
+      skeletonWidth: 'w-6',
+      cell: (entry) => <span className="text-muted font-mono text-xs">{entry.rank}</span>,
+    },
+    {
+      id: 'address',
+      header: 'Address',
+      skeletonWidth: 'w-28',
+      cell: (entry) => (
+        <div className="flex flex-col">
+          <HashLink value={entry.address} href={`/address/${entry.address}`} lead={8} tail={8} />
+          {/* Show label inline on mobile where label column is hidden */}
+          {entry.label && (
+            <span className="text-[10px] text-muted md:hidden mt-0.5 flex items-center gap-1">
+              {entry.logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={entry.logoUrl} alt="" width={12} height={12} className="rounded-sm" />
+              )}
+              {entry.label}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'label',
+      header: 'Label',
+      className: 'hidden md:table-cell',
+      cell: (entry) => entry.label ? (
+        <div className="flex items-center gap-2">
+          {entry.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={entry.logoUrl} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
+          )}
+          <span className="text-xs text-primary truncate max-w-[120px]">{entry.label}</span>
+          {entry.category && (
+            <Badge color={categoryColor(entry.category)}>{entry.category}</Badge>
+          )}
+        </div>
+      ) : (
+        <span className="text-xs text-muted italic">&mdash;</span>
+      ),
+    },
+    {
+      id: 'balance',
+      header: 'Balance',
+      align: 'right',
+      skeletonWidth: 'w-24',
+      cell: (entry) => (
+        <>
+          <div className="font-mono text-sm text-primary font-bold">
+            {entry.balance >= 1000 ? formatZec(entry.balance) : entry.balance.toFixed(2)} ZEC
+          </div>
+          {zecPrice && (
+            <div className="text-[10px] text-muted font-mono">
+              ${(entry.balance * zecPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'share',
+      header: '% Transparent',
+      align: 'right',
+      className: 'hidden sm:table-cell',
+      skeletonWidth: 'w-12',
+      cell: (entry) => (
+        <span className="font-mono text-xs text-secondary">
+          {concentration && concentration.totalTransparent > 0
+            ? ((entry.balance / concentration.totalTransparent) * 100).toFixed(2)
+            : '—'}%
+        </span>
+      ),
+    },
+    {
+      id: 'txs',
+      header: 'Txs',
+      align: 'right',
+      className: 'hidden lg:table-cell',
+      skeletonWidth: 'w-12',
+      cell: (entry) => (
+        <span className="font-mono text-xs text-secondary">{entry.txCount.toLocaleString()}</span>
+      ),
+    },
+  ];
 
   if (error && !addresses.length) {
     return (
@@ -204,102 +291,13 @@ export default function RichListClient({
       )}
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden animate-fade-in-up stagger-3">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">#</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Address</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Label</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Balance</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">% Transparent</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Txs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 15 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-6 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-28 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden md:table-cell"><div className="h-4 w-20 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border text-right"><div className="h-4 w-24 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border text-right hidden sm:table-cell"><div className="h-4 w-12 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border text-right hidden lg:table-cell"><div className="h-4 w-12 bg-cipher-border rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : addresses.map((entry) => (
-                <tr key={entry.address} className="group transition-colors duration-100 hover:bg-cipher-hover">
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <span className="text-muted font-mono text-xs">{entry.rank}</span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border">
-                    <div className="flex flex-col">
-                      <Link
-                        href={`/address/${entry.address}`}
-                        className="font-mono text-xs text-primary hover:text-cipher-cyan transition-colors truncate block max-w-[140px] sm:max-w-[220px]"
-                      >
-                        {truncateAddress(entry.address)}
-                      </Link>
-                      {/* Show label inline on mobile where label column is hidden */}
-                      {entry.label && (
-                        <span className="text-[10px] text-muted md:hidden mt-0.5 flex items-center gap-1">
-                          {entry.logoUrl && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={entry.logoUrl} alt="" width={12} height={12} className="rounded-sm" />
-                          )}
-                          {entry.label}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border hidden md:table-cell">
-                    {entry.label ? (
-                      <div className="flex items-center gap-2">
-                        {entry.logoUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={entry.logoUrl} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
-                        )}
-                        <span className="text-xs text-primary truncate max-w-[120px]">{entry.label}</span>
-                        {entry.category && (
-                          <Badge color={categoryColor(entry.category)}>
-                            {entry.category}
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted italic">&mdash;</span>
-                    )}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                    <div className="font-mono text-sm text-primary font-bold">
-                      {entry.balance >= 1000 ? formatZec(entry.balance) : entry.balance.toFixed(2)} ZEC
-                    </div>
-                    {zecPrice && (
-                      <div className="text-[10px] text-muted font-mono">
-                        ${(entry.balance * zecPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden sm:table-cell">
-                    <span className="font-mono text-xs text-secondary">
-                      {concentration && concentration.totalTransparent > 0
-                        ? ((entry.balance / concentration.totalTransparent) * 100).toFixed(2)
-                        : '—'}%
-                    </span>
-                  </td>
-                  <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden lg:table-cell">
-                    <span className="font-mono text-xs text-secondary">
-                      {entry.txCount.toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        className="animate-fade-in-up stagger-3"
+        columns={richListColumns}
+        rows={addresses}
+        rowKey={(entry) => entry.address}
+        loading={loading}
+      />
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

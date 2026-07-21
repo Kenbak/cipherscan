@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, DataTable, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -28,6 +28,146 @@ interface PaginationState {
   hasPrev: boolean;
   nextCursor: number | null;
   prevCursor: number | null;
+}
+
+const INTERVAL_TEXT_COLORS = {
+  'fast':      'text-cipher-cyan',
+  'normal':    'text-cipher-green',
+  'slow':      'text-amber-400',
+  'very-slow': 'text-danger',
+} as const;
+
+const INTERVAL_BAR_COLORS = {
+  'fast':      'bg-cipher-cyan/50',
+  'normal':    'bg-cipher-green/50',
+  'slow':      'bg-amber-400/50',
+  'very-slow': 'bg-red-400/50',
+} as const;
+
+/** Column defs close over the block list because interval computation needs
+ *  each row's successor (and the trailing block beyond the page boundary). */
+function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableColumn<Block>[] {
+  const maxSize = Math.max(1, ...blocks.map(b => b.size || 0));
+  return [
+    {
+      id: 'height',
+      header: 'Height',
+      skeletonWidth: 'w-24',
+      cell: (block) => (
+        <div className="flex items-center gap-2">
+          <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-cipher-cyan transition-colors">
+            {block.height.toLocaleString()}
+          </Link>
+          {block.finality_status === 'Finalized' && (
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-green/70" title="Finalized" />
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'hash',
+      header: 'Hash',
+      className: 'hidden sm:table-cell',
+      skeletonWidth: 'w-40',
+      cell: (block) => (
+        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]" title={`Canonical block ${block.height.toLocaleString()}`}>
+          {block.hash}
+        </Link>
+      ),
+    },
+    {
+      id: 'miner',
+      header: 'Miner',
+      className: 'hidden lg:table-cell',
+      skeletonWidth: 'w-16',
+      cell: (block) => {
+        const clientInfo = getCoinbaseClientInfo(block.coinbase_hex);
+        const tooltip = clientInfo.name
+          ? `${clientInfo.name}${clientInfo.version ? ' ' + clientInfo.version : ''}`
+          : undefined;
+        return (
+          <div className="flex items-center gap-1.5">
+            {clientInfo.emoji && (
+              <span className="text-sm leading-none" title={tooltip}>{clientInfo.emoji}</span>
+            )}
+            {block.miner_pool ? (
+              <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
+            ) : (
+              <span className="text-xs font-mono text-muted/40">—</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'txs',
+      header: 'Txs',
+      align: 'right',
+      skeletonWidth: 'w-8',
+      cell: (block) => <span className="font-mono text-sm text-primary">{block.transaction_count}</span>,
+    },
+    {
+      id: 'size',
+      header: 'Size',
+      align: 'right',
+      className: 'hidden md:table-cell',
+      skeletonWidth: 'w-16',
+      cell: (block) => {
+        const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-cipher-cyan/60 group-hover:bg-cipher-cyan transition-colors"
+                style={{ width: `${sizePct}%` }}
+              />
+            </div>
+            <span className="font-mono text-xs text-muted w-16 text-right">
+              {(block.size / 1024).toFixed(1)} KB
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'interval',
+      header: 'Interval',
+      align: 'right',
+      className: 'hidden lg:table-cell',
+      skeletonWidth: 'w-12',
+      cell: (block, idx) => {
+        const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
+        const gap = nextBlock ? block.timestamp - nextBlock.timestamp : null;
+        const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
+        const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
+        if (!interval || !nextBlock) {
+          return <span className="font-mono text-xs text-muted/40">--</span>;
+        }
+        return (
+          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>
+            <div className="w-12 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
+              <div
+                className={`h-full rounded-full ${INTERVAL_BAR_COLORS[interval.level]} transition-colors`}
+                style={{ width: `${barPct}%` }}
+              />
+            </div>
+            <span className={`font-mono text-xs ${INTERVAL_TEXT_COLORS[interval.level]} w-14 text-right`}>
+              {interval.label}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'age',
+      header: 'Age',
+      align: 'right',
+      skeletonWidth: 'w-16',
+      cell: (block) => (
+        <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
+      ),
+    },
+  ];
 }
 
 interface BlocksClientProps {
@@ -153,143 +293,12 @@ export default function BlocksClient({
       />
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Miner</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Txs</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Size</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden lg:table-cell">Interval</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 15 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-24 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden sm:table-cell"><div className="h-4 w-40 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-16 bg-cipher-border rounded" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-8 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden md:table-cell"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border hidden lg:table-cell"><div className="h-4 w-12 bg-cipher-border rounded ml-auto" /></td>
-                    <td className="px-4 py-3.5 border-b border-cipher-border"><div className="h-4 w-16 bg-cipher-border rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : (() => {
-                const maxSize = Math.max(1, ...blocks.map(b => b.size || 0));
-                const intervalColors = {
-                  'fast':      'text-cipher-cyan',
-                  'normal':    'text-cipher-green',
-                  'slow':      'text-amber-400',
-                  'very-slow': 'text-danger',
-                };
-                const barColors = {
-                  'fast':      'bg-cipher-cyan/50',
-                  'normal':    'bg-cipher-green/50',
-                  'slow':      'bg-amber-400/50',
-                  'very-slow': 'bg-red-400/50',
-                };
-                return blocks.map((block, idx) => {
-                  const sizePct = Math.max(4, Math.min(100, ((block.size || 0) / maxSize) * 100));
-                  const isFinalized = block.finality_status === 'Finalized';
-                  const nextBlock = blocks[idx + 1] ?? (idx === blocks.length - 1 ? trailingBlock : null);
-                  const gap = nextBlock ? block.timestamp - nextBlock.timestamp : null;
-                  const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
-                  const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
-                  return (
-                    <tr
-                      key={block.height}
-                      className="group transition-colors duration-100 hover:bg-cipher-hover"
-                    >
-                      <td className="px-4 h-[44px] border-b border-cipher-border">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-cipher-cyan transition-colors">
-                            {block.height.toLocaleString()}
-                          </Link>
-                          {isFinalized && (
-                            <span
-                              className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-green/70"
-                              title="Finalized"
-                            />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border hidden sm:table-cell">
-                        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]" title={`Canonical block ${block.height.toLocaleString()}`}>
-                          {block.hash}
-                        </Link>
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border hidden lg:table-cell">
-                        {(() => {
-                          const clientInfo = getCoinbaseClientInfo(block.coinbase_hex);
-                          const tooltip = clientInfo.name
-                            ? `${clientInfo.name}${clientInfo.version ? ' ' + clientInfo.version : ''}`
-                            : undefined;
-                          return (
-                            <div className="flex items-center gap-1.5">
-                              {clientInfo.emoji && (
-                                <span className="text-sm leading-none" title={tooltip}>
-                                  {clientInfo.emoji}
-                                </span>
-                              )}
-                              {block.miner_pool ? (
-                                <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
-                              ) : (
-                                <span className="text-xs font-mono text-muted/40">—</span>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                        <span className="font-mono text-sm text-primary">{block.transaction_count}</span>
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden md:table-cell">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-cipher-cyan/60 group-hover:bg-cipher-cyan transition-colors"
-                              style={{ width: `${sizePct}%` }}
-                            />
-                          </div>
-                          <span className="font-mono text-xs text-muted w-16 text-right">
-                            {(block.size / 1024).toFixed(1)} KB
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border text-right hidden lg:table-cell">
-                        {interval ? (
-                          <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>
-                            <div className="w-12 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${barColors[interval.level]} transition-colors`}
-                                style={{ width: `${barPct}%` }}
-                              />
-                            </div>
-                            <span className={`font-mono text-xs ${intervalColors[interval.level]} w-14 text-right`}>
-                              {interval.label}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-mono text-xs text-muted/40">--</span>
-                        )}
-                      </td>
-                      <td className="px-4 h-[44px] border-b border-cipher-border text-right">
-                        <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
-                      </td>
-                    </tr>
-                  );
-                });
-              })()}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={blockColumns(blocks, trailingBlock)}
+        rows={blocks}
+        rowKey={(block) => block.height}
+        loading={loading}
+      />
 
       {/* Pagination */}
       <Pagination
