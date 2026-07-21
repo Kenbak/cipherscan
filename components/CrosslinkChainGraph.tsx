@@ -224,7 +224,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
   const circleBorder = isVoting
     ? 'border-cipher-orange/70'
     : 'border-[rgba(239,108,96,0.7)]';
-  const numColor = isVoting ? 'text-cipher-orange' : 'text-[#F0826F]';
+  const numColor = isVoting ? 'text-cipher-orange' : 'text-cipher-coral';
   const glow = isVoting
     ? 'shadow-[0_0_22px_rgba(255,107,53,0.45)]'
     : 'shadow-[0_0_16px_rgba(239,108,96,0.3)]';

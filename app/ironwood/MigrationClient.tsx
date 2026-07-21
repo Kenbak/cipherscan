@@ -825,7 +825,7 @@ function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null;
                   if (!payload?.length) return null;
                   const d = payload[0].payload;
                   return (
-                    <div className="bg-[#12121a] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono">
+                    <div className="bg-cipher-surface-solid border border-glass-8 rounded-lg px-3 py-2 text-xs font-mono">
                       <div className="text-muted mb-1">Block #{d.x?.toLocaleString()}</div>
                       <div className="text-primary font-bold">{d.y?.toFixed(8)} ZEC</div>
                       <div className="mt-1" style={{ color: d.privacy === 'denominated' ? DENOMINATED_COLOR : DISTINCTIVE_COLOR }}>

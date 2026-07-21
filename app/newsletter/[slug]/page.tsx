@@ -217,7 +217,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
       </nav>
 
       {sections.length > 3 && (
-        <aside className="hidden xl:block absolute left-full top-0 ml-8 w-52" style={{ paddingTop: '12rem' }}>
+        <aside className="hidden xl:block absolute left-full top-0 ml-8 w-52 pt-48">
           <div className="sticky top-24">
             <p className="text-[11px] font-mono text-muted uppercase tracking-wider mb-3">
               In this issue

@@ -101,7 +101,7 @@ export function CrosslinkLearn() {
             </div>
 
             {/* Architecture diagram */}
-            <div className="rounded-xl border border-cipher-border bg-[#0a0a0f] overflow-hidden">
+            <div className="rounded-xl border border-cipher-border bg-cipher-bg-dark overflow-hidden">
               <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-cipher-border-alpha/50 bg-cipher-surface/30">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />

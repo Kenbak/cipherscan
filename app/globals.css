@@ -70,6 +70,7 @@
 @theme {
   /* Static brand accents (intentionally not theme-aware; matches v3 config) */
   --color-cipher-teal: #56D4C8;
+  --color-cipher-coral: #F0826F;
   --color-cipher-cyan-bright: #00D4FF;
   --color-cipher-cyan-glow: #00E5FF;
   --color-cipher-cyan-muted: #5EBBCE;
@@ -1584,6 +1585,11 @@
   /* Mono with emoji fallback — for miner-tag / coinbase text that mixes hex and emoji */
   .font-mono-emoji {
     font-family: var(--font-geist-mono), ui-monospace, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  }
+
+  /* Decorative CRT scanline texture for terminal-style panels */
+  .bg-scanlines {
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px);
   }
 
   /* Newsletter content styles */

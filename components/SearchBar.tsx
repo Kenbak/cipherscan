@@ -330,7 +330,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
               inline-flex items-center justify-center
               px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg
               font-mono font-bold text-xs sm:text-sm
-              bg-cipher-cyan-bright text-[#08090F]
+              bg-cipher-cyan-bright text-cipher-bg-dark
               hover:opacity-90
               transition-all duration-150"
           >

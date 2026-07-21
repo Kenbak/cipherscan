@@ -390,7 +390,7 @@ function BftChip({
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   const circleColor = isVoting
     ? 'border-cipher-orange/70 bg-cipher-orange/15 text-cipher-orange'
-    : 'border-[rgba(239,108,96,0.7)] bg-[rgba(239,108,96,0.15)] text-[#F0826F]';
+    : 'border-cipher-coral/70 bg-cipher-coral/15 text-cipher-coral';
 
   return (
     <div className="flex items-center gap-1.5">

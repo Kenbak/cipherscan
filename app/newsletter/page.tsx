@@ -44,7 +44,7 @@ export default function NewsletterPage() {
 
       {hasIssues ? (
         /* Issue list */
-        <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="space-y-4 animate-fade-in-up stagger-3">
           {newsletters.map((issue) => (
             <Link
               key={issue.slug}
@@ -85,7 +85,7 @@ export default function NewsletterPage() {
         </div>
       ) : (
         /* Coming soon state */
-        <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <div className="animate-fade-in-up stagger-3">
           <div className="border border-cipher-border rounded-2xl p-8 sm:p-12 card-surface text-center">
             <div className="w-16 h-16 rounded-2xl bg-cipher-cyan/10 flex items-center justify-center mx-auto mb-6">
               <svg className="w-8 h-8 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
