@@ -37,11 +37,10 @@ jobs:
           node-version: "22"
       - name: Audit (${{ matrix.dir }})
         working-directory: ${{ matrix.dir }}
-        # critical-only: high-severity Next.js/sharp advisories are upstream with
-        # no available fix (we run latest stable). Revisit when Next 16.3+ ships.
+        # high+critical fail the build; lower severities are reported only.
         run: |
           npm install --package-lock-only --no-audit --no-fund
-          npm audit --audit-level=critical
+          npm audit --audit-level=high
 
   # ---------------------------------------------------------------------------
   # Rust dependency audit (RUSTSEC advisories)

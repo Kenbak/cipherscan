@@ -57,7 +57,8 @@ fi
 # The output path is an SSHFS mount, so the custom archive is written directly
 # to the Storage Box and never occupies the server's root disk.
 rm -f "$PARTIAL"
-# shellcheck disable=SC2024 -- redirect intentional: SSHFS mount is root-owned
+# Redirect is intentional: SSHFS mount is root-owned, pg_dump runs as postgres
+# shellcheck disable=SC2024
 sudo -u postgres pg_dump --format=custom --compress=6 "$DATABASE" >"$PARTIAL"
 sync -f "$PARTIAL"
 
