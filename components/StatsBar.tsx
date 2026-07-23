@@ -132,7 +132,7 @@ export function StatsBar() {
   const hasAnyData = stats.blockHeight !== null || stats.price !== null;
 
   return (
-    <div className="stats-bar border-b border-cipher-border/30 sticky top-14 z-40">
+    <div className="stats-bar border-b border-cipher-border/30 sticky top-16 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-8 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2.5 sm:gap-3">

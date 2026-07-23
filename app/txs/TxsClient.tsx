@@ -65,8 +65,27 @@ function getTxBadge(tx: Transaction) {
 }
 
 function getFlowBadge(tx: Transaction) {
-  if (tx.is_coinbase) return null;
+  if (tx.is_coinbase) {
+    return (
+      <span className="inline-flex items-center text-cipher-green text-sm" title="Coinbase (mining reward)">
+        ⛏
+      </span>
+    );
+  }
+
   const type = resolveShieldFlowType({ flowType: tx.flow_type, vinCount: tx.vin_count, voutCount: tx.vout_count });
+
+  if (!tx.has_orchard && !tx.has_sapling && !tx.has_ironwood && !tx.flow_type) {
+    return (
+      <span className="inline-flex items-center text-muted" title="Transparent">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </span>
+    );
+  }
+
   if (type === 'mixed' && !tx.flow_type) return null;
   return <ShieldFlowBadge type={type} variant="compact" />;
 }
@@ -506,26 +525,25 @@ export default function TxsClient({
         />
       </div>
 
-      {/* View Tabs */}
-      <Tabs tabs={viewTabs} active={viewTab} onChange={setViewTab} className="mb-6" />
+      {/* View Tabs + Filters */}
+      <Tabs tabs={viewTabs} active={viewTab} onChange={setViewTab} className="mb-6">
+        {viewTab === 'recent' && (
+          <div className="filter-group inline-flex">
+            {filters.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setTypeFilter(f.id)}
+                className={`filter-btn ${typeFilter === f.id ? 'filter-btn-active' : ''}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </Tabs>
 
       {viewTab === 'recent' && (
         <>
-          {/* Filters */}
-          <div className="mb-4">
-            <div className="filter-group inline-flex">
-              {filters.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setTypeFilter(f.id)}
-                  className={`filter-btn ${typeFilter === f.id ? 'filter-btn-active' : ''}`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Table */}
           <DataTable
             columns={txColumns}

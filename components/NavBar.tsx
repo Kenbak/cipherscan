@@ -134,7 +134,7 @@ export function NavBar() {
     <>
       <nav className="navbar-container backdrop-blur-xl border-b sticky top-0 z-50" ref={navRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 gap-3">
+          <div className="flex justify-between items-center h-16 gap-3">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
               <Image
@@ -298,7 +298,7 @@ export function NavBar() {
 
           <div className="absolute inset-y-0 right-0 w-full max-w-sm flex flex-col mobile-drawer shadow-2xl animate-slide-in-right">
             {/* Header */}
-            <div className="flex items-center justify-between h-14 px-4 border-b navbar-border flex-shrink-0">
+            <div className="flex items-center justify-between h-16 px-4 border-b navbar-border flex-shrink-0">
               <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}

@@ -244,10 +244,11 @@ export default function ShieldedTxsClient({
         if (!data) return;
         const pct = data.metrics?.shieldedPercentage != null ? Number(data.metrics.shieldedPercentage) : null;
         const avg = data.metrics?.avgShieldedPerDay != null ? Math.round(Number(data.metrics.avgShieldedPerDay)) : null;
-        const pool = data.pools?.totalShielded != null
-          ? Number(data.pools.totalShielded) >= 1_000_000
-            ? `${(Number(data.pools.totalShielded) / 1_000_000).toFixed(2)}M ZEC`
-            : `${Math.round(Number(data.pools.totalShielded)).toLocaleString()} ZEC`
+        const poolVal = data.shieldedPool?.currentSize;
+        const pool = poolVal != null
+          ? Number(poolVal) >= 1_000_000
+            ? `${(Number(poolVal) / 1_000_000).toFixed(2)}M ZEC`
+            : `${Math.round(Number(poolVal)).toLocaleString()} ZEC`
           : null;
         setSummary({ shieldedPct: pct, avgPerDay: avg, poolSize: pool });
       })

@@ -13,29 +13,35 @@ export function Tabs<T extends string>({
   active,
   onChange,
   className = '',
+  children,
 }: {
   tabs: { id: T; label: string }[];
   active: T;
   onChange: (id: T) => void;
   className?: string;
+  /** Optional content rendered on the right side of the tab bar (e.g. filters) */
+  children?: React.ReactNode;
 }) {
   return (
-    <div className={`flex items-center gap-6 border-b border-cipher-border ${className}`} role="tablist">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          role="tab"
-          aria-selected={active === tab.id}
-          onClick={() => onChange(tab.id)}
-          className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
-            active === tab.id
-              ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
-              : 'text-muted hover:text-secondary'
-          }`}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div className={`flex items-center border-b border-cipher-border ${className}`} role="tablist">
+      <div className="flex items-center gap-6">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={active === tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
+              active === tab.id
+                ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                : 'text-muted hover:text-secondary'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {children && <div className="ml-auto pb-1">{children}</div>}
     </div>
   );
 }

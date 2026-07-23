@@ -45,7 +45,7 @@ export function PageSectionNav({ sections, ariaLabel, className = '' }: PageSect
 
   return (
     <nav
-      className={`sticky top-[88px] z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 border-b backdrop-blur-xl ${className}`.trim()}
+      className={`sticky top-[96px] z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 border-b backdrop-blur-xl ${className}`.trim()}
       style={{
         backgroundColor: 'color-mix(in srgb, var(--color-bg) 85%, transparent)',
         borderColor: 'var(--color-border-subtle)',
