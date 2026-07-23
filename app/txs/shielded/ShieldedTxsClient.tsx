@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge, PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
+import { Badge, PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 
 type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
@@ -138,6 +138,7 @@ export default function ShieldedTxsClient({
   const [flowFilter, setFlowFilter] = useState<FlowFilter>(initialFlow);
   const [poolFilter, setPoolFilter] = useState<PoolFilter>(initialPool);
   const [minZec, setMinZec] = useState<number>(initialMinZec);
+  const [summary, setSummary] = useState<{ shieldedPct: number | null; avgPerDay: number | null; poolSize: string | null }>({ shieldedPct: null, avgPerDay: null, poolSize: null });
   const [page, setPage] = useState(initialPage);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
     total: 0, totalPages: 0, hasNext: false, hasPrev: false,
@@ -235,6 +236,24 @@ export default function ShieldedTxsClient({
     fetchFlows(null, null, undefined, flowFilter, poolFilter, minZec);
   }, [flowFilter, poolFilter, minZec]);
 
+  useEffect(() => {
+    const base = usePostgresApiClient() ? getApiUrl() : '';
+    fetch(`${base}/api/privacy-stats`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        const pct = data.metrics?.shieldedPercentage != null ? Number(data.metrics.shieldedPercentage) : null;
+        const avg = data.metrics?.avgShieldedPerDay != null ? Math.round(Number(data.metrics.avgShieldedPerDay)) : null;
+        const pool = data.pools?.totalShielded != null
+          ? Number(data.pools.totalShielded) >= 1_000_000
+            ? `${(Number(data.pools.totalShielded) / 1_000_000).toFixed(2)}M ZEC`
+            : `${Math.round(Number(data.pools.totalShielded)).toLocaleString()} ZEC`
+          : null;
+        setSummary({ shieldedPct: pct, avgPerDay: avg, poolSize: pool });
+      })
+      .catch(() => {});
+  }, []);
+
   const buildArchiveHref = (
     cursor: number | null,
     cursorId: number | null,
@@ -299,6 +318,26 @@ export default function ShieldedTxsClient({
           </span>
         }
       />
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <MetricCard size="compact"
+          label="Shielded Txs"
+          value={pagination.total > 0 ? pagination.total.toLocaleString() : '—'}
+        />
+        <MetricCard size="compact"
+          label="% Shielded"
+          value={summary.shieldedPct != null ? `${summary.shieldedPct.toFixed(1)}%` : '—'}
+        />
+        <MetricCard size="compact"
+          label="Avg Shielded / Day"
+          value={summary.avgPerDay != null ? summary.avgPerDay.toLocaleString() : '—'}
+        />
+        <MetricCard size="compact"
+          label="Shielded Pool"
+          value={summary.poolSize ?? '—'}
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">

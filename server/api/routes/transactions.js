@@ -268,12 +268,15 @@ router.get('/api/shielded/list', async (req, res) => {
       });
     }
 
-    // Standard shield/deshield flows from shielded_flows table
+    // "All" merges shielded_flows + fully-shielded txs via UNION
+    // "shield"/"deshield" only query shielded_flows
+    const isAllView = flowType === 'all';
+
     const conditions = [];
     const params = [];
     let paramIdx = 1;
 
-    if (flowType !== 'all') {
+    if (!isAllView) {
       conditions.push(`sf.flow_type = $${paramIdx++}`);
       params.push(flowType);
     }
@@ -290,8 +293,16 @@ router.get('/api/shielded/list', async (req, res) => {
 
     const canonicalFlowJoin = `FROM shielded_flows sf
       JOIN transactions t ON t.txid = sf.txid AND t.block_height = sf.block_height`;
+
+    // For "All" with no pool/amount filters, use fast estimate
     let total;
-    if (conditions.length === 0) {
+    if (isAllView && conditions.length === 0) {
+      const [flowCount, fsCount] = await Promise.all([
+        pool.query(`SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'shielded_flows'`),
+        pool.query(`SELECT COUNT(*) as count FROM transactions t WHERE t.vin_count = 0 AND t.vout_count = 0 AND t.is_coinbase = false AND (t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)`),
+      ]);
+      total = (parseInt(flowCount.rows[0]?.count) || 0) + (parseInt(fsCount.rows[0]?.count) || 0);
+    } else if (conditions.length === 0) {
       const countResult = await pool.query(
         `SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'shielded_flows'`
       );
@@ -305,36 +316,74 @@ router.get('/api/shielded/list', async (req, res) => {
     }
 
     let result;
-    const selectCols = `sf.id, sf.txid, sf.block_height, sf.block_time,
-      sf.flow_type, sf.amount_zat, sf.pool, sf.transparent_addresses`;
 
-    if (cursor === null) {
-      result = await pool.query(
-        `SELECT ${selectCols} ${canonicalFlowJoin}
-         ${whereBase ? whereBase + ' AND' : 'WHERE'} true
-         ORDER BY sf.block_time DESC, sf.id DESC
-         LIMIT $${paramIdx}`,
-        [...params, limit]
-      );
-    } else if (direction === 'prev') {
-      const cursorCond = `(sf.block_time > $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id > $${paramIdx + 1}))`;
-      result = await pool.query(
-        `SELECT ${selectCols} ${canonicalFlowJoin}
-         ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
-         ORDER BY sf.block_time ASC, sf.id ASC
-         LIMIT $${paramIdx + 2}`,
-        [...params, cursor, cursorId || 0, limit]
-      );
-      result.rows.reverse();
+    if (isAllView && poolFilter === 'all' && minZec === 0) {
+      // UNION: shielded_flows + fully shielded txs, ordered by time
+      const unionQuery = `
+        (SELECT sf.id, sf.txid, sf.block_height, sf.block_time,
+          sf.flow_type, sf.amount_zat, sf.pool, sf.transparent_addresses
+         FROM shielded_flows sf
+         JOIN transactions t ON t.txid = sf.txid AND t.block_height = sf.block_height)
+        UNION ALL
+        (SELECT 0 as id, t.txid, t.block_height, t.block_time,
+          'fully_shielded' as flow_type, NULL as amount_zat,
+          CASE WHEN t.has_ironwood THEN 'ironwood' WHEN t.has_orchard THEN 'orchard' ELSE 'sapling' END as pool,
+          ARRAY[]::text[] as transparent_addresses
+         FROM transactions t
+         WHERE t.vin_count = 0 AND t.vout_count = 0 AND t.is_coinbase = false
+           AND (t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true))
+      `;
+
+      if (cursor === null) {
+        result = await pool.query(
+          `SELECT * FROM (${unionQuery}) u ORDER BY u.block_time DESC, u.id DESC LIMIT $1`,
+          [limit]
+        );
+      } else if (direction === 'prev') {
+        result = await pool.query(
+          `SELECT * FROM (${unionQuery}) u WHERE u.block_time > $1 OR (u.block_time = $1 AND u.id > $2) ORDER BY u.block_time ASC, u.id ASC LIMIT $3`,
+          [cursor, cursorId || 0, limit]
+        );
+        result.rows.reverse();
+      } else {
+        result = await pool.query(
+          `SELECT * FROM (${unionQuery}) u WHERE u.block_time < $1 OR (u.block_time = $1 AND u.id < $2) ORDER BY u.block_time DESC, u.id DESC LIMIT $3`,
+          [cursor, cursorId || 0, limit]
+        );
+      }
     } else {
-      const cursorCond = `(sf.block_time < $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id < $${paramIdx + 1}))`;
-      result = await pool.query(
-        `SELECT ${selectCols} ${canonicalFlowJoin}
-         ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
-         ORDER BY sf.block_time DESC, sf.id DESC
-         LIMIT $${paramIdx + 2}`,
-        [...params, cursor, cursorId || 0, limit]
-      );
+      // Standard flows-only query (shield/deshield filter, or pool/amount filters)
+      const selectCols = `sf.id, sf.txid, sf.block_height, sf.block_time,
+        sf.flow_type, sf.amount_zat, sf.pool, sf.transparent_addresses`;
+
+      if (cursor === null) {
+        result = await pool.query(
+          `SELECT ${selectCols} ${canonicalFlowJoin}
+           ${whereBase ? whereBase + ' AND' : 'WHERE'} true
+           ORDER BY sf.block_time DESC, sf.id DESC
+           LIMIT $${paramIdx}`,
+          [...params, limit]
+        );
+      } else if (direction === 'prev') {
+        const cursorCond = `(sf.block_time > $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id > $${paramIdx + 1}))`;
+        result = await pool.query(
+          `SELECT ${selectCols} ${canonicalFlowJoin}
+           ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
+           ORDER BY sf.block_time ASC, sf.id ASC
+           LIMIT $${paramIdx + 2}`,
+          [...params, cursor, cursorId || 0, limit]
+        );
+        result.rows.reverse();
+      } else {
+        const cursorCond = `(sf.block_time < $${paramIdx} OR (sf.block_time = $${paramIdx} AND sf.id < $${paramIdx + 1}))`;
+        result = await pool.query(
+          `SELECT ${selectCols} ${canonicalFlowJoin}
+           ${whereBase ? whereBase + ' AND' : 'WHERE'} ${cursorCond}
+           ORDER BY sf.block_time DESC, sf.id DESC
+           LIMIT $${paramIdx + 2}`,
+          [...params, cursor, cursorId || 0, limit]
+        );
+      }
     }
 
     const rows = result.rows;
@@ -350,7 +399,7 @@ router.get('/api/shielded/list', async (req, res) => {
         blockHeight: parseInt(r.block_height),
         blockTime: parseInt(r.block_time),
         flowType: r.flow_type,
-        amountZec: parseInt(r.amount_zat) / 1e8,
+        amountZec: r.amount_zat != null ? parseInt(r.amount_zat) / 1e8 : null,
         pool: r.pool,
         addresses: r.transparent_addresses || [],
       })),
