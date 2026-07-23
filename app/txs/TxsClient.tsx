@@ -120,15 +120,40 @@ const txColumns: DataTableColumn<Transaction>[] = [
   },
 ];
 
+type TrendPeriod = '7' | '30' | '365' | 'all';
+
 function formatDateShort(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function TrendsChart({ data }: { data: TrendDay[] }) {
+const PERIOD_OPTIONS: { id: TrendPeriod; label: string }[] = [
+  { id: '7', label: '7D' },
+  { id: '30', label: '30D' },
+  { id: '365', label: '1Y' },
+  { id: 'all', label: 'All' },
+];
+
+function TrendsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const [period, setPeriod] = useState<TrendPeriod>('30');
+  const [data, setData] = useState<TrendDay[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const base = usePostgresApiClient() ? getApiUrl() : '';
+    const days = period === 'all' ? 1000 : Number(period);
+    fetch(`${base}/api/privacy-stats?days=${days}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(json => {
+        if (json?.trends?.daily) setData(json.trends.daily);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [period]);
 
   const chartData = useMemo(
     () => [...data].reverse().map(d => ({
@@ -141,18 +166,35 @@ function TrendsChart({ data }: { data: TrendDay[] }) {
   );
 
   const derived = useMemo(() => {
+    if (data.length === 0) return { totalTxs: 0, avgDaily: 0, peakDay: null };
     const totalTxs = data.reduce((s, d) => s + d.shielded + d.transparent, 0);
-    const avgDaily = data.length > 0 ? Math.round(totalTxs / data.length) : 0;
+    const avgDaily = Math.round(totalTxs / data.length);
     const peakDay = data.reduce((best, d) => (d.shielded + d.transparent) > (best.shielded + best.transparent) ? d : best, data[0]);
     return { totalTxs, avgDaily, peakDay };
   }, [data]);
+
+  const periodLabel = period === 'all' ? 'All Time' : period === '365' ? '1 Year' : `${period} Days`;
 
   return (
     <div>
       <div className="card p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-mono text-muted uppercase tracking-wider">Daily Transaction Volume (30d)</h3>
+          <h3 className="text-sm font-mono text-muted uppercase tracking-wider">Daily Transaction Volume</h3>
+          <div className="filter-group inline-flex">
+            {PERIOD_OPTIONS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`filter-btn ${period === p.id ? 'filter-btn-active' : ''}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
+        {loading ? (
+          <div className="h-[320px] flex items-center justify-center text-muted text-sm">Loading...</div>
+        ) : (
         <div className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -198,8 +240,8 @@ function TrendsChart({ data }: { data: TrendDay[] }) {
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
-                onClick={(data) => {
-                  const key = (data as { dataKey?: string }).dataKey;
+                onClick={(entry) => {
+                  const key = (entry as { dataKey?: string }).dataKey;
                   if (key) setHidden(prev => ({ ...prev, [key]: !prev[key] }));
                 }}
                 formatter={(value: string) => {
@@ -241,23 +283,22 @@ function TrendsChart({ data }: { data: TrendDay[] }) {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       {/* Derived stats below chart */}
       <div className="grid grid-cols-3 gap-3 mt-4">
-        <MetricCard
-          label="Total (30d)"
+        <MetricCard size="compact"
+          label={`Total (${periodLabel})`}
           value={derived.totalTxs.toLocaleString()}
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Avg Daily"
           value={derived.avgDaily.toLocaleString()}
-          accent="cyan"
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Peak Day"
           value={derived.peakDay ? `${formatDateShort(derived.peakDay.date)} — ${(derived.peakDay.shielded + derived.peakDay.transparent).toLocaleString()}` : '—'}
-          accent="purple"
         />
       </div>
     </div>
@@ -295,7 +336,6 @@ export default function TxsClient({
   const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
   const [viewTab, setViewTab] = useState<ViewTab>('recent');
   const [summary, setSummary] = useState<{ txs24h: number | null; shieldedPct24h: number | null; txsPerBlock: number | null }>({ txs24h: null, shieldedPct24h: null, txsPerBlock: null });
-  const [trends, setTrends] = useState<TrendDay[]>([]);
   const [page, setPage] = useState(initialPage);
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
     total: 0, totalPages: 0, hasNext: false, hasPrev: false,
@@ -384,16 +424,14 @@ export default function TxsClient({
         txsPerBlock = txs24h && blocks24h ? Math.round((txs24h / blocks24h) * 10) / 10 : null;
       }
       let shieldedPct24h: number | null = null;
-      let dailyTrends: TrendDay[] = [];
       if (privacyRes.status === 'fulfilled' && privacyRes.value.ok) {
         const data = await privacyRes.value.json();
-        dailyTrends = data.trends?.daily || [];
+        const dailyTrends = data.trends?.daily || [];
         if (dailyTrends.length > 0) {
           shieldedPct24h = dailyTrends[0].shieldedPercentage;
         }
       }
       setSummary({ txs24h, shieldedPct24h, txsPerBlock });
-      setTrends(dailyTrends);
     });
   }, []);
 
@@ -449,21 +487,19 @@ export default function TxsClient({
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <MetricCard
+        <MetricCard size="compact"
           label="Total Transactions"
           value={pagination.total > 0 ? pagination.total.toLocaleString() : '—'}
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Transactions (24h)"
           value={summary.txs24h != null ? summary.txs24h.toLocaleString() : '—'}
-          accent="cyan"
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="% Shielded (24h)"
           value={summary.shieldedPct24h != null ? `${summary.shieldedPct24h.toFixed(1)}%` : '—'}
-          accent="purple"
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Txs Per Block"
           value={summary.txsPerBlock != null ? summary.txsPerBlock.toLocaleString() : '—'}
         />
@@ -511,11 +547,7 @@ export default function TxsClient({
         </>
       )}
 
-      {viewTab === 'trends' && (
-        trends.length > 0
-          ? <TrendsChart data={trends} />
-          : <div className="card p-12 text-center text-muted text-sm">Loading trend data...</div>
-      )}
+      {viewTab === 'trends' && <TrendsChart />}
     </div>
   );
 }

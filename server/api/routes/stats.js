@@ -63,7 +63,8 @@ router.get('/api/privacy-stats', async (req, res) => {
 
     const stats = statsResult.rows[0];
 
-    // Get daily trends (last 30 days for better charts)
+    // Get daily trends (configurable period for charts)
+    const trendDays = Math.min(Math.max(parseInt(req.query.days) || 30, 7), 1000);
     const trendsResult = await pool.query(`
       SELECT
         date,
@@ -74,8 +75,8 @@ router.get('/api/privacy-stats', async (req, res) => {
         privacy_score
       FROM privacy_trends_daily
       ORDER BY date DESC
-      LIMIT 30
-    `);
+      LIMIT $1
+    `, [trendDays]);
 
     // Use the most recent daily privacy score instead of the old global one
     const latestDailyScore = trendsResult.rows.length > 0 ? parseInt(trendsResult.rows[0].privacy_score) || 0 : parseInt(stats.privacy_score);

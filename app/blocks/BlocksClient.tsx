@@ -313,21 +313,19 @@ export default function BlocksClient({
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <MetricCard
+        <MetricCard size="compact"
           label="Block Height"
           value={summary.height != null ? summary.height.toLocaleString() : '—'}
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Blocks (24h)"
           value={summary.blocks24h != null ? summary.blocks24h.toLocaleString() : '—'}
-          accent="cyan"
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Avg Block Time"
           value={summary.avgBlockTime != null ? `${summary.avgBlockTime}s` : '—'}
-          accent="green"
         />
-        <MetricCard
+        <MetricCard size="compact"
           label="Txs Per Block"
           value={summary.txsPerBlock != null ? summary.txsPerBlock.toLocaleString() : '—'}
         />

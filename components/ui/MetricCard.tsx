@@ -15,6 +15,7 @@ export function MetricCard({
   hint,
   sparkline,
   accent = 'default',
+  size = 'default',
   className = '',
 }: {
   /** Mono uppercase label, e.g. "HASHRATE" */
@@ -29,6 +30,8 @@ export function MetricCard({
   sparkline?: ReactNode;
   /** Value color accent */
   accent?: 'default' | 'cyan' | 'green' | 'purple' | 'yellow' | 'orange';
+  /** Compact uses smaller text for list page summaries */
+  size?: 'default' | 'compact';
   className?: string;
 }) {
   const valueColor = {
@@ -40,6 +43,8 @@ export function MetricCard({
     orange: 'text-cipher-orange',
   }[accent];
 
+  const valueSize = size === 'compact' ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl';
+
   return (
     <div className={`card card-compact card-static ${className}`}>
       <div className="flex items-center gap-1.5 mb-2">
@@ -47,7 +52,7 @@ export function MetricCard({
         <span className="text-[10px] font-mono text-muted uppercase tracking-widest">{label}</span>
       </div>
       <div className="flex items-baseline gap-2 flex-wrap min-w-0">
-        <span className={`text-xl sm:text-2xl font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
+        <span className={`${valueSize} font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
           {value}
         </span>
         {typeof delta === 'number' && Number.isFinite(delta) && (
