@@ -66,7 +66,7 @@ function getTxBadge(tx: Transaction) {
 
 function getFlowBadge(tx: Transaction) {
   if (tx.is_coinbase) return null;
-  const type = resolveShieldFlowType({ flowType: tx.flow_type });
+  const type = resolveShieldFlowType({ flowType: tx.flow_type, vinCount: tx.vin_count, voutCount: tx.vout_count });
   if (type === 'mixed' && !tx.flow_type) return null;
   return <ShieldFlowBadge type={type} variant="compact" />;
 }
@@ -123,7 +123,8 @@ const txColumns: DataTableColumn<Transaction>[] = [
 type TrendPeriod = '7' | '30' | '365' | 'all';
 
 function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
+  const raw = String(dateStr).split('T')[0];
+  const d = new Date(raw + 'T00:00:00');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
