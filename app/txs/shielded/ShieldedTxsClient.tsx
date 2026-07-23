@@ -85,7 +85,7 @@ const flowColumns: DataTableColumn<ShieldedFlow>[] = [
       <span className="font-mono text-xs text-primary">
         {flow.amountZec != null
           ? `${flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC`
-          : <span className="text-muted">{flow.actions || '—'} actions</span>
+          : <span className="text-muted italic">Private</span>
         }
       </span>
     ),
