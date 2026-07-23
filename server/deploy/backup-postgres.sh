@@ -8,7 +8,9 @@ readonly STORAGEBOX_PATH="${STORAGEBOX_PATH:-/home/backups}"
 readonly RETENTION_DAYS="${RETENTION_DAYS:-7}"
 readonly STATE_DIR="${STATE_DIR:-/var/lib/cipherscan-backup}"
 readonly MOUNT_DIR="${MOUNT_DIR:-/mnt/cipherscan-storagebox-backups}"
-readonly DATE="$(date -u +%Y-%m-%d_%H%M%S)"
+declare DATE
+DATE="$(date -u +%Y-%m-%d_%H%M%S)"
+readonly DATE
 readonly NAME="${DATABASE}_${DATE}.dump"
 readonly PARTIAL="${MOUNT_DIR}/.${NAME}.partial"
 readonly FINAL="${MOUNT_DIR}/${NAME}"
@@ -55,6 +57,7 @@ fi
 # The output path is an SSHFS mount, so the custom archive is written directly
 # to the Storage Box and never occupies the server's root disk.
 rm -f "$PARTIAL"
+# shellcheck disable=SC2024 -- redirect intentional: SSHFS mount is root-owned
 sudo -u postgres pg_dump --format=custom --compress=6 "$DATABASE" >"$PARTIAL"
 sync -f "$PARTIAL"
 

@@ -181,5 +181,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Run shellcheck
         run: |
-          find . -name '*.sh' -not -path './node_modules/*' \
+          find . -name '*.sh' -not -path './node_modules/*' -not -path './.netlify/*' \
             -print0 | xargs -0 -r shellcheck --severity=warning
