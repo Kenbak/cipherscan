@@ -106,6 +106,8 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
   const {
     fetchWithDeadline,
     isServerRenderDeadlineError,
+    getServerRenderFetchTimeoutMs,
+    SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS,
     SERVER_RENDER_FETCH_TIMEOUT_MS,
   } = loadTypeScriptModule('lib/server-fetch.ts');
   assert.ok(
@@ -135,6 +137,24 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
     performance.now() - started < 250,
     'a hung origin must not consume a multi-second page budget',
   );
+
+  const originalPhase = process.env.NEXT_PHASE;
+  try {
+    delete process.env.NEXT_PHASE;
+    assert.equal(getServerRenderFetchTimeoutMs(), SERVER_RENDER_FETCH_TIMEOUT_MS);
+
+    process.env.NEXT_PHASE = 'phase-production-build';
+    assert.equal(
+      getServerRenderFetchTimeoutMs(),
+      SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS,
+    );
+
+    process.env.NEXT_PHASE = 'phase-production-server';
+    assert.equal(getServerRenderFetchTimeoutMs(), SERVER_RENDER_FETCH_TIMEOUT_MS);
+  } finally {
+    if (originalPhase === undefined) delete process.env.NEXT_PHASE;
+    else process.env.NEXT_PHASE = originalPhase;
+  }
 });
 
 test('all archive SSR fetches are cached and deadline-bound', async () => {

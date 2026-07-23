@@ -68,6 +68,14 @@ unhealthy. Empty `generateStaticParams()` means detail APIs are not exercised
 during the build, so the predeployment API health and representative detail
 checks remain mandatory.
 
+The normal server-render fetch deadline is one second. During Next's production
+build phase it is ten seconds so a healthy cross-service API can seed the first
+valid ISR entry despite build-runner network latency. This does not enable the
+empty build fallback: HTTP errors, malformed payloads, network failures, and a
+ten-second timeout still fail the build. Runtime requests and ISR regenerations
+continue to use the one-second deadline so a slow origin cannot consume the
+page-response budget.
+
 ## Cache-state rules
 
 The artifact preserves Netlify edge and durable states independently from

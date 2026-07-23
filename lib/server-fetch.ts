@@ -1,4 +1,17 @@
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+
 export const SERVER_RENDER_FETCH_TIMEOUT_MS = 1_000;
+export const SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Builds need enough time to create the first valid ISR entry from a healthy
+ * cross-service API. Runtime requests keep the tighter tail-latency guard.
+ */
+export function getServerRenderFetchTimeoutMs(): number {
+  return process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
+    ? SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS
+    : SERVER_RENDER_FETCH_TIMEOUT_MS;
+}
 
 export type NextFetchRequestInit = RequestInit & {
   next?: {
@@ -25,7 +38,7 @@ export function isServerRenderDeadlineError(error: unknown): boolean {
 export async function fetchWithDeadline(
   input: RequestInfo | URL,
   init: NextFetchRequestInit = {},
-  timeoutMs = SERVER_RENDER_FETCH_TIMEOUT_MS,
+  timeoutMs = getServerRenderFetchTimeoutMs(),
   fetchImpl: FetchImplementation = fetch,
 ): Promise<Response> {
   const controller = new AbortController();
