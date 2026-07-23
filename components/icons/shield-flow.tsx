@@ -102,6 +102,7 @@ export function resolveShieldFlowType(input: {
 
   if (input.type === 'fully-shielded') return 'shielded';
   if (input.vinCount != null && input.voutCount != null) {
+    if (input.vinCount === 0 && input.voutCount === 0) return 'shielded';
     if (input.vinCount > 0 && input.voutCount === 0) return 'shielding';
     if (input.vinCount === 0 && input.voutCount > 0) return 'unshielding';
   }
