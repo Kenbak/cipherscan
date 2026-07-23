@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { PageHeader, DataTable, type DataTableColumn } from '@/components/ui';
+import { PageHeader, MetricCard, DataTable, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
@@ -199,6 +199,7 @@ export default function BlocksClient({
   const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
     page: 1, totalPages: 0, total: 0, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null,
   });
+  const [summary, setSummary] = useState<{ height: number | null; blocks24h: number | null; avgBlockTime: number | null; txsPerBlock: number | null }>({ height: null, blocks24h: null, avgBlockTime: null, txsPerBlock: null });
 
   const fetchBlocks = useCallback(async (
     cursor?: number | null,
@@ -260,6 +261,24 @@ export default function BlocksClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const base = usePostgresApiClient() ? getApiUrl() : '';
+    fetch(`${base}/api/network/stats`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        const blocks24h = data.mining?.blocks24h ?? null;
+        const tx24h = data.blockchain?.tx24h ?? null;
+        setSummary({
+          height: data.network?.height ?? data.blockchain?.height ?? null,
+          blocks24h,
+          avgBlockTime: data.mining?.avgBlockTime ?? null,
+          txsPerBlock: blocks24h && tx24h ? Math.round((tx24h / blocks24h) * 10) / 10 : null,
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   const buildArchiveHref = (cursor: number | null, direction: 'next' | 'prev', page: number) => {
     if (page <= 1 || cursor === null) return '/blocks';
     const params = new URLSearchParams({
@@ -291,6 +310,28 @@ export default function BlocksClient({
           </span>
         }
       />
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <MetricCard
+          label="Block Height"
+          value={summary.height != null ? summary.height.toLocaleString() : '—'}
+        />
+        <MetricCard
+          label="Blocks (24h)"
+          value={summary.blocks24h != null ? summary.blocks24h.toLocaleString() : '—'}
+          accent="cyan"
+        />
+        <MetricCard
+          label="Avg Block Time"
+          value={summary.avgBlockTime != null ? `${summary.avgBlockTime}s` : '—'}
+          accent="green"
+        />
+        <MetricCard
+          label="Txs Per Block"
+          value={summary.txsPerBlock != null ? summary.txsPerBlock.toLocaleString() : '—'}
+        />
+      </div>
 
       {/* Table */}
       <DataTable

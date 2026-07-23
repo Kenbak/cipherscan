@@ -156,11 +156,119 @@ router.get('/api/shielded/list', async (req, res) => {
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
     const cursorId = req.query.cursor_id ? parseInt(req.query.cursor_id) : null;
     const direction = req.query.direction || 'next';
-    const flowType = req.query.flow_type || 'all'; // all, shield, deshield
-    const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, mixed
+    const flowType = req.query.flow_type || 'all'; // all, shield, deshield, fully_shielded
+    const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, ironwood, mixed
     const minZec = parseFloat(req.query.min_zec) || 0;
 
-    // Build filters
+    // Fully shielded txs live in `transactions`, not `shielded_flows`
+    if (flowType === 'fully_shielded') {
+      const conditions = [
+        't.vin_count = 0',
+        't.vout_count = 0',
+        't.is_coinbase = false',
+        '(t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)',
+      ];
+      const params = [];
+      let paramIdx = 1;
+
+      if (poolFilter === 'orchard') conditions.push('t.has_orchard = true');
+      else if (poolFilter === 'sapling') conditions.push('t.has_sapling = true');
+      else if (poolFilter === 'ironwood') conditions.push('t.has_ironwood = true');
+
+      if (minZec > 0) {
+        conditions.push(`t.fee >= $${paramIdx++}`);
+        params.push(Math.round(minZec * 1e8));
+      }
+
+      const whereBase = 'WHERE ' + conditions.join(' AND ');
+
+      // Estimate count from pg_class for unfiltered, exact count for filtered
+      let total;
+      if (poolFilter === 'all' && minZec === 0) {
+        const countResult = await pool.query(
+          `SELECT COUNT(*) as count FROM transactions t ${whereBase}`,
+          params
+        );
+        total = parseInt(countResult.rows[0]?.count) || 0;
+      } else {
+        const countResult = await pool.query(
+          `SELECT COUNT(*) as count FROM transactions t ${whereBase}`,
+          params
+        );
+        total = parseInt(countResult.rows[0]?.count) || 0;
+      }
+
+      let result;
+      const selectCols = `t.txid, t.block_height, t.block_time, t.has_sapling, t.has_orchard, t.has_ironwood,
+        t.orchard_actions, t.ironwood_actions, t.shielded_spends, t.shielded_outputs, t.fee`;
+
+      if (cursor === null) {
+        result = await pool.query(
+          `SELECT ${selectCols} FROM transactions t ${whereBase}
+           ORDER BY t.block_time DESC, t.txid DESC
+           LIMIT $${paramIdx}`,
+          [...params, limit]
+        );
+      } else if (direction === 'prev') {
+        const cursorCond = `(t.block_time > $${paramIdx} OR (t.block_time = $${paramIdx} AND t.txid > $${paramIdx + 1}))`;
+        result = await pool.query(
+          `SELECT ${selectCols} FROM transactions t ${whereBase} AND ${cursorCond}
+           ORDER BY t.block_time ASC, t.txid ASC
+           LIMIT $${paramIdx + 2}`,
+          [...params, cursor, cursorId || '', limit]
+        );
+        result.rows.reverse();
+      } else {
+        const cursorCond = `(t.block_time < $${paramIdx} OR (t.block_time = $${paramIdx} AND t.txid < $${paramIdx + 1}))`;
+        result = await pool.query(
+          `SELECT ${selectCols} FROM transactions t ${whereBase} AND ${cursorCond}
+           ORDER BY t.block_time DESC, t.txid DESC
+           LIMIT $${paramIdx + 2}`,
+          [...params, cursor, cursorId || '', limit]
+        );
+      }
+
+      const rows = result.rows;
+      const totalPages = Math.ceil(total / limit);
+      const first = rows[0];
+      const last = rows[rows.length - 1];
+
+      // Determine pool for each tx
+      const resolvePool = (r) => {
+        if (r.has_ironwood) return 'ironwood';
+        if (r.has_orchard) return 'orchard';
+        if (r.has_sapling) return 'sapling';
+        return 'unknown';
+      };
+
+      return res.json({
+        success: true,
+        flows: rows.map((r, i) => ({
+          id: i,
+          txid: r.txid,
+          blockHeight: parseInt(r.block_height),
+          blockTime: parseInt(r.block_time),
+          flowType: 'fully_shielded',
+          amountZec: null,
+          pool: resolvePool(r),
+          actions: parseInt(r.orchard_actions || 0) + parseInt(r.ironwood_actions || 0) + parseInt(r.shielded_spends || 0) + parseInt(r.shielded_outputs || 0),
+          addresses: [],
+        })),
+        pagination: {
+          total,
+          totalPages,
+          limit,
+          hasNext: rows.length === limit,
+          hasPrev: cursor !== null,
+          nextCursor: last ? parseInt(last.block_time) : null,
+          nextCursorId: last ? last.txid : null,
+          prevCursor: first ? parseInt(first.block_time) : null,
+          prevCursorId: first ? first.txid : null,
+        },
+      });
+    }
+
+    // Standard shield/deshield flows from shielded_flows table
     const conditions = [];
     const params = [];
     let paramIdx = 1;

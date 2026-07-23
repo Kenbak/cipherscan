@@ -8,7 +8,7 @@ import ShieldedTxsClient from './ShieldedTxsClient';
 const API_URL = API_CONFIG.POSTGRES_API_URL;
 const PAGE_SIZE = 25;
 
-type FlowFilter = 'all' | 'shield' | 'deshield';
+type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 type SearchParams = Record<string, string | string[] | undefined>;
 type UnavailablePolicy = 'shell' | 'throw';
@@ -56,7 +56,7 @@ function parsePositiveInteger(value: string | undefined): number | null {
 }
 
 function parseFlow(value: string | undefined): FlowFilter {
-  return value === 'shield' || value === 'deshield' ? value : 'all';
+  return value === 'shield' || value === 'deshield' || value === 'fully_shielded' ? value : 'all';
 }
 
 function parsePool(value: string | undefined): PoolFilter {

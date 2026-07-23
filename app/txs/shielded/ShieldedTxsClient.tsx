@@ -9,7 +9,7 @@ import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge'
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge, PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 
-type FlowFilter = 'all' | 'shield' | 'deshield';
+type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 
 interface ShieldedFlow {
@@ -18,7 +18,8 @@ interface ShieldedFlow {
   blockHeight: number;
   blockTime: number;
   flowType: string;
-  amountZec: number;
+  amountZec: number | null;
+  actions?: number;
   pool: string;
   addresses: string[];
 }
@@ -82,7 +83,10 @@ const flowColumns: DataTableColumn<ShieldedFlow>[] = [
     align: 'right',
     cell: (flow) => (
       <span className="font-mono text-xs text-primary">
-        {flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC
+        {flow.amountZec != null
+          ? `${flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ZEC`
+          : <span className="text-muted">{flow.actions || '—'} actions</span>
+        }
       </span>
     ),
   },
@@ -261,6 +265,7 @@ export default function ShieldedTxsClient({
     { id: 'all', label: 'All' },
     { id: 'shield', label: 'Shielding' },
     { id: 'deshield', label: 'Unshielding' },
+    { id: 'fully_shielded', label: 'Fully Shielded' },
   ];
 
   const poolFilters: { id: PoolFilter; label: string }[] = [
