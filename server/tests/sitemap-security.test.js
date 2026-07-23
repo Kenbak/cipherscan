@@ -350,15 +350,25 @@ test('block summary feed avoids transaction detail fan-out', async () => {
 
 test('block metadata uses resolved canonical identity through the shared builder', async () => {
   let resolution;
+  let fetchTip = async () => new Response(JSON.stringify({ height: 1_000 }), {
+    headers: { 'content-type': 'application/json' },
+  });
   const metadataCalls = [];
   const blockHash = 'd'.repeat(64);
   const layoutModule = loadTypeScriptModule('app/block/[height]/layout.tsx', {
+    '@/lib/isr-fallback': {
+      retainLastGoodOrBuildFallback: (fallback) => fallback,
+    },
+    '@/lib/server-fetch': {
+      fetchWithDeadline: (...args) => fetchTip(...args),
+    },
     '@/lib/seo': {
       buildPageMetadata: (options) => {
         metadataCalls.push(options);
         return options;
       },
       formatNumber: (value) => Number(value).toLocaleString('en-US'),
+      getApiUrl: () => 'https://api.invalid',
       getBlockResolution: async () => resolution,
       truncateHash: (value) => value,
     },
@@ -402,6 +412,12 @@ test('block metadata uses resolved canonical identity through the shared builder
   assert.equal(metadataCalls.at(-1).index, false);
   assert.equal(metadataCalls.at(-1).canonical, false);
   assert.equal(metadataCalls.at(-1).imageAlt, metadataCalls.at(-1).title);
+
+  fetchTip = async () => new Response(null, { status: 503 });
+  await assert.rejects(
+    layoutModule.generateMetadata({ params: Promise.resolve({ height: '1001' }) }),
+    /Chain tip returned HTTP 503/,
+  );
 
   resolution = { state: 'unavailable' };
   await layoutModule.generateMetadata({ params: Promise.resolve({ height: '1000' }) });
@@ -534,10 +550,26 @@ test('legacy migration and swap routes permanently consolidate authority', async
     && redirect.destination === 'https://cipherswap.app/'
     && redirect.permanent === true
   )));
-  assert.deepEqual(rewrites, [{
+  assert.deepEqual(rewrites.afterFiles, [{
     source: '/sitemap-:slug.xml',
     destination: '/sitemaps/:slug',
   }]);
+  assert.deepEqual(rewrites.fallback, []);
+
+  const latestRoutes = [
+    ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page']],
+    ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'direction', 'page', 'type']],
+    [
+      '/txs/shielded',
+      '/txs/shielded/latest',
+      ['cursor', 'cursor_id', 'direction', 'page', 'flow_type', 'pool', 'min_zec'],
+    ],
+  ];
+  for (const [source, destination, queryKeys] of latestRoutes) {
+    const rewrite = rewrites.beforeFiles.find((candidate) => candidate.source === source);
+    assert.equal(rewrite.destination, destination);
+    assert.deepEqual(rewrite.missing, queryKeys.map((key) => ({ type: 'query', key })));
+  }
 });
 
 test('root sitemap is a mainnet index, a testnet homepage set, and an empty Crosslink set', async () => {
@@ -672,6 +704,9 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     'react/jsx-runtime': jsxRuntime,
     [componentSpecifier]: { __esModule: true, default: () => null },
     '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.mainnet.cipherscan.app' } },
+    '@/lib/isr-fallback': {
+      retainLastGoodOrBuildFallback: (fallback) => fallback,
+    },
     '@/lib/seo': {
       buildPageMetadata: (options) => options,
       getBaseUrl: () => 'https://cipherscan.app',
@@ -760,6 +795,10 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   );
   const reorgs = fs.readFileSync(path.join(repositoryRoot, 'app/reorgs/page.tsx'), 'utf8');
   const footer = fs.readFileSync(path.join(repositoryRoot, 'components/Footer.tsx'), 'utf8');
+  const sitemapDefinitions = fs.readFileSync(
+    path.join(repositoryRoot, 'lib/sitemaps.ts'),
+    'utf8',
+  );
   const richListPage = fs.readFileSync(path.join(repositoryRoot, 'app/rich-list/page.tsx'), 'utf8');
   const richListClient = fs.readFileSync(
     path.join(repositoryRoot, 'app/rich-list/RichListClient.tsx'),
@@ -771,7 +810,7 @@ test('crawl graph avoids canonical block aliases and known shared redirect targe
   assert.match(footer, /href="https:\/\/www\.cipherpay\.app\/"/);
   assert.equal(footer.includes('https://www.cipherpay.app/en'), false);
   assert.match(footer, /href="\/charts"/);
-  assert.match(footer, /href="\/usage-clock"/);
+  assert.match(sitemapDefinitions, /['"]\/usage-clock['"]/);
   assert.match(richListPage, /next: \{ revalidate: 60 \}/);
   assert.match(richListClient, /initialAddresses/);
   assert.match(richListClient, /href=\{`\/address\/\$\{entry\.address\}`\}/);

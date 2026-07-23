@@ -48,8 +48,20 @@ jobs:
         run: npx tsc --noEmit
       - name: SEO route tests
         run: npm run test:sitemap-security
+      - name: Slow-page performance tests
+        run: npm run test:performance
+      - name: TTFB probe tests
+        run: npm run test:ttfb-probe
+      - name: ISR warm-up safety tests
+        run: npm run test:isr-warmup
       - name: Build
+        env:
+          # GitHub CI is deliberately offline. Production builds must leave
+          # this unset so an unhealthy upstream cannot publish empty ISR HTML.
+          CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK: "1"
         run: npm run build
+      - name: Verify Next ISR classification
+        run: npm run test:route-cache-build
 
   # ---------------------------------------------------------------------------
   # Express API backend: install + syntax check (no lockfile committed yet)

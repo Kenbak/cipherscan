@@ -3,11 +3,18 @@ import { notFound } from 'next/navigation';
 import { buildPageMetadata, getAddressResolution, formatNumber, getBaseUrl } from '@/lib/seo';
 import type { AddressMeta } from '@/lib/seo';
 import { detectAddressType } from '@/lib/zcash';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 
 type Props = {
   params: Promise<{ address: string }>;
   children: React.ReactNode;
 };
+
+export const revalidate = 60;
+
+export function generateStaticParams(): Array<{ address: string }> {
+  return [];
+}
 
 function getAddressTypeLabel(addr: string, type: string): string {
   if (addr.startsWith('u1') || addr.startsWith('utest')) return 'Unified';
@@ -74,12 +81,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (resolution.state === 'absent') notFound();
 
   if (resolution.state === 'unavailable') {
-    return buildPageMetadata({
+    const fallback = buildPageMetadata({
       title: `Zcash Address ${shortAddr} | CipherScan`,
       description: `CipherScan cannot currently verify public activity for Zcash address ${shortAddr} because the address index is temporarily unavailable.`,
       path,
       index: false,
     });
+    return retainLastGoodOrBuildFallback(
+      fallback,
+      new Error(`Address ${shortAddr} metadata is unavailable`),
+      'address detail metadata',
+    );
   }
 
   const meta = resolution.meta;
@@ -120,6 +132,13 @@ export default async function AddressLayout({
 
   const resolution = await getAddressResolution(address);
   if (resolution.state === 'absent') notFound();
+  if (resolution.state === 'unavailable') {
+    retainLastGoodOrBuildFallback(
+      undefined,
+      new Error(`Address ${address} is unavailable`),
+      'address detail',
+    );
+  }
   const meta = resolution.state === 'found' ? resolution.meta : null;
   const path = `/address/${encodeURIComponent(address)}`;
   const canonical = new URL(path, `${getBaseUrl()}/`).toString();

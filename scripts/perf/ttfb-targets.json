@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "name": "cipherscan-mainnet-core-and-archive",
+  "population": "route-balanced-diagnostic",
+  "targets": [
+    {
+      "id": "home",
+      "routeGroup": "/",
+      "path": "/",
+      "core": true
+    },
+    {
+      "id": "rich-list",
+      "routeGroup": "/rich-list",
+      "path": "/rich-list",
+      "core": true
+    },
+    {
+      "id": "blocks-latest",
+      "routeGroup": "/blocks",
+      "path": "/blocks",
+      "core": true
+    },
+    {
+      "id": "blocks-archive",
+      "routeGroup": "/blocks",
+      "path": "/blocks?cursor=3413437&direction=next",
+      "core": false
+    },
+    {
+      "id": "txs-latest",
+      "routeGroup": "/txs",
+      "path": "/txs",
+      "core": true
+    },
+    {
+      "id": "txs-archive",
+      "routeGroup": "/txs",
+      "path": "/txs?cursor=3413649&cursor_idx=2&direction=next",
+      "core": false
+    },
+    {
+      "id": "shielded-latest",
+      "routeGroup": "/txs/shielded",
+      "path": "/txs/shielded",
+      "core": true
+    },
+    {
+      "id": "mempool",
+      "routeGroup": "/mempool",
+      "path": "/mempool",
+      "core": true
+    },
+    {
+      "id": "network",
+      "routeGroup": "/network",
+      "path": "/network",
+      "core": true
+    },
+    {
+      "id": "privacy",
+      "routeGroup": "/privacy",
+      "path": "/privacy",
+      "core": true
+    },
+    {
+      "id": "privacy-risks",
+      "routeGroup": "/privacy-risks",
+      "path": "/privacy-risks",
+      "core": true
+    },
+    {
+      "id": "privacy-wallets",
+      "routeGroup": "/privacy/wallets",
+      "path": "/privacy/wallets",
+      "core": true
+    },
+    {
+      "id": "pools",
+      "routeGroup": "/pools",
+      "path": "/pools",
+      "core": true
+    },
+    {
+      "id": "mining",
+      "routeGroup": "/mining",
+      "path": "/mining",
+      "core": true
+    },
+    {
+      "id": "charts",
+      "routeGroup": "/charts",
+      "path": "/charts",
+      "core": true
+    },
+    {
+      "id": "reorgs",
+      "routeGroup": "/reorgs",
+      "path": "/reorgs",
+      "core": true
+    },
+    {
+      "id": "crosschain",
+      "routeGroup": "/crosschain",
+      "path": "/crosschain",
+      "core": true
+    },
+    {
+      "id": "ironwood",
+      "routeGroup": "/ironwood",
+      "path": "/ironwood",
+      "core": true
+    },
+    {
+      "id": "turnstile",
+      "routeGroup": "/turnstile",
+      "path": "/turnstile",
+      "core": true
+    },
+    {
+      "id": "usage-clock",
+      "routeGroup": "/usage-clock",
+      "path": "/usage-clock",
+      "core": true
+    },
+    {
+      "id": "zodl",
+      "routeGroup": "/zodl",
+      "path": "/zodl",
+      "core": true
+    },
+    {
+      "id": "shielded-archive",
+      "routeGroup": "/txs/shielded",
+      "path": "/txs/shielded?cursor=1784145023&cursor_id=7403498&direction=next",
+      "core": false
+    },
+    {
+      "id": "block-detail",
+      "routeGroup": "/block/[id]",
+      "path": "/block/3401465",
+      "core": true
+    },
+    {
+      "id": "tx-detail",
+      "routeGroup": "/tx/[txid]",
+      "path": "/tx/e253383cd0a672b824197f2417652dd28e70406edb4a8c58da3d1a0500c82b8f",
+      "core": true
+    },
+    {
+      "id": "address-detail",
+      "routeGroup": "/address/[address]",
+      "path": "/address/t1NV4euoqYjnutzS9Lr9VvjBD2LLNuXtXXZ",
+      "core": true
+    }
+  ]
+}

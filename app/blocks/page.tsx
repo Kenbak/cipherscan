@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import BlocksClient from './BlocksClient';
@@ -8,9 +9,11 @@ const API_URL = API_CONFIG.POSTGRES_API_URL;
 const PAGE_SIZE = 25;
 
 type SearchParams = Record<string, string | string[] | undefined>;
+type UnavailablePolicy = 'shell' | 'throw';
 
 interface BlocksPageProps {
   searchParams: Promise<SearchParams>;
+  unavailablePolicy?: UnavailablePolicy;
 }
 
 interface BlocksRequest {
@@ -74,7 +77,15 @@ export async function generateMetadata({ searchParams }: BlocksPageProps): Promi
   });
 }
 
-async function getInitialBlocks(request: BlocksRequest) {
+function unavailableBlocks(policy: UnavailablePolicy, error: unknown) {
+  const fallback = { blocks: [], trailingBlock: null, pagination: null, available: false };
+  return policy === 'throw'
+    ? retainLastGoodOrBuildFallback(fallback, error, 'latest blocks')
+    : fallback;
+}
+
+async function getInitialBlocks(request: BlocksRequest, unavailablePolicy: UnavailablePolicy) {
+  let res: Response;
   try {
     const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
     if (request.cursor !== null) {
@@ -82,19 +93,39 @@ async function getInitialBlocks(request: BlocksRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
+    res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) {
-      return { blocks: [], trailingBlock: null, pagination: null, available: false };
+  } catch (error) {
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial blocks:', error);
     }
+    return unavailableBlocks(unavailablePolicy, error);
+  }
 
-    const json = await res.json();
-    if (!json.success) {
-      return { blocks: [], trailingBlock: null, pagination: null, available: false };
-    }
+  if (!res.ok) {
+    return unavailableBlocks(
+      unavailablePolicy,
+      new Error(`Latest blocks API returned HTTP ${res.status}`),
+    );
+  }
 
-    const all = json.blocks || [];
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch (error) {
+    return unavailableBlocks(unavailablePolicy, error);
+  }
+
+  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
+    return unavailableBlocks(unavailablePolicy, new Error('Latest blocks API reported failure'));
+  }
+  if (!('blocks' in json) || !Array.isArray(json.blocks)) {
+    return unavailableBlocks(unavailablePolicy, new Error('Latest blocks API returned malformed data'));
+  }
+
+  try {
+    const all = json.blocks;
     // A reverse query returns one boundary row from the preceding page when
     // using PAGE_SIZE + 1. Drop that lookahead so Prev reconstructs the same
     // 25-row slice that the forward crawl path produced.
@@ -102,7 +133,11 @@ async function getInitialBlocks(request: BlocksRequest) {
     const blocks = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
     const firstBlock = blocks[0] ?? null;
     const lastBlock = blocks[blocks.length - 1] ?? null;
-    const apiPagination = json.pagination ?? {};
+    const apiPagination: Record<string, unknown> = 'pagination' in json
+      && json.pagination !== null
+      && typeof json.pagination === 'object'
+      ? json.pagination as Record<string, unknown>
+      : {};
     const total = Number(apiPagination.total) || 0;
 
     return {
@@ -125,16 +160,19 @@ async function getInitialBlocks(request: BlocksRequest) {
       available: true,
     };
   } catch (error) {
-    if (!isServerRenderDeadlineError(error)) {
-      console.error('Error fetching initial blocks:', error);
-    }
-    return { blocks: [], trailingBlock: null, pagination: null, available: false };
+    return unavailableBlocks(unavailablePolicy, error);
   }
 }
 
-export default async function BlocksPage({ searchParams }: BlocksPageProps) {
+export default async function BlocksPage({
+  searchParams,
+  unavailablePolicy = 'shell',
+}: BlocksPageProps) {
   const request = parseBlocksRequest(await searchParams);
-  const { blocks, trailingBlock, pagination, available } = await getInitialBlocks(request);
+  const { blocks, trailingBlock, pagination, available } = await getInitialBlocks(
+    request,
+    unavailablePolicy,
+  );
   const archiveKey = `${request.cursor ?? 'first'}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const collectionJsonLd = request.pageParamConsistent

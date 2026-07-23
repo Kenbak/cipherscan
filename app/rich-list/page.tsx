@@ -1,11 +1,13 @@
 import { API_CONFIG } from '@/lib/api-config';
+import { fetchWithDeadline } from '@/lib/server-fetch';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import RichListClient, {
   type Concentration,
   type PaginationData,
   type RichListEntry,
 } from './RichListClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 interface InitialRichList {
   addresses: RichListEntry[];
@@ -13,14 +15,20 @@ interface InitialRichList {
   pagination: PaginationData | null;
 }
 
+const EMPTY_RICH_LIST: InitialRichList = {
+  addresses: [],
+  concentration: null,
+  pagination: null,
+};
+
 async function getInitialRichList(): Promise<InitialRichList> {
   try {
-    const response = await fetch(
+    const response = await fetchWithDeadline(
       `${API_CONFIG.POSTGRES_API_URL}/api/rich-list?limit=100&offset=0`,
       { next: { revalidate: 60 } },
     );
     if (!response.ok) {
-      return { addresses: [], concentration: null, pagination: null };
+      throw new Error(`Rich list returned HTTP ${response.status}`);
     }
 
     const data = await response.json() as {
@@ -33,7 +41,7 @@ async function getInitialRichList(): Promise<InitialRichList> {
       || !Array.isArray(data.addresses)
       || !data.concentration
       || !data.pagination) {
-      return { addresses: [], concentration: null, pagination: null };
+      throw new Error('Rich list payload is malformed');
     }
 
     return {
@@ -43,7 +51,7 @@ async function getInitialRichList(): Promise<InitialRichList> {
     };
   } catch (error) {
     console.error('Error fetching initial rich list:', error);
-    return { addresses: [], concentration: null, pagination: null };
+    return retainLastGoodOrBuildFallback(EMPTY_RICH_LIST, error, 'rich list');
   }
 }
 

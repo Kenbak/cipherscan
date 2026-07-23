@@ -3,12 +3,46 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   async rewrites() {
-    return [
-      {
-        source: '/sitemap-:slug.xml',
-        destination: '/sitemaps/:slug',
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: '/blocks',
+          destination: '/blocks/latest',
+          missing: ['cursor', 'direction', 'page'].map((key) => ({
+            type: 'query' as const,
+            key,
+          })),
+        },
+        {
+          source: '/txs',
+          destination: '/txs/latest',
+          missing: ['cursor', 'cursor_idx', 'direction', 'page', 'type'].map((key) => ({
+            type: 'query' as const,
+            key,
+          })),
+        },
+        {
+          source: '/txs/shielded',
+          destination: '/txs/shielded/latest',
+          missing: [
+            'cursor',
+            'cursor_id',
+            'direction',
+            'page',
+            'flow_type',
+            'pool',
+            'min_zec',
+          ].map((key) => ({ type: 'query' as const, key })),
+        },
+      ],
+      afterFiles: [
+        {
+          source: '/sitemap-:slug.xml',
+          destination: '/sitemaps/:slug',
+        },
+      ],
+      fallback: [],
+    };
   },
   async redirects() {
     return [

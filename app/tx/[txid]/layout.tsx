@@ -13,11 +13,18 @@ import {
 } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { CopyButton } from '@/components/CopyButton';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 
 type Props = {
   params: Promise<{ txid: string }>;
   children: React.ReactNode;
 };
+
+export const revalidate = 30;
+
+export function generateStaticParams(): Array<{ txid: string }> {
+  return [];
+}
 
 function getTxType(meta: { isCoinbase: boolean; hasShielded: boolean; orchardActions: number }): string {
   if (meta.isCoinbase) return 'Coinbase';
@@ -99,18 +106,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const resolution = await getTxResolution(normalizedTxid);
 
-  if (resolution.state !== 'found') {
-    const isAbsent = resolution.state === 'absent';
-    return buildPageMetadata({
-      title: isAbsent
-        ? `Zcash Transaction ${truncateHash(normalizedTxid)} Not Found | CipherScan`
-        : `Zcash Transaction ${truncateHash(normalizedTxid)} Status Unknown | CipherScan`,
-      description: isAbsent
-        ? `CipherScan could not find Zcash transaction ${truncateHash(normalizedTxid)} in the confirmed index or mempool.`
-        : `CipherScan cannot currently verify the status of Zcash transaction ${truncateHash(normalizedTxid)} because a required data service is temporarily unavailable.`,
+  if (resolution.state === 'unavailable') {
+    const fallback = buildPageMetadata({
+      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Status Unknown | CipherScan`,
+      description: `CipherScan cannot currently verify the status of Zcash transaction ${truncateHash(normalizedTxid)} because a required data service is temporarily unavailable.`,
       path,
       index: false,
-      canonical: !isAbsent,
+      canonical: true,
+    });
+    return retainLastGoodOrBuildFallback(
+      fallback,
+      new Error(`Transaction ${normalizedTxid} metadata is unavailable`),
+      'transaction detail metadata',
+    );
+  }
+
+  if (resolution.state === 'absent') {
+    return buildPageMetadata({
+      title: `Zcash Transaction ${truncateHash(normalizedTxid)} Not Found | CipherScan`,
+      description: `CipherScan could not find Zcash transaction ${truncateHash(normalizedTxid)} in the confirmed index or mempool.`,
+      path,
+      index: false,
+      canonical: false,
     });
   }
 
@@ -157,11 +174,24 @@ export default async function TxLayout({ params, children }: Props) {
   const normalizedTxid = txid.toLowerCase();
   const resolution = await getTxResolution(normalizedTxid);
 
+  if (resolution.state === 'unavailable') {
+    retainLastGoodOrBuildFallback(
+      undefined,
+      new Error(`Transaction ${normalizedTxid} is unavailable`),
+      'transaction detail',
+    );
+  }
+
   if (resolution.state === 'absent') {
     const alternate = await resolveAlternateHash(normalizedTxid);
     if (alternate === 'block') redirect(`/block/${normalizedTxid}`);
     if (alternate === 'finalizer') redirect(`/finalizer/${normalizedTxid}`);
     if (alternate === 'absent') notFound();
+    retainLastGoodOrBuildFallback(
+      undefined,
+      new Error(`Alternate hash resolution for ${normalizedTxid} is unavailable`),
+      'transaction alternate hash resolution',
+    );
   }
 
   const tx = resolution.state === 'found' ? resolution.meta : null;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { AddressLabel } from '@/components/AddressLabel';
@@ -108,7 +108,7 @@ const Icons = {
   ),
 };
 
-export default function AddressPage() {
+function AddressPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1328,5 +1328,23 @@ export default function AddressPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AddressPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+          aria-busy="true"
+          aria-label="Loading address activity"
+        >
+          <div className="h-48 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse" />
+        </div>
+      )}
+    >
+      <AddressPageContent />
+    </Suspense>
   );
 }

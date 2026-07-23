@@ -49,9 +49,11 @@ exit.pub
 # local config
 .netlify
 server/cache/
+artifacts/perf/*.json
 
 # private docs
-/docs/
+/docs/*
+!/docs/ttfb-performance.md
 server/DEPLOYMENT.md
 
 # test directories

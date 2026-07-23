@@ -7,11 +7,18 @@ import {
   truncateHash,
 } from '@/lib/seo';
 import { fetchWithDeadline } from '@/lib/server-fetch';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 
 type Props = {
   params: Promise<{ height: string }>;
   children: React.ReactNode;
 };
+
+export const revalidate = 30;
+
+export function generateStaticParams(): Array<{ height: string }> {
+  return [];
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { height } = await params;
@@ -20,25 +27,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (resolution.state === 'absent') {
     // Check if this is a future block (valid height above tip)
     if (/^\d+$/.test(height)) {
-      try {
-        const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, { next: { revalidate: 30 } });
-        if (res.ok) {
-          const data = await res.json();
-          const tipHeight = data.height ?? data.blocks;
-          if (typeof tipHeight === 'number' && Number(height) > tipHeight) {
-            const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
-            const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks (~${Math.round((Number(height) - tipHeight) * 75 / 3600)} hours).`;
-            return buildPageMetadata({
-              title,
-              description,
-              path: `/block/${height}`,
-              index: false,
-              canonical: false,
-              imageAlt: title,
-            });
-          }
-        }
-      } catch {}
+      const res = await fetchWithDeadline(`${getApiUrl()}/api/info`, { next: { revalidate: 30 } });
+      if (!res.ok) throw new Error(`Chain tip returned HTTP ${res.status}`);
+
+      const data = await res.json();
+      const rawHeight = data.height ?? data.blocks;
+      const tipHeight = rawHeight === null || rawHeight === undefined || rawHeight === ''
+        ? Number.NaN
+        : Number(rawHeight);
+      if (!Number.isSafeInteger(tipHeight) || tipHeight < 0) {
+        throw new Error('Chain tip payload is malformed');
+      }
+      if (Number(height) > tipHeight) {
+        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
+        const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks (~${Math.round((Number(height) - tipHeight) * 75 / 3600)} hours).`;
+        return buildPageMetadata({
+          title,
+          description,
+          path: `/block/${height}`,
+          index: false,
+          canonical: false,
+          imageAlt: title,
+        });
+      }
     }
 
     const title = `Zcash Block ${truncateHash(height)} Not Found | CipherScan`;
@@ -56,13 +67,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (resolution.state === 'unavailable') {
     const title = `Zcash Block ${truncateHash(height)} Status Unknown | CipherScan`;
-    return buildPageMetadata({
+    const fallback = buildPageMetadata({
       title,
       description: `CipherScan cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
       path: `/block/${encodeURIComponent(height)}`,
       index: false,
       imageAlt: title,
     });
+    return retainLastGoodOrBuildFallback(
+      fallback,
+      new Error(`Block ${height} metadata is unavailable`),
+      'block detail metadata',
+    );
   }
 
   const block = resolution.block;

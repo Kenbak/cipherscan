@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { API_CONFIG } from '@/lib/api-config';
+import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import ShieldedTxsClient from './ShieldedTxsClient';
@@ -10,9 +11,11 @@ const PAGE_SIZE = 25;
 type FlowFilter = 'all' | 'shield' | 'deshield';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 type SearchParams = Record<string, string | string[] | undefined>;
+type UnavailablePolicy = 'shell' | 'throw';
 
 interface ShieldedTransactionsPageProps {
   searchParams: Promise<SearchParams>;
+  unavailablePolicy?: UnavailablePolicy;
 }
 
 interface ShieldedTransactionsRequest {
@@ -126,7 +129,18 @@ export async function generateMetadata({
   });
 }
 
-async function getInitialFlows(request: ShieldedTransactionsRequest) {
+function unavailableShieldedTransactions(policy: UnavailablePolicy, error: unknown) {
+  const fallback = { flows: [], pagination: null, available: false };
+  return policy === 'throw'
+    ? retainLastGoodOrBuildFallback(fallback, error, 'latest shielded transactions')
+    : fallback;
+}
+
+async function getInitialFlows(
+  request: ShieldedTransactionsRequest,
+  unavailablePolicy: UnavailablePolicy,
+) {
+  let res: Response;
   try {
     const params = new URLSearchParams({
       limit: String(PAGE_SIZE + 1),
@@ -140,20 +154,54 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
       params.set('direction', request.direction);
     }
 
-    const res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
+    res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) return { flows: [], pagination: null, available: false };
+  } catch (error) {
+    if (!isServerRenderDeadlineError(error)) {
+      console.error('Error fetching initial shielded transactions:', error);
+    }
+    return unavailableShieldedTransactions(unavailablePolicy, error);
+  }
 
-    const json = await res.json();
-    if (!json.success) return { flows: [], pagination: null, available: false };
+  if (!res.ok) {
+    return unavailableShieldedTransactions(
+      unavailablePolicy,
+      new Error(`Latest shielded transactions API returned HTTP ${res.status}`),
+    );
+  }
 
-    const all: ShieldedFlow[] = json.flows || [];
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch (error) {
+    return unavailableShieldedTransactions(unavailablePolicy, error);
+  }
+
+  if (!json || typeof json !== 'object' || !('success' in json) || json.success !== true) {
+    return unavailableShieldedTransactions(
+      unavailablePolicy,
+      new Error('Latest shielded transactions API reported failure'),
+    );
+  }
+  if (!('flows' in json) || !Array.isArray(json.flows)) {
+    return unavailableShieldedTransactions(
+      unavailablePolicy,
+      new Error('Latest shielded transactions API returned malformed data'),
+    );
+  }
+
+  try {
+    const all = json.flows as ShieldedFlow[];
     const reverseOffset = request.direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
     const flows = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
     const firstFlow = flows[0] ?? null;
     const lastFlow = flows[flows.length - 1] ?? null;
-    const apiPagination = json.pagination ?? {};
+    const apiPagination: Record<string, unknown> = 'pagination' in json
+      && json.pagination !== null
+      && typeof json.pagination === 'object'
+      ? json.pagination as Record<string, unknown>
+      : {};
     const total = Number(apiPagination.total) || 0;
 
     return {
@@ -174,18 +222,16 @@ async function getInitialFlows(request: ShieldedTransactionsRequest) {
       available: true,
     };
   } catch (error) {
-    if (!isServerRenderDeadlineError(error)) {
-      console.error('Error fetching initial shielded transactions:', error);
-    }
-    return { flows: [], pagination: null, available: false };
+    return unavailableShieldedTransactions(unavailablePolicy, error);
   }
 }
 
 export default async function ShieldedTransactionsPage({
   searchParams,
+  unavailablePolicy = 'shell',
 }: ShieldedTransactionsPageProps) {
   const request = parseShieldedTransactionsRequest(await searchParams);
-  const { flows, pagination, available } = await getInitialFlows(request);
+  const { flows, pagination, available } = await getInitialFlows(request, unavailablePolicy);
   const archiveKey = `${request.flow}:${request.pool}:${request.minZec}:${request.cursor ?? 'first'}:${request.cursorId ?? 0}:${request.direction}:${request.page}`;
   const collectionUrl = new URL(getArchiveCanonicalPath(request), `${getBaseUrl()}/`).toString();
   const uniqueTransactions = Array.from(new Map(flows.map((flow) => [flow.txid, flow])).values());
