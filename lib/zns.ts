@@ -1,7 +1,10 @@
 import { ZNS } from 'zcashname-sdk';
-import type { Registration, Status } from 'zcashname-sdk';
 import { NETWORK } from './api-config';
 import { callZnsRpc } from './zns-rpc';
+
+// Infer types from ZNS class methods (SDK no longer exports them directly)
+type Registration = NonNullable<Awaited<ReturnType<ZNS['resolveName']>>>;
+type Status = Awaited<ReturnType<ZNS['status']>>;
 
 // Server-side only (used by API routes)
 // ZNS names are network-specific: mainnet names ≠ testnet names

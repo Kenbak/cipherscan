@@ -3,7 +3,8 @@ import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { getClient, isValidName } from '@/lib/zns';
-import type { Registration } from 'zcashname-sdk';
+import { ZNS } from 'zcashname-sdk';
+type Registration = NonNullable<Awaited<ReturnType<ZNS['resolveName']>>>;
 
 type NameResolution =
   | { state: 'registered'; registration: Registration }
