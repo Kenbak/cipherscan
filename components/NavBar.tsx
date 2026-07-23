@@ -147,10 +147,10 @@ export function NavBar() {
                 className="transition-transform duration-200 group-hover:scale-105 sm:w-8 sm:h-8 object-contain"
               />
               <div>
-                <span className="text-sm sm:text-base font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
+                <span className="text-base sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
                   CIPHERSCAN
                 </span>
-                <p className={`text-[9px] sm:text-[10px] font-mono ${NETWORK_COLOR} leading-tight`}>[ {NETWORK_LABEL} ]</p>
+                <p className={`text-[10px] sm:text-[11px] font-mono ${NETWORK_COLOR} leading-tight`}>[ {NETWORK_LABEL} ]</p>
               </div>
             </Link>
 
