@@ -14,6 +14,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const redis = require('redis');
 const fs = require('fs');
+const { createListCache } = require('./list-cache');
 
 // Initialize Express
 const app = express();
@@ -93,6 +94,7 @@ const redisClient = redis.createClient({
   },
   // No password for local Redis
 });
+const listCache = createListCache({ redisClient });
 
 // Create Redis Pub/Sub clients (separate connections required)
 const redisPub = redisClient.duplicate();
@@ -302,6 +304,7 @@ app.use(cors({
     }
   },
   credentials: true,
+  exposedHeaders: ['X-CipherScan-Cache', 'Server-Timing'],
 }));
 
 // Internal service API keys bypass rate limiting (comma-separated in env)
@@ -347,6 +350,7 @@ app.locals.queryPrivacyLinkageEdges = queryPrivacyLinkageEdges;
 app.locals.queryPrivacyBatchClusters = queryPrivacyBatchClusters;
 app.locals.getPrivacyGraph = getPrivacyGraph;
 app.locals.redisClient = redisClient;
+app.locals.listCache = listCache;
 
 // Block routes: /health, /api/info, /api/blocks, /api/block/:height
 app.use(blocksRouter);

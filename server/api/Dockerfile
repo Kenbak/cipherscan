@@ -6,9 +6,8 @@ ARG NODE_IMAGE=node:22.14.0-bookworm-slim
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 ENV NPM_CONFIG_PRODUCTION=true
-# No lockfile is committed for this package; install the declared ranges.
-COPY package.json ./
-RUN npm install --omit=dev --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app

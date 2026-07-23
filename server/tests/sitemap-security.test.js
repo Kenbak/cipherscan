@@ -86,6 +86,7 @@ function captureBlockApiRoute() {
       getPoolInfo: () => ({ name: 'Example Pool', url: 'https://pool.invalid', region: 'US' }),
     },
     '../coinbase-data': { decodeCoinbaseText: () => null },
+    '../list-cache': require('../api/list-cache'),
   });
 
   return async (identifier, query, pool) => {

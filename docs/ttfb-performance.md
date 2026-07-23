@@ -98,6 +98,30 @@ and the second request is not assumed warm. A cancelled first response may not
 populate every streaming cache, and repeated requests can reach different edge
 nodes, so only response headers classify cache state.
 
+## API list-response cache
+
+Query-bearing `/blocks`, `/txs`, and `/txs/shielded` pages remain dynamic HTML,
+but their normalized list API identities use a shared Redis cache. Latest list
+responses are fresh for 15 seconds; cursor/archive responses are fresh for 300
+seconds. `/api/rich-list` is fresh for 60 seconds. Each family retains a
+last-known-good stale response beyond the fresh window and refreshes it in the
+background under a short distributed lock. Failed refreshes leave the stale
+entry intact. Concurrent first misses within one API process share a single
+database load.
+
+The cache is opt-in with `API_LIST_CACHE_ENABLED=1`, namespaced by network, and
+bounded per route family. A 50 ms Redis-operation deadline keeps a slow or down
+cache from extending API latency; requests then run the original PostgreSQL
+path. Only successful response payloads are stored. Redis must remain private
+and persistent—it is not an Internet-facing response cache.
+
+Every covered API response emits `X-CipherScan-Cache: HIT|MISS|STALE` and a
+`Server-Timing` breakdown. Next consumes but does not forward these upstream
+headers, so an HTML response cannot directly expose the API cache state. Use
+paired public-API requests for that evidence and the HTML probe for resulting
+page TTFB. The API headers remain independent of Netlify edge and Next
+route-cache headers, and no state should be inferred from request position.
+
 ## Artifact and acceptance
 
 The JSON artifact includes the target manifest, revision label, timing and
@@ -117,11 +141,13 @@ the raw file to the deployment or release record before removing local output.
 ```sh
 npm run test:ttfb-probe
 npm run test:isr-warmup
+TEST_REDIS_URL=redis://127.0.0.1:6379 npm --prefix server/api run test:redis
 npm run build
 npm run test:route-cache-build
 ```
 
-These tests validate the header/body boundary, body cancellation, timeout and
+Require zero skipped tests from `test:redis`. These tests validate the
+header/body boundary, body cancellation, timeout and
 HTTP error handling, multi-layer cache parsing, serial pair ordering, summary
 math, target validation, atomic artifact writes, and the generated Next ISR
 manifest. They do not contact production and do not establish live performance.
@@ -208,15 +234,20 @@ successful frontend deploy does not release `server/api` changes.
    response bodies and must not be used as the cache population step.
 6. Run the serial probe for the scored cache-state distribution. Do not call a
    repeated response warm unless its explicit headers prove a cache hit.
-7. Run the full-population Ahrefs crawl. Only that crawl can prove the greater
+7. Deploy the API list cache as a separate backend rollout only after the real
+   Redis integration suite passes. Confirm a representative request exposes a
+   `MISS`, its repeat exposes `HIT` or `STALE`, and the public JSON is unchanged.
+8. Repeat the serial HTML probe, including archive-query routes. Its application
+   cache state remains `UNKNOWN` because Next does not forward the API header;
+   correlate it with the separate paired API evidence instead of combining the
+   two populations.
+9. Run the full-population Ahrefs crawl. Only that crawl can prove the greater
    than 80% all-page target; attach its export, probe artifact, and warm-up
    artifact to the release record.
 
-The first TTFB change intentionally excludes API-side Redis caching. Revisit it
-in a separate backend rollout only if paired direct-API probes remain slow after
-the public API is reachable. That rollout needs bounded key cardinality, a
-feature flag, failure backoff, network isolation, and real Redis integration
-coverage before production use.
+Paired direct-API probes after the frontend TTFB deployment confirmed that
+archive list responses remain the bottleneck, so the API cache ships as a
+separate backend rollout.
 
 Stop the rollout if the API health check is unreachable, core routes return a
 non-success status, or the frontend revision does not match the intended
