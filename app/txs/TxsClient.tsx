@@ -86,7 +86,6 @@ function getFlowBadge(tx: Transaction) {
     );
   }
 
-  if (type === 'mixed' && !tx.flow_type) return null;
   return <ShieldFlowBadge type={type} variant="compact" />;
 }
 

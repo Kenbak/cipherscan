@@ -28,11 +28,16 @@ export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: S
   if (type === 'mixed' && variant === 'compact') {
     return (
       <span
-        className={`inline-flex text-[10px] font-mono uppercase tracking-wide text-muted ${className}`}
+        className={`inline-flex items-center text-muted ${className}`}
         title={label}
         aria-label={label}
       >
-        Mixed
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.6-8.6c.8-1.1 2-1.7 3.3-1.7H22" />
+          <path d="M18 2l4 4-4 4" />
+          <path d="M2 6h1.4c1.3 0 2.5.6 3.3 1.7l6.6 8.6c.8 1.1 2 1.7 3.3 1.7H22" />
+          <path d="M18 14l4 4-4 4" />
+        </svg>
       </span>
     );
   }
