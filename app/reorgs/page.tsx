@@ -273,7 +273,7 @@ export default function UnclesPage() {
       const [statsRes, orphansRes, forksRes, nodesRes] = await Promise.all([
         fetch(`${API_URL}/api/uncles/stats`),
         fetch(`${API_URL}/api/uncles?limit=50`),
-        fetch(`${API_URL}/api/uncles/forks?limit=20`),
+        fetch(`${API_URL}/api/uncles/forks?limit=100`),
         fetch(`${API_URL}/api/uncles/nodes`),
       ]);
 
