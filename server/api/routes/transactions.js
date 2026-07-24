@@ -7,6 +7,29 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
 const { decodeCoinbaseText } = require('../coinbase-data');
+const { applyListCacheHeaders, createListCache } = require('../list-cache');
+
+const disabledListCache = createListCache({ enabled: false });
+
+function isCanonicalIntegerQuery(value) {
+  if (value === undefined) return true;
+  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) return false;
+  return Number.isSafeInteger(Number.parseInt(value, 10));
+}
+
+function isCanonicalDecimalQuery(value) {
+  if (value === undefined) return true;
+  if (typeof value !== 'string' || !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) return false;
+  return Number.isFinite(Number.parseFloat(value));
+}
+
+function isKnownQueryValue(value, allowed) {
+  return value === undefined || (typeof value === 'string' && allowed.includes(value));
+}
+
+function finiteOrNull(value) {
+  return Number.isFinite(value) ? value : null;
+}
 
 // Dependencies will be injected via middleware
 let pool;
@@ -14,6 +37,7 @@ let callZebraRPC;
 let CompactTxStreamer;
 let grpc;
 let findLinkedTransactions;
+let listCache = disabledListCache;
 
 let hasStakingColumns = null;
 async function checkStakingColumns(db) {
@@ -37,6 +61,7 @@ router.use((req, res, next) => {
   CompactTxStreamer = req.app.locals.CompactTxStreamer;
   grpc = req.app.locals.grpc;
   findLinkedTransactions = req.app.locals.findLinkedTransactions;
+  listCache = req.app.locals.listCache || disabledListCache;
   next();
 });
 
@@ -51,95 +76,122 @@ router.get('/api/transactions/list', async (req, res) => {
     const cursorIdx = req.query.cursor_idx !== undefined ? parseInt(req.query.cursor_idx) : null;
     const direction = req.query.direction || 'next';
     const typeFilter = req.query.type || 'all'; // all, shielded, transparent, coinbase
+    const isLatest = cursor === null;
+    const cacheable = isCanonicalIntegerQuery(req.query.limit)
+      && isCanonicalIntegerQuery(req.query.cursor)
+      && isCanonicalIntegerQuery(req.query.cursor_idx)
+      && isKnownQueryValue(req.query.direction, ['next', 'prev'])
+      && isKnownQueryValue(req.query.type, ['all', 'shielded', 'transparent', 'coinbase']);
 
-    // Build type filter
-    let typeCondition = '';
-    if (typeFilter === 'shielded') {
-      typeCondition = 'AND (t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)';
-    } else if (typeFilter === 'transparent') {
-      typeCondition = 'AND t.has_sapling = false AND t.has_orchard = false AND t.has_ironwood = false AND t.is_coinbase = false';
-    } else if (typeFilter === 'coinbase') {
-      typeCondition = 'AND t.is_coinbase = true';
-    }
-
-    // Keep the unfiltered total as a fast planner estimate. Filtered counts use
-    // the same canonical identity join as the returned rows.
-    let total;
-    if (typeFilter === 'all') {
-      const countResult = await pool.query(
-        `SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'transactions'`
-      );
-      total = parseInt(countResult.rows[0]?.count) || 0;
-    } else {
-      const countResult = await pool.query(
-        `SELECT COUNT(*) as count
-         FROM transactions t
-         JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
-         WHERE true ${typeCondition}`
-      );
-      total = parseInt(countResult.rows[0]?.count) || 0;
-    }
-
-    let result;
-    const txCols = `t.txid, t.block_height, t.block_hash, t.block_time, t.tx_index,
-                t.size, t.vin_count, t.vout_count,
-                t.has_sapling, t.has_orchard, t.has_ironwood, t.has_sprout,
-                t.is_coinbase, t.value_balance,
-                t.value_balance_sapling, t.value_balance_orchard, t.value_balance_ironwood,
-                t.ironwood_actions, t.flow_type,
-                t.fee, t.total_input, t.total_output`;
-    if (cursor === null) {
-      result = await pool.query(
-        `SELECT ${txCols}
-         FROM transactions t
-         WHERE true ${typeCondition}
-         ORDER BY t.block_height DESC, t.tx_index DESC
-         LIMIT $1`,
-        [limit]
-      );
-    } else if (direction === 'prev') {
-      result = await pool.query(
-        `SELECT ${txCols}
-         FROM transactions t
-         WHERE (t.block_height > $1 OR (t.block_height = $1 AND t.tx_index > $2)) ${typeCondition}
-         ORDER BY t.block_height ASC, t.tx_index ASC
-         LIMIT $3`,
-        [cursor, cursorIdx || 0, limit]
-      );
-      result.rows.reverse();
-    } else {
-      result = await pool.query(
-        `SELECT ${txCols}
-         FROM transactions t
-         WHERE (t.block_height < $1 OR (t.block_height = $1 AND t.tx_index < $2)) ${typeCondition}
-         ORDER BY t.block_height DESC, t.tx_index DESC
-         LIMIT $3`,
-        [cursor, cursorIdx || 0, limit]
-      );
-    }
-
-    const rows = result.rows;
-    const totalPages = Math.ceil(total / limit);
-
-    // Compute cursors from first/last rows
-    const first = rows[0];
-    const last = rows[rows.length - 1];
-
-    res.json({
-      success: true,
-      transactions: rows,
-      pagination: {
-        total,
-        totalPages,
+    const outcome = await listCache.getOrLoad({
+      family: 'transactions',
+      params: {
         limit,
-        hasNext: rows.length === limit,
-        hasPrev: cursor !== null,
-        nextCursor: last ? parseInt(last.block_height) : null,
-        nextCursorIdx: last ? (last.tx_index ?? 0) : null,
-        prevCursor: first ? parseInt(first.block_height) : null,
-        prevCursorIdx: first ? (first.tx_index ?? 0) : null,
+        cursor: finiteOrNull(cursor),
+        cursorIdx: isLatest ? null : finiteOrNull(cursorIdx || 0),
+        direction: isLatest ? 'next' : (direction === 'prev' ? 'prev' : 'next'),
+        type: typeof typeFilter === 'string' ? typeFilter : null,
+      },
+      freshTtlSeconds: isLatest ? 15 : 300,
+      staleTtlSeconds: isLatest ? 300 : 3600,
+      cacheable,
+      shouldCache: (value) => value?.success === true,
+      load: async ({ measure }) => {
+        // Build type filter
+        let typeCondition = '';
+        if (typeFilter === 'shielded') {
+          typeCondition = 'AND (t.has_sapling = true OR t.has_orchard = true OR t.has_ironwood = true)';
+        } else if (typeFilter === 'transparent') {
+          typeCondition = 'AND t.has_sapling = false AND t.has_orchard = false AND t.has_ironwood = false AND t.is_coinbase = false';
+        } else if (typeFilter === 'coinbase') {
+          typeCondition = 'AND t.is_coinbase = true';
+        }
+
+        // Keep the unfiltered total as a fast planner estimate. Filtered counts use
+        // the same canonical identity join as the returned rows.
+        const total = await measure('db_count', async () => {
+          if (typeFilter === 'all') {
+            const countResult = await pool.query(
+              `SELECT reltuples::bigint AS count FROM pg_class WHERE relname = 'transactions'`
+            );
+            return parseInt(countResult.rows[0]?.count) || 0;
+          }
+          const countResult = await pool.query(
+            `SELECT COUNT(*) as count
+             FROM transactions t
+             JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+             WHERE true ${typeCondition}`
+          );
+          return parseInt(countResult.rows[0]?.count) || 0;
+        });
+
+        const txCols = `t.txid, t.block_height, t.block_hash, t.block_time, t.tx_index,
+                    t.size, t.vin_count, t.vout_count,
+                    t.has_sapling, t.has_orchard, t.has_ironwood, t.has_sprout,
+                    t.is_coinbase, t.value_balance,
+                    t.value_balance_sapling, t.value_balance_orchard, t.value_balance_ironwood,
+                    t.ironwood_actions, t.flow_type,
+                    t.fee, t.total_input, t.total_output`;
+        const result = await measure('db_rows', async () => {
+          if (cursor === null) {
+            return pool.query(
+              `SELECT ${txCols}
+               FROM transactions t
+               WHERE true ${typeCondition}
+               ORDER BY t.block_height DESC, t.tx_index DESC
+               LIMIT $1`,
+              [limit]
+            );
+          }
+          if (direction === 'prev') {
+            const previous = await pool.query(
+              `SELECT ${txCols}
+               FROM transactions t
+               WHERE (t.block_height > $1 OR (t.block_height = $1 AND t.tx_index > $2)) ${typeCondition}
+               ORDER BY t.block_height ASC, t.tx_index ASC
+               LIMIT $3`,
+              [cursor, cursorIdx || 0, limit]
+            );
+            previous.rows.reverse();
+            return previous;
+          }
+          return pool.query(
+            `SELECT ${txCols}
+             FROM transactions t
+             WHERE (t.block_height < $1 OR (t.block_height = $1 AND t.tx_index < $2)) ${typeCondition}
+             ORDER BY t.block_height DESC, t.tx_index DESC
+             LIMIT $3`,
+            [cursor, cursorIdx || 0, limit]
+          );
+        });
+
+        const rows = result.rows;
+        const totalPages = Math.ceil(total / limit);
+
+        // Compute cursors from first/last rows
+        const first = rows[0];
+        const last = rows[rows.length - 1];
+
+        return {
+          success: true,
+          transactions: rows,
+          pagination: {
+            total,
+            totalPages,
+            limit,
+            hasNext: rows.length === limit,
+            hasPrev: cursor !== null,
+            nextCursor: last ? parseInt(last.block_height) : null,
+            nextCursorIdx: last ? (last.tx_index ?? 0) : null,
+            prevCursor: first ? parseInt(first.block_height) : null,
+            prevCursorIdx: first ? (first.tx_index ?? 0) : null,
+          },
+        };
       },
     });
+
+    applyListCacheHeaders(res, outcome);
+    res.json(outcome.value);
   } catch (error) {
     console.error('Error fetching transactions list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
@@ -159,9 +211,34 @@ router.get('/api/shielded/list', async (req, res) => {
     const flowType = req.query.flow_type || 'all'; // all, shield, deshield, fully_shielded
     const poolFilter = req.query.pool || 'all'; // all, sapling, orchard, ironwood, mixed
     const minZec = parseFloat(req.query.min_zec) || 0;
+    const isLatest = cursor === null;
+    const cacheable = isCanonicalIntegerQuery(req.query.limit)
+      && isCanonicalIntegerQuery(req.query.cursor)
+      && isCanonicalIntegerQuery(req.query.cursor_id)
+      && isKnownQueryValue(req.query.direction, ['next', 'prev'])
+      && isKnownQueryValue(req.query.flow_type, ['all', 'shield', 'deshield', 'fully_shielded'])
+      && isKnownQueryValue(req.query.pool, ['all', 'sapling', 'orchard', 'ironwood', 'mixed'])
+      && isCanonicalDecimalQuery(req.query.min_zec);
 
-    // Fully shielded txs live in `transactions`, not `shielded_flows`
-    if (flowType === 'fully_shielded') {
+    const outcome = await listCache.getOrLoad({
+      family: 'shielded-flows',
+      params: {
+        limit,
+        cursor: finiteOrNull(cursor),
+        cursorId: isLatest ? null : finiteOrNull(cursorId || 0),
+        direction: isLatest ? 'next' : (direction === 'prev' ? 'prev' : 'next'),
+        flowType: typeof flowType === 'string' ? flowType : null,
+        pool: typeof poolFilter === 'string' ? poolFilter : null,
+        minZec: finiteOrNull(minZec),
+      },
+      freshTtlSeconds: isLatest ? 15 : 300,
+      staleTtlSeconds: isLatest ? 300 : 3600,
+      cacheable,
+      shouldCache: (value) => value?.success === true,
+      load: async ({ measure }) => measure('db', async () => {
+
+        // Fully shielded txs live in `transactions`, not `shielded_flows`
+        if (flowType === 'fully_shielded') {
       const conditions = [
         't.vin_count = 0',
         't.vout_count = 0',
@@ -241,7 +318,7 @@ router.get('/api/shielded/list', async (req, res) => {
         return 'unknown';
       };
 
-      return res.json({
+      return {
         success: true,
         flows: rows.map((r, i) => ({
           id: i,
@@ -265,7 +342,7 @@ router.get('/api/shielded/list', async (req, res) => {
           prevCursor: first ? parseInt(first.block_time) : null,
           prevCursorId: first ? first.txid : null,
         },
-      });
+      };
     }
 
     // "All" merges shielded_flows + fully-shielded txs via UNION
@@ -391,7 +468,7 @@ router.get('/api/shielded/list', async (req, res) => {
     const first = rows[0];
     const last = rows[rows.length - 1];
 
-    res.json({
+    return {
       success: true,
       flows: rows.map(r => ({
         id: r.id,
@@ -414,7 +491,12 @@ router.get('/api/shielded/list', async (req, res) => {
         prevCursor: first ? parseInt(first.block_time) : null,
         prevCursorId: first ? first.id : null,
       },
+    };
+      }),
     });
+
+    applyListCacheHeaders(res, outcome);
+    res.json(outcome.value);
   } catch (error) {
     console.error('Error fetching shielded flows list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch shielded flows' });

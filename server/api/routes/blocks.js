@@ -7,15 +7,30 @@ const express = require('express');
 const router = express.Router();
 const { getPoolName, getPoolInfo } = require('../mining-pools');
 const { decodeCoinbaseText } = require('../coinbase-data');
+const { applyListCacheHeaders, createListCache } = require('../list-cache');
+
+const disabledListCache = createListCache({ enabled: false });
+
+function isCanonicalIntegerQuery(value) {
+  if (value === undefined) return true;
+  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) return false;
+  return Number.isSafeInteger(Number.parseInt(value, 10));
+}
+
+function isKnownDirection(value) {
+  return value === undefined || value === 'next' || value === 'prev';
+}
 
 let pool;
 let redisClient;
 let callZebraRPC;
+let listCache;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   redisClient = req.app.locals.redisClient;
   callZebraRPC = req.app.locals.callZebraRPC;
+  listCache = req.app.locals.listCache || disabledListCache;
   next();
 });
 
@@ -91,61 +106,95 @@ router.get('/api/blocks/list', async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
     const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
     const direction = req.query.direction || 'next'; // 'next' = older, 'prev' = newer
+    const normalizedDirection = direction === 'prev' ? 'prev' : 'next';
+    const isLatest = cursor === null;
+    const cacheable = isCanonicalIntegerQuery(req.query.limit)
+      && isCanonicalIntegerQuery(req.query.cursor)
+      && isKnownDirection(req.query.direction);
 
-    // Get max height for page calculation
-    const maxResult = await pool.query('SELECT MAX(height) as max_height FROM blocks');
-    const maxHeight = parseInt(maxResult.rows[0]?.max_height) || 0;
-
-    let result;
-    if (cursor === null) {
-      result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
-         FROM blocks ORDER BY height DESC LIMIT $1`,
-        [limit]
-      );
-    } else if (direction === 'prev') {
-      result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
-         FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
-        [cursor, limit]
-      );
-      result.rows.reverse();
-    } else {
-      result = await pool.query(
-        `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
-         FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
-        [cursor, limit]
-      );
-    }
-
-    const finalizedHeight = await getFinalizedHeight();
-    const rows = result.rows.map(b => {
-      if (finalizedHeight !== null) {
-        b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
-      }
-      b.miner_pool = getPoolName(b.miner_address);
-      return b;
-    });
-    const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
-    const lastHeight = rows.length > 0 ? parseInt(rows[rows.length - 1].height) : null;
-
-    const page = firstHeight !== null ? Math.floor((maxHeight - firstHeight) / limit) + 1 : 1;
-    const totalPages = Math.ceil(maxHeight / limit);
-
-    res.json({
-      success: true,
-      blocks: rows,
-      pagination: {
-        page,
-        totalPages,
-        total: maxHeight,
+    const cached = await listCache.getOrLoad({
+      family: 'blocks-list',
+      params: {
         limit,
-        hasNext: lastHeight !== null && lastHeight > 1,
-        hasPrev: firstHeight !== null && firstHeight < maxHeight,
-        nextCursor: lastHeight,
-        prevCursor: firstHeight,
+        cursor: Number.isFinite(cursor) ? cursor : null,
+        direction: isLatest ? 'next' : normalizedDirection,
+      },
+      freshTtlSeconds: isLatest ? 15 : 300,
+      staleTtlSeconds: isLatest ? 300 : 3600,
+      cacheable,
+      shouldCache: value => value?.success === true,
+      load: async ({ measure }) => {
+        // Get max height for page calculation
+        const maxResult = await measure(
+          'db_max_height',
+          () => pool.query('SELECT MAX(height) as max_height FROM blocks')
+        );
+        const maxHeight = parseInt(maxResult.rows[0]?.max_height) || 0;
+
+        let result;
+        if (cursor === null) {
+          result = await measure(
+            'db_blocks',
+            () => pool.query(
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+               FROM blocks ORDER BY height DESC LIMIT $1`,
+              [limit]
+            )
+          );
+        } else if (direction === 'prev') {
+          result = await measure(
+            'db_blocks',
+            () => pool.query(
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+               FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
+              [cursor, limit]
+            )
+          );
+          result.rows.reverse();
+        } else {
+          result = await measure(
+            'db_blocks',
+            () => pool.query(
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+               FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
+              [cursor, limit]
+            )
+          );
+        }
+
+        const finalizedHeight = await measure('finality', () => getFinalizedHeight());
+        const rows = result.rows.map(b => {
+          if (finalizedHeight !== null) {
+            b.finality_status = parseInt(b.height) <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
+          }
+          b.miner_pool = getPoolName(b.miner_address);
+          return b;
+        });
+        const firstHeight = rows.length > 0 ? parseInt(rows[0].height) : null;
+        const lastHeight = rows.length > 0 ? parseInt(rows[rows.length - 1].height) : null;
+
+        const page = firstHeight !== null ? Math.floor((maxHeight - firstHeight) / limit) + 1 : 1;
+        const totalPages = Math.ceil(maxHeight / limit);
+
+        return {
+          success: true,
+          blocks: rows,
+          pagination: {
+            page,
+            totalPages,
+            total: maxHeight,
+            limit,
+            hasNext: lastHeight !== null && lastHeight > 1,
+            hasPrev: firstHeight !== null && firstHeight < maxHeight,
+            nextCursor: lastHeight,
+            prevCursor: firstHeight,
+          },
+        };
       },
     });
+
+    applyListCacheHeaders(res, cached);
+    res.json(cached.value);
   } catch (error) {
     console.error('Error fetching blocks list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch blocks' });

@@ -10,13 +10,24 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
+const { applyListCacheHeaders, createListCache } = require('../list-cache');
+
+const disabledListCache = createListCache({ enabled: false });
+
+function isCanonicalIntegerQuery(value) {
+  if (value === undefined) return true;
+  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) return false;
+  return Number.isSafeInteger(Number.parseInt(value, 10));
+}
 
 // Dependencies injected via app.locals
 let pool;
+let listCache;
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
+  listCache = req.app.locals.listCache || disabledListCache;
   next();
 });
 
@@ -95,68 +106,86 @@ router.get('/api/rich-list', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
     const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const cacheable = isCanonicalIntegerQuery(req.query.limit)
+      && isCanonicalIntegerQuery(req.query.offset);
 
-    const [listResult, countResult, concentrationResult] = await Promise.all([
-      pool.query(
-        `SELECT a.address, a.balance, a.total_received, a.total_sent,
-                a.tx_count, a.first_seen, a.last_seen,
-                l.label, l.category, l.description, l.verified, l.logo_url
-         FROM addresses a
-         LEFT JOIN address_labels l ON a.address = l.address
-         WHERE a.balance > 0
-         ORDER BY a.balance DESC
-         LIMIT $1 OFFSET $2`,
-        [limit, offset]
-      ),
-      pool.query(`SELECT COUNT(*) FROM addresses WHERE balance > 0`),
-      pool.query(
-        `SELECT
-           (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 10) t) AS top10,
-           (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 100) t) AS top100,
-           COALESCE(SUM(balance), 0) AS total_transparent
-         FROM addresses
-         WHERE balance > 0`
-      ),
-    ]);
+    const cached = await listCache.getOrLoad({
+      family: 'rich-list',
+      params: { limit, offset: Number.isFinite(offset) ? offset : null },
+      freshTtlSeconds: 60,
+      staleTtlSeconds: 600,
+      cacheable,
+      shouldCache: value => value?.success === true,
+      load: async ({ measure }) => {
+        const [listResult, countResult, concentrationResult] = await measure(
+          'db_rich_list',
+          () => Promise.all([
+            pool.query(
+              `SELECT a.address, a.balance, a.total_received, a.total_sent,
+                      a.tx_count, a.first_seen, a.last_seen,
+                      l.label, l.category, l.description, l.verified, l.logo_url
+               FROM addresses a
+               LEFT JOIN address_labels l ON a.address = l.address
+               WHERE a.balance > 0
+               ORDER BY a.balance DESC
+               LIMIT $1 OFFSET $2`,
+              [limit, offset]
+            ),
+            pool.query(`SELECT COUNT(*) FROM addresses WHERE balance > 0`),
+            pool.query(
+              `SELECT
+                 (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 10) t) AS top10,
+                 (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 100) t) AS top100,
+                 COALESCE(SUM(balance), 0) AS total_transparent
+               FROM addresses
+               WHERE balance > 0`
+            ),
+          ])
+        );
 
-    const totalAddresses = parseInt(countResult.rows[0].count);
-    const { top10, top100, total_transparent } = concentrationResult.rows[0];
-    const totalTransparent = parseFloat(total_transparent) / 1e8;
+        const totalAddresses = parseInt(countResult.rows[0].count);
+        const { top10, top100, total_transparent } = concentrationResult.rows[0];
+        const totalTransparent = parseFloat(total_transparent) / 1e8;
 
-    res.json({
-      success: true,
-      addresses: listResult.rows.map((row, i) => ({
-        rank: offset + i + 1,
-        address: row.address,
-        balance: parseFloat(row.balance) / 1e8,
-        totalReceived: parseFloat(row.total_received) / 1e8,
-        totalSent: parseFloat(row.total_sent) / 1e8,
-        txCount: parseInt(row.tx_count),
-        firstSeen: row.first_seen,
-        lastSeen: row.last_seen,
-        label: row.label || null,
-        category: row.category || null,
-        description: row.description || null,
-        verified: row.verified || false,
-        logoUrl: row.logo_url || null,
-      })),
-      pagination: {
-        total: totalAddresses,
-        limit,
-        offset,
-        totalPages: Math.ceil(totalAddresses / limit),
-        page: Math.floor(offset / limit) + 1,
-        hasNext: offset + limit < totalAddresses,
-        hasPrev: offset > 0,
-      },
-      concentration: {
-        top10: parseFloat(top10) / 1e8,
-        top100: parseFloat(top100) / 1e8,
-        totalTransparent: totalTransparent,
-        top10Pct: totalTransparent > 0 ? (parseFloat(top10) / 1e8 / totalTransparent) * 100 : 0,
-        top100Pct: totalTransparent > 0 ? (parseFloat(top100) / 1e8 / totalTransparent) * 100 : 0,
+        return {
+          success: true,
+          addresses: listResult.rows.map((row, i) => ({
+            rank: offset + i + 1,
+            address: row.address,
+            balance: parseFloat(row.balance) / 1e8,
+            totalReceived: parseFloat(row.total_received) / 1e8,
+            totalSent: parseFloat(row.total_sent) / 1e8,
+            txCount: parseInt(row.tx_count),
+            firstSeen: row.first_seen,
+            lastSeen: row.last_seen,
+            label: row.label || null,
+            category: row.category || null,
+            description: row.description || null,
+            verified: row.verified || false,
+            logoUrl: row.logo_url || null,
+          })),
+          pagination: {
+            total: totalAddresses,
+            limit,
+            offset,
+            totalPages: Math.ceil(totalAddresses / limit),
+            page: Math.floor(offset / limit) + 1,
+            hasNext: offset + limit < totalAddresses,
+            hasPrev: offset > 0,
+          },
+          concentration: {
+            top10: parseFloat(top10) / 1e8,
+            top100: parseFloat(top100) / 1e8,
+            totalTransparent: totalTransparent,
+            top10Pct: totalTransparent > 0 ? (parseFloat(top10) / 1e8 / totalTransparent) * 100 : 0,
+            top100Pct: totalTransparent > 0 ? (parseFloat(top100) / 1e8 / totalTransparent) * 100 : 0,
+          },
+        };
       },
     });
+
+    applyListCacheHeaders(res, cached);
+    res.json(cached.value);
   } catch (error) {
     console.error('Error fetching rich list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch rich list' });

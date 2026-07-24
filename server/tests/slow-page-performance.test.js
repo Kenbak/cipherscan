@@ -54,6 +54,7 @@ function captureTransactionRoutes() {
     express: { Router: () => router },
     '../validation': { validate: () => (_req, _res, next) => next() },
     '../coinbase-data': { decodeCoinbaseText: () => null },
+    '../list-cache': require('../api/list-cache'),
   });
   return { handlers, middleware };
 }

@@ -4,6 +4,22 @@ These files are the version-controlled source for the mainnet API, Zebra,
 scheduled jobs, and PostgreSQL backups. Deployment-local secrets remain outside
 Git in `server/api/.env`.
 
+The list-response cache uses the host's private Redis instance. Install Redis,
+keep it bound to loopback/private interfaces, and enable persistence before
+enabling `API_LIST_CACHE_ENABLED=1`. The API fails open to PostgreSQL if Redis
+is unavailable, but archive TTFB will regress until Redis recovers.
+
+Set the rollout controls in `server/api/.env`; the systemd unit deliberately
+does not override them so changing the flag to `0` and restarting the API is a
+quick rollback:
+
+```dotenv
+API_LIST_CACHE_ENABLED=1
+API_CACHE_NAMESPACE=mainnet
+API_LIST_CACHE_MAX_ENTRIES=1000
+API_LIST_CACHE_REDIS_TIMEOUT_MS=50
+```
+
 ## Install services
 
 ```bash
@@ -11,7 +27,7 @@ sudo cp server/deploy/zebrad-mainnet.service /etc/systemd/system/
 sudo cp server/deploy/zcash-api-mainnet.service /etc/systemd/system/
 sudo cp server/deploy/Caddyfile.example /etc/caddy/Caddyfile
 sudo systemctl daemon-reload
-sudo systemctl enable --now zebrad-mainnet zcash-api-mainnet caddy
+sudo systemctl enable --now redis-server zebrad-mainnet zcash-api-mainnet caddy
 ```
 
 ## Scheduled jobs
