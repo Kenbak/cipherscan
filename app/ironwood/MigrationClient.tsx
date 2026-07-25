@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { toPng } from 'html-to-image';
 import { getApiUrl } from '@/lib/api-config';
+import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
 import { TurnstileHero } from './TurnstileHero';
 
 const ORCHARD = '#A78BFA';
@@ -195,16 +196,7 @@ export function MigrationClient({
     : 0;
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs font-mono text-muted mb-4">
-        <Link href="/" className="hover:text-primary transition-colors">Dashboard</Link>
-        <span className="opacity-40">/</span>
-        <Link href="/pools" className="hover:text-primary transition-colors">Pools</Link>
-        <span className="opacity-40">/</span>
-        <span className="text-secondary">Ironwood</span>
-      </div>
-
-      {/* Header — single sentence, no duplication */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
@@ -214,11 +206,9 @@ export function MigrationClient({
             Live tracking of the NU6.3 Orchard-to-Ironwood migration — pool balances, supply verification, cohort privacy, and migration velocity.
           </p>
         </div>
-        {overview?.network && (
-          <span className="text-[10px] font-mono text-muted bg-glass-3 border border-cipher-border/50 rounded-full px-3 py-1">
-            {overview.network}
-          </span>
-        )}
+        <span className={`text-[10px] font-mono ${NETWORK_COLOR} border border-current/20 rounded-full px-3 py-1`}>
+          {NETWORK_LABEL}
+        </span>
       </div>
 
       {!loaded && !initialOverview ? (
