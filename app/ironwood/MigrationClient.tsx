@@ -858,7 +858,7 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
         <div>
           <h2 className="text-sm font-bold text-primary">Privacy score</h2>
           <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one migration (latest 500 shown). <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
+            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
             <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
           </p>
         </div>

@@ -528,7 +528,7 @@ router.get('/api/migration/scatter', async (req, res) => {
       const allResult = await pool.query(`
         SELECT ABS(value_balance_ironwood) AS ironwood_in_zat
         FROM transactions
-        WHERE has_ironwood = true AND value_balance_ironwood < 0
+        WHERE ${MIGRATION_PREDICATE}
       `);
 
       let denominatedCount = 0;
@@ -559,7 +559,7 @@ router.get('/api/migration/scatter', async (req, res) => {
           value_balance_orchard AS orchard_out_zat,
           is_coinbase
         FROM transactions
-        WHERE has_ironwood = true AND value_balance_ironwood < 0
+        WHERE ${MIGRATION_PREDICATE}
         ORDER BY block_height DESC
         LIMIT 500
       `);
