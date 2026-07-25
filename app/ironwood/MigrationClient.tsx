@@ -8,6 +8,8 @@ import {
   Bar,
   ScatterChart,
   Scatter,
+  PieChart,
+  Pie,
   XAxis,
   YAxis,
   Tooltip,
@@ -454,20 +456,6 @@ function SupplyVerification({
   const pools = overview?.poolSizes;
   if (!audit || !pools) return null;
 
-  const statusLabel = {
-    balanced: 'RECONCILED',
-    syncing: 'SYNCING',
-    stale: 'STALE SOURCE',
-    mismatch: 'MISMATCH',
-  }[audit.status];
-
-  const statusStyle = {
-    balanced: 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5',
-    syncing: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
-    stale: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
-    mismatch: 'text-danger border-red-400/30 bg-red-400/10',
-  }[audit.status];
-
   const totalSupply = pools.chainSupplyZat;
   const poolRows: PoolRow[] = [];
 
@@ -490,67 +478,85 @@ function SupplyVerification({
   const displayTotal = totalSupply ?? computedTotal;
   poolRows.forEach((r) => { r.pct = displayTotal > 0 ? (r.zat / displayTotal) * 100 : 0; });
 
-  // Supply integrity: does the sum of all pools match what the node says was minted?
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
+  // Donut chart data (exclude transparent for visual clarity — it dominates)
+  const shieldedRows = poolRows.filter((r) => r.name !== 'Transparent');
+  const shieldedTotal = shieldedRows.reduce((sum, r) => sum + r.zat, 0);
+
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
+      {/* Header with verification badge */}
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-sm font-bold text-primary">Supply audit</h2>
         {supplyMatch != null && (
-          <span
-            className={`text-[10px] font-mono px-2 py-1 rounded-md border ${
-              supplyMatch
-                ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
-                : 'text-red-400 border-red-400/30 bg-red-400/10'
-            }`}
-            title="Verifies that the sum of all pool balances equals the total minted supply reported by the node. A mismatch would indicate an inflation exploit."
-          >
-            {supplyMatch ? 'NO INFLATION DETECTED' : 'SUPPLY MISMATCH'}
-          </span>
-        )}
-        {supplyMatch == null && (
-          <span className={`text-[10px] font-mono px-2 py-1 rounded-md border ${statusStyle}`}>
-            {statusLabel}
-          </span>
-        )}
-      </div>
-
-      {/* Pool balance breakdown bar */}
-      <div className="h-3 rounded-full overflow-hidden flex mb-4" title="Pool balance distribution">
-        {poolRows.map((row) => (
           <div
-            key={row.name}
-            className="h-full transition-all duration-500"
-            style={{ width: `${row.pct}%`, backgroundColor: row.color }}
-          />
-        ))}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+              supplyMatch
+                ? 'border-emerald-400/30 bg-emerald-400/5'
+                : 'border-red-400/30 bg-red-400/10'
+            }`}
+            title="Verifies that the sum of all pool balances equals the total minted supply reported by the node."
+          >
+            <span className={`w-2 h-2 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+            <span className={`text-[11px] font-mono ${supplyMatch ? 'text-emerald-400' : 'text-red-400'}`}>
+              {supplyMatch ? 'No inflation detected' : 'Supply mismatch'}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Pool table */}
-      <div className="space-y-1.5">
-        {poolRows.map((row) => (
-          <div key={row.name} className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: row.color }} />
-              <span className={row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}>
-                {row.name}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}>
-                {fmtZec(row.zat)} ZEC
-              </span>
-              <span className="text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
-            </div>
+      {/* Main visual: donut + total supply */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 mb-6">
+        {/* Donut chart */}
+        <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex-shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={poolRows}
+                dataKey="zat"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius="62%"
+                outerRadius="90%"
+                strokeWidth={0}
+                animationDuration={800}
+              >
+                {poolRows.map((row, i) => (
+                  <Cell key={i} fill={row.color} opacity={row.highlight ? 1 : 0.85} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          {/* Center label */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-2xl sm:text-3xl font-bold font-mono text-primary leading-none">
+              {(displayTotal / 1e8 / 1e6).toFixed(2)}
+            </span>
+            <span className="text-[10px] font-mono text-muted mt-1">million ZEC</span>
           </div>
-        ))}
+        </div>
 
-        {/* Total supply */}
-        <div className="flex items-center justify-between text-xs font-mono pt-2 mt-2 border-t border-cipher-border/50">
-          <span className="text-primary font-bold">Total supply</span>
-          <span className="text-primary font-bold">{fmtZec(displayTotal)} ZEC</span>
+        {/* Pool legend */}
+        <div className="flex-1 space-y-2.5 w-full">
+          {poolRows.map((row) => (
+            <div key={row.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className={`text-sm ${row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}`}>
+                  {row.name}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
+                  {fmtZec(row.zat)}
+                </span>
+                <span className="text-[10px] text-muted ml-2">{row.pct.toFixed(1)}%</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -559,23 +565,18 @@ function SupplyVerification({
         <InflowSources sources={overview.inflowSources} />
       )}
 
-      {/* Verification explanation */}
-      <div className="mt-4 pt-3 border-t border-cipher-border/30 text-[10px] text-muted leading-relaxed">
-        {supplyMatch != null ? (
-          supplyMatch ? (
-            <span>All pool balances sum exactly to the total minted supply. No evidence of inflation.</span>
-          ) : (
-            <span className="text-red-400">
-              Pool balances do not match minted supply — difference: {fmtZec(poolSum - (totalSupply ?? 0))} ZEC.
-            </span>
-          )
-        ) : (
-          <span>Full supply verification requires live Zebra node with chainSupply data.</span>
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/30">
+        <span className="text-[10px] text-muted font-mono">
+          {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
+        </span>
+        {supplyMatch != null && (
+          <span className="text-[10px] text-muted">
+            {supplyMatch
+              ? 'All pools sum to total minted supply'
+              : `Discrepancy: ${fmtZec(poolSum - (totalSupply ?? 0))} ZEC`}
+          </span>
         )}
-      </div>
-
-      <div className="text-[10px] text-muted mt-2 font-mono">
-        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
       </div>
     </div>
   );
@@ -584,9 +585,9 @@ function SupplyVerification({
 function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSources']> }) {
   const rows = [
     { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: ORCHARD },
-    { name: 'Transparent (shielding)', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: '#94a3b8' },
+    { name: 'Transparent', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: '#94a3b8' },
     { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: '#60a5fa' },
-    { name: 'Coinbase (mining)', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: IRONWOOD },
+    { name: 'Coinbase', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: IRONWOOD },
   ].filter((r) => r.zat > 0 || r.txs > 0);
 
   if (rows.length === 0) return null;
@@ -594,46 +595,57 @@ function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSourc
   const totalIn = sources.totalInZat;
 
   return (
-    <div className="mt-4 pt-4 border-t border-cipher-border/30">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-3">
-        Ironwood inflow sources
+    <div className="pt-5 border-t border-cipher-border/30">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-bold text-primary">Where Ironwood ZEC comes from</span>
+        <span className="text-[10px] font-mono text-muted">
+          {fmtZec(totalIn)} ZEC total inflow
+        </span>
       </div>
 
-      {/* Source bar */}
-      <div className="h-2 rounded-full overflow-hidden flex mb-3">
-        {rows.map((row) => (
-          <div
-            key={row.name}
-            className="h-full transition-all duration-500"
-            style={{ width: totalIn > 0 ? `${(row.zat / totalIn) * 100}%` : '0%', backgroundColor: row.color }}
-          />
-        ))}
-      </div>
-
-      {/* Source rows */}
-      <div className="space-y-1">
-        {rows.map((row) => (
-          <div key={row.name} className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: row.color }} />
-              <span className="text-secondary">{row.name}</span>
+      {/* Stacked bar — tall and bold */}
+      <div className="h-8 rounded-lg overflow-hidden flex mb-4 border border-cipher-border/30">
+        {rows.map((row) => {
+          const pct = totalIn > 0 ? (row.zat / totalIn) * 100 : 0;
+          return (
+            <div
+              key={row.name}
+              className="h-full relative flex items-center justify-center transition-all duration-500"
+              style={{ width: `${pct}%`, backgroundColor: row.color }}
+            >
+              {pct > 12 && (
+                <span className="text-[10px] font-mono font-bold text-white/90 mix-blend-normal">
+                  {pct.toFixed(0)}%
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-muted">{row.txs.toLocaleString()} txs</span>
-              <span className="text-primary">{fmtZec(row.zat)} ZEC</span>
-              <span className="text-muted w-12 text-right">
-                {totalIn > 0 ? `${((row.zat / totalIn) * 100).toFixed(1)}%` : '—'}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Net flow */}
+      {/* Source legend grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {rows.map((row) => {
+          const pct = totalIn > 0 ? (row.zat / totalIn) * 100 : 0;
+          return (
+            <div key={row.name} className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+              <div className="min-w-0">
+                <div className="text-xs text-secondary truncate">{row.name}</div>
+                <div className="text-xs font-mono text-primary font-semibold">
+                  {fmtZec(row.zat)} ZEC
+                  <span className="text-muted font-normal ml-1.5">{row.txs.toLocaleString()} txs</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {sources.totalOutZat > 0 && (
-        <div className="flex items-center justify-between text-xs font-mono mt-2 pt-2 border-t border-cipher-border/20">
+        <div className="flex items-center justify-between text-xs font-mono mt-4 pt-3 border-t border-cipher-border/20">
           <span className="text-muted">Outflows from Ironwood</span>
-          <span className="text-primary">{fmtZec(sources.totalOutZat)} ZEC</span>
+          <span className="text-primary font-semibold">{fmtZec(sources.totalOutZat)} ZEC</span>
         </div>
       )}
     </div>
