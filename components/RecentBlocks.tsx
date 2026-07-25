@@ -77,11 +77,6 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
 
     if (initialBlocks.length === 0) {
       fetchBlocks();
-    } else {
-      // Server data may be stale from ISR cache; refresh after hydration
-      const timer = setTimeout(fetchBlocks, 1000);
-      const interval = setInterval(fetchBlocks, wsConnected ? 60000 : 10000);
-      return () => { clearTimeout(timer); clearInterval(interval); };
     }
 
     const interval = setInterval(fetchBlocks, wsConnected ? 60000 : 10000);

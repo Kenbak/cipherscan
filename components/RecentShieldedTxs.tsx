@@ -67,10 +67,6 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
 
     if (initialTxs.length === 0) {
       fetchTxs();
-    } else {
-      const timer = setTimeout(fetchTxs, 1000);
-      const interval = setInterval(fetchTxs, 10000);
-      return () => { clearTimeout(timer); clearInterval(interval); };
     }
 
     const interval = setInterval(fetchTxs, 10000);

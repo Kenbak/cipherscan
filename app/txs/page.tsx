@@ -119,7 +119,7 @@ async function getInitialTxs(
     }
 
     res = await fetchWithDeadline(`${API_URL}/api/transactions/list?${params.toString()}`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 0 },
     });
   } catch (error) {
     if (!isServerRenderDeadlineError(error)) {

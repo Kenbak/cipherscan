@@ -252,20 +252,11 @@ export default function BlocksClient({
     }
   }, []);
 
-  // If the server couldn't provide data, fetch immediately.
-  // If on page 1 (latest blocks), do a background refresh after hydration
-  // to avoid serving stale data from ISR + Redis cache layers.
+  // Fetch on mount only when the server couldn't provide data
   useEffect(() => {
-    if (fallbackStarted.current) return;
-    if (!hasInitialData) {
-      fallbackStarted.current = true;
-      fetchBlocks(initialCursor, initialDirection, initialPage);
-    } else if (initialPage === 1 && !initialCursor) {
-      const timer = setTimeout(() => {
-        fetchBlocks(null, 'next', 1);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
+    if (hasInitialData || fallbackStarted.current) return;
+    fallbackStarted.current = true;
+    fetchBlocks(initialCursor, initialDirection, initialPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

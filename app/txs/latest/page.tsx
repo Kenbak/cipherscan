@@ -1,6 +1,6 @@
 import TransactionsPage, { generateMetadata as generateTransactionsMetadata } from '../page';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata() {
   return generateTransactionsMetadata({ searchParams: Promise.resolve({}) });

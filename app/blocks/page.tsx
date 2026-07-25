@@ -94,7 +94,7 @@ async function getInitialBlocks(request: BlocksRequest, unavailablePolicy: Unava
     }
 
     res = await fetchWithDeadline(`${API_URL}/api/blocks/list?${params.toString()}`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 0 },
     });
   } catch (error) {
     if (!isServerRenderDeadlineError(error)) {
