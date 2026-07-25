@@ -384,6 +384,14 @@ router.get('/api/migration/overview', async (req, res) => {
           coinbaseInZat,
           ...supplyAudit,
         },
+        supplyVerification: {
+          chainSupplyZat: poolSnapshot.chainSupplyZat,
+          verifiedZat: poolSnapshot.chainSupplyZat - poolSnapshot.orchardZat,
+          unverifiedZat: poolSnapshot.orchardZat,
+          verifiedPct: poolSnapshot.chainSupplyZat > 0
+            ? ((poolSnapshot.chainSupplyZat - poolSnapshot.orchardZat) / poolSnapshot.chainSupplyZat) * 100
+            : 0,
+        },
       };
     });
 
