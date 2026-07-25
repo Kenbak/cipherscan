@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { NETWORK_UPGRADES } from '@/lib/config';
 
 const ZCASH_BLOCK_INTERVAL = 75; // seconds
 
@@ -68,6 +69,7 @@ export function FutureBlockView({
     return () => clearInterval(interval);
   }, []);
 
+  const upgrade = NETWORK_UPGRADES[targetHeight] ?? null;
   const blocksRemaining = targetHeight - currentHeight;
   const secondsRemaining = blocksRemaining * ZCASH_BLOCK_INTERVAL;
   const estimatedDate = new Date(now + secondsRemaining * 1000);
@@ -83,15 +85,31 @@ export function FutureBlockView({
             <h1 className="text-2xl font-bold font-mono text-primary mb-3">
               Block #{targetHeight.toLocaleString()} Has Been Mined!
             </h1>
-            <p className="text-secondary mb-6">
-              This block is now part of the Zcash blockchain.
-            </p>
-            <Link
-              href={`/block/${targetHeight}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 border border-cipher-cyan/30 text-cipher-cyan font-mono text-sm hover:bg-cipher-cyan/20 transition-colors"
-            >
-              View Block →
-            </Link>
+            {upgrade ? (
+              <p className="text-secondary mb-6">
+                <span className="text-cipher-yellow-bright font-semibold">{upgrade.name}</span> is now active on the Zcash network.
+              </p>
+            ) : (
+              <p className="text-secondary mb-6">
+                This block is now part of the Zcash blockchain.
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={`/block/${targetHeight}`}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 border border-cipher-cyan/30 text-cipher-cyan font-mono text-sm hover:bg-cipher-cyan/20 transition-colors"
+              >
+                View Block →
+              </Link>
+              {upgrade?.link && (
+                <Link
+                  href={upgrade.link}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-yellow-bright/10 border border-cipher-yellow-bright/30 text-cipher-yellow-bright font-mono text-sm hover:bg-cipher-yellow-bright/20 transition-colors"
+                >
+                  Migration Tracker →
+                </Link>
+              )}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -107,13 +125,49 @@ export function FutureBlockView({
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono text-primary">
             Zcash Block #{targetHeight.toLocaleString()}
           </h1>
-          <Badge color="muted">UPCOMING</Badge>
+          {upgrade ? (
+            <Badge color="amber">NETWORK UPGRADE</Badge>
+          ) : (
+            <Badge color="muted">UPCOMING</Badge>
+          )}
         </div>
         <p className="mt-3 text-xs sm:text-sm text-secondary">
           This block has not been mined yet. Below is an estimate based on Zcash&apos;s
           75-second target block interval.
         </p>
       </div>
+
+      {/* Network Upgrade Banner */}
+      {upgrade && (
+        <div className="mb-6 rounded-xl border border-cipher-yellow-bright/30 bg-gradient-to-r from-cipher-yellow-bright/5 to-transparent p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cipher-yellow-bright/10 border border-cipher-yellow-bright/20">
+                <svg className="w-4 h-4 text-cipher-yellow-bright" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-sm font-bold text-cipher-yellow-bright">{upgrade.name}</span>
+                <Badge color="amber">{upgrade.zip}</Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-secondary leading-relaxed">
+                {upgrade.description}
+              </p>
+              {upgrade.link && (
+                <Link
+                  href={upgrade.link}
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-yellow-glow transition-colors"
+                >
+                  Migration tracker →
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Countdown Card */}
       <Card className="mb-6">

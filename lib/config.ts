@@ -50,3 +50,26 @@ export const CROSSLINK_URL = 'https://crosslink.cipherscan.app';
 export const STAKING_DAY_PERIOD = 150;
 export const STAKING_DAY_WINDOW = 70;
 export const STAKING_ACTION_DELAY_BLOCKS = 75;
+
+// Known network upgrade activation heights
+export interface NetworkUpgrade {
+  name: string;
+  zip: string;
+  description: string;
+  link?: string;
+}
+
+export const NETWORK_UPGRADES: Record<number, NetworkUpgrade> = {
+  3428143: {
+    name: 'Ironwood (NU6.3)',
+    zip: 'ZIP-258',
+    description: 'Activates the Ironwood shielded pool with enhanced cryptographic foundations. ZEC holders can migrate from Orchard to Ironwood via ZIP-318 turnstile transactions.',
+    link: '/ironwood',
+  },
+  4134000: {
+    name: 'Ironwood (NU6.3)',
+    zip: 'ZIP-258',
+    description: 'Activates the Ironwood shielded pool with enhanced cryptographic foundations. ZEC holders can migrate from Orchard to Ironwood via ZIP-318 turnstile transactions.',
+    link: '/ironwood',
+  },
+};

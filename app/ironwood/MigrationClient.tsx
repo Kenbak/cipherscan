@@ -20,11 +20,13 @@ import {
 } from 'recharts';
 import { toPng } from 'html-to-image';
 import { getApiUrl } from '@/lib/api-config';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getChartColors } from '@/lib/chart-theme';
+type ChartColors = ReturnType<typeof getChartColors>;
+
 import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
 import { TurnstileHero } from './TurnstileHero';
 
-const ORCHARD = '#A78BFA';
-const IRONWOOD = '#F4B728';
 
 interface Overview {
   success?: boolean;
@@ -149,6 +151,8 @@ export function MigrationClient({
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,6 +247,7 @@ export function MigrationClient({
               tipHeight={knownTip}
               migratedPct={0}
               deploymentNetwork={deploymentNetwork}
+              colors={colors}
             />
           ) : (
             /* Post-activation: full dashboard */
@@ -265,10 +270,11 @@ export function MigrationClient({
                 tipHeight={knownTip}
                 migratedPct={migratedPct}
                 deploymentNetwork={deploymentNetwork}
+                colors={colors}
               />
-              <SupplyVerification overview={overview} hasMigrations={hasMigrations} />
-              <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} />
-              <PrivacyScore scatter={scatter} activated={activated} />
+              <SupplyVerification overview={overview} hasMigrations={hasMigrations} colors={colors} />
+              <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} colors={colors} />
+              <PrivacyScore scatter={scatter} activated={activated} colors={colors} />
               <WalletReadiness />
               <Resources />
             </>
@@ -289,6 +295,7 @@ function MetricsRow({
   tipHeight,
   migratedPct,
   deploymentNetwork,
+  colors,
 }: {
   overview: Overview | null;
   activated: boolean;
@@ -297,6 +304,7 @@ function MetricsRow({
   tipHeight: number;
   migratedPct: number;
   deploymentNetwork: string;
+  colors: ChartColors;
 }) {
   const [, setTick] = useState(0);
 
@@ -322,10 +330,10 @@ function MetricsRow({
 
   if (!activated && blocksLeft > 0) {
     return (
-      <div className="mt-4 rounded-xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-cipher-bg-dark p-6 sm:p-8 relative overflow-hidden">
+      <div className="mt-4 rounded-xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-cipher-elevated p-6 sm:p-8 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at 50% 0%, ${IRONWOOD}22 0%, transparent 60%)` }}
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${colors.ironwoodPool}22 0%, transparent 60%)` }}
         />
         <div className="relative z-10">
           {/* Badge */}
@@ -357,12 +365,12 @@ function MetricsRow({
 
           {/* Progress bar */}
           <div className="mt-6 max-w-2xl mx-auto">
-            <div className="h-2.5 rounded-full bg-glass-3 overflow-hidden border border-white/5">
+            <div className="h-2.5 rounded-full bg-glass-6 overflow-hidden border border-cipher-border/30">
               <div
                 className="h-full rounded-full transition-all duration-1000 relative"
                 style={{
                   width: `${progressPct.toFixed(2)}%`,
-                  background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
+                  background: `linear-gradient(90deg, ${colors.orchardPool}, ${colors.ironwoodPool})`,
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-pulse" />
@@ -399,12 +407,12 @@ function MetricsRow({
         <Stat
           label="Orchard emptied"
           value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
-          tone="orchard"
+          tone="orchard" toneColor={colors.orchardPool}
         />
         <Stat
           label="Migration velocity"
           value={overview?.migration?.velocityZatPerHour ? `${fmtZec(overview.migration.velocityZatPerHour)} ZEC/hr` : '—'}
-          tone="ironwood"
+          tone="ironwood" toneColor={colors.ironwoodPool}
         />
         <Stat
           label="Transactions"
@@ -441,9 +449,11 @@ interface PoolRow {
 function SupplyVerification({
   overview,
   hasMigrations,
+  colors,
 }: {
   overview: Overview | null;
   hasMigrations: boolean;
+  colors: ChartColors;
 }) {
   const audit = overview?.supplyAudit;
   const pools = overview?.poolSizes;
@@ -464,8 +474,8 @@ function SupplyVerification({
   if (pools.saplingZat > 0) {
     poolRows.push({ name: 'Sapling', zat: pools.saplingZat, pct: 0, color: '#60a5fa' });
   }
-  poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: ORCHARD });
-  poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: IRONWOOD, highlight: true });
+  poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: colors.orchardPool });
+  poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: colors.ironwoodPool, highlight: true });
 
   const computedTotal = poolRows.reduce((sum, r) => sum + r.zat, 0);
   const displayTotal = totalSupply ?? computedTotal;
@@ -488,7 +498,7 @@ function SupplyVerification({
     { name: 'Verified', value: 100 - orchardVisualPct },
     { name: 'Orchard', value: orchardVisualPct },
   ];
-  const RING_COLORS = ['#10b981', ORCHARD];
+  const RING_COLORS = [colors.verifiedRing, colors.orchardPool];
   const cardRef = useRef<HTMLDivElement>(null);
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
@@ -582,7 +592,7 @@ function SupplyVerification({
               <span className="text-muted">Verified</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ORCHARD }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.orchardPool }} />
               <span className="text-muted">Orchard</span>
             </div>
           </div>
@@ -604,21 +614,21 @@ function SupplyVerification({
           {poolRows.map((row) => (
             <div
               key={row.name}
-              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all hover:bg-white/[0.03] ${
-                row.name === 'Orchard' ? 'border border-amber-400/15' : ''
+              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all hover:bg-cipher-hover ${
+                row.name === 'Orchard' ? 'border border-cipher-border' : ''
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
-                <span className={`text-sm ${row.highlight ? 'text-cipher-yellow-bright font-medium' : row.name === 'Orchard' ? 'text-amber-200' : 'text-secondary'}`}>
+                <span className={`text-sm ${row.highlight ? 'font-medium' : row.name === 'Orchard' ? '' : 'text-secondary'}`} style={(row.highlight || row.name === 'Orchard') ? { color: row.color } : undefined}>
                   {row.name}
                 </span>
                 {row.name === 'Orchard' && (
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-300/10 text-amber-300 font-mono">unverified</span>
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono" style={{ backgroundColor: `${row.color}15`, color: row.color }}>unverified</span>
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
+                <span className="text-sm font-mono font-semibold" style={row.highlight ? { color: row.color } : undefined}>
                   {fmtZec(row.zat)}
                 </span>
                 <span className="text-[10px] font-mono text-muted w-10 text-right">{row.pct.toFixed(1)}%</span>
@@ -635,7 +645,7 @@ function SupplyVerification({
       {/* Inflow sources — compact, below */}
       {hasMigrations && overview.inflowSources && (
         <div className="mt-6 pt-5 border-t border-cipher-border/20">
-          <InflowSources sources={overview.inflowSources} />
+          <InflowSources sources={overview.inflowSources} colors={colors} />
         </div>
       )}
 
@@ -669,12 +679,12 @@ function SupplyVerification({
   );
 }
 
-function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSources']> }) {
+function InflowSources({ sources, colors }: { sources: NonNullable<Overview['inflowSources']>; colors: ChartColors }) {
   const rows = [
-    { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: ORCHARD },
+    { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: colors.orchardPool },
     { name: 'Transparent', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: '#94a3b8' },
     { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: '#60a5fa' },
-    { name: 'Coinbase', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: IRONWOOD },
+    { name: 'Coinbase', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: colors.ironwoodPool },
   ].filter((r) => r.zat > 0 || r.txs > 0);
 
   if (rows.length === 0) return null;
@@ -766,10 +776,12 @@ function MigrationActivity({
   cohorts,
   overview,
   activated,
+  colors,
 }: {
   cohorts: Cohorts | null;
   overview: Overview | null;
   activated: boolean;
+  colors: ChartColors;
 }) {
   const data = (cohorts?.cohorts ?? []).map((c) => ({
     boundary: c.boundaryStartHeight,
@@ -795,7 +807,7 @@ function MigrationActivity({
           <Stat
             label="Velocity"
             value={velocityZec > 0 ? `${velocityZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC/hr` : '—'}
-            tone="ironwood"
+            tone="ironwood" toneColor={colors.ironwoodPool}
           />
           <Stat
             label="Avg cohort size"
@@ -813,19 +825,19 @@ function MigrationActivity({
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
             <XAxis
               dataKey="boundary"
-              tick={{ fontSize: 10, fill: '#8b8b9e' }}
+              tick={{ fontSize: 10, fill: colors.axis }}
               tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
             />
-            <YAxis tick={{ fontSize: 10, fill: '#8b8b9e' }} width={40} />
+            <YAxis tick={{ fontSize: 10, fill: colors.axis }} width={40} />
             <Tooltip
-              cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
+              cursor={{ fill: colors.barCursor }}
               contentStyle={{
-                backgroundColor: 'var(--color-surface-solid)',
-                border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
+                backgroundColor: colors.tooltipBg,
+                border: `1px solid ${colors.tooltipBorder}`,
                 borderRadius: '8px',
                 fontSize: 12,
               }}
-              itemStyle={{ color: 'var(--color-text-primary, #fff)' }}
+              itemStyle={{ color: colors.tooltipText }}
               labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
               labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
               formatter={(val: unknown, name: unknown) =>
@@ -834,7 +846,7 @@ function MigrationActivity({
                   : [Number(val), 'Txs (anonymity set)']
               }
             />
-            <Bar dataKey="volume" fill={IRONWOOD} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="volume" fill={colors.ironwoodPool} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -846,10 +858,8 @@ function MigrationActivity({
 
 // ─── Section 4: Privacy Score ────────────────────────────────────────────────
 
-const DENOMINATED_COLOR = '#34d399';
-const DISTINCTIVE_COLOR = '#f97316';
 
-function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; activated: boolean }) {
+function PrivacyScore({ scatter, activated, colors }: { scatter: ScatterData | null; activated: boolean; colors: ChartColors }) {
   const denominatedData = (scatter?.txs ?? [])
     .filter(tx => tx.privacy === 'denominated')
     .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
@@ -865,8 +875,8 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
         <div>
           <h2 className="text-sm font-bold text-primary">Privacy score</h2>
           <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
-            <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
+            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: colors.denominated }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
+            <span style={{ color: colors.distinctive }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
           </p>
         </div>
         {scatter && hasData && (
@@ -885,12 +895,12 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
         <>
           <ResponsiveContainer width="100%" height={280}>
             <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-              <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis
                 dataKey="x"
                 type="number"
                 name="Block"
-                tick={{ fontSize: 10, fill: '#8b8b9e' }}
+                tick={{ fontSize: 10, fill: colors.axis }}
                 tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                 domain={['dataMin', 'dataMax']}
               />
@@ -898,15 +908,15 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
                 dataKey="y"
                 type="number"
                 name="Amount"
-                tick={{ fontSize: 10, fill: '#8b8b9e' }}
+                tick={{ fontSize: 10, fill: colors.axis }}
                 scale="log"
                 domain={[0.005, 'auto']}
                 tickFormatter={(v) => `${v}`}
-                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8b8b9e' } }}
+                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: colors.axis } }}
               />
               <ZAxis range={[40, 40]} />
               <Tooltip
-                cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.2)' }}
+                cursor={{ strokeDasharray: '3 3', stroke: colors.cursor }}
                 content={({ payload }) => {
                   if (!payload?.length) return null;
                   const d = payload[0].payload;
@@ -914,7 +924,7 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
                     <div className="bg-cipher-surface-solid border border-glass-8 rounded-lg px-3 py-2 text-xs font-mono">
                       <div className="text-muted mb-1">Block #{d.x?.toLocaleString()}</div>
                       <div className="text-primary font-bold">{d.y?.toFixed(8)} ZEC</div>
-                      <div className="mt-1" style={{ color: d.privacy === 'denominated' ? DENOMINATED_COLOR : DISTINCTIVE_COLOR }}>
+                      <div className="mt-1" style={{ color: d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}>
                         {d.privacy === 'denominated' ? `Matches ${d.matched} ZEC denomination` : 'Distinctive amount'}
                       </div>
                       <div className="text-muted/60 mt-1 text-[10px]">{d.txid?.slice(0, 16)}...</div>
@@ -923,21 +933,21 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
                 }}
               />
               {[0.01, 0.1, 1, 10, 100].map(d => (
-                <ReferenceLine key={d} y={d} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
+                <ReferenceLine key={d} y={d} stroke={colors.referenceLine} strokeDasharray="4 4" />
               ))}
-              <Scatter name="Denominated" data={denominatedData} fill={DENOMINATED_COLOR} fillOpacity={0.8} />
-              <Scatter name="Distinctive" data={distinctiveData} fill={DISTINCTIVE_COLOR} fillOpacity={0.8} />
+              <Scatter name="Denominated" data={denominatedData} fill={colors.denominated} fillOpacity={0.8} />
+              <Scatter name="Distinctive" data={distinctiveData} fill={colors.distinctive} fillOpacity={0.8} />
             </ScatterChart>
           </ResponsiveContainer>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-cipher-border/30">
             <div className="flex items-center gap-4 text-[10px] font-mono">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DENOMINATED_COLOR }} />
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.denominated }} />
                 Common denomination
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DISTINCTIVE_COLOR }} />
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
                 Distinctive amount
               </span>
             </div>
@@ -1043,20 +1053,19 @@ function Resources() {
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 
-function Stat({ label, value, tone = 'default' }: {
+function Stat({ label, value, tone = 'default', toneColor }: {
   label: string;
   value: string;
   tone?: 'default' | 'orchard' | 'ironwood' | 'danger';
+  toneColor?: string;
 }) {
-  const valueColor = {
-    default: 'text-primary',
-    orchard: 'text-cipher-purple-bright',
-    ironwood: 'text-cipher-yellow-bright',
-    danger: 'text-red-400',
-  }[tone];
+  const className = tone === 'danger' ? 'text-red-400' : tone === 'default' ? 'text-primary' : undefined;
   return (
     <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3 min-w-0">
-      <div className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
+      <div
+        className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${className ?? ''}`}
+        style={toneColor ? { color: toneColor } : undefined}
+      >
         {value}
       </div>
       <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono truncate">{label}</div>

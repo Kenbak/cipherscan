@@ -19,8 +19,10 @@ import { useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const ORCHARD = new THREE.Color('#A78BFA');
-const IRONWOOD = new THREE.Color('#F4B728');
+const ORCHARD_DARK = new THREE.Color('#A78BFA');
+const IRONWOOD_DARK = new THREE.Color('#F4B728');
+const ORCHARD_LIGHT = new THREE.Color('#7C3AED');
+const IRONWOOD_LIGHT = new THREE.Color('#D49B00');
 
 const ORCHARD_X = -2.7;
 const IRONWOOD_X = 2.7;
@@ -59,12 +61,14 @@ function PoolCloud({
   count,
   sprite,
   spin = 1,
+  blending = THREE.AdditiveBlending,
 }: {
   centerX: number;
   color: THREE.Color;
   count: number;
   sprite: THREE.Texture;
   spin?: number;
+  blending?: THREE.Blending;
 }) {
   const pointsRef = useRef<THREE.Points>(null);
 
@@ -119,7 +123,7 @@ function PoolCloud({
         transparent
         opacity={0.9}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={blending}
       />
     </points>
   );
@@ -136,7 +140,7 @@ interface FlowParticle {
 }
 
 /** Particles crossing the gate Orchard → Ironwood (only when activated). */
-function FlowStream({ count, sprite }: { count: number; sprite: THREE.Texture }) {
+function FlowStream({ count, sprite, lightMode }: { count: number; sprite: THREE.Texture; lightMode?: boolean }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const { positions, colors, params } = useMemo(() => {
@@ -185,10 +189,11 @@ function FlowStream({ count, sprite }: { count: number; sprite: THREE.Texture })
       pos[i * 3] = fromX + (toX - fromX) * e;
       pos[i * 3 + 1] = POOL_Y + Math.sin(e * Math.PI) * p.arc;
       pos[i * 3 + 2] = rawZ * spread;
-      // Blend violet → gold across the crossing.
-      const r = ORCHARD.r + (IRONWOOD.r - ORCHARD.r) * e;
-      const g = ORCHARD.g + (IRONWOOD.g - ORCHARD.g) * e;
-      const b = ORCHARD.b + (IRONWOOD.b - ORCHARD.b) * e;
+      const srcColor = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
+      const dstColor = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
+      const r = srcColor.r + (dstColor.r - srcColor.r) * e;
+      const g = srcColor.g + (dstColor.g - srcColor.g) * e;
+      const b = srcColor.b + (dstColor.b - srcColor.b) * e;
       col[i * 3] = r;
       col[i * 3 + 1] = g;
       col[i * 3 + 2] = b;
@@ -211,7 +216,7 @@ function FlowStream({ count, sprite }: { count: number; sprite: THREE.Texture })
         transparent
         opacity={0.95}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={lightMode ? THREE.NormalBlending : THREE.AdditiveBlending}
       />
     </points>
   );
@@ -220,15 +225,17 @@ function FlowStream({ count, sprite }: { count: number; sprite: THREE.Texture })
 
 /** Basin rim discs under each pool for grounding. */
 function Basins({ orchardScale, ironwoodScale, ironwoodEmpty, lightMode }: { orchardScale: number; ironwoodScale: number; ironwoodEmpty: boolean; lightMode?: boolean }) {
+  const orchardColor = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
+  const ironwoodColor = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
   return (
     <>
       <mesh position={[ORCHARD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={orchardScale}>
         <ringGeometry args={[1.35, 1.6, 48]} />
-        <meshBasicMaterial color={ORCHARD} transparent opacity={lightMode ? 0.6 : 0.35} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={orchardColor} transparent opacity={lightMode ? 0.6 : 0.35} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[IRONWOOD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={ironwoodScale}>
         <ringGeometry args={[1.35, 1.6, 48]} />
-        <meshBasicMaterial color={IRONWOOD} transparent opacity={ironwoodEmpty ? (lightMode ? 0.25 : 0.12) : (lightMode ? 0.6 : 0.35)} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={ironwoodColor} transparent opacity={ironwoodEmpty ? (lightMode ? 0.25 : 0.12) : (lightMode ? 0.6 : 0.35)} side={THREE.DoubleSide} />
       </mesh>
     </>
   );
@@ -272,6 +279,10 @@ export default function TurnstileScene({ activated, balanced, migratedPct, block
     pulseRef.current = 1.2;
   }
 
+  const ORCHARD = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
+  const IRONWOOD = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
+  const blending = lightMode ? THREE.NormalBlending : THREE.AdditiveBlending;
+
   const frac = Math.min(1, Math.max(0, migratedPct / 100));
   const orchardCount = activated ? Math.round(2200 * (1 - frac)) : 2200;
   const ironwoodCount = activated ? Math.round(2200 * frac) : 0;
@@ -290,9 +301,9 @@ export default function TurnstileScene({ activated, balanced, migratedPct, block
       <ambientLight intensity={lightMode ? 1.2 : 0.4} />
       <Rig pulseRef={pulseRef} />
       <Basins orchardScale={orchardScale} ironwoodScale={ironwoodScale} ironwoodEmpty={ironwoodCount === 0} lightMode={lightMode} />
-      <PoolCloud centerX={ORCHARD_X} color={ORCHARD} count={orchardCount} sprite={sprite} spin={1} />
-      <PoolCloud centerX={IRONWOOD_X} color={IRONWOOD} count={ironwoodCount} sprite={sprite} spin={-0.8} />
-      {activated && frac > 0 && frac < 1 && <FlowStream count={Math.round(120 + 400 * frac)} sprite={sprite} />}
+      <PoolCloud centerX={ORCHARD_X} color={ORCHARD} count={orchardCount} sprite={sprite} spin={1} blending={blending} />
+      <PoolCloud centerX={IRONWOOD_X} color={IRONWOOD} count={ironwoodCount} sprite={sprite} spin={-0.8} blending={blending} />
+      {activated && frac > 0 && frac < 1 && <FlowStream count={Math.round(120 + 400 * frac)} sprite={sprite} lightMode={lightMode} />}
 
     </Canvas>
   );
