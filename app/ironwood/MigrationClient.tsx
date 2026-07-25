@@ -761,9 +761,9 @@ function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSourc
       </div>
 
       {sources.totalOutZat > 0 && (
-        <div className="flex items-center justify-between text-xs font-mono mt-3 pt-3 border-t border-cipher-border/20">
-          <span className="text-muted">Outflows from Ironwood</span>
-          <span className="text-primary font-semibold">{fmtZec(sources.totalOutZat)} ZEC</span>
+        <div className="flex items-center gap-4 mt-3 text-[10px] font-mono text-muted">
+          <span>Net: <span className="text-primary font-semibold">{fmtZec(sources.totalInZat - sources.totalOutZat)} ZEC</span></span>
+          <span className="opacity-50">({fmtZec(sources.totalOutZat)} ZEC outflows)</span>
         </div>
       )}
     </div>
