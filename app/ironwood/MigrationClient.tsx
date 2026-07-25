@@ -8,12 +8,9 @@ import {
   Bar,
   ScatterChart,
   Scatter,
-  PieChart,
-  Pie,
   XAxis,
   YAxis,
   Tooltip,
-  Cell,
   ZAxis,
   CartesianGrid,
   ReferenceLine,
@@ -460,10 +457,13 @@ function SupplyVerification({
   if (!audit || !pools) return null;
 
   const totalSupply = pools.chainSupplyZat;
-  const poolRows: PoolRow[] = [];
 
-  if (pools.transparentZat != null && pools.transparentZat > 0) {
-    poolRows.push({ name: 'Transparent', zat: pools.transparentZat, pct: 0, color: '#94a3b8' });
+  // Fold deferred/lockbox into transparent (it's not a separate shielded pool)
+  const transparentZat = (pools.transparentZat ?? 0) + (pools.deferredZat ?? 0);
+
+  const poolRows: PoolRow[] = [];
+  if (transparentZat > 0) {
+    poolRows.push({ name: 'Transparent', zat: transparentZat, pct: 0, color: '#94a3b8' });
   }
   if (pools.sproutZat > 0) {
     poolRows.push({ name: 'Sprout', zat: pools.sproutZat, pct: 0, color: '#6b7280' });
@@ -473,9 +473,6 @@ function SupplyVerification({
   }
   poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: ORCHARD });
   poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: IRONWOOD, highlight: true });
-  if (pools.deferredZat > 0) {
-    poolRows.push({ name: 'Lockbox (Dev Fund)', zat: pools.deferredZat, pct: 0, color: '#a78bfa' });
-  }
 
   const computedTotal = poolRows.reduce((sum, r) => sum + r.zat, 0);
   const displayTotal = totalSupply ?? computedTotal;
@@ -484,115 +481,67 @@ function SupplyVerification({
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
-  // Verified = all pools EXCEPT Orchard (which had the vulnerability)
-  // Orchard ZEC is "assumed correct" until it migrates through Ironwood
-  const verifiedZat = (pools.ironwoodZat ?? 0)
-    + (pools.transparentZat ?? 0)
-    + (pools.sproutZat ?? 0)
-    + (pools.saplingZat ?? 0)
-    + (pools.deferredZat ?? 0);
+  // Verified = everything except Orchard (which had the vulnerable circuit)
+  const verifiedZat = displayTotal - (pools.orchardZat ?? 0);
   const unverifiedZat = pools.orchardZat ?? 0;
   const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-sm font-bold text-primary">Supply integrity</h2>
+      {/* Hero: verified percentage */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted">Supply verified</span>
         {supplyMatch != null && (
-          <div
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-              supplyMatch
-                ? 'border-emerald-400/30 bg-emerald-400/5'
-                : 'border-red-400/30 bg-red-400/10'
-            }`}
-            title="Verifies that the sum of all pool balances equals the total minted supply reported by the node."
-          >
-            <span className={`w-2 h-2 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            <span className={`text-[11px] font-mono ${supplyMatch ? 'text-emerald-400' : 'text-red-400'}`}>
-              {supplyMatch ? 'No inflation detected' : 'Supply mismatch'}
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+            <span className={`text-[10px] font-mono ${supplyMatch ? 'text-emerald-400/70' : 'text-red-400'}`}>
+              {supplyMatch ? 'No inflation' : 'Mismatch'}
             </span>
           </div>
         )}
       </div>
 
-      {/* Hero metric: Verified supply gauge */}
-      <div className="mb-6">
-        <div className="flex items-baseline justify-between mb-2">
-          <span className="text-xs text-muted">Cryptographically verified</span>
-          <span className="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
-            {verifiedPct.toFixed(1)}%
-          </span>
-        </div>
-        <div className="h-4 rounded-full overflow-hidden bg-white/5 border border-cipher-border/30">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
-            style={{ width: `${verifiedPct}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2 text-[10px] font-mono text-muted">
-          <span>{fmtZec(verifiedZat)} ZEC verified</span>
-          <span>{fmtZec(unverifiedZat)} ZEC in Orchard (unverified)</span>
-        </div>
+      <div className="flex items-baseline gap-3 mb-3">
+        <span className="text-4xl sm:text-5xl font-bold font-mono text-emerald-400 leading-none">
+          {verifiedPct.toFixed(1)}%
+        </span>
+        <span className="text-sm text-muted">
+          of {(displayTotal / 1e8).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
+        </span>
       </div>
 
-      {/* Explanation */}
-      <div className="text-xs text-secondary leading-relaxed mb-6 p-3 rounded-lg bg-white/[0.02] border border-cipher-border/20">
-        <span className="text-emerald-400 font-semibold">Verified</span> = Ironwood (proven by new circuit) + Transparent (publicly auditable) + Sprout + Sapling + Lockbox.{' '}
-        <span className="text-amber-300 font-semibold">Unverified</span> = Orchard pool — no exploit evidence, but the vulnerable circuit cannot cryptographically guarantee it. As Orchard ZEC migrates to Ironwood, verified % increases.
+      {/* Progress bar */}
+      <div className="h-3 rounded-full overflow-hidden bg-white/5 mb-2">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500/80 to-emerald-400 transition-all duration-700"
+          style={{ width: `${verifiedPct}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-6">
+        <span>Verified (Ironwood + Transparent + Sprout + Sapling)</span>
+        <span className="text-amber-300">{fmtZec(unverifiedZat)} ZEC unverified in Orchard</span>
       </div>
 
-      {/* Donut + pool breakdown */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 mb-6">
-        <div className="relative w-44 h-44 sm:w-52 sm:h-52 flex-shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={poolRows}
-                dataKey="zat"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius="62%"
-                outerRadius="88%"
-                strokeWidth={0}
-                animationDuration={800}
-              >
-                {poolRows.map((row, i) => (
-                  <Cell key={i} fill={row.color} opacity={row.highlight ? 1 : 0.85} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary leading-none">
-              {(displayTotal / 1e8 / 1e6).toFixed(2)}M
-            </span>
-            <span className="text-[10px] font-mono text-muted mt-1">total ZEC</span>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-2 w-full">
-          {poolRows.map((row) => (
-            <div key={row.name} className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: row.color }} />
-                <span className={`text-sm ${row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}`}>
+      {/* Pool breakdown — compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mb-6 pb-6 border-b border-cipher-border/30">
+        {poolRows.map((row) => (
+          <div key={row.name} className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}`}>
                   {row.name}
                 </span>
                 {row.name === 'Orchard' && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-300/10 text-amber-300 font-mono">unverified</span>
+                  <span className="text-[8px] px-1 py-px rounded bg-amber-300/10 text-amber-300 font-mono leading-tight">unverified</span>
                 )}
               </div>
-              <div className="text-right">
-                <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
-                  {fmtZec(row.zat)}
-                </span>
-                <span className="text-[10px] text-muted ml-2">{row.pct.toFixed(1)}%</span>
-              </div>
+              <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
+                {fmtZec(row.zat)}
+              </span>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Ironwood inflow sources */}
@@ -601,17 +550,8 @@ function SupplyVerification({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/30">
-        <span className="text-[10px] text-muted font-mono">
-          {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
-        </span>
-        {supplyMatch != null && (
-          <span className="text-[10px] text-muted">
-            {supplyMatch
-              ? 'All pools sum to total minted supply'
-              : `Discrepancy: ${fmtZec(poolSum - (totalSupply ?? 0))} ZEC`}
-          </span>
-        )}
+      <div className="mt-4 pt-3 border-t border-cipher-border/30 text-[10px] text-muted font-mono">
+        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
       </div>
     </div>
   );
