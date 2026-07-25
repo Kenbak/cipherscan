@@ -959,9 +959,9 @@ const WALLETS = [
   { name: 'Zcash iOS SDK', status: 'ready' as const, detail: 'PR #1812 merged', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
   { name: 'Zcash Android SDK', status: 'ready' as const, detail: 'feature-orchard_migration branch', link: null },
   { name: 'librustzcash', status: 'ready' as const, detail: 'main branch + migration crate', link: 'https://github.com/zcash/librustzcash' },
-  { name: 'Zodl (iOS)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
-  { name: 'Zodl (Android)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
-  { name: 'YWallet', status: 'unknown' as const, detail: 'Status unconfirmed', link: null },
+  { name: 'Zodl (iOS)', status: 'ready' as const, detail: 'Ironwood migration supported', link: 'https://zodl.com/' },
+  { name: 'Zodl (Android)', status: 'ready' as const, detail: 'Ironwood migration supported', link: 'https://zodl.com/' },
+  { name: 'Vizor', status: 'ready' as const, detail: 'Ironwood support', link: 'https://vizor.cash/' },
 ];
 
 function WalletReadiness() {
