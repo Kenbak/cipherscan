@@ -13,7 +13,7 @@ interface BannerState {
   activated: boolean;
   blocksRemaining: number;
   ironwoodZec: number;
-  verifiedPct: number;
+  verifiedPct: number | null;
 }
 
 export function IronwoodBanner() {
@@ -39,7 +39,7 @@ export function IronwoodBanner() {
           activated,
           blocksRemaining: activated ? 0 : ACTIVATION_HEIGHT - tip,
           ironwoodZec: (json.poolSizes?.ironwoodZat ?? 0) / 1e8,
-          verifiedPct: json.supplyVerification?.verifiedPct ?? 0,
+          verifiedPct: json.supplyVerification?.verifiedPct ?? null,
         });
       } catch { /* silent */ }
     }
@@ -78,9 +78,11 @@ export function IronwoodBanner() {
                 {state.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated
               </span>
               <span className="text-muted/60 mx-1.5 hidden sm:inline">·</span>
-              <span>
-                {state.verifiedPct.toFixed(1)}% supply verified
-              </span>
+              {state.verifiedPct != null && (
+                <span>
+                  {state.verifiedPct.toFixed(1)}% supply verified
+                </span>
+              )}
             </span>
             <span className="text-[10px] text-muted/40 group-hover:text-cipher-yellow/60 transition-colors ml-1">
               View →

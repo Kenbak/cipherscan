@@ -485,15 +485,17 @@ function SupplyVerification({
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
   // Use server-computed supply verification (single source of truth)
+  // When Zebra RPC is unavailable, supplyVerification will be null — show only pool data
   const sv = overview?.supplyVerification;
-  const verifiedZat = sv?.verifiedZat ?? (displayTotal - (pools.orchardZat ?? 0));
-  const unverifiedZat = sv?.unverifiedZat ?? (pools.orchardZat ?? 0);
-  const verifiedPct = sv?.verifiedPct ?? (displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0);
+  const hasSupplyData = sv != null && sv.chainSupplyZat != null;
+  const verifiedZat = hasSupplyData ? sv.verifiedZat : 0;
+  const unverifiedZat = hasSupplyData ? sv.unverifiedZat : pools.orchardZat;
+  const verifiedPct = hasSupplyData ? sv.verifiedPct : null;
 
   // Donut data: two segments — verified (green) and Orchard/unverified (purple)
   // Use a minimum visual value so the Orchard segment is always clearly visible
   const minVisualPct = 5;
-  const orchardVisualPct = Math.max(100 - verifiedPct, minVisualPct);
+  const orchardVisualPct = verifiedPct != null ? Math.max(100 - verifiedPct, minVisualPct) : 50;
   const ringData = [
     { name: 'Verified', value: 100 - orchardVisualPct },
     { name: 'Orchard', value: orchardVisualPct },
@@ -535,7 +537,7 @@ function SupplyVerification({
       const blob = await captureCard();
       if (!blob) return;
       const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
-      const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood`;
+      const text = verifiedPct != null ? `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood` : `Zcash Ironwood migration tracker\n\nhttps://cipherscan.app/ironwood`;
 
       const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
       if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -579,7 +581,7 @@ function SupplyVerification({
             {/* Center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-2xl font-bold font-mono text-primary leading-none">
-                {verifiedPct.toFixed(1)}%
+                {verifiedPct != null ? `${verifiedPct.toFixed(1)}%` : '—'}
               </span>
               <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">supply verified</span>
             </div>
