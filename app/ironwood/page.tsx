@@ -30,10 +30,9 @@ export default async function MigrationPage() {
       ? 4134000
       : 0;
 
-  const [overview, cohorts, denominations] = await Promise.all([
+  const [overview, cohorts] = await Promise.all([
     fetchJson(apiBase, '/api/migration/overview', network),
     fetchJson(apiBase, '/api/migration/cohorts', network),
-    fetchJson(apiBase, '/api/migration/denominations', network),
   ]);
 
   const dataset = {
@@ -42,7 +41,7 @@ export default async function MigrationPage() {
     url: pageUrl,
     name: 'Zcash Ironwood Upgrade and Migration Data',
     description:
-      'Live Zcash Ironwood activation and Orchard-to-Ironwood migration data, including pool balances, migration transaction counts, turnstile supply audit, cohort sizes, denominations, and privacy analysis.',
+      'Live Zcash Ironwood activation and Orchard-to-Ironwood migration data, including pool balances, supply verification, migration velocity, cohort anonymity, and privacy analysis.',
     creator: { '@id': 'https://cipherscan.app/#organization' },
     isPartOf: { '@id': `${baseUrl}/#website` },
     mainEntityOfPage: { '@id': `${pageUrl}#webpage` },
@@ -84,7 +83,7 @@ export default async function MigrationPage() {
       <MigrationClient
         initialOverview={overview}
         initialCohorts={cohorts}
-        initialDenominations={denominations}
+        initialDenominations={null}
         deploymentNetwork={network}
         fallbackActivationHeight={fallbackActivationHeight}
       />

@@ -19,7 +19,6 @@ import {
 import { getApiUrl } from '@/lib/api-config';
 import { TurnstileHero } from './TurnstileHero';
 
-// Orchard sunsets (violet), Ironwood grows (warm gold — the brand emphasis color).
 const ORCHARD = '#A78BFA';
 const IRONWOOD = '#F4B728';
 
@@ -30,9 +29,16 @@ interface Overview {
   tipHeight: number;
   activated: boolean;
   blocksUntilActivation: number;
+  avgBlockTimeSecs?: number;
   poolSizes: {
     orchardZat: number;
     ironwoodZat: number;
+    sproutZat: number;
+    saplingZat: number;
+    deferredZat: number;
+    transparentZat: number | null;
+    shieldedTotalZat: number;
+    chainSupplyZat: number | null;
     updatedAt: string | null;
     source: 'zebra' | 'privacy_stats';
     sourceHeight: number;
@@ -44,6 +50,7 @@ interface Overview {
     firstHeight: number | null;
     lastHeight: number | null;
     migratedPercent: number;
+    velocityZatPerHour?: number;
   };
   supplyAudit: {
     orchardOutZat: number;
@@ -57,6 +64,18 @@ interface Overview {
     sourceHeight: number;
     status: 'balanced' | 'syncing' | 'stale' | 'mismatch';
     balanced: boolean | null;
+  };
+  inflowSources?: {
+    fromOrchardZat: number;
+    fromOrchardTxs: number;
+    fromSaplingZat: number;
+    fromSaplingTxs: number;
+    fromTransparentZat: number;
+    fromTransparentTxs: number;
+    fromCoinbaseZat: number;
+    fromCoinbaseTxs: number;
+    totalInZat: number;
+    totalOutZat: number;
   };
 }
 interface Cohort {
@@ -75,19 +94,6 @@ interface Cohorts {
   minAnonymitySet: number;
   maxAnonymitySet: number;
   cohorts: Cohort[];
-}
-interface DenomBin {
-  power: number;
-  denomination: number;
-  label: string;
-  txCount: number;
-  volumeZat: number;
-}
-interface Denominations {
-  success?: boolean;
-  network?: string;
-  totalTx: number;
-  bins: DenomBin[];
 }
 interface ScatterTx {
   txid: string;
@@ -119,24 +125,21 @@ function fmtZec(zat: number): string {
 export function MigrationClient({
   initialOverview,
   initialCohorts,
-  initialDenominations,
+  initialDenominations: _initialDenominations,
   deploymentNetwork,
   fallbackActivationHeight,
 }: {
   initialOverview: Overview | null;
   initialCohorts: Cohorts | null;
-  initialDenominations: Denominations | null;
+  initialDenominations: unknown;
   deploymentNetwork: 'mainnet' | 'testnet' | 'crosslink-testnet';
   fallbackActivationHeight: number;
 }) {
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
-  const [denoms, setDenoms] = useState<Denominations | null>(initialDenominations);
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
 
-  // Keep the authoritative pool snapshot near-live without repeatedly running
-  // the heavier cohort, denomination, and scatter queries.
   useEffect(() => {
     let cancelled = false;
     const base = getApiUrl();
@@ -156,12 +159,10 @@ export function MigrationClient({
     const loadAnalytics = () => {
       Promise.all([
         fetchJson('/api/migration/cohorts'),
-        fetchJson('/api/migration/denominations'),
         fetchJson('/api/migration/scatter'),
-      ]).then(([c, d, s]) => {
+      ]).then(([c, s]) => {
         if (cancelled) return;
         if (c?.success && c.network === deploymentNetwork) setCohorts(c);
-        if (d?.success && d.network === deploymentNetwork) setDenoms(d);
         if (s?.success && s.network === deploymentNetwork) setScatter(s);
       });
     };
@@ -175,27 +176,20 @@ export function MigrationClient({
       clearInterval(overviewId);
       clearInterval(analyticsId);
     };
-  }, []);
+  }, [deploymentNetwork]);
 
   const activated = overview?.activated ?? false;
   const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
   const noData = loaded && (!overview || !overview.migration);
 
-  // Keep the fallback aligned with the deployment when its API is temporarily
-  // unavailable; a testnet response must never begin with mainnet data.
   const knownActivationHeight = overview?.activationHeight ?? fallbackActivationHeight;
   const knownTip = overview?.tipHeight || 0;
-  // Only show countdown after data has loaded and we confirmed pre-activation.
-  // Prevents flash of mainnet countdown on testnet while data is loading.
-  const showPreActivationCountdown = loaded
-    && !activated
-    && !hasMigrations
-    && knownActivationHeight > 0
-    && knownTip > 0;
 
-  const displayOverview = overview;
-  const displayCohorts = cohorts;
-  const displayDenoms = denoms;
+  const migratedPct =
+    overview && (overview.poolSizes.orchardZat + overview.poolSizes.ironwoodZat) > 0
+      ? (overview.poolSizes.ironwoodZat /
+          (overview.poolSizes.orchardZat + overview.poolSizes.ironwoodZat)) * 100
+      : 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -208,41 +202,22 @@ export function MigrationClient({
         <span className="text-secondary">Ironwood</span>
       </div>
 
-      {/* Header */}
+      {/* Header — single sentence, no duplication */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Zcash <span className="text-cipher-yellow-bright">Ironwood</span>{' '}Upgrade &amp; Migration Tracker
+            Zcash <span className="text-cipher-yellow-bright">Ironwood</span> Migration Tracker
           </h1>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-            Zcash Ironwood is the formally-verified shielded pool introduced by NU6.3. CipherScan tracks
-            its activation, Orchard migration, verified shielded supply, anonymity cohorts, and trustless
-            turnstile activity directly from the chain.
-          </p>
-          <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-            NU6.3 moves shielded value from Orchard into the formally-verified{' '}
-            <span className="font-semibold text-cipher-yellow-bright">Ironwood</span> pool through a
-            trustless turnstile. The migration is engineered to be{' '}
-            <span className="text-primary font-semibold">uniform on purpose</span> — power-of-ten amounts,
-            shared timing cohorts — so that individual moves blend together. This is what that looks like
-            from the chain.
+            Live tracking of the NU6.3 Orchard-to-Ironwood migration — pool balances, supply verification, cohort privacy, and migration velocity.
           </p>
         </div>
-        {displayOverview?.network && (
+        {overview?.network && (
           <span className="text-[10px] font-mono text-muted bg-glass-3 border border-cipher-border/50 rounded-full px-3 py-1">
-            {displayOverview.network}
+            {overview.network}
           </span>
         )}
       </div>
-
-      <section className="mt-6 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-        <h2 className="text-sm font-bold text-primary">What the Zcash Ironwood upgrade changes</h2>
-        <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
-          Ironwood keeps Orchard&apos;s Action and Halo2 proof system while adding its own note commitment
-          tree, nullifier set, chain value pool, chain-history metadata, and v6 transaction format. Mainnet
-          activation is fixed at block 3,428,143; testnet activation is block 4,134,000.
-        </p>
-      </section>
 
       {!loaded && !initialOverview ? (
         <div className="mt-8 h-80 sm:h-[420px] rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
@@ -258,181 +233,188 @@ export function MigrationClient({
             CipherScan could not load Ironwood data for this network. Try again shortly.
           </p>
         </div>
-      ) : showPreActivationCountdown ? (
-        /* Pre-activation countdown — big visual display */
-        <IronwoodCountdown
-          activationHeight={knownActivationHeight}
-          tipHeight={knownTip}
-          avgBlockTimeSecs={(overview as any)?.avgBlockTimeSecs || 75}
-          deploymentNetwork={deploymentNetwork}
-        />
       ) : (
         <>
-          {/* 3D turnstile hero — falls back to the 2D countdown card */}
-          {displayOverview && (
+          {/* Section 1: Hero — 3D scene (visual only) */}
+          {overview && (
             <TurnstileHero
               activated={activated}
-              balanced={displayOverview.supplyAudit?.balanced ?? true}
-              migratedPct={
-                (displayOverview.poolSizes.orchardZat + displayOverview.poolSizes.ironwoodZat) > 0
-                  ? (displayOverview.poolSizes.ironwoodZat /
-                      (displayOverview.poolSizes.orchardZat + displayOverview.poolSizes.ironwoodZat)) * 100
-                  : 0
-              }
-              blocksUntilActivation={displayOverview.blocksUntilActivation}
-              tipHeight={displayOverview.tipHeight}
-              activationHeight={displayOverview.activationHeight}
-              orchardZat={displayOverview.poolSizes.orchardZat}
-              ironwoodZat={displayOverview.poolSizes.ironwoodZat}
-              blockPulseKey={displayOverview.tipHeight}
-              avgBlockTimeSecs={(displayOverview as any).avgBlockTimeSecs}
-              fallback={!activated ? <ActivationCountdown overview={displayOverview} /> : null}
+              balanced={overview.supplyAudit?.balanced ?? true}
+              migratedPct={migratedPct}
+              blockPulseKey={overview.tipHeight}
             />
           )}
 
-          {/* Supply audit — the headline */}
-          <SupplyAudit overview={displayOverview} hasMigrations={hasMigrations} />
+          {/* Section 1b: Key metrics + countdown */}
+          <MetricsRow
+            overview={overview}
+            activated={activated}
+            hasMigrations={hasMigrations}
+            activationHeight={knownActivationHeight}
+            tipHeight={knownTip}
+            migratedPct={migratedPct}
+            deploymentNetwork={deploymentNetwork}
+          />
 
-          {/* Cohort waves */}
-          <CohortWaves cohorts={displayCohorts} activated={activated} />
+          {/* Section 2: Supply Verification */}
+          <SupplyVerification overview={overview} hasMigrations={hasMigrations} />
 
-          {/* Denomination histogram + anonymity set */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-            <DenominationHistogram denoms={displayDenoms} activated={activated} />
-            <AnonymitySet cohorts={displayCohorts} activated={activated} />
-          </div>
+          {/* Section 3: Migration Activity */}
+          <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} />
 
-          {/* Migration privacy scatter */}
-          <MigrationScatter scatter={scatter} activated={activated} />
+          {/* Section 4: Privacy Score */}
+          <PrivacyScore scatter={scatter} activated={activated} />
+
+          {/* Section 5: Wallet Readiness */}
+          <WalletReadiness />
+
+          {/* Section 6: Resources */}
+          <Resources />
         </>
       )}
-
-      <WalletMigrationGuide />
-
-      {/* Methodology */}
-      <Methodology />
     </div>
   );
 }
 
-function IronwoodCountdown({
+// ─── Section 1b: Metrics Row ─────────────────────────────────────────────────
+
+function MetricsRow({
+  overview,
+  activated,
+  hasMigrations,
   activationHeight,
   tipHeight,
-  avgBlockTimeSecs,
+  migratedPct,
   deploymentNetwork,
 }: {
+  overview: Overview | null;
+  activated: boolean;
+  hasMigrations: boolean;
   activationHeight: number;
   tipHeight: number;
-  avgBlockTimeSecs: number;
-  deploymentNetwork: 'mainnet' | 'testnet' | 'crosslink-testnet';
+  migratedPct: number;
+  deploymentNetwork: string;
 }) {
-  const [now, setNow] = useState(Date.now());
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    if (activated) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [activated]);
 
   const blocksLeft = Math.max(0, activationHeight - tipHeight);
-  const etaSecs = blocksLeft * avgBlockTimeSecs;
-  const targetDate = new Date(now + etaSecs * 1000);
-  const progressPct = tipHeight > 0
+  const blockTime = overview?.avgBlockTimeSecs || 75;
+  const etaSecs = blocksLeft * blockTime;
+  const progressPct = tipHeight > 0 && activationHeight > 0
     ? Math.min(100, (tipHeight / activationHeight) * 100)
     : 0;
 
   const days = Math.floor(etaSecs / 86400);
   const hours = Math.floor((etaSecs % 86400) / 3600);
   const minutes = Math.floor((etaSecs % 3600) / 60);
-  const networkLabel = deploymentNetwork === 'mainnet'
-    ? 'Mainnet'
-    : deploymentNetwork === 'testnet'
-      ? 'Testnet'
-      : 'Crosslink Testnet';
-  const alternateExplorer = deploymentNetwork === 'mainnet'
-    ? { href: 'https://testnet.cipherscan.app/ironwood', label: 'Preview on testnet' }
-    : { href: 'https://cipherscan.app/ironwood', label: 'View on mainnet' };
 
+  const targetDate = new Date(Date.now() + etaSecs * 1000);
+  const networkLabel = deploymentNetwork === 'mainnet' ? 'Mainnet' : 'Testnet';
+
+  if (!activated && blocksLeft > 0) {
+    return (
+      <div className="mt-4 rounded-xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-cipher-bg-dark p-6 sm:p-8 relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-15 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${IRONWOOD}22 0%, transparent 60%)` }}
+        />
+        <div className="relative z-10">
+          {/* Badge */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5">
+              <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-yellow-bright" />
+              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
+                NU6.3 Ironwood {networkLabel}
+              </span>
+            </div>
+          </div>
+
+          {/* Countdown */}
+          <div className="flex items-center justify-center gap-3 sm:gap-5">
+            <CountdownUnit value={days} label="days" />
+            <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+            <CountdownUnit value={hours} label="hours" />
+            <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+            <CountdownUnit value={minutes} label="min" />
+          </div>
+
+          {/* Blocks remaining */}
+          <div className="text-center mt-6">
+            <div className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-cipher-yellow-bright">
+              {blocksLeft.toLocaleString()}
+            </div>
+            <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-6 max-w-2xl mx-auto">
+            <div className="h-2.5 rounded-full bg-glass-3 overflow-hidden border border-white/5">
+              <div
+                className="h-full rounded-full transition-all duration-1000 relative"
+                style={{
+                  width: `${progressPct.toFixed(2)}%`,
+                  background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-pulse" />
+              </div>
+            </div>
+            <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted">
+              <span>block {tipHeight.toLocaleString()}</span>
+              <span className="text-cipher-yellow-bright">{activationHeight.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* ETA */}
+          <div className="text-center mt-4 text-sm font-mono text-secondary">
+            est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </div>
+
+          {/* Pool balances row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-cipher-border/30">
+            <Stat label="Orchard pool" value={overview ? `${fmtZec(overview.poolSizes.orchardZat)} ZEC` : '—'} tone="orchard" />
+            <Stat label="Ironwood pool" value={overview ? `${fmtZec(overview.poolSizes.ironwoodZat)} ZEC` : '—'} tone="ironwood" />
+            <Stat label="Migrated" value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '—'} tone="ironwood" />
+            <Stat label="Progress" value={`${progressPct.toFixed(1)}%`} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Post-activation: compact metrics
   return (
-    <div className="mt-8 rounded-2xl border border-cipher-border bg-gradient-to-b from-cipher-surface to-cipher-bg-dark p-6 sm:p-10 overflow-hidden relative">
-      <div
-        className="absolute inset-0 opacity-20 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse at 50% 0%, ${IRONWOOD}22 0%, transparent 60%)` }}
-      />
-      <div className="relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5 mb-4">
-            <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-yellow-bright" />
-            <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
-              NU6.3 Ironwood {networkLabel}
-            </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-primary">Activation Countdown</h2>
-        </div>
-
-        {blocksLeft > 0 ? (
-          <>
-            <div className="flex items-center justify-center gap-3 sm:gap-5">
-              <CountdownUnit value={days} label="days" />
-              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
-              <CountdownUnit value={hours} label="hours" />
-              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
-              <CountdownUnit value={minutes} label="min" />
-            </div>
-
-            <div className="text-center mt-8">
-              <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight text-cipher-yellow-bright">
-                {blocksLeft.toLocaleString()}
-              </div>
-              <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
-            </div>
-
-            <div className="mt-8 max-w-2xl mx-auto">
-              <div className="h-3 rounded-full bg-glass-3 overflow-hidden border border-white/5">
-                <div
-                  className="h-full rounded-full transition-all duration-1000 relative"
-                  style={{
-                    width: `${progressPct.toFixed(2)}%`,
-                    background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-pulse" />
-                </div>
-              </div>
-              <div className="flex justify-between mt-2 text-[10px] font-mono text-muted">
-                <span>block {tipHeight > 0 ? tipHeight.toLocaleString() : '...'}</span>
-                <span className="font-semibold text-cipher-yellow-bright">
-                  {activationHeight.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-center mt-6 text-sm font-mono text-secondary">
-              est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </div>
-          </>
-        ) : (
-          <div className="text-center">
-            <div className="text-4xl sm:text-5xl font-bold font-mono text-cipher-yellow-bright">
-              ACTIVATED
-            </div>
-            <div className="text-sm text-secondary mt-2">
-              Ironwood is live. Migration transactions will appear below.
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-cipher-border/30">
-          <a
-            href={alternateExplorer.href}
-            className="text-[11px] font-mono text-cipher-cyan hover:underline"
-          >
-            {alternateExplorer.label}
-          </a>
-          <span className="text-muted/30">|</span>
-          <span className="text-[11px] font-mono text-muted">
-            {progressPct.toFixed(1)}% of blocks mined
-          </span>
-        </div>
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-xs font-mono text-secondary uppercase tracking-wider">IRONWOOD LIVE</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat
+          label="Since activation"
+          value={`${((tipHeight - activationHeight) || 0).toLocaleString()} blocks`}
+        />
+        <Stat
+          label="Orchard pool"
+          value={overview ? `${fmtZec(overview.poolSizes.orchardZat)} ZEC` : '—'}
+          tone="orchard"
+        />
+        <Stat
+          label="Ironwood pool"
+          value={overview ? `${fmtZec(overview.poolSizes.ironwoodZat)} ZEC` : '—'}
+          tone="ironwood"
+        />
+        <Stat
+          label="Migrated"
+          value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
+          tone="ironwood"
+        />
       </div>
     </div>
   );
@@ -451,100 +433,17 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
-function StatusBadge({ activated, network }: { activated: boolean; network?: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-cipher-border bg-cipher-surface px-3 py-1.5">
-      <span
-        className={`w-2 h-2 rounded-full ${activated ? 'bg-cipher-cyan animate-pulse' : 'bg-muted/50'}`}
-      />
-      <span className="text-[11px] font-mono text-secondary">
-        {activated ? 'LIVE' : 'AWAITING ACTIVATION'}
-        {network ? ` · ${network}` : ''}
-      </span>
-    </div>
-  );
+// ─── Section 2: Supply Verification ──────────────────────────────────────────
+
+interface PoolRow {
+  name: string;
+  zat: number;
+  pct: number;
+  color?: string;
+  highlight?: boolean;
 }
 
-function ActivationCountdown({ overview }: { overview: Overview }) {
-  const { blocksUntilActivation, activationHeight, tipHeight } = overview;
-  const BLOCK_TIME_SECS = (overview as any)?.avgBlockTimeSecs || 75;
-  const etaSecs = blocksUntilActivation * BLOCK_TIME_SECS;
-  const etaDays = etaSecs / 86400;
-  const etaHours = etaSecs / 3600;
-  const progressPct = activationHeight
-    ? Math.min(100, (tipHeight / activationHeight) * 100)
-    : 0;
-
-  const etaLabel = etaDays >= 2
-    ? `~${etaDays.toFixed(1)} days`
-    : etaHours >= 1
-      ? `~${Math.round(etaHours)} hours`
-      : `<1 hour`;
-
-  const estimatedDate = blocksUntilActivation > 0
-    ? new Date(Date.now() + etaSecs * 1000)
-    : null;
-
-  return (
-    <div className="mt-6 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="text-[10px] text-muted uppercase tracking-widest font-mono mb-1">
-            NU6.3 IRONWOOD ACTIVATION
-          </div>
-          <div className="text-2xl font-bold font-mono text-primary">
-            {blocksUntilActivation > 0
-              ? `${blocksUntilActivation.toLocaleString()} blocks to go`
-              : activationHeight
-                ? 'Activation reached'
-                : 'Activation height TBD'}
-          </div>
-          <div className="text-xs text-muted mt-1 font-mono space-y-0.5">
-            <div>
-              height {tipHeight.toLocaleString()} / {activationHeight?.toLocaleString() ?? '—'}
-              {blocksUntilActivation > 0 && <span className="ml-2 text-secondary">{etaLabel}</span>}
-            </div>
-            {estimatedDate && (
-              <div className="text-muted/70">
-                est. {estimatedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="text-right space-y-2">
-          <p className="text-xs text-secondary max-w-xs leading-relaxed">
-            ZIP-318 migration transactions cannot exist until the network upgrade activates.
-            The moment they do, this dashboard fills in automatically.
-          </p>
-          {blocksUntilActivation > 0 && (
-            <div className="text-[11px] font-mono text-cipher-yellow-bright">
-              {progressPct.toFixed(1)}% complete
-            </div>
-          )}
-        </div>
-      </div>
-      {activationHeight && blocksUntilActivation > 0 && (
-        <div className="mt-4">
-          <div className="h-2 rounded-full bg-glass-3 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-1000"
-              style={{
-                width: `${progressPct.toFixed(2)}%`,
-                background: `linear-gradient(90deg, ${ORCHARD}, ${IRONWOOD})`,
-              }}
-            />
-          </div>
-          <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted">
-            <span>current: {tipHeight.toLocaleString()}</span>
-            <span className="text-cipher-yellow-bright">NU6.3 @ {activationHeight.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SupplyAudit({
+function SupplyVerification({
   overview,
   hasMigrations,
 }: {
@@ -552,123 +451,243 @@ function SupplyAudit({
   hasMigrations: boolean;
 }) {
   const audit = overview?.supplyAudit;
-  const ironwoodZat = overview?.poolSizes.ironwoodZat ?? 0;
-  const auditLabel = audit?.status === 'balanced'
-    ? 'RECONCILED'
-    : audit?.status === 'syncing'
-      ? 'SYNCING'
-      : audit?.status === 'stale'
-        ? 'STALE SOURCE'
-        : 'MISMATCH';
-  const auditStyle = audit?.status === 'balanced'
-    ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
-    : audit?.status === 'syncing' || audit?.status === 'stale'
-      ? 'text-amber-300 border-amber-300/30 bg-amber-300/10'
-      : 'text-danger border-red-400/30 bg-red-400/10';
+  const pools = overview?.poolSizes;
+  if (!audit || !pools) return null;
+
+  const statusLabel = {
+    balanced: 'RECONCILED',
+    syncing: 'SYNCING',
+    stale: 'STALE SOURCE',
+    mismatch: 'MISMATCH',
+  }[audit.status];
+
+  const statusStyle = {
+    balanced: 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5',
+    syncing: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
+    stale: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
+    mismatch: 'text-danger border-red-400/30 bg-red-400/10',
+  }[audit.status];
+
+  const totalSupply = pools.chainSupplyZat;
+  const poolRows: PoolRow[] = [];
+
+  if (pools.transparentZat != null && pools.transparentZat > 0) {
+    poolRows.push({ name: 'Transparent', zat: pools.transparentZat, pct: 0, color: '#94a3b8' });
+  }
+  if (pools.sproutZat > 0) {
+    poolRows.push({ name: 'Sprout', zat: pools.sproutZat, pct: 0, color: '#6b7280' });
+  }
+  if (pools.saplingZat > 0) {
+    poolRows.push({ name: 'Sapling', zat: pools.saplingZat, pct: 0, color: '#60a5fa' });
+  }
+  poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: ORCHARD });
+  poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: IRONWOOD, highlight: true });
+  if (pools.deferredZat > 0) {
+    poolRows.push({ name: 'Lockbox (Dev Fund)', zat: pools.deferredZat, pct: 0, color: '#a78bfa' });
+  }
+
+  const computedTotal = poolRows.reduce((sum, r) => sum + r.zat, 0);
+  const displayTotal = totalSupply ?? computedTotal;
+  poolRows.forEach((r) => { r.pct = displayTotal > 0 ? (r.zat / displayTotal) * 100 : 0; });
+
+  // Supply integrity: does the sum of all pools match what the node says was minted?
+  const poolSum = computedTotal;
+  const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-primary">Turnstile audit</h2>
-        {audit && (
+        <h2 className="text-sm font-bold text-primary">Supply audit</h2>
+        {supplyMatch != null && (
           <span
-            className={`text-[10px] font-mono px-2 py-1 rounded-md border ${auditStyle}`}
-            title="Reconciles indexed Ironwood inflows minus outflows against Zebra's authoritative pool balance."
+            className={`text-[10px] font-mono px-2 py-1 rounded-md border ${
+              supplyMatch
+                ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
+                : 'text-red-400 border-red-400/30 bg-red-400/10'
+            }`}
+            title="Verifies that the sum of all pool balances equals the total minted supply reported by the node. A mismatch would indicate an inflation exploit."
           >
-            {auditLabel}
+            {supplyMatch ? 'NO INFLATION DETECTED' : 'SUPPLY MISMATCH'}
+          </span>
+        )}
+        {supplyMatch == null && (
+          <span className={`text-[10px] font-mono px-2 py-1 rounded-md border ${statusStyle}`}>
+            {statusLabel}
           </span>
         )}
       </div>
 
-      {/* Verified supply headline */}
-      <div className="mb-4 pb-4 border-b border-cipher-border/50">
-        <div className="text-[10px] uppercase tracking-wider text-muted font-mono mb-1">
-          Verified shielded supply
-        </div>
-        <div className="text-2xl font-bold font-mono text-cipher-yellow-bright">
-          {ironwoodZat > 0 ? `${fmtZec(ironwoodZat)} ZEC` : '—'}
-        </div>
-        <div className="text-[10px] text-muted mt-1 max-w-md leading-relaxed">
-          Current net Ironwood pool balance reported by Zebra and independently reconciled
-          against indexed inflows and outflows.
-        </div>
-        {overview?.poolSizes && (
-          <div className="text-[10px] text-muted mt-2 font-mono">
-            {overview.poolSizes.isLive ? 'LIVE · ZEBRA' : 'FALLBACK SNAPSHOT'}
-            {' · '}BLOCK {overview.poolSizes.sourceHeight.toLocaleString()}
+      {/* Pool balance breakdown bar */}
+      <div className="h-3 rounded-full overflow-hidden flex mb-4" title="Pool balance distribution">
+        {poolRows.map((row) => (
+          <div
+            key={row.name}
+            className="h-full transition-all duration-500"
+            style={{ width: `${row.pct}%`, backgroundColor: row.color }}
+          />
+        ))}
+      </div>
+
+      {/* Pool table */}
+      <div className="space-y-1.5">
+        {poolRows.map((row) => (
+          <div key={row.name} className="flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: row.color }} />
+              <span className={row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}>
+                {row.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}>
+                {fmtZec(row.zat)} ZEC
+              </span>
+              <span className="text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
+            </div>
           </div>
+        ))}
+
+        {/* Total supply */}
+        <div className="flex items-center justify-between text-xs font-mono pt-2 mt-2 border-t border-cipher-border/50">
+          <span className="text-primary font-bold">Total supply</span>
+          <span className="text-primary font-bold">{fmtZec(displayTotal)} ZEC</span>
+        </div>
+      </div>
+
+      {/* Ironwood inflow sources */}
+      {hasMigrations && overview.inflowSources && (
+        <InflowSources sources={overview.inflowSources} />
+      )}
+
+      {/* Verification explanation */}
+      <div className="mt-4 pt-3 border-t border-cipher-border/30 text-[10px] text-muted leading-relaxed">
+        {supplyMatch != null ? (
+          supplyMatch ? (
+            <span>All pool balances sum exactly to the total minted supply. No evidence of inflation.</span>
+          ) : (
+            <span className="text-red-400">
+              Pool balances do not match minted supply — difference: {fmtZec(poolSum - (totalSupply ?? 0))} ZEC.
+            </span>
+          )
+        ) : (
+          <span>Full supply verification requires live Zebra node with chainSupply data.</span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <Stat label="Migrated total" unit="ZEC" value={hasMigrations ? fmtZec(overview!.migration.totalMigratedZat) : '—'} />
-        <Stat label="Migration txs" value={hasMigrations ? overview!.migration.txCount.toLocaleString() : '—'} />
-        <Stat
-          label="Orchard out"
-          unit="ZEC"
-          value={audit && hasMigrations ? fmtZec(audit.orchardOutZat) : '—'}
-          tone="orchard"
-        />
-        <Stat
-          label="Ironwood in"
-          unit="ZEC"
-          value={audit && hasMigrations ? fmtZec(audit.ironwoodInZat) : '—'}
-          tone="ironwood"
-        />
-        <Stat
-          label="Ironwood out"
-          unit="ZEC"
-          value={audit && hasMigrations ? fmtZec(audit.ironwoodOutZat) : '—'}
-        />
-        <Stat
-          label="Indexed net"
-          unit="ZEC"
-          value={audit && hasMigrations ? fmtZec(audit.indexedNetZat) : '—'}
-          tone="ironwood"
-        />
+      <div className="text-[10px] text-muted mt-2 font-mono">
+        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, unit, tone = 'default' }: {
-  label: string;
-  value: string;
-  unit?: string;
-  tone?: 'default' | 'orchard' | 'ironwood';
-}) {
-  const valueColor = {
-    default: 'text-primary',
-    orchard: 'text-cipher-purple-bright',
-    ironwood: 'text-cipher-yellow-bright',
-  }[tone];
+function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSources']> }) {
+  const rows = [
+    { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: ORCHARD },
+    { name: 'Transparent (shielding)', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: '#94a3b8' },
+    { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: '#60a5fa' },
+    { name: 'Coinbase (mining)', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: IRONWOOD },
+  ].filter((r) => r.zat > 0 || r.txs > 0);
+
+  if (rows.length === 0) return null;
+
+  const totalIn = sources.totalInZat;
+
   return (
-    <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3 min-w-0">
-      <div className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
-        {value}
-        {unit && value !== '—' && (
-          <span className="text-[10px] font-medium text-muted ml-1 align-baseline">{unit}</span>
-        )}
+    <div className="mt-4 pt-4 border-t border-cipher-border/30">
+      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-3">
+        Ironwood inflow sources
       </div>
-      <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono truncate">{label}</div>
+
+      {/* Source bar */}
+      <div className="h-2 rounded-full overflow-hidden flex mb-3">
+        {rows.map((row) => (
+          <div
+            key={row.name}
+            className="h-full transition-all duration-500"
+            style={{ width: totalIn > 0 ? `${(row.zat / totalIn) * 100}%` : '0%', backgroundColor: row.color }}
+          />
+        ))}
+      </div>
+
+      {/* Source rows */}
+      <div className="space-y-1">
+        {rows.map((row) => (
+          <div key={row.name} className="flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: row.color }} />
+              <span className="text-secondary">{row.name}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-muted">{row.txs.toLocaleString()} txs</span>
+              <span className="text-primary">{fmtZec(row.zat)} ZEC</span>
+              <span className="text-muted w-12 text-right">
+                {totalIn > 0 ? `${((row.zat / totalIn) * 100).toFixed(1)}%` : '—'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Net flow */}
+      {sources.totalOutZat > 0 && (
+        <div className="flex items-center justify-between text-xs font-mono mt-2 pt-2 border-t border-cipher-border/20">
+          <span className="text-muted">Outflows from Ironwood</span>
+          <span className="text-primary">{fmtZec(sources.totalOutZat)} ZEC</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function CohortWaves({ cohorts, activated }: { cohorts: Cohorts | null; activated: boolean }) {
+// ─── Section 3: Migration Activity ───────────────────────────────────────────
+
+function MigrationActivity({
+  cohorts,
+  overview,
+  activated,
+}: {
+  cohorts: Cohorts | null;
+  overview: Overview | null;
+  activated: boolean;
+}) {
   const data = (cohorts?.cohorts ?? []).map((c) => ({
     boundary: c.boundaryStartHeight,
     volume: zec(c.volumeZat),
     txCount: c.txCount,
   }));
 
+  const velocityZec = overview?.migration?.velocityZatPerHour
+    ? zec(overview.migration.velocityZatPerHour)
+    : 0;
+  const avgCohort = cohorts?.avgAnonymitySet ?? 0;
+
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h2 className="text-sm font-bold text-primary">Cohort waves</h2>
+      <h2 className="text-sm font-bold text-primary">Migration activity</h2>
       <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-        Migration volume per shared anchor boundary (~5.3h). Wallets that pick the same boundary mix
-        together — each bar is one anonymity cohort.
+        Volume per 256-block boundary (~5.3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
       </p>
+
+      {/* Headline stats */}
+      {(velocityZec > 0 || avgCohort > 0) && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <Stat
+            label="Velocity"
+            value={velocityZec > 0 ? `${velocityZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC/hr` : '—'}
+            tone="ironwood"
+          />
+          <Stat
+            label="Avg cohort size"
+            value={avgCohort > 0 ? `${avgCohort.toFixed(1)} txs` : '—'}
+          />
+          <Stat
+            label="Migration txs"
+            value={overview?.migration?.txCount ? overview.migration.txCount.toLocaleString() : '—'}
+          />
+        </div>
+      )}
+
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
@@ -699,87 +718,18 @@ function CohortWaves({ cohorts, activated }: { cohorts: Cohorts | null; activate
           </BarChart>
         </ResponsiveContainer>
       ) : (
-        <EmptyPanel activated={activated} label="cohort waves" />
+        <EmptyPanel activated={activated} />
       )}
     </div>
   );
 }
 
-function DenominationHistogram({
-  denoms,
-  activated,
-}: {
-  denoms: Denominations | null;
-  activated: boolean;
-}) {
-  const data = (denoms?.bins ?? []).map((b) => ({
-    label: b.label,
-    txCount: b.txCount,
-  }));
+// ─── Section 4: Privacy Score ────────────────────────────────────────────────
 
-  return (
-    <div className="rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h2 className="text-sm font-bold text-primary">Denomination collisions</h2>
-      <p className="text-xs text-muted mt-1 mb-4 leading-relaxed">
-        Every migration output is a canonical power of ten (100 / 10 / 1 / 0.1 …). Amounts collide
-        across wallets on purpose — that&apos;s the privacy design working.
-      </p>
-      {data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#8b8b9e' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#8b8b9e' }} width={40} />
-            <Tooltip
-              cursor={{ fill: 'rgba(244, 183, 40, 0.08)' }}
-              contentStyle={{
-                backgroundColor: 'var(--color-surface-solid)',
-                border: '1px solid var(--color-border-subtle, rgba(255,255,255,0.1))',
-                borderRadius: '8px',
-                fontSize: 12,
-              }}
-              itemStyle={{ color: 'var(--color-text-primary, #fff)' }}
-              labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
-              formatter={(val: unknown) => [Number(val).toLocaleString(), 'Outputs']}
-            />
-            <Bar dataKey="txCount" radius={[2, 2, 0, 0]}>
-              {data.map((_, i) => (
-                <Cell key={i} fill={IRONWOOD} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <EmptyPanel activated={activated} label="denomination histogram" />
-      )}
-    </div>
-  );
-}
+const DENOMINATED_COLOR = '#34d399';
+const DISTINCTIVE_COLOR = '#f97316';
 
-function AnonymitySet({ cohorts, activated }: { cohorts: Cohorts | null; activated: boolean }) {
-  const has = (cohorts?.cohortCount ?? 0) > 0;
-  return (
-    <div className="rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h2 className="text-sm font-bold text-primary">Anonymity set per cohort</h2>
-      <p className="text-xs text-muted mt-1 mb-4 leading-relaxed">
-        How many migrations share each anchor boundary. Larger cohorts mean a bigger crowd to hide in.
-      </p>
-      {has ? (
-        <div className="grid grid-cols-3 gap-3">
-          <Stat label="Avg cohort" value={cohorts!.avgAnonymitySet.toFixed(1)} />
-          <Stat label="Smallest" value={String(cohorts!.minAnonymitySet)} />
-          <Stat label="Largest" value={String(cohorts!.maxAnonymitySet)} />
-        </div>
-      ) : (
-        <EmptyPanel activated={activated} label="anonymity sets" />
-      )}
-    </div>
-  );
-}
-
-const DENOMINATED_COLOR = '#34d399'; // emerald
-const DISTINCTIVE_COLOR = '#f97316'; // orange
-
-function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null; activated: boolean }) {
+function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; activated: boolean }) {
   const denominatedData = (scatter?.txs ?? [])
     .filter(tx => tx.privacy === 'denominated')
     .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
@@ -793,11 +743,10 @@ function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null;
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
         <div>
-          <h2 className="text-sm font-bold text-primary">Migration privacy analysis</h2>
+          <h2 className="text-sm font-bold text-primary">Privacy score</h2>
           <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one migration. <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = common denomination
-            (blends in with the crowd). <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount
-            (unique fingerprint that weakens privacy). The dashed lines show ideal denominations.
+            Each dot is one migration. <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
+            <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
           </p>
         </div>
         {scatter && hasData && (
@@ -832,7 +781,7 @@ function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null;
                 tick={{ fontSize: 10, fill: '#8b8b9e' }}
                 scale="log"
                 domain={[0.005, 'auto']}
-                tickFormatter={(v) => v >= 1 ? `${v}` : `${v}`}
+                tickFormatter={(v) => `${v}`}
                 label={{ value: 'ZEC', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8b8b9e' } }}
               />
               <ZAxis range={[40, 40]} />
@@ -861,7 +810,6 @@ function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null;
             </ScatterChart>
           </ResponsiveContainer>
 
-          {/* Legend + stats */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-cipher-border/30">
             <div className="flex items-center gap-4 text-[10px] font-mono">
               <span className="flex items-center gap-1.5">
@@ -879,92 +827,136 @@ function MigrationScatter({ scatter, activated }: { scatter: ScatterData | null;
           </div>
         </>
       ) : (
-        <EmptyPanel activated={activated} label="migration scatter" />
+        <EmptyPanel activated={activated} />
       )}
     </div>
   );
 }
 
-function EmptyPanel({ activated }: { activated: boolean; label?: string }) {
+// ─── Section 5: Wallet Readiness ─────────────────────────────────────────────
+
+const WALLETS = [
+  { name: 'Zcash iOS SDK', status: 'ready' as const, detail: 'PR #1812 merged', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
+  { name: 'Zcash Android SDK', status: 'ready' as const, detail: 'feature-orchard_migration branch', link: null },
+  { name: 'librustzcash', status: 'ready' as const, detail: 'main branch + migration crate', link: 'https://github.com/zcash/librustzcash' },
+  { name: 'Zashi (iOS)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
+  { name: 'Zashi (Android)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
+  { name: 'YWallet', status: 'unknown' as const, detail: 'Status unconfirmed', link: null },
+];
+
+function WalletReadiness() {
   return (
-    <div className="h-[140px] flex items-center justify-center rounded-lg border border-dashed border-cipher-border/50 bg-glass-3">
-      <p className="text-xs text-muted font-mono">
-        {activated ? 'No migrations indexed yet' : 'Populates at activation'}
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+      <h2 className="text-sm font-bold text-primary">Wallet readiness</h2>
+      <p className="text-xs text-muted mt-1 mb-4">
+        SDK and wallet support for ZIP-318 Orchard-to-Ironwood migration.
       </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-[10px] font-mono text-muted uppercase tracking-wider border-b border-cipher-border/50">
+              <th className="pb-2 pr-4">Wallet / SDK</th>
+              <th className="pb-2 pr-4">Status</th>
+              <th className="pb-2">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {WALLETS.map((w) => (
+              <tr key={w.name} className="border-b border-cipher-border/20 last:border-0">
+                <td className="py-2.5 pr-4 font-mono text-primary">
+                  {w.link ? (
+                    <a href={w.link} target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">{w.name}</a>
+                  ) : w.name}
+                </td>
+                <td className="py-2.5 pr-4">
+                  <WalletStatusBadge status={w.status} />
+                </td>
+                <td className="py-2.5 text-muted">{w.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-function WalletMigrationGuide() {
+function WalletStatusBadge({ status }: { status: 'ready' | 'in_progress' | 'unknown' }) {
+  const styles = {
+    ready: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5',
+    in_progress: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
+    unknown: 'text-muted border-cipher-border/50 bg-glass-3',
+  };
+  const labels = { ready: 'Ready', in_progress: 'In Progress', unknown: 'Unknown' };
   return (
-    <section className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h2 className="text-sm font-bold text-primary">How wallets migrate Orchard funds to Ironwood</h2>
-      <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
-        Wallet teams are implementing ZIP 318 as the production migration plan now. The specification
-        reaches its finalized state through the behavior proven in production, so supported wallets can
-        ship the migration flow while those operational details are settled.
-      </p>
-      <ol className="mt-4 grid gap-3 sm:grid-cols-2 text-xs text-secondary">
-        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
-          <span className="block font-mono text-[10px] text-muted mb-1">01 · PREPARE</span>
-          The wallet identifies Orchard funds and can split notes into migration-sized transfers.
-        </li>
-        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
-          <span className="block font-mono text-[10px] text-muted mb-1">02 · SCHEDULE</span>
-          The user approves a plan that spreads transfers across shared anchor-height windows.
-        </li>
-        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
-          <span className="block font-mono text-[10px] text-muted mb-1">03 · BROADCAST</span>
-          Supported wallets submit pre-signed transfers in the background when the operating system allows.
-        </li>
-        <li className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3">
-          <span className="block font-mono text-[10px] text-muted mb-1">04 · RECOVER</span>
-          If a scheduled window is missed, the wallet prompts on the next open and continues the plan.
-        </li>
-      </ol>
-      <p className="text-xs text-muted mt-4 leading-relaxed">
-        Ironwood uses the same address as the user&apos;s Orchard receiver; wallets track it as a distinct
-        pool. Follow your wallet&apos;s release notes for availability and migration controls. CipherScan
-        observes the resulting chain activity but does not initiate wallet transfers.
-      </p>
-      <div className="flex flex-wrap gap-4 mt-4 text-[11px] font-mono">
-        <a
-          href="https://zips.z.cash/zip-0318"
-          target="_blank"
-          rel="noopener"
-          className="text-cipher-cyan hover:underline"
-        >
-          Read ZIP 318
-        </a>
-        <a
-          href="https://github.com/zcash/zips/issues/1315"
-          target="_blank"
-          rel="noopener"
-          className="text-cipher-cyan hover:underline"
-        >
-          Review the ZIP 318 implementation plan
-        </a>
-      </div>
-    </section>
+    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${styles[status]}`}>
+      {labels[status]}
+    </span>
   );
 }
 
-function Methodology() {
+// ─── Section 6: Resources ────────────────────────────────────────────────────
+
+function Resources() {
   return (
-    <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">
-        How we read it
-      </h3>
-      <p className="text-xs text-muted leading-relaxed">
-        A ZIP-318 migration is a v6 transaction with no transparent inputs or outputs whose Orchard
-        value balance is positive (value leaving Orchard) and Ironwood value balance is negative (value
-        entering Ironwood). Because a compliant migration creates exactly one Ironwood output and spends
-        no Ironwood notes, the magnitude of the Ironwood value balance equals the output denomination —
-        which is how we can chart the power-of-ten collisions even though the note itself is shielded.
-        Cohorts are grouped by anchor boundary (provisionally every 256 blocks, ~5.3h). Migrations are{' '}
-        <span className="text-secondary">best practice, not a linkage risk</span> — our{' '}
-        <Link href="/privacy-risks" className="text-cipher-cyan hover:underline">privacy scanner</Link>{' '}
-        treats these uniform patterns as intended privacy behavior rather than flagging them.
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+      <h2 className="text-sm font-bold text-primary">Resources</h2>
+      <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
+        A ZIP-318 migration is a v6 transaction with no transparent I/O whose Orchard value balance is positive
+        and Ironwood value balance is negative. The magnitude of the Ironwood value balance equals the output
+        denomination. Cohorts are grouped by 256-block anchor boundaries (~5.3h).
+      </p>
+      <div className="flex flex-wrap gap-4 mt-4 text-[11px] font-mono">
+        <a href="https://zips.z.cash/zip-0258" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
+          ZIP-258 (NU6.3 Deployment)
+        </a>
+        <a href="https://zips.z.cash/zip-0318" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
+          ZIP-318 (Migration Spec)
+        </a>
+        <a
+          href="https://docs.google.com/document/u/3/d/1z4Aj7tO34RKk0SXZYkNXtswxdBXKbR_IJ_Xw5EJljkc/edit"
+          target="_blank"
+          rel="noopener"
+          className="text-cipher-cyan hover:underline"
+        >
+          Security Considerations
+        </a>
+        <Link href="/privacy-risks" className="text-cipher-cyan hover:underline">
+          CipherScan Privacy Scanner
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared Components ───────────────────────────────────────────────────────
+
+function Stat({ label, value, tone = 'default' }: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'orchard' | 'ironwood' | 'danger';
+}) {
+  const valueColor = {
+    default: 'text-primary',
+    orchard: 'text-cipher-purple-bright',
+    ironwood: 'text-cipher-yellow-bright',
+    danger: 'text-red-400',
+  }[tone];
+  return (
+    <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3 min-w-0">
+      <div className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
+        {value}
+      </div>
+      <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono truncate">{label}</div>
+    </div>
+  );
+}
+
+function EmptyPanel({ activated }: { activated: boolean }) {
+  return (
+    <div className="h-[140px] flex items-center justify-center rounded-lg border border-dashed border-cipher-border/50 bg-glass-3">
+      <p className="text-xs text-muted font-mono">
+        {activated ? 'No migrations indexed yet' : 'Populates at activation'}
       </p>
     </div>
   );

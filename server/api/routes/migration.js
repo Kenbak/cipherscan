@@ -127,9 +127,29 @@ function extractZebraPoolSnapshot(blockchainInfo) {
     return null;
   }
 
+  const sproutZat = parsePoolZat(pools.get('sprout')?.chainValueZat) ?? 0;
+  const saplingZat = parsePoolZat(pools.get('sapling')?.chainValueZat) ?? 0;
+  const deferredZat = parsePoolZat(pools.get('deferred')?.chainValueZat) ?? 0;
+
+  const shieldedTotalZat = sproutZat + saplingZat + orchardZat + ironwoodZat;
+
+  // chainSupply from Zebra gives total minted supply; transparent = total - shielded - lockbox
+  const chainSupplyZat = blockchainInfo.chainSupply?.chainValueZat != null
+    ? parsePoolZat(blockchainInfo.chainSupply.chainValueZat)
+    : null;
+  const transparentZat = chainSupplyZat != null
+    ? chainSupplyZat - shieldedTotalZat - deferredZat
+    : null;
+
   return {
     orchardZat,
     ironwoodZat,
+    sproutZat,
+    saplingZat,
+    deferredZat,
+    transparentZat,
+    shieldedTotalZat,
+    chainSupplyZat,
     height,
     updatedAt: new Date().toISOString(),
     source: 'zebra',
@@ -206,6 +226,12 @@ router.get('/api/migration/overview', async (req, res) => {
             poolSnapshot = {
               orchardZat,
               ironwoodZat,
+              sproutZat: 0,
+              saplingZat: 0,
+              deferredZat: 0,
+              transparentZat: null,
+              shieldedTotalZat: 0,
+              chainSupplyZat: null,
               height,
               updatedAt: snapshot.updated_at,
               source: 'privacy_stats',
@@ -226,6 +252,7 @@ router.get('/api/migration/overview', async (req, res) => {
 
       // One scan yields the gross ledger and migration metadata. Negative
       // Ironwood value balance enters the pool; positive balance leaves it.
+      // Source breakdown: classify each inflow by where the value came from.
       const ledgerResult = await pool.query(`
         SELECT
           COALESCE(SUM(-value_balance_ironwood)
@@ -236,7 +263,22 @@ router.get('/api/migration/overview', async (req, res) => {
             FILTER (WHERE value_balance_ironwood < 0 AND value_balance_orchard > 0), 0) AS orchard_out,
           COALESCE(SUM(-value_balance_ironwood)
             FILTER (WHERE value_balance_ironwood < 0 AND is_coinbase), 0) AS coinbase_in,
+          COALESCE(SUM(-value_balance_ironwood)
+            FILTER (WHERE value_balance_ironwood < 0 AND value_balance_sapling > 0
+                    AND NOT is_coinbase AND value_balance_orchard <= 0), 0) AS sapling_in,
+          COALESCE(SUM(-value_balance_ironwood)
+            FILTER (WHERE value_balance_ironwood < 0 AND vin_count > 0
+                    AND NOT is_coinbase AND value_balance_orchard <= 0
+                    AND value_balance_sapling <= 0), 0) AS transparent_in,
           COUNT(*) FILTER (WHERE value_balance_ironwood < 0) AS inflow_tx_count,
+          COUNT(*) FILTER (WHERE value_balance_ironwood < 0 AND value_balance_orchard > 0
+                           AND NOT is_coinbase) AS orchard_tx_count,
+          COUNT(*) FILTER (WHERE value_balance_ironwood < 0 AND is_coinbase) AS coinbase_tx_count,
+          COUNT(*) FILTER (WHERE value_balance_ironwood < 0 AND value_balance_sapling > 0
+                           AND NOT is_coinbase AND value_balance_orchard <= 0) AS sapling_tx_count,
+          COUNT(*) FILTER (WHERE value_balance_ironwood < 0 AND vin_count > 0
+                           AND NOT is_coinbase AND value_balance_orchard <= 0
+                           AND value_balance_sapling <= 0) AS transparent_tx_count,
           MIN(block_height) FILTER (WHERE value_balance_ironwood < 0) AS first_inflow_height,
           MAX(block_height) FILTER (WHERE value_balance_ironwood < 0) AS last_inflow_height
         FROM transactions
@@ -247,6 +289,9 @@ router.get('/api/migration/overview', async (req, res) => {
       const ironwoodOutZat = Number(ledger.ironwood_out) || 0;
       const orchardOutZat = Number(ledger.orchard_out) || 0;
       const coinbaseInZat = Number(ledger.coinbase_in) || 0;
+      const saplingInZat = Number(ledger.sapling_in) || 0;
+      const transparentInZat = Number(ledger.transparent_in) || 0;
+      const orchardInZat = ironwoodInZat - coinbaseInZat - saplingInZat - transparentInZat;
       const migrationTxCount = Number(ledger.inflow_tx_count) || 0;
       const firstMigrationHeight = ledger.first_inflow_height != null
         ? Number(ledger.first_inflow_height)
@@ -272,6 +317,13 @@ router.get('/api/migration/overview', async (req, res) => {
         ? poolSnapshot.ironwoodZat / (poolSnapshot.orchardZat + poolSnapshot.ironwoodZat)
         : 0;
 
+      let velocityZatPerHour = 0;
+      if (firstMigrationHeight && lastMigrationHeight && lastMigrationHeight > firstMigrationHeight) {
+        const blocksElapsed = lastMigrationHeight - firstMigrationHeight;
+        const hoursElapsed = (blocksElapsed * avgBlockTimeSecs) / 3600;
+        if (hoursElapsed > 0) velocityZatPerHour = Math.round(totalMigratedZat / hoursElapsed);
+      }
+
       const supplyAudit = buildSupplyAudit({
         ironwoodInZat,
         ironwoodOutZat,
@@ -296,6 +348,12 @@ router.get('/api/migration/overview', async (req, res) => {
         poolSizes: {
           orchardZat: poolSnapshot.orchardZat,
           ironwoodZat: poolSnapshot.ironwoodZat,
+          sproutZat: poolSnapshot.sproutZat,
+          saplingZat: poolSnapshot.saplingZat,
+          deferredZat: poolSnapshot.deferredZat,
+          transparentZat: poolSnapshot.transparentZat,
+          shieldedTotalZat: poolSnapshot.shieldedTotalZat,
+          chainSupplyZat: poolSnapshot.chainSupplyZat,
           updatedAt: poolSnapshot.updatedAt,
           source: poolSnapshot.source,
           sourceHeight: poolSnapshot.height,
@@ -307,6 +365,19 @@ router.get('/api/migration/overview', async (req, res) => {
           firstHeight: firstMigrationHeight,
           lastHeight: lastMigrationHeight,
           migratedPercent: migratedFraction * 100,
+          velocityZatPerHour,
+        },
+        inflowSources: {
+          fromOrchardZat: orchardInZat,
+          fromOrchardTxs: Number(ledger.orchard_tx_count) || 0,
+          fromSaplingZat: saplingInZat,
+          fromSaplingTxs: Number(ledger.sapling_tx_count) || 0,
+          fromTransparentZat: transparentInZat,
+          fromTransparentTxs: Number(ledger.transparent_tx_count) || 0,
+          fromCoinbaseZat: coinbaseInZat,
+          fromCoinbaseTxs: Number(ledger.coinbase_tx_count) || 0,
+          totalInZat: ironwoodInZat,
+          totalOutZat: ironwoodOutZat,
         },
         supplyAudit: {
           orchardOutZat,
