@@ -373,13 +373,6 @@ function MetricsRow({
             est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
 
-          {/* Pool balances row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-cipher-border/30">
-            <Stat label="Orchard pool" value={overview ? `${fmtZec(overview.poolSizes.orchardZat)} ZEC` : '—'} tone="orchard" />
-            <Stat label="Ironwood pool" value={overview ? `${fmtZec(overview.poolSizes.ironwoodZat)} ZEC` : '—'} tone="ironwood" />
-            <Stat label="Orchard emptied" value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '—'} tone="ironwood" />
-            <Stat label="Progress" value={`${progressPct.toFixed(1)}%`} />
-          </div>
         </div>
       </div>
     );
