@@ -414,10 +414,17 @@ export default function TxsClient({
   }, [typeFilter]);
 
   useEffect(() => {
-    if (hasInitialData || fallbackStarted.current) return;
-    fallbackStarted.current = true;
-    setPage(initialPage);
-    fetchTxs(initialCursor, initialCursorIdx, initialDirection, initialType, initialPage);
+    if (fallbackStarted.current) return;
+    if (!hasInitialData) {
+      fallbackStarted.current = true;
+      setPage(initialPage);
+      fetchTxs(initialCursor, initialCursorIdx, initialDirection, initialType, initialPage);
+    } else if (initialPage === 1 && !initialCursor) {
+      const timer = setTimeout(() => {
+        fetchTxs(null, null, 'next', typeFilter, 1);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
