@@ -62,7 +62,7 @@ export function IronwoodBanner() {
   return (
     <Link
       href="/ironwood"
-      className="group sticky top-[6rem] z-30 block w-full border-b border-cipher-border/50 bg-cipher-surface-solid transition-all duration-300"
+      className="ironwood-banner group sticky top-[6rem] z-40 block w-full border-b border-cipher-border/50 transition-all duration-300"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-center gap-3 relative">
         {state.activated ? (

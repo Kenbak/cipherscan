@@ -856,6 +856,10 @@
     border-color: var(--color-border);
   }
 
+  .ironwood-banner {
+    background-color: var(--chrome-bg);
+  }
+
   /* ===== NAVBAR ===== */
   .navbar-container {
     @apply transition-colors;

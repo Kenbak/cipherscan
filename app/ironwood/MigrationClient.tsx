@@ -69,6 +69,12 @@ interface Overview {
     status: 'balanced' | 'syncing' | 'stale' | 'mismatch';
     balanced: boolean | null;
   };
+  supplyVerification?: {
+    chainSupplyZat: number;
+    verifiedZat: number;
+    unverifiedZat: number;
+    verifiedPct: number;
+  };
   inflowSources?: {
     fromOrchardZat: number;
     fromOrchardTxs: number;
@@ -468,10 +474,11 @@ function SupplyVerification({
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
-  // Verified = everything except Orchard (vulnerable circuit)
-  const verifiedZat = displayTotal - (pools.orchardZat ?? 0);
-  const unverifiedZat = pools.orchardZat ?? 0;
-  const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
+  // Use server-computed supply verification (single source of truth)
+  const sv = overview?.supplyVerification;
+  const verifiedZat = sv?.verifiedZat ?? (displayTotal - (pools.orchardZat ?? 0));
+  const unverifiedZat = sv?.unverifiedZat ?? (pools.orchardZat ?? 0);
+  const verifiedPct = sv?.verifiedPct ?? (displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0);
 
   // Donut data: two segments — verified (green) and Orchard/unverified (purple)
   // Use a minimum visual value so the Orchard segment is always clearly visible
