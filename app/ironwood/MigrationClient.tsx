@@ -484,15 +484,21 @@ function SupplyVerification({
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
-  // Donut chart data (exclude transparent for visual clarity — it dominates)
-  const shieldedRows = poolRows.filter((r) => r.name !== 'Transparent');
-  const shieldedTotal = shieldedRows.reduce((sum, r) => sum + r.zat, 0);
+  // Verified = all pools EXCEPT Orchard (which had the vulnerability)
+  // Orchard ZEC is "assumed correct" until it migrates through Ironwood
+  const verifiedZat = (pools.ironwoodZat ?? 0)
+    + (pools.transparentZat ?? 0)
+    + (pools.sproutZat ?? 0)
+    + (pools.saplingZat ?? 0)
+    + (pools.deferredZat ?? 0);
+  const unverifiedZat = pools.orchardZat ?? 0;
+  const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-      {/* Header with verification badge */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-sm font-bold text-primary">Supply audit</h2>
+        <h2 className="text-sm font-bold text-primary">Supply integrity</h2>
         {supplyMatch != null && (
           <div
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
@@ -510,10 +516,35 @@ function SupplyVerification({
         )}
       </div>
 
-      {/* Main visual: donut + total supply */}
+      {/* Hero metric: Verified supply gauge */}
+      <div className="mb-6">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-xs text-muted">Cryptographically verified</span>
+          <span className="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
+            {verifiedPct.toFixed(1)}%
+          </span>
+        </div>
+        <div className="h-4 rounded-full overflow-hidden bg-white/5 border border-cipher-border/30">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+            style={{ width: `${verifiedPct}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-2 text-[10px] font-mono text-muted">
+          <span>{fmtZec(verifiedZat)} ZEC verified</span>
+          <span>{fmtZec(unverifiedZat)} ZEC in Orchard (unverified)</span>
+        </div>
+      </div>
+
+      {/* Explanation */}
+      <div className="text-xs text-secondary leading-relaxed mb-6 p-3 rounded-lg bg-white/[0.02] border border-cipher-border/20">
+        <span className="text-emerald-400 font-semibold">Verified</span> = Ironwood (proven by new circuit) + Transparent (publicly auditable) + Sprout + Sapling + Lockbox.{' '}
+        <span className="text-amber-300 font-semibold">Unverified</span> = Orchard pool — no exploit evidence, but the vulnerable circuit cannot cryptographically guarantee it. As Orchard ZEC migrates to Ironwood, verified % increases.
+      </div>
+
+      {/* Donut + pool breakdown */}
       <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 mb-6">
-        {/* Donut chart */}
-        <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex-shrink-0">
+        <div className="relative w-44 h-44 sm:w-52 sm:h-52 flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -523,7 +554,7 @@ function SupplyVerification({
                 cx="50%"
                 cy="50%"
                 innerRadius="62%"
-                outerRadius="90%"
+                outerRadius="88%"
                 strokeWidth={0}
                 animationDuration={800}
               >
@@ -533,17 +564,15 @@ function SupplyVerification({
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-primary leading-none">
-              {(displayTotal / 1e8 / 1e6).toFixed(2)}
+            <span className="text-xl sm:text-2xl font-bold font-mono text-primary leading-none">
+              {(displayTotal / 1e8 / 1e6).toFixed(2)}M
             </span>
-            <span className="text-[10px] font-mono text-muted mt-1">million ZEC</span>
+            <span className="text-[10px] font-mono text-muted mt-1">total ZEC</span>
           </div>
         </div>
 
-        {/* Pool legend */}
-        <div className="flex-1 space-y-2.5 w-full">
+        <div className="flex-1 space-y-2 w-full">
           {poolRows.map((row) => (
             <div key={row.name} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -551,6 +580,9 @@ function SupplyVerification({
                 <span className={`text-sm ${row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}`}>
                   {row.name}
                 </span>
+                {row.name === 'Orchard' && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-300/10 text-amber-300 font-mono">unverified</span>
+                )}
               </div>
               <div className="text-right">
                 <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
