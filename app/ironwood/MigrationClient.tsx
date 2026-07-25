@@ -258,19 +258,17 @@ export function MigrationClient({
             deploymentNetwork={deploymentNetwork}
           />
 
-          {/* Section 2: Supply Verification */}
-          <SupplyVerification overview={overview} hasMigrations={hasMigrations} />
+          {/* Post-activation sections */}
+          {activated && (
+            <>
+              <SupplyVerification overview={overview} hasMigrations={hasMigrations} />
+              <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} />
+              <PrivacyScore scatter={scatter} activated={activated} />
+            </>
+          )}
 
-          {/* Section 3: Migration Activity */}
-          <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} />
-
-          {/* Section 4: Privacy Score */}
-          <PrivacyScore scatter={scatter} activated={activated} />
-
-          {/* Section 5: Wallet Readiness */}
+          {/* Always visible */}
           <WalletReadiness />
-
-          {/* Section 6: Resources */}
           <Resources />
         </>
       )}
