@@ -537,12 +537,13 @@ function SupplyVerification({
       const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
       const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood`;
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text, files: [file] });
       } else {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-      }
-      setCopyStatus('idle');
+      }      setCopyStatus('idle');
     } catch {
       setCopyStatus('idle');
     }
