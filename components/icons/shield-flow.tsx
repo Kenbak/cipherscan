@@ -77,6 +77,17 @@ export function UnshieldingIcon({ size = 20, className = '', ...props }: IconPro
   );
 }
 
+export function MixedIcon({ size = 20, className = '', ...props }: IconProps) {
+  return (
+    <IconBase size={size} className={className} {...props}>
+      <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.6-8.6c.8-1.1 2-1.7 3.3-1.7H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 6h1.4c1.3 0 2.5.6 3.3 1.7l6.6 8.6c.8 1.1 2 1.7 3.3 1.7H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 14l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </IconBase>
+  );
+}
+
 export function ShieldFlowIcon({ type, size = 20, className = '' }: { type: ShieldFlowType; size?: number; className?: string }) {
   const colorClass = SHIELD_FLOW_COLORS[type];
   const merged = `${colorClass} ${className}`.trim();
@@ -84,6 +95,7 @@ export function ShieldFlowIcon({ type, size = 20, className = '' }: { type: Shie
   if (type === 'shielding') return <ShieldingIcon size={size} className={merged} />;
   if (type === 'unshielding') return <UnshieldingIcon size={size} className={merged} />;
   if (type === 'shielded') return <ShieldedIcon size={size} className={merged} />;
+  if (type === 'mixed') return <MixedIcon size={size} className={merged} />;
   return null;
 }
 
