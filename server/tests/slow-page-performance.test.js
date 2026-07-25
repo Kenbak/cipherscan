@@ -158,7 +158,7 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
   }
 });
 
-test('all archive SSR fetches are cached and deadline-bound', async () => {
+test('all list SSR fetches are deadline-bound with no caching for latest views', async () => {
   const requests = [];
   const fetchWithDeadline = async (url, init) => {
     requests.push({ url: String(url), init });
@@ -212,7 +212,7 @@ test('all archive SSR fetches are cached and deadline-bound', async () => {
   assert.ok(requests.some(({ url }) => url.includes('/api/blocks/list?')));
   assert.ok(requests.some(({ url }) => url.includes('/api/transactions/list?')));
   assert.ok(requests.some(({ url }) => url.includes('/api/shielded/list?')));
-  assert.ok(requests.every(({ init }) => init.next.revalidate === 30));
+  assert.ok(requests.every(({ init }) => init.next.revalidate === 0));
   assert.ok(requests.every(({ init }) => init.cache !== 'no-store'));
 });
 
@@ -408,7 +408,7 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
   const home = source('app/page.tsx');
   const richList = source('app/rich-list/page.tsx');
 
-  assert.match(home, /export const revalidate = 15/);
+  assert.match(home, /export const dynamic = 'force-dynamic'/);
   assert.doesNotMatch(home, /cache:\s*['"]no-store['"]/);
   assert.equal((home.match(/fetchWithDeadline\(/g) || []).length, 2);
   assert.equal((home.match(/retainLastGoodOrBuildFallback\(/g) || []).length, 2);
@@ -437,7 +437,9 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
     'app/txs/latest/page.tsx',
     'app/txs/shielded/latest/page.tsx',
   ]) {
-    assert.match(source(filename), /unavailablePolicy: 'throw'/);
+    const latestSource = source(filename);
+    assert.match(latestSource, /unavailablePolicy: 'throw'/);
+    assert.match(latestSource, /export const dynamic = 'force-dynamic'/);
   }
 
   const addressPage = source('app/address/[address]/page.tsx');
