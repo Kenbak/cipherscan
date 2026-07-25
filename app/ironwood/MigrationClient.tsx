@@ -237,39 +237,44 @@ export function MigrationClient({
         </div>
       ) : (
         <>
-          {/* Section 1: Hero — 3D scene (visual only) */}
-          {overview && (
-            <TurnstileHero
-              activated={activated}
-              balanced={overview.supplyAudit?.balanced ?? true}
-              migratedPct={migratedPct}
-              blockPulseKey={overview.tipHeight}
+          {!activated ? (
+            /* Pre-activation: countdown only */
+            <MetricsRow
+              overview={overview}
+              activated={false}
+              hasMigrations={false}
+              activationHeight={knownActivationHeight}
+              tipHeight={knownTip}
+              migratedPct={0}
+              deploymentNetwork={deploymentNetwork}
             />
-          )}
-
-          {/* Section 1b: Key metrics + countdown */}
-          <MetricsRow
-            overview={overview}
-            activated={activated}
-            hasMigrations={hasMigrations}
-            activationHeight={knownActivationHeight}
-            tipHeight={knownTip}
-            migratedPct={migratedPct}
-            deploymentNetwork={deploymentNetwork}
-          />
-
-          {/* Post-activation sections */}
-          {activated && (
+          ) : (
+            /* Post-activation: full dashboard */
             <>
+              {overview && (
+                <TurnstileHero
+                  activated={activated}
+                  balanced={overview.supplyAudit?.balanced ?? true}
+                  migratedPct={migratedPct}
+                  blockPulseKey={overview.tipHeight}
+                />
+              )}
+              <MetricsRow
+                overview={overview}
+                activated={activated}
+                hasMigrations={hasMigrations}
+                activationHeight={knownActivationHeight}
+                tipHeight={knownTip}
+                migratedPct={migratedPct}
+                deploymentNetwork={deploymentNetwork}
+              />
               <SupplyVerification overview={overview} hasMigrations={hasMigrations} />
               <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} />
               <PrivacyScore scatter={scatter} activated={activated} />
+              <WalletReadiness />
+              <Resources />
             </>
           )}
-
-          {/* Always visible */}
-          <WalletReadiness />
-          <Resources />
         </>
       )}
     </div>
@@ -849,8 +854,8 @@ const WALLETS = [
   { name: 'Zcash iOS SDK', status: 'ready' as const, detail: 'PR #1812 merged', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
   { name: 'Zcash Android SDK', status: 'ready' as const, detail: 'feature-orchard_migration branch', link: null },
   { name: 'librustzcash', status: 'ready' as const, detail: 'main branch + migration crate', link: 'https://github.com/zcash/librustzcash' },
-  { name: 'Zashi (iOS)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
-  { name: 'Zashi (Android)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
+  { name: 'Zodl (iOS)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
+  { name: 'Zodl (Android)', status: 'in_progress' as const, detail: 'Integrating SDK', link: null },
   { name: 'YWallet', status: 'unknown' as const, detail: 'Status unconfirmed', link: null },
 ];
 
