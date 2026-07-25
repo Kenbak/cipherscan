@@ -500,47 +500,37 @@ function SupplyVerification({
   ];
   const RING_COLORS = ['#10b981', ORCHARD];
   const cardRef = useRef<HTMLDivElement>(null);
-  const [sharing, setSharing] = useState(false);
+
+  const [shareStatus, setShareStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
 
   const handleShare = useCallback(async () => {
     if (!cardRef.current) return;
-    setSharing(true);
+    setShareStatus('capturing');
     try {
       const dataUrl = await toPng(cardRef.current, {
         backgroundColor: '#0f1419',
         pixelRatio: 2,
       });
       const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
       const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.org/ironwood`;
 
-      if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'supply.png', { type: 'image/png' })] })) {
-        await navigator.share({
-          text,
-          files: [new File([blob], 'cipherscan-supply.png', { type: 'image/png' })],
-        });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ text, files: [file] });
+        setShareStatus('idle');
       } else {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setShareStatus('copied');
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+        setTimeout(() => setShareStatus('idle'), 4000);
       }
     } catch (e) {
-      // User cancelled share or clipboard failed
-    } finally {
-      setSharing(false);
+      setShareStatus('idle');
     }
   }, [verifiedPct]);
 
   return (
-    <div className="mt-4 relative">
-      {/* Share button */}
-      <button
-        onClick={handleShare}
-        disabled={sharing}
-        className="absolute top-4 right-4 z-10 text-[10px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-lg px-2.5 py-1.5 transition-all hover:bg-white/[0.03] disabled:opacity-50"
-        title="Share to Twitter"
-      >
-        {sharing ? 'Capturing…' : 'Share ↗'}
-      </button>
-
+    <div className="mt-4">
       <div ref={cardRef} className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
       {/* Two-column: ring left, pools right */}
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
@@ -651,6 +641,24 @@ function SupplyVerification({
         </span>
       </div>
       </div>{/* end cardRef */}
+
+      {/* Share button — below card */}
+      <div className="flex items-center justify-end mt-3 gap-3">
+        {shareStatus === 'copied' && (
+          <span className="text-[11px] text-emerald-400 font-mono">Image copied — paste in your tweet</span>
+        )}
+        <button
+          onClick={handleShare}
+          disabled={shareStatus === 'capturing'}
+          className="text-[11px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-lg px-3 py-1.5 transition-all hover:bg-white/[0.03] disabled:opacity-50 flex items-center gap-1.5"
+          title="Copy card image and open Twitter"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          {shareStatus === 'capturing' ? 'Capturing…' : 'Share on X'}
+        </button>
+      </div>
     </div>
   );
 }
