@@ -510,6 +510,10 @@ function SupplyVerification({
       const dataUrl = await toPng(cardRef.current, {
         backgroundColor: '#0f1419',
         pixelRatio: 2,
+        filter: (node) => {
+          if (node instanceof HTMLElement && node.dataset.html2canvasIgnore) return false;
+          return true;
+        },
       });
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
@@ -630,35 +634,30 @@ function SupplyVerification({
         </div>
       )}
 
-      {/* Footer with watermark */}
+      {/* Footer with watermark + share */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/20">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-muted tracking-tight">CIPHERSCAN</span>
           <span className="text-[10px] text-muted/50 font-mono">cipherscan.app</span>
         </div>
-        <span className="text-[10px] text-muted font-mono">
-          {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-muted font-mono">
+            {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · block {pools.sourceHeight.toLocaleString()}
+          </span>
+          <button
+            onClick={handleShare}
+            disabled={shareStatus === 'capturing'}
+            data-html2canvas-ignore="true"
+            className="text-[10px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-md px-2 py-1 transition-all hover:bg-white/[0.03] disabled:opacity-50 flex items-center gap-1"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            {shareStatus === 'capturing' ? '…' : shareStatus === 'copied' ? 'Copied!' : 'Share'}
+          </button>
+        </div>
       </div>
       </div>{/* end cardRef */}
-
-      {/* Share button — below card */}
-      <div className="flex items-center justify-end mt-3 gap-3">
-        {shareStatus === 'copied' && (
-          <span className="text-[11px] text-emerald-400 font-mono">Image copied — paste in your tweet</span>
-        )}
-        <button
-          onClick={handleShare}
-          disabled={shareStatus === 'capturing'}
-          className="text-[11px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-lg px-3 py-1.5 transition-all hover:bg-white/[0.03] disabled:opacity-50 flex items-center gap-1.5"
-          title="Copy card image and open Twitter"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
-          </svg>
-          {shareStatus === 'capturing' ? 'Capturing…' : 'Share on X'}
-        </button>
-      </div>
     </div>
   );
 }
