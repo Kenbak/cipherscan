@@ -858,7 +858,7 @@ function PrivacyScore({ scatter, activated }: { scatter: ScatterData | null; act
         <div>
           <h2 className="text-sm font-bold text-primary">Privacy score</h2>
           <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one migration. <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
+            Each dot is one migration (latest 500 shown). <span style={{ color: DENOMINATED_COLOR }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
             <span style={{ color: DISTINCTIVE_COLOR }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
           </p>
         </div>
@@ -1025,14 +1025,6 @@ function Resources() {
         </a>
         <a href="https://zips.z.cash/zip-0318" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
           ZIP-318 (Migration Spec)
-        </a>
-        <a
-          href="https://docs.google.com/document/u/3/d/1z4Aj7tO34RKk0SXZYkNXtswxdBXKbR_IJ_Xw5EJljkc/edit"
-          target="_blank"
-          rel="noopener"
-          className="text-cipher-cyan hover:underline"
-        >
-          Security Considerations
         </a>
         <Link href="/privacy-risks" className="text-cipher-cyan hover:underline">
           CipherScan Privacy Scanner

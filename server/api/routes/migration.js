@@ -524,7 +524,33 @@ router.get('/api/migration/scatter', async (req, res) => {
   try {
     const network = resolveNetwork();
     const data = await cached(`zcash:migration:scatter:${network}`, 60, async () => {
-      const result = await pool.query(`
+      // Full classification across ALL migrations for accurate headline stats
+      const allResult = await pool.query(`
+        SELECT ABS(value_balance_ironwood) AS ironwood_in_zat
+        FROM transactions
+        WHERE ${MIGRATION_PREDICATE}
+      `);
+
+      let denominatedCount = 0;
+      let distinctiveCount = 0;
+      let denominatedVolume = 0;
+      let distinctiveVolume = 0;
+
+      allResult.rows.forEach(r => {
+        const zat = Number(r.ironwood_in_zat);
+        const zec = zat / 1e8;
+        const classification = classifyAmount(zec);
+        if (classification.privacy === 'denominated') {
+          denominatedCount++;
+          denominatedVolume += zat;
+        } else {
+          distinctiveCount++;
+          distinctiveVolume += zat;
+        }
+      });
+
+      // Most recent 500 for scatter plot visualization
+      const plotResult = await pool.query(`
         SELECT
           txid,
           block_height,
@@ -534,28 +560,14 @@ router.get('/api/migration/scatter', async (req, res) => {
           is_coinbase
         FROM transactions
         WHERE ${MIGRATION_PREDICATE}
-        ORDER BY block_height ASC
+        ORDER BY block_height DESC
         LIMIT 500
       `);
 
-      let denominatedCount = 0;
-      let distinctiveCount = 0;
-      let denominatedVolume = 0;
-      let distinctiveVolume = 0;
-
-      const txs = result.rows.map(r => {
+      const txs = plotResult.rows.map(r => {
         const zat = Number(r.ironwood_in_zat);
         const zec = zat / 1e8;
         const classification = classifyAmount(zec);
-
-        if (classification.privacy === 'denominated') {
-          denominatedCount++;
-          denominatedVolume += zat;
-        } else {
-          distinctiveCount++;
-          distinctiveVolume += zat;
-        }
-
         return {
           txid: r.txid,
           height: Number(r.block_height),
