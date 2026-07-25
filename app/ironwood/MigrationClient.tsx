@@ -187,12 +187,11 @@ export function MigrationClient({
   const knownActivationHeight = overview?.activationHeight ?? fallbackActivationHeight;
   const knownTip = overview?.tipHeight || 0;
 
-  const migratedPct =
-    overview && (overview.poolSizes.orchardZat + overview.poolSizes.ironwoodZat) > 0
-      ? (overview.poolSizes.ironwoodZat /
-          (overview.poolSizes.orchardZat + overview.poolSizes.ironwoodZat)) * 100
-      : 0;
-
+  const orchardToIronwoodZat = overview?.inflowSources?.fromOrchardZat ?? 0;
+  const originalOrchard = (overview?.poolSizes.orchardZat ?? 0) + orchardToIronwoodZat;
+  const migratedPct = originalOrchard > 0
+    ? (orchardToIronwoodZat / originalOrchard) * 100
+    : 0;
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Breadcrumb */}
