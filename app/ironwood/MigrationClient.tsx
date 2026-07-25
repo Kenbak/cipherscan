@@ -458,7 +458,7 @@ function SupplyVerification({
 
   const totalSupply = pools.chainSupplyZat;
 
-  // Fold deferred/lockbox into transparent (it's not a separate shielded pool)
+  // Fold deferred/lockbox into transparent (not a separate pool)
   const transparentZat = (pools.transparentZat ?? 0) + (pools.deferredZat ?? 0);
 
   const poolRows: PoolRow[] = [];
@@ -481,65 +481,104 @@ function SupplyVerification({
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
 
-  // Verified = everything except Orchard (which had the vulnerable circuit)
+  // Verified = everything except Orchard (vulnerable circuit)
   const verifiedZat = displayTotal - (pools.orchardZat ?? 0);
   const unverifiedZat = pools.orchardZat ?? 0;
   const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
 
+  // SVG ring params
+  const ringSize = 200;
+  const strokeWidth = 18;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const verifiedArc = (verifiedPct / 100) * circumference;
+
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-      {/* Hero: verified percentage */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-muted">Supply verified</span>
-        {supplyMatch != null && (
-          <div className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            <span className={`text-[10px] font-mono ${supplyMatch ? 'text-emerald-400/70' : 'text-red-400'}`}>
-              {supplyMatch ? 'No inflation' : 'Mismatch'}
+    <div className="mt-4 rounded-2xl border border-cipher-border bg-cipher-surface p-6 sm:p-8">
+      {/* Ring + center stat */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="relative" style={{ width: ringSize, height: ringSize }}>
+          <svg width={ringSize} height={ringSize} className="transform -rotate-90">
+            {/* Background ring */}
+            <circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              fill="none"
+              stroke="rgba(167, 139, 250, 0.25)"
+              strokeWidth={strokeWidth}
+            />
+            {/* Verified arc */}
+            <circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              fill="none"
+              stroke="url(#verifiedGradient)"
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${verifiedArc} ${circumference}`}
+              strokeLinecap="round"
+              className="transition-all duration-1000"
+            />
+            <defs>
+              <linearGradient id="verifiedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#34d399" />
+              </linearGradient>
+            </defs>
+          </svg>
+          {/* Center content */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-3xl sm:text-4xl font-bold font-mono text-primary leading-none">
+              {verifiedPct.toFixed(1)}%
             </span>
+            <span className="text-[11px] text-muted mt-1">verified</span>
           </div>
-        )}
+        </div>
+
+        {/* Labels below ring */}
+        <div className="flex items-center gap-6 mt-4 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-muted">Verified</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-1.5 rounded-full bg-[#A78BFA]/40" />
+            <span className="text-muted">Orchard (unverified)</span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-baseline gap-3 mb-3">
-        <span className="text-4xl sm:text-5xl font-bold font-mono text-emerald-400 leading-none">
-          {verifiedPct.toFixed(1)}%
-        </span>
-        <span className="text-sm text-muted">
-          of {(displayTotal / 1e8).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-3 rounded-full overflow-hidden bg-white/5 mb-2">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-emerald-500/80 to-emerald-400 transition-all duration-700"
-          style={{ width: `${verifiedPct}%` }}
-        />
-      </div>
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-6">
-        <span>Verified (Ironwood + Transparent + Sprout + Sapling)</span>
-        <span className="text-amber-300">{fmtZec(unverifiedZat)} ZEC unverified in Orchard</span>
-      </div>
-
-      {/* Pool breakdown — compact */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mb-6 pb-6 border-b border-cipher-border/30">
+      {/* Pool tiles — bento grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         {poolRows.map((row) => (
-          <div key={row.name} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs ${row.highlight ? 'text-cipher-yellow-bright font-semibold' : 'text-secondary'}`}>
-                  {row.name}
-                </span>
-                {row.name === 'Orchard' && (
-                  <span className="text-[8px] px-1 py-px rounded bg-amber-300/10 text-amber-300 font-mono leading-tight">unverified</span>
-                )}
-              </div>
-              <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
-                {fmtZec(row.zat)}
+          <div
+            key={row.name}
+            className={`relative rounded-xl p-3.5 border transition-all ${
+              row.name === 'Orchard'
+                ? 'border-amber-400/20 bg-amber-400/[0.03]'
+                : row.highlight
+                  ? 'border-cipher-yellow/30 bg-cipher-yellow/[0.03]'
+                  : 'border-cipher-border/50 bg-white/[0.02]'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: row.color }} />
+              <span className={`text-[11px] ${row.highlight ? 'text-cipher-yellow-bright' : row.name === 'Orchard' ? 'text-amber-300' : 'text-muted'}`}>
+                {row.name}
               </span>
             </div>
+            <div className={`text-lg font-mono font-bold leading-tight ${
+              row.highlight ? 'text-cipher-yellow-bright' : row.name === 'Orchard' ? 'text-amber-200' : 'text-primary'
+            }`}>
+              {fmtZec(row.zat)}
+            </div>
+            <div className="text-[10px] font-mono text-muted mt-0.5">{row.pct.toFixed(1)}%</div>
+            {row.name === 'Orchard' && (
+              <div className="absolute top-2.5 right-2.5 text-[8px] px-1.5 py-0.5 rounded-full bg-amber-300/10 text-amber-300 font-mono">
+                unverified
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -550,8 +589,13 @@ function SupplyVerification({
       )}
 
       {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-cipher-border/30 text-[10px] text-muted font-mono">
-        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-cipher-border/20 text-[10px] text-muted font-mono">
+        <span>{pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}</span>
+        {supplyMatch != null && (
+          <span className={supplyMatch ? 'text-emerald-400/60' : 'text-red-400'}>
+            {supplyMatch ? 'No inflation' : 'Supply mismatch'}
+          </span>
+        )}
       </div>
     </div>
   );
