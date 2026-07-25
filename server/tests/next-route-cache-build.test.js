@@ -13,18 +13,19 @@ assert.ok(
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-test('query-free core list destinations are emitted as 30-second ISR pages', () => {
-  const expected = [
+test('force-dynamic latest list pages are excluded from the prerender manifest', () => {
+  const dynamicLatest = [
     '/blocks/latest',
     '/txs/latest',
     '/txs/shielded/latest',
   ];
 
-  for (const route of expected) {
-    const entry = manifest.routes?.[route];
-    assert.ok(entry, `${route} is not present in the Next prerender manifest`);
-    assert.equal(entry.srcRoute, route);
-    assert.equal(entry.initialRevalidateSeconds, 30);
+  for (const route of dynamicLatest) {
+    assert.equal(
+      manifest.routes?.[route],
+      undefined,
+      `${route} should not be prerendered — it uses force-dynamic`,
+    );
   }
 });
 
@@ -38,8 +39,12 @@ test('query-aware archive handlers remain outside the full route cache', () => {
   }
 });
 
-test('homepage and rich-list ISR controls remain present', () => {
-  assert.equal(manifest.routes?.['/']?.initialRevalidateSeconds, 15);
+test('homepage is force-dynamic and rich-list retains ISR', () => {
+  assert.equal(
+    manifest.routes?.['/'],
+    undefined,
+    'Homepage uses force-dynamic — should not be in prerender manifest',
+  );
   assert.equal(manifest.routes?.['/rich-list']?.initialRevalidateSeconds, 60);
 });
 
