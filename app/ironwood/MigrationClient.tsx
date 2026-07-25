@@ -486,116 +486,156 @@ function SupplyVerification({
   const unverifiedZat = pools.orchardZat ?? 0;
   const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
 
-  // SVG ring params
-  const ringSize = 200;
-  const strokeWidth = 18;
+  // SVG ring — use minimum visual arc for Orchard so it's always visible
+  const ringSize = 180;
+  const strokeWidth = 16;
   const radius = (ringSize - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const verifiedArc = (verifiedPct / 100) * circumference;
+  const minArcPct = 4; // min 4% visual so Orchard gap is always visible
+  const visualUnverifiedPct = Math.max(100 - verifiedPct, minArcPct);
+  const visualVerifiedPct = 100 - visualUnverifiedPct;
+  const verifiedArc = (visualVerifiedPct / 100) * circumference;
+  const gap = 4; // px gap between arcs
+
+  const [hoveredPool, setHoveredPool] = useState<string | null>(null);
 
   return (
-    <div className="mt-4 rounded-2xl border border-cipher-border bg-cipher-surface p-6 sm:p-8">
-      {/* Ring + center stat */}
-      <div className="flex flex-col items-center mb-8">
-        <div className="relative" style={{ width: ringSize, height: ringSize }}>
-          <svg width={ringSize} height={ringSize} className="transform -rotate-90">
-            {/* Background ring */}
-            <circle
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              fill="none"
-              stroke="rgba(167, 139, 250, 0.25)"
-              strokeWidth={strokeWidth}
-            />
-            {/* Verified arc */}
-            <circle
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              fill="none"
-              stroke="url(#verifiedGradient)"
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${verifiedArc} ${circumference}`}
-              strokeLinecap="round"
-              className="transition-all duration-1000"
-            />
-            <defs>
-              <linearGradient id="verifiedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#34d399" />
-              </linearGradient>
-            </defs>
-          </svg>
-          {/* Center content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl sm:text-4xl font-bold font-mono text-primary leading-none">
-              {verifiedPct.toFixed(1)}%
-            </span>
-            <span className="text-[11px] text-muted mt-1">verified</span>
-          </div>
-        </div>
-
-        {/* Labels below ring */}
-        <div className="flex items-center gap-6 mt-4 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-muted">Verified</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-1.5 rounded-full bg-[#A78BFA]/40" />
-            <span className="text-muted">Orchard (unverified)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Pool tiles — bento grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        {poolRows.map((row) => (
-          <div
-            key={row.name}
-            className={`relative rounded-xl p-3.5 border transition-all ${
-              row.name === 'Orchard'
-                ? 'border-amber-400/20 bg-amber-400/[0.03]'
-                : row.highlight
-                  ? 'border-cipher-yellow/30 bg-cipher-yellow/[0.03]'
-                  : 'border-cipher-border/50 bg-white/[0.02]'
-            }`}
-          >
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: row.color }} />
-              <span className={`text-[11px] ${row.highlight ? 'text-cipher-yellow-bright' : row.name === 'Orchard' ? 'text-amber-300' : 'text-muted'}`}>
-                {row.name}
+    <div className="mt-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
+      {/* Two-column: ring left, pools right */}
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
+        {/* Left: Ring */}
+        <div className="flex flex-col items-center flex-shrink-0">
+          <div className="relative" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} className="transform -rotate-90">
+              <defs>
+                <linearGradient id="verifiedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#10b981" />
+                  <stop offset="100%" stopColor="#34d399" />
+                </linearGradient>
+                <filter id="orchardGlow">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {/* Track */}
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={radius}
+                fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={strokeWidth}
+              />
+              {/* Verified arc */}
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={radius}
+                fill="none" stroke="url(#verifiedGrad)" strokeWidth={strokeWidth}
+                strokeDasharray={`${verifiedArc - gap} ${circumference - verifiedArc + gap}`}
+                strokeLinecap="round"
+                className="transition-all duration-1000"
+                onMouseEnter={() => setHoveredPool('verified')}
+                onMouseLeave={() => setHoveredPool(null)}
+                style={{ cursor: 'pointer' }}
+              />
+              {/* Orchard (unverified) arc — with glow so it's visible */}
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={radius}
+                fill="none" stroke="#A78BFA" strokeWidth={strokeWidth}
+                strokeDasharray={`${circumference - verifiedArc - gap} ${verifiedArc + gap}`}
+                strokeDashoffset={`${-(verifiedArc + gap)}`}
+                strokeLinecap="round"
+                filter="url(#orchardGlow)"
+                opacity={hoveredPool === 'orchard' ? 1 : 0.7}
+                className="transition-all duration-300"
+                onMouseEnter={() => setHoveredPool('orchard')}
+                onMouseLeave={() => setHoveredPool(null)}
+                style={{ cursor: 'pointer' }}
+              />
+            </svg>
+            {/* Center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold font-mono text-primary leading-none">
+                {verifiedPct.toFixed(1)}%
               </span>
+              <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">supply verified</span>
             </div>
-            <div className={`text-lg font-mono font-bold leading-tight ${
-              row.highlight ? 'text-cipher-yellow-bright' : row.name === 'Orchard' ? 'text-amber-200' : 'text-primary'
-            }`}>
-              {fmtZec(row.zat)}
-            </div>
-            <div className="text-[10px] font-mono text-muted mt-0.5">{row.pct.toFixed(1)}%</div>
-            {row.name === 'Orchard' && (
-              <div className="absolute top-2.5 right-2.5 text-[8px] px-1.5 py-0.5 rounded-full bg-amber-300/10 text-amber-300 font-mono">
-                unverified
+          </div>
+
+          {/* Hover tooltip below ring */}
+          <div className="h-8 flex items-center justify-center mt-2">
+            {hoveredPool === 'verified' && (
+              <span className="text-[11px] text-emerald-400 font-mono animate-in fade-in">
+                {fmtZec(verifiedZat)} ZEC · Ironwood + Transparent + Sprout + Sapling
+              </span>
+            )}
+            {hoveredPool === 'orchard' && (
+              <span className="text-[11px] text-amber-300 font-mono animate-in fade-in">
+                {fmtZec(unverifiedZat)} ZEC · Orchard (vulnerable circuit, unverified)
+              </span>
+            )}
+            {!hoveredPool && (
+              <span className="text-[10px] text-muted">Hover ring for details</span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Pool breakdown */}
+        <div className="flex-1 w-full space-y-2">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-primary">Pool balances</span>
+            {supplyMatch != null && (
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                <span className={`text-[10px] font-mono ${supplyMatch ? 'text-emerald-400/70' : 'text-red-400'}`}>
+                  {supplyMatch ? 'No inflation' : 'Mismatch'}
+                </span>
               </div>
             )}
           </div>
-        ))}
+          {poolRows.map((row) => (
+            <div
+              key={row.name}
+              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all cursor-default ${
+                hoveredPool === row.name.toLowerCase()
+                  ? 'bg-white/[0.04]'
+                  : 'hover:bg-white/[0.02]'
+              } ${row.name === 'Orchard' ? 'border border-amber-400/15' : ''}`}
+              onMouseEnter={() => setHoveredPool(row.name.toLowerCase())}
+              onMouseLeave={() => setHoveredPool(null)}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className={`text-sm ${row.highlight ? 'text-cipher-yellow-bright font-medium' : row.name === 'Orchard' ? 'text-amber-200' : 'text-secondary'}`}>
+                  {row.name}
+                </span>
+                {row.name === 'Orchard' && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-300/10 text-amber-300 font-mono">unverified</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-mono font-semibold ${row.highlight ? 'text-cipher-yellow-bright' : 'text-primary'}`}>
+                  {fmtZec(row.zat)}
+                </span>
+                <span className="text-[10px] font-mono text-muted w-10 text-right">{row.pct.toFixed(1)}%</span>
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-cipher-border/30 px-3">
+            <span className="text-xs font-bold text-primary">Total</span>
+            <span className="text-sm font-mono font-bold text-primary">{fmtZec(displayTotal)} ZEC</span>
+          </div>
+        </div>
       </div>
 
-      {/* Ironwood inflow sources */}
+      {/* Inflow sources — compact, below */}
       {hasMigrations && overview.inflowSources && (
-        <InflowSources sources={overview.inflowSources} />
+        <div className="mt-6 pt-5 border-t border-cipher-border/20">
+          <InflowSources sources={overview.inflowSources} />
+        </div>
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-cipher-border/20 text-[10px] text-muted font-mono">
-        <span>{pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}</span>
-        {supplyMatch != null && (
-          <span className={supplyMatch ? 'text-emerald-400/60' : 'text-red-400'}>
-            {supplyMatch ? 'No inflation' : 'Supply mismatch'}
-          </span>
-        )}
+      <div className="mt-4 text-[10px] text-muted font-mono text-right">
+        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
       </div>
     </div>
   );
@@ -614,7 +654,7 @@ function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSourc
   const totalIn = sources.totalInZat;
 
   return (
-    <div className="pt-5 border-t border-cipher-border/30">
+    <div>
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-bold text-primary">Where Ironwood ZEC comes from</span>
         <span className="text-[10px] font-mono text-muted">
