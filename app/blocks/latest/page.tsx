@@ -1,6 +1,6 @@
 import BlocksPage, { generateMetadata as generateBlocksMetadata } from '../page';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export async function generateMetadata() {
   return generateBlocksMetadata({ searchParams: Promise.resolve({}) });

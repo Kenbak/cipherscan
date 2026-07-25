@@ -11,7 +11,7 @@ import { isCrosslink, isTestnet } from '@/lib/config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 interface Block {
   height: number;
@@ -45,7 +45,7 @@ function upstreamError(context: string, status: number): Error {
 async function getRecentBlocks(): Promise<Block[]> {
   try {
     const response = await fetchWithDeadline(`${API_URL}/api/blocks?limit=5`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent blocks', response.status);
@@ -68,7 +68,7 @@ async function getRecentBlocks(): Promise<Block[]> {
 async function getRecentShieldedTxs(): Promise<ShieldedTx[]> {
   try {
     const response = await fetchWithDeadline(`${API_URL}/api/tx/shielded?limit=5`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 30, tags: ['chain-tip'] },
     });
 
     if (!response.ok) throw upstreamError('Recent shielded transactions', response.status);

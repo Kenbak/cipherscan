@@ -466,6 +466,25 @@ wss.on('connection', async (ws, req) => {
 
   clients.add(ws);
 
+  // Push current chain tip immediately so the client can detect staleness
+  try {
+    const tipResult = await pool.query(
+      'SELECT height, hash, timestamp FROM blocks ORDER BY height DESC LIMIT 1'
+    );
+    if (tipResult.rows[0] && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'chain_tip',
+        data: {
+          height: parseInt(tipResult.rows[0].height),
+          hash: tipResult.rows[0].hash,
+          timestamp: parseInt(tipResult.rows[0].timestamp),
+        },
+      }));
+    }
+  } catch {
+    // Non-fatal — client will receive the next new_block event
+  }
+
   ws.on('message', (raw) => {
     if (!ws.isService) return;
     try {
@@ -556,6 +575,27 @@ function broadcastNewBlock(block) {
     type: 'new_block',
     data: block,
   });
+  purgeChainTipCache();
+}
+
+// Purge the Next.js CDN cache for chain-tip tagged pages (on-demand ISR)
+async function purgeChainTipCache() {
+  const url = process.env.REVALIDATION_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!url || !secret) return;
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-revalidate-secret': secret,
+      },
+      body: JSON.stringify({ tag: 'chain-tip' }),
+    });
+  } catch (err) {
+    // Non-fatal — ISR time-based fallback handles freshness
+  }
 }
 
 // ============================================================================

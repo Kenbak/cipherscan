@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { HashLink, SkeletonTable } from '@/components/ui';
@@ -38,40 +39,56 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
   const [loading, setLoading] = useState(initialTxs.length === 0);
   const latestKey = useRef(initialTxs[0]?.txid ?? '');
   const loadedOnce = useRef(initialTxs.length > 0);
+  const latestBlockHeight = useRef(initialTxs[0]?.blockHeight ?? 0);
+  const fetchRef = useRef<() => void>(() => {});
 
-  useEffect(() => {
-    const fetchTxs = async () => {
-      try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/tx/shielded?limit=${limit}`
-          : `/api/tx/shielded?limit=${limit}`;
+  const fetchTxs = useCallback(async () => {
+    try {
+      const apiUrl = usePostgresApiClient()
+        ? `${getApiUrl()}/api/tx/shielded?limit=${limit}`
+        : `/api/tx/shielded?limit=${limit}`;
 
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        if (data.transactions?.length) {
-          const newTopTxid = data.transactions[0]?.txid;
-          if (newTopTxid !== latestKey.current) {
-            latestKey.current = newTopTxid;
-            setTxs(data.transactions);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching shielded transactions:', error);
-      } finally {
-        if (!loadedOnce.current) {
-          loadedOnce.current = true;
-          setLoading(false);
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (data.transactions?.length) {
+        const newTopTxid = data.transactions[0]?.txid;
+        if (newTopTxid !== latestKey.current) {
+          latestKey.current = newTopTxid;
+          latestBlockHeight.current = data.transactions[0]?.blockHeight ?? 0;
+          setTxs(data.transactions);
         }
       }
-    };
+    } catch (error) {
+      console.error('Error fetching shielded transactions:', error);
+    } finally {
+      if (!loadedOnce.current) {
+        loadedOnce.current = true;
+        setLoading(false);
+      }
+    }
+  }, [limit]);
 
+  fetchRef.current = fetchTxs;
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
+      const height = msg.data?.height;
+      if (height && height > latestBlockHeight.current) {
+        fetchRef.current();
+      }
+    }
+  }, []);
+
+  const { isConnected: wsConnected } = useWebSocket({ onMessage: handleWsMessage });
+
+  useEffect(() => {
     if (initialTxs.length === 0) {
       fetchTxs();
     }
 
-    const interval = setInterval(fetchTxs, 10000);
+    const interval = setInterval(fetchTxs, wsConnected ? 60000 : 10000);
     return () => clearInterval(interval);
-  }, [initialTxs.length, limit]);
+  }, [initialTxs.length, wsConnected, fetchTxs]);
 
   if (loading) {
     return (

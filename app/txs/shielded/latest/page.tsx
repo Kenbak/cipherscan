@@ -2,7 +2,7 @@ import ShieldedTransactionsPage, {
   generateMetadata as generateShieldedTransactionsMetadata,
 } from '../page';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export async function generateMetadata() {
   return generateShieldedTransactionsMetadata({ searchParams: Promise.resolve({}) });

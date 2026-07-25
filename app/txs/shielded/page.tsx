@@ -155,7 +155,7 @@ async function getInitialFlows(
     }
 
     res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
-      next: { revalidate: 0 },
+      next: { revalidate: 30, tags: ['chain-tip'] },
     });
   } catch (error) {
     if (!isServerRenderDeadlineError(error)) {

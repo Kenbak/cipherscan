@@ -35,6 +35,34 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
   const [loading, setLoading] = useState(initialBlocks.length === 0);
   const latestKey = useRef(initialBlocks[0]?.height ?? 0);
   const loadedOnce = useRef(initialBlocks.length > 0);
+  const fetchRef = useRef<() => void>(() => {});
+
+  const fetchLatest = useCallback(async () => {
+    try {
+      const apiUrl = usePostgresApiClient()
+        ? `${getApiUrl()}/api/blocks?limit=5`
+        : '/api/blocks?limit=5';
+
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (data.blocks?.length) {
+        const newTopHeight = parseInt(data.blocks[0]?.height ?? data.blocks[0]?.block_height);
+        if (newTopHeight !== latestKey.current) {
+          latestKey.current = newTopHeight;
+          setBlocks(data.blocks.map(parseBlock));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching blocks:', error);
+    } finally {
+      if (!loadedOnce.current) {
+        loadedOnce.current = true;
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  fetchRef.current = fetchLatest;
 
   const handleWsMessage = useCallback((msg: any) => {
     if (msg.type === 'new_block' && msg.data?.height) {
@@ -44,44 +72,23 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
         setBlocks(prev => [newBlock, ...prev].slice(0, 5));
         setLoading(false);
       }
+    } else if (msg.type === 'chain_tip' && msg.data?.height) {
+      if (msg.data.height > latestKey.current) {
+        fetchRef.current();
+      }
     }
   }, []);
 
   const { isConnected: wsConnected } = useWebSocket({ onMessage: handleWsMessage });
 
   useEffect(() => {
-    const fetchBlocks = async () => {
-      try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/blocks?limit=5`
-          : '/api/blocks?limit=5';
-
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        if (data.blocks?.length) {
-          const newTopHeight = parseInt(data.blocks[0]?.height ?? data.blocks[0]?.block_height);
-          if (newTopHeight !== latestKey.current) {
-            latestKey.current = newTopHeight;
-            setBlocks(data.blocks.map(parseBlock));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching blocks:', error);
-      } finally {
-        if (!loadedOnce.current) {
-          loadedOnce.current = true;
-          setLoading(false);
-        }
-      }
-    };
-
     if (initialBlocks.length === 0) {
-      fetchBlocks();
+      fetchLatest();
     }
 
-    const interval = setInterval(fetchBlocks, wsConnected ? 60000 : 10000);
+    const interval = setInterval(fetchLatest, wsConnected ? 60000 : 10000);
     return () => clearInterval(interval);
-  }, [initialBlocks.length, wsConnected]);
+  }, [initialBlocks.length, wsConnected, fetchLatest]);
 
   if (loading) {
     return (
