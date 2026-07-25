@@ -8,6 +8,9 @@ import {
   Bar,
   ScatterChart,
   Scatter,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -486,18 +489,15 @@ function SupplyVerification({
   const unverifiedZat = pools.orchardZat ?? 0;
   const verifiedPct = displayTotal > 0 ? (verifiedZat / displayTotal) * 100 : 0;
 
-  // SVG ring — use minimum visual arc for Orchard so it's always visible
-  const ringSize = 180;
-  const strokeWidth = 16;
-  const radius = (ringSize - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const minArcPct = 4; // min 4% visual so Orchard gap is always visible
-  const visualUnverifiedPct = Math.max(100 - verifiedPct, minArcPct);
-  const visualVerifiedPct = 100 - visualUnverifiedPct;
-  const verifiedArc = (visualVerifiedPct / 100) * circumference;
-  const gap = 4; // px gap between arcs
-
-  const [hoveredPool, setHoveredPool] = useState<string | null>(null);
+  // Donut data: two segments — verified (green) and Orchard/unverified (purple)
+  // Use a minimum visual value so the Orchard segment is always clearly visible
+  const minVisualPct = 5;
+  const orchardVisualPct = Math.max(100 - verifiedPct, minVisualPct);
+  const ringData = [
+    { name: 'Verified', value: 100 - orchardVisualPct },
+    { name: 'Orchard', value: orchardVisualPct },
+  ];
+  const RING_COLORS = ['#10b981', ORCHARD];
 
   return (
     <div className="mt-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
@@ -505,76 +505,46 @@ function SupplyVerification({
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
         {/* Left: Ring */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="relative" style={{ width: ringSize, height: ringSize }}>
-            <svg width={ringSize} height={ringSize} className="transform -rotate-90">
-              <defs>
-                <linearGradient id="verifiedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#34d399" />
-                </linearGradient>
-                <filter id="orchardGlow">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              {/* Track */}
-              <circle
-                cx={ringSize / 2} cy={ringSize / 2} r={radius}
-                fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={strokeWidth}
-              />
-              {/* Verified arc */}
-              <circle
-                cx={ringSize / 2} cy={ringSize / 2} r={radius}
-                fill="none" stroke="url(#verifiedGrad)" strokeWidth={strokeWidth}
-                strokeDasharray={`${verifiedArc - gap} ${circumference - verifiedArc + gap}`}
-                strokeLinecap="round"
-                className="transition-all duration-1000"
-                onMouseEnter={() => setHoveredPool('verified')}
-                onMouseLeave={() => setHoveredPool(null)}
-                style={{ cursor: 'pointer' }}
-              />
-              {/* Orchard (unverified) arc — with glow so it's visible */}
-              <circle
-                cx={ringSize / 2} cy={ringSize / 2} r={radius}
-                fill="none" stroke="#A78BFA" strokeWidth={strokeWidth}
-                strokeDasharray={`${circumference - verifiedArc - gap} ${verifiedArc + gap}`}
-                strokeDashoffset={`${-(verifiedArc + gap)}`}
-                strokeLinecap="round"
-                filter="url(#orchardGlow)"
-                opacity={hoveredPool === 'orchard' ? 1 : 0.7}
-                className="transition-all duration-300"
-                onMouseEnter={() => setHoveredPool('orchard')}
-                onMouseLeave={() => setHoveredPool(null)}
-                style={{ cursor: 'pointer' }}
-              />
-            </svg>
+          <div className="relative w-44 h-44 sm:w-48 sm:h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={ringData}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="70%"
+                  outerRadius="95%"
+                  strokeWidth={0}
+                  startAngle={90}
+                  endAngle={-270}
+                  animationDuration={800}
+                >
+                  {ringData.map((_, i) => (
+                    <Cell key={i} fill={RING_COLORS[i]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
             {/* Center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold font-mono text-primary leading-none">
+              <span className="text-2xl font-bold font-mono text-primary leading-none">
                 {verifiedPct.toFixed(1)}%
               </span>
               <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">supply verified</span>
             </div>
           </div>
 
-          {/* Hover tooltip below ring */}
-          <div className="h-8 flex items-center justify-center mt-2">
-            {hoveredPool === 'verified' && (
-              <span className="text-[11px] text-emerald-400 font-mono animate-in fade-in">
-                {fmtZec(verifiedZat)} ZEC · Ironwood + Transparent + Sprout + Sapling
-              </span>
-            )}
-            {hoveredPool === 'orchard' && (
-              <span className="text-[11px] text-amber-300 font-mono animate-in fade-in">
-                {fmtZec(unverifiedZat)} ZEC · Orchard (vulnerable circuit, unverified)
-              </span>
-            )}
-            {!hoveredPool && (
-              <span className="text-[10px] text-muted">Hover ring for details</span>
-            )}
+          {/* Legend below ring */}
+          <div className="flex items-center gap-4 mt-3 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="text-muted">Verified</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ORCHARD }} />
+              <span className="text-muted">Orchard</span>
+            </div>
           </div>
         </div>
 
@@ -594,13 +564,9 @@ function SupplyVerification({
           {poolRows.map((row) => (
             <div
               key={row.name}
-              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all cursor-default ${
-                hoveredPool === row.name.toLowerCase()
-                  ? 'bg-white/[0.04]'
-                  : 'hover:bg-white/[0.02]'
-              } ${row.name === 'Orchard' ? 'border border-amber-400/15' : ''}`}
-              onMouseEnter={() => setHoveredPool(row.name.toLowerCase())}
-              onMouseLeave={() => setHoveredPool(null)}
+              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all hover:bg-white/[0.03] ${
+                row.name === 'Orchard' ? 'border border-amber-400/15' : ''
+              }`}
             >
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
