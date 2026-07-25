@@ -257,6 +257,8 @@ export function MigrationClient({
                   balanced={overview.supplyAudit?.balanced ?? true}
                   migratedPct={migratedPct}
                   blockPulseKey={overview.tipHeight}
+                  orchardZec={fmtZec(overview.poolSizes.orchardZat)}
+                  ironwoodZec={fmtZec(overview.poolSizes.ironwoodZat)}
                 />
               )}
               <MetricsRow
@@ -406,19 +408,18 @@ function MetricsRow({
           value={`${((tipHeight - activationHeight) || 0).toLocaleString()} blocks`}
         />
         <Stat
-          label="Orchard pool"
-          value={overview ? `${fmtZec(overview.poolSizes.orchardZat)} ZEC` : '—'}
+          label="Orchard emptied"
+          value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
           tone="orchard"
         />
         <Stat
-          label="Ironwood pool"
-          value={overview ? `${fmtZec(overview.poolSizes.ironwoodZat)} ZEC` : '—'}
+          label="Migration velocity"
+          value={overview?.migration?.velocityZatPerHour ? `${fmtZec(overview.migration.velocityZatPerHour)} ZEC/hr` : '—'}
           tone="ironwood"
         />
         <Stat
-          label="Orchard emptied"
-          value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
-          tone="ironwood"
+          label="Transactions"
+          value={overview?.migration?.txCount ? overview.migration.txCount.toLocaleString() : '—'}
         />
       </div>
     </div>

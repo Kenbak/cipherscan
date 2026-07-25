@@ -27,10 +27,12 @@ export interface TurnstileHeroProps {
   balanced: boolean;
   migratedPct: number;
   blockPulseKey: number;
+  orchardZec?: string;
+  ironwoodZec?: string;
 }
 
 export function TurnstileHero(props: TurnstileHeroProps) {
-  const { activated, balanced, migratedPct, blockPulseKey } = props;
+  const { activated, balanced, migratedPct, blockPulseKey, orchardZec, ironwoodZec } = props;
 
   const [use3D, setUse3D] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
@@ -89,6 +91,32 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           onReady={() => setSceneReady(true)}
         />
       </div>
+
+      {/* Text overlay */}
+      {sceneReady && (
+        <>
+          <div className="absolute top-4 left-0 right-0 text-center pointer-events-none z-[2]">
+            <div className="text-[10px] font-mono text-muted/70 uppercase tracking-widest">
+              NU6.3 Ironwood activation
+            </div>
+            <div className="text-lg sm:text-xl font-bold font-mono text-cipher-yellow-bright mt-1">
+              {activated ? 'LIVE' : 'PENDING'}
+            </div>
+          </div>
+          {(orchardZec || ironwoodZec) && (
+            <div className="absolute bottom-4 left-5 right-5 flex items-end justify-between pointer-events-none z-[2]">
+              <div>
+                <div className="text-[10px] font-mono text-[#A78BFA]">Orchard</div>
+                <div className="text-sm font-mono font-semibold text-[#A78BFA]/90">{orchardZec} ZEC</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-mono text-cipher-yellow-bright">Ironwood</div>
+                <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{ironwoodZec} ZEC</div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {!sceneReady && (
         <div className="absolute inset-0 z-[5] flex items-center justify-center bg-cipher-surface/80 backdrop-blur-sm">
