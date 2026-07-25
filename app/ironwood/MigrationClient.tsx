@@ -513,7 +513,7 @@ function SupplyVerification({
       });
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
-      const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.org/ironwood`;
+      const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood`;
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text, files: [file] });
@@ -634,7 +634,7 @@ function SupplyVerification({
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/20">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-muted tracking-tight">CIPHERSCAN</span>
-          <span className="text-[10px] text-muted/50 font-mono">cipherscan.org</span>
+          <span className="text-[10px] text-muted/50 font-mono">cipherscan.app</span>
         </div>
         <span className="text-[10px] text-muted font-mono">
           {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
