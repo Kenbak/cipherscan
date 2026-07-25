@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ResponsiveContainer,
@@ -18,6 +18,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from 'recharts';
+import { toPng } from 'html-to-image';
 import { getApiUrl } from '@/lib/api-config';
 import { TurnstileHero } from './TurnstileHero';
 
@@ -497,9 +498,49 @@ function SupplyVerification({
     { name: 'Orchard', value: orchardVisualPct },
   ];
   const RING_COLORS = ['#10b981', ORCHARD];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [sharing, setSharing] = useState(false);
+
+  const handleShare = useCallback(async () => {
+    if (!cardRef.current) return;
+    setSharing(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        backgroundColor: '#0f1419',
+        pixelRatio: 2,
+      });
+      const blob = await (await fetch(dataUrl)).blob();
+      const text = `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.org/ironwood`;
+
+      if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'supply.png', { type: 'image/png' })] })) {
+        await navigator.share({
+          text,
+          files: [new File([blob], 'cipherscan-supply.png', { type: 'image/png' })],
+        });
+      } else {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+      }
+    } catch (e) {
+      // User cancelled share or clipboard failed
+    } finally {
+      setSharing(false);
+    }
+  }, [verifiedPct]);
 
   return (
-    <div className="mt-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
+    <div className="mt-4 relative">
+      {/* Share button */}
+      <button
+        onClick={handleShare}
+        disabled={sharing}
+        className="absolute top-4 right-4 z-10 text-[10px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-lg px-2.5 py-1.5 transition-all hover:bg-white/[0.03] disabled:opacity-50"
+        title="Share to Twitter"
+      >
+        {sharing ? 'Capturing…' : 'Share ↗'}
+      </button>
+
+      <div ref={cardRef} className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
       {/* Two-column: ring left, pools right */}
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
         {/* Left: Ring */}
@@ -598,10 +639,17 @@ function SupplyVerification({
         </div>
       )}
 
-      {/* Footer */}
-      <div className="mt-4 text-[10px] text-muted font-mono text-right">
-        {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
+      {/* Footer with watermark */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/20">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-muted tracking-tight">CIPHERSCAN</span>
+          <span className="text-[10px] text-muted/50 font-mono">cipherscan.org</span>
+        </div>
+        <span className="text-[10px] text-muted font-mono">
+          {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · {pools.source.toUpperCase()} · block {pools.sourceHeight.toLocaleString()}
+        </span>
       </div>
+      </div>{/* end cardRef */}
     </div>
   );
 }

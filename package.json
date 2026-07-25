@@ -43,6 +43,7 @@
     "autoprefixer": "^10.4.21",
     "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
+    "html-to-image": "^1.11.13",
     "next": "^16.2.7",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
