@@ -191,7 +191,7 @@ export function MigrationClient({
       : 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs font-mono text-muted mb-4">
         <Link href="/" className="hover:text-primary transition-colors">Dashboard</Link>
@@ -652,28 +652,37 @@ function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSourc
   if (rows.length === 0) return null;
 
   const totalIn = sources.totalInZat;
+  const [hovered, setHovered] = useState<string | null>(null);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-bold text-primary">Where Ironwood ZEC comes from</span>
         <span className="text-[10px] font-mono text-muted">
           {fmtZec(totalIn)} ZEC total inflow
         </span>
       </div>
 
-      {/* Stacked bar — tall and bold */}
-      <div className="h-8 rounded-lg overflow-hidden flex mb-4 border border-cipher-border/30">
+      {/* Stacked bar with hover */}
+      <div className="h-9 rounded-lg overflow-hidden flex mb-2 border border-cipher-border/30">
         {rows.map((row) => {
           const pct = totalIn > 0 ? (row.zat / totalIn) * 100 : 0;
+          const isHovered = hovered === row.name;
           return (
             <div
               key={row.name}
-              className="h-full relative flex items-center justify-center transition-all duration-500"
-              style={{ width: `${pct}%`, backgroundColor: row.color }}
+              className="h-full relative flex items-center justify-center transition-all duration-300 cursor-default"
+              style={{
+                width: `${pct}%`,
+                backgroundColor: row.color,
+                opacity: hovered && !isHovered ? 0.5 : 1,
+                filter: isHovered ? 'brightness(1.2)' : 'none',
+              }}
+              onMouseEnter={() => setHovered(row.name)}
+              onMouseLeave={() => setHovered(null)}
             >
-              {pct > 12 && (
-                <span className="text-[10px] font-mono font-bold text-white/90 mix-blend-normal">
+              {pct > 10 && (
+                <span className="text-[10px] font-mono font-bold text-white/90">
                   {pct.toFixed(0)}%
                 </span>
               )}
@@ -682,27 +691,39 @@ function InflowSources({ sources }: { sources: NonNullable<Overview['inflowSourc
         })}
       </div>
 
-      {/* Source legend grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {rows.map((row) => {
-          const pct = totalIn > 0 ? (row.zat / totalIn) * 100 : 0;
+      {/* Hover tooltip */}
+      <div className="h-5 mb-3">
+        {hovered && (() => {
+          const r = rows.find((x) => x.name === hovered);
+          if (!r) return null;
+          const pct = totalIn > 0 ? (r.zat / totalIn) * 100 : 0;
           return (
-            <div key={row.name} className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
-              <div className="min-w-0">
-                <div className="text-xs text-secondary truncate">{row.name}</div>
-                <div className="text-xs font-mono text-primary font-semibold">
-                  {fmtZec(row.zat)} ZEC
-                  <span className="text-muted font-normal ml-1.5">{row.txs.toLocaleString()} txs</span>
-                </div>
-              </div>
-            </div>
+            <span className="text-[11px] font-mono text-secondary">
+              <span style={{ color: r.color }}>{r.name}</span>
+              {' · '}{fmtZec(r.zat)} ZEC · {r.txs.toLocaleString()} txs · {pct.toFixed(1)}%
+            </span>
           );
-        })}
+        })()}
+      </div>
+
+      {/* Source legend — inline row */}
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
+        {rows.map((row) => (
+          <div
+            key={row.name}
+            className={`flex items-center gap-2 transition-opacity ${hovered && hovered !== row.name ? 'opacity-40' : ''}`}
+            onMouseEnter={() => setHovered(row.name)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+            <span className="text-xs text-secondary">{row.name}</span>
+            <span className="text-xs font-mono font-semibold text-primary">{fmtZec(row.zat)}</span>
+          </div>
+        ))}
       </div>
 
       {sources.totalOutZat > 0 && (
-        <div className="flex items-center justify-between text-xs font-mono mt-4 pt-3 border-t border-cipher-border/20">
+        <div className="flex items-center justify-between text-xs font-mono mt-3 pt-3 border-t border-cipher-border/20">
           <span className="text-muted">Outflows from Ironwood</span>
           <span className="text-primary font-semibold">{fmtZec(sources.totalOutZat)} ZEC</span>
         </div>
