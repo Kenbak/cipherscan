@@ -15,6 +15,11 @@ export function retainLastGoodOrBuildFallback<T>(
   context: string,
 ): T {
   if (isIsrBuildFallbackEnabled()) return fallback;
-  if (error instanceof Error) throw error;
+  if (error instanceof Error) {
+    if (error instanceof DOMException) {
+      throw new Error(`${context}: ${error.message}`, { cause: error });
+    }
+    throw error;
+  }
   throw new Error(`${context} is unavailable`, { cause: error });
 }

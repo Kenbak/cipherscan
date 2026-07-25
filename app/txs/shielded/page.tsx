@@ -156,7 +156,7 @@ async function getInitialFlows(
 
     res = await fetchWithDeadline(`${API_URL}/api/shielded/list?${params.toString()}`, {
       next: { revalidate: 30, tags: ['chain-tip'] },
-    });
+    }, 5_000);
   } catch (error) {
     if (!isServerRenderDeadlineError(error)) {
       console.error('Error fetching initial shielded transactions:', error);
