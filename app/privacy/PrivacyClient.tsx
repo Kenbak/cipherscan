@@ -48,12 +48,12 @@ const SCORE_KEYS = ['usage', 'quality', 'depth', 'hygiene'] as const;
 
 const SCORE_TOOLTIPS: Record<(typeof SCORE_KEYS)[number], string> = {
   usage:
-    'Share of non-coinbase transactions that touch shielded pools over the last 30 days. Up to 35 points.',
+    'Share of non-coinbase transactions that touch shielded pools over the last 30 days. Up to 33 points.',
   quality:
-    'Among shielded transactions in the last 30 days, the share that are fully shielded (z→z) with no transparent inputs or outputs. Up to 35 points.',
-  depth: 'Percentage of total chain supply held in shielded pools. Up to 15 points.',
+    'Among shielded transactions in the last 30 days, the share that are fully shielded (z→z) with no transparent inputs or outputs. Up to 33 points.',
+  depth: 'Percentage of total chain supply held in shielded pools. Up to 20 points.',
   hygiene:
-    'Of ZEC that left shielded pools over the last 90 days, how much was reshielded instead of staying transparent. Up to 15 points.',
+    'Of ZEC that left shielded pools over the last 90 days, how much was reshielded instead of staying transparent. Up to 14 points.',
 };
 
 function scoreInputLabel(key: (typeof SCORE_KEYS)[number], percent: number) {

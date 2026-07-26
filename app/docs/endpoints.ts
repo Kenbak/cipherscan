@@ -939,7 +939,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       lastBlockScanned: 3425936,
     },
     note:
-      'Privacy Score v2 (0–100): Usage 35 (30d shielded tx share, non-coinbase) + Quality 35 (30d fully-shielded / shielded) + Depth 15 (supply in pools) + Hygiene 15 (90d turnstile reshield rate). Updated hourly. metrics.privacyScore uses the latest daily trend row. scoreBreakdown may be null until the job has run with v2. Pool sizes and trend poolSize are in ZEC. adoptionTrend compares shielded tx volume in the last 7d vs the prior 7d.',
+      'Privacy Score v2 (0–100): Usage 33 (30d shielded tx share, non-coinbase) + Quality 33 (30d fully-shielded / shielded) + Depth 20 (supply in pools) + Hygiene 14 (90d turnstile reshield rate). Updated hourly. metrics.privacyScore uses the latest daily trend row. scoreBreakdown may be null until the job has run with v2. Pool sizes and trend poolSize are in ZEC. adoptionTrend compares shielded tx volume in the last 7d vs the prior 7d.',
   },
   {
     id: 'anonymity-set',

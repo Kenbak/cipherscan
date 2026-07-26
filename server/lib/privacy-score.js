@@ -6,17 +6,17 @@
  * this module is the network-wide composite for privacy_stats / privacy_trends_daily.
  *
  * Weights (max points):
- *   Usage   35 — 30-day shielded tx share (non-coinbase)
- *   Quality 35 — fully-shielded / shielded tx share (30-day)
- *   Depth   15 — % of chain supply in shielded pools
- *   Hygiene 15 — turnstile reshield rate (90-day deshielded ZEC that gets reshielded)
+ *   Usage   33 — 30-day shielded tx share (non-coinbase)
+ *   Quality 33 — fully-shielded / shielded tx share (30-day)
+ *   Depth   20 — % of chain supply in shielded pools
+ *   Hygiene 14 — turnstile reshield rate (90-day deshielded ZEC that gets reshielded)
  */
 
 const WEIGHTS = {
-  usage: 35,
-  quality: 35,
-  depth: 15,
-  hygiene: 15,
+  usage: 33,
+  quality: 33,
+  depth: 20,
+  hygiene: 14,
 };
 
 function clampScore(value, max) {

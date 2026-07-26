@@ -15,7 +15,8 @@ test('privacy score v2 returns breakdown and caps at 100', () => {
     reshieldPercent: 100,
   });
   assert.equal(result.total, 100);
-  assert.equal(result.breakdown.usage.max, 35);
+  assert.equal(result.breakdown.usage.max, WEIGHTS.usage);
+  assert.equal(result.breakdown.depth.max, WEIGHTS.depth);
   assert.equal(result.version, 2);
 });
 
