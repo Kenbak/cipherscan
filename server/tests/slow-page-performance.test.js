@@ -449,7 +449,7 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
     'app/txs/shielded/latest/page.tsx',
   ]) {
     const latestSource = source(filename);
-    assert.match(latestSource, /unavailablePolicy: 'throw'/);
+    assert.match(latestSource, /unavailablePolicy: 'shell'/);
     assert.match(latestSource, /export const revalidate = 30/);
   }
 
