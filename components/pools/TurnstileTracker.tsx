@@ -172,12 +172,6 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       <Card variant="glass">
         <CardBody>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-            {showCardHeader && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TURNSTILE_TRACKER</h2>
-              </div>
-            )}
             <PeriodPillTags
               options={PERIOD_OPTIONS}
               value={period}

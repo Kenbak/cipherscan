@@ -28,7 +28,13 @@ async function setRedisCache(redisClient, key, data, ttlSeconds) {
 }
 
 function periodToInterval(period) {
-  const map = { '7d': '7 days', '30d': '30 days', '90d': '90 days', '1y': '365 days', all: '10 years' };
+  const map = {
+    '7d': '7 days',
+    '30d': '30 days',
+    '90d': '90 days',
+    '1y': '365 days',
+    all: '4000 days',
+  };
   return map[period] || '90 days';
 }
 
@@ -329,10 +335,15 @@ function registerNetworkAnalyticsRoutes(router) {
            ${hasIronwoodCol ? 'ironwood_pool_size,' : ''} transparent_pool_size`
         : `date, pool_size, shielded_percentage`;
 
+      const dateFilter =
+        period === 'all'
+          ? `date >= '2016-10-28'`
+          : `date >= CURRENT_DATE - INTERVAL '${interval}'`;
+
       const result = await pool.query(
         `SELECT ${cols}
          FROM privacy_trends_daily
-         WHERE date >= CURRENT_DATE - INTERVAL '${interval}'
+         WHERE ${dateFilter}
          ORDER BY date ASC`
       );
 
@@ -394,11 +405,17 @@ function registerNetworkAnalyticsRoutes(router) {
 
       const verifiedPerPool = hasPoolCols ? await hasVerifiedPerPoolBreakdown(pool) : false;
 
+      const coverageStart = points.length > 0 ? String(points[0].date).slice(0, 10) : null;
+      const coverageEnd = points.length > 0 ? String(points[points.length - 1].date).slice(0, 10) : null;
+
       res.json({
         success: true,
         period,
         format,
         points,
+        timelineStart: '2016-10-28',
+        coverageStart,
+        coverageEnd,
         hasPoolBreakdown: hasPoolCols,
         hasVerifiedPerPoolBreakdown: verifiedPerPool,
       });
