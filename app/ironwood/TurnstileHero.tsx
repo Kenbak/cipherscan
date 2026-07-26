@@ -33,8 +33,6 @@ interface CohortPoint {
   txCount: number;
   firstTime: number | null;
   cumulativeZat: number;
-  ironwoodPoolZat: number;
-  orchardOutflowZat: number;
 }
 
 export interface TurnstileHeroProps {
@@ -52,15 +50,8 @@ export interface TurnstileHeroProps {
     volumeZat: number;
     txCount: number;
     firstTime: number | null;
-    ironwoodPoolZat: number | null;
-    orchardOutflowZat: number | null;
   }> | null;
-  totalMigratedZat: number;
   originalOrchardZat: number;
-  /** Actual Ironwood pool balance from Zebra (net: in minus out) */
-  liveIronwoodZat: number;
-  /** Actual Orchard pool balance from Zebra */
-  liveOrchardZat: number;
 }
 
 type ScrubMode = 'live' | 'scrub' | 'play';
@@ -77,10 +68,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     activationHeight,
     tipHeight,
     cohorts: rawCohorts,
-    totalMigratedZat,
     originalOrchardZat,
-    liveIronwoodZat,
-    liveOrchardZat,
   } = props;
 
   const [use3D, setUse3D] = useState(false);
@@ -102,12 +90,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     let cum = 0;
     return sorted.map((c) => {
       cum += c.volumeZat;
-      return {
-        ...c,
-        cumulativeZat: cum,
-        ironwoodPoolZat: c.ironwoodPoolZat ?? 0,
-        orchardOutflowZat: c.orchardOutflowZat ?? 0,
-      };
+      return { ...c, cumulativeZat: cum };
     });
   }, [rawCohorts]);
 
@@ -161,13 +144,10 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     const ptLo = cohortPoints[lo];
     const ptHi = cohortPoints[hi];
     const vol = ptLo.volumeZat + (ptHi.volumeZat - ptLo.volumeZat) * frac;
-    // Use server-provided net pool balances (accounts for outflows accurately)
-    const ironwoodZat = ptLo.ironwoodPoolZat + (ptHi.ironwoodPoolZat - ptLo.ironwoodPoolZat) * frac;
-    // Orchard = pre-activation balance minus cumulative outflow since activation
-    const orchardOutflow = ptLo.orchardOutflowZat + (ptHi.orchardOutflowZat - ptLo.orchardOutflowZat) * frac;
-    const orchardZat = Math.max(0, originalOrchardZat - orchardOutflow);
-    const totalPool = orchardZat + ironwoodZat;
-    const pct = totalPool > 0 ? (ironwoodZat / totalPool) * 100 : 0;
+    // Gross cumulative migration volume — "how much has crossed the turnstile"
+    const migratedZat = ptLo.cumulativeZat + (ptHi.cumulativeZat - ptLo.cumulativeZat) * frac;
+    const remainingZat = Math.max(0, originalOrchardZat - migratedZat);
+    const pct = originalOrchardZat > 0 ? (migratedZat / originalOrchardZat) * 100 : 0;
     const intensity = Math.min(1, vol / peakVolume);
     const displayPt = cohortPoints[Math.round(clamped)];
     const d = displayPt.firstTime ? new Date(displayPt.firstTime * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
@@ -177,8 +157,8 @@ export function TurnstileHero(props: TurnstileHeroProps) {
       flowIntensity: intensity,
       blockHeight: displayPt.boundaryStartHeight,
       date: d,
-      orchardLabel: `${fmtZec(orchardZat)} ZEC`,
-      ironwoodLabel: `${fmtZec(ironwoodZat)} ZEC`,
+      orchardLabel: `${fmtZec(remainingZat)} ZEC`,
+      ironwoodLabel: `${fmtZec(migratedZat)} ZEC`,
     };
   }, [mode, scrubIndex, maxIndex, cohortPoints, peakVolume, activated, hasCohorts, migratedPct, tipHeight, orchardZec, ironwoodZec, originalOrchardZat]);
 
@@ -290,7 +270,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         <>
           <div className="pointer-events-none absolute top-4 left-0 right-0 z-[2] text-center">
             <div className="text-[10px] font-mono uppercase tracking-widest text-muted/70">
-              NU6.3 Ironwood activation
+              Orchard to Ironwood Migration
             </div>
             <div className="mt-1 text-lg font-bold font-mono text-cipher-yellow-bright sm:text-xl">
               {mode === 'live' ? (activated ? 'LIVE' : 'PENDING') : sceneState.date || `Block ${sceneState.blockHeight.toLocaleString()}`}
@@ -298,11 +278,11 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           </div>
           <div className="pointer-events-none absolute bottom-14 left-5 right-5 z-[2] flex items-end justify-between sm:bottom-16">
             <div>
-              <div className="text-[10px] font-mono text-[#A78BFA]">Orchard</div>
+              <div className="text-[10px] font-mono text-[#A78BFA]">Remaining in Orchard</div>
               <div className="text-sm font-mono font-semibold text-[#A78BFA]/90">{sceneState.orchardLabel}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] font-mono text-cipher-yellow-bright">Ironwood</div>
+              <div className="text-[10px] font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
               <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{sceneState.ironwoodLabel}</div>
             </div>
           </div>

@@ -266,23 +266,6 @@ export function MigrationClient({
           ) : (
             /* Post-activation: full dashboard */
             <>
-              {overview && (
-                <TurnstileHero
-                  activated={activated}
-                  balanced={overview.supplyAudit?.balanced ?? true}
-                  migratedPct={migratedPct}
-                  blockPulseKey={overview.tipHeight}
-                  orchardZec={fmtZec(overview.poolSizes.orchardZat)}
-                  ironwoodZec={fmtZec(overview.poolSizes.ironwoodZat)}
-                  activationHeight={knownActivationHeight}
-                  tipHeight={knownTip}
-                  cohorts={cohorts?.cohorts ?? null}
-                  totalMigratedZat={overview.migration.totalMigratedZat}
-                  originalOrchardZat={originalOrchard}
-                  liveIronwoodZat={overview.poolSizes.ironwoodZat}
-                  liveOrchardZat={overview.poolSizes.orchardZat}
-                />
-              )}
               <MetricsRow
                 overview={overview}
                 activated={activated}
@@ -296,6 +279,20 @@ export function MigrationClient({
                 zecPrice={zecPrice}
               />
               <SupplyVerification overview={overview} colors={colors} currencyMode={currencyMode} zecPrice={zecPrice} />
+              {overview && (
+                <TurnstileHero
+                  activated={activated}
+                  balanced={overview.supplyAudit?.balanced ?? true}
+                  migratedPct={migratedPct}
+                  blockPulseKey={overview.tipHeight}
+                  orchardZec={fmtZec(overview.poolSizes.orchardZat)}
+                  ironwoodZec={fmtZec(overview.poolSizes.ironwoodZat)}
+                  activationHeight={knownActivationHeight}
+                  tipHeight={knownTip}
+                  cohorts={cohorts?.cohorts ?? null}
+                  originalOrchardZat={originalOrchard}
+                />
+              )}
               {hasMigrations && overview?.inflowSources && overview.poolSizes && (
                 <IronwoodInflowCard
                   sources={overview.inflowSources}
