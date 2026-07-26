@@ -215,7 +215,8 @@ router.get('/api/migration/overview', async (req, res) => {
       if (!poolSnapshot) {
         try {
           const snapshotResult = await pool.query(`
-            SELECT orchard_pool_size, ironwood_pool_size, last_block_scanned, updated_at
+            SELECT orchard_pool_size, ironwood_pool_size, last_block_scanned, updated_at,
+                   chain_supply, sapling_pool_size, sprout_pool_size, transparent_pool_size
             FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
           `);
           const snapshot = snapshotResult.rows[0];
@@ -223,15 +224,19 @@ router.get('/api/migration/overview', async (req, res) => {
           const ironwoodZat = parsePoolZat(snapshot?.ironwood_pool_size);
           const height = Number(snapshot?.last_block_scanned);
           if (orchardZat !== null && ironwoodZat !== null && Number.isSafeInteger(height)) {
+            const chainSupply = parsePoolZat(snapshot?.chain_supply);
+            const saplingZat = parsePoolZat(snapshot?.sapling_pool_size) ?? 0;
+            const sproutZat = parsePoolZat(snapshot?.sprout_pool_size) ?? 0;
+            const transparentZat = parsePoolZat(snapshot?.transparent_pool_size) ?? null;
             poolSnapshot = {
               orchardZat,
               ironwoodZat,
-              sproutZat: 0,
-              saplingZat: 0,
+              sproutZat,
+              saplingZat,
               deferredZat: 0,
-              transparentZat: null,
-              shieldedTotalZat: 0,
-              chainSupplyZat: null,
+              transparentZat,
+              shieldedTotalZat: sproutZat + saplingZat + orchardZat + ironwoodZat,
+              chainSupplyZat: chainSupply,
               height,
               updatedAt: snapshot.updated_at,
               source: 'privacy_stats',
