@@ -274,6 +274,11 @@ export function MigrationClient({
                   blockPulseKey={overview.tipHeight}
                   orchardZec={fmtZec(overview.poolSizes.orchardZat)}
                   ironwoodZec={fmtZec(overview.poolSizes.ironwoodZat)}
+                  activationHeight={knownActivationHeight}
+                  tipHeight={knownTip}
+                  cohorts={cohorts?.cohorts ?? null}
+                  totalMigratedZat={overview.migration.totalMigratedZat}
+                  originalOrchardZat={originalOrchard}
                 />
               )}
               <MetricsRow

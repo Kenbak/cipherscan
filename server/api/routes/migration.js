@@ -421,7 +421,7 @@ router.get('/api/migration/cohorts', async (req, res) => {
             COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS volume_zat,
             MIN(block_time) AS first_time
           FROM transactions
-          WHERE has_ironwood = true AND value_balance_ironwood < 0
+          WHERE ${MIGRATION_PREDICATE}
           GROUP BY boundary
           ORDER BY boundary
         `, [BOUNDARY_MODULUS]);
@@ -477,7 +477,7 @@ router.get('/api/migration/denominations', async (req, res) => {
             COUNT(*) AS tx_count,
             COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS volume_zat
           FROM transactions
-          WHERE has_ironwood = true AND value_balance_ironwood < 0
+          WHERE ${MIGRATION_PREDICATE}
           GROUP BY power
           ORDER BY power DESC
         `);

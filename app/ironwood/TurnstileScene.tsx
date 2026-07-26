@@ -9,10 +9,8 @@
  * - Pre-activation: particles swirl in the Orchard pool behind a locked gate.
  * - Activated: the gate opens and particles stream across in a continuous flow;
  *   pool "levels" reflect the migrated fraction.
- *
- * Rendered only client-side (dynamic import, ssr:false) via TurnstileHero, which
- * also handles the reduced-motion / no-WebGL fallback. Numbers are drawn as DOM
- * overlay in the Hero, not in WebGL, so they stay crisp and accessible.
+ * - flowIntensity (0–1) modulates flow speed + count: 0 = no migration happening,
+ *   1 = peak activity. Driven by recent cohort volume or scrubber position.
  */
 
 import { useMemo, useRef } from 'react';
@@ -28,7 +26,6 @@ const ORCHARD_X = -2.7;
 const IRONWOOD_X = 2.7;
 const POOL_Y = -0.9;
 
-// Soft round particle sprite so points glow instead of rendering as squares.
 function makeSprite(): THREE.Texture {
   const size = 64;
   const canvas = document.createElement('canvas');
@@ -54,7 +51,6 @@ interface PoolParticle {
   bobPhase: number;
 }
 
-/** A swirling cloud of particles sitting in one of the pools. */
 function PoolCloud({
   centerX,
   color,
@@ -139,8 +135,19 @@ interface FlowParticle {
   arc: number;
 }
 
-/** Particles crossing the gate Orchard → Ironwood (only when activated). */
-function FlowStream({ count, sprite, lightMode }: { count: number; sprite: THREE.Texture; lightMode?: boolean }) {
+function FlowStream({
+  count,
+  sprite,
+  lightMode,
+  intensity,
+  pulseRef,
+}: {
+  count: number;
+  sprite: THREE.Texture;
+  lightMode?: boolean;
+  intensity: number;
+  pulseRef: React.MutableRefObject<number>;
+}) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const { positions, colors, params } = useMemo(() => {
@@ -174,29 +181,36 @@ function FlowStream({ count, sprite, lightMode }: { count: number; sprite: THREE
     const pos = pts.geometry.attributes.position.array as Float32Array;
     const col = pts.geometry.attributes.color.array as Float32Array;
     const clamped = Math.min(delta, 0.05);
+    const pulseMul = 1 + pulseRef.current * 2;
+    const speedMul = (0.3 + intensity * 1.5) * pulseMul;
+    const mat = pts.material as THREE.PointsMaterial;
+    mat.size = 0.1 + intensity * 0.12;
+    const activeCount = Math.round(count * (0.15 + intensity * 0.85));
     for (let i = 0; i < params.length; i++) {
       const p = params[i];
-      p.t += p.speed * clamped;
-      if (p.t >= 1) Object.assign(p, makeFlow(0));
-      const e = p.t;
-      const fromX = ORCHARD_X + Math.cos(p.fromA) * p.fromR;
-      const fromZ = Math.sin(p.fromA) * p.fromR;
-      const toX = IRONWOOD_X + Math.cos(p.toA) * p.toR;
-      const toZ = Math.sin(p.toA) * p.toR;
-      // Pinch: particles funnel to a tight point at center (e=0.5)
-      const spread = Math.pow(Math.abs(e - 0.5) * 2, 0.5);
-      const rawZ = fromZ + (toZ - fromZ) * e;
-      pos[i * 3] = fromX + (toX - fromX) * e;
-      pos[i * 3 + 1] = POOL_Y + Math.sin(e * Math.PI) * p.arc;
-      pos[i * 3 + 2] = rawZ * spread;
-      const srcColor = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
-      const dstColor = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
-      const r = srcColor.r + (dstColor.r - srcColor.r) * e;
-      const g = srcColor.g + (dstColor.g - srcColor.g) * e;
-      const b = srcColor.b + (dstColor.b - srcColor.b) * e;
-      col[i * 3] = r;
-      col[i * 3 + 1] = g;
-      col[i * 3 + 2] = b;
+      if (i < activeCount) {
+        p.t += p.speed * speedMul * clamped;
+        if (p.t >= 1) Object.assign(p, makeFlow(0));
+        const e = p.t;
+        const fromX = ORCHARD_X + Math.cos(p.fromA) * p.fromR;
+        const fromZ = Math.sin(p.fromA) * p.fromR;
+        const toX = IRONWOOD_X + Math.cos(p.toA) * p.toR;
+        const toZ = Math.sin(p.toA) * p.toR;
+        const spread = Math.pow(Math.abs(e - 0.5) * 2, 0.5);
+        const rawZ = fromZ + (toZ - fromZ) * e;
+        pos[i * 3] = fromX + (toX - fromX) * e;
+        pos[i * 3 + 1] = POOL_Y + Math.sin(e * Math.PI) * p.arc;
+        pos[i * 3 + 2] = rawZ * spread;
+        const srcColor = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
+        const dstColor = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
+        col[i * 3] = srcColor.r + (dstColor.r - srcColor.r) * e;
+        col[i * 3 + 1] = srcColor.g + (dstColor.g - srcColor.g) * e;
+        col[i * 3 + 2] = srcColor.b + (dstColor.b - srcColor.b) * e;
+      } else {
+        pos[i * 3] = 0;
+        pos[i * 3 + 1] = -100;
+        pos[i * 3 + 2] = 0;
+      }
     }
     pts.geometry.attributes.position.needsUpdate = true;
     pts.geometry.attributes.color.needsUpdate = true;
@@ -223,17 +237,44 @@ function FlowStream({ count, sprite, lightMode }: { count: number; sprite: THREE
 }
 
 
-/** Basin rim discs under each pool for grounding. */
-function Basins({ orchardScale, ironwoodScale, ironwoodEmpty, lightMode }: { orchardScale: number; ironwoodScale: number; ironwoodEmpty: boolean; lightMode?: boolean }) {
+function Basins({
+  orchardScale,
+  ironwoodScale,
+  ironwoodEmpty,
+  lightMode,
+  pulseRef,
+}: {
+  orchardScale: number;
+  ironwoodScale: number;
+  ironwoodEmpty: boolean;
+  lightMode?: boolean;
+  pulseRef: React.MutableRefObject<number>;
+}) {
   const orchardColor = lightMode ? ORCHARD_LIGHT : ORCHARD_DARK;
   const ironwoodColor = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
+  const orchardRef = useRef<THREE.Mesh>(null);
+  const ironwoodRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    const pulse = pulseRef.current;
+    if (orchardRef.current) {
+      const mat = orchardRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = (lightMode ? 0.6 : 0.35) + pulse * 0.3;
+    }
+    if (ironwoodRef.current) {
+      const mat = ironwoodRef.current.material as THREE.MeshBasicMaterial;
+      const base = ironwoodEmpty ? (lightMode ? 0.25 : 0.12) : (lightMode ? 0.6 : 0.35);
+      mat.opacity = base + pulse * 0.4;
+    }
+  });
+
   return (
     <>
-      <mesh position={[ORCHARD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={orchardScale}>
+      <mesh ref={orchardRef} position={[ORCHARD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={orchardScale}>
         <ringGeometry args={[1.35, 1.6, 48]} />
         <meshBasicMaterial color={orchardColor} transparent opacity={lightMode ? 0.6 : 0.35} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[IRONWOOD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={ironwoodScale}>
+      <mesh ref={ironwoodRef} position={[IRONWOOD_X, POOL_Y - 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={ironwoodScale}>
         <ringGeometry args={[1.35, 1.6, 48]} />
         <meshBasicMaterial color={ironwoodColor} transparent opacity={ironwoodEmpty ? (lightMode ? 0.25 : 0.12) : (lightMode ? 0.6 : 0.35)} side={THREE.DoubleSide} />
       </mesh>
@@ -244,14 +285,12 @@ function Basins({ orchardScale, ironwoodScale, ironwoodEmpty, lightMode }: { orc
 function Rig({ pulseRef }: { pulseRef: React.MutableRefObject<number> }) {
   const { camera, pointer } = useThree();
   useFrame(() => {
-    // Subtle mouse parallax + gentle idle drift.
     const t = performance.now() / 1000;
-    const targetX = pointer.x * 0.6 + Math.sin(t * 0.15) * 0.15;
-    const targetY = 1.4 + pointer.y * 0.3;
+    const targetX = pointer.x * 0.4 + Math.sin(t * 0.08) * 0.04;
+    const targetY = 1.4 + pointer.y * 0.2;
     camera.position.x += (targetX - camera.position.x) * 0.04;
     camera.position.y += (targetY - camera.position.y) * 0.04;
     camera.lookAt(0, -0.2, 0);
-    // Decay the block-tick pulse.
     pulseRef.current *= 0.92;
   });
   return null;
@@ -260,19 +299,30 @@ function Rig({ pulseRef }: { pulseRef: React.MutableRefObject<number> }) {
 export interface TurnstileSceneProps {
   lightMode?: boolean;
   activated: boolean;
-  balanced: boolean;
-  migratedPct: number; // 0..100
-  /** Bumped by the parent whenever a new block arrives, to fire a ripple pulse. */
+  migratedPct: number;
+  /** 0–1 flow intensity: 0 = idle, 1 = peak migration activity */
+  flowIntensity: number;
   blockPulseKey: number;
-  /** When true the render loop is stopped (offscreen / tab hidden). */
   paused?: boolean;
   onReady?: () => void;
 }
 
-export default function TurnstileScene({ activated, balanced, migratedPct, blockPulseKey, paused, lightMode, onReady }: TurnstileSceneProps) {
+export default function TurnstileScene({
+  activated,
+  migratedPct,
+  flowIntensity,
+  blockPulseKey,
+  paused,
+  lightMode,
+  onReady,
+}: TurnstileSceneProps) {
   const sprite = useMemo(() => makeSprite(), []);
   const pulseRef = useRef(0);
   const lastKey = useRef(blockPulseKey);
+
+  // Smooth frac with lerp ref so pool levels don't jump on poll
+  const targetFrac = Math.min(1, Math.max(0, migratedPct / 100));
+  const smoothFrac = useRef(targetFrac);
 
   if (blockPulseKey !== lastKey.current) {
     lastKey.current = blockPulseKey;
@@ -283,11 +333,13 @@ export default function TurnstileScene({ activated, balanced, migratedPct, block
   const IRONWOOD = lightMode ? IRONWOOD_LIGHT : IRONWOOD_DARK;
   const blending = lightMode ? THREE.NormalBlending : THREE.AdditiveBlending;
 
-  const frac = Math.min(1, Math.max(0, migratedPct / 100));
+  const frac = smoothFrac.current;
   const orchardCount = activated ? Math.round(2200 * (1 - frac)) : 2200;
   const ironwoodCount = activated ? Math.round(2200 * frac) : 0;
   const orchardScale = activated ? 0.4 + (1 - frac) * 0.6 : 1;
   const ironwoodScale = activated ? 0.4 + frac * 0.6 : 0.4;
+
+  const showFlow = activated && frac > 0 && frac < 1;
 
   return (
     <Canvas
@@ -299,12 +351,28 @@ export default function TurnstileScene({ activated, balanced, migratedPct, block
       onCreated={onReady}
     >
       <ambientLight intensity={lightMode ? 1.2 : 0.4} />
+      <SmoothFrac targetFrac={targetFrac} smoothRef={smoothFrac} />
       <Rig pulseRef={pulseRef} />
-      <Basins orchardScale={orchardScale} ironwoodScale={ironwoodScale} ironwoodEmpty={ironwoodCount === 0} lightMode={lightMode} />
+      <Basins orchardScale={orchardScale} ironwoodScale={ironwoodScale} ironwoodEmpty={ironwoodCount === 0} lightMode={lightMode} pulseRef={pulseRef} />
       <PoolCloud centerX={ORCHARD_X} color={ORCHARD} count={orchardCount} sprite={sprite} spin={1} blending={blending} />
       <PoolCloud centerX={IRONWOOD_X} color={IRONWOOD} count={ironwoodCount} sprite={sprite} spin={-0.8} blending={blending} />
-      {activated && frac > 0 && frac < 1 && <FlowStream count={Math.round(120 + 400 * frac)} sprite={sprite} lightMode={lightMode} />}
-
+      {showFlow && (
+        <FlowStream
+          count={400}
+          sprite={sprite}
+          lightMode={lightMode}
+          intensity={flowIntensity}
+          pulseRef={pulseRef}
+        />
+      )}
     </Canvas>
   );
+}
+
+/** Smoothly lerp frac inside the R3F render loop — fast enough for play mode (~10 frames to converge) */
+function SmoothFrac({ targetFrac, smoothRef }: { targetFrac: number; smoothRef: React.MutableRefObject<number> }) {
+  useFrame(() => {
+    smoothRef.current += (targetFrac - smoothRef.current) * 0.12;
+  });
+  return null;
 }
