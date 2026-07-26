@@ -1174,7 +1174,7 @@ function MigrationActivity({
   );
 }
 
-// ─── Section 4: Privacy Score ────────────────────────────────────────────────
+// ─── Section 4: Amount privacy ─────────────────────────────────────────────
 
 type PrivacyRange = '7d' | '30d' | 'all';
 
@@ -1297,7 +1297,7 @@ function PrivacyScore({
   return (
     <div id="privacy-score" className="scroll-mt-20">
       <ShareableCard
-        title="Migration privacy score"
+        title="Amount privacy"
         sourceHeight={tipHeight}
         isLive={activated}
         shareText={shareText}
@@ -1305,9 +1305,7 @@ function PrivacyScore({
       >
         <div className="mb-4">
           <p className="max-w-2xl text-xs leading-relaxed text-muted">
-            Each dot is one Orchard → Ironwood migration.{' '}
-            <span style={{ color: colors.denominated }} className="font-semibold">Gold</span> = standard denomination (blends in).{' '}
-            <span style={{ color: colors.distinctive }} className="font-semibold">Red</span> = distinctive amount (weakens privacy). Click a dot to open the transaction.
+            Each dot is one Orchard → Ironwood migration. Click a dot to open the transaction.
           </p>
         </div>
 
@@ -1505,18 +1503,25 @@ function PrivacyScore({
             </ResponsiveContainer>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
-              <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted">
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.denominated }} />
-                  Common denomination
+                  Standard denomination
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
                   Distinctive amount
                 </span>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-0 w-4 border-t border-dashed"
+                    style={{ borderColor: colors.denominated, opacity: 0.75 }}
+                  />
+                  Target denominations (0.001–100 ZEC)
+                </span>
               </div>
               <div className="text-[10px] font-mono text-muted">
-                {filteredTxs.length} txs · log scale · gold dashed = standard denominations (0.001–100 ZEC)
+                {filteredTxs.length} txs in range · log scale
               </div>
             </div>
             </>

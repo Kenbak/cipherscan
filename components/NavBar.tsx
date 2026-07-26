@@ -84,7 +84,7 @@ export function NavBar() {
     ? []
     : [
         { href: '/privacy', label: 'Privacy Score', desc: 'Network privacy health' },
-        { href: '/pools', label: 'Shielded Pools', desc: 'Supply, flows & turnstile' },
+        { href: '/pools', label: 'Shielded Pools', desc: 'Supply & shield/deshield flows' },
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
         { href: '/ironwood', label: 'Zcash Ironwood', desc: 'NU6.3 upgrade & migration tracker' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },

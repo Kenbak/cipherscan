@@ -11,7 +11,6 @@ import { PageHeader, SectionHeader, DataTable } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { PoolDistributionChart } from '@/components/network/PoolDistributionChart';
 import { FlowVolumeChart } from '@/components/pools/FlowVolumeChart';
-import { TurnstileTracker } from '@/components/pools/TurnstileTracker';
 import { FlowLegend } from '@/components/pools/FlowLegend';
 import { MetricWithTooltip } from '@/components/pools/MetricWithTooltip';
 import { InteractiveCompositionBar } from '@/components/pools/InteractiveCompositionBar';
@@ -21,7 +20,6 @@ const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'supply', label: 'Supply' },
   { id: 'flows', label: 'Flows' },
-  { id: 'turnstile', label: 'Turnstile' },
 ] as const;
 
 interface PoolOverview {
@@ -309,18 +307,21 @@ export default function PoolsPage() {
         <FlowVolumeChart />
       </section>
 
-      <section id="turnstile" className="scroll-mt-36 mb-12 animate-fade-in-up stagger-5">
-        <div className="mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-lg font-bold font-sans text-primary">Turnstile Tracker</h2>
+      <section className="mb-12 animate-fade-in-up stagger-5">
+        <Link
+          href="/turnstile"
+          className="group flex items-center justify-between gap-4 rounded-xl border border-glass-6 bg-glass-3 p-5 transition-colors hover:border-cipher-cyan/30"
+        >
+          <div>
+            <p className="text-sm font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
+              Turnstile Tracker
+            </p>
+            <p className="mt-1 text-xs text-muted font-sans max-w-xl">
+              When ZEC leaves a shielded pool, where does it go — held transparent, reshielded, exchanged, or moved elsewhere?
+            </p>
           </div>
-          <p className="text-xs text-secondary mt-1 font-sans">
-            When ZEC leaves a shielded pool, it lands on a public transparent address. We track what happens next —
-            does it stay there (held), or get sent somewhere else (moved)?
-          </p>
-        </div>
-        <TurnstileTracker />
+          <span className="shrink-0 text-[10px] font-mono text-cipher-cyan">Open →</span>
+        </Link>
       </section>
 
       <section className="mb-12 animate-fade-in-up stagger-6">

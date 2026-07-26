@@ -36,6 +36,7 @@ export function Footer() {
               <div className="flex flex-col gap-1">
                 <Link href="/privacy" className="footer-link text-[11px] font-mono">Privacy Score</Link>
                 <Link href="/pools" className="footer-link text-[11px] font-mono">Shielded Pools</Link>
+                <Link href="/turnstile" className="footer-link text-[11px] font-mono">Turnstile</Link>
                 <Link href="/ironwood" className="footer-link text-[11px] font-mono">Zcash Ironwood</Link>
                 <Link href="/privacy-risks" className="footer-link text-[11px] font-mono">Risk Scanner</Link>
                 {isMainnet && <Link href="/zodl" className="footer-link text-[11px] font-mono">Miner ZODL</Link>}

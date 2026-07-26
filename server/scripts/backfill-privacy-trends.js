@@ -17,6 +17,7 @@ require('dotenv').config({ path: path.join(__dirname, '../jobs/.env') });
 require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
 
 const { Pool } = require('pg');
+const { calculatePrivacyScore } = require('../lib/privacy-score');
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -36,13 +37,15 @@ function log(msg) {
   console.log(`[${ts}] ${msg}`);
 }
 
-function calculatePrivacyScore({ allTimeShieldedPercent = 0, totalShieldedZat = 0, chainSupplyZat = 0, fullyShieldedTx = 0, shieldedTx = 0 }) {
-  const supplyShieldedPercent = chainSupplyZat > 0 ? (totalShieldedZat / chainSupplyZat) * 100 : 0;
-  const supplyScore = Math.min(supplyShieldedPercent * 0.4, 40);
-  const fullyShieldedPercent = shieldedTx > 0 ? (fullyShieldedTx / shieldedTx) * 100 : 0;
-  const fullyShieldedScore = Math.min(fullyShieldedPercent * 0.3, 30);
-  const adoptionScore = Math.min(allTimeShieldedPercent * 0.3, 30);
-  return Math.min(Math.round(supplyScore + fullyShieldedScore + adoptionScore), 100);
+function calculateDailyPrivacyScore({ shieldedPercentage, poolSize, chainSupply, reshieldPercent = 0 }) {
+  const supplyShieldedPercent = chainSupply > 0 ? (poolSize / chainSupply) * 100 : 0;
+  // Historical rows lack rolling windows — approximate usage/quality from daily shielded %.
+  return calculatePrivacyScore({
+    recentShieldedPercent: shieldedPercentage,
+    recentFullyShieldedPercent: 0,
+    supplyShieldedPercent,
+    reshieldPercent,
+  }).total;
 }
 
 function getRpcHeaders() {
@@ -156,12 +159,10 @@ async function main() {
       }
     }
 
-    const privacyScore = calculatePrivacyScore({
-      allTimeShieldedPercent,
-      totalShieldedZat: pools.shieldedPoolSize,
-      chainSupplyZat: pools.chainSupply,
-      fullyShieldedTx: parseInt(allTimeStats.fully_shielded) || 0,
-      shieldedTx: parseInt(allTimeStats.shielded) || 0,
+    const privacyScore = calculateDailyPrivacyScore({
+      shieldedPercentage,
+      poolSize: pools.shieldedPoolSize,
+      chainSupply: pools.chainSupply,
     });
 
     const existing = await pool.query('SELECT id FROM privacy_trends_daily WHERE date = $1', [dateStr]);

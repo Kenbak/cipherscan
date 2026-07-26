@@ -27,6 +27,7 @@ if (fs.existsSync(apiEnvPath)) {
 }
 
 const { Pool } = require('pg');
+const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../lib/privacy-score');
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -71,18 +72,6 @@ async function callZebraRPC(method, params = []) {
   const data = await response.json();
   if (data.error) throw new Error(`Zebra RPC error: ${data.error.message}`);
   return data.result;
-}
-
-/**
- * Calculate privacy score (same formula as the Node.js indexer)
- */
-function calculatePrivacyScore({ allTimeShieldedPercent = 0, totalShieldedZat = 0, chainSupplyZat = 0, fullyShieldedTx = 0, shieldedTx = 0 }) {
-  const supplyShieldedPercent = chainSupplyZat > 0 ? (totalShieldedZat / chainSupplyZat) * 100 : 0;
-  const supplyScore = Math.min(supplyShieldedPercent * 0.4, 40);
-  const fullyShieldedPercent = shieldedTx > 0 ? (fullyShieldedTx / shieldedTx) * 100 : 0;
-  const fullyShieldedScore = Math.min(fullyShieldedPercent * 0.3, 30);
-  const adoptionScore = Math.min(allTimeShieldedPercent * 0.3, 30);
-  return Math.min(Math.round(supplyScore + fullyShieldedScore + adoptionScore), 100);
 }
 
 function assertZebraSynced(blockchainInfo) {
@@ -215,41 +204,71 @@ async function updateTransactionCounts() {
   };
 }
 
+async function computeNetworkPrivacyScore(pools) {
+  const rolling = await fetchPrivacyScoreInputs(pool);
+  const supplyShieldedPercent = pools.chainSupply > 0
+    ? (pools.shieldedPoolSize / pools.chainSupply) * 100
+    : 0;
+  return calculatePrivacyScore({ ...rolling, supplyShieldedPercent });
+}
+
 async function updatePrivacyStats(pools, txStats) {
   log('Updating privacy_stats table...');
 
-  const privacyScore = calculatePrivacyScore({
-    allTimeShieldedPercent: txStats.shieldedPercentage,
-    totalShieldedZat: pools.shieldedPoolSize,
-    chainSupplyZat: pools.chainSupply,
-    fullyShieldedTx: txStats.fullyShieldedTx,
-    shieldedTx: txStats.shieldedTx,
-  });
+  const scoreResult = await computeNetworkPrivacyScore(pools);
+  const privacyScore = scoreResult.total;
+  const scoreBreakdown = JSON.stringify(scoreResult.breakdown);
 
   const existing = await pool.query('SELECT id FROM privacy_stats ORDER BY updated_at DESC LIMIT 1');
 
   if (existing.rows.length > 0) {
-    await pool.query(`
-      UPDATE privacy_stats SET
-        shielded_pool_size = $1, sprout_pool_size = $2, sapling_pool_size = $3,
-        orchard_pool_size = $4, transparent_pool_size = $5, chain_supply = $6,
-        total_blocks = $7, total_transactions = $8, shielded_tx = $9,
-        transparent_tx = $10, coinbase_tx = $11, mixed_tx = $12,
-        fully_shielded_tx = $13, shielded_percentage = $14,
-        avg_shielded_per_day = $15, adoption_trend = $16,
-        last_block_scanned = $17, privacy_score = $19,
-        ironwood_pool_size = $20, updated_at = NOW()
-      WHERE id = $18
-    `, [
-      pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
-      pools.orchardPool, pools.transparentPool, pools.chainSupply,
-      txStats.totalBlocks, txStats.totalTx, txStats.shieldedTx,
-      txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
-      txStats.fullyShieldedTx, txStats.shieldedPercentage,
-      txStats.avgShieldedPerDay, txStats.adoptionTrend,
-      txStats.latestBlock, existing.rows[0].id, privacyScore,
-      pools.ironwoodPool,
-    ]);
+    try {
+      await pool.query(`
+        UPDATE privacy_stats SET
+          shielded_pool_size = $1, sprout_pool_size = $2, sapling_pool_size = $3,
+          orchard_pool_size = $4, transparent_pool_size = $5, chain_supply = $6,
+          total_blocks = $7, total_transactions = $8, shielded_tx = $9,
+          transparent_tx = $10, coinbase_tx = $11, mixed_tx = $12,
+          fully_shielded_tx = $13, shielded_percentage = $14,
+          avg_shielded_per_day = $15, adoption_trend = $16,
+          last_block_scanned = $17, privacy_score = $19,
+          ironwood_pool_size = $20, privacy_score_breakdown = $21::jsonb,
+          updated_at = NOW()
+        WHERE id = $18
+      `, [
+        pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
+        pools.orchardPool, pools.transparentPool, pools.chainSupply,
+        txStats.totalBlocks, txStats.totalTx, txStats.shieldedTx,
+        txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
+        txStats.fullyShieldedTx, txStats.shieldedPercentage,
+        txStats.avgShieldedPerDay, txStats.adoptionTrend,
+        txStats.latestBlock, existing.rows[0].id, privacyScore,
+        pools.ironwoodPool, scoreBreakdown,
+      ]);
+    } catch (err) {
+      if (!err.message?.includes('privacy_score_breakdown')) throw err;
+      await pool.query(`
+        UPDATE privacy_stats SET
+          shielded_pool_size = $1, sprout_pool_size = $2, sapling_pool_size = $3,
+          orchard_pool_size = $4, transparent_pool_size = $5, chain_supply = $6,
+          total_blocks = $7, total_transactions = $8, shielded_tx = $9,
+          transparent_tx = $10, coinbase_tx = $11, mixed_tx = $12,
+          fully_shielded_tx = $13, shielded_percentage = $14,
+          avg_shielded_per_day = $15, adoption_trend = $16,
+          last_block_scanned = $17, privacy_score = $19,
+          ironwood_pool_size = $20, updated_at = NOW()
+        WHERE id = $18
+      `, [
+        pools.shieldedPoolSize, pools.sproutPool, pools.saplingPool,
+        pools.orchardPool, pools.transparentPool, pools.chainSupply,
+        txStats.totalBlocks, txStats.totalTx, txStats.shieldedTx,
+        txStats.transparentTx, txStats.coinbaseTx, txStats.mixedTx,
+        txStats.fullyShieldedTx, txStats.shieldedPercentage,
+        txStats.avgShieldedPerDay, txStats.adoptionTrend,
+        txStats.latestBlock, existing.rows[0].id, privacyScore,
+        pools.ironwoodPool,
+      ]);
+    }
   } else {
     await pool.query(`
       INSERT INTO privacy_stats (
@@ -297,13 +316,8 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
   const totalCount = shieldedCount + transparentCount;
   const shieldedPercentage = totalCount > 0 ? (shieldedCount / totalCount) * 100 : 0;
 
-  const privacyScore = calculatePrivacyScore({
-    allTimeShieldedPercent: txStats.shieldedPercentage,
-    totalShieldedZat: pools.shieldedPoolSize,
-    chainSupplyZat: pools.chainSupply,
-    fullyShieldedTx: txStats.fullyShieldedTx,
-    shieldedTx: txStats.shieldedTx,
-  });
+  const scoreResult = await computeNetworkPrivacyScore(pools);
+  const privacyScore = scoreResult.total;
 
   if (existing.rows.length > 0) {
     try {

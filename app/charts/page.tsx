@@ -5,6 +5,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.mainnet.ci
 async function fetchChartData() {
   const endpoints = [
     `${API_BASE}/api/pools/flows?period=30d`,
+    `${API_BASE}/api/pools/turnstile?since=${encodeURIComponent(new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10))}`,
     `${API_BASE}/api/mining/hashrate-share?period=30d`,
     `${API_BASE}/api/analytics/anonymity-set?period=30d`,
     `${API_BASE}/api/analytics/shielding-distribution?period=30d`,
@@ -21,7 +22,7 @@ async function fetchChartData() {
     )
   );
 
-  const [flows, hashrate, anonymity, shielding, fees, poolDist, minerBeh] = results;
+  const [flows, turnstile, hashrate, anonymity, shielding, fees, poolDist, minerBeh] = results;
   const map: Record<string, any[]> = {};
 
   // /api/pools/flows → { points: [{ date, shield, deshield, net, shieldTx, deshieldTx }] }
@@ -43,9 +44,9 @@ async function fetchChartData() {
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
       shielded: d.shieldTx ?? 0,
     }));
-    map['turnstile'] = fData.map((d: any) => ({
+    map['turnstile'] = (turnstile?.timeseries ?? []).slice(-30).map((d: { date?: string; held?: number; reshielded?: number }) => ({
       label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
-      held: Math.round(d.deshield ?? 0),
+      held: Math.round((d.held ?? 0) + (d.reshielded ?? 0)),
     }));
     // Derive shielded % from shield tx vs total
     map['privacy-adoption'] = fData.map((d: any) => {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui';
+import { PageSectionNav } from '@/components/PageSectionNav';
+import { getChartColors } from '@/lib/chart-theme';
 import { CURRENCY } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -86,6 +88,8 @@ interface PrivacyStats {
   metrics: {
     shieldedPercentage: number;
     privacyScore: number;
+    scoreBreakdown?: Record<string, { label: string; score: number; max: number; percent: number; detail: string }> | null;
+    scoreVersion?: number;
     avgShieldedPerDay: number;
     adoptionTrend: 'growing' | 'stable' | 'declining';
   };
@@ -106,17 +110,9 @@ export default function PrivacyClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [zecPrice, setZecPrice] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'adoption' | 'pool' | 'activity' | 'score'>('adoption');
+  const [activeTab, setActiveTab] = useState<'adoption' | 'activity' | 'score'>('adoption');
   const { theme } = useTheme();
-
-  // Chart colors based on theme
-  const chartColors = {
-    grid: theme === 'light' ? '#E5E7EB' : '#374151',
-    axis: theme === 'light' ? '#6B7280' : '#9CA3AF',
-    tooltipBg: theme === 'light' ? '#FFFFFF' : '#1F2937',
-    tooltipBorder: theme === 'light' ? '#E5E7EB' : '#374151',
-    tooltipText: theme === 'light' ? '#111827' : '#fff',
-  };
+  const chartColors = getChartColors(theme);
 
   // WebSocket connection for real-time privacy stats updates
   const { isConnected } = useWebSocket({
@@ -238,8 +234,19 @@ export default function PrivacyClient() {
           </div>
         </PageHeader>
 
+        <PageSectionNav
+          sections={[
+            { id: 'score', label: 'Score' },
+            { id: 'activity', label: 'Activity' },
+            { id: 'trends', label: 'Trends' },
+            { id: 'distribution', label: 'Distribution' },
+          ]}
+          ariaLabel="Privacy dashboard sections"
+          className="mb-8"
+        />
+
         {/* Privacy Score + Key Metrics | Recent Shielded Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">
+        <div id="score" className="scroll-mt-36 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">
 
           {/* Left Column: Privacy Score + Key Metrics */}
           <div className="space-y-6">
@@ -265,9 +272,31 @@ export default function PrivacyClient() {
                   </div>
                 </div>
 
-                <p className="text-sm text-muted max-w-md mx-auto">
-                  Shielded Tx Adoption (40%), Fully Shielded Ratio (40%), Pool Size (20%)
+                <p className="text-sm text-muted max-w-md mx-auto mb-6">
+                  Usage (35) · Quality (35) · Depth (15) · Hygiene (15) — rolling windows, not all-time totals.
                 </p>
+                {stats.metrics.scoreBreakdown ? (
+                  <div className="mx-auto max-w-md space-y-2 text-left">
+                    {(['usage', 'quality', 'depth', 'hygiene'] as const).map((key) => {
+                      const row = stats.metrics.scoreBreakdown?.[key];
+                      if (!row) return null;
+                      return (
+                        <div key={key}>
+                          <div className="mb-1 flex justify-between text-[10px] font-mono text-muted">
+                            <span>{row.label}</span>
+                            <span>{row.score}/{row.max}</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-cipher-border/30">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-cipher-purple to-cipher-cyan"
+                              style={{ width: `${row.max > 0 ? (row.score / row.max) * 100 : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </CardBody>
             </Card>
 
@@ -306,6 +335,9 @@ export default function PrivacyClient() {
                   <p className="text-xs text-muted mt-1">
                     {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M / {stats.shieldedPool.chainSupply ? (stats.shieldedPool.chainSupply / 1000000).toFixed(1) : '\u2014'}M
                   </p>
+                  <Link href="/pools" className="mt-2 inline-block text-[10px] font-mono text-cipher-cyan hover:underline">
+                    Pool breakdown →
+                  </Link>
                 </CardBody>
               </Card>
 
@@ -345,8 +377,8 @@ export default function PrivacyClient() {
             </div>
           </div>
 
-          {/* Right Column: Recent Shielded Activity */}
-          <Card className="flex flex-col">
+          <div id="activity" className="scroll-mt-36">
+          <Card className="flex flex-col h-full">
             <CardBody className="flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -369,10 +401,10 @@ export default function PrivacyClient() {
               </Link>
             </CardBody>
           </Card>
+          </div>
         </div>
 
-        {/* Transaction Types + Pool Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8 animate-fade-in-up stagger-3">
+        <div className="mb-8 animate-fade-in-up stagger-3 max-w-2xl">
           {/* Transaction Types */}
           <Card>
             <CardBody>
@@ -414,117 +446,11 @@ export default function PrivacyClient() {
               </div>
             </CardBody>
           </Card>
-
-          {/* Shielded Pool Breakdown */}
-          {stats.shieldedPool.sapling !== undefined && (
-            <Card>
-              <CardBody>
-                <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">POOL_BREAKDOWN</h2>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-2 items-center">
-                      <span className="text-cipher-cyan font-mono text-sm">Sapling</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-secondary text-sm">
-                          {(stats.shieldedPool.sapling! / 1000000).toFixed(2)}M {CURRENCY}
-                        </span>
-                        <Badge color="cyan">
-                          {((stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-cipher-cyan transition-all duration-700"
-                        style={{ width: `${(stats.shieldedPool.sapling! / stats.shieldedPool.currentSize) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-2 items-center">
-                      <span className="text-cipher-yellow font-mono text-sm">Sprout</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-secondary text-sm">
-                          {(stats.shieldedPool.sprout! / 1000).toFixed(0)}K {CURRENCY}
-                        </span>
-                        <Badge color="orange">
-                          {((stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-cipher-yellow transition-all duration-700"
-                        style={{ width: `${(stats.shieldedPool.sprout! / stats.shieldedPool.currentSize) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-2 items-center">
-                      <span className="text-cipher-green font-mono text-sm">Orchard</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-secondary text-sm">
-                          {(stats.shieldedPool.orchard! / 1000).toFixed(0)}K {CURRENCY}
-                        </span>
-                        <Badge color="green">
-                          {((stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-cipher-green transition-all duration-700"
-                        style={{ width: `${(stats.shieldedPool.orchard! / stats.shieldedPool.currentSize) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {(stats.shieldedPool.ironwood || 0) > 0 && (
-                    <div>
-                      <div className="flex justify-between mb-2 items-center">
-                        <Link href="/ironwood" className="text-cipher-yellow font-mono text-sm hover:underline">
-                          Ironwood
-                        </Link>
-                        <div className="flex items-center gap-2">
-                          <span className="text-secondary text-sm">
-                            {stats.shieldedPool.ironwood! >= 1000000
-                              ? `${(stats.shieldedPool.ironwood! / 1000000).toFixed(2)}M`
-                              : `${(stats.shieldedPool.ironwood! / 1000).toFixed(0)}K`} {CURRENCY}
-                          </span>
-                          <Badge color="amber">
-                            {((stats.shieldedPool.ironwood! / stats.shieldedPool.currentSize) * 100).toFixed(0)}%
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="h-3 privacy-progress-bg rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-amber-500 transition-all duration-700"
-                          style={{ width: `${(stats.shieldedPool.ironwood! / stats.shieldedPool.currentSize) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-4 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-                    <span className="text-secondary font-mono text-sm">Total Shielded</span>
-                    <span className="text-primary font-bold font-mono">
-                      {(stats.shieldedPool.currentSize / 1000000).toFixed(2)}M {CURRENCY}
-                    </span>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          )}
         </div>
 
         {/* Charts Section with Tabs */}
         {stats.trends.daily.length > 0 && (
-          <div className="mb-8 animate-fade-in-up stagger-5">
+          <div id="trends" className="scroll-mt-36 mb-8 animate-fade-in-up stagger-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
               <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">HISTORICAL_TRENDS</h2>
@@ -535,7 +461,6 @@ export default function PrivacyClient() {
               <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
                 {([
                   { key: 'adoption', label: 'Tx Adoption' },
-                  { key: 'pool', label: 'Pool Growth' },
                   { key: 'activity', label: 'Daily Activity' },
                   { key: 'score', label: 'Privacy Score' },
                 ] as const).map((tab) => (
@@ -557,9 +482,8 @@ export default function PrivacyClient() {
                 {activeTab === 'adoption' && (
                   <>Share of non-coinbase transactions that touch Sapling or Orchard each day. This is <strong className="text-secondary font-normal">transaction volume</strong>, not ZEC in shielded pools — see Supply Shielded above.</>
                 )}
-                {activeTab === 'pool' && (<>Total ZEC held in shielded pools (Ironwood, Orchard, Sapling, Sprout). <Link href="/pools" className="text-cipher-cyan hover:underline">View detailed pool analytics</Link>{' · '}<Link href="/ironwood" className="text-cipher-yellow hover:underline">Track the Zcash Ironwood migration →</Link></>)}
                 {activeTab === 'activity' && 'Raw count of shielded vs transparent transactions per day (coinbase excluded from transparent).'}
-                {activeTab === 'score' && 'Composite privacy score from tx adoption, fully shielded usage, and pool size.'}
+                {activeTab === 'score' && 'Privacy Score v2: 30-day usage & quality, supply depth, and 90-day turnstile reshield rate.'}
               </p>
 
               {/* Chart Content */}
@@ -569,7 +493,7 @@ export default function PrivacyClient() {
               {activeTab === 'adoption' && (
                 <ResponsiveContainer width="100%" height={350}>
                   <LineChart data={[...stats.trends.daily].reverse()}>
-                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.gridStroke} opacity={0.5} />
                     <XAxis
                       dataKey="date"
                       stroke={chartColors.axis}
@@ -609,72 +533,11 @@ export default function PrivacyClient() {
                 </ResponsiveContainer>
               )}
 
-              {activeTab === 'pool' && (() => {
-                const poolData = [...stats.trends.daily].reverse();
-                const poolValues = poolData.map(d => d.poolSize);
-                const minPool = Math.min(...poolValues);
-                const maxPool = Math.max(...poolValues);
-                const range = maxPool - minPool;
-                const padding = Math.max(range * 0.1, maxPool * 0.001);
-                const yMin = Math.floor((minPool - padding) / 10000) * 10000;
-                const yMax = Math.ceil((maxPool + padding) / 10000) * 10000;
-
-                return (
-                <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={poolData}>
-                    <defs>
-                      <linearGradient id="colorPool" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-green)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--color-green)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
-                    <XAxis
-                      dataKey="date"
-                      stroke={chartColors.axis}
-                      tick={{ fill: chartColors.axis, fontSize: 11 }}
-                      tickFormatter={formatDate}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis
-                      stroke={chartColors.axis}
-                      tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      tickFormatter={(value) => `${(value / 1000000).toFixed(2)}M`}
-                      domain={[yMin, yMax]}
-                      label={{ value: 'Pool Size (ZEC)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: chartColors.tooltipBg,
-                        border: `1px solid ${chartColors.tooltipBorder}`,
-                        borderRadius: '8px',
-                        color: chartColors.tooltipText
-                      }}
-                      labelFormatter={(label) => formatDate(label)}
-                      formatter={(value) => [
-                        <span key="v" style={{ color: chartColors.tooltipText }}>{(Number(value) / 1000000).toFixed(4)}M ZEC</span>,
-                        'Pool Size'
-                      ]}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="poolSize"
-                      stroke="var(--color-green)"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorPool)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-                );
-              })()}
 
               {activeTab === 'activity' && (
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart data={[...stats.trends.daily].reverse()}>
-                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                    <CartesianGrid strokeDasharray="2 6" stroke={chartColors.gridStroke} opacity={0.5} />
                     <XAxis
                       dataKey="date"
                       stroke={chartColors.axis}
@@ -749,7 +612,7 @@ export default function PrivacyClient() {
                           <stop offset="95%" stopColor="var(--color-purple)" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="2 6" stroke={chartColors.grid} opacity={0.5} />
+                      <CartesianGrid strokeDasharray="2 6" stroke={chartColors.gridStroke} opacity={0.5} />
                       <XAxis
                         dataKey="date"
                         stroke={chartColors.axis}
@@ -808,50 +671,15 @@ export default function PrivacyClient() {
           </div>
         )}
 
-        {/* Anonymity Set + Shielding Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-5">
+        <div id="distribution" className="scroll-mt-36 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-5">
           <AnonymitySetChart />
           <ShieldingDistributionChart />
         </div>
 
-        {/* Cross-links */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in-up stagger-6">
-          <Link
-            href="/turnstile"
-            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-cyan/40 transition-all bg-cipher-surface"
-          >
-            <div className="w-9 h-9 rounded-lg bg-cipher-cyan/10 flex items-center justify-center text-cipher-cyan group-hover:scale-110 transition-transform">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary group-hover:text-cipher-cyan transition-colors">Turnstile</p>
-              <p className="text-[11px] text-muted">See where deshielded ZEC goes →</p>
-            </div>
-          </Link>
-          <Link
-            href="/pools"
-            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-purple/40 transition-all bg-cipher-surface"
-          >
-            <div className="w-9 h-9 rounded-lg bg-cipher-purple/10 flex items-center justify-center text-cipher-purple group-hover:scale-110 transition-transform">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary group-hover:text-cipher-purple transition-colors">Pool Analytics</p>
-              <p className="text-[11px] text-muted">Track pool supply over time →</p>
-            </div>
-          </Link>
-          <Link
-            href="/tools/blend-check"
-            className="group flex items-center gap-3 p-4 rounded-xl border border-cipher-border hover:border-cipher-green/40 transition-all bg-cipher-surface"
-          >
-            <div className="w-9 h-9 rounded-lg bg-cipher-green/10 flex items-center justify-center text-cipher-green group-hover:scale-110 transition-transform">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary group-hover:text-cipher-green transition-colors">Blend Check</p>
-              <p className="text-[11px] text-muted">Check your amount before shielding →</p>
-            </div>
-          </Link>
+        <div className="mb-8 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-mono text-muted animate-fade-in-up stagger-6">
+          <Link href="/pools" className="hover:text-cipher-cyan transition-colors">Shielded Pools →</Link>
+          <Link href="/turnstile" className="hover:text-cipher-cyan transition-colors">Turnstile →</Link>
+          <Link href="/tools/blend-check" className="hover:text-cipher-cyan transition-colors">Blend Check →</Link>
         </div>
 
         {/* Info Footer */}
@@ -861,12 +689,11 @@ export default function PrivacyClient() {
             <h3 className="text-lg font-bold mb-4 text-primary">About Privacy Metrics</h3>
             <div className="space-y-3 text-sm text-secondary">
               <p>
-                <strong className="text-primary">Privacy Score:</strong> A composite metric (0-100) based on transaction privacy adoption,
-                fully shielded usage, and shielded pool size.
+                <strong className="text-primary">Privacy Score:</strong> A composite metric (0-100) from 30-day shielded tx usage,
+                fully-shielded quality, supply depth, and turnstile reshield hygiene. See pool balances on <Link href="/pools" className="text-cipher-cyan hover:underline">Shielded Pools</Link>.
               </p>
               <p>
-                <strong className="text-primary">Shielded Pool:</strong> Total amount of {CURRENCY} currently in shielded addresses,
-                providing a larger anonymity set.
+                <strong className="text-primary">Supply shielded:</strong> Share of {CURRENCY} supply in shielded pools — tracked in detail on the Pools page, not duplicated here.
               </p>
               <p>
                 <strong className="text-primary">Tx Adoption chart:</strong> Daily percentage of non-coinbase transactions

@@ -10,6 +10,7 @@
 const express = require('express');
 const router = express.Router();
 const { getShieldedCountSince, getShieldedCountSimple, getShieldedCountDaily } = require('../stats-queries');
+const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../../lib/privacy-score');
 
 // Dependencies will be injected via middleware
 let pool;
@@ -26,33 +27,63 @@ router.use((req, res, next) => {
  */
 router.get('/api/privacy-stats', async (req, res) => {
   try {
-    // Fetch latest stats from privacy_stats table (ultra fast!)
-    const statsResult = await pool.query(`
-      SELECT
-        total_blocks,
-        total_transactions,
-        shielded_tx,
-        transparent_tx,
-        coinbase_tx,
-        mixed_tx,
-        fully_shielded_tx,
-        shielded_pool_size,
-        sprout_pool_size,
-        sapling_pool_size,
-        orchard_pool_size,
-        ironwood_pool_size,
-        transparent_pool_size,
-        chain_supply,
-        shielded_percentage,
-        privacy_score,
-        avg_shielded_per_day,
-        adoption_trend,
-        last_block_scanned,
-        updated_at
-      FROM privacy_stats
-      ORDER BY updated_at DESC
-      LIMIT 1
-    `);
+    let statsResult;
+    try {
+      statsResult = await pool.query(`
+        SELECT
+          total_blocks,
+          total_transactions,
+          shielded_tx,
+          transparent_tx,
+          coinbase_tx,
+          mixed_tx,
+          fully_shielded_tx,
+          shielded_pool_size,
+          sprout_pool_size,
+          sapling_pool_size,
+          orchard_pool_size,
+          ironwood_pool_size,
+          transparent_pool_size,
+          chain_supply,
+          shielded_percentage,
+          privacy_score,
+          privacy_score_breakdown,
+          avg_shielded_per_day,
+          adoption_trend,
+          last_block_scanned,
+          updated_at
+        FROM privacy_stats
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `);
+    } catch {
+      statsResult = await pool.query(`
+        SELECT
+          total_blocks,
+          total_transactions,
+          shielded_tx,
+          transparent_tx,
+          coinbase_tx,
+          mixed_tx,
+          fully_shielded_tx,
+          shielded_pool_size,
+          sprout_pool_size,
+          sapling_pool_size,
+          orchard_pool_size,
+          ironwood_pool_size,
+          transparent_pool_size,
+          chain_supply,
+          shielded_percentage,
+          privacy_score,
+          avg_shielded_per_day,
+          adoption_trend,
+          last_block_scanned,
+          updated_at
+        FROM privacy_stats
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `);
+    }
 
     if (statsResult.rows.length === 0) {
       return res.status(503).json({
@@ -62,6 +93,19 @@ router.get('/api/privacy-stats', async (req, res) => {
     }
 
     const stats = statsResult.rows[0];
+
+    let scoreBreakdown = stats.privacy_score_breakdown || null;
+    if (!scoreBreakdown) {
+      try {
+        const rolling = await fetchPrivacyScoreInputs(pool);
+        const supplyShieldedPercent = parseInt(stats.chain_supply, 10) > 0
+          ? (parseInt(stats.shielded_pool_size, 10) / parseInt(stats.chain_supply, 10)) * 100
+          : 0;
+        scoreBreakdown = calculatePrivacyScore({ ...rolling, supplyShieldedPercent }).breakdown;
+      } catch {
+        scoreBreakdown = null;
+      }
+    }
 
     // Get daily trends (configurable period for charts)
     const trendDays = Math.min(Math.max(parseInt(req.query.days) || 30, 7), 1000);
@@ -103,6 +147,8 @@ router.get('/api/privacy-stats', async (req, res) => {
       metrics: {
         shieldedPercentage: parseFloat(stats.shielded_percentage),
         privacyScore: latestDailyScore, // Use latest daily score
+        scoreBreakdown,
+        scoreVersion: 2,
         avgShieldedPerDay: parseFloat(stats.avg_shielded_per_day),
         adoptionTrend: stats.adoption_trend,
       },
