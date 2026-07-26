@@ -33,6 +33,8 @@ interface CohortPoint {
   txCount: number;
   firstTime: number | null;
   cumulativeZat: number;
+  ironwoodPoolZat: number;
+  orchardOutflowZat: number;
 }
 
 export interface TurnstileHeroProps {
@@ -50,9 +52,15 @@ export interface TurnstileHeroProps {
     volumeZat: number;
     txCount: number;
     firstTime: number | null;
+    ironwoodPoolZat: number | null;
+    orchardOutflowZat: number | null;
   }> | null;
   totalMigratedZat: number;
   originalOrchardZat: number;
+  /** Actual Ironwood pool balance from Zebra (net: in minus out) */
+  liveIronwoodZat: number;
+  /** Actual Orchard pool balance from Zebra */
+  liveOrchardZat: number;
 }
 
 type ScrubMode = 'live' | 'scrub' | 'play';
@@ -71,6 +79,8 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     cohorts: rawCohorts,
     totalMigratedZat,
     originalOrchardZat,
+    liveIronwoodZat,
+    liveOrchardZat,
   } = props;
 
   const [use3D, setUse3D] = useState(false);
@@ -92,7 +102,12 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     let cum = 0;
     return sorted.map((c) => {
       cum += c.volumeZat;
-      return { ...c, cumulativeZat: cum };
+      return {
+        ...c,
+        cumulativeZat: cum,
+        ironwoodPoolZat: c.ironwoodPoolZat ?? 0,
+        orchardOutflowZat: c.orchardOutflowZat ?? 0,
+      };
     });
   }, [rawCohorts]);
 
@@ -145,12 +160,15 @@ export function TurnstileHero(props: TurnstileHeroProps) {
 
     const ptLo = cohortPoints[lo];
     const ptHi = cohortPoints[hi];
-    const cumZat = ptLo.cumulativeZat + (ptHi.cumulativeZat - ptLo.cumulativeZat) * frac;
     const vol = ptLo.volumeZat + (ptHi.volumeZat - ptLo.volumeZat) * frac;
-    const pct = originalOrchardZat > 0 ? (cumZat / originalOrchardZat) * 100 : 0;
+    // Use server-provided net pool balances (accounts for outflows accurately)
+    const ironwoodZat = ptLo.ironwoodPoolZat + (ptHi.ironwoodPoolZat - ptLo.ironwoodPoolZat) * frac;
+    // Orchard = pre-activation balance minus cumulative outflow since activation
+    const orchardOutflow = ptLo.orchardOutflowZat + (ptHi.orchardOutflowZat - ptLo.orchardOutflowZat) * frac;
+    const orchardZat = Math.max(0, originalOrchardZat - orchardOutflow);
+    const totalPool = orchardZat + ironwoodZat;
+    const pct = totalPool > 0 ? (ironwoodZat / totalPool) * 100 : 0;
     const intensity = Math.min(1, vol / peakVolume);
-    const ironwoodZat = cumZat;
-    const orchardZat = Math.max(0, originalOrchardZat - cumZat);
     const displayPt = cohortPoints[Math.round(clamped)];
     const d = displayPt.firstTime ? new Date(displayPt.firstTime * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
 

@@ -406,12 +406,18 @@ router.get('/api/migration/overview', async (req, res) => {
 // Migration volume and anonymity set per boundary bucket. Each bucket spans
 // BOUNDARY_MODULUS blocks (~5.3h). Bucketing by block height is a proxy for the
 // ZIP-318 anchor-boundary cohort until the Ironwood anchor is indexed directly.
+//
+// Each cohort also includes:
+//   - ironwoodPoolZat: net Ironwood pool balance at this boundary (cumulative
+//     from ALL Ironwood txs, not just migrations — accounts for outflows)
+//   - orchardOutflowZat: cumulative Orchard outflow since activation
 
 router.get('/api/migration/cohorts', async (req, res) => {
   try {
     const network = resolveNetwork();
-    const data = await cached(`zcash:migration:cohorts:${network}`, 300, async () => {
-      let rows = [];
+    const data = await cached(`zcash:migration:cohorts:v2:${network}`, 300, async () => {
+      // 1) Migration cohorts: volume and anonymity per boundary (strict Orchard->Ironwood)
+      let migrationRows = [];
       try {
         const result = await pool.query(`
           SELECT
@@ -425,16 +431,70 @@ router.get('/api/migration/cohorts', async (req, res) => {
           GROUP BY boundary
           ORDER BY boundary
         `, [BOUNDARY_MODULUS]);
-        rows = result.rows;
+        migrationRows = result.rows;
       } catch {}
 
-      const cohorts = rows.map(r => ({
-        boundary: Number(r.boundary),
-        boundaryStartHeight: Number(r.boundary_start),
-        txCount: Number(r.tx_count),        // anonymity set for this cohort
-        volumeZat: Number(r.volume_zat),
-        firstTime: r.first_time != null ? Number(r.first_time) : null,
-      }));
+      // 2) Net Ironwood pool balance per boundary from ALL Ironwood txs.
+      //    value_balance_ironwood: negative = into pool, positive = out of pool.
+      //    Cumulative SUM(-vbi) = net pool size at each boundary.
+      const netBalanceMap = new Map();
+      try {
+        const netResult = await pool.query(`
+          SELECT
+            boundary,
+            SUM(net_delta) OVER (ORDER BY boundary) AS cumulative_net_zat
+          FROM (
+            SELECT
+              (block_height / $1) AS boundary,
+              SUM(-value_balance_ironwood) AS net_delta
+            FROM transactions
+            WHERE has_ironwood = true
+            GROUP BY boundary
+          ) sub
+          ORDER BY boundary
+        `, [BOUNDARY_MODULUS]);
+        for (const r of netResult.rows) {
+          netBalanceMap.set(Number(r.boundary), Number(r.cumulative_net_zat));
+        }
+      } catch {}
+
+      // 3) Cumulative net Orchard outflow since activation.
+      //    value_balance_orchard: positive = leaving Orchard pool.
+      const activationHeight = ACTIVATION_HEIGHT[network];
+      const orchardDeltaMap = new Map();
+      try {
+        const orchardResult = await pool.query(`
+          SELECT
+            boundary,
+            SUM(orchard_delta) OVER (ORDER BY boundary) AS cumulative_orchard_outflow_zat
+          FROM (
+            SELECT
+              (block_height / $1) AS boundary,
+              SUM(value_balance_orchard) AS orchard_delta
+            FROM transactions
+            WHERE block_height >= $2
+              AND (has_orchard = true OR has_ironwood = true)
+            GROUP BY boundary
+          ) sub
+          ORDER BY boundary
+        `, [BOUNDARY_MODULUS, activationHeight || 0]);
+        for (const r of orchardResult.rows) {
+          orchardDeltaMap.set(Number(r.boundary), Number(r.cumulative_orchard_outflow_zat));
+        }
+      } catch {}
+
+      const cohorts = migrationRows.map(r => {
+        const boundary = Number(r.boundary);
+        return {
+          boundary,
+          boundaryStartHeight: Number(r.boundary_start),
+          txCount: Number(r.tx_count),
+          volumeZat: Number(r.volume_zat),
+          firstTime: r.first_time != null ? Number(r.first_time) : null,
+          ironwoodPoolZat: netBalanceMap.get(boundary) ?? null,
+          orchardOutflowZat: orchardDeltaMap.get(boundary) ?? null,
+        };
+      });
 
       const anonymitySets = cohorts.map(c => c.txCount);
       const avgAnonymitySet = anonymitySets.length

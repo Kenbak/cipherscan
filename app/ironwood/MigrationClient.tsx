@@ -279,6 +279,8 @@ export function MigrationClient({
                   cohorts={cohorts?.cohorts ?? null}
                   totalMigratedZat={overview.migration.totalMigratedZat}
                   originalOrchardZat={originalOrchard}
+                  liveIronwoodZat={overview.poolSizes.ironwoodZat}
+                  liveOrchardZat={overview.poolSizes.orchardZat}
                 />
               )}
               <MetricsRow
