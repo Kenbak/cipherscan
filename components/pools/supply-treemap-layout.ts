@@ -38,9 +38,7 @@ function pctOfCap(zat: number): number {
 }
 
 function layoutWeight(item: SupplySegmentInput): number {
-  if (item.zat > 0) return item.zat;
-  if (item.key === 'ironwood') return 1;
-  return 0;
+  return item.zat > 0 ? item.zat : 0;
 }
 
 function layoutHorizontalBands(
@@ -131,7 +129,7 @@ export function buildShieldedPoolSegments(input: {
       href: '/ironwood',
     },
   ];
-  return segments.filter((seg) => seg.zat > 0 || seg.key === 'ironwood');
+  return segments.filter((seg) => seg.zat > 0);
 }
 
 export function layoutSupplyMap(

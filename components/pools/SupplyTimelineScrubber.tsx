@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   ZCASH_LAUNCH_DATE,
   ZCASH_SUPPLY_MILESTONES,
@@ -80,6 +81,8 @@ export function SupplyTimelineScrubber({
   onScrub,
   onLive,
 }: SupplyTimelineScrubberProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const maxIndex = Math.max(0, historyDates.length - 1);
   const rangeEnd = todayUtcDate();
   const selectedDate =
@@ -114,54 +117,75 @@ export function SupplyTimelineScrubber({
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border/25 bg-black/20 px-4 py-3 sm:px-5">
+    <div
+      className={`mt-4 rounded-xl border border-cipher-border/25 px-4 py-3 sm:px-5 ${
+        isDark ? 'bg-black/20' : 'bg-black/[0.04]'
+      }`}
+    >
       <div className="flex items-start gap-3">
         <div className="relative min-w-0 flex-1">
-          <div className="relative h-1.5 rounded-full bg-white/10">
-            {dataStartPct > 0 ? (
-              <div
-                className="absolute inset-y-0 left-0 rounded-l-full bg-white/[0.04]"
-                style={{ width: `${dataStartPct}%` }}
-                title={
-                  coverageStart
-                    ? `Indexed data begins ${coverageStart}`
-                    : 'Indexed data begins here'
-                }
-              />
-            ) : null}
+          <div className="group relative py-2.5">
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-cipher-yellow/85 transition-[width] duration-100"
-              style={{ width: `${selectedPct}%` }}
-            />
-
-            {milestones.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className="absolute top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${m.pct}%` }}
-                title={`${m.label} · ${m.date}`}
-                aria-label={`Jump to ${m.label}, ${m.date}`}
-                onClick={() => {
-                  onScrub(nearestIndexAtOrBefore(historyDates, m.date));
-                }}
-              >
-                <span
-                  className="block h-3 w-0.5 rounded-full opacity-80 hover:opacity-100"
-                  style={{ backgroundColor: m.color }}
+              className={`relative h-2 rounded-full ring-1 ring-inset transition-shadow group-hover:ring-cipher-yellow/25 ${
+                isDark ? 'bg-black/35 ring-white/12' : 'bg-black/10 ring-black/10'
+              }`}
+            >
+              {dataStartPct > 0 ? (
+                <div
+                  className={`absolute inset-y-0 left-0 rounded-l-full ${
+                    isDark ? 'bg-white/[0.03]' : 'bg-black/[0.04]'
+                  }`}
+                  style={{ width: `${dataStartPct}%` }}
+                  title={
+                    coverageStart
+                      ? `Indexed data begins ${coverageStart}`
+                      : 'Indexed data begins here'
+                  }
                 />
-              </button>
-            ))}
+              ) : null}
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cipher-yellow/35 to-cipher-yellow/55 transition-[width] duration-100"
+                style={{ width: `${selectedPct}%` }}
+              />
+              {selectedPct > 0 ? (
+                <div
+                  className={`pointer-events-none absolute top-1/2 z-[2] h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-cipher-yellow/80 bg-cipher-yellow transition-transform group-hover:scale-110 ${
+                    isDark ? 'shadow-[0_0_0_2px_rgba(0,0,0,0.45)]' : 'shadow-[0_0_0_2px_rgba(255,255,255,0.85)]'
+                  }`}
+                  style={{ left: `${selectedPct}%` }}
+                  aria-hidden
+                />
+              ) : null}
 
-            <input
-              type="range"
-              min={0}
-              max={CALENDAR_STEPS}
-              value={mode === 'live' ? Math.round((selectedPct / 100) * CALENDAR_STEPS) : calendarValue}
-              onChange={(e) => handleCalendarScrub(parseInt(e.target.value, 10))}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              aria-label="Zcash supply timeline from 2016"
-            />
+              {milestones.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="absolute top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${m.pct}%` }}
+                  title={`${m.label} · ${m.date}`}
+                  aria-label={`Jump to ${m.label}, ${m.date}`}
+                  onClick={() => {
+                    onScrub(nearestIndexAtOrBefore(historyDates, m.date));
+                  }}
+                >
+                  <span
+                    className="block h-3 w-0.5 rounded-full opacity-80 hover:opacity-100"
+                    style={{ backgroundColor: m.color }}
+                  />
+                </button>
+              ))}
+
+              <input
+                type="range"
+                min={0}
+                max={CALENDAR_STEPS}
+                value={mode === 'live' ? Math.round((selectedPct / 100) * CALENDAR_STEPS) : calendarValue}
+                onChange={(e) => handleCalendarScrub(parseInt(e.target.value, 10))}
+                className="absolute inset-0 z-[3] h-full w-full cursor-grab opacity-0 active:cursor-grabbing"
+                aria-label="Zcash supply timeline from 2016"
+              />
+            </div>
           </div>
 
           <div className="relative mt-2 h-3.5">
@@ -187,12 +211,14 @@ export function SupplyTimelineScrubber({
           className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
             mode === 'live'
               ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
-              : 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
+              : isDark
+                ? 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
+                : 'border-black/15 text-muted hover:border-black/25 hover:text-secondary'
           }`}
         >
           <span
             className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${
-              mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'
+              mode === 'live' ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-white/30' : 'bg-black/25'
             }`}
           />
           Live

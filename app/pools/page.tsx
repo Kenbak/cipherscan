@@ -157,24 +157,10 @@ export default function PoolsPage() {
       </section>
 
       <section id="supply" className="scroll-mt-36 mb-14">
-        <div className="mb-5">
-          <h2 className="text-lg font-bold font-sans text-primary">Supply History</h2>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-secondary font-sans">
-            How the balance of each pool has changed over time. A rising shielded share means more ZEC is being held
-            privately.
-          </p>
-        </div>
         <PoolDistributionChart />
       </section>
 
       <section id="flows" className="scroll-mt-36 mb-14">
-        <div className="mb-5">
-          <h2 className="text-lg font-bold font-sans text-primary">Flow Volume</h2>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-secondary font-sans">
-            Shielding means moving ZEC into a private pool. Deshielding means moving it back to a public address.
-            Bars up = into privacy. Bars down = out of privacy.
-          </p>
-        </div>
         <FlowVolumeChart />
       </section>
 

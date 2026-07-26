@@ -253,7 +253,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   }, []);
 
   const shieldedBreakdown = useMemo(() => {
-    return SHIELDED_POOL_KEYS.filter((key) => poolMeta[key].zat > 0 || key === 'ironwood').map((key) => {
+    return SHIELDED_POOL_KEYS.filter((key) => poolMeta[key].zat > 0).map((key) => {
       const meta = poolMeta[key];
       const zec = meta.zat / 1e8;
       return {
@@ -356,6 +356,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       isLive={mode === 'live'}
       shareText={shareText}
       fileName="cipherscan-pools.png"
+      watermark={false}
       className=""
       footerNote={
         updatedLabel
@@ -369,7 +370,10 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
         isolate.
       </p>
 
-      <div className="overflow-hidden rounded-xl border border-cipher-border/30 bg-[var(--turnstile-bg,#070b10)]">
+      <div
+        className="turnstile-hero overflow-hidden rounded-xl border border-cipher-border/30"
+        style={{ background: 'var(--turnstile-bg)' }}
+      >
         <SupplyTreemap
           topLevel={topLevel}
           shieldedChildren={shieldedChildren}

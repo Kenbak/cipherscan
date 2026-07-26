@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { formatZecCompact } from '@/lib/format-numbers';
 import {
   MAX_SUPPLY_ZAT,
@@ -21,10 +22,8 @@ export interface SupplyTreemapProps {
   onTogglePinShielded: () => void;
 }
 
-function flexWeight(zat: number, key: SupplyPoolKey): number {
-  if (zat > 0) return zat;
-  if (key === 'ironwood') return 1;
-  return 0;
+function flexWeight(zat: number): number {
+  return zat > 0 ? zat : 0;
 }
 
 function BandLabel({
@@ -32,33 +31,46 @@ function BandLabel({
   zat,
   capPct,
   mode,
+  onDarkFill,
 }: {
   label: string;
   zat: number;
   capPct: number;
   mode: SegmentLabelMode;
+  onDarkFill: boolean;
 }) {
   if (mode === 'none') return null;
 
+  const titleClass = onDarkFill ? 'text-white/90' : 'text-slate-800';
+  const valueClass = onDarkFill ? 'text-white/75' : 'text-slate-700';
+  const pctClass = onDarkFill ? 'text-white/55' : 'text-slate-500';
+
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
-      <span className="truncate text-[11px] font-sans font-semibold text-white/90 sm:text-xs">{label}</span>
+      <span className={`truncate text-[11px] font-sans font-semibold sm:text-xs ${titleClass}`}>{label}</span>
       {mode === 'full' ? (
         <>
-          <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/75 sm:text-[11px]">
+          <span className={`mt-0.5 text-[10px] font-mono tabular-nums sm:text-[11px] ${valueClass}`}>
             {zat === 0 ? '0 ZEC' : `${formatZecCompact(zat / 1e8)} ZEC`}
           </span>
-          <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/50">{capPct.toFixed(1)}%</span>
+          <span className={`mt-0.5 text-[10px] font-mono tabular-nums ${pctClass}`}>{capPct.toFixed(1)}%</span>
         </>
       ) : null}
     </div>
   );
 }
 
+function segmentUsesDarkLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
+  if (segment.hatch) return isDark;
+  if (segment.key === 'transparent') return isDark;
+  return true;
+}
+
 function TopSegment({
   segment,
   active,
   dimmed,
+  isDark,
   onHover,
   onClick,
   className,
@@ -67,6 +79,7 @@ function TopSegment({
   segment: SupplySegmentInput;
   active: boolean;
   dimmed: boolean;
+  isDark: boolean;
   onHover: (key: SupplyPoolKey | null) => void;
   onClick?: () => void;
   className?: string;
@@ -75,6 +88,9 @@ function TopSegment({
   const ref = useRef<HTMLButtonElement>(null);
   const capPct = (segment.zat / MAX_SUPPLY_ZAT) * 100;
   const labelMode = useSegmentLabelMode(ref, capPct);
+  const ringActive = isDark ? 'ring-white/40' : 'ring-black/25';
+  const ringIdle = isDark ? 'ring-white/10' : 'ring-black/10';
+  const onDarkFill = segmentUsesDarkLabel(segment, isDark);
 
   return (
     <button
@@ -91,21 +107,28 @@ function TopSegment({
         <div
           className="absolute inset-0 rounded-[5px]"
           style={{
-            backgroundImage:
-              'repeating-linear-gradient(135deg, rgba(148,163,184,0.14) 0 2px, transparent 2px 7px)',
-            backgroundColor: 'rgba(148,163,184,0.06)',
+            backgroundImage: isDark
+              ? 'repeating-linear-gradient(135deg, rgba(148,163,184,0.14) 0 2px, transparent 2px 7px)'
+              : 'repeating-linear-gradient(135deg, rgba(100,116,139,0.22) 0 2px, transparent 2px 7px)',
+            backgroundColor: isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.14)',
           }}
         />
       ) : (
         <div
-          className={`absolute inset-0 rounded-[5px] ${active ? 'ring-1 ring-inset ring-white/40' : 'ring-1 ring-inset ring-white/10'}`}
+          className={`absolute inset-0 rounded-[5px] ring-1 ring-inset ${active ? ringActive : ringIdle}`}
           style={{
             backgroundColor: segment.color,
-            opacity: segment.key === 'transparent' ? 0.32 : 0.9,
+            opacity: segment.key === 'transparent' ? (isDark ? 0.32 : 0.55) : 0.9,
           }}
         />
       )}
-      <BandLabel label={segment.label} zat={segment.zat} capPct={capPct} mode={labelMode} />
+      <BandLabel
+        label={segment.label}
+        zat={segment.zat}
+        capPct={capPct}
+        mode={labelMode}
+        onDarkFill={onDarkFill}
+      />
     </button>
   );
 }
@@ -114,6 +137,7 @@ function ShieldedPoolStack({
   segments,
   hoveredKey,
   pinnedShielded,
+  isDark,
   onHover,
   onTogglePinShielded,
   className,
@@ -122,12 +146,15 @@ function ShieldedPoolStack({
   segments: SupplySegmentInput[];
   hoveredKey: SupplyPoolKey | null;
   pinnedShielded: boolean;
+  isDark: boolean;
   onHover: (key: SupplyPoolKey | null) => void;
   onTogglePinShielded: () => void;
   className?: string;
   style?: React.CSSProperties;
 }) {
   const focusedPool = pinnedShielded && isShieldedPoolKey(hoveredKey) ? hoveredKey : null;
+  const divider = isDark ? 'border-white/12' : 'border-black/10';
+  const focusRing = isDark ? 'ring-white/50' : 'ring-black/25';
 
   return (
     <div
@@ -152,14 +179,14 @@ function ShieldedPoolStack({
       aria-label="Shielded pool composition. Click to pin open."
     >
       {segments.map((child, index) => {
-        const weight = flexWeight(child.zat, child.key);
+        const weight = flexWeight(child.zat);
         const isFocused = focusedPool === child.key;
         const isDimmed = focusedPool != null && !isFocused;
 
         return (
           <div
             key={child.key}
-            className={`relative min-h-0 w-full transition-opacity duration-150 ${index > 0 ? 'border-t border-white/12' : ''} ${isDimmed ? 'opacity-25' : 'opacity-100'} ${isFocused ? 'ring-1 ring-inset ring-white/50 z-[1]' : ''}`}
+            className={`relative min-h-0 w-full transition-opacity duration-150 ${index > 0 ? `border-t ${divider}` : ''} ${isDimmed ? 'opacity-25' : 'opacity-100'} ${isFocused ? `ring-1 ring-inset ${focusRing} z-[1]` : ''}`}
             style={{ flex: `${weight} 1 0` }}
             onMouseEnter={() => {
               if (pinnedShielded) onHover(child.key);
@@ -190,6 +217,8 @@ export function SupplyTreemap({
   onHover,
   onTogglePinShielded,
 }: SupplyTreemapProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const shieldedExpanded = pinnedShielded || hoveredKey === 'shielded';
 
   const handleMapLeave = () => {
@@ -204,7 +233,7 @@ export function SupplyTreemap({
       onMouseLeave={handleMapLeave}
     >
       {topLevel.map((segment) => {
-        const weight = flexWeight(segment.zat, segment.key);
+        const weight = flexWeight(segment.zat);
         const flexStyle = { flex: `${weight} 1 0` };
         const active = hoveredKey === segment.key;
         const dimmed =
@@ -221,6 +250,7 @@ export function SupplyTreemap({
               segments={shieldedChildren}
               hoveredKey={hoveredKey}
               pinnedShielded={pinnedShielded}
+              isDark={isDark}
               onHover={onHover}
               onTogglePinShielded={onTogglePinShielded}
               className={dimmed ? 'opacity-30' : 'opacity-100'}
@@ -236,6 +266,7 @@ export function SupplyTreemap({
               segment={segment}
               active={active || pinnedShielded}
               dimmed={dimmed}
+              isDark={isDark}
               onHover={onHover}
               className="h-full min-w-0 cursor-pointer"
               style={flexStyle}
@@ -250,6 +281,7 @@ export function SupplyTreemap({
             segment={segment}
             active={active}
             dimmed={dimmed}
+            isDark={isDark}
             onHover={onHover}
             className="h-full min-w-0"
             style={flexStyle}
