@@ -298,7 +298,7 @@ export function MigrationClient({
                   zecPrice={zecPrice}
                 />
               )}
-              <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} colors={colors} />
+              <MigrationActivity cohorts={cohorts} activated={activated} colors={colors} />
               <PrivacyScore scatter={scatter} activated={activated} colors={colors} />
               <WalletReadiness />
               <Resources />
@@ -421,32 +421,46 @@ function MetricsRow({
     );
   }
 
-  // Post-activation: compact metrics
+  const blocksSince = (tipHeight - activationHeight) || 0;
+  const velocityValue = overview?.migration?.velocityZatPerHour
+    ? `${fmtValue(overview.migration.velocityZatPerHour, currencyMode, zecPrice)}/hr`
+    : '—';
+  const txValue = overview?.migration?.txCount
+    ? overview.migration.txCount.toLocaleString()
+    : '—';
+
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-xs font-mono text-secondary uppercase tracking-wider">IRONWOOD LIVE</span>
+    <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
+      <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
+        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat
+      <div className="grid grid-cols-2 divide-y divide-cipher-border-subtle sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+        <KpiCell
           label="Since activation"
-          value={`${((tipHeight - activationHeight) || 0).toLocaleString()} blocks`}
+          value={`${blocksSince.toLocaleString()} blocks`}
+          hint={`Block #${activationHeight.toLocaleString()}`}
+          href={`/block/${activationHeight}`}
         />
-        <Stat
+        <KpiCell
           label="Orchard → Ironwood"
           value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
-          tone="ironwood"
+          hint="Pool supply"
+          scrollTo="#supply"
           toneColor={colors.ironwoodPool}
         />
-        <Stat
+        <KpiCell
           label="Migration velocity"
-          value={overview?.migration?.velocityZatPerHour ? `${fmtValue(overview.migration.velocityZatPerHour, currencyMode, zecPrice)}/hr` : '—'}
-          tone="ironwood" toneColor={colors.ironwoodPool}
+          value={velocityValue}
+          hint="Activity chart"
+          scrollTo="#migration-activity"
+          toneColor={colors.ironwoodPool}
         />
-        <Stat
+        <KpiCell
           label="Transactions"
-          value={overview?.migration?.txCount ? overview.migration.txCount.toLocaleString() : '—'}
+          value={txValue}
+          hint="Activity chart"
+          scrollTo="#migration-activity"
         />
       </div>
     </div>
@@ -719,13 +733,14 @@ function SupplyVerification({
     : `Zcash Ironwood migration tracker\n\nhttps://cipherscan.app/ironwood`;
 
   return (
-    <ShareableCard
-      title="Supply verification"
-      sourceHeight={pools.sourceHeight}
-      isLive={pools.isLive}
-      shareText={shareText}
-      fileName="cipherscan-supply.png"
-    >
+    <div id="supply" className="scroll-mt-20">
+      <ShareableCard
+        title="Supply verification"
+        sourceHeight={pools.sourceHeight}
+        isLive={pools.isLive}
+        shareText={shareText}
+        fileName="cipherscan-supply.png"
+      >
       <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-8 sm:gap-10 lg:gap-14 items-center">
         {/* Left: Ring */}
         <div className="flex flex-col items-center justify-center w-full px-2 sm:px-6 lg:px-10 py-2 sm:py-4">
@@ -814,6 +829,7 @@ function SupplyVerification({
         </div>
       </div>
     </ShareableCard>
+    </div>
   );
 }
 
@@ -986,12 +1002,10 @@ function IronwoodInflowCard({
 
 function MigrationActivity({
   cohorts,
-  overview,
   activated,
   colors,
 }: {
   cohorts: Cohorts | null;
-  overview: Overview | null;
   activated: boolean;
   colors: ChartColors;
 }) {
@@ -1001,36 +1015,21 @@ function MigrationActivity({
     txCount: c.txCount,
   }));
 
-  const velocityZec = overview?.migration?.velocityZatPerHour
-    ? zec(overview.migration.velocityZatPerHour)
-    : 0;
   const avgCohort = cohorts?.avgAnonymitySet ?? 0;
 
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+    <div id="migration-activity" className="mt-4 scroll-mt-20 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <h2 className="text-sm font-bold text-primary">Migration activity</h2>
-      <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
+      <p className="mt-1 mb-4 max-w-2xl text-xs leading-relaxed text-muted">
         Volume per 256-block boundary (~5.3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
+        {avgCohort > 0 ? (
+          <>
+            {' '}
+            Avg cohort size:{' '}
+            <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.
+          </>
+        ) : null}
       </p>
-
-      {/* Headline stats */}
-      {(velocityZec > 0 || avgCohort > 0) && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <Stat
-            label="Velocity"
-            value={velocityZec > 0 ? `${velocityZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC/hr` : '—'}
-            tone="ironwood" toneColor={colors.ironwoodPool}
-          />
-          <Stat
-            label="Avg cohort size"
-            value={avgCohort > 0 ? `${avgCohort.toFixed(1)} txs` : '—'}
-          />
-          <Stat
-            label="Migration txs"
-            value={overview?.migration?.txCount ? overview.migration.txCount.toLocaleString() : '—'}
-          />
-        </div>
-      )}
 
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height={220}>
@@ -1265,24 +1264,58 @@ function Resources() {
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 
-function Stat({ label, value, tone = 'default', toneColor }: {
+function KpiCell({
+  label,
+  value,
+  hint,
+  href,
+  scrollTo,
+  toneColor,
+}: {
   label: string;
   value: string;
-  tone?: 'default' | 'orchard' | 'ironwood' | 'danger';
+  hint?: string;
+  href?: string;
+  scrollTo?: string;
   toneColor?: string;
 }) {
-  const className = tone === 'danger' ? 'text-red-400' : tone === 'default' ? 'text-primary' : undefined;
-  return (
-    <div className="rounded-lg border border-cipher-border/60 bg-glass-3 p-3 min-w-0">
+  const className =
+    'group min-w-0 px-3 py-3 transition-colors hover:bg-cipher-hover sm:px-4 sm:py-3.5';
+
+  const body = (
+    <>
       <div
-        className={`text-base lg:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${className ?? ''}`}
+        className="text-base font-bold font-mono tabular-nums text-primary lg:text-lg"
         style={toneColor ? { color: toneColor } : undefined}
       >
         {value}
       </div>
-      <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5 font-mono truncate">{label}</div>
-    </div>
+      <div className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted">{label}</div>
+      {hint ? (
+        <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60 group-hover:text-muted/80">
+          {hint}
+        </div>
+      ) : null}
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  if (scrollTo) {
+    return (
+      <a href={scrollTo} className={className}>
+        {body}
+      </a>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
 }
 
 function EmptyPanel({ activated }: { activated: boolean }) {
