@@ -856,40 +856,153 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Privacy',
     method: 'GET',
     path: '/api/privacy-stats',
-    description: 'Blockchain-wide privacy statistics: shielded adoption rates, pool sizes, privacy score, and daily trends.',
-    params: [],
-    example: `curl ${baseUrl}/api/privacy-stats`,
+    description:
+      'Blockchain-wide privacy statistics: all-time totals, shielded pool sizes, Privacy Score v2 (rolling usage, quality, depth, and turnstile hygiene), and daily trends.',
+    params: [
+      {
+        name: 'days',
+        type: 'number',
+        description: 'Number of daily trend rows to return (7–1000, default 30)',
+        required: false,
+      },
+    ],
+    example: `curl '${baseUrl}/api/privacy-stats?days=365'`,
     response: {
       totals: {
-        blocks: 2500000,
-        shieldedTx: 2500000,
-        transparentTx: 8000000,
-        coinbaseTx: 2500000,
-        totalTx: 13000000,
-        fullyShieldedTx: 1500000
+        blocks: 3425936,
+        shieldedTx: 3210982,
+        transparentTx: 14700000,
+        coinbaseTx: 3425936,
+        totalTx: 17911456,
+        mixedTx: 450000,
+        fullyShieldedTx: 2100000,
       },
       shieldedPool: {
-        currentSize: 825001.55,
-        sprout: 25000.50,
+        currentSize: 4382521.89,
+        sprout: 25000.5,
         sapling: 450000.75,
-        orchard: 350000.30,
-        transparent: 6500000.12,
-        chainSupply: 16234567.89
+        orchard: 3500000.3,
+        ironwood: 125000.12,
+        transparent: 12460137.65,
+        chainSupply: 16842659.54,
       },
       metrics: {
-        shieldedPercentage: 19.2,
-        privacyScore: 15,
-        avgShieldedPerDay: 2100,
-        adoptionTrend: 'growing'
+        shieldedPercentage: 17.9,
+        privacyScore: 24,
+        scoreVersion: 2,
+        scoreBreakdown: {
+          usage: {
+            label: 'Usage',
+            score: 12.5,
+            max: 35,
+            percent: 35.7,
+            detail: '30-day shielded tx share',
+          },
+          quality: {
+            label: 'Quality',
+            score: 8.2,
+            max: 35,
+            percent: 23.4,
+            detail: 'Fully shielded among shielded txs (30d)',
+          },
+          depth: {
+            label: 'Depth',
+            score: 3.6,
+            max: 15,
+            percent: 26.0,
+            detail: 'Supply in shielded pools',
+          },
+          hygiene: {
+            label: 'Hygiene',
+            score: 0.8,
+            max: 15,
+            percent: 5.2,
+            detail: 'Deshielded ZEC reshielded (90d)',
+          },
+        },
+        avgShieldedPerDay: 1387,
+        adoptionTrend: 'declining',
       },
       trends: {
         daily: [
-          { date: '2026-05-28', shielded: 2100, transparent: 5200, shieldedPercentage: 28.8, poolSize: 825001.55, privacyScore: 15 }
-        ]
+          {
+            date: '2026-07-26',
+            shielded: 527,
+            transparent: 850,
+            shieldedPercentage: 38.3,
+            poolSize: 4382521.89,
+            privacyScore: 24,
+          },
+        ],
       },
-      lastUpdated: '2026-05-28T12:00:00.000Z',
-      lastBlockScanned: 2500000
-    }
+      lastUpdated: '2026-07-26T15:55:44.000Z',
+      lastBlockScanned: 3425936,
+    },
+    note:
+      'Privacy Score v2 (0–100): Usage 35 (30d shielded tx share, non-coinbase) + Quality 35 (30d fully-shielded / shielded) + Depth 15 (supply in pools) + Hygiene 15 (90d turnstile reshield rate). Updated hourly. metrics.privacyScore uses the latest daily trend row. scoreBreakdown may be null until the job has run with v2. Pool sizes and trend poolSize are in ZEC. adoptionTrend compares shielded tx volume in the last 7d vs the prior 7d.',
+  },
+  {
+    id: 'anonymity-set',
+    category: 'Privacy',
+    method: 'GET',
+    path: '/api/analytics/anonymity-set',
+    description:
+      'Cumulative shield and deshield transaction counts at each ZEC amount threshold — how large the anonymity crowd is at or above each size.',
+    params: [
+      {
+        name: 'period',
+        type: 'string',
+        description: 'Time window: 7d, 30d, 90d, 1y, or all (default 30d)',
+        required: false,
+      },
+    ],
+    example: `curl '${baseUrl}/api/analytics/anonymity-set?period=30d'`,
+    response: {
+      period: '30d',
+      thresholds: [
+        {
+          thresholdZat: 100000000,
+          thresholdZec: 1,
+          shieldCount: 5420,
+          deshieldCount: 3102,
+        },
+      ],
+      updatedAt: '2026-07-26T15:00:00.000Z',
+    },
+    note: 'Cached for 1 hour. Counts are cumulative: each threshold includes all flows at or above that amount.',
+  },
+  {
+    id: 'shielding-distribution',
+    category: 'Privacy',
+    method: 'GET',
+    path: '/api/analytics/shielding-distribution',
+    description:
+      'Histogram of shield and deshield flows by log-spaced amount buckets — transaction counts and volumes per range.',
+    params: [
+      {
+        name: 'period',
+        type: 'string',
+        description: 'Time window: 7d, 30d, 90d, 1y, or all (default 30d)',
+        required: false,
+      },
+    ],
+    example: `curl '${baseUrl}/api/analytics/shielding-distribution?period=30d'`,
+    response: {
+      period: '30d',
+      buckets: [
+        {
+          label: '1-5',
+          minZat: 100000000,
+          maxZat: 500000000,
+          shieldCount: 820,
+          deshieldCount: 410,
+          shieldVolumeZat: 210000000000,
+          deshieldVolumeZat: 98000000000,
+        },
+      ],
+      updatedAt: '2026-07-26T15:00:00.000Z',
+    },
+    note: 'Cached for 1 hour. Bucket labels are in ZEC. Volume fields are in zatoshis.',
   },
   {
     id: 'shielded-count',

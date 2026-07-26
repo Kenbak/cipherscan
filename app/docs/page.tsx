@@ -127,10 +127,11 @@ export default function DocsPage() {
 const blocks = await fetch(BASE + '/api/blocks?limit=5');
 console.log(await blocks.json());
 
-// Privacy stats
-const stats = await fetch(BASE + '/api/privacy-stats');
+// Privacy stats (v2 score + optional trend depth)
+const stats = await fetch(BASE + '/api/privacy-stats?days=365');
 const { metrics } = await stats.json();
-console.log('Privacy score:', metrics.privacyScore);
+console.log('Privacy score:', metrics.privacyScore, 'v' + metrics.scoreVersion);
+console.log('Usage (30d tx share):', metrics.scoreBreakdown?.usage?.percent + '%');
 
 // Blend check — how common is 1 ZEC?
 const blend = await fetch(BASE + '/api/blend-check?amount=1.0');
