@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useRef } from 'react';
 import { formatZecCompact } from '@/lib/format-numbers';
 import {
   MAX_SUPPLY_ZAT,
@@ -9,6 +10,7 @@ import {
   type SupplySegmentInput,
   type TopLevelKey,
 } from './supply-treemap-layout';
+import { useSegmentLabelMode, type SegmentLabelMode } from './useSegmentLabelMode';
 
 export interface SupplyTreemapProps {
   topLevel: SupplySegmentInput[];
@@ -25,14 +27,30 @@ function flexWeight(zat: number, key: SupplyPoolKey): number {
   return 0;
 }
 
-function BandLabel({ label, zat, capPct }: { label: string; zat: number; capPct: number }) {
+function BandLabel({
+  label,
+  zat,
+  capPct,
+  mode,
+}: {
+  label: string;
+  zat: number;
+  capPct: number;
+  mode: SegmentLabelMode;
+}) {
+  if (mode === 'none') return null;
+
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
-      <span className="text-[11px] font-sans font-semibold text-white/90 sm:text-xs">{label}</span>
-      <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/75 sm:text-[11px]">
-        {zat === 0 ? '0 ZEC' : `${formatZecCompact(zat / 1e8)} ZEC`}
-      </span>
-      <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/50">{capPct.toFixed(1)}%</span>
+      <span className="truncate text-[11px] font-sans font-semibold text-white/90 sm:text-xs">{label}</span>
+      {mode === 'full' ? (
+        <>
+          <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/75 sm:text-[11px]">
+            {zat === 0 ? '0 ZEC' : `${formatZecCompact(zat / 1e8)} ZEC`}
+          </span>
+          <span className="mt-0.5 text-[10px] font-mono tabular-nums text-white/50">{capPct.toFixed(1)}%</span>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -54,14 +72,20 @@ function TopSegment({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const capPct = (segment.zat / MAX_SUPPLY_ZAT) * 100;
+  const labelMode = useSegmentLabelMode(ref, capPct);
+
   return (
     <button
+      ref={ref}
       type="button"
       className={`relative min-w-0 overflow-hidden rounded-md transition-opacity duration-150 ${dimmed ? 'opacity-30' : 'opacity-100'} ${className ?? ''}`}
       style={style}
       onMouseEnter={() => onHover(segment.key)}
       onMouseLeave={() => onHover(null)}
       onClick={onClick}
+      aria-label={`${segment.label}, ${formatZecCompact(segment.zat / 1e8)} ZEC, ${capPct.toFixed(1)} percent of cap`}
     >
       {segment.hatch ? (
         <div
@@ -81,11 +105,7 @@ function TopSegment({
           }}
         />
       )}
-      <BandLabel
-        label={segment.label}
-        zat={segment.zat}
-        capPct={(segment.zat / MAX_SUPPLY_ZAT) * 100}
-      />
+      <BandLabel label={segment.label} zat={segment.zat} capPct={capPct} mode={labelMode} />
     </button>
   );
 }
