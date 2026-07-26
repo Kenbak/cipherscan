@@ -346,7 +346,7 @@ export default function TurnstileScene({
       frameloop={paused ? 'never' : 'always'}
       camera={{ position: [0, 1.4, 7.2], fov: 46 }}
       dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
       style={{ background: 'transparent' }}
       onCreated={onReady}
     >

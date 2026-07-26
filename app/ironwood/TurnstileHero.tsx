@@ -11,6 +11,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { toPng } from 'html-to-image';
+import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 
 const TurnstileScene = dynamic(() => import('./TurnstileScene'), { ssr: false });
 
@@ -37,11 +39,8 @@ interface CohortPoint {
 
 export interface TurnstileHeroProps {
   activated: boolean;
-  balanced: boolean;
   migratedPct: number;
   blockPulseKey: number;
-  orchardZec?: string;
-  ironwoodZec?: string;
   activationHeight: number;
   tipHeight: number;
   cohorts: Array<{
@@ -52,24 +51,26 @@ export interface TurnstileHeroProps {
     firstTime: number | null;
   }> | null;
   originalOrchardZat: number;
+  currencyMode: CurrencyMode;
+  zecPrice: number | null;
 }
 
 type ScrubMode = 'live' | 'scrub' | 'play';
-
-const fmtZec = (zat: number) => (zat / 1e8).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 export function TurnstileHero(props: TurnstileHeroProps) {
   const {
     activated,
     migratedPct,
     blockPulseKey,
-    orchardZec,
-    ironwoodZec,
     activationHeight,
     tipHeight,
     cohorts: rawCohorts,
     originalOrchardZat,
+    currencyMode,
+    zecPrice,
   } = props;
+
+  const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
 
   const [use3D, setUse3D] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
@@ -112,25 +113,27 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         flowIntensity: 0,
         blockHeight: tipHeight,
         date: null as string | null,
-        orchardLabel: orchardZec,
-        ironwoodLabel: ironwoodZec,
+        orchardLabel: '—',
+        ironwoodLabel: '—',
       };
     }
 
     if (mode === 'live') {
-      // Live: use real migratedPct, intensity from most recent cohorts
       const recentWindow = cohortPoints.slice(-3);
       const recentAvgVol = recentWindow.length > 0
         ? recentWindow.reduce((s, c) => s + c.volumeZat, 0) / recentWindow.length
         : 0;
       const intensity = Math.min(1, recentAvgVol / peakVolume);
+      const totalMigrated = cohortPoints[cohortPoints.length - 1].cumulativeZat;
+      const remaining = Math.max(0, originalOrchardZat - totalMigrated);
+      const pct = originalOrchardZat > 0 ? (totalMigrated / originalOrchardZat) * 100 : 0;
       return {
-        migratedPct,
+        migratedPct: Math.min(pct, 100),
         flowIntensity: intensity,
         blockHeight: tipHeight,
         date: null,
-        orchardLabel: orchardZec,
-        ironwoodLabel: ironwoodZec,
+        orchardLabel: fmt(remaining),
+        ironwoodLabel: fmt(totalMigrated),
       };
     }
 
@@ -157,10 +160,10 @@ export function TurnstileHero(props: TurnstileHeroProps) {
       flowIntensity: intensity,
       blockHeight: displayPt.boundaryStartHeight,
       date: d,
-      orchardLabel: `${fmtZec(remainingZat)} ZEC`,
-      ironwoodLabel: `${fmtZec(migratedZat)} ZEC`,
+      orchardLabel: fmt(remainingZat),
+      ironwoodLabel: fmt(migratedZat),
     };
-  }, [mode, scrubIndex, maxIndex, cohortPoints, peakVolume, activated, hasCohorts, migratedPct, tipHeight, orchardZec, ironwoodZec, originalOrchardZat]);
+  }, [mode, scrubIndex, maxIndex, cohortPoints, peakVolume, activated, hasCohorts, migratedPct, tipHeight, originalOrchardZat, currencyMode, zecPrice]);
 
   // Play mode: smooth RAF-driven advance (~8 boundaries/sec)
   useEffect(() => {
@@ -243,129 +246,229 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     };
   }, [use3D]);
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
+
+  const captureCard = useCallback(async () => {
+    if (!cardRef.current) return null;
+    const dataUrl = await toPng(cardRef.current, {
+      backgroundColor: '#0f1419',
+      pixelRatio: 2,
+      filter: (node) => {
+        if (node instanceof HTMLElement && node.dataset.html2canvasIgnore) return false;
+        return true;
+      },
+    });
+    return (await fetch(dataUrl)).blob();
+  }, []);
+
+  const shareText = `${sceneState.migratedPct.toFixed(1)}% of Orchard ZEC has migrated to Ironwood. Watch the migration live on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+
+  const handleCopy = useCallback(async () => {
+    setCopyStatus('capturing');
+    try {
+      const blob = await captureCard();
+      if (!blob) return;
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 3000);
+    } catch {
+      setCopyStatus('idle');
+    }
+  }, [captureCard]);
+
+  const handleShare = useCallback(async () => {
+    setCopyStatus('capturing');
+    try {
+      const blob = await captureCard();
+      if (!blob) return;
+      const file = new File([blob], 'cipherscan-migration.png', { type: 'image/png' });
+      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ text: shareText, files: [file] });
+      } else {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+      }
+      setCopyStatus('idle');
+    } catch {
+      setCopyStatus('idle');
+    }
+  }, [captureCard, shareText]);
+
   if (!use3D) return null;
 
   const scrubPct = hasCohorts && maxIndex > 0 ? (Math.min(scrubIndex, maxIndex) / maxIndex) * 100 : 100;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative mt-6 overflow-hidden rounded-2xl border border-cipher-border"
-      style={{ background: 'var(--turnstile-bg)' }}
-    >
-      <div className="h-64 sm:h-80">
-        <TurnstileScene
-          activated={activated}
-          migratedPct={sceneState.migratedPct}
-          flowIntensity={sceneState.flowIntensity}
-          blockPulseKey={mode === 'live' ? blockPulseKey : sceneState.blockHeight}
-          paused={paused}
-          lightMode={lightMode}
-          onReady={() => setSceneReady(true)}
-        />
-      </div>
+    <div className="mt-4">
+      <div
+        ref={cardRef}
+        className="relative overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface"
+      >
+        {/* Watermark */}
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center z-[1]"
+          aria-hidden="true"
+        >
+          <span className="-rotate-12 select-none text-5xl font-bold font-mono tracking-[0.2em] text-white/[0.03] sm:text-6xl">
+            CIPHERSCAN
+          </span>
+        </div>
 
-      {/* Text overlay */}
-      {sceneReady && (
-        <>
-          <div className="pointer-events-none absolute top-4 left-0 right-0 z-[2] text-center">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-muted/70">
-              Orchard to Ironwood Migration
-            </div>
-            <div className="mt-1 text-lg font-bold font-mono text-cipher-yellow-bright sm:text-xl">
-              {mode === 'live' ? (activated ? 'LIVE' : 'PENDING') : sceneState.date || `Block ${sceneState.blockHeight.toLocaleString()}`}
-            </div>
-          </div>
-          <div className="pointer-events-none absolute bottom-14 left-5 right-5 z-[2] flex items-end justify-between sm:bottom-16">
-            <div>
-              <div className="text-[10px] font-mono text-[#A78BFA]">Remaining in Orchard</div>
-              <div className="text-sm font-mono font-semibold text-[#A78BFA]/90">{sceneState.orchardLabel}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[10px] font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
-              <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{sceneState.ironwoodLabel}</div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Scrubber bar */}
-      {sceneReady && activated && hasCohorts && (
-        <div className="relative z-[3] border-t border-white/5 bg-black/30 backdrop-blur-sm px-4 py-2.5 sm:px-5">
-          <div className="flex items-center gap-3">
-            {/* Play button */}
+        {/* Header with title + share buttons */}
+        <div className="relative z-[2] flex items-start justify-between gap-3 px-5 pt-4 sm:px-6">
+          <h2 className="text-sm font-bold text-primary">Orchard to Ironwood Migration</h2>
+          <div className="flex shrink-0 items-center gap-2" data-html2canvas-ignore="true">
             <button
               type="button"
-              onClick={handlePlay}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/60 transition-colors hover:border-white/30 hover:text-white/90"
-              aria-label={mode === 'play' ? 'Pause' : 'Play timelapse'}
+              onClick={handleCopy}
+              disabled={copyStatus === 'capturing'}
+              className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
             >
-              {mode === 'play' ? (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1.5" y="1.5" width="2.5" height="7" rx="0.5" /><rect x="6" y="1.5" width="2.5" height="7" rx="0.5" /></svg>
-              ) : (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2.5 1.5v7l6-3.5z" /></svg>
-              )}
+              {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
             </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={copyStatus === 'capturing'}
+              className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+            >
+              Share to X
+            </button>
+          </div>
+        </div>
 
-            {/* Timeline track */}
-            <div className="relative flex-1">
-              <div className="relative h-1.5 rounded-full bg-white/10">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
-                  style={{
-                    width: `${mode === 'live' ? 100 : scrubPct}%`,
-                    background: `linear-gradient(90deg, #A78BFA, #F4B728)`,
-                  }}
+        {/* 3D scene */}
+        <div ref={containerRef} className="relative" style={{ background: 'var(--turnstile-bg)' }}>
+          <div className="h-64 sm:h-80">
+            <TurnstileScene
+              activated={activated}
+              migratedPct={sceneState.migratedPct}
+              flowIntensity={sceneState.flowIntensity}
+              blockPulseKey={mode === 'live' ? blockPulseKey : sceneState.blockHeight}
+              paused={paused}
+              lightMode={lightMode}
+              onReady={() => setSceneReady(true)}
+            />
+          </div>
+
+          {/* Scene overlays */}
+          {sceneReady && (
+            <>
+              <div className="pointer-events-none absolute top-4 left-0 right-0 z-[2] text-center">
+                <div className="mt-1 text-lg font-bold font-mono text-cipher-yellow-bright sm:text-xl">
+                  {mode === 'live' ? (activated ? 'LIVE' : 'PENDING') : sceneState.date || `Block ${sceneState.blockHeight.toLocaleString()}`}
+                </div>
+                <div className="mt-0.5 text-xs font-mono text-cipher-yellow-bright/60">
+                  {sceneState.migratedPct.toFixed(1)}% migrated
+                </div>
+              </div>
+              <div className="pointer-events-none absolute bottom-14 left-5 right-5 z-[2] flex items-end justify-between sm:bottom-16">
+                <div>
+                  <div className="text-[10px] font-mono text-[#A78BFA]">Remaining in Orchard</div>
+                  <div className="text-sm font-mono font-semibold text-[#A78BFA]/90">{sceneState.orchardLabel}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
+                  <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{sceneState.ironwoodLabel}</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!sceneReady && (
+            <div className="absolute inset-0 z-[5] flex items-center justify-center bg-cipher-surface/80 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-cipher-border border-t-cipher-yellow" />
+                <span className="text-xs font-mono text-muted">Loading visualization…</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scrubber bar */}
+        {sceneReady && activated && hasCohorts && (
+          <div className="relative z-[3] border-t border-white/5 bg-black/30 backdrop-blur-sm px-4 py-2.5 sm:px-5">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handlePlay}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/60 transition-colors hover:border-white/30 hover:text-white/90"
+                aria-label={mode === 'play' ? 'Pause' : 'Play timelapse'}
+              >
+                {mode === 'play' ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1.5" y="1.5" width="2.5" height="7" rx="0.5" /><rect x="6" y="1.5" width="2.5" height="7" rx="0.5" /></svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2.5 1.5v7l6-3.5z" /></svg>
+                )}
+              </button>
+
+              <div className="relative flex-1">
+                <div className="relative h-1.5 rounded-full bg-white/10">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
+                    style={{
+                      width: `${mode === 'live' ? 100 : scrubPct}%`,
+                      background: `linear-gradient(90deg, #A78BFA, #F4B728)`,
+                    }}
+                  />
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxIndex}
+                  value={mode === 'live' ? maxIndex : scrubIndex}
+                  onChange={handleScrub}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="Migration timeline scrubber"
                 />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={maxIndex}
-                value={mode === 'live' ? maxIndex : scrubIndex}
-                onChange={handleScrub}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                aria-label="Migration timeline scrubber"
-              />
+
+              <button
+                type="button"
+                onClick={handleLive}
+                className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
+                  mode === 'live'
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
+                    : 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
+                }`}
+              >
+                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`} />
+                Live
+              </button>
             </div>
 
-            {/* Live button */}
-            <button
-              type="button"
-              onClick={handleLive}
-              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
-                mode === 'live'
-                  ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
-                  : 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
-              }`}
-            >
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`} />
-              Live
-            </button>
+            <div className="mt-1 flex items-center justify-between text-[10px] font-mono text-white/40">
+              <span>Block {activationHeight.toLocaleString()}</span>
+              <span>
+                {mode === 'live'
+                  ? `Block ${tipHeight.toLocaleString()}`
+                  : sceneState.date
+                    ? `${sceneState.date} · Block ${sceneState.blockHeight.toLocaleString()}`
+                    : `Block ${sceneState.blockHeight.toLocaleString()}`}
+              </span>
+            </div>
           </div>
+        )}
 
-          {/* Block label */}
-          <div className="mt-1 flex items-center justify-between text-[10px] font-mono text-white/40">
-            <span>Block {activationHeight.toLocaleString()}</span>
-            <span>
-              {mode === 'live'
-                ? `Block ${tipHeight.toLocaleString()}`
-                : sceneState.date
-                  ? `${sceneState.date} · Block ${sceneState.blockHeight.toLocaleString()}`
-                  : `Block ${sceneState.blockHeight.toLocaleString()}`}
-            </span>
+        {/* Footer — CipherScan branding + block info */}
+        <div className="relative z-[2] flex items-center justify-between border-t border-cipher-border/20 px-5 py-3 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">
+                CIPHERSCAN
+              </span>
+              <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+            </div>
           </div>
+          <span className="text-[10px] font-mono text-muted/80">
+            {mode === 'live' ? 'LIVE' : 'SNAPSHOT'} · block {(mode === 'live' ? tipHeight : sceneState.blockHeight).toLocaleString()}
+          </span>
         </div>
-      )}
-
-      {!sceneReady && (
-        <div className="absolute inset-0 z-[5] flex items-center justify-center bg-cipher-surface/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-cipher-border border-t-cipher-yellow" />
-            <span className="text-xs font-mono text-muted">Loading visualization…</span>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

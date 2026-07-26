@@ -282,15 +282,14 @@ export function MigrationClient({
               {overview && (
                 <TurnstileHero
                   activated={activated}
-                  balanced={overview.supplyAudit?.balanced ?? true}
                   migratedPct={migratedPct}
                   blockPulseKey={overview.tipHeight}
-                  orchardZec={fmtZec(overview.poolSizes.orchardZat)}
-                  ironwoodZec={fmtZec(overview.poolSizes.ironwoodZat)}
                   activationHeight={knownActivationHeight}
                   tipHeight={knownTip}
                   cohorts={cohorts?.cohorts ?? null}
                   originalOrchardZat={originalOrchard}
+                  currencyMode={currencyMode}
+                  zecPrice={zecPrice}
                 />
               )}
               {hasMigrations && overview?.inflowSources && overview.poolSizes && (
