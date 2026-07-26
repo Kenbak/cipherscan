@@ -11,6 +11,6 @@ export async function generateMetadata() {
 export default function LatestShieldedTransactionsPage() {
   return ShieldedTransactionsPage({
     searchParams: Promise.resolve({}),
-    unavailablePolicy: 'throw',
+    unavailablePolicy: 'shell',
   });
 }

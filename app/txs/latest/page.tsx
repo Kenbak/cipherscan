@@ -9,6 +9,6 @@ export async function generateMetadata() {
 export default function LatestTransactionsPage() {
   return TransactionsPage({
     searchParams: Promise.resolve({}),
-    unavailablePolicy: 'throw',
+    unavailablePolicy: 'shell',
   });
 }
