@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ResponsiveContainer,
@@ -25,7 +25,9 @@ import { getChartColors } from '@/lib/chart-theme';
 type ChartColors = ReturnType<typeof getChartColors>;
 
 import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
+import { useCurrencyToggle, fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import { TurnstileHero } from './TurnstileHero';
+import { InflowFlow, inflowPathDescription } from './InflowFlow';
 
 
 interface Overview {
@@ -153,6 +155,7 @@ export function MigrationClient({
   const [loaded, setLoaded] = useState(!!initialOverview);
   const { theme } = useTheme();
   const colors = getChartColors(theme);
+  const { mode: currencyMode, toggle: toggleCurrency, price: zecPrice } = useCurrencyToggle();
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +207,8 @@ export function MigrationClient({
   const migratedPct = originalOrchard > 0
     ? (orchardToIronwoodZat / originalOrchard) * 100
     : 0;
+  const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Header */}
@@ -216,9 +221,18 @@ export function MigrationClient({
             Live tracking of the NU6.3 Orchard-to-Ironwood migration — pool balances, supply verification, cohort privacy, and migration velocity.
           </p>
         </div>
-        <span className={`text-[10px] font-mono ${NETWORK_COLOR} border border-current/20 rounded-full px-3 py-1`}>
-          {NETWORK_LABEL}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleCurrency}
+            className="flex items-center rounded-full border border-cipher-border bg-glass-3 text-[11px] font-mono overflow-hidden"
+          >
+            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'zec' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>ZEC</span>
+            <span className={`px-2.5 py-1 transition-colors ${currencyMode === 'usd' ? 'bg-cipher-yellow-bright/15 text-cipher-yellow-bright' : 'text-muted'}`}>USD</span>
+          </button>
+          <span className={`text-[10px] font-mono ${NETWORK_COLOR} border border-current/20 rounded-full px-3 py-1`}>
+            {NETWORK_LABEL}
+          </span>
+        </div>
       </div>
 
       {!loaded && !initialOverview ? (
@@ -271,8 +285,19 @@ export function MigrationClient({
                 migratedPct={migratedPct}
                 deploymentNetwork={deploymentNetwork}
                 colors={colors}
+                currencyMode={currencyMode}
+                zecPrice={zecPrice}
               />
-              <SupplyVerification overview={overview} hasMigrations={hasMigrations} colors={colors} />
+              <SupplyVerification overview={overview} colors={colors} currencyMode={currencyMode} zecPrice={zecPrice} />
+              {hasMigrations && overview?.inflowSources && overview.poolSizes && (
+                <IronwoodInflowCard
+                  sources={overview.inflowSources}
+                  pools={overview.poolSizes}
+                  colors={colors}
+                  currencyMode={currencyMode}
+                  zecPrice={zecPrice}
+                />
+              )}
               <MigrationActivity cohorts={cohorts} overview={overview} activated={activated} colors={colors} />
               <PrivacyScore scatter={scatter} activated={activated} colors={colors} />
               <WalletReadiness />
@@ -296,6 +321,8 @@ function MetricsRow({
   migratedPct,
   deploymentNetwork,
   colors,
+  currencyMode = 'zec',
+  zecPrice = null,
 }: {
   overview: Overview | null;
   activated: boolean;
@@ -305,6 +332,8 @@ function MetricsRow({
   migratedPct: number;
   deploymentNetwork: string;
   colors: ChartColors;
+  currencyMode?: CurrencyMode;
+  zecPrice?: number | null;
 }) {
   const [, setTick] = useState(0);
 
@@ -405,13 +434,14 @@ function MetricsRow({
           value={`${((tipHeight - activationHeight) || 0).toLocaleString()} blocks`}
         />
         <Stat
-          label="Orchard emptied"
+          label="Orchard → Ironwood"
           value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
-          tone="orchard" toneColor={colors.orchardPool}
+          tone="ironwood"
+          toneColor={colors.ironwoodPool}
         />
         <Stat
           label="Migration velocity"
-          value={overview?.migration?.velocityZatPerHour ? `${fmtZec(overview.migration.velocityZatPerHour)} ZEC/hr` : '—'}
+          value={overview?.migration?.velocityZatPerHour ? `${fmtValue(overview.migration.velocityZatPerHour, currencyMode, zecPrice)}/hr` : '—'}
           tone="ironwood" toneColor={colors.ironwoodPool}
         />
         <Stat
@@ -436,6 +466,178 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
+// ─── Shareable card shell ────────────────────────────────────────────────────
+
+function ShareableCard({
+  title,
+  children,
+  sourceHeight,
+  isLive,
+  shareText,
+  fileName = 'cipherscan.png',
+  watermark = true,
+}: {
+  title: string;
+  children: ReactNode;
+  sourceHeight: number;
+  isLive: boolean;
+  shareText: string;
+  fileName?: string;
+  watermark?: boolean;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
+  const captureBg = theme === 'light' ? '#ffffff' : '#0f1419';
+
+  const captureCard = useCallback(async () => {
+    if (!cardRef.current) return null;
+    const dataUrl = await toPng(cardRef.current, {
+      backgroundColor: captureBg,
+      pixelRatio: 2,
+      filter: (node) => {
+        if (node instanceof HTMLElement && node.dataset.html2canvasIgnore) return false;
+        return true;
+      },
+    });
+    return (await fetch(dataUrl)).blob();
+  }, [captureBg]);
+
+  const handleCopy = useCallback(async () => {
+    setCopyStatus('capturing');
+    try {
+      const blob = await captureCard();
+      if (!blob) return;
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 3000);
+    } catch {
+      setCopyStatus('idle');
+    }
+  }, [captureCard]);
+
+  const handleShare = useCallback(async () => {
+    setCopyStatus('capturing');
+    try {
+      const blob = await captureCard();
+      if (!blob) return;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ text: shareText, files: [file] });
+      } else {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
+      }
+      setCopyStatus('idle');
+    } catch {
+      setCopyStatus('idle');
+    }
+  }, [captureCard, fileName, shareText]);
+
+  return (
+    <div className="mt-4">
+      <div
+        ref={cardRef}
+        className="relative overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6"
+      >
+        {watermark ? (
+          <div
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <span className="-rotate-12 select-none text-5xl font-bold font-mono tracking-[0.2em] text-black/[0.04] dark:text-white/[0.045] sm:text-6xl">
+              CIPHERSCAN
+            </span>
+          </div>
+        ) : null}
+
+        <div className="relative">
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <h2 className="text-sm font-bold text-primary">{title}</h2>
+            <div className="flex shrink-0 items-center gap-2" data-html2canvas-ignore="true">
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={copyStatus === 'capturing'}
+                className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              >
+                {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                disabled={copyStatus === 'capturing'}
+                className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              >
+                Share to X
+              </button>
+            </div>
+          </div>
+          {children}
+          <div className="mt-4 flex items-center justify-between border-t border-cipher-border/20 pt-3">
+            <div className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">
+                  CIPHERSCAN
+                </span>
+                <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-muted/80">
+              {isLive ? 'LIVE' : 'SNAPSHOT'} · block {sourceHeight.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PoolBalanceRow({
+  row,
+  currencyMode,
+  zecPrice,
+}: {
+  row: PoolRow;
+  currencyMode: CurrencyMode;
+  zecPrice: number | null;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+        row.highlight ? 'bg-amber-500/[0.07] border border-amber-500/25' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+        <span
+          className={`text-sm truncate ${row.highlight ? 'font-medium' : 'text-secondary'}`}
+          style={row.highlight ? { color: row.color } : undefined}
+        >
+          {row.name}
+        </span>
+        {row.name === 'Orchard' && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0">
+            unverified
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0 tabular-nums">
+        <span
+          className={`text-sm font-mono font-semibold ${row.highlight ? '' : 'text-primary'}`}
+          style={row.highlight ? { color: row.color } : undefined}
+        >
+          {fmtValue(row.zat, currencyMode, zecPrice)}
+        </span>
+        <span className="text-[10px] font-mono text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Section 2: Supply Verification ──────────────────────────────────────────
 
 interface PoolRow {
@@ -444,16 +646,19 @@ interface PoolRow {
   pct: number;
   color?: string;
   highlight?: boolean;
+  category: 'transparent' | 'shielded';
 }
 
 function SupplyVerification({
   overview,
-  hasMigrations,
   colors,
+  currencyMode = 'zec',
+  zecPrice = null,
 }: {
   overview: Overview | null;
-  hasMigrations: boolean;
   colors: ChartColors;
+  currencyMode?: CurrencyMode;
+  zecPrice?: number | null;
 }) {
   const audit = overview?.supplyAudit;
   const pools = overview?.poolSizes;
@@ -466,20 +671,28 @@ function SupplyVerification({
 
   const poolRows: PoolRow[] = [];
   if (transparentZat > 0) {
-    poolRows.push({ name: 'Transparent', zat: transparentZat, pct: 0, color: '#94a3b8' });
+    poolRows.push({ name: 'Transparent', zat: transparentZat, pct: 0, color: colors.transparent, category: 'transparent' });
   }
   if (pools.sproutZat > 0) {
-    poolRows.push({ name: 'Sprout', zat: pools.sproutZat, pct: 0, color: '#6b7280' });
+    poolRows.push({ name: 'Sprout', zat: pools.sproutZat, pct: 0, color: colors.sprout, category: 'shielded' });
   }
   if (pools.saplingZat > 0) {
-    poolRows.push({ name: 'Sapling', zat: pools.saplingZat, pct: 0, color: '#60a5fa' });
+    poolRows.push({ name: 'Sapling', zat: pools.saplingZat, pct: 0, color: colors.sapling, category: 'shielded' });
   }
-  poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: colors.orchardPool });
-  poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: colors.ironwoodPool, highlight: true });
+  poolRows.push({ name: 'Orchard', zat: pools.orchardZat, pct: 0, color: colors.orchardPool, category: 'shielded' });
+  poolRows.push({ name: 'Ironwood', zat: pools.ironwoodZat, pct: 0, color: colors.ironwoodPool, highlight: true, category: 'shielded' });
+
+  const transparentPools = poolRows.filter((r) => r.category === 'transparent');
+  const shieldedPools = poolRows.filter((r) => r.category === 'shielded');
 
   const computedTotal = poolRows.reduce((sum, r) => sum + r.zat, 0);
   const displayTotal = totalSupply ?? computedTotal;
   poolRows.forEach((r) => { r.pct = displayTotal > 0 ? (r.zat / displayTotal) * 100 : 0; });
+
+  const MAX_SUPPLY_ZAT = 2_100_000_000_000_000;
+  const unminedZat = MAX_SUPPLY_ZAT - displayTotal;
+  const supplySum = displayTotal + unminedZat;
+  const supplyBalanced = supplySum === MAX_SUPPLY_ZAT;
 
   const poolSum = computedTotal;
   const supplyMatch = totalSupply != null ? poolSum === totalSupply : null;
@@ -501,62 +714,21 @@ function SupplyVerification({
     { name: 'Orchard', value: orchardVisualPct },
   ];
   const RING_COLORS = [colors.verifiedRing, colors.orchardPool];
-  const cardRef = useRef<HTMLDivElement>(null);
+  const shareText = verifiedPct != null
+    ? `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood`
+    : `Zcash Ironwood migration tracker\n\nhttps://cipherscan.app/ironwood`;
 
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
-
-  const captureCard = useCallback(async () => {
-    if (!cardRef.current) return null;
-    const dataUrl = await toPng(cardRef.current, {
-      backgroundColor: '#0f1419',
-      pixelRatio: 2,
-      filter: (node) => {
-        if (node instanceof HTMLElement && node.dataset.html2canvasIgnore) return false;
-        return true;
-      },
-    });
-    return (await fetch(dataUrl)).blob();
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    setCopyStatus('capturing');
-    try {
-      const blob = await captureCard();
-      if (!blob) return;
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      setCopyStatus('copied');
-      setTimeout(() => setCopyStatus('idle'), 3000);
-    } catch {
-      setCopyStatus('idle');
-    }
-  }, [captureCard]);
-
-  const handleShare = useCallback(async () => {
-    setCopyStatus('capturing');
-    try {
-      const blob = await captureCard();
-      if (!blob) return;
-      const file = new File([blob], 'cipherscan-supply.png', { type: 'image/png' });
-      const text = verifiedPct != null ? `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood` : `Zcash Ironwood migration tracker\n\nhttps://cipherscan.app/ironwood`;
-
-      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-      if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ text, files: [file] });
-      } else {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-      }      setCopyStatus('idle');
-    } catch {
-      setCopyStatus('idle');
-    }
-  }, [captureCard, verifiedPct]);
   return (
-    <div className="mt-4">
-      <div ref={cardRef} className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-      {/* Two-column: ring left, pools right */}
-      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
+    <ShareableCard
+      title="Supply verification"
+      sourceHeight={pools.sourceHeight}
+      isLive={pools.isLive}
+      shareText={shareText}
+      fileName="cipherscan-supply.png"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-8 sm:gap-10 lg:gap-14 items-center">
         {/* Left: Ring */}
-        <div className="flex flex-col items-center flex-shrink-0">
+        <div className="flex flex-col items-center justify-center w-full px-2 sm:px-6 lg:px-10 py-2 sm:py-4">
           <div className="relative w-44 h-44 sm:w-48 sm:h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -588,20 +760,20 @@ function SupplyVerification({
           </div>
 
           {/* Legend below ring */}
-          <div className="flex items-center gap-4 mt-3 text-[11px]">
+          <div className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap mt-4 text-[11px]">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span className="text-muted">Verified</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.orchardPool }} />
-              <span className="text-muted">Orchard</span>
+              <span className="text-muted">Unverified (Orchard)</span>
             </div>
           </div>
         </div>
 
         {/* Right: Pool breakdown */}
-        <div className="flex-1 w-full space-y-2">
+        <div className="w-full min-w-0 space-y-1 sm:pl-2 lg:pl-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-primary">Pool balances</span>
             {supplyMatch != null && (
@@ -613,162 +785,200 @@ function SupplyVerification({
               </div>
             )}
           </div>
-          {poolRows.map((row) => (
-            <div
-              key={row.name}
-              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all hover:bg-cipher-hover ${
-                row.name === 'Orchard' ? 'border border-cipher-border' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
-                <span className={`text-sm ${row.highlight ? 'font-medium' : row.name === 'Orchard' ? '' : 'text-secondary'}`} style={(row.highlight || row.name === 'Orchard') ? { color: row.color } : undefined}>
-                  {row.name}
-                </span>
-                {row.name === 'Orchard' && (
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono" style={{ backgroundColor: `${row.color}15`, color: row.color }}>unverified</span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-mono font-semibold" style={row.highlight ? { color: row.color } : undefined}>
-                  {fmtZec(row.zat)}
-                </span>
-                <span className="text-[10px] font-mono text-muted w-10 text-right">{row.pct.toFixed(1)}%</span>
-              </div>
-            </div>
-          ))}
+          <div>
+            {transparentPools.map((row) => (
+              <PoolBalanceRow key={row.name} row={row} currencyMode={currencyMode} zecPrice={zecPrice} />
+            ))}
+            {transparentPools.length > 0 && shieldedPools.length > 0 && (
+              <div className="my-2 border-t border-cipher-border-subtle" aria-hidden="true" />
+            )}
+            {shieldedPools.map((row) => (
+              <PoolBalanceRow key={row.name} row={row} currencyMode={currencyMode} zecPrice={zecPrice} />
+            ))}
+          </div>
           <div className="flex items-center justify-between pt-2 mt-1 border-t border-cipher-border/30 px-3">
-            <span className="text-xs font-bold text-primary">Total</span>
-            <span className="text-sm font-mono font-bold text-primary">{fmtZec(displayTotal)} ZEC</span>
+            <span className="text-xs text-secondary">Mined</span>
+            <span className="text-sm font-mono text-primary">{fmtValue(displayTotal, currencyMode, zecPrice)}</span>
+          </div>
+          <div className="flex items-center justify-between px-3 py-1">
+            <span className="text-xs text-secondary">Unmined</span>
+            <span className="text-sm font-mono text-primary">{fmtValue(unminedZat, currencyMode, zecPrice)}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-cipher-border/30 px-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-primary">Max supply</span>
+              {supplyBalanced && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+            </div>
+            <span className="text-sm font-mono font-bold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
           </div>
         </div>
       </div>
+    </ShareableCard>
+  );
+}
 
-      {/* Inflow sources — compact, below */}
-      {hasMigrations && overview.inflowSources && (
-        <div className="mt-6 pt-5 border-t border-cipher-border/20">
-          <InflowSources sources={overview.inflowSources} colors={colors} />
-        </div>
-      )}
-
-      {/* Footer with watermark + share */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-cipher-border/20">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-muted tracking-tight">CIPHERSCAN</span>
-          <span className="text-[10px] text-muted/50 font-mono">cipherscan.app</span>
-        </div>
-        <div className="flex items-center gap-2" data-html2canvas-ignore="true">
-          <span className="text-[10px] text-muted font-mono">
-            {pools.isLive ? 'LIVE' : 'SNAPSHOT'} · block {pools.sourceHeight.toLocaleString()}
-          </span>
-          <button
-            onClick={handleCopy}
-            disabled={copyStatus === 'capturing'}
-            className="text-[10px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-md px-2 py-1 transition-all hover:bg-white/[0.03] disabled:opacity-50"
-          >
-            {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
-          </button>
-          <button
-            onClick={handleShare}
-            disabled={copyStatus === 'capturing'}
-            className="text-[10px] font-mono text-muted hover:text-primary border border-cipher-border/50 hover:border-cipher-border rounded-md px-2 py-1 transition-all hover:bg-white/[0.03] disabled:opacity-50"
-          >
-            Share
-          </button>
-        </div>      </div>
-      </div>{/* end cardRef */}
+function IronwoodLedgerStat({
+  icon,
+  label,
+  hint,
+  value,
+  valueColor,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  value: string;
+  valueColor?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-cipher-border/25 bg-glass-3/20 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wide text-muted">
+        {icon}
+        {label}
+      </div>
+      <div
+        className="mt-1 text-sm font-mono font-semibold tabular-nums text-primary"
+        style={valueColor ? { color: valueColor } : undefined}
+      >
+        {value}
+      </div>
+      <div className="mt-0.5 text-[9px] leading-snug text-muted/55">{hint}</div>
     </div>
   );
 }
 
-function InflowSources({ sources, colors }: { sources: NonNullable<Overview['inflowSources']>; colors: ChartColors }) {
+function InflowSources({
+  sources,
+  colors,
+  currencyMode = 'zec',
+  zecPrice = null,
+}: {
+  sources: NonNullable<Overview['inflowSources']>;
+  colors: ChartColors;
+  currencyMode?: CurrencyMode;
+  zecPrice?: number | null;
+}) {
   const rows = [
-    { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: colors.orchardPool },
-    { name: 'Transparent', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: '#94a3b8' },
-    { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: '#60a5fa' },
-    { name: 'Coinbase', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: colors.ironwoodPool },
+    { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: colors.orchardPool, group: 'shielded' as const },
+    { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: colors.sapling, group: 'shielded' as const },
+    { name: 'Transparent', zat: sources.fromTransparentZat, txs: sources.fromTransparentTxs, color: colors.transparent, group: 'transparent' as const },
+    { name: 'Coinbase', zat: sources.fromCoinbaseZat, txs: sources.fromCoinbaseTxs, color: colors.coinbase, group: 'mining' as const },
   ].filter((r) => r.zat > 0 || r.txs > 0);
 
   if (rows.length === 0) return null;
 
   const totalIn = sources.totalInZat;
+  const netZat = sources.totalInZat - sources.totalOutZat;
   const [hovered, setHovered] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
+  const activeName = selected ?? hovered;
+
+  const handleSelect = (name: string) => {
+    setSelected((prev) => (prev === name ? null : name));
+  };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-primary">Where Ironwood ZEC comes from</span>
-        <span className="text-[10px] font-mono text-muted">
-          {fmtZec(totalIn)} ZEC total inflow
-        </span>
-      </div>
+      <InflowFlow
+        rows={rows}
+        activeName={activeName}
+        onHover={setHovered}
+        onSelect={handleSelect}
+        formatValue={fmt}
+        ironwoodColor={colors.ironwoodPool}
+      />
 
-      {/* Stacked bar with hover */}
-      <div className="h-9 rounded-lg overflow-hidden flex mb-2 border border-cipher-border/30">
-        {rows.map((row) => {
-          const pct = totalIn > 0 ? (row.zat / totalIn) * 100 : 0;
-          const isHovered = hovered === row.name;
-          return (
-            <div
-              key={row.name}
-              className="h-full relative flex items-center justify-center transition-all duration-300 cursor-default"
-              style={{
-                width: `${pct}%`,
-                backgroundColor: row.color,
-                opacity: hovered && !isHovered ? 0.5 : 1,
-                filter: isHovered ? 'brightness(1.2)' : 'none',
-              }}
-              onMouseEnter={() => setHovered(row.name)}
-              onMouseLeave={() => setHovered(null)}
-            >
-              {pct > 10 && (
-                <span className="text-[10px] font-mono font-bold text-white/90">
-                  {pct.toFixed(0)}%
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Hover tooltip */}
-      <div className="h-5 mb-3">
-        {hovered && (() => {
-          const r = rows.find((x) => x.name === hovered);
+      <p className="mb-4 min-h-[1.125rem] text-[11px] font-mono text-secondary">
+        {activeName ? (() => {
+          const r = rows.find((x) => x.name === activeName);
           if (!r) return null;
           const pct = totalIn > 0 ? (r.zat / totalIn) * 100 : 0;
+          const path = inflowPathDescription(r.name);
           return (
-            <span className="text-[11px] font-mono text-secondary">
+            <>
               <span style={{ color: r.color }}>{r.name}</span>
-              {' · '}{fmtZec(r.zat)} ZEC · {r.txs.toLocaleString()} txs · {pct.toFixed(1)}%
-            </span>
+              {' · '}{path}
+              {' · '}{fmt(r.zat)} · {r.txs.toLocaleString()} txs · {pct.toFixed(1)}%
+              {selected === r.name ? (
+                <span className="ml-2 text-[10px] text-muted/50">(pinned)</span>
+              ) : null}
+            </>
           );
-        })()}
-      </div>
+        })() : (
+          <span className="text-muted/45">Click a source to pin details · hover to preview</span>
+        )}
+      </p>
 
-      {/* Source legend — inline row */}
-      <div className="flex flex-wrap gap-x-5 gap-y-2">
-        {rows.map((row) => (
-          <div
-            key={row.name}
-            className={`flex items-center gap-2 transition-opacity ${hovered && hovered !== row.name ? 'opacity-40' : ''}`}
-            onMouseEnter={() => setHovered(row.name)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
-            <span className="text-xs text-secondary">{row.name}</span>
-            <span className="text-xs font-mono font-semibold text-primary">{fmtZec(row.zat)}</span>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-2 border-t border-cipher-border/20 pt-4 sm:grid-cols-3">
+        <IronwoodLedgerStat
+          icon={
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-emerald-400/80">
+              <path d="M1 5h6M5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
+          label="Into Ironwood"
+          hint="Indexed value entering the pool"
+          value={fmt(totalIn)}
+        />
+        {sources.totalOutZat > 0 && (
+          <>
+            <IronwoodLedgerStat
+              icon={
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-muted/70">
+                  <path d="M9 5H3M7 2 4 5l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+              label="Out of Ironwood"
+              hint="Indexed value leaving the pool"
+              value={fmt(sources.totalOutZat)}
+            />
+            <IronwoodLedgerStat
+              icon={
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" style={{ color: colors.ironwoodPool }}>
+                  <path d="M2 5h6M5 3v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              }
+              label="Net in pool"
+              hint="In minus out (matches pool balance)"
+              value={fmt(netZat)}
+              valueColor={colors.ironwoodPool}
+            />
+          </>
+        )}
       </div>
-
-      {sources.totalOutZat > 0 && (
-        <div className="flex items-center gap-4 mt-3 text-[10px] font-mono text-muted">
-          <span>Net: <span className="text-primary font-semibold">{fmtZec(sources.totalInZat - sources.totalOutZat)} ZEC</span></span>
-          <span className="opacity-50">({fmtZec(sources.totalOutZat)} ZEC outflows)</span>
-        </div>
-      )}
     </div>
+  );
+}
+
+function IronwoodInflowCard({
+  sources,
+  pools,
+  colors,
+  currencyMode = 'zec',
+  zecPrice = null,
+}: {
+  sources: NonNullable<Overview['inflowSources']>;
+  pools: NonNullable<Overview['poolSizes']>;
+  colors: ChartColors;
+  currencyMode?: CurrencyMode;
+  zecPrice?: number | null;
+}) {
+  const netZat = sources.totalInZat - sources.totalOutZat;
+  const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
+  const shareText = `Ironwood pool inflows on Zcash: ${fmt(sources.totalInZat)} in, ${fmt(sources.totalOutZat)} out, ${fmt(netZat)} net.\n\nhttps://cipherscan.app/ironwood`;
+
+  return (
+    <ShareableCard
+      title="Where Ironwood ZEC comes from"
+      sourceHeight={pools.sourceHeight}
+      isLive={pools.isLive}
+      shareText={shareText}
+      fileName="cipherscan-ironwood-inflows.png"
+      watermark={false}
+    >
+      <InflowSources sources={sources} colors={colors} currencyMode={currencyMode} zecPrice={zecPrice} />
+    </ShareableCard>
   );
 }
 
@@ -877,8 +1087,8 @@ function PrivacyScore({ scatter, activated, colors }: { scatter: ScatterData | n
         <div>
           <h2 className="text-sm font-bold text-primary">Privacy score</h2>
           <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: colors.denominated }} className="font-semibold">Green</span> = standard denomination (blends in).{' '}
-            <span style={{ color: colors.distinctive }} className="font-semibold">Orange</span> = distinctive amount (weakens privacy).
+            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: colors.denominated }} className="font-semibold">Filled</span> = standard denomination (blends in).{' '}
+            <span className="text-muted">Faded</span> = distinctive amount (weakens privacy).
           </p>
         </div>
         {scatter && hasData && (
@@ -937,8 +1147,8 @@ function PrivacyScore({ scatter, activated, colors }: { scatter: ScatterData | n
               {[0.01, 0.1, 1, 10, 100].map(d => (
                 <ReferenceLine key={d} y={d} stroke={colors.referenceLine} strokeDasharray="4 4" />
               ))}
-              <Scatter name="Denominated" data={denominatedData} fill={colors.denominated} fillOpacity={0.8} />
-              <Scatter name="Distinctive" data={distinctiveData} fill={colors.distinctive} fillOpacity={0.8} />
+              <Scatter name="Denominated" data={denominatedData} fill={colors.denominated} fillOpacity={0.85} />
+              <Scatter name="Distinctive" data={distinctiveData} fill={colors.distinctive} fillOpacity={0.5} stroke={colors.denominated} strokeOpacity={0.5} />
             </ScatterChart>
           </ResponsiveContainer>
 
@@ -949,7 +1159,7 @@ function PrivacyScore({ scatter, activated, colors }: { scatter: ScatterData | n
                 Common denomination
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
+                <span className="w-2.5 h-2.5 rounded-full border" style={{ backgroundColor: colors.distinctive, borderColor: colors.denominated }} />
                 Distinctive amount
               </span>
             </div>
