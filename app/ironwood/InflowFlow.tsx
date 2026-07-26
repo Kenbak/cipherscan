@@ -19,6 +19,7 @@ export interface InflowFlowProps {
   onSelect: (name: string) => void;
   formatValue: (zat: number) => string;
   ironwoodColor: string;
+  ironwoodZat: number;
 }
 
 type PathKind = 'orchard' | 'sapling' | 'transparent' | 'coinbase';
@@ -100,6 +101,7 @@ export function InflowFlow({
   onSelect,
   formatValue,
   ironwoodColor,
+  ironwoodZat,
 }: InflowFlowProps) {
   const layout = useMemo(() => {
     const rowH = 44;
@@ -301,6 +303,9 @@ export function InflowFlow({
               style={{ color: ironwoodColor }}
             >
               Ironwood
+            </span>
+            <span className="mt-0.5 block text-[10px] font-mono font-medium tabular-nums text-primary/90">
+              {formatValue(ironwoodZat)}
             </span>
           </div>
         </div>

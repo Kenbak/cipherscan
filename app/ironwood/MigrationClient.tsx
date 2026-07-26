@@ -781,6 +781,7 @@ function InflowSources({
         onSelect={handleSelect}
         formatValue={fmt}
         ironwoodColor={colors.ironwoodPool}
+        ironwoodZat={netZat}
       />
 
       <p className="mb-4 min-h-[1.125rem] text-[11px] font-mono text-secondary">

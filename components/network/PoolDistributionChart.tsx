@@ -139,7 +139,7 @@ function CompositionTooltip({
   colors,
 }: {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number; color?: string }>;
+  payload?: Array<{ name?: string; value?: number; color?: string; payload?: Record<string, unknown> }>;
   label?: string;
   colors: ReturnType<typeof getChartColors>;
 }) {
@@ -173,7 +173,7 @@ function PoolsTooltip({
   colors,
 }: {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number; color?: string }>;
+  payload?: Array<{ name?: string; value?: number; color?: string; payload?: Record<string, unknown> }>;
   label?: string;
   colors: ReturnType<typeof getChartColors>;
 }) {
