@@ -24,9 +24,9 @@ export function getChartColors(theme: 'dark' | 'light') {
     ironwoodPool: isDark ? '#F4B728' : '#D49B00',
     verifiedRing: isDark ? '#10b981' : '#059669',
 
-    // Scatter chart — gold family only (filled vs outline)
+    // Scatter chart — gold = standard denomination, red = distinctive amount
     denominated: isDark ? '#F4B728' : '#D49B00',
-    distinctive: isDark ? 'rgba(244,183,40,0.35)' : 'rgba(180,130,0,0.4)',
+    distinctive: isDark ? '#f87171' : '#dc2626',
 
     // Inflow bar segments — gold at varying opacity
     inflowOrchard: isDark ? 'rgba(244,183,40,1)' : 'rgba(180,130,0,1)',

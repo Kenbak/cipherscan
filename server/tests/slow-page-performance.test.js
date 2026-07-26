@@ -109,6 +109,7 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
     isServerRenderDeadlineError,
     getServerRenderFetchTimeoutMs,
     SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS,
+    SERVER_RENDER_DEV_FETCH_TIMEOUT_MS,
     SERVER_RENDER_FETCH_TIMEOUT_MS,
   } = loadTypeScriptModule('lib/server-fetch.ts');
   assert.ok(
@@ -140,10 +141,16 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
   );
 
   const originalPhase = process.env.NEXT_PHASE;
+  const originalNodeEnv = process.env.NODE_ENV;
   try {
     delete process.env.NEXT_PHASE;
+    process.env.NODE_ENV = 'production';
     assert.equal(getServerRenderFetchTimeoutMs(), SERVER_RENDER_FETCH_TIMEOUT_MS);
 
+    process.env.NODE_ENV = 'development';
+    assert.equal(getServerRenderFetchTimeoutMs(), SERVER_RENDER_DEV_FETCH_TIMEOUT_MS);
+
+    process.env.NODE_ENV = 'production';
     process.env.NEXT_PHASE = 'phase-production-build';
     assert.equal(
       getServerRenderFetchTimeoutMs(),
@@ -155,6 +162,8 @@ test('server-render fetches abort a hung origin inside their deadline', async ()
   } finally {
     if (originalPhase === undefined) delete process.env.NEXT_PHASE;
     else process.env.NEXT_PHASE = originalPhase;
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
   }
 });
 

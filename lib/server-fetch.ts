@@ -2,15 +2,23 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 export const SERVER_RENDER_FETCH_TIMEOUT_MS = 1_000;
 export const SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS = 10_000;
+/** Local dev often hits a remote API; keep SSR from failing on ~1.5s round trips. */
+export const SERVER_RENDER_DEV_FETCH_TIMEOUT_MS = 5_000;
 
 /**
  * Builds need enough time to create the first valid ISR entry from a healthy
  * cross-service API. Runtime requests keep the tighter tail-latency guard.
+ * Development uses a longer budget because localhost → remote API is slower
+ * than colocated production traffic.
  */
 export function getServerRenderFetchTimeoutMs(): number {
-  return process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
-    ? SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS
-    : SERVER_RENDER_FETCH_TIMEOUT_MS;
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+    return SERVER_RENDER_BUILD_FETCH_TIMEOUT_MS;
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return SERVER_RENDER_DEV_FETCH_TIMEOUT_MS;
+  }
+  return SERVER_RENDER_FETCH_TIMEOUT_MS;
 }
 
 export type NextFetchRequestInit = RequestInit & {

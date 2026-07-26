@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ResponsiveContainer,
   BarChart,
@@ -124,6 +125,8 @@ interface ScatterData {
   denominatedCount: number;
   distinctiveCount: number;
   denominatedPercent: number;
+  denominatedVolumeZat?: number;
+  distinctiveVolumeZat?: number;
   txs: ScatterTx[];
 }
 
@@ -301,8 +304,8 @@ export function MigrationClient({
                   zecPrice={zecPrice}
                 />
               )}
-              <MigrationActivity cohorts={cohorts} activated={activated} colors={colors} />
-              <PrivacyScore scatter={scatter} activated={activated} colors={colors} />
+              <MigrationActivity cohorts={cohorts} activated={activated} colors={colors} tipHeight={knownTip} />
+              <PrivacyScore scatter={scatter} activated={activated} colors={colors} tipHeight={knownTip} />
               <WalletReadiness />
               <Resources />
             </>
@@ -738,7 +741,7 @@ function SupplyVerification({
   return (
     <div id="supply" className="scroll-mt-20">
       <ShareableCard
-        title="Supply verification"
+        title="Zcash supply verification"
         sourceHeight={pools.sourceHeight}
         isLive={pools.isLive}
         shareText={shareText}
@@ -1003,176 +1006,528 @@ function IronwoodInflowCard({
 
 // ─── Section 3: Migration Activity ───────────────────────────────────────────
 
+type ActivityRange = 'all' | '30' | '7d';
+
+const ACTIVITY_RANGES: { id: ActivityRange; label: string }[] = [
+  { id: '7d', label: 'Last 7 days' },
+  { id: '30', label: 'Last 30 cohorts' },
+  { id: 'all', label: 'All' },
+];
+
 function MigrationActivity({
   cohorts,
   activated,
   colors,
+  tipHeight,
 }: {
   cohorts: Cohorts | null;
   activated: boolean;
   colors: ChartColors;
+  tipHeight: number;
 }) {
-  const data = (cohorts?.cohorts ?? []).map((c) => ({
-    boundary: c.boundaryStartHeight,
-    volume: zec(c.volumeZat),
-    txCount: c.txCount,
-  }));
+  const [range, setRange] = useState<ActivityRange>('7d');
+
+  const data = useMemo(
+    () =>
+      (cohorts?.cohorts ?? []).map((c) => ({
+        boundary: c.boundaryStartHeight,
+        volume: zec(c.volumeZat),
+        txCount: c.txCount,
+        firstTime: c.firstTime,
+      })),
+    [cohorts?.cohorts],
+  );
+
+  const filteredData = useMemo(() => {
+    if (range === 'all') return data;
+    if (range === '30') return data.slice(-30);
+    const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+    return data.filter((c) => c.firstTime != null && c.firstTime >= cutoff);
+  }, [data, range]);
 
   const avgCohort = cohorts?.avgAnonymitySet ?? 0;
+  const totalVolumeZec = data.reduce((sum, c) => sum + c.volume, 0);
+  const peakVolume = data.reduce((max, c) => Math.max(max, c.volume), 0);
+  const activeCohorts = data.filter((c) => c.volume > 0).length;
+  const visiblePeak = filteredData.reduce((max, c) => Math.max(max, c.volume), 0);
+  const yMax = Math.max(Math.ceil(visiblePeak * 1.1), 1);
+  const shareText =
+    activeCohorts > 0
+      ? `${totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated across ${activeCohorts} Orchard→Ironwood cohorts. Avg anonymity set: ${avgCohort.toFixed(1)} txs.\n\nhttps://cipherscan.app/ironwood`
+      : `Zcash Orchard → Ironwood migration activity on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
 
   return (
-    <div id="migration-activity" className="mt-4 scroll-mt-20 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <h2 className="text-sm font-bold text-primary">Migration activity</h2>
-      <p className="mt-1 mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-        Volume per 256-block boundary (~5.3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
-        {avgCohort > 0 ? (
-          <>
-            {' '}
-            Avg cohort size:{' '}
-            <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.
-          </>
-        ) : null}
-      </p>
+    <div id="migration-activity" className="scroll-mt-20">
+      <ShareableCard
+        title="Orchard → Ironwood migration activity"
+        sourceHeight={tipHeight}
+        isLive={activated}
+        shareText={shareText}
+        fileName="cipherscan-migration-activity.png"
+      >
+        <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
+          Volume per 256-block boundary (~5.3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
+          {avgCohort > 0 ? (
+            <>
+              {' '}
+              Avg cohort size:{' '}
+              <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.
+            </>
+          ) : null}
+        </p>
 
-      {data.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-            <XAxis
-              dataKey="boundary"
-              tick={{ fontSize: 10, fill: colors.axis }}
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-            />
-            <YAxis tick={{ fontSize: 10, fill: colors.axis }} width={40} />
-            <Tooltip
-              cursor={{ fill: colors.barCursor }}
-              contentStyle={{
-                backgroundColor: colors.tooltipBg,
-                border: `1px solid ${colors.tooltipBorder}`,
-                borderRadius: '8px',
-                fontSize: 12,
-              }}
-              itemStyle={{ color: colors.tooltipText }}
-              labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
-              labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
-              formatter={(val: unknown, name: unknown) =>
-                name === 'volume'
-                  ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, 'Volume']
-                  : [Number(val), 'Txs (anonymity set)']
-              }
-            />
-            <Bar dataKey="volume" fill={colors.ironwoodPool} radius={[2, 2, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <EmptyPanel activated={activated} />
-      )}
+        {activeCohorts > 0 ? (
+          <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-mono text-muted">
+            <span>
+              Total migrated{' '}
+              <span className="text-cipher-yellow-bright">
+                {totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
+              </span>
+            </span>
+            <span>
+              Peak cohort{' '}
+              <span className="text-primary">
+                {peakVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
+              </span>
+            </span>
+            <span>
+              Active cohorts <span className="text-primary">{activeCohorts}</span>
+            </span>
+          </div>
+        ) : null}
+
+        {data.length > 0 ? (
+          <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+            <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
+              {ACTIVITY_RANGES.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setRange(id)}
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
+                    range === id
+                      ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
+                      : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {filteredData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={filteredData} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
+              <XAxis
+                dataKey="boundary"
+                tick={{ fontSize: 10, fill: colors.axis }}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                label={{
+                  value: 'Block height',
+                  position: 'insideBottom',
+                  offset: -8,
+                  style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
+                }}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: colors.axis }}
+                width={44}
+                domain={[0, yMax]}
+                tickFormatter={(v) => Number(v).toLocaleString()}
+                label={{
+                  value: 'Volume (ZEC)',
+                  angle: -90,
+                  position: 'insideLeft',
+                  dx: -6,
+                  style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
+                }}
+              />
+              <Tooltip
+                cursor={{ fill: colors.barCursor }}
+                contentStyle={{
+                  backgroundColor: colors.tooltipBg,
+                  border: `1px solid ${colors.tooltipBorder}`,
+                  borderRadius: '8px',
+                  fontSize: 12,
+                }}
+                itemStyle={{ color: colors.tooltipText }}
+                labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+                labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
+                formatter={(val: unknown, name: unknown) =>
+                  name === 'volume'
+                    ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, 'Volume']
+                    : [Number(val), 'Txs (anonymity set)']
+                }
+              />
+              <Bar dataKey="volume" fill={colors.ironwoodPool} radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : data.length > 0 ? (
+          <p className="py-8 text-center text-xs font-mono text-muted">No migration activity in this range.</p>
+        ) : (
+          <EmptyPanel activated={activated} />
+        )}
+      </ShareableCard>
     </div>
   );
 }
 
 // ─── Section 4: Privacy Score ────────────────────────────────────────────────
 
+type PrivacyRange = '7d' | '30d' | 'all';
 
-function PrivacyScore({ scatter, activated, colors }: { scatter: ScatterData | null; activated: boolean; colors: ChartColors }) {
-  const denominatedData = (scatter?.txs ?? [])
-    .filter(tx => tx.privacy === 'denominated')
-    .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
-  const distinctiveData = (scatter?.txs ?? [])
-    .filter(tx => tx.privacy === 'distinctive')
-    .map(tx => ({ x: tx.height, y: tx.amountZec, txid: tx.txid, privacy: tx.privacy, matched: tx.matchedDenomination }));
+const PRIVACY_RANGES: { id: PrivacyRange; label: string }[] = [
+  { id: '7d', label: 'Last 7 days' },
+  { id: '30d', label: 'Last 30 days' },
+  { id: 'all', label: 'All (500)' },
+];
+
+type PrivacyView = 'scatter' | 'denoms';
+
+const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
+  { id: 'scatter', label: 'Transactions' },
+  { id: 'denoms', label: 'Denomination mix' },
+];
+
+const Y_AXIS_TICKS = [0.001, 0.01, 0.1, 1, 10, 100];
+
+const REFERENCE_DENOMS = [
+  { value: 0.001, label: '0.001 ZEC' },
+  { value: 0.01, label: '0.01 ZEC' },
+  { value: 0.1, label: '0.1 ZEC' },
+  { value: 1, label: '1 ZEC' },
+  { value: 10, label: '10 ZEC' },
+  { value: 100, label: '100 ZEC' },
+];
+
+const DENOM_BUCKETS = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+
+function PrivacyScore({
+  scatter,
+  activated,
+  colors,
+  tipHeight,
+}: {
+  scatter: ScatterData | null;
+  activated: boolean;
+  colors: ChartColors;
+  tipHeight: number;
+}) {
+  const router = useRouter();
+  const [range, setRange] = useState<PrivacyRange>('7d');
+  const [view, setView] = useState<PrivacyView>('scatter');
+
+  const filteredTxs = useMemo(() => {
+    const txs = scatter?.txs ?? [];
+    if (range === 'all') return txs;
+    const days = range === '7d' ? 7 : 30;
+    const cutoff = Math.floor(Date.now() / 1000) - days * 86400;
+    return txs.filter((tx) => tx.timestamp != null && tx.timestamp >= cutoff);
+  }, [scatter?.txs, range]);
+
+  const headlineStats = useMemo(() => {
+    if (!scatter) {
+      return { denomCount: 0, total: 0, txPct: 0, volPct: 0 };
+    }
+    const denomVol = (scatter.denominatedVolumeZat ?? 0) / 1e8;
+    const distVol = (scatter.distinctiveVolumeZat ?? 0) / 1e8;
+    const totalVol = denomVol + distVol;
+    return {
+      denomCount: scatter.denominatedCount,
+      total: scatter.total,
+      txPct: scatter.total > 0 ? (scatter.denominatedCount / scatter.total) * 100 : 0,
+      volPct: totalVol > 0 ? (denomVol / totalVol) * 100 : 0,
+    };
+  }, [scatter]);
+
+  const denominatedData = useMemo(
+    () =>
+      filteredTxs
+        .filter((tx) => tx.privacy === 'denominated')
+        .map((tx) => ({
+          x: tx.height,
+          y: tx.amountZec,
+          txid: tx.txid,
+          privacy: tx.privacy,
+          matched: tx.matchedDenomination,
+        })),
+    [filteredTxs],
+  );
+
+  const distinctiveData = useMemo(
+    () =>
+      filteredTxs
+        .filter((tx) => tx.privacy === 'distinctive')
+        .map((tx) => ({
+          x: tx.height,
+          y: tx.amountZec,
+          txid: tx.txid,
+          privacy: tx.privacy,
+          matched: tx.matchedDenomination,
+        })),
+    [filteredTxs],
+  );
+
+  const denomBuckets = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const tx of filteredTxs) {
+      if (tx.privacy === 'denominated' && tx.matchedDenomination != null) {
+        const d = tx.matchedDenomination;
+        counts.set(d, (counts.get(d) ?? 0) + 1);
+      }
+    }
+    return DENOM_BUCKETS.map((denom) => ({ denom, count: counts.get(denom) ?? 0 })).filter((b) => b.count > 0);
+  }, [filteredTxs]);
+
+  const maxBucketCount = denomBuckets.reduce((m, b) => Math.max(m, b.count), 0);
 
   const hasData = (scatter?.total ?? 0) > 0;
+  const hasFilteredData = filteredTxs.length > 0;
+  const shareText =
+    hasFilteredData
+      ? `${headlineStats.txPct.toFixed(0)}% of migrations use standard denominations (${headlineStats.denomCount}/${headlineStats.total} txs, ${headlineStats.volPct.toFixed(0)}% by volume).\n\nhttps://cipherscan.app/ironwood`
+      : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+
+  const handleDotClick = (point: { txid?: string }) => {
+    if (point?.txid) router.push(`/tx/${point.txid}`);
+  };
 
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-1">
-        <div>
-          <h2 className="text-sm font-bold text-primary">Privacy score</h2>
-          <p className="text-xs text-muted mt-1 mb-4 max-w-2xl leading-relaxed">
-            Each dot is one ZIP-318 migration (Orchard → Ironwood). <span style={{ color: colors.denominated }} className="font-semibold">Filled</span> = standard denomination (blends in).{' '}
-            <span className="text-muted">Faded</span> = distinctive amount (weakens privacy).
+    <div id="privacy-score" className="scroll-mt-20">
+      <ShareableCard
+        title="Migration privacy score"
+        sourceHeight={tipHeight}
+        isLive={activated}
+        shareText={shareText}
+        fileName="cipherscan-privacy.png"
+      >
+        <div className="mb-4">
+          <p className="max-w-2xl text-xs leading-relaxed text-muted">
+            Each dot is one Orchard → Ironwood migration.{' '}
+            <span style={{ color: colors.denominated }} className="font-semibold">Gold</span> = standard denomination (blends in).{' '}
+            <span style={{ color: colors.distinctive }} className="font-semibold">Red</span> = distinctive amount (weakens privacy). Click a dot to open the transaction.
           </p>
         </div>
-        {scatter && hasData && (
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono px-2 py-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 text-emerald-400">
-              {scatter.denominatedPercent}% private
-            </span>
-            <span className="text-[10px] font-mono text-muted">
-              {scatter.denominatedCount} / {scatter.total} txs
-            </span>
-          </div>
-        )}
-      </div>
 
-      {hasData ? (
-        <>
-          <ResponsiveContainer width="100%" height={280}>
-            <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
-              <XAxis
-                dataKey="x"
-                type="number"
-                name="Block"
-                tick={{ fontSize: 10, fill: colors.axis }}
-                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                domain={['dataMin', 'dataMax']}
-              />
-              <YAxis
-                dataKey="y"
-                type="number"
-                name="Amount"
-                tick={{ fontSize: 10, fill: colors.axis }}
-                scale="log"
-                domain={[0.005, 'auto']}
-                tickFormatter={(v) => `${v}`}
-                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: colors.axis } }}
-              />
-              <ZAxis range={[40, 40]} />
-              <Tooltip
-                cursor={{ strokeDasharray: '3 3', stroke: colors.cursor }}
-                content={({ payload }) => {
-                  if (!payload?.length) return null;
-                  const d = payload[0].payload;
-                  return (
-                    <div className="bg-cipher-surface-solid border border-glass-8 rounded-lg px-3 py-2 text-xs font-mono">
-                      <div className="text-muted mb-1">Block #{d.x?.toLocaleString()}</div>
-                      <div className="text-primary font-bold">{d.y?.toFixed(8)} ZEC</div>
-                      <div className="mt-1" style={{ color: d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}>
-                        {d.privacy === 'denominated' ? `Matches ${d.matched} ZEC denomination` : 'Distinctive amount'}
-                      </div>
-                      <div className="text-muted/60 mt-1 text-[10px]">{d.txid?.slice(0, 16)}...</div>
-                    </div>
-                  );
-                }}
-              />
-              {[0.01, 0.1, 1, 10, 100].map(d => (
-                <ReferenceLine key={d} y={d} stroke={colors.referenceLine} strokeDasharray="4 4" />
+        {scatter && hasData ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-mono text-muted">
+              <span>
+                <span className="rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-emerald-400">
+                  {headlineStats.txPct.toFixed(0)}% standard denomination
+                </span>
+              </span>
+              <span>
+                {headlineStats.denomCount} / {headlineStats.total} txs
+              </span>
+              <span>
+                <span className="text-primary">{headlineStats.volPct.toFixed(0)}%</span> by volume
+              </span>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
+              {PRIVACY_RANGES.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setRange(id)}
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
+                    range === id
+                      ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
+                      : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
+                  }`}
+                >
+                  {label}
+                </button>
               ))}
-              <Scatter name="Denominated" data={denominatedData} fill={colors.denominated} fillOpacity={0.85} />
-              <Scatter name="Distinctive" data={distinctiveData} fill={colors.distinctive} fillOpacity={0.5} stroke={colors.denominated} strokeOpacity={0.5} />
-            </ScatterChart>
-          </ResponsiveContainer>
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-cipher-border/30">
-            <div className="flex items-center gap-4 text-[10px] font-mono">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.denominated }} />
-                Common denomination
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full border" style={{ backgroundColor: colors.distinctive, borderColor: colors.denominated }} />
-                Distinctive amount
-              </span>
-            </div>
-            <div className="text-[10px] font-mono text-muted">
-              log scale · dashed lines = ideal denominations
             </div>
           </div>
-        </>
-      ) : (
-        <EmptyPanel activated={activated} />
-      )}
+        ) : null}
+
+        {hasData && hasFilteredData ? (
+          <>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-1.5" data-html2canvas-ignore="true">
+                {PRIVACY_VIEWS.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setView(id)}
+                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
+                      view === id
+                        ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
+                        : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {view === 'denoms' ? (
+              denomBuckets.length > 0 ? (
+                <div className="flex h-[280px] flex-col justify-end">
+                  <div className="flex h-[220px] items-end justify-center gap-3 border-b border-cipher-border/25 px-2 pb-2">
+                    {denomBuckets.map(({ denom, count }) => (
+                      <div key={denom} className="flex min-w-[44px] max-w-[56px] flex-1 flex-col items-center gap-2">
+                        <span className="text-[10px] font-mono text-primary">{count}</span>
+                        <div
+                          className="w-full rounded-t-md"
+                          style={{
+                            height: `${maxBucketCount > 0 ? Math.max(8, (count / maxBucketCount) * 180) : 8}px`,
+                            backgroundColor: colors.denominated,
+                            opacity: 0.9,
+                          }}
+                        />
+                        <span className="text-[10px] font-mono text-muted">{denom}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-center text-[10px] font-mono text-muted">
+                    Standard denomination txs in selected range · {filteredTxs.length} total txs
+                  </p>
+                </div>
+              ) : (
+                <p className="py-16 text-center text-xs font-mono text-muted">No standard denominations in this range.</p>
+              )
+            ) : (
+            <>
+            <ResponsiveContainer width="100%" height={280}>
+              <ScatterChart margin={{ top: 10, right: 56, bottom: 24, left: 12 }}>
+                <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
+                <XAxis
+                  dataKey="x"
+                  type="number"
+                  name="Block"
+                  tick={{ fontSize: 10, fill: colors.axis }}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                  domain={['dataMin', 'dataMax']}
+                  label={{
+                    value: 'Block height',
+                    position: 'insideBottom',
+                    offset: -8,
+                    style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
+                  }}
+                />
+                <YAxis
+                  dataKey="y"
+                  type="number"
+                  name="Amount"
+                  tick={{ fontSize: 10, fill: colors.axis }}
+                  scale="log"
+                  domain={[0.001, 'auto']}
+                  ticks={Y_AXIS_TICKS}
+                  tickFormatter={(v) => `${v}`}
+                  width={44}
+                  label={{
+                    value: 'Amount (ZEC)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    dx: -6,
+                    style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
+                  }}
+                />
+                <ZAxis range={[40, 40]} />
+                <Tooltip
+                  cursor={{ strokeDasharray: '3 3', stroke: colors.cursor }}
+                  content={({ payload }) => {
+                    if (!payload?.length) return null;
+                    const d = payload[0].payload as {
+                      x?: number;
+                      y?: number;
+                      txid?: string;
+                      privacy?: string;
+                      matched?: number | null;
+                    };
+                    return (
+                      <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono">
+                        <div className="mb-1 text-muted">Block #{d.x?.toLocaleString()}</div>
+                        <div className="font-bold text-primary">{d.y?.toFixed(8)} ZEC</div>
+                        <div
+                          className="mt-1"
+                          style={{ color: d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}
+                        >
+                          {d.privacy === 'denominated'
+                            ? `Matches ${d.matched} ZEC denomination`
+                            : 'Distinctive amount'}
+                        </div>
+                        {d.txid ? (
+                          <Link
+                            href={`/tx/${d.txid}`}
+                            className="mt-2 inline-block text-[10px] text-cipher-cyan-bright hover:underline"
+                          >
+                            View transaction →
+                          </Link>
+                        ) : null}
+                      </div>
+                    );
+                  }}
+                />
+                {REFERENCE_DENOMS.map(({ value, label }) => (
+                  <ReferenceLine
+                    key={value}
+                    y={value}
+                    stroke={colors.denominated}
+                    strokeOpacity={0.38}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 4"
+                    label={{
+                      value: label,
+                      position: 'right',
+                      fill: colors.denominated,
+                      fontSize: 9,
+                      fontFamily: 'var(--font-mono)',
+                      opacity: 0.75,
+                    }}
+                  />
+                ))}
+                <Scatter
+                  name="Denominated"
+                  data={denominatedData}
+                  fill={colors.denominated}
+                  fillOpacity={0.9}
+                  cursor="pointer"
+                  onClick={(node) => handleDotClick(node as { txid?: string })}
+                />
+                <Scatter
+                  name="Distinctive"
+                  data={distinctiveData}
+                  fill={colors.distinctive}
+                  fillOpacity={0.85}
+                  stroke={colors.distinctive}
+                  strokeOpacity={1}
+                  cursor="pointer"
+                  onClick={(node) => handleDotClick(node as { txid?: string })}
+                />
+              </ScatterChart>
+            </ResponsiveContainer>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
+              <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.denominated }} />
+                  Common denomination
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
+                  Distinctive amount
+                </span>
+              </div>
+              <div className="text-[10px] font-mono text-muted">
+                {filteredTxs.length} txs · log scale · gold dashed = standard denominations (0.001–100 ZEC)
+              </div>
+            </div>
+            </>
+            )}
+          </>
+        ) : hasData ? (
+          <p className="py-8 text-center text-xs font-mono text-muted">No migrations in this range.</p>
+        ) : (
+          <EmptyPanel activated={activated} />
+        )}
+      </ShareableCard>
     </div>
   );
 }
