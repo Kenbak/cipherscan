@@ -2,14 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { CURRENCY } from '@/lib/config';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodSelector, Period } from './PeriodSelector';
+import {
+  PRIVACY_BAR_CHART_MARGIN,
+  privacyXAxisTitle,
+  privacyYAxisLabel,
+} from './privacy-chart-axis';
+import { PrivacyBarLegend } from './PrivacyBarLegend';
 
 interface Threshold {
   thresholdZat: number;
@@ -17,6 +29,8 @@ interface Threshold {
   shieldCount: number;
   deshieldCount: number;
 }
+
+const CHART_HEIGHT = 340;
 
 export function AnonymitySetChart() {
   const { theme } = useTheme();
@@ -28,80 +42,78 @@ export function AnonymitySetChart() {
   useEffect(() => {
     setLoading(true);
     fetch(`${getApiUrl()}/api/analytics/anonymity-set?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(res => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((res) => {
         if (res?.thresholds) setData(res.thresholds);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [period]);
 
-  const chartData = data.map(t => ({
+  const chartData = data.map((t) => ({
     label: formatZec(t.thresholdZec),
     shield: t.shieldCount,
     deshield: t.deshieldCount,
     total: t.shieldCount + t.deshieldCount,
   }));
 
+  const tooltipStyle = {
+    backgroundColor: colors.tooltipBg,
+    border: `1px solid ${colors.tooltipBorder}`,
+    borderRadius: '8px',
+    padding: '12px',
+    color: colors.tooltipText,
+  };
+
   return (
     <ChartCard
-      title="ANONYMITY_SET"
-      height={340}
+      title="Anonymity set"
+      height={400}
       controls={<PeriodSelector value={period} onChange={setPeriod} />}
     >
       {loading ? (
-        <div className="flex items-center justify-center h-[340px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-purple border-t-transparent" />
+        <div className="flex h-[340px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-cyan/30 border-t-cipher-cyan" />
         </div>
       ) : (
         <div>
-          <p className="text-xs text-muted mb-3 leading-relaxed">
+          <p className="mb-3 text-xs leading-relaxed text-muted">
             How many transactions in the {period === 'all' ? 'full history' : `last ${period}`} could
-            be <em>your</em> source at each ZEC threshold? Higher = better privacy. The shielded pool
-            hides your transaction among all others at or above the same amount.
+            be <em>your</em> source at each {CURRENCY} threshold? Higher counts mean a larger crowd
+            to hide in.
           </p>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+            <BarChart data={chartData} margin={PRIVACY_BAR_CHART_MARGIN}>
+              <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis
                 dataKey="label"
-                stroke={colors.axis}
                 tick={{ fill: colors.axis, fontSize: 10 }}
                 angle={-35}
                 textAnchor="end"
-                height={50}
+                height={64}
+                interval={0}
+                label={privacyXAxisTitle(`${CURRENCY} threshold`, colors.axis)}
               />
               <YAxis
-                stroke={colors.axis}
                 tick={{ fill: colors.axis, fontSize: 11 }}
                 tickFormatter={formatCount}
+                width={52}
+                label={privacyYAxisLabel('Transactions', colors.axis)}
               />
               <Tooltip
-                cursor={{ fill: 'rgba(167, 139, 250, 0.08)' }}
-                contentStyle={{
-                  backgroundColor: 'var(--tooltip-bg, #1F2937)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  color: colors.tooltipText,
-                }}
+                cursor={{ fill: colors.barCursorCyan }}
+                contentStyle={tooltipStyle}
                 labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                 formatter={(value, name) => [
-                  <span key="v" style={{ color: colors.tooltipText }}>{Number(value).toLocaleString()} txs</span>,
+                  `${Number(value).toLocaleString()} txs`,
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
-              <Legend
-                formatter={(value) => (
-                  <span style={{ color: colors.tooltipText, fontSize: 11 }}>
-                    {value === 'shield' ? 'Shield (in)' : 'Deshield (out)'}
-                  </span>
-                )}
-              />
-              <Bar dataKey="shield" fill={colors.purple} name="shield" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="deshield" fill={colors.cyan} name="deshield" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="shield" fill={colors.cyan} name="shield" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="deshield" fill={colors.transparent} name="deshield" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          <PrivacyBarLegend shieldColor={colors.cyan} deshieldColor={colors.transparent} />
         </div>
       )}
     </ChartCard>

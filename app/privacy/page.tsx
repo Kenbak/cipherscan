@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import PrivacyClient from './PrivacyClient';
+import { CURRENCY } from '@/lib/config';
 
 export default function PrivacyPage() {
   return (
@@ -7,24 +9,26 @@ export default function PrivacyPage() {
 
       {/* Static page description — server-rendered for indexing */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="border-t border-cipher-border pt-8 max-w-3xl">
-          <h2 className="text-sm font-bold font-mono text-secondary mb-3 uppercase tracking-wider">
-            How the Privacy Score Works
+        <div id="how-it-works" className="scroll-mt-36 border-t border-cipher-border pt-8 max-w-3xl">
+          <h2 className="text-sm font-bold font-sans text-secondary mb-3">
+            How the Privacy Score works
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
-              Zcash privacy is not binary — it depends on how the network is used. Funds held
-              in the shielded pools (Sapling and Orchard) are protected by zero-knowledge
-              proofs, but transparent transactions and careless shielding patterns leak
-              metadata. The privacy score aggregates shielded pool size, shielded transaction
-              share, and detected linkage risks into a single 0–100 indicator of network-wide
-              privacy health.
+              Zcash privacy depends on how the network is used — not just pool size. The score blends
+              recent shielded transaction share, fully-shielded usage, supply held in pools, and how often
+              deshielded {CURRENCY} is reshielded (turnstile hygiene).
             </p>
             <p>
-              The dashboard tracks these inputs over time: pool balances in ZEC, daily
-              shielding and deshielding flows, and the ratio of fully shielded to mixed
-              transactions. All metrics come from CipherScan&apos;s own index of the chain —
-              no third-party analytics, and shielded data stays shielded.
+              Pool balances and flow volume are on{' '}
+              <Link href="/pools" className="text-cipher-cyan hover:underline">
+                Shielded Pools
+              </Link>
+              . Post-deshield destinations are on{' '}
+              <Link href="/turnstile" className="text-cipher-cyan hover:underline">
+                Turnstile
+              </Link>
+              . All metrics come from CipherScan&apos;s index — no third-party analytics.
             </p>
           </div>
         </div>

@@ -38,6 +38,9 @@ export function getChartColors(theme: 'dark' | 'light') {
     referenceLine: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
     cursor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
     gridStroke: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
+    /** Ironwood / gold-accent bar charts */
     barCursor: isDark ? 'rgba(244,183,40,0.08)' : 'rgba(244,183,40,0.12)',
+    /** Privacy / cyan-accent bar charts */
+    barCursorCyan: isDark ? 'rgba(86, 212, 200, 0.08)' : 'rgba(13, 148, 136, 0.1)',
   };
 }
