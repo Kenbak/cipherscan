@@ -292,12 +292,93 @@ async function fetchCanonicalBlockSummary(blockHeight) {
 
 async function buildOrphanedBlockResponse(orphanRow) {
   const blockHeight = parseInt(orphanRow.height);
+  const blockHash = orphanRow.hash;
   const canonicalBlock = await fetchCanonicalBlockSummary(blockHeight);
   const poolInfo = getPoolInfo(orphanRow.miner_address);
 
+  let transactions = [];
+  try {
+    const txResult = await pool.query(
+      `SELECT txid, block_height, tx_index, version, size, fee, is_coinbase,
+              vin_count, vout_count, total_input, total_output,
+              has_sapling, has_orchard, has_sprout, has_ironwood, has_shielded_data,
+              sapling_spend_count, sapling_output_count, orchard_actions, ironwood_actions,
+              sprout_joinsplit_count,
+              value_balance, value_balance_sapling, value_balance_orchard, value_balance_ironwood,
+              flow_type, privacy_score, "timestamp", expiry_height
+       FROM orphaned_transactions
+       WHERE block_hash = $1
+       ORDER BY tx_index ASC`,
+      [blockHash]
+    );
+
+    for (const tx of txResult.rows) {
+      const inputsResult = await pool.query(
+        `SELECT vout_index, prev_txid, prev_vout, address, value, coinbase
+         FROM orphaned_transaction_inputs WHERE txid = $1 AND block_hash = $2
+         ORDER BY vout_index ASC`,
+        [tx.txid, blockHash]
+      );
+      const outputsResult = await pool.query(
+        `SELECT vout_index, value, address, script_type
+         FROM orphaned_transaction_outputs WHERE txid = $1 AND block_hash = $2
+         ORDER BY vout_index ASC`,
+        [tx.txid, blockHash]
+      );
+
+      transactions.push({
+        txid: tx.txid,
+        block_height: parseInt(tx.block_height),
+        tx_index: tx.tx_index,
+        version: tx.version,
+        size: tx.size,
+        fee: tx.fee ? parseInt(tx.fee) : 0,
+        is_coinbase: tx.is_coinbase,
+        timestamp: tx.timestamp ? parseInt(tx.timestamp) : null,
+        expiry_height: tx.expiry_height,
+        vin_count: tx.vin_count || 0,
+        vout_count: tx.vout_count || 0,
+        total_input: tx.total_input ? parseInt(tx.total_input) : 0,
+        total_output: tx.total_output ? parseInt(tx.total_output) : 0,
+        has_sapling: tx.has_sapling,
+        has_orchard: tx.has_orchard,
+        has_sprout: tx.has_sprout,
+        has_ironwood: tx.has_ironwood,
+        has_shielded_data: tx.has_shielded_data,
+        sapling_spend_count: tx.sapling_spend_count || 0,
+        sapling_output_count: tx.sapling_output_count || 0,
+        orchard_actions: tx.orchard_actions || 0,
+        ironwood_actions: tx.ironwood_actions || 0,
+        sprout_joinsplit_count: tx.sprout_joinsplit_count || 0,
+        value_balance: tx.value_balance ? parseInt(tx.value_balance) : 0,
+        value_balance_sapling: tx.value_balance_sapling ? parseInt(tx.value_balance_sapling) : 0,
+        value_balance_orchard: tx.value_balance_orchard ? parseInt(tx.value_balance_orchard) : 0,
+        value_balance_ironwood: tx.value_balance_ironwood ? parseInt(tx.value_balance_ironwood) : 0,
+        flow_type: tx.flow_type,
+        privacy_score: tx.privacy_score,
+        vin: inputsResult.rows.map(i => ({
+          vout_index: i.vout_index,
+          prev_txid: i.prev_txid,
+          prev_vout: i.prev_vout,
+          address: i.address,
+          value: i.value ? parseInt(i.value) : 0,
+          coinbase: i.coinbase,
+        })),
+        vout: outputsResult.rows.map(o => ({
+          vout_index: o.vout_index,
+          value: o.value ? parseInt(o.value) : 0,
+          address: o.address,
+          script_type: o.script_type,
+        })),
+      });
+    }
+  } catch (err) {
+    console.error('[BLOCK] Failed to load orphaned transactions:', err.message);
+  }
+
   return {
     height: blockHeight,
-    hash: orphanRow.hash,
+    hash: blockHash,
     timestamp: orphanRow.timestamp ? parseInt(orphanRow.timestamp) : null,
     transaction_count: orphanRow.transaction_count || 0,
     size: orphanRow.size || 0,
@@ -308,7 +389,7 @@ async function buildOrphanedBlockResponse(orphanRow) {
     orphanSource: orphanRow.source,
     orphanDetectedAt: orphanRow.detected_at,
     canonicalBlock,
-    transactions: [],
+    transactions,
     transactionCount: orphanRow.transaction_count || 0,
     confirmations: 0,
     miner_pool: poolInfo?.name || null,
