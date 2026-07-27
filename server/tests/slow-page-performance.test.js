@@ -280,6 +280,9 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
     const requestUrl = String(url);
     requests.push({ url: requestUrl, init });
 
+    if (requestUrl.endsWith('/api/info')) {
+      return new Response(JSON.stringify({ height: 3000 }));
+    }
     if (requestUrl.includes('/api/block/')) {
       return new Response(JSON.stringify({
         height: 123,
@@ -324,10 +327,11 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
   assert.equal(transaction.state, 'found');
   assert.equal(transaction.meta.hasShielded, true);
   assert.equal(address.state, 'found');
-  assert.match(requests[0].url, /\/api\/block\/123\?summary=1$/);
-  assert.match(requests[1].url, /\/api\/seo\/tx\/[a-f0-9]{64}$/);
-  assert.match(requests[2].url, /\/api\/address\/t1example\?limit=1$/);
-  assert.deepEqual(requests.map(({ init }) => init.next.revalidate), [30, 30, 60]);
+  assert.match(requests[0].url, /\/api\/info$/);
+  assert.match(requests[1].url, /\/api\/block\/123\?summary=1$/);
+  assert.match(requests[2].url, /\/api\/seo\/tx\/[a-f0-9]{64}$/);
+  assert.match(requests[3].url, /\/api\/address\/t1example\?limit=1$/);
+  assert.deepEqual(requests.map(({ init }) => init.next.revalidate), [3600, 3600, 300, 60]);
 });
 
 test('ISR outage shells require the exact offline-build opt-in', () => {
@@ -429,12 +433,26 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
   assert.match(richList, /fetchWithDeadline\(/);
   assert.match(richList, /retainLastGoodOrBuildFallback\(/);
 
-  const detailRoutes = [
-    ['app/block/[height]/layout.tsx', 'height', 30],
-    ['app/tx/[txid]/layout.tsx', 'txid', 30],
+  // Block and tx layouts use dynamic fetch-level revalidation (3600s for
+  // confirmed content, 30s near the tip / 300s for confirmed txs) instead
+  // of a page-level export.  Address keeps a fixed page-level value.
+  const dynamicDetailRoutes = [
+    ['app/block/[height]/layout.tsx', 'height'],
+    ['app/tx/[txid]/layout.tsx', 'txid'],
+  ];
+  for (const [filename, param] of dynamicDetailRoutes) {
+    const layout = source(filename);
+    assert.doesNotMatch(layout, /export const revalidate/);
+    assert.match(layout, /export function generateStaticParams/);
+    assert.match(layout, new RegExp(`Array<\\{ ${param}: string \\}>`));
+    assert.match(layout, /return \[\];/);
+    assert.match(layout, /retainLastGoodOrBuildFallback/);
+  }
+
+  const fixedDetailRoutes = [
     ['app/address/[address]/layout.tsx', 'address', 60],
   ];
-  for (const [filename, param, seconds] of detailRoutes) {
+  for (const [filename, param, seconds] of fixedDetailRoutes) {
     const layout = source(filename);
     assert.match(layout, new RegExp(`export const revalidate = ${seconds}`));
     assert.match(layout, /export function generateStaticParams/);

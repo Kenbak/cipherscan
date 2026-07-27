@@ -14,7 +14,9 @@ type Props = {
   children: React.ReactNode;
 };
 
-export const revalidate = 30;
+// No page-level `revalidate` — the fetch-level values inside
+// getBlockResolution control the effective ISR window dynamically:
+// 3600s for confirmed blocks deep in the chain, 30s near the tip.
 
 export function generateStaticParams(): Array<{ height: string }> {
   return [];

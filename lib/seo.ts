@@ -206,14 +206,38 @@ export const getBlockResolution = cache(async (identifier: string): Promise<Bloc
   if (!isValidBlockIdentifier(identifier)) return { state: 'absent' };
 
   const normalizedIdentifier = normalizeBlockIdentifier(identifier);
+
+  // Confirmed blocks deep in the chain are immutable — cache them for 1 hour
+  // instead of 30s to avoid burning serverless function invocations on every
+  // bot/crawler visit.  Blocks within 100 of the tip might still be reorged
+  // so they keep the short window.
+  let revalidateSeconds = 30;
+  if (/^\d+$/.test(normalizedIdentifier)) {
+    const requestedHeight = Number(normalizedIdentifier);
+    try {
+      // Use the same long revalidation for the tip lookup so this fetch does
+      // not pull the page-level s-maxage back to 30s.  An hour-old tip is
+      // fine here — the 100-block margin absorbs the drift.
+      const tipRes = await fetchWithDeadline(`${getApiUrl()}/api/info`, {
+        next: { revalidate: 3600 },
+      });
+      if (tipRes.ok) {
+        const tipData = await tipRes.json();
+        const tipHeight = Number(tipData.height ?? tipData.blocks);
+        if (Number.isSafeInteger(tipHeight) && requestedHeight < tipHeight - 100) {
+          revalidateSeconds = 3600;
+        }
+      }
+    } catch {
+      // Chain tip unavailable — fall back to short revalidation
+    }
+  }
+
   let response: Response;
 
   try {
-    // Metadata and the initial HTML only need canonical identity and summary
-    // fields. Avoid loading every transaction/input/output for crawlers and
-    // cold detail-page requests; the client fetches the full record separately.
     response = await fetchWithDeadline(`${getApiUrl()}/api/block/${encodeURIComponent(normalizedIdentifier)}?summary=1`, {
-      next: { revalidate: 30 },
+      next: { revalidate: revalidateSeconds },
     });
   } catch {
     return { state: 'unavailable' };
@@ -264,8 +288,12 @@ export type TxResolution =
 
 export const getTxResolution = cache(async (txid: string): Promise<TxResolution> => {
   try {
+    // Confirmed transactions are immutable — 300s keeps the CDN from
+    // re-invoking the serverless function on every crawler visit.
+    // Pending/absent paths fall through to the mempool fetch (revalidate 10s)
+    // which pulls the effective page revalidation down automatically.
     const res = await fetchWithDeadline(`${getApiUrl()}/api/seo/tx/${encodeURIComponent(txid)}`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 300 },
     });
     if (res.ok) {
       const data = await res.json();

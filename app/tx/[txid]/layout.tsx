@@ -20,7 +20,8 @@ type Props = {
   children: React.ReactNode;
 };
 
-export const revalidate = 30;
+// No page-level revalidate — the fetch-level values inside getTxResolution
+// control ISR dynamically: 300s for confirmed txs, 10s for pending/absent.
 
 export function generateStaticParams(): Array<{ txid: string }> {
   return [];
@@ -40,7 +41,7 @@ type AlternateHashResolution = 'block' | 'finalizer' | 'absent' | 'unavailable';
 const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashResolution> => {
   try {
     const blockResponse = await fetchWithDeadline(`${getApiUrl()}/api/block/${hash}?summary=1`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 300 },
     });
     if (blockResponse.ok) return 'block';
     if (blockResponse.status !== 404 && blockResponse.status !== 410) return 'unavailable';
@@ -48,7 +49,7 @@ const resolveAlternateHash = cache(async (hash: string): Promise<AlternateHashRe
     if (getNetwork() !== 'crosslink-testnet') return 'absent';
 
     const finalizerResponse = await fetchWithDeadline(`${getApiUrl()}/api/finalizer/${hash}`, {
-      next: { revalidate: 30 },
+      next: { revalidate: 300 },
     });
     if (finalizerResponse.ok) return 'finalizer';
     if (finalizerResponse.status === 404 || finalizerResponse.status === 410) return 'absent';
