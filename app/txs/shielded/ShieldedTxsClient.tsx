@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
@@ -125,6 +126,7 @@ export default function ShieldedTxsClient({
   initialUnavailable = false,
 }: ShieldedTxsClientProps) {
   const PAGE_SIZE = 25;
+  const isFirstPage = initialCursor === null;
   const hasInitialData = initialPagination !== null || initialFlows.length > 0;
   const fallbackStarted = useRef(false);
   const previousFilters = useRef({
@@ -132,6 +134,8 @@ export default function ShieldedTxsClient({
     pool: initialPool,
     minZec: initialMinZec,
   });
+  const latestFlowKey = useRef(initialFlows[0] ? `${initialFlows[0].txid}:${initialFlows[0].flowType}` : '');
+  const silentRefreshRef = useRef<() => void>(() => {});
   const [flows, setFlows] = useState<ShieldedFlow[]>(initialFlows);
   const [loading, setLoading] = useState(!hasInitialData);
   const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
@@ -254,6 +258,67 @@ export default function ShieldedTxsClient({
       })
       .catch(() => {});
   }, []);
+
+  // Silent refresh for page 1 — no loading spinner, update only when new flows arrive
+  const silentRefresh = useCallback(async () => {
+    if (!isFirstPage || page !== 1) return;
+    try {
+      const base = usePostgresApiClient() ? getApiUrl() : '';
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE + 1),
+        flow_type: flowFilter,
+        pool: poolFilter,
+      });
+      if (minZec > 0) params.set('min_zec', String(minZec));
+      const res = await fetch(`${base}/api/shielded/list?${params}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success || !json.flows?.length) return;
+      const topKey = `${json.flows[0].txid}:${json.flows[0].flowType}`;
+      if (topKey === latestFlowKey.current) return;
+      latestFlowKey.current = topKey;
+      const all: ShieldedFlow[] = json.flows;
+      const visibleFlows = all.slice(0, PAGE_SIZE);
+      const firstFlow = visibleFlows[0] ?? null;
+      const lastFlow = visibleFlows[visibleFlows.length - 1] ?? null;
+      const total = Number(json.pagination?.total) || 0;
+      setFlows(visibleFlows);
+      setPagination(prev => ({
+        ...prev,
+        total,
+        totalPages: Math.ceil(total / PAGE_SIZE),
+        hasNext: all.length > PAGE_SIZE,
+        hasPrev: false,
+        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
+        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
+        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
+        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
+      }));
+      setDataAvailable(true);
+    } catch { /* silent */ }
+  }, [isFirstPage, page, flowFilter, poolFilter, minZec]);
+
+  silentRefreshRef.current = silentRefresh;
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (!isFirstPage || page !== 1) return;
+    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
+      silentRefreshRef.current();
+    }
+  }, [isFirstPage, page]);
+
+  const { isConnected: wsConnected } = useWebSocket(
+    isFirstPage ? { onMessage: handleWsMessage } : {},
+  );
+
+  useEffect(() => {
+    if (!isFirstPage || page !== 1) return;
+    const interval = setInterval(
+      () => silentRefreshRef.current(),
+      wsConnected ? 60000 : 15000,
+    );
+    return () => clearInterval(interval);
+  }, [isFirstPage, page, wsConnected]);
 
   const buildArchiveHref = (
     cursor: number | null,

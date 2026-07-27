@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 
@@ -190,8 +191,11 @@ export default function BlocksClient({
   initialUnavailable = false,
 }: BlocksClientProps) {
   const PAGE_SIZE = 25;
+  const isFirstPage = initialCursor === null;
   const hasInitialData = initialPagination !== null || initialBlocks.length > 0;
   const fallbackStarted = useRef(false);
+  const latestHeight = useRef(initialBlocks[0]?.height ?? 0);
+  const silentRefreshRef = useRef<() => void>(() => {});
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [trailingBlock, setTrailingBlock] = useState<Block | null>(initialTrailingBlock);
   const [loading, setLoading] = useState(!hasInitialData);
@@ -277,6 +281,65 @@ export default function BlocksClient({
       })
       .catch(() => {});
   }, []);
+
+  // Silent refresh for page 1 — no loading spinner, update only when new blocks arrive
+  const silentRefresh = useCallback(async () => {
+    if (!isFirstPage) return;
+    try {
+      const base = usePostgresApiClient() ? getApiUrl() : '';
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
+      const res = await fetch(`${base}/api/blocks/list?${params}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success || !json.blocks?.length) return;
+      const topHeight = Number(json.blocks[0].height);
+      if (topHeight === latestHeight.current) return;
+      latestHeight.current = topHeight;
+      const all: Block[] = json.blocks;
+      const visibleBlocks = all.slice(0, PAGE_SIZE);
+      setBlocks(visibleBlocks);
+      setTrailingBlock(all.length > PAGE_SIZE ? all[PAGE_SIZE] : null);
+      const total = Number(json.pagination?.total) || 0;
+      setPagination(prev => ({
+        ...prev,
+        page: 1,
+        total,
+        totalPages: Math.ceil(total / PAGE_SIZE),
+        hasNext: all.length > PAGE_SIZE,
+        hasPrev: false,
+        nextCursor: visibleBlocks.length > 0
+          ? Number(visibleBlocks[visibleBlocks.length - 1].height)
+          : null,
+        prevCursor: visibleBlocks.length > 0 ? Number(visibleBlocks[0].height) : null,
+      }));
+      setDataAvailable(true);
+    } catch { /* silent */ }
+  }, [isFirstPage]);
+
+  silentRefreshRef.current = silentRefresh;
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (!isFirstPage) return;
+    if (
+      (msg.type === 'new_block' && msg.data?.height > latestHeight.current) ||
+      (msg.type === 'chain_tip' && msg.data?.height > latestHeight.current)
+    ) {
+      silentRefreshRef.current();
+    }
+  }, [isFirstPage]);
+
+  const { isConnected: wsConnected } = useWebSocket(
+    isFirstPage ? { onMessage: handleWsMessage } : {},
+  );
+
+  useEffect(() => {
+    if (!isFirstPage) return;
+    const interval = setInterval(
+      () => silentRefreshRef.current(),
+      wsConnected ? 60000 : 15000,
+    );
+    return () => clearInterval(interval);
+  }, [isFirstPage, wsConnected]);
 
   const buildArchiveHref = (cursor: number | null, direction: 'next' | 'prev', page: number) => {
     if (page <= 1 || cursor === null) return '/blocks';

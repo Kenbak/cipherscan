@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
@@ -346,9 +347,12 @@ export default function TxsClient({
   initialUnavailable = false,
 }: TxsClientProps) {
   const PAGE_SIZE = 25;
+  const isFirstPage = initialCursor === null;
   const hasInitialData = initialPagination !== null || initialTxs.length > 0;
   const fallbackStarted = useRef(false);
   const previousTypeFilter = useRef<TxType>(initialType);
+  const latestTxid = useRef(initialTxs[0]?.txid ?? '');
+  const silentRefreshRef = useRef<() => void>(() => {});
   const [txs, setTxs] = useState<Transaction[]>(initialTxs);
   const [loading, setLoading] = useState(!hasInitialData);
   const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
@@ -453,6 +457,62 @@ export default function TxsClient({
       setSummary({ txs24h, shieldedPct24h, txsPerBlock });
     });
   }, []);
+
+  // Silent refresh for page 1 — no loading spinner, update only when new txs arrive
+  const silentRefresh = useCallback(async () => {
+    if (!isFirstPage || page !== 1) return;
+    try {
+      const base = usePostgresApiClient() ? getApiUrl() : '';
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1), type: typeFilter });
+      const res = await fetch(`${base}/api/transactions/list?${params}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success || !json.transactions?.length) return;
+      const topTxid = json.transactions[0].txid;
+      if (topTxid === latestTxid.current) return;
+      latestTxid.current = topTxid;
+      const all: Transaction[] = json.transactions;
+      const visibleTxs = all.slice(0, PAGE_SIZE);
+      const firstTx = visibleTxs[0] ?? null;
+      const lastTx = visibleTxs[visibleTxs.length - 1] ?? null;
+      const total = Number(json.pagination?.total) || 0;
+      setTxs(visibleTxs);
+      setPagination(prev => ({
+        ...prev,
+        total,
+        totalPages: Math.ceil(total / PAGE_SIZE),
+        hasNext: all.length > PAGE_SIZE,
+        hasPrev: false,
+        nextCursor: lastTx ? Number(lastTx.block_height) : null,
+        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
+        prevCursor: firstTx ? Number(firstTx.block_height) : null,
+        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
+      }));
+      setDataAvailable(true);
+    } catch { /* silent */ }
+  }, [isFirstPage, page, typeFilter]);
+
+  silentRefreshRef.current = silentRefresh;
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (!isFirstPage || page !== 1) return;
+    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
+      silentRefreshRef.current();
+    }
+  }, [isFirstPage, page]);
+
+  const { isConnected: wsConnected } = useWebSocket(
+    isFirstPage ? { onMessage: handleWsMessage } : {},
+  );
+
+  useEffect(() => {
+    if (!isFirstPage || page !== 1) return;
+    const interval = setInterval(
+      () => silentRefreshRef.current(),
+      wsConnected ? 60000 : 15000,
+    );
+    return () => clearInterval(interval);
+  }, [isFirstPage, page, wsConnected]);
 
   const buildArchiveHref = (
     cursor: number | null,
