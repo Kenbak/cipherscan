@@ -306,12 +306,12 @@ router.get('/api/migration/overview', async (req, res) => {
         : null;
       const totalMigratedZat = ironwoodInZat;
 
-      // Average block time from recent blocks (last 100)
+      // Average block time from recent blocks (last 1000 for a stable estimate)
       let avgBlockTimeSecs = 75;
       try {
         const bt = await pool.query(`
           SELECT (MAX(timestamp) - MIN(timestamp))::float / NULLIF(COUNT(*) - 1, 0) AS avg_secs
-          FROM (SELECT timestamp FROM blocks ORDER BY height DESC LIMIT 100) sub
+          FROM (SELECT timestamp FROM blocks ORDER BY height DESC LIMIT 1000) sub
         `);
         if (bt.rows.length && bt.rows[0].avg_secs) {
           avgBlockTimeSecs = Math.round(Number(bt.rows[0].avg_secs) * 10) / 10;
