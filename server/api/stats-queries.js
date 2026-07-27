@@ -28,13 +28,12 @@ async function getShieldedCountSince(pool, since, options = {}) {
         t.block_time,
         t.has_sapling,
         t.has_orchard,
-        COALESCE(t.shielded_spends, 0) as shielded_spends,
-        COALESCE(t.shielded_outputs, 0) as shielded_outputs,
+        COALESCE(t.sapling_spend_count, 0) as sapling_spend_count,
+        COALESCE(t.sapling_output_count, 0) as sapling_output_count,
         COALESCE(t.orchard_actions, 0) as orchard_actions,
-        -- Determine if fully shielded (no transparent inputs/outputs)
         CASE
-          WHEN (COALESCE(shielded_spends, 0) > 0 OR COALESCE(orchard_actions, 0) > 0)
-           AND (COALESCE(shielded_outputs, 0) > 0 OR COALESCE(orchard_actions, 0) > 0)
+          WHEN (COALESCE(sapling_spend_count, 0) > 0 OR COALESCE(orchard_actions, 0) > 0)
+           AND (COALESCE(sapling_output_count, 0) > 0 OR COALESCE(orchard_actions, 0) > 0)
            AND NOT EXISTS (
              SELECT 1 FROM transaction_outputs o WHERE o.txid = t.txid
            )
@@ -50,8 +49,8 @@ async function getShieldedCountSince(pool, since, options = {}) {
         AND (
           t.has_sapling = true
           OR t.has_orchard = true
-          OR COALESCE(t.shielded_spends, 0) > 0
-          OR COALESCE(t.shielded_outputs, 0) > 0
+          OR COALESCE(t.sapling_spend_count, 0) > 0
+          OR COALESCE(t.sapling_output_count, 0) > 0
           OR COALESCE(t.orchard_actions, 0) > 0
         )
     )
@@ -111,8 +110,8 @@ async function getShieldedCountSimple(pool, since) {
       AND (
         t.has_sapling = true
         OR t.has_orchard = true
-        OR COALESCE(t.shielded_spends, 0) > 0
-        OR COALESCE(t.shielded_outputs, 0) > 0
+        OR COALESCE(t.sapling_spend_count, 0) > 0
+        OR COALESCE(t.sapling_output_count, 0) > 0
         OR COALESCE(t.orchard_actions, 0) > 0
       )
   `;
@@ -155,8 +154,8 @@ async function getShieldedCountDaily(pool, since, until = null) {
       AND (
         t.has_sapling = true
         OR t.has_orchard = true
-        OR COALESCE(t.shielded_spends, 0) > 0
-        OR COALESCE(t.shielded_outputs, 0) > 0
+        OR COALESCE(t.sapling_spend_count, 0) > 0
+        OR COALESCE(t.sapling_output_count, 0) > 0
         OR COALESCE(t.orchard_actions, 0) > 0
       )
     GROUP BY DATE(TO_TIMESTAMP(t.block_time))

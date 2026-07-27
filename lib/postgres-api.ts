@@ -174,8 +174,8 @@ export async function fetchTransactionFromPostgres(txid: string) {
     const fee = totalInputsSats > 0 ? (totalInputsSats - totalOutputsSats) / 100000000 : 0;
 
     // Count shielded components
-    const shieldedSpends = (tx.vShieldedSpend || []).length || 0;
-    const shieldedOutputs = (tx.vShieldedOutput || []).length || 0;
+    const saplingSpendCount = (tx.vShieldedSpend || []).length || 0;
+    const saplingOutputCount = (tx.vShieldedOutput || []).length || 0;
     const orchardActions = tx.orchard?.actions?.length || 0;
 
     // Transform inputs and outputs to convert satoshis to ZEC
@@ -214,8 +214,8 @@ export async function fetchTransactionFromPostgres(txid: string) {
       inputs: isCoinbase ? [{ coinbase: true }] : transformedInputs, // Add for compatibility
       outputs: transformedOutputs, // Add for compatibility
       timestamp: parseInt(tx.blockTime || tx.block_time), // Add timestamp
-      vShieldedSpend: tx.shielded_spends || [],
-      vShieldedOutput: tx.shielded_outputs || [],
+      vShieldedSpend: tx.sapling_spend_count || [],
+      vShieldedOutput: tx.sapling_output_count || [],
       valueBalance: parseFloat(tx.value_balance) || 0,
       valueBalanceSapling: parseFloat(tx.value_balance_sapling) || 0,
       valueBalanceOrchard: parseFloat(tx.value_balance_orchard) || 0,
@@ -237,12 +237,12 @@ export async function fetchTransactionFromPostgres(txid: string) {
       fee: fee, // Calculated fee in ZEC
       totalInput: totalInput, // Total inputs in ZEC
       totalOutput: totalOutput, // Total outputs in ZEC
-      shieldedSpends: shieldedSpends, // Count of shielded spends
-      shieldedOutputs: shieldedOutputs, // Count of shielded outputs
+      saplingSpendCount: saplingSpendCount,
+      saplingOutputCount: saplingOutputCount,
       orchardActions: orchardActions,
       ironwoodActions: parseInt(tx.ironwood_actions) || 0,
       hasIronwood: !!(tx.has_ironwood || (parseInt(tx.ironwood_actions) || 0) > 0),
-      hasShieldedData: tx.hasSapling || tx.has_sapling || tx.has_ironwood || shieldedSpends > 0 || shieldedOutputs > 0 || (parseInt(tx.ironwood_actions) || 0) > 0,
+      hasShieldedData: tx.hasSapling || tx.has_sapling || tx.has_ironwood || saplingSpendCount > 0 || saplingOutputCount > 0 || (parseInt(tx.ironwood_actions) || 0) > 0,
     };
   } catch (error) {
     console.error('Error fetching transaction from PostgreSQL API:', error);

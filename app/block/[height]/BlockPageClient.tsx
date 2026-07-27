@@ -169,7 +169,7 @@ export default function BlockPageClient({
           const transformedTransactions = (blockData.transactions || []).map((tx: any) => {
             // Check if it's a shielded transaction (has sapling/orchard activity)
             const hasShieldedActivity = tx.has_sapling || tx.has_orchard || tx.has_ironwood ||
-              (tx.shielded_spends > 0) || (tx.shielded_outputs > 0) || (tx.orchard_actions > 0) || (tx.ironwood_actions > 0);
+              (tx.sapling_spend_count > 0) || (tx.sapling_output_count > 0) || (tx.orchard_actions > 0) || (tx.ironwood_actions > 0);
 
             // Coinbase = no transparent inputs AND no shielded activity
             const isCoinbase = !hasShieldedActivity &&
@@ -204,8 +204,8 @@ export default function BlockPageClient({
               vout: transformedOutputs,
               // Pass shielded info for type detection
               hasShieldedActivity,
-              vShieldedSpend: tx.shielded_spends > 0 ? Array(tx.shielded_spends).fill({}) : [],
-              vShieldedOutput: tx.shielded_outputs > 0 ? Array(tx.shielded_outputs).fill({}) : [],
+              vShieldedSpend: tx.sapling_spend_count > 0 ? Array(tx.sapling_spend_count).fill({}) : [],
+              vShieldedOutput: tx.sapling_output_count > 0 ? Array(tx.sapling_output_count).fill({}) : [],
               orchard: tx.orchard_actions > 0 ? { actions: Array(tx.orchard_actions).fill({}) } : null,
             };
           });

@@ -182,8 +182,8 @@ test('shielded list preserves its payload and skips PostgreSQL on a cache hit', 
     has_ironwood: false,
     orchard_actions: '2',
     ironwood_actions: '0',
-    shielded_spends: '1',
-    shielded_outputs: '1',
+    sapling_spend_count: '1',
+    sapling_output_count: '1',
   };
   let queryCount = 0;
   const pool = {

@@ -632,7 +632,7 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
     const PRIORITY_FILTER = `fee BETWEEN 20000 * conv_actions - 2 AND 20000 * conv_actions + 2`;
     const CONV_ACTIONS = `GREATEST(2,
       GREATEST(vin_count, vout_count) +
-      GREATEST(shielded_spends, shielded_outputs) +
+      GREATEST(sapling_spend_count, sapling_output_count) +
       orchard_actions +
       COALESCE(ironwood_actions, 0)
     )`;

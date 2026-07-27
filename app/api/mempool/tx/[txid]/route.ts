@@ -65,8 +65,8 @@ export async function GET(
         firstSeen: Math.floor(Date.now() / 1000),
         vinCount: tx.vin?.length || 0,
         voutCount: tx.vout?.length || 0,
-        shieldedSpends: tx.vShieldedSpend?.length || 0,
-        shieldedOutputs: tx.vShieldedOutput?.length || 0,
+        saplingSpendCount: tx.vShieldedSpend?.length || 0,
+        saplingOutputCount: tx.vShieldedOutput?.length || 0,
         orchardActions: tx.orchard?.actions?.length || 0,
         totalOutput,
         outputs: (tx.vout || []).map((o: any) => ({

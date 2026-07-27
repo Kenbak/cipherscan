@@ -947,8 +947,8 @@ router.get('/api/network/protocol-stats', async (req, res) => {
     const [totals, monthly] = await Promise.all([
       pool.query(`
         SELECT
-          SUM(shielded_outputs)::bigint AS sapling_commitments,
-          SUM(shielded_spends)::bigint AS sapling_nullifiers,
+          SUM(sapling_output_count)::bigint AS sapling_commitments,
+          SUM(sapling_spend_count)::bigint AS sapling_nullifiers,
           SUM(orchard_actions)::bigint AS orchard_commitments,
           SUM(orchard_actions)::bigint AS orchard_nullifiers,
           SUM(ironwood_actions)::bigint AS ironwood_commitments,
@@ -958,8 +958,8 @@ router.get('/api/network/protocol-stats', async (req, res) => {
       pool.query(`
         SELECT
           date_trunc('month', to_timestamp(block_time))::date AS month,
-          SUM(shielded_outputs)::bigint AS sapling_outputs,
-          SUM(shielded_spends)::bigint AS sapling_spends,
+          SUM(sapling_output_count)::bigint AS sapling_outputs,
+          SUM(sapling_spend_count)::bigint AS sapling_spends,
           SUM(orchard_actions)::bigint AS orchard_actions,
           SUM(ironwood_actions)::bigint AS ironwood_actions
         FROM transactions

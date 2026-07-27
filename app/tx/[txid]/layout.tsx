@@ -148,7 +148,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = isPending
     ? `${txType} Zcash transaction currently pending in the mempool with 0 confirmations. This page updates when the transaction is mined.`
     : isConfirmed
-      ? `${txType} Zcash transaction in block #${formatNumber(tx.blockHeight)} with ${formatNumber(tx.confirmations)} confirmation${tx.confirmations !== 1 ? 's' : ''}. ${tx.shieldedSpends + tx.shieldedOutputs + tx.orchardActions > 0 ? 'Includes shielded components.' : 'Transparent transaction.'}`
+      ? `${txType} Zcash transaction in block #${formatNumber(tx.blockHeight)} with ${formatNumber(tx.confirmations)} confirmation${tx.confirmations !== 1 ? 's' : ''}. ${tx.saplingSpendCount + tx.saplingOutputCount + tx.orchardActions > 0 ? 'Includes shielded components.' : 'Transparent transaction.'}`
       : status === 'Reorganized'
         ? `This Zcash transaction is no longer verified in its recorded block after a chain reorganization. CipherScan will update this page if it returns to the mempool or confirms again.`
         : `CipherScan has a record for this Zcash transaction but cannot currently verify its canonical-chain status.`;

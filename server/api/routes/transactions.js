@@ -277,7 +277,7 @@ router.get('/api/shielded/list', async (req, res) => {
 
       let result;
       const selectCols = `t.txid, t.block_height, t.block_time, t.has_sapling, t.has_orchard, t.has_ironwood,
-        t.orchard_actions, t.ironwood_actions, t.shielded_spends, t.shielded_outputs, t.fee`;
+        t.orchard_actions, t.ironwood_actions, t.sapling_spend_count, t.sapling_output_count, t.fee`;
 
       if (cursor === null) {
         result = await pool.query(
@@ -328,7 +328,7 @@ router.get('/api/shielded/list', async (req, res) => {
           flowType: 'fully_shielded',
           amountZec: null,
           pool: resolvePool(r),
-          actions: parseInt(r.orchard_actions || 0) + parseInt(r.ironwood_actions || 0) + parseInt(r.shielded_spends || 0) + parseInt(r.shielded_outputs || 0),
+          actions: parseInt(r.orchard_actions || 0) + parseInt(r.ironwood_actions || 0) + parseInt(r.sapling_spend_count || 0) + parseInt(r.sapling_output_count || 0),
           addresses: [],
         })),
         pagination: {
@@ -544,7 +544,7 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
 
     // Filter by minimum actions
     if (minActions > 0) {
-      conditions.push(`(t.orchard_actions >= $${paramIndex} OR t.shielded_spends >= $${paramIndex} OR t.shielded_outputs >= $${paramIndex})`);
+      conditions.push(`(t.orchard_actions >= $${paramIndex} OR t.sapling_spend_count >= $${paramIndex} OR t.sapling_output_count >= $${paramIndex})`);
       queryParams.push(minActions);
       paramIndex++;
     }
@@ -565,8 +565,8 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         t.block_time,
         t.has_sapling,
         t.has_orchard,
-        t.shielded_spends,
-        t.shielded_outputs,
+        t.sapling_spend_count,
+        t.sapling_output_count,
         t.orchard_actions,
         t.vin_count,
         t.vout_count,
@@ -603,8 +603,8 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         blockTime: parseInt(tx.block_time),
         hasSapling: tx.has_sapling,
         hasOrchard: tx.has_orchard,
-        shieldedSpends: parseInt(tx.shielded_spends || 0),
-        shieldedOutputs: parseInt(tx.shielded_outputs || 0),
+        saplingSpendCount: parseInt(tx.sapling_spend_count || 0),
+        saplingOutputCount: parseInt(tx.sapling_output_count || 0),
         orchardActions: parseInt(tx.orchard_actions || 0),
         vinCount: parseInt(tx.vin_count || 0),
         voutCount: parseInt(tx.vout_count || 0),
@@ -661,8 +661,8 @@ router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
         t.has_orchard,
         t.has_ironwood,
         t.orchard_actions,
-        t.shielded_spends,
-        t.shielded_outputs,
+        t.sapling_spend_count,
+        t.sapling_output_count,
         t.fee,
         (b.hash IS NOT NULL) AS is_canonical,
         CASE
@@ -699,8 +699,8 @@ router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
       hasIronwood: tx.has_ironwood || false,
       hasShielded: Boolean(tx.has_sapling || tx.has_orchard || tx.has_ironwood),
       orchardActions: parseInt(tx.orchard_actions) || 0,
-      shieldedSpends: parseInt(tx.shielded_spends) || 0,
-      shieldedOutputs: parseInt(tx.shielded_outputs) || 0,
+      saplingSpendCount: parseInt(tx.sapling_spend_count) || 0,
+      saplingOutputCount: parseInt(tx.sapling_output_count) || 0,
       fee: tx.fee ? Number(tx.fee) / 100000000 : 0,
     });
   } catch (error) {
@@ -740,8 +740,8 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         t.has_sprout,
         t.orchard_actions,
         t.ironwood_actions,
-        t.shielded_spends,
-        t.shielded_outputs,
+        t.sapling_spend_count,
+        t.sapling_output_count,
         t.tx_index,
         t.fee,
         t.total_input,
@@ -922,8 +922,8 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       hasSprout: tx.has_sprout,
       orchardActions: tx.orchard_actions || 0,
       ironwoodActions: tx.ironwood_actions || 0,
-      shieldedSpends: tx.shielded_spends || 0,
-      shieldedOutputs: tx.shielded_outputs || 0,
+      saplingSpendCount: tx.sapling_spend_count || 0,
+      saplingOutputCount: tx.sapling_output_count || 0,
       inputs: inputsResult.rows,
       outputs: outputsResult.rows,
       inputCount: inputsResult.rows.length,
@@ -1320,8 +1320,8 @@ router.get('/api/mempool/tx/:txid', async (req, res) => {
         firstSeen: Math.floor(Date.now() / 1000),
         vinCount: tx.vin?.length || 0,
         voutCount: tx.vout?.length || 0,
-        shieldedSpends: tx.vShieldedSpend?.length || 0,
-        shieldedOutputs: tx.vShieldedOutput?.length || 0,
+        saplingSpendCount: tx.vShieldedSpend?.length || 0,
+        saplingOutputCount: tx.vShieldedOutput?.length || 0,
         orchardActions: tx.orchard?.actions?.length || 0,
         ironwoodActions: tx.ironwood?.actions?.length || 0,
         hasIronwood: (tx.ironwood?.actions?.length || 0) > 0,

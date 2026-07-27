@@ -52,8 +52,8 @@ interface TransactionData {
   size: number;
   version: number;
   locktime: number;
-  shieldedSpends: number;
-  shieldedOutputs: number;
+  saplingSpendCount: number;
+  saplingOutputCount: number;
   hasShieldedData: boolean;
   isCoinbase?: boolean;
   orchardActions?: number;
@@ -263,8 +263,8 @@ export default function TransactionPage() {
             size: parseInt(txData.size),
             version: parseInt(txData.version),
             locktime: parseInt(txData.locktime),
-            shieldedSpends: txData.shieldedSpends || 0,
-            shieldedOutputs: txData.shieldedOutputs || 0,
+            saplingSpendCount: txData.saplingSpendCount || 0,
+            saplingOutputCount: txData.saplingOutputCount || 0,
             hasShieldedData: txData.hasSapling || txData.hasShielded || txData.hasIronwood || false,
             isCoinbase: txData.isCoinbase || false,
             orchardActions: txData.orchardActions || 0,
@@ -621,16 +621,16 @@ export default function TransactionPage() {
                     <span className="text-sm font-mono text-primary">{mempoolTx.voutCount}</span>
                   </div>
                 )}
-                {mempoolTx.shieldedSpends > 0 && (
+                {mempoolTx.saplingSpendCount > 0 && (
                   <div className="flex items-center justify-between py-2 border-b border-cipher-border">
                     <span className="text-xs font-mono text-muted">Sapling Spends</span>
-                    <span className="text-sm font-mono text-primary">{mempoolTx.shieldedSpends}</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.saplingSpendCount}</span>
                   </div>
                 )}
-                {mempoolTx.shieldedOutputs > 0 && (
+                {mempoolTx.saplingOutputCount > 0 && (
                   <div className="flex items-center justify-between py-2 border-b border-cipher-border">
                     <span className="text-xs font-mono text-muted">Sapling Outputs</span>
-                    <span className="text-sm font-mono text-primary">{mempoolTx.shieldedOutputs}</span>
+                    <span className="text-sm font-mono text-primary">{mempoolTx.saplingOutputCount}</span>
                   </div>
                 )}
                 {mempoolTx.orchardActions > 0 && (
@@ -730,8 +730,8 @@ export default function TransactionPage() {
   const hasTransparent = hasTransparentInputs || hasTransparentOutputs;
   const hasShielded = hasIronwood || hasOrchard || hasSapling;
 
-  const hasSaplingSpends = data.shieldedSpends > 0;
-  const hasSaplingOutputs = data.shieldedOutputs > 0;
+  const hasSaplingSpends = data.saplingSpendCount > 0;
+  const hasSaplingOutputs = data.saplingOutputCount > 0;
 
   const valueBalance = (data.valueBalanceSapling || 0) + (data.valueBalanceOrchard || 0) + (data.valueBalanceIronwood || 0);
 
@@ -1105,7 +1105,7 @@ export default function TransactionPage() {
             timestamp: data.timestamp, confirmations: data.confirmations, fee: data.fee,
             size: data.size, version: data.version, locktime: data.locktime,
             totalInput: data.totalInput, totalOutput: data.totalOutput,
-            shieldedSpends: data.shieldedSpends, shieldedOutputs: data.shieldedOutputs,
+            saplingSpendCount: data.saplingSpendCount, saplingOutputCount: data.saplingOutputCount,
             orchardActions: data.orchardActions,
             inputs: data.inputs.map((i: any) => ({ address: i.address || 'shielded', value: i.value, coinbase: i.coinbase || false })),
             outputs: data.outputs.map((o: any) => ({ address: o.scriptPubKey?.addresses?.[0] || 'shielded', value: o.value, index: o.n, spent: o.spent || false }))
@@ -1301,8 +1301,8 @@ export default function TransactionPage() {
 
               {data.hasShieldedData && (
                 <>
-                  <InfoRow icon={Icons.Shield} label="Sapling Spends" value={data.shieldedSpends} tooltip="Number of Sapling shielded inputs" valueClass="text-cipher-cyan" />
-                  <InfoRow icon={Icons.Shield} label="Sapling Outputs" value={data.shieldedOutputs} tooltip="Number of Sapling shielded outputs" valueClass="text-cipher-cyan" />
+                  <InfoRow icon={Icons.Shield} label="Sapling Spends" value={data.saplingSpendCount} tooltip="Number of Sapling shielded inputs" valueClass="text-cipher-cyan" />
+                  <InfoRow icon={Icons.Shield} label="Sapling Outputs" value={data.saplingOutputCount} tooltip="Number of Sapling shielded outputs" valueClass="text-cipher-cyan" />
                 </>
               )}
 
@@ -1386,8 +1386,8 @@ export default function TransactionPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-muted tracking-wider">&gt; INPUTS</span>
                   <Badge color="muted">{(() => {
-                    let count = data.inputs.length + data.shieldedSpends;
-                    if ((data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.shieldedSpends === 0) {
+                    let count = data.inputs.length + data.saplingSpendCount;
+                    if ((data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.saplingSpendCount === 0) {
                       count += data.orchardActions || 0;
                     }
                     return count;
@@ -1430,7 +1430,7 @@ export default function TransactionPage() {
                   ))}
 
                   {/* Sapling shielded inputs */}
-                  {data.shieldedSpends > 0 && Array.from({ length: data.shieldedSpends }).map((_, index) => (
+                  {data.saplingSpendCount > 0 && Array.from({ length: data.saplingSpendCount }).map((_, index) => (
                     <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                       <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.inputs.length + index}</span>
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -1442,7 +1442,7 @@ export default function TransactionPage() {
                   ))}
 
                   {/* Orchard inputs */}
-                  {(data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.shieldedSpends === 0 && (
+                  {(data.orchardActions || 0) > 0 && data.inputs.length === 0 && data.saplingSpendCount === 0 && (
                     Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
                       <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                         <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
@@ -1455,7 +1455,7 @@ export default function TransactionPage() {
                     ))
                   )}
 
-                  {data.inputs.length === 0 && data.shieldedSpends === 0 && (data.orchardActions || 0) === 0 && (
+                  {data.inputs.length === 0 && data.saplingSpendCount === 0 && (data.orchardActions || 0) === 0 && (
                     <p className="text-xs text-muted font-mono py-2 text-center">No inputs</p>
                   )}
                 </div>
@@ -1470,8 +1470,8 @@ export default function TransactionPage() {
                   <Badge color="muted">{(() => {
                     let count = data.outputs.length;
                     if (valueBalance < 0) count += 1;
-                    if (data.shieldedOutputs > 0 && valueBalance >= 0) count += data.shieldedOutputs;
-                    if ((data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && valueBalance >= 0) count += data.orchardActions || 0;
+                    if (data.saplingOutputCount > 0 && valueBalance >= 0) count += data.saplingOutputCount;
+                    if ((data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.saplingOutputCount === 0 && valueBalance >= 0) count += data.orchardActions || 0;
                     return count;
                   })()}</Badge>
                 </div>
@@ -1524,7 +1524,7 @@ export default function TransactionPage() {
                   )}
 
                   {/* Sapling shielded outputs - encrypted */}
-                  {data.shieldedOutputs > 0 && valueBalance >= 0 && Array.from({ length: data.shieldedOutputs }).map((_, index) => (
+                  {data.saplingOutputCount > 0 && valueBalance >= 0 && Array.from({ length: data.saplingOutputCount }).map((_, index) => (
                     <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                       <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{data.outputs.length + index}</span>
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -1536,7 +1536,7 @@ export default function TransactionPage() {
                   ))}
 
                   {/* Orchard outputs */}
-                  {(data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && valueBalance >= 0 && (
+                  {(data.orchardActions || 0) > 0 && data.outputs.length === 0 && data.saplingOutputCount === 0 && valueBalance >= 0 && (
                     Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
                       <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                         <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
@@ -1550,7 +1550,7 @@ export default function TransactionPage() {
                   )}
 
                   {/* Ironwood outputs */}
-                  {(data.ironwoodActions || 0) > 0 && data.outputs.length === 0 && data.shieldedOutputs === 0 && (
+                  {(data.ironwoodActions || 0) > 0 && data.outputs.length === 0 && data.saplingOutputCount === 0 && (
                     Array.from({ length: data.ironwoodActions || 0 }).map((_, index) => (
                       <div key={`iw-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                         <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">{index}</span>
@@ -1563,7 +1563,7 @@ export default function TransactionPage() {
                     ))
                   )}
 
-                  {data.outputs.length === 0 && data.shieldedOutputs === 0 && (data.orchardActions || 0) === 0 && (data.ironwoodActions || 0) === 0 && valueBalance >= 0 && (
+                  {data.outputs.length === 0 && data.saplingOutputCount === 0 && (data.orchardActions || 0) === 0 && (data.ironwoodActions || 0) === 0 && valueBalance >= 0 && (
                     <p className="text-xs text-muted font-mono py-2 text-center">No outputs</p>
                   )}
                 </div>

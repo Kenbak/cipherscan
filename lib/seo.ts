@@ -276,8 +276,8 @@ export interface TxMeta {
   isCoinbase: boolean;
   hasShielded: boolean;
   orchardActions: number;
-  shieldedSpends: number;
-  shieldedOutputs: number;
+  saplingSpendCount: number;
+  saplingOutputCount: number;
   fee: number;
 }
 
@@ -311,8 +311,8 @@ export const getTxResolution = cache(async (txid: string): Promise<TxResolution>
         isCoinbase: data.isCoinbase || false,
         hasShielded: data.hasSapling || data.hasOrchard || data.hasIronwood || data.hasShielded || false,
         orchardActions: data.orchardActions || 0,
-        shieldedSpends: data.shieldedSpends || 0,
-        shieldedOutputs: data.shieldedOutputs || 0,
+        saplingSpendCount: data.saplingSpendCount || 0,
+        saplingOutputCount: data.saplingOutputCount || 0,
         fee: data.fee || 0,
       };
 
@@ -366,13 +366,13 @@ async function getPendingTxResolution(txid: string): Promise<TxResolution> {
         confirmations: 0,
         isCoinbase: false,
         hasShielded: pending.type === 'shielded' || pending.type === 'mixed' ||
-          (pending.shieldedSpends || 0) > 0 ||
-          (pending.shieldedOutputs || 0) > 0 ||
+          (pending.saplingSpendCount || 0) > 0 ||
+          (pending.saplingOutputCount || 0) > 0 ||
           (pending.orchardActions || 0) > 0 ||
           (pending.ironwoodActions || 0) > 0,
         orchardActions: pending.orchardActions || 0,
-        shieldedSpends: pending.shieldedSpends || 0,
-        shieldedOutputs: pending.shieldedOutputs || 0,
+        saplingSpendCount: pending.saplingSpendCount || 0,
+        saplingOutputCount: pending.saplingOutputCount || 0,
         fee: 0,
       },
     };

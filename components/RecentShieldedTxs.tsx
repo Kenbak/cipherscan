@@ -14,8 +14,8 @@ interface ShieldedTx {
   blockTime: number;
   hasSapling: boolean;
   hasOrchard: boolean;
-  shieldedSpends: number;
-  shieldedOutputs: number;
+  saplingSpendCount: number;
+  saplingOutputCount: number;
   orchardActions: number;
   vinCount: number;
   voutCount: number;

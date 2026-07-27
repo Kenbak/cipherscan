@@ -191,8 +191,8 @@ async function fetchTransaction(txid: string) {
       version: tx.version,
       locktime: tx.locktime,
       // Zcash specific fields
-      shieldedSpends: tx.vShieldedSpend?.length || 0,
-      shieldedOutputs: tx.vShieldedOutput?.length || 0,
+      saplingSpendCount: tx.vShieldedSpend?.length || 0,
+      saplingOutputCount: tx.vShieldedOutput?.length || 0,
       hasShieldedData: (tx.vShieldedSpend?.length || 0) > 0 || (tx.vShieldedOutput?.length || 0) > 0,
       // Orchard specific fields
       orchardActions: tx.orchard?.actions?.length || 0,
