@@ -1089,15 +1089,15 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
 const Y_AXIS_TICKS = [0.001, 0.01, 0.1, 1, 10, 100];
 
 const REFERENCE_DENOMS = [
-  { value: 0.001, label: '0.001 ZEC' },
   { value: 0.01, label: '0.01 ZEC' },
   { value: 0.1, label: '0.1 ZEC' },
   { value: 1, label: '1 ZEC' },
   { value: 10, label: '10 ZEC' },
   { value: 100, label: '100 ZEC' },
+  { value: 100, label: '100 ZEC' },
 ];
 
-const DENOM_BUCKETS = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+const DENOM_BUCKETS = [0.01, 0.1, 1, 10, 100, 1000];
 
 function PrivacyScore({
   scatter,
