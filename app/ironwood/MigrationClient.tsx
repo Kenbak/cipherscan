@@ -1137,10 +1137,12 @@ function PrivacyScore({
     };
   }, [scatter]);
 
+  const PADDED_COLOR = '#22d3ee';
+
   const denominatedData = useMemo(
     () =>
       filteredTxs
-        .filter((tx) => tx.privacy === 'denominated')
+        .filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) <= 1)
         .map((tx) => ({
           x: tx.height,
           y: tx.amountZec,
@@ -1148,6 +1150,23 @@ function PrivacyScore({
           privacy: tx.privacy,
           matched: tx.matchedDenomination,
           iwActions: tx.ironwoodActions,
+          category: 'clean' as const,
+        })),
+    [filteredTxs],
+  );
+
+  const denominatedPaddedData = useMemo(
+    () =>
+      filteredTxs
+        .filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) > 1)
+        .map((tx) => ({
+          x: tx.height,
+          y: tx.amountZec,
+          txid: tx.txid,
+          privacy: tx.privacy,
+          matched: tx.matchedDenomination,
+          iwActions: tx.ironwoodActions,
+          category: 'padded' as const,
         })),
     [filteredTxs],
   );
@@ -1163,6 +1182,7 @@ function PrivacyScore({
           privacy: tx.privacy,
           matched: tx.matchedDenomination,
           iwActions: tx.ironwoodActions,
+          category: 'distinctive' as const,
         })),
     [filteredTxs],
   );
@@ -1191,27 +1211,6 @@ function PrivacyScore({
     if (point?.txid) router.push(`/tx/${point.txid}`);
   };
 
-  const PaddingAwareDot = useCallback(
-    (props: { cx?: number; cy?: number; fill?: string; payload?: { iwActions?: number } }) => {
-      const { cx = 0, cy = 0, fill = '#fff' } = props;
-      const actions = props.payload?.iwActions ?? 0;
-      if (actions > 1) {
-        const s = 5;
-        return (
-          <path
-            d={`M${cx},${cy - s} L${cx + s},${cy} L${cx},${cy + s} L${cx - s},${cy} Z`}
-            fill={fill}
-            fillOpacity={0.9}
-            stroke={fill}
-            strokeWidth={0.5}
-            cursor="pointer"
-          />
-        );
-      }
-      return <circle cx={cx} cy={cy} r={4.5} fill={fill} fillOpacity={0.95} stroke="#fff" strokeWidth={1.5} cursor="pointer" />;
-    },
-    [],
-  );
 
   return (
     <div id="privacy-score" className="scroll-mt-20">
@@ -1358,24 +1357,29 @@ function PrivacyScore({
                       privacy?: string;
                       matched?: number | null;
                       iwActions?: number;
+                      category?: string;
                     };
                     const actions = d.iwActions ?? 0;
+                    const isPaddedDenom = d.privacy === 'denominated' && actions > 1;
+                    const labelColor = isPaddedDenom
+                      ? '#22d3ee'
+                      : d.privacy === 'denominated'
+                        ? colors.denominated
+                        : colors.distinctive;
                     return (
                       <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono">
                         <div className="mb-1 text-muted">Block #{d.x?.toLocaleString()}</div>
                         <div className="font-bold text-primary">{d.y?.toFixed(8)} ZEC</div>
-                        <div
-                          className="mt-1"
-                          style={{ color: d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}
-                        >
-                          {d.privacy === 'denominated'
-                            ? `Matches ${d.matched} ZEC denomination`
-                            : 'Distinctive amount'}
+                        <div className="mt-1" style={{ color: labelColor }}>
+                          {isPaddedDenom
+                            ? `${d.matched} ZEC denom · ${actions} actions (padded)`
+                            : d.privacy === 'denominated'
+                              ? `Matches ${d.matched} ZEC denomination`
+                              : 'Distinctive amount'}
                         </div>
-                        {actions > 0 && (
-                          <div className="mt-1" style={{ color: actions === 1 ? '#22c55e' : '#f97316' }}>
+                        {!isPaddedDenom && actions > 0 && (
+                          <div className="mt-1 text-muted">
                             {actions} Ironwood action{actions !== 1 ? 's' : ''}
-                            {actions === 1 ? ' (unpadded)' : ' (padded)'}
                           </div>
                         )}
                         {d.txid ? (
@@ -1409,20 +1413,29 @@ function PrivacyScore({
                   />
                 ))}
                 <Scatter
-                  name="Denominated"
+                  name="Standard denomination"
                   data={denominatedData}
                   fill={colors.denominated}
-                  fillOpacity={0.9}
-                  shape={<PaddingAwareDot />}
+                  fillOpacity={0.95}
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
                 <Scatter
-                  name="Distinctive"
+                  name="Standard denom, padded"
+                  data={denominatedPaddedData}
+                  fill={PADDED_COLOR}
+                  fillOpacity={0.85}
+                  shape="diamond"
+                  cursor="pointer"
+                  onClick={(node) => handleDotClick(node as { txid?: string })}
+                />
+                <Scatter
+                  name="Distinctive amount"
                   data={distinctiveData}
                   fill={colors.distinctive}
                   fillOpacity={0.85}
-                  shape={<PaddingAwareDot />}
+                  stroke={colors.distinctive}
+                  strokeOpacity={1}
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
@@ -1436,16 +1449,12 @@ function PrivacyScore({
                   Standard denomination
                 </span>
                 <span className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill="#22d3ee" /></svg>
+                  Correct amount, padded bundle
+                </span>
+                <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
                   Distinctive amount
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={colors.denominated} /></svg>
-                  Padded bundle
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full border border-white/60" style={{ backgroundColor: colors.denominated }} />
-                  Unpadded
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
