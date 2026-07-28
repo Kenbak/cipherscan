@@ -1309,21 +1309,12 @@ export default function TransactionPage() {
               <InfoRow icon={Icons.Clock} label="Lock Time" value={data.locktime} tooltip="Block height or timestamp at which this transaction is unlocked" />
 
               {data.expiryHeight != null && data.expiryHeight > 0 && (
-                <InfoRow icon={Icons.Clock} label="Expiry Height" tooltip="Block height after which this transaction can no longer be mined. ZIP-318 compliant migrations use a +40 block expiry delta." value={(() => {
-                  const delta = data.expiryHeight - (data.blockHeight || 0);
-                  const isZip318 = isMigration && delta >= 1 && delta <= 40;
-                  return (
-                    <span className="flex items-center gap-2 flex-wrap">
-                      <span>{data.expiryHeight.toLocaleString()}</span>
-                      <span className="text-[10px] text-muted font-mono">+{delta} blocks</span>
-                      {isZip318 && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
-                          ZIP-318
-                        </span>
-                      )}
-                    </span>
-                  );
-                })()} />
+                <InfoRow icon={Icons.Clock} label="Expiry Height" tooltip="Block height after which this transaction can no longer be mined. The delta from the mined block height indicates the wallet's configured expiry window." value={
+                  <span className="flex items-center gap-2 flex-wrap">
+                    <span>{data.expiryHeight.toLocaleString()}</span>
+                    <span className="text-[10px] text-muted font-mono">+{data.expiryHeight - (data.blockHeight || 0)} blocks</span>
+                  </span>
+                } />
               )}
 
               {data.hasShieldedData && (
