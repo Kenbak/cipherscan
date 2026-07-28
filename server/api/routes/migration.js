@@ -420,7 +420,7 @@ router.get('/api/migration/overview', async (req, res) => {
 router.get('/api/migration/cohorts', async (req, res) => {
   try {
     const network = resolveNetwork();
-    const data = await cached(`zcash:migration:cohorts:v2:${network}`, 300, async () => {
+    const data = await cached(`zcash:migration:cohorts:v2:${network}`, 30, async () => {
       // 1) Migration cohorts: volume and anonymity per boundary (strict Orchard->Ironwood)
       let migrationRows = [];
       try {
@@ -531,7 +531,7 @@ router.get('/api/migration/cohorts', async (req, res) => {
 router.get('/api/migration/denominations', async (req, res) => {
   try {
     const network = resolveNetwork();
-    const data = await cached(`zcash:migration:denominations:${network}`, 300, async () => {
+    const data = await cached(`zcash:migration:denominations:${network}`, 30, async () => {
       let rows = [];
       try {
         // Bin on the integer power of ten of the ZEC value. FLOOR(LOG10(zat/1e8))
