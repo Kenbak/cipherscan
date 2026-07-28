@@ -712,16 +712,9 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   let identified = 0;
 
   const find = (name: string) => fingerprints.wallets.find(w => w.name === name);
-  const vizorCount = find('Vizor')?.signals.actionPadding.matchCount || 0;
   const braveLocktime = find('Brave')?.signals.locktime.matchCount || 0;
   const familyExpiry = find('librustzcash family')?.signals.expiry.matchCount || 0;
   const zkoolExpiry = find('Zkool (historical)')?.signals.expiry.matchCount || 0;
-
-  // Vizor: distinguishable by 4-action padding (upper bound)
-  if (vizorCount > 0) {
-    walletMap.push({ name: 'Vizor', value: vizorCount, confidence: 'medium' });
-    identified += vizorCount;
-  }
 
   // Zkool historical: distinguishable by expiry+100 (pre-March 2026)
   if (zkoolExpiry > 0) {
@@ -735,12 +728,10 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
     identified += braveLocktime;
   }
 
-  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/current Zkool, minus the
-  // Vizor subset (which also uses +40 but is separated out by its 4-action padding).
-  const sdkCount = Math.max(0, familyExpiry - vizorCount);
-  if (sdkCount > 0) {
-    walletMap.push({ name: 'librustzcash family (ZODL/Edge/etc.)', value: sdkCount, confidence: 'medium' });
-    identified += sdkCount;
+  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool
+  if (familyExpiry > 0) {
+    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
+    identified += familyExpiry;
   }
 
   // Unknown: everything we can't attribute

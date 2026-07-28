@@ -759,11 +759,6 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
         ) AS sdk_2action,
 
         COUNT(*) FILTER (
-          WHERE orchard_actions = 4 AND vin_count = 0 AND vout_count = 0
-            AND has_orchard = true
-        ) AS vizor_4action,
-
-        COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
             AND (expiry_height - block_height) BETWEEN 16 AND 20
             AND has_orchard = true
@@ -806,13 +801,14 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
     // The librustzcash "+40 family" (ZODL, Edge, Unstoppable, Vizor, post-Mar Zkool)
     // is indistinguishable on the expiry signal alone — so the +40 count is attached
     // ONCE to the family entry, not repeated per wallet. Wallets are only broken out
-    // where a distinguishing signal exists: Vizor by 4-action padding, Brave by
-    // non-zero nLockTime, Zkool historically by +100.
+    // where a distinguishing signal exists: Brave by non-zero nLockTime, Zkool
+    // historically by +100. Vizor was formerly distinguishable by 4-action padding
+    // but switched to standard 2-action padding in July 2026.
     const wallets = [
       {
         name: 'librustzcash family',
-        description: 'ZODL (formerly Zashi), Edge, Unstoppable, and current Zkool all use the official Zcash SDK and are indistinguishable from one another on-chain.',
-        familyMembers: ['ZODL', 'Edge', 'Unstoppable', 'Zkool (current)'],
+        description: 'ZODL (formerly Zashi), Edge, Unstoppable, Vizor, and current Zkool all use the official Zcash SDK and are indistinguishable from one another on-chain.',
+        familyMembers: ['ZODL', 'Edge', 'Unstoppable', 'Vizor', 'Zkool (current)'],
         signals: {
           fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
           expiry: { value: '+40 blocks', matchCount: familyExpiry40, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40 (window 36–40 for confirmation delay)' },
@@ -820,17 +816,6 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
           actionPadding: { value: '2 actions (min)', matchCount: parseInt(r.sdk_2action), confidence: 'medium', source: 'orchard BundleType pads to 2 — shared baseline, not wallet-specific' },
         },
         note: 'Count is the whole SDK family combined — we cannot split these apart from expiry alone.',
-      },
-      {
-        name: 'Vizor',
-        description: 'Self-custody desktop wallet (chainapsis), Flutter + Rust. Uses librustzcash but pads every tx to 4 Orchard actions.',
-        signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash transaction builder' },
-          expiry: { value: '+40 blocks', confidence: 'medium', source: 'inherits librustzcash family (+40); not distinguishing' },
-          locktime: { value: '0', confidence: 'high', source: 'librustzcash (never set)' },
-          actionPadding: { value: '4 actions always', matchCount: parseInt(r.vizor_4action), confidence: 'medium', source: 'source review — 4 change notes. Upper bound: 2–3 recipient sends from other wallets also reach 4 actions.' },
-        },
-        note: '4-action count is an upper bound — multi-recipient sends from any wallet overlap here.',
       },
       {
         name: 'Brave',
