@@ -747,6 +747,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         t.total_input,
         t.total_output,
         t.is_coinbase,
+        t.expiry_height,
         (b.hash IS NOT NULL) AS is_canonical${(await checkStakingColumns(pool))
           ? ', t.staking_action_type, t.staking_bond_key, t.staking_delegatee, t.staking_amount_zats'
           : ''}
@@ -908,6 +909,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,
+      expiryHeight: tx.expiry_height ? parseInt(tx.expiry_height) : null,
       valueBalance: totalValueBalance,
       valueBalanceSapling,
       valueBalanceOrchard,

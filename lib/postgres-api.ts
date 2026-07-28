@@ -241,6 +241,7 @@ export async function fetchTransactionFromPostgres(txid: string) {
       saplingOutputCount: saplingOutputCount,
       orchardActions: orchardActions,
       ironwoodActions: parseInt(tx.ironwood_actions) || 0,
+      expiryHeight: tx.expiryHeight ? parseInt(tx.expiryHeight) : null,
       hasIronwood: !!(tx.has_ironwood || (parseInt(tx.ironwood_actions) || 0) > 0),
       hasShieldedData: tx.hasSapling || tx.has_sapling || tx.has_ironwood || saplingSpendCount > 0 || saplingOutputCount > 0 || (parseInt(tx.ironwood_actions) || 0) > 0,
     };

@@ -190,6 +190,7 @@ async function fetchTransaction(txid: string) {
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,
+      expiryHeight: tx.expiryHeight || null,
       // Zcash specific fields
       saplingSpendCount: tx.vShieldedSpend?.length || 0,
       saplingOutputCount: tx.vShieldedOutput?.length || 0,

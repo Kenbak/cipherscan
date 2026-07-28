@@ -52,6 +52,7 @@ interface TransactionData {
   size: number;
   version: number;
   locktime: number;
+  expiryHeight: number | null;
   saplingSpendCount: number;
   saplingOutputCount: number;
   hasShieldedData: boolean;
@@ -263,6 +264,7 @@ export default function TransactionPage() {
             size: parseInt(txData.size),
             version: parseInt(txData.version),
             locktime: parseInt(txData.locktime),
+            expiryHeight: txData.expiryHeight ? parseInt(txData.expiryHeight) : null,
             saplingSpendCount: txData.saplingSpendCount || 0,
             saplingOutputCount: txData.saplingOutputCount || 0,
             hasShieldedData: txData.hasSapling || txData.hasShielded || txData.hasIronwood || false,
@@ -1305,6 +1307,24 @@ export default function TransactionPage() {
               <InfoRow icon={Icons.Database} label="Size" value={`${data.size.toLocaleString()} bytes (${(data.size / 1024).toFixed(2)} KB)`} tooltip="Transaction size in bytes" />
               <InfoRow icon={Icons.Code} label="Version" value={data.version} tooltip="Transaction version number" />
               <InfoRow icon={Icons.Clock} label="Lock Time" value={data.locktime} tooltip="Block height or timestamp at which this transaction is unlocked" />
+
+              {data.expiryHeight != null && data.expiryHeight > 0 && (
+                <InfoRow icon={Icons.Clock} label="Expiry Height" tooltip="Block height after which this transaction can no longer be mined. ZIP-318 compliant migrations use a +40 block expiry delta." value={(() => {
+                  const delta = data.expiryHeight - (data.blockHeight || 0);
+                  const isZip318 = isMigration && delta >= 1 && delta <= 40;
+                  return (
+                    <span className="flex items-center gap-2 flex-wrap">
+                      <span>{data.expiryHeight.toLocaleString()}</span>
+                      <span className="text-[10px] text-muted font-mono">+{delta} blocks</span>
+                      {isZip318 && (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                          ZIP-318
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()} />
+              )}
 
               {data.hasShieldedData && (
                 <>
