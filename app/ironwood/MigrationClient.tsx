@@ -1097,7 +1097,10 @@ const REFERENCE_DENOMS = [
   { value: 100, label: '100 ZEC' },
 ];
 
-const DENOM_BUCKETS = [0.01, 0.1, 1, 10, 100, 1000];
+const DENOM_BUCKETS = [
+  0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
+  1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
+];
 
 function PrivacyScore({
   scatter,
