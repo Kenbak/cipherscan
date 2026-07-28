@@ -7,18 +7,15 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  ScatterChart,
-  Scatter,
   PieChart,
   Pie,
   Cell,
   XAxis,
   YAxis,
   Tooltip,
-  ZAxis,
-  CartesianGrid,
-  ReferenceLine,
 } from 'recharts';
+import { ParentSize } from '@visx/responsive';
+import { PrivacyScatterChart, type ScatterPoint } from './PrivacyScatterChart';
 import { ShareableCard } from '@/components/ShareableCard';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -1072,11 +1069,12 @@ function MigrationActivity({
 
 // ─── Section 4: Amount privacy ─────────────────────────────────────────────
 
-type PrivacyRange = '7d' | '30d' | 'all';
+type PrivacyRange = '24h' | '7d' | '30d' | 'all';
 
 const PRIVACY_RANGES: { id: PrivacyRange; label: string }[] = [
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
+  { id: '24h', label: '24h' },
+  { id: '7d', label: '7 days' },
+  { id: '30d', label: '30 days' },
   { id: 'all', label: 'All' },
 ];
 
@@ -1086,8 +1084,6 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
   { id: 'scatter', label: 'Transactions' },
   { id: 'denoms', label: 'Denomination mix' },
 ];
-
-const Y_AXIS_TICKS = [0.001, 0.01, 0.1, 1, 10, 100];
 
 const REFERENCE_DENOMS = [
   { value: 0.01, label: '0.01 ZEC' },
@@ -1120,8 +1116,8 @@ function PrivacyScore({
   const filteredTxs = useMemo(() => {
     const txs = scatter?.txs ?? [];
     if (range === 'all') return txs;
-    const days = range === '7d' ? 7 : 30;
-    const cutoff = Math.floor(Date.now() / 1000) - days * 86400;
+    const secs = range === '24h' ? 86400 : range === '7d' ? 7 * 86400 : 30 * 86400;
+    const cutoff = Math.floor(Date.now() / 1000) - secs;
     return txs.filter((tx) => tx.timestamp != null && tx.timestamp >= cutoff);
   }, [scatter?.txs, range]);
 
@@ -1147,32 +1143,16 @@ function PrivacyScore({
     worst: '#f87171',
   };
 
-  const toPoint = (tx: ScatterTx) => ({
-    x: tx.height,
-    y: tx.amountZec,
-    txid: tx.txid,
-    privacy: tx.privacy,
-    matched: tx.matchedDenomination,
-    iwActions: tx.ironwoodActions,
-  });
-
-  const denomUnpaddedData = useMemo(
-    () => filteredTxs.filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) <= 1).map(toPoint),
-    [filteredTxs],
-  );
-
-  const denomPaddedData = useMemo(
-    () => filteredTxs.filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) > 1).map(toPoint),
-    [filteredTxs],
-  );
-
-  const distinctUnpaddedData = useMemo(
-    () => filteredTxs.filter((tx) => tx.privacy === 'distinctive' && (tx.ironwoodActions ?? 0) <= 1).map(toPoint),
-    [filteredTxs],
-  );
-
-  const distinctPaddedData = useMemo(
-    () => filteredTxs.filter((tx) => tx.privacy === 'distinctive' && (tx.ironwoodActions ?? 0) > 1).map(toPoint),
+  const allPoints: ScatterPoint[] = useMemo(
+    () =>
+      filteredTxs.map((tx) => ({
+        x: tx.height,
+        y: tx.amountZec,
+        txid: tx.txid,
+        privacy: tx.privacy,
+        matched: tx.matchedDenomination,
+        iwActions: tx.ironwoodActions,
+      })),
     [filteredTxs],
   );
 
@@ -1196,11 +1176,6 @@ function PrivacyScore({
       ? `${headlineStats.txPct.toFixed(0)}% of migrations use standard denominations (${headlineStats.denomCount}/${headlineStats.total} txs, ${headlineStats.volPct.toFixed(0)}% by volume).\n\nhttps://cipherscan.app/ironwood`
       : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
 
-  const handleDotClick = (point: { txid?: string }) => {
-    if (point?.txid) router.push(`/tx/${point.txid}`);
-  };
-
-
   return (
     <div id="privacy-score" className="scroll-mt-20">
       <ShareableCard
@@ -1217,36 +1192,18 @@ function PrivacyScore({
         </div>
 
         {scatter && hasData ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-mono text-muted">
-              <span>
-                <span className="rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-emerald-400">
-                  {headlineStats.txPct.toFixed(0)}% standard denomination
-                </span>
+          <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-mono text-muted">
+            <span>
+              <span className="rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-emerald-400">
+                {headlineStats.txPct.toFixed(0)}% standard denomination
               </span>
-              <span>
-                {headlineStats.denomCount} / {headlineStats.total} txs
-              </span>
-              <span>
-                <span className="text-primary">{headlineStats.volPct.toFixed(0)}%</span> by volume
-              </span>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
-              {PRIVACY_RANGES.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setRange(id)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
-                    range === id
-                      ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
-                      : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            </span>
+            <span>
+              {headlineStats.denomCount} / {headlineStats.total} txs
+            </span>
+            <span>
+              <span className="text-primary">{headlineStats.volPct.toFixed(0)}%</span> by volume
+            </span>
           </div>
         ) : null}
 
@@ -1261,6 +1218,22 @@ function PrivacyScore({
                     onClick={() => setView(id)}
                     className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
                       view === id
+                        ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
+                        : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
+                {PRIVACY_RANGES.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setRange(id)}
+                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
+                      range === id
                         ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
                         : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
                     }`}
@@ -1299,152 +1272,23 @@ function PrivacyScore({
               )
             ) : (
             <>
-            <ResponsiveContainer width="100%" height={280}>
-              <ScatterChart margin={{ top: 10, right: 56, bottom: 24, left: 12 }}>
-                <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
-                <XAxis
-                  dataKey="x"
-                  type="number"
-                  name="Block"
-                  tick={{ fontSize: 10, fill: colors.axis }}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                  domain={['dataMin', 'dataMax']}
-                  label={{
-                    value: 'Block height',
-                    position: 'insideBottom',
-                    offset: -8,
-                    style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
-                  }}
-                />
-                <YAxis
-                  dataKey="y"
-                  type="number"
-                  name="Amount"
-                  tick={{ fontSize: 10, fill: colors.axis }}
-                  scale="log"
-                  domain={[0.001, 'auto']}
-                  ticks={Y_AXIS_TICKS}
-                  tickFormatter={(v) => `${v}`}
-                  width={44}
-                  label={{
-                    value: 'Amount (ZEC)',
-                    angle: -90,
-                    position: 'insideLeft',
-                    dx: -6,
-                    style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
-                  }}
-                />
-                <ZAxis range={[40, 40]} />
-                <Tooltip
-                  cursor={{ strokeDasharray: '3 3', stroke: colors.cursor }}
-                  content={({ payload }) => {
-                    if (!payload?.length) return null;
-                    const d = payload[0].payload as {
-                      x?: number;
-                      y?: number;
-                      txid?: string;
-                      privacy?: string;
-                      matched?: number | null;
-                      iwActions?: number;
-                    };
-                    const actions = d.iwActions ?? 0;
-                    const isDenom = d.privacy === 'denominated';
-                    const isUnpadded = actions <= 1;
-                    const gradeColor = isDenom && isUnpadded
-                      ? PRIVACY_COLORS.best
-                      : isDenom
-                        ? PRIVACY_COLORS.denomPadded
-                        : isUnpadded
-                          ? PRIVACY_COLORS.distinctUnpadded
-                          : PRIVACY_COLORS.worst;
-                    const gradeLabel = isDenom && isUnpadded
-                      ? 'Best privacy'
-                      : isDenom
-                        ? 'Correct amount · padded bundle'
-                        : isUnpadded
-                          ? 'Distinctive amount · unpadded'
-                          : 'Distinctive amount · padded bundle';
-                    return (
-                      <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono">
-                        <div className="mb-1 text-muted">Block #{d.x?.toLocaleString()}</div>
-                        <div className="font-bold text-primary">{d.y?.toFixed(8)} ZEC</div>
-                        {isDenom && d.matched != null && (
-                          <div className="mt-1 text-muted">Matches {d.matched} ZEC denomination</div>
-                        )}
-                        <div className="mt-1 font-semibold" style={{ color: gradeColor }}>
-                          {gradeLabel}
-                        </div>
-                        {actions > 0 && (
-                          <div className="mt-0.5 text-muted">
-                            {actions} Ironwood action{actions !== 1 ? 's' : ''}
-                          </div>
-                        )}
-                        {d.txid ? (
-                          <Link
-                            href={`/tx/${d.txid}`}
-                            className="mt-2 inline-block text-[10px] text-cipher-cyan-bright hover:underline"
-                          >
-                            View transaction →
-                          </Link>
-                        ) : null}
-                      </div>
-                    );
-                  }}
-                />
-                {REFERENCE_DENOMS.map(({ value, label }) => (
-                  <ReferenceLine
-                    key={value}
-                    y={value}
-                    stroke={colors.denominated}
-                    strokeOpacity={0.38}
-                    strokeWidth={1.5}
-                    strokeDasharray="5 4"
-                    label={{
-                      value: label,
-                      position: 'right',
-                      fill: colors.denominated,
-                      fontSize: 9,
-                      fontFamily: 'var(--font-mono)',
-                      opacity: 0.75,
-                    }}
-                  />
-                ))}
-                <Scatter
-                  name="Best privacy"
-                  data={denomUnpaddedData}
-                  fill={PRIVACY_COLORS.best}
-                  fillOpacity={0.95}
-                  cursor="pointer"
-                  onClick={(node) => handleDotClick(node as { txid?: string })}
-                />
-                <Scatter
-                  name="Correct amount, padded"
-                  data={denomPaddedData}
-                  fill={PRIVACY_COLORS.denomPadded}
-                  fillOpacity={0.85}
-                  shape="diamond"
-                  cursor="pointer"
-                  onClick={(node) => handleDotClick(node as { txid?: string })}
-                />
-                <Scatter
-                  name="Distinctive, unpadded"
-                  data={distinctUnpaddedData}
-                  fill={PRIVACY_COLORS.distinctUnpadded}
-                  fillOpacity={0.9}
-                  cursor="pointer"
-                  onClick={(node) => handleDotClick(node as { txid?: string })}
-                />
-                <Scatter
-                  name="Distinctive, padded"
-                  data={distinctPaddedData}
-                  fill={PRIVACY_COLORS.worst}
-                  fillOpacity={0.85}
-                  shape="diamond"
-                  cursor="pointer"
-                  onClick={(node) => handleDotClick(node as { txid?: string })}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: 280 }}>
+              <ParentSize debounceTime={100}>
+                {({ width: parentWidth }) =>
+                  parentWidth > 0 ? (
+                    <PrivacyScatterChart
+                      data={allPoints}
+                      width={parentWidth}
+                      height={280}
+                      colors={colors}
+                      privacyColors={PRIVACY_COLORS}
+                      referenceLines={REFERENCE_DENOMS}
+                      onDotClick={(txid) => router.push(`/tx/${txid}`)}
+                    />
+                  ) : null
+                }
+              </ParentSize>
+            </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted">

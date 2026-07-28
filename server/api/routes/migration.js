@@ -649,8 +649,7 @@ router.get('/api/migration/scatter', async (req, res) => {
           COALESCE(ironwood_actions, 0) AS ironwood_actions
         FROM transactions
         WHERE ${MIGRATION_PREDICATE}
-        ORDER BY block_height DESC
-        LIMIT 5000
+        ORDER BY block_height ASC
       `);
 
       const txs = plotResult.rows.map(r => {
