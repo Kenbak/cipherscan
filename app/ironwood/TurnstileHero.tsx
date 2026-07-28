@@ -76,6 +76,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
   const [sceneReady, setSceneReady] = useState(false);
   const [paused, setPaused] = useState(false);
   const [lightMode, setLightMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<ScrubMode>('live');
@@ -233,18 +234,34 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     const io = new IntersectionObserver(
       ([entry]) => {
         onscreen = entry.isIntersecting;
-        setPaused(!onscreen || document.hidden);
+        setPaused(!onscreen && !document.fullscreenElement || document.hidden);
       },
       { threshold: 0.05 }
     );
     io.observe(el);
-    const onVis = () => setPaused(!onscreen || document.hidden);
+    const onVis = () => setPaused((!onscreen && !document.fullscreenElement) || document.hidden);
     document.addEventListener('visibilitychange', onVis);
     return () => {
       io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [use3D]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = cardRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await el.requestFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
@@ -304,7 +321,11 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     <div className="mt-4">
       <div
         ref={cardRef}
-        className="relative overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface"
+        className={`relative overflow-hidden bg-cipher-surface ${
+          isFullscreen
+            ? 'flex flex-col h-screen w-screen'
+            : 'rounded-2xl border border-cipher-border'
+        }`}
       >
         {/* Watermark */}
         <div
@@ -320,28 +341,51 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         <div className="relative z-[2] flex items-start justify-between gap-3 px-5 pt-4 sm:px-6">
           <h2 className="text-sm font-bold text-primary">Orchard to Ironwood Migration</h2>
           <div className="flex shrink-0 items-center gap-2" data-html2canvas-ignore="true">
+            {!isFullscreen && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  disabled={copyStatus === 'capturing'}
+                  className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                >
+                  {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  disabled={copyStatus === 'capturing'}
+                  className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                >
+                  Share to X
+                </button>
+              </>
+            )}
             <button
               type="button"
-              onClick={handleCopy}
-              disabled={copyStatus === 'capturing'}
-              className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              onClick={toggleFullscreen}
+              className="rounded-md border border-cipher-border/50 p-1 text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary"
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
             >
-              {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
-            </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={copyStatus === 'capturing'}
-              className="rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
-            >
-              Share to X
+              {isFullscreen ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
 
         {/* 3D scene */}
-        <div ref={containerRef} className="relative" style={{ background: 'var(--turnstile-bg)' }}>
-          <div className="h-64 sm:h-80">
+        <div ref={containerRef} className={`relative ${isFullscreen ? 'flex-1' : ''}`} style={{ background: 'var(--turnstile-bg)' }}>
+          <div className={isFullscreen ? 'h-full' : 'h-64 sm:h-80'}>
             <TurnstileScene
               activated={activated}
               migratedPct={sceneState.migratedPct}
