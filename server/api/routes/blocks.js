@@ -680,4 +680,39 @@ router.get('/api/search/anchor/:root', async (req, res) => {
   }
 });
 
+// Get archived raw block hex by hash or height
+router.get('/api/block-archive/:hashOrHeight', async (req, res) => {
+  try {
+    const param = req.params.hashOrHeight;
+    const isHeight = /^\d+$/.test(param);
+
+    const result = await pool.query(
+      `SELECT height, hash, raw_hex, reason, captured_at
+       FROM block_archive
+       WHERE ${isHeight ? 'height = $1' : 'hash = $1'}
+       ORDER BY captured_at DESC`,
+      [isHeight ? parseInt(param, 10) : param.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No archived block found' });
+    }
+
+    res.json({
+      success: true,
+      blocks: result.rows.map(r => ({
+        height: Number(r.height),
+        hash: r.hash,
+        rawHex: r.raw_hex,
+        reason: r.reason,
+        capturedAt: r.captured_at,
+        sizeBytes: r.raw_hex.length / 2,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching block archive:', error);
+    res.status(500).json({ error: 'Failed to fetch archived block' });
+  }
+});
+
 module.exports = router;
