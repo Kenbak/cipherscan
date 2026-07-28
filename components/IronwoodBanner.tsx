@@ -60,6 +60,7 @@ export function IronwoodBanner() {
   const timeRemaining = state.blocksRemaining * BLOCK_TIME_SECONDS;
   const days = Math.floor(timeRemaining / 86400);
   const hours = Math.floor((timeRemaining % 86400) / 3600);
+  const minutes = Math.floor((timeRemaining % 3600) / 60);
 
   return (
     <Link
@@ -96,7 +97,7 @@ export function IronwoodBanner() {
             <span className="text-[11px] font-mono text-muted group-hover:text-secondary transition-colors">
               <span className="text-cipher-yellow font-medium">Ironwood</span>
               <span className="text-muted/60 mx-1.5">·</span>
-              {days > 0 ? `${days}d ${hours}h` : `${hours}h`} remaining
+              {days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`} remaining
               <span className="hidden sm:inline text-muted/40 ml-1.5">
                 ({state.blocksRemaining.toLocaleString()} blocks)
               </span>

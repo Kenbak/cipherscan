@@ -424,6 +424,14 @@ function MetricsRow({
             {targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false })} UTC
           </div>
 
+          {/* Brand footer */}
+          <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-cipher-border/20 pt-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+            <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">CIPHERSCAN</span>
+            <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+          </div>
+
         </div>
       </div>
     );
