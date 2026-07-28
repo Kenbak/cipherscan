@@ -420,6 +420,8 @@ function MetricsRow({
           {/* ETA */}
           <div className="text-center mt-4 text-sm font-mono text-secondary">
             est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            <span className="text-muted/60 mx-1.5">·</span>
+            {targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false })} UTC
           </div>
 
         </div>

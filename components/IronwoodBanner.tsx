@@ -44,6 +44,8 @@ export function IronwoodBanner() {
       } catch { /* silent */ }
     }
     fetchState();
+    const interval = setInterval(fetchState, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   if (isCrosslink || dismissed || !state) return null;
