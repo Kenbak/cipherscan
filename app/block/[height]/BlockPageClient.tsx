@@ -1053,6 +1053,15 @@ export default function BlockPageClient({
                 const outputCount = tx.vout?.length || 0;
                 const txSize = tx.size || 0;
 
+                // Derive source/destination pools from value balances for cross-pool txs
+                const vbSap = parseInt(tx.value_balance_sapling || 0);
+                const vbOrc = parseInt(tx.value_balance_orchard || 0);
+                const vbIrn = parseInt(tx.value_balance_ironwood || 0);
+                const sourcePool = vbOrc > 0 ? 'Orchard' : vbSap > 0 ? 'Sapling' : vbIrn > 0 ? 'Ironwood' : null;
+                const destPool = vbIrn < 0 ? 'Ironwood' : vbOrc < 0 ? 'Orchard' : vbSap < 0 ? 'Sapling' : null;
+                const poolColorClass = (pool: string | null) =>
+                  pool === 'Ironwood' ? 'text-cipher-yellow' : pool === 'Orchard' ? 'text-cipher-purple' : 'text-cipher-cyan';
+
                 return (
                   <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
                     <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
@@ -1091,14 +1100,17 @@ export default function BlockPageClient({
                           <span className="text-xs text-muted font-mono">Block Reward</span>
                         ) : fromAddress ? (
                           <HashLink value={fromAddress} copy={false} linkClassName="text-xs text-secondary font-mono truncate block" />
-                        ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
-                          </span>
-                        ) : (
+                        ) : isShielded ? (() => {
+                          const label = sourcePool || (tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling');
+                          return (
+                            <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                              {label}
+                            </span>
+                          );
+                        })() : (
                           <span className="text-xs text-muted font-mono">—</span>
                         )}
                       </div>
@@ -1107,14 +1119,17 @@ export default function BlockPageClient({
                       <div className="col-span-2">
                         {toAddress ? (
                           <HashLink value={toAddress} copy={false} linkClassName="text-xs text-secondary font-mono truncate block" />
-                        ) : isShielded ? (
-                          <span className={`text-xs font-mono flex items-center gap-1 ${tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`}>
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                            {tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling'}
-                          </span>
-                        ) : (
+                        ) : isShielded ? (() => {
+                          const label = destPool || (tx.has_ironwood ? 'Ironwood' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'Orchard' : 'Sapling');
+                          return (
+                            <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                              {label}
+                            </span>
+                          );
+                        })() : (
                           <span className="text-xs text-muted font-mono">—</span>
                         )}
                       </div>
