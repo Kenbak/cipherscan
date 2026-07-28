@@ -694,4 +694,64 @@ router.get('/api/migration/scatter', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/migration/tiers — volume distribution by size tier over time
+// ---------------------------------------------------------------------------
+const TIER_BOUNDARIES = [1e8, 10e8, 100e8, 1000e8]; // 1, 10, 100, 1000 ZEC in zat
+const TIER_LABELS = ['Under 1 ZEC', '1–10 ZEC', '10–100 ZEC', '100–1K ZEC', '1K+ ZEC'];
+
+function classifyTier(zat) {
+  for (let i = 0; i < TIER_BOUNDARIES.length; i++) {
+    if (zat < TIER_BOUNDARIES[i]) return i;
+  }
+  return TIER_BOUNDARIES.length;
+}
+
+router.get('/api/migration/tiers', async (req, res) => {
+  try {
+    const network = resolveNetwork();
+    const data = await cached(`zcash:migration:tiers:${network}`, 30, async () => {
+      const result = await pool.query(`
+        SELECT
+          block_time,
+          block_height,
+          ABS(value_balance_ironwood) AS amount_zat
+        FROM transactions
+        WHERE ${MIGRATION_PREDICATE}
+        ORDER BY block_height ASC
+      `);
+
+      const txs = result.rows.map(r => ({
+        t: Number(r.block_time),
+        h: Number(r.block_height),
+        a: Number(r.amount_zat),
+      }));
+
+      const tiers = TIER_LABELS.map((label, i) => {
+        const tierTxs = txs.filter(tx => classifyTier(tx.a) === i);
+        const volume = tierTxs.reduce((s, tx) => s + tx.a, 0);
+        return { label, count: tierTxs.length, volumeZat: volume };
+      });
+
+      const totalVolume = tiers.reduce((s, t) => s + t.volumeZat, 0);
+
+      return {
+        network,
+        tiers: tiers.map(t => ({
+          ...t,
+          volumePct: totalVolume > 0 ? (t.volumeZat / totalVolume) * 100 : 0,
+        })),
+        totalTxs: txs.length,
+        totalVolumeZat: totalVolume,
+        txs,
+      };
+    });
+
+    res.json({ success: true, ...data });
+  } catch (err) {
+    console.error('migration/tiers error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
