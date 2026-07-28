@@ -329,6 +329,18 @@ router.get('/api/migration/overview', async (req, res) => {
         if (hoursElapsed > 0) velocityZatPerHour = Math.round(totalMigratedZat / hoursElapsed);
       }
 
+      let migratedTodayZat = 0;
+      try {
+        const todayResult = await pool.query(`
+          SELECT COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS today_zat
+          FROM transactions
+          WHERE has_ironwood = true
+            AND value_balance_ironwood < 0
+            AND block_time >= EXTRACT(EPOCH FROM DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC'))
+        `);
+        migratedTodayZat = Number(todayResult.rows[0]?.today_zat) || 0;
+      } catch {}
+
       const supplyAudit = buildSupplyAudit({
         ironwoodInZat,
         ironwoodOutZat,
@@ -366,6 +378,7 @@ router.get('/api/migration/overview', async (req, res) => {
         },
         migration: {
           totalMigratedZat,
+          migratedTodayZat,
           txCount: migrationTxCount,
           firstHeight: firstMigrationHeight,
           lastHeight: lastMigrationHeight,
@@ -420,7 +433,7 @@ router.get('/api/migration/overview', async (req, res) => {
 router.get('/api/migration/cohorts', async (req, res) => {
   try {
     const network = resolveNetwork();
-    const data = await cached(`zcash:migration:cohorts:v2:${network}`, 30, async () => {
+    const data = await cached(`zcash:migration:cohorts:v2:${network}`, 10, async () => {
       // 1) Migration cohorts: volume and anonymity per boundary (strict Orchard->Ironwood)
       let migrationRows = [];
       try {
@@ -531,7 +544,7 @@ router.get('/api/migration/cohorts', async (req, res) => {
 router.get('/api/migration/denominations', async (req, res) => {
   try {
     const network = resolveNetwork();
-    const data = await cached(`zcash:migration:denominations:${network}`, 30, async () => {
+    const data = await cached(`zcash:migration:denominations:${network}`, 10, async () => {
       let rows = [];
       try {
         // Bin on the integer power of ten of the ZEC value. FLOOR(LOG10(zat/1e8))

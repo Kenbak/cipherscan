@@ -55,6 +55,7 @@ interface Overview {
   };
   migration: {
     totalMigratedZat: number;
+    migratedTodayZat?: number;
     txCount: number;
     firstHeight: number | null;
     lastHeight: number | null;
@@ -444,6 +445,8 @@ function MetricsRow({
   const txValue = overview?.migration?.txCount
     ? overview.migration.txCount.toLocaleString()
     : '—';
+  const todayZat = overview?.migration?.migratedTodayZat ?? 0;
+  const todayValue = todayZat > 0 ? `+${fmtValue(todayZat, currencyMode, zecPrice)}` : '—';
 
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
@@ -451,12 +454,19 @@ function MetricsRow({
         <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
       </div>
-      <div className="grid grid-cols-2 divide-y divide-cipher-border-subtle sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+      <div className="grid grid-cols-2 divide-y divide-cipher-border-subtle sm:grid-cols-5 sm:divide-x sm:divide-y-0">
         <KpiCell
           label="Since activation"
           value={`${blocksSince.toLocaleString()} blocks`}
           hint={`Block #${activationHeight.toLocaleString()}`}
           href={`/block/${activationHeight}`}
+        />
+        <KpiCell
+          label="Migrated today"
+          value={todayValue}
+          hint="Into Ironwood pool"
+          scrollTo="#supply"
+          toneColor={colors.ironwoodPool}
         />
         <KpiCell
           label="Orchard → Ironwood"
