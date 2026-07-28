@@ -1140,9 +1140,9 @@ function PrivacyScore({
 
   const PRIVACY_COLORS = {
     best: '#4ade80',
-    denomPadded: '#eab308',
+    denomPadded: '#fbbf24',
     distinctUnpadded: '#f97316',
-    worst: '#f87171',
+    worst: '#dc2626',
   };
 
   const allPoints: ScatterPoint[] = useMemo(
