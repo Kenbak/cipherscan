@@ -1191,6 +1191,28 @@ function PrivacyScore({
     if (point?.txid) router.push(`/tx/${point.txid}`);
   };
 
+  const PaddingAwareDot = useCallback(
+    (props: { cx?: number; cy?: number; fill?: string; payload?: { iwActions?: number } }) => {
+      const { cx = 0, cy = 0, fill = '#fff' } = props;
+      const actions = props.payload?.iwActions ?? 0;
+      if (actions > 1) {
+        const s = 5;
+        return (
+          <path
+            d={`M${cx},${cy - s} L${cx + s},${cy} L${cx},${cy + s} L${cx - s},${cy} Z`}
+            fill={fill}
+            fillOpacity={0.9}
+            stroke={fill}
+            strokeWidth={0.5}
+            cursor="pointer"
+          />
+        );
+      }
+      return <circle cx={cx} cy={cy} r={4.5} fill={fill} fillOpacity={0.95} stroke="#fff" strokeWidth={1.5} cursor="pointer" />;
+    },
+    [],
+  );
+
   return (
     <div id="privacy-score" className="scroll-mt-20">
       <ShareableCard
@@ -1391,6 +1413,7 @@ function PrivacyScore({
                   data={denominatedData}
                   fill={colors.denominated}
                   fillOpacity={0.9}
+                  shape={<PaddingAwareDot />}
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
@@ -1399,8 +1422,7 @@ function PrivacyScore({
                   data={distinctiveData}
                   fill={colors.distinctive}
                   fillOpacity={0.85}
-                  stroke={colors.distinctive}
-                  strokeOpacity={1}
+                  shape={<PaddingAwareDot />}
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
@@ -1417,8 +1439,13 @@ function PrivacyScore({
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
                   Distinctive amount
                 </span>
-                <span className="flex items-center gap-1.5 text-muted/60">
-                  Hover for Ironwood action count
+                <span className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={colors.denominated} /></svg>
+                  Padded bundle
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full border border-white/60" style={{ backgroundColor: colors.denominated }} />
+                  Unpadded
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
