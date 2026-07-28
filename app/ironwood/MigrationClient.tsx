@@ -1077,7 +1077,7 @@ type PrivacyRange = '7d' | '30d' | 'all';
 const PRIVACY_RANGES: { id: PrivacyRange; label: string }[] = [
   { id: '7d', label: 'Last 7 days' },
   { id: '30d', label: 'Last 30 days' },
-  { id: 'all', label: 'All (500)' },
+  { id: 'all', label: 'All' },
 ];
 
 type PrivacyView = 'scatter' | 'denoms';
@@ -1094,7 +1094,6 @@ const REFERENCE_DENOMS = [
   { value: 0.1, label: '0.1 ZEC' },
   { value: 1, label: '1 ZEC' },
   { value: 10, label: '10 ZEC' },
-  { value: 100, label: '100 ZEC' },
   { value: 100, label: '100 ZEC' },
 ];
 

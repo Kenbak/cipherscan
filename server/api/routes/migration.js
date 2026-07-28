@@ -638,7 +638,6 @@ router.get('/api/migration/scatter', async (req, res) => {
         }
       });
 
-      // Most recent 500 for scatter plot visualization
       const plotResult = await pool.query(`
         SELECT
           txid,
@@ -651,7 +650,7 @@ router.get('/api/migration/scatter', async (req, res) => {
         FROM transactions
         WHERE ${MIGRATION_PREDICATE}
         ORDER BY block_height DESC
-        LIMIT 500
+        LIMIT 5000
       `);
 
       const txs = plotResult.rows.map(r => {
