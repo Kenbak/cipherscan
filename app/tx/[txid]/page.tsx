@@ -738,8 +738,14 @@ export default function TransactionPage() {
   const isShielding = hasTransparentInputs && !hasTransparentOutputs && valueBalance < 0;
   const isUnshielding = !hasTransparentInputs && hasTransparentOutputs && valueBalance > 0;
 
-  const isMigration = hasOrchard && hasIronwood && !hasTransparent &&
-    (data.valueBalanceOrchard || 0) !== 0 && (data.valueBalanceIronwood || 0) !== 0;
+  // Cross-pool migration: any shielded pool sending value into Ironwood
+  const migrationSourcePool =
+    hasIronwood && (data.valueBalanceIronwood || 0) !== 0 && !hasTransparent
+      ? (data.valueBalanceOrchard || 0) > 0 ? 'Orchard'
+        : (data.valueBalanceSapling || 0) > 0 ? 'Sapling'
+        : null
+      : null;
+  const isMigration = migrationSourcePool !== null;
 
   const txType =
     isCoinbase ? 'COINBASE' :
@@ -815,7 +821,7 @@ export default function TransactionPage() {
 
     if (txType === 'MIGRATION') {
       const ironwoodAmt = Math.abs(data.valueBalanceIronwood || 0);
-      return `Orchard → Ironwood pool migration. ${ironwoodAmt.toFixed(4)} ${CURRENCY} crosses the turnstile into the formally-verified Ironwood pool. Senders and recipients remain shielded.`;
+      return `${migrationSourcePool} → Ironwood pool migration. ${ironwoodAmt.toFixed(4)} ${CURRENCY} crosses the turnstile into the formally-verified Ironwood pool. Senders and recipients remain shielded.`;
     }
 
     if (txType === 'IRONWOOD') {
@@ -975,9 +981,10 @@ export default function TransactionPage() {
 
     if (txType === 'MIGRATION') {
       const ironwoodAmt = Math.abs(data.valueBalanceIronwood || 0);
+      const srcColor = migrationSourcePool === 'Sapling' ? 'cyan' : 'purple';
       return (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
-          <Badge color="purple" icon={<Icons.Shield />}>Orchard</Badge>
+          <Badge color={srcColor} icon={<Icons.Shield />}>{migrationSourcePool}</Badge>
           <FlowArrow /><FlowArrowDown />
           <span className="text-sm font-mono font-bold text-cipher-yellow">{ironwoodAmt.toFixed(4)} {CURRENCY}</span>
           <FlowArrow /><FlowArrowDown />
@@ -1242,13 +1249,13 @@ export default function TransactionPage() {
                 (txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'IRONWOOD')
                   ? "Transaction amount is private and encrypted"
                   : txType === 'MIGRATION'
-                    ? "Amount crossing from Orchard to Ironwood pool"
+                    ? `Amount crossing from ${migrationSourcePool} to Ironwood pool`
                     : "Total amount transferred"
               } value={
                 txType === 'MIGRATION' ? (
                   <span className="font-semibold text-cipher-yellow">
                     {Math.abs(data.valueBalanceIronwood || 0).toFixed(4)} {CURRENCY}
-                    <span className="text-xs text-muted font-normal ml-2">Orchard → Ironwood</span>
+                    <span className="text-xs text-muted font-normal ml-2">{migrationSourcePool} → Ironwood</span>
                   </span>
                 ) :
                 txType === 'IRONWOOD' ? (
