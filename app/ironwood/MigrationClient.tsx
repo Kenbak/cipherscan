@@ -1137,53 +1137,39 @@ function PrivacyScore({
     };
   }, [scatter]);
 
-  const PADDED_COLOR = '#22d3ee';
+  const PRIVACY_COLORS = {
+    best: '#4ade80',
+    denomPadded: '#eab308',
+    distinctUnpadded: '#f97316',
+    worst: '#f87171',
+  };
 
-  const denominatedData = useMemo(
-    () =>
-      filteredTxs
-        .filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) <= 1)
-        .map((tx) => ({
-          x: tx.height,
-          y: tx.amountZec,
-          txid: tx.txid,
-          privacy: tx.privacy,
-          matched: tx.matchedDenomination,
-          iwActions: tx.ironwoodActions,
-          category: 'clean' as const,
-        })),
+  const toPoint = (tx: ScatterTx) => ({
+    x: tx.height,
+    y: tx.amountZec,
+    txid: tx.txid,
+    privacy: tx.privacy,
+    matched: tx.matchedDenomination,
+    iwActions: tx.ironwoodActions,
+  });
+
+  const denomUnpaddedData = useMemo(
+    () => filteredTxs.filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) <= 1).map(toPoint),
     [filteredTxs],
   );
 
-  const denominatedPaddedData = useMemo(
-    () =>
-      filteredTxs
-        .filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) > 1)
-        .map((tx) => ({
-          x: tx.height,
-          y: tx.amountZec,
-          txid: tx.txid,
-          privacy: tx.privacy,
-          matched: tx.matchedDenomination,
-          iwActions: tx.ironwoodActions,
-          category: 'padded' as const,
-        })),
+  const denomPaddedData = useMemo(
+    () => filteredTxs.filter((tx) => tx.privacy === 'denominated' && (tx.ironwoodActions ?? 0) > 1).map(toPoint),
     [filteredTxs],
   );
 
-  const distinctiveData = useMemo(
-    () =>
-      filteredTxs
-        .filter((tx) => tx.privacy === 'distinctive')
-        .map((tx) => ({
-          x: tx.height,
-          y: tx.amountZec,
-          txid: tx.txid,
-          privacy: tx.privacy,
-          matched: tx.matchedDenomination,
-          iwActions: tx.ironwoodActions,
-          category: 'distinctive' as const,
-        })),
+  const distinctUnpaddedData = useMemo(
+    () => filteredTxs.filter((tx) => tx.privacy === 'distinctive' && (tx.ironwoodActions ?? 0) <= 1).map(toPoint),
+    [filteredTxs],
+  );
+
+  const distinctPaddedData = useMemo(
+    () => filteredTxs.filter((tx) => tx.privacy === 'distinctive' && (tx.ironwoodActions ?? 0) > 1).map(toPoint),
     [filteredTxs],
   );
 
@@ -1357,28 +1343,36 @@ function PrivacyScore({
                       privacy?: string;
                       matched?: number | null;
                       iwActions?: number;
-                      category?: string;
                     };
                     const actions = d.iwActions ?? 0;
-                    const isPaddedDenom = d.privacy === 'denominated' && actions > 1;
-                    const labelColor = isPaddedDenom
-                      ? '#22d3ee'
-                      : d.privacy === 'denominated'
-                        ? colors.denominated
-                        : colors.distinctive;
+                    const isDenom = d.privacy === 'denominated';
+                    const isUnpadded = actions <= 1;
+                    const gradeColor = isDenom && isUnpadded
+                      ? PRIVACY_COLORS.best
+                      : isDenom
+                        ? PRIVACY_COLORS.denomPadded
+                        : isUnpadded
+                          ? PRIVACY_COLORS.distinctUnpadded
+                          : PRIVACY_COLORS.worst;
+                    const gradeLabel = isDenom && isUnpadded
+                      ? 'Best privacy'
+                      : isDenom
+                        ? 'Correct amount · padded bundle'
+                        : isUnpadded
+                          ? 'Distinctive amount · unpadded'
+                          : 'Distinctive amount · padded bundle';
                     return (
                       <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono">
                         <div className="mb-1 text-muted">Block #{d.x?.toLocaleString()}</div>
                         <div className="font-bold text-primary">{d.y?.toFixed(8)} ZEC</div>
-                        <div className="mt-1" style={{ color: labelColor }}>
-                          {isPaddedDenom
-                            ? `${d.matched} ZEC denom · ${actions} actions (padded)`
-                            : d.privacy === 'denominated'
-                              ? `Matches ${d.matched} ZEC denomination`
-                              : 'Distinctive amount'}
+                        {isDenom && d.matched != null && (
+                          <div className="mt-1 text-muted">Matches {d.matched} ZEC denomination</div>
+                        )}
+                        <div className="mt-1 font-semibold" style={{ color: gradeColor }}>
+                          {gradeLabel}
                         </div>
-                        {!isPaddedDenom && actions > 0 && (
-                          <div className="mt-1 text-muted">
+                        {actions > 0 && (
+                          <div className="mt-0.5 text-muted">
                             {actions} Ironwood action{actions !== 1 ? 's' : ''}
                           </div>
                         )}
@@ -1413,29 +1407,36 @@ function PrivacyScore({
                   />
                 ))}
                 <Scatter
-                  name="Standard denomination"
-                  data={denominatedData}
-                  fill={colors.denominated}
+                  name="Best privacy"
+                  data={denomUnpaddedData}
+                  fill={PRIVACY_COLORS.best}
                   fillOpacity={0.95}
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
                 <Scatter
-                  name="Standard denom, padded"
-                  data={denominatedPaddedData}
-                  fill={PADDED_COLOR}
+                  name="Correct amount, padded"
+                  data={denomPaddedData}
+                  fill={PRIVACY_COLORS.denomPadded}
                   fillOpacity={0.85}
                   shape="diamond"
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
                 <Scatter
-                  name="Distinctive amount"
-                  data={distinctiveData}
-                  fill={colors.distinctive}
+                  name="Distinctive, unpadded"
+                  data={distinctUnpaddedData}
+                  fill={PRIVACY_COLORS.distinctUnpadded}
+                  fillOpacity={0.9}
+                  cursor="pointer"
+                  onClick={(node) => handleDotClick(node as { txid?: string })}
+                />
+                <Scatter
+                  name="Distinctive, padded"
+                  data={distinctPaddedData}
+                  fill={PRIVACY_COLORS.worst}
                   fillOpacity={0.85}
-                  stroke={colors.distinctive}
-                  strokeOpacity={1}
+                  shape="diamond"
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
@@ -1445,16 +1446,20 @@ function PrivacyScore({
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted">
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.denominated }} />
-                  Standard denomination
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.best }} />
+                  Best privacy
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill="#22d3ee" /></svg>
-                  Correct amount, padded bundle
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={PRIVACY_COLORS.denomPadded} /></svg>
+                  Correct amount, padded
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
-                  Distinctive amount
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.distinctUnpadded }} />
+                  Distinctive, unpadded
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={PRIVACY_COLORS.worst} /></svg>
+                  Distinctive, padded
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
