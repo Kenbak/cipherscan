@@ -1140,7 +1140,7 @@ function PrivacyScore({
   const denominatedData = useMemo(
     () =>
       filteredTxs
-        .filter((tx) => tx.privacy === 'denominated' && !tx.paddedBundle)
+        .filter((tx) => tx.privacy === 'denominated')
         .map((tx) => ({
           x: tx.height,
           y: tx.amountZec,
@@ -1155,22 +1155,7 @@ function PrivacyScore({
   const distinctiveData = useMemo(
     () =>
       filteredTxs
-        .filter((tx) => tx.privacy === 'distinctive' && !tx.paddedBundle)
-        .map((tx) => ({
-          x: tx.height,
-          y: tx.amountZec,
-          txid: tx.txid,
-          privacy: tx.privacy,
-          matched: tx.matchedDenomination,
-          iwActions: tx.ironwoodActions,
-        })),
-    [filteredTxs],
-  );
-
-  const paddedData = useMemo(
-    () =>
-      filteredTxs
-        .filter((tx) => tx.paddedBundle)
+        .filter((tx) => tx.privacy === 'distinctive')
         .map((tx) => ({
           x: tx.height,
           y: tx.amountZec,
@@ -1352,21 +1337,25 @@ function PrivacyScore({
                       matched?: number | null;
                       iwActions?: number;
                     };
-                    const isPadded = (d.iwActions ?? 0) > 1;
+                    const actions = d.iwActions ?? 0;
                     return (
                       <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono">
                         <div className="mb-1 text-muted">Block #{d.x?.toLocaleString()}</div>
                         <div className="font-bold text-primary">{d.y?.toFixed(8)} ZEC</div>
                         <div
                           className="mt-1"
-                          style={{ color: isPadded ? '#f97316' : d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}
+                          style={{ color: d.privacy === 'denominated' ? colors.denominated : colors.distinctive }}
                         >
-                          {isPadded
-                            ? `${d.iwActions} Ironwood actions (expected 1)`
-                            : d.privacy === 'denominated'
-                              ? `Matches ${d.matched} ZEC denomination`
-                              : 'Distinctive amount'}
+                          {d.privacy === 'denominated'
+                            ? `Matches ${d.matched} ZEC denomination`
+                            : 'Distinctive amount'}
                         </div>
+                        {actions > 0 && (
+                          <div className="mt-1" style={{ color: actions === 1 ? '#22c55e' : '#f97316' }}>
+                            {actions} Ironwood action{actions !== 1 ? 's' : ''}
+                            {actions === 1 ? ' (unpadded)' : ' (padded)'}
+                          </div>
+                        )}
                         {d.txid ? (
                           <Link
                             href={`/tx/${d.txid}`}
@@ -1415,17 +1404,6 @@ function PrivacyScore({
                   cursor="pointer"
                   onClick={(node) => handleDotClick(node as { txid?: string })}
                 />
-                <Scatter
-                  name="Padded bundle"
-                  data={paddedData}
-                  fill="#f97316"
-                  fillOpacity={0.9}
-                  stroke="#f97316"
-                  strokeWidth={1.5}
-                  shape="diamond"
-                  cursor="pointer"
-                  onClick={(node) => handleDotClick(node as { txid?: string })}
-                />
               </ScatterChart>
             </ResponsiveContainer>
 
@@ -1439,9 +1417,8 @@ function PrivacyScore({
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.distinctive }} />
                   Distinctive amount
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rotate-45" style={{ backgroundColor: '#f97316', width: 8, height: 8 }} />
-                  Padded bundle (actions &gt; 1)
+                <span className="flex items-center gap-1.5 text-muted/60">
+                  Hover for Ironwood action count
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
