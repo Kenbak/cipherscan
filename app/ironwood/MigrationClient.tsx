@@ -309,7 +309,7 @@ export function MigrationClient({
               )}
               <MigrationActivity cohorts={cohorts} activated={activated} colors={colors} tipHeight={knownTip} />
               <PrivacyScore scatter={scatter} activated={activated} colors={colors} tipHeight={knownTip} />
-              <MigrationTiers activated={activated} colors={colors} tipHeight={knownTip} />
+              <MigrationTiers activated={activated} colors={colors} tipHeight={knownTip} currencyMode={currencyMode} zecPrice={zecPrice} />
               <WalletReadiness />
               <Resources />
             </>
@@ -1509,10 +1509,14 @@ function MigrationTiers({
   activated,
   colors,
   tipHeight,
+  currencyMode = 'zec',
+  zecPrice = null,
 }: {
   activated: boolean;
   colors: ReturnType<typeof getChartColors>;
   tipHeight: number;
+  currencyMode?: CurrencyMode;
+  zecPrice?: number | null;
 }) {
   const [allTxs, setAllTxs] = useState<TierTx[]>([]);
   const [mode, setMode] = useState<'live' | 'scrub'>('live');
@@ -1546,6 +1550,7 @@ function MigrationTiers({
     return TIER_LABELS.map((label, i) => ({
       label,
       count: counts[i],
+      volumeZat: volumes[i],
       volumeZec: volumes[i] / 1e8,
       volumePct: totalVol > 0 ? (volumes[i] / totalVol) * 100 : 0,
       fill: TIER_COLORS[i],
@@ -1553,7 +1558,8 @@ function MigrationTiers({
   }, [visibleTxs]);
 
   const totalTxs = visibleTxs.length;
-  const totalVol = tierData.reduce((s, t) => s + t.volumeZec, 0);
+  const totalVolZat = tierData.reduce((s, t) => s + t.volumeZat, 0);
+  const totalVol = totalVolZat / 1e8;
   const maxVol = Math.max(...tierData.map(t => t.volumeZec));
   const scrubDate = useMemo(() => {
     if (mode === 'live' || !visibleTxs.length) return null;
@@ -1574,23 +1580,28 @@ function MigrationTiers({
         fileName="cipherscan-migration-tiers.png"
       >
         <p className="text-xs text-muted mb-5">
-          Migration volume by transaction size. Drag the scrubber to see how the distribution evolved over time.
+          Orchard → Ironwood migration volume by transaction size. Drag the scrubber to see how the distribution evolved.
         </p>
 
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 mb-4 text-[10px] font-mono text-muted">
           <span><span className="text-primary font-bold text-sm">{totalTxs.toLocaleString()}</span> transactions</span>
-          <span><span className="text-primary font-bold text-sm">{totalVol >= 1000 ? Math.round(totalVol).toLocaleString() : totalVol.toLocaleString(undefined, { maximumFractionDigits: 1 })}</span> ZEC total</span>
+          <span><span className="text-primary font-bold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
         </div>
 
         <div className="grid grid-cols-5 gap-2 sm:gap-3">
           {tierData.map((tier, i) => {
             const barPct = maxVol > 0 ? (tier.volumeZec / maxVol) * 100 : 0;
+            const pctStr = tier.volumePct < 0.1 && tier.volumePct > 0
+              ? `${tier.volumePct.toFixed(2)}%`
+              : tier.volumePct < 1 && tier.volumePct > 0
+                ? `${tier.volumePct.toFixed(1)}%`
+                : `${Math.round(tier.volumePct)}%`;
             return (
               <div key={tier.label} className="flex flex-col items-center">
                 <div className="text-xs font-mono font-bold text-primary mb-1">
-                  {tier.volumeZec >= 1000 ? `${Math.round(tier.volumeZec).toLocaleString()}` : tier.volumeZec.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                  {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                 </div>
-                <div className="text-[9px] font-mono text-muted mb-2">{tier.volumePct.toFixed(0)}%</div>
+                <div className="text-[9px] font-mono text-muted mb-2">{pctStr}</div>
                 <div className="relative w-full flex justify-center" style={{ height: 140 }}>
                   <div className="relative w-8 sm:w-10 h-full rounded-t-md overflow-hidden" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
                     <div
@@ -1599,7 +1610,7 @@ function MigrationTiers({
                     />
                   </div>
                 </div>
-                <div className="mt-2 text-[10px] font-mono text-muted text-center">{tier.label}</div>
+                <div className="mt-2 text-[10px] font-mono text-muted text-center">{tier.label} ZEC</div>
                 <div className="text-[10px] font-mono text-muted/60">{tier.count} txs</div>
               </div>
             );
@@ -1607,7 +1618,7 @@ function MigrationTiers({
         </div>
 
         <div className="text-center text-[10px] font-mono text-muted mt-3 mb-4">
-          ZEC volume by migration size · {totalTxs.toLocaleString()} total txs
+          Orchard → Ironwood volume by migration size · {totalTxs.toLocaleString()} total txs
         </div>
 
         {/* Scrubber */}
