@@ -596,7 +596,10 @@ function labelForPower(power) {
 // Each tx is tagged as "denominated" (common power-of-ten amount within 0.1%
 // tolerance) or "distinctive" (unique amount that weakens privacy).
 
-const COMMON_DENOMINATIONS = [0.001, 0.01, 0.1, 1, 10, 100, 1000];
+const COMMON_DENOMINATIONS = [
+  0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5,
+  1, 2, 5, 10, 20, 25, 50, 100, 250, 500, 1000, 5000, 10000,
+];
 const DENOM_TOLERANCE = 0.001; // 0.1% tolerance for fee rounding
 
 function classifyAmount(zec) {
@@ -643,7 +646,8 @@ router.get('/api/migration/scatter', async (req, res) => {
           block_time,
           ABS(value_balance_ironwood) AS ironwood_in_zat,
           value_balance_orchard AS orchard_out_zat,
-          is_coinbase
+          is_coinbase,
+          COALESCE(ironwood_actions, 0) AS ironwood_actions
         FROM transactions
         WHERE ${MIGRATION_PREDICATE}
         ORDER BY block_height DESC
@@ -654,6 +658,7 @@ router.get('/api/migration/scatter', async (req, res) => {
         const zat = Number(r.ironwood_in_zat);
         const zec = zat / 1e8;
         const classification = classifyAmount(zec);
+        const iwActions = Number(r.ironwood_actions) || 0;
         return {
           txid: r.txid,
           height: Number(r.block_height),
@@ -662,6 +667,8 @@ router.get('/api/migration/scatter', async (req, res) => {
           amountZec: zec,
           orchardOutZat: Number(r.orchard_out_zat) || 0,
           isCoinbase: r.is_coinbase,
+          ironwoodActions: iwActions,
+          paddedBundle: iwActions > 1,
           privacy: classification.privacy,
           matchedDenomination: classification.denomination,
         };
