@@ -468,7 +468,6 @@ export default function WalletsClient() {
 // ============================================================================
 
 const WALLET_COLORS: Record<string, string> = {
-  'Vizor': '#a78bfa',
   'Zkool (historical)': '#F4B728',
   'Brave': '#f59e0b',
   'librustzcash family (ZODL/Edge/etc.)': '#56D4C8',
@@ -673,14 +672,10 @@ function MethodologyAccordion() {
               expiry_height delta from block_height, nLockTime value, and fee-per-action rate.
             </p>
             <p>
-              <strong>Overlap handling:</strong> Wallets using librustzcash (ZODL, Edge, Unstoppable)
-              share the same on-chain fingerprint (expiry +40, locktime 0, 2-action minimum). The
-              &quot;ZODL / Edge / Unstoppable&quot; bucket is the expiry+40 count minus uniquely-identified
-              Vizor transactions (which also use librustzcash but pad to 4 actions).
-            </p>
-            <p>
-              <strong>Vizor detection:</strong> Vizor always creates exactly 4 Orchard actions with
-              no transparent I/O — a strong and unique signal verified from source code review.
+              <strong>Overlap handling:</strong> Wallets using librustzcash (ZODL, Edge, Unstoppable,
+              Vizor) share the same on-chain fingerprint (expiry +40, locktime 0, 2-action padding).
+              They are grouped as a single &quot;librustzcash family&quot; bucket because they are
+              indistinguishable from one another on-chain.
             </p>
             <p>
               <strong>Brave detection:</strong> Brave&apos;s own C++ implementation uses the old
@@ -728,9 +723,9 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
     identified += braveLocktime;
   }
 
-  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool
+  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool — all indistinguishable on-chain
   if (familyExpiry > 0) {
-    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
+    walletMap.push({ name: 'librustzcash family (ZODL/Edge/etc.)', value: familyExpiry, confidence: 'medium' });
     identified += familyExpiry;
   }
 
