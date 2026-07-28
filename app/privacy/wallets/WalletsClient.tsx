@@ -470,7 +470,7 @@ export default function WalletsClient() {
 const WALLET_COLORS: Record<string, string> = {
   'Zkool (historical)': '#F4B728',
   'Brave': '#f59e0b',
-  'librustzcash family (ZODL/Edge/etc.)': '#56D4C8',
+  'librustzcash family (ZODL/Edge/Vizor/etc.)': '#56D4C8',
   'Unknown / Other': '#64748b',
 };
 const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
@@ -725,7 +725,7 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
 
   // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool — all indistinguishable on-chain
   if (familyExpiry > 0) {
-    walletMap.push({ name: 'librustzcash family (ZODL/Edge/etc.)', value: familyExpiry, confidence: 'medium' });
+    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
     identified += familyExpiry;
   }
 
