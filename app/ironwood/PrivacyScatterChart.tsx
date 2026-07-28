@@ -25,6 +25,8 @@ export interface ScatterPoint {
   privacy: string;
   matched: number | null;
   iwActions?: number;
+  orchardActions?: number;
+  anchorCompliant?: boolean;
 }
 
 export interface PrivacyScatterChartProps {
@@ -55,21 +57,25 @@ const VORONOI_RADIUS = 24;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function countChecks(p: ScatterPoint): number {
+  let checks = 0;
+  if (p.privacy === 'denominated') checks++;
+  if ((p.orchardActions ?? 0) === 2 && (p.iwActions ?? 0) === 1) checks++;
+  if (p.anchorCompliant) checks++;
+  return checks;
+}
+
 function getPointColor(
   p: ScatterPoint,
   pc: PrivacyScatterChartProps['privacyColors'],
 ): string {
-  const isDenom = p.privacy === 'denominated';
-  const isUnpadded = (p.iwActions ?? 0) <= 1;
-  if (isDenom && isUnpadded) return pc.best;
-  if (isDenom) return pc.denomPadded;
-  if (isUnpadded) return pc.distinctUnpadded;
+  const checks = countChecks(p);
+  if (checks === 3) return pc.best;
+  if (checks === 2) return pc.denomPadded;
+  if (checks === 1) return pc.distinctUnpadded;
   return pc.worst;
 }
 
-function isPadded(p: ScatterPoint): boolean {
-  return (p.iwActions ?? 0) > 1;
-}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -172,46 +178,22 @@ export function PrivacyScatterChart({
         continue;
 
       const color = getPointColor(point, privacyColors);
-      const padded = isPadded(point);
       const isHovered = tooltip?.point.txid === point.txid;
-
       const size = isHovered ? 6 : 4;
 
       ctx.globalAlpha = isHovered ? 1 : 0.88;
-
-      if (padded) {
-        ctx.beginPath();
-        ctx.moveTo(px, py - size);
-        ctx.lineTo(px + size, py);
-        ctx.lineTo(px, py + size);
-        ctx.lineTo(px - size, py);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(px, py, size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-      }
+      ctx.beginPath();
+      ctx.arc(px, py, size, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
 
       if (isHovered) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.9;
-        if (padded) {
-          ctx.beginPath();
-          ctx.moveTo(px, py - size);
-          ctx.lineTo(px + size, py);
-          ctx.lineTo(px, py + size);
-          ctx.lineTo(px - size, py);
-          ctx.closePath();
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.arc(px, py, size, 0, Math.PI * 2);
-          ctx.stroke();
-        }
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.stroke();
       }
     }
 
@@ -435,25 +417,26 @@ function ScatterTooltip({
   point: ScatterPoint;
   privacyColors: PrivacyScatterChartProps['privacyColors'];
 }) {
-  const actions = point.iwActions ?? 0;
+  const iwActions = point.iwActions ?? 0;
+  const oActions = point.orchardActions ?? 0;
+  const checks = countChecks(point);
   const isDenom = point.privacy === 'denominated';
-  const isUnpadded = actions <= 1;
+  const correctActions = oActions === 2 && iwActions === 1;
+  const anchorOk = point.anchorCompliant === true;
 
-  const gradeColor = isDenom && isUnpadded
+  const gradeColor = checks === 3
     ? privacyColors.best
-    : isDenom
+    : checks === 2
       ? privacyColors.denomPadded
-      : isUnpadded
+      : checks === 1
         ? privacyColors.distinctUnpadded
         : privacyColors.worst;
 
-  const gradeLabel = isDenom && isUnpadded
-    ? 'Best privacy'
-    : isDenom
-      ? 'Correct amount \u00b7 padded bundle'
-      : isUnpadded
-        ? 'Distinctive amount \u00b7 unpadded'
-        : 'Distinctive amount \u00b7 padded bundle';
+  const gradeLabel = checks === 3
+    ? 'ZIP-318 compliant'
+    : checks >= 2
+      ? 'Partial compliance'
+      : 'Weak privacy';
 
   return (
     <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono pointer-events-none">
@@ -463,13 +446,13 @@ function ScatterTooltip({
         <div className="mt-1 text-muted">Matches {point.matched} ZEC denomination</div>
       )}
       <div className="mt-1 font-semibold" style={{ color: gradeColor }}>
-        {gradeLabel}
+        {gradeLabel} ({checks}/3)
       </div>
-      {actions > 0 && (
-        <div className="mt-0.5 text-muted">
-          {actions} Ironwood action{actions !== 1 ? 's' : ''}
-        </div>
-      )}
+      <div className="mt-1 space-y-0.5 text-muted">
+        <div>{isDenom ? '\u2713' : '\u2717'} Standard denomination</div>
+        <div>{correctActions ? '\u2713' : '\u2717'} Correct actions (O:{oActions} I:{iwActions})</div>
+        <div>{anchorOk ? '\u2713' : '\u2717'} Boundary-aligned anchor</div>
+      </div>
       <div className="mt-2 text-[10px] text-cipher-cyan-bright">
         Click to view transaction &rarr;
       </div>

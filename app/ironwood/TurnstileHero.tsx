@@ -433,7 +433,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
 
         {/* Scrubber bar */}
         {sceneReady && activated && hasCohorts && (
-          <div className="relative z-[3] border-t border-white/5 bg-black/30 backdrop-blur-sm px-4 py-2.5 sm:px-5">
+          <div className="relative z-[3] border-t border-cipher-border/25 bg-glass-3 backdrop-blur-sm px-4 py-2.5 sm:px-5">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -472,13 +472,9 @@ export function TurnstileHero(props: TurnstileHeroProps) {
               <button
                 type="button"
                 onClick={handleLive}
-                className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
-                  mode === 'live'
-                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
-                    : 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
-                }`}
+                className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition-all"
               >
-                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`} />
+                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
                 Live
               </button>
             </div>

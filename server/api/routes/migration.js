@@ -25,9 +25,9 @@ const ACTIVATION_HEIGHT = {
   mainnet: 3428143,
 };
 
-// Anchor boundary spacing (ZIP 318 provisional): height ≡ 0 mod M, M = 256
-// (~5.3h at 75s blocks). Migrations sharing a boundary form an anonymity cohort.
-const BOUNDARY_MODULUS = 256;
+// Anchor boundary spacing per ZIP-318: height ≡ 0 mod 144
+// (~3h at 75s blocks). Migrations sharing a boundary form an anonymity cohort.
+const BOUNDARY_MODULUS = 144;
 
 let pool, redisClient, callZebraRPC;
 
@@ -640,16 +640,28 @@ router.get('/api/migration/scatter', async (req, res) => {
 
       const plotResult = await pool.query(`
         SELECT
-          txid,
-          block_height,
-          block_time,
-          ABS(value_balance_ironwood) AS ironwood_in_zat,
-          value_balance_orchard AS orchard_out_zat,
-          is_coinbase,
-          COALESCE(ironwood_actions, 0) AS ironwood_actions
-        FROM transactions
-        WHERE ${MIGRATION_PREDICATE}
-        ORDER BY block_height ASC
+          t.txid,
+          t.block_height,
+          t.block_time,
+          ABS(t.value_balance_ironwood) AS ironwood_in_zat,
+          t.value_balance_orchard AS orchard_out_zat,
+          t.is_coinbase,
+          COALESCE(t.ironwood_actions, 0) AS ironwood_actions,
+          COALESCE(t.orchard_actions, 0) AS orchard_actions,
+          t.orchard_anchor,
+          CASE WHEN t.orchard_anchor IS NOT NULL AND EXISTS (
+            SELECT 1 FROM blocks b
+            WHERE b.final_orchard_root = t.orchard_anchor
+              AND b.height % 144 = 0
+          ) THEN true ELSE false END AS anchor_compliant
+        FROM transactions t
+        WHERE t.version = 6
+          AND t.has_ironwood = true
+          AND t.value_balance_orchard > 0
+          AND t.value_balance_ironwood < 0
+          AND t.vin_count = 0
+          AND t.vout_count = 0
+        ORDER BY t.block_height ASC
       `);
 
       const txs = plotResult.rows.map(r => {
@@ -657,6 +669,7 @@ router.get('/api/migration/scatter', async (req, res) => {
         const zec = zat / 1e8;
         const classification = classifyAmount(zec);
         const iwActions = Number(r.ironwood_actions) || 0;
+        const oActions = Number(r.orchard_actions) || 0;
         return {
           txid: r.txid,
           height: Number(r.block_height),
@@ -666,7 +679,9 @@ router.get('/api/migration/scatter', async (req, res) => {
           orchardOutZat: Number(r.orchard_out_zat) || 0,
           isCoinbase: r.is_coinbase,
           ironwoodActions: iwActions,
+          orchardActions: oActions,
           paddedBundle: iwActions > 1,
+          anchorCompliant: r.anchor_compliant ?? false,
           privacy: classification.privacy,
           matchedDenomination: classification.denomination,
         };

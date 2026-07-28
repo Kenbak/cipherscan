@@ -116,7 +116,9 @@ interface ScatterTx {
   privacy: 'denominated' | 'distinctive';
   matchedDenomination: number | null;
   ironwoodActions?: number;
+  orchardActions?: number;
   paddedBundle?: boolean;
+  anchorCompliant?: boolean;
 }
 interface ScatterData {
   success?: boolean;
@@ -959,7 +961,7 @@ function MigrationActivity({
         fileName="cipherscan-migration-activity.png"
       >
         <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-          Volume per 256-block boundary (~5.3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
+          Volume per 144-block boundary (~3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
           {avgCohort > 0 ? (
             <>
               {' '}
@@ -1016,7 +1018,7 @@ function MigrationActivity({
               <XAxis
                 dataKey="boundary"
                 tick={{ fontSize: 10, fill: colors.axis }}
-                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v: number) => v.toLocaleString()}
                 label={{
                   value: 'Block height',
                   position: 'insideBottom',
@@ -1152,6 +1154,8 @@ function PrivacyScore({
         privacy: tx.privacy,
         matched: tx.matchedDenomination,
         iwActions: tx.ironwoodActions,
+        orchardActions: tx.orchardActions,
+        anchorCompliant: tx.anchorCompliant,
       })),
     [filteredTxs],
   );
@@ -1294,19 +1298,19 @@ function PrivacyScore({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted">
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.best }} />
-                  Best privacy
+                  ZIP-318 compliant (3/3)
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={PRIVACY_COLORS.denomPadded} /></svg>
-                  Correct amount, padded
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.denomPadded }} />
+                  Partial (2/3)
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.distinctUnpadded }} />
-                  Distinctive, unpadded
+                  Partial (1/3)
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5,0 L10,5 L5,10 L0,5 Z" fill={PRIVACY_COLORS.worst} /></svg>
-                  Distinctive, padded
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.worst }} />
+                  Weak (0/3)
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span
@@ -1364,9 +1368,6 @@ function MigrationTiers({
   const [allTxs, setAllTxs] = useState<TierTx[]>([]);
   const [mode, setMode] = useState<'live' | 'scrub'>('live');
   const [scrubIdx, setScrubIdx] = useState(1000);
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   useEffect(() => {
     if (!activated) return;
     const url = `${getApiUrl()}/api/migration/tiers`;
@@ -1446,7 +1447,7 @@ function MigrationTiers({
                 </div>
                 <div className="text-[9px] font-mono text-muted mb-2">{pctStr}</div>
                 <div className="relative w-full flex justify-center" style={{ height: 140 }}>
-                  <div className="relative w-8 sm:w-10 h-full rounded-t-md overflow-hidden" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                  <div className="relative w-8 sm:w-10 h-full rounded-t-md overflow-hidden bg-glass-3">
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-md transition-all duration-500"
                       style={{ height: `${Math.max(barPct, 2)}%`, backgroundColor: TIER_COLORS[i], opacity: 0.85 }}
@@ -1465,17 +1466,17 @@ function MigrationTiers({
         </div>
 
         {/* Scrubber */}
-        <div className={`mt-2 rounded-xl border border-cipher-border/25 px-4 py-3 ${isDark ? 'bg-black/20' : 'bg-black/[0.04]'}`}>
+        <div className="mt-2 rounded-xl border border-cipher-border/25 bg-glass-3 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="relative min-w-0 flex-1">
               <div className="group relative py-2">
-                <div className={`relative h-2 rounded-full ring-1 ring-inset ${isDark ? 'bg-black/35 ring-white/12' : 'bg-black/10 ring-black/10'}`}>
+                <div className="relative h-2 rounded-full ring-1 ring-inset bg-glass-6 ring-cipher-border/30">
                   <div
                     className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cipher-yellow/35 to-cipher-yellow/55 transition-[width] duration-100"
                     style={{ width: `${mode === 'live' ? 100 : (scrubIdx / Math.max(maxIdx, 1)) * 100}%` }}
                   />
                   <div
-                    className={`pointer-events-none absolute top-1/2 z-[2] h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-cipher-yellow/80 bg-cipher-yellow ${isDark ? 'shadow-[0_0_0_2px_rgba(0,0,0,0.45)]' : 'shadow-[0_0_0_2px_rgba(255,255,255,0.85)]'}`}
+                    className="pointer-events-none absolute top-1/2 z-[2] h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-cipher-yellow/80 bg-cipher-yellow shadow-sm"
                     style={{ left: `${mode === 'live' ? 100 : (scrubIdx / Math.max(maxIdx, 1)) * 100}%` }}
                   />
                   <input
@@ -1497,13 +1498,9 @@ function MigrationTiers({
             <button
               type="button"
               onClick={() => { setMode('live'); setScrubIdx(maxIdx); }}
-              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
-                mode === 'live'
-                  ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
-                  : isDark ? 'border-white/15 text-white/50 hover:border-white/30' : 'border-black/15 text-muted hover:border-black/25'
-              }`}
+              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition-all"
             >
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-white/30' : 'bg-black/25'}`} />
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
               Live
             </button>
           </div>
