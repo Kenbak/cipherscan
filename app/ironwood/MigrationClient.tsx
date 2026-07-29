@@ -1190,6 +1190,162 @@ const DENOM_BUCKETS = [
   1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
 ];
 
+const COMPLIANCE_GRADES = [
+  {
+    key: 'green' as const,
+    label: 'ZIP-318 compliant',
+    checks: '3/3',
+    hint: 'Standard denomination, correct actions (O:2, I:1), boundary-aligned anchor',
+  },
+  {
+    key: 'partial2' as const,
+    label: 'Partial',
+    checks: '2/3',
+    hint: 'Passes two of three ZIP-318 checks',
+  },
+  {
+    key: 'partial1' as const,
+    label: 'Partial',
+    checks: '1/3',
+    hint: 'Passes one of three ZIP-318 checks',
+  },
+  {
+    key: 'weak' as const,
+    label: 'Weak',
+    checks: '0/3',
+    hint: 'Fails all three ZIP-318 checks',
+  },
+];
+
+function ComplianceSummary({
+  stats,
+  privacyColors,
+  denomPct,
+  volPct,
+}: {
+  stats: { total: number; green: number; partial2: number; partial1: number; weak: number };
+  privacyColors: Record<string, string>;
+  denomPct: number;
+  volPct: number;
+}) {
+  const [hovered, setHovered] = useState<(typeof COMPLIANCE_GRADES)[number]['key'] | null>(null);
+
+  const colorMap = {
+    green: privacyColors.best,
+    partial2: privacyColors.denomPadded,
+    partial1: privacyColors.distinctUnpadded,
+    weak: privacyColors.worst,
+  };
+  const countMap = {
+    green: stats.green,
+    partial2: stats.partial2,
+    partial1: stats.partial1,
+    weak: stats.weak,
+  };
+
+  const segments = COMPLIANCE_GRADES.map((g) => ({
+    ...g,
+    count: countMap[g.key],
+    pct: stats.total > 0 ? (countMap[g.key] / stats.total) * 100 : 0,
+    color: colorMap[g.key],
+  }));
+
+  const greenPct = stats.total > 0 ? (stats.green / stats.total) * 100 : 0;
+  const hoveredSegment = hovered ? segments.find((s) => s.key === hovered) : null;
+
+  return (
+    <div className="mb-4 rounded-xl border border-cipher-border/30 bg-glass-3 px-4 py-3.5">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div
+            className="text-3xl font-semibold tabular-nums tracking-tight transition-colors"
+            style={{ color: hoveredSegment?.color ?? privacyColors.best }}
+          >
+            {(hoveredSegment?.pct ?? greenPct).toFixed(hoveredSegment ? 1 : 0)}%
+          </div>
+          <div className="mt-0.5 text-xs text-secondary">
+            {hoveredSegment ? `${hoveredSegment.label} (${hoveredSegment.checks})` : 'ZIP-318 compliant'}
+          </div>
+        </div>
+        <div className="text-right text-[10px] font-mono text-muted">
+          {stats.total.toLocaleString()} migrations
+        </div>
+      </div>
+
+      <div
+        className="mt-3 flex h-2 overflow-hidden rounded-full bg-cipher-border/20"
+        onMouseLeave={() => setHovered(null)}
+      >
+        {segments.filter((s) => s.count > 0).map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            className="relative h-full transition-all focus:outline-none"
+            style={{
+              width: `${s.pct}%`,
+              backgroundColor: s.color,
+              minWidth: 4,
+              opacity: hovered && hovered !== s.key ? 0.45 : 1,
+              boxShadow: hovered === s.key ? `inset 0 0 0 1px ${s.color}, 0 0 0 2px rgba(255,255,255,0.15)` : undefined,
+            }}
+            onMouseEnter={() => setHovered(s.key)}
+            onFocus={() => setHovered(s.key)}
+            aria-label={`${s.label} (${s.checks}): ${s.pct.toFixed(1)}%, ${s.count} transactions`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-2 min-h-[2rem] text-[10px] font-mono leading-relaxed text-muted">
+        {hoveredSegment && hoveredSegment.count > 0 ? (
+          <>
+            <span className="text-primary">{hoveredSegment.count.toLocaleString()} txs</span>
+            {' · '}
+            {hoveredSegment.hint}
+            {hoveredSegment.key === 'green' ? (
+              <>
+                {' · '}
+                {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
+              </>
+            ) : null}
+          </>
+        ) : (
+          <span className="text-muted/60">Hover a segment for breakdown</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ComplianceLegend({
+  privacyColors,
+  denomLineColor,
+}: {
+  privacyColors: Record<string, string>;
+  denomLineColor: string;
+}) {
+  const colorMap = {
+    green: privacyColors.best,
+    partial2: privacyColors.denomPadded,
+    partial1: privacyColors.distinctUnpadded,
+    weak: privacyColors.worst,
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-mono text-muted">
+      {COMPLIANCE_GRADES.map((g) => (
+        <span key={g.key} className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorMap[g.key] }} />
+          {g.label} ({g.checks})
+        </span>
+      ))}
+      <span className="flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t border-dashed" style={{ borderColor: denomLineColor, opacity: 0.75 }} />
+        Target denominations
+      </span>
+    </div>
+  );
+}
+
 function PrivacyScore({
   scatter,
   activated,
@@ -1263,11 +1419,28 @@ function PrivacyScore({
 
   const maxBucketCount = denomBuckets.reduce((m, b) => Math.max(m, b.count), 0);
 
+  const complianceStats = useMemo(() => {
+    const t = filteredTxs.length;
+    if (t === 0) return null;
+    let g = 0, p2 = 0, p1 = 0, w = 0;
+    for (const tx of filteredTxs) {
+      let checks = 0;
+      if (tx.privacy === 'denominated') checks++;
+      if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
+      if (tx.anchorCompliant) checks++;
+      if (checks === 3) g++;
+      else if (checks === 2) p2++;
+      else if (checks === 1) p1++;
+      else w++;
+    }
+    return { total: t, green: g, partial2: p2, partial1: p1, weak: w };
+  }, [filteredTxs]);
+
   const hasData = (scatter?.total ?? 0) > 0;
   const hasFilteredData = filteredTxs.length > 0;
   const shareText =
-    hasFilteredData
-      ? `${headlineStats.txPct.toFixed(0)}% of migrations use standard denominations (${headlineStats.denomCount}/${headlineStats.total} txs, ${headlineStats.volPct.toFixed(0)}% by volume).\n\nhttps://cipherscan.app/ironwood`
+    hasFilteredData && complianceStats
+      ? `ZIP-318 compliance: ${(complianceStats.green / complianceStats.total * 100).toFixed(1)}% fully compliant (${complianceStats.green}/${complianceStats.total} txs). ${headlineStats.txPct.toFixed(0)}% use standard denominations.\n\nhttps://cipherscan.app/ironwood`
       : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
 
   return (
@@ -1285,20 +1458,13 @@ function PrivacyScore({
           </p>
         </div>
 
-        {scatter && hasData ? (
-          <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-mono text-muted">
-            <span>
-              <span className="rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-emerald-400">
-                {headlineStats.txPct.toFixed(0)}% standard denomination
-              </span>
-            </span>
-            <span>
-              {headlineStats.denomCount} / {headlineStats.total} txs
-            </span>
-            <span>
-              <span className="text-primary">{headlineStats.volPct.toFixed(0)}%</span> by volume
-            </span>
-          </div>
+        {scatter && hasData && complianceStats ? (
+          <ComplianceSummary
+            stats={complianceStats}
+            privacyColors={PRIVACY_COLORS}
+            denomPct={headlineStats.txPct}
+            volPct={headlineStats.volPct}
+          />
         ) : null}
 
         {hasData && hasFilteredData ? (
@@ -1385,31 +1551,10 @@ function PrivacyScore({
             </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-muted">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.best }} />
-                  ZIP-318 compliant (3/3)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.denomPadded }} />
-                  Partial (2/3)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.distinctUnpadded }} />
-                  Partial (1/3)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIVACY_COLORS.worst }} />
-                  Weak (0/3)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="inline-block h-0 w-4 border-t border-dashed"
-                    style={{ borderColor: colors.denominated, opacity: 0.75 }}
-                  />
-                  Target denominations (0.001–100 ZEC)
-                </span>
-              </div>
+              <ComplianceLegend
+                privacyColors={PRIVACY_COLORS}
+                denomLineColor={colors.denominated}
+              />
               <div className="text-[10px] font-mono text-muted">
                 {filteredTxs.length} txs in range · log scale
               </div>
@@ -1606,13 +1751,15 @@ function MigrationTiers({
 
 // ─── Section 6: Wallet Readiness ─────────────────────────────────────────────
 
-const WALLETS = [
-  { name: 'Zcash iOS SDK', status: 'ready' as const, detail: 'PR #1812 merged', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
-  { name: 'Zcash Android SDK', status: 'ready' as const, detail: 'feature-orchard_migration branch', link: null },
-  { name: 'librustzcash', status: 'ready' as const, detail: 'main branch + migration crate', link: 'https://github.com/zcash/librustzcash' },
-  { name: 'Zodl (iOS)', status: 'ready' as const, detail: 'Ironwood migration supported', link: 'https://zodl.com/' },
-  { name: 'Zodl (Android)', status: 'ready' as const, detail: 'Ironwood migration supported', link: 'https://zodl.com/' },
-  { name: 'Vizor', status: 'ready' as const, detail: 'Ironwood support', link: 'https://vizor.cash/' },
+const WALLETS: { name: string; status: 'zip318' | 'ready' | 'in_progress' | 'unknown'; detail: string; link: string | null }[] = [
+  { name: 'Vizor', status: 'zip318', detail: 'First wallet with full ZIP-318 compliance — standard denominations, correct actions, boundary-aligned anchors', link: 'https://vizor.cash/' },
+  { name: 'zcash_pool_migration', status: 'zip318', detail: 'Reference implementation of ZIP-318: canonical 1-2-5 denominations, boundary-aligned anchors, unpadded Ironwood bundles', link: 'https://docs.rs/zcash_pool_migration/latest/zcash_pool_migration/' },
+  { name: 'Zcash iOS SDK', status: 'ready', detail: 'PR #1812 merged. Integrates migration crate.', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
+  { name: 'Zcash Android SDK', status: 'ready', detail: 'feature-orchard_migration branch. Integrates migration crate.', link: null },
+  { name: 'ZODL (iOS)', status: 'in_progress', detail: 'Migration works. ZIP-318 compliance waiting on release.', link: 'https://zodl.com/' },
+  { name: 'ZODL (Android)', status: 'in_progress', detail: 'Migration works. ZIP-318 compliance waiting on release.', link: 'https://zodl.com/' },
+  { name: 'Brave', status: 'unknown', detail: 'No Ironwood migration support announced yet', link: null },
+  { name: 'Edge', status: 'unknown', detail: 'Uses librustzcash SDK — depends on SDK integration', link: null },
 ];
 
 function WalletReadiness() {
@@ -1620,7 +1767,7 @@ function WalletReadiness() {
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
       <h2 className="text-sm font-bold text-primary">Wallet readiness</h2>
       <p className="text-xs text-muted mt-1 mb-4">
-        SDK and wallet support for ZIP-318 Orchard-to-Ironwood migration.
+        Wallet support for Orchard → Ironwood migration and ZIP-318 compliance (standard denominations, correct actions, boundary-aligned anchors).
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -1652,13 +1799,14 @@ function WalletReadiness() {
   );
 }
 
-function WalletStatusBadge({ status }: { status: 'ready' | 'in_progress' | 'unknown' }) {
+function WalletStatusBadge({ status }: { status: 'zip318' | 'ready' | 'in_progress' | 'unknown' }) {
   const styles = {
-    ready: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5',
+    zip318: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10',
+    ready: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/5',
     in_progress: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
     unknown: 'text-muted border-cipher-border/50 bg-glass-3',
   };
-  const labels = { ready: 'Ready', in_progress: 'In Progress', unknown: 'Unknown' };
+  const labels = { zip318: 'ZIP-318 Compliant', ready: 'Migration Ready', in_progress: 'Waiting on Release', unknown: 'Unknown' };
   return (
     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${styles[status]}`}>
       {labels[status]}
@@ -1675,7 +1823,7 @@ function Resources() {
       <p className="text-xs text-muted mt-2 leading-relaxed max-w-3xl">
         A ZIP-318 migration is a v6 transaction with no transparent I/O whose Orchard value balance is positive
         and Ironwood value balance is negative. The magnitude of the Ironwood value balance equals the output
-        denomination. Cohorts are grouped by 256-block anchor boundaries (~5.3h).
+        denomination. Cohorts are grouped by 144-block anchor boundaries (~3h).
       </p>
       <div className="flex flex-wrap gap-4 mt-4 text-[11px] font-mono">
         <a href="https://zips.z.cash/zip-0258" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
