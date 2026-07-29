@@ -190,7 +190,7 @@ export function InflowFlow({
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden="true"
           >
-            <span className="-rotate-12 select-none text-4xl font-bold font-mono tracking-[0.18em] text-black/[0.04] dark:text-white/[0.045] sm:text-5xl">
+            <span className="-rotate-12 scale-[0.75] select-none whitespace-nowrap text-[1.5rem] font-bold font-mono tracking-[0.12em] text-black/[0.04] dark:text-white/[0.045] sm:scale-100 sm:text-5xl sm:tracking-[0.18em]">
               CIPHERSCAN
             </span>
           </div>

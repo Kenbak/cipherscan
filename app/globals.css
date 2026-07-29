@@ -184,6 +184,10 @@
 
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
+  /* Sticky chrome offsets — --app-nav-height synced from NavBar at runtime */
+  --app-nav-height: 4rem;
+  --app-stats-height: 2rem;
+
   /* Colors - Dark Theme (default) */
   --color-bg: #08090F;
   --color-elevated: #0E1018;
@@ -854,10 +858,14 @@
   .stats-bar {
     background-color: var(--chrome-bg);
     border-color: var(--color-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .ironwood-banner {
     background-color: var(--chrome-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   /* ===== NAVBAR ===== */

@@ -60,6 +60,21 @@ export function NavBar() {
     closeAll();
   }, [pathname, closeAll]);
 
+  // Expose measured nav height for sticky stats/banner offsets (mobile search changes height).
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const syncNavHeight = () => {
+      document.documentElement.style.setProperty('--app-nav-height', `${nav.offsetHeight}px`);
+    };
+
+    syncNavHeight();
+    const observer = new ResizeObserver(syncNavHeight);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [pathname, isHomePage]);
+
   // Build category arrays (network-aware)
   const exploreItems: MenuItem[] = [
     { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },

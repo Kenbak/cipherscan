@@ -452,13 +452,59 @@ function MetricsRow({
   const todayZat = overview?.migration?.migratedTodayZat ?? 0;
   const todayValue = todayZat > 0 ? `+${fmtValue(todayZat, currencyMode, zecPrice)}` : '—';
 
+  const orchardPct = hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%';
+
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
       <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
         <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
       </div>
-      <div className="grid grid-cols-2 divide-y divide-cipher-border-subtle sm:grid-cols-5 sm:divide-x sm:divide-y-0">
+
+      {/* Mobile — hero + full-width rows */}
+      <div className="sm:hidden">
+        <a href="#supply" className="block border-b border-cipher-border-subtle px-4 py-4 transition-colors active:bg-cipher-hover">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Migrated today</div>
+          <div
+            className="mt-1 text-2xl font-bold font-mono tabular-nums tracking-tight"
+            style={{ color: colors.ironwoodPool }}
+          >
+            {todayValue}
+          </div>
+          <div className="mt-0.5 font-mono text-[10px] text-muted/60">Into Ironwood pool</div>
+        </a>
+        <div className="divide-y divide-cipher-border-subtle">
+          <KpiRow
+            label="Orchard → Ironwood"
+            value={orchardPct}
+            hint="Pool supply migrated"
+            scrollTo="#supply"
+            toneColor={colors.ironwoodPool}
+          />
+          <KpiRow
+            label="Migration velocity"
+            value={velocityValue}
+            hint="Rolling hourly rate"
+            scrollTo="#migration-activity"
+            toneColor={colors.ironwoodPool}
+          />
+          <KpiRow
+            label="Transactions"
+            value={txValue}
+            hint="Since activation"
+            scrollTo="#migration-activity"
+          />
+          <KpiRow
+            label="Since activation"
+            value={`${blocksSince.toLocaleString()} blocks`}
+            hint={`Block #${activationHeight.toLocaleString()}`}
+            href={`/block/${activationHeight}`}
+          />
+        </div>
+      </div>
+
+      {/* Desktop — 5-column strip */}
+      <div className="hidden divide-x divide-cipher-border-subtle sm:grid sm:grid-cols-5">
         <KpiCell
           label="Since activation"
           value={`${blocksSince.toLocaleString()} blocks`}
@@ -474,7 +520,7 @@ function MetricsRow({
         />
         <KpiCell
           label="Orchard → Ironwood"
-          value={hasMigrations ? `${migratedPct.toFixed(1)}%` : '0%'}
+          value={orchardPct}
           hint="Pool supply"
           scrollTo="#supply"
           toneColor={colors.ironwoodPool}
@@ -521,36 +567,61 @@ function PoolBalanceRow({
   currencyMode: CurrencyMode;
   zecPrice: number | null;
 }) {
+  const rowShell = row.highlight
+    ? 'bg-amber-500/[0.07] border border-amber-500/25'
+    : 'border border-transparent';
+  const nameClass = row.highlight ? 'font-medium' : 'text-secondary';
+  const valueStyle = row.highlight ? { color: row.color } : undefined;
+
   return (
-    <div
-      className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-        row.highlight ? 'bg-amber-500/[0.07] border border-amber-500/25' : ''
-      }`}
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
-        <span
-          className={`text-sm truncate ${row.highlight ? 'font-medium' : 'text-secondary'}`}
-          style={row.highlight ? { color: row.color } : undefined}
-        >
-          {row.name}
-        </span>
-        {row.name === 'Orchard' && (
-          <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0">
-            unverified
+    <>
+      {/* Mobile: compact single row — name left, value + % stacked right */}
+      <div className={`sm:hidden flex items-center justify-between gap-2 py-1.5 px-2 rounded-md ${rowShell}`}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+          <span className={`text-xs ${nameClass} truncate`} style={valueStyle}>{row.name}</span>
+          {row.name === 'Orchard' && (
+            <span
+              title="Unverified (Orchard)"
+              className="text-[7px] px-1 py-px rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+            >
+              UV
+            </span>
+          )}
+        </div>
+        <div className="shrink-0 text-right tabular-nums leading-tight">
+          <div
+            className={`text-xs font-mono font-semibold ${row.highlight ? '' : 'text-primary'}`}
+            style={valueStyle}
+          >
+            {fmtValue(row.zat, currencyMode, zecPrice)}
+          </div>
+          <div className="text-[10px] font-mono text-muted">{row.pct.toFixed(1)}%</div>
+        </div>
+      </div>
+
+      {/* Desktop: single row */}
+      <div className={`hidden sm:flex items-center justify-between py-2 px-3 rounded-lg ${rowShell}`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+          <span className={`text-sm ${nameClass}`} style={valueStyle}>{row.name}</span>
+          {row.name === 'Orchard' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0">
+              unverified
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0 tabular-nums">
+          <span
+            className={`text-sm font-mono font-semibold ${row.highlight ? '' : 'text-primary'}`}
+            style={valueStyle}
+          >
+            {fmtValue(row.zat, currencyMode, zecPrice)}
           </span>
-        )}
+          <span className="text-[10px] font-mono text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
+        </div>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0 tabular-nums">
-        <span
-          className={`text-sm font-mono font-semibold ${row.highlight ? '' : 'text-primary'}`}
-          style={row.highlight ? { color: row.color } : undefined}
-        >
-          {fmtValue(row.zat, currencyMode, zecPrice)}
-        </span>
-        <span className="text-[10px] font-mono text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -643,7 +714,7 @@ function SupplyVerification({
         shareText={shareText}
         fileName="cipherscan-supply.png"
       >
-      <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-8 sm:gap-10 lg:gap-14 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-6 sm:gap-10 lg:gap-14 items-center">
         {/* Left: Ring */}
         <div className="flex flex-col items-center justify-center w-full px-2 sm:px-6 lg:px-10 py-2 sm:py-4">
           <div className="relative w-44 h-44 sm:w-48 sm:h-48">
@@ -684,14 +755,17 @@ function SupplyVerification({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.orchardPool }} />
-              <span className="text-muted">Unverified (Orchard)</span>
+              <span className="text-muted">
+                <span className="sm:hidden">Unverified</span>
+                <span className="hidden sm:inline">Unverified (Orchard)</span>
+              </span>
             </div>
           </div>
         </div>
 
         {/* Right: Pool breakdown */}
-        <div className="w-full min-w-0 space-y-1 sm:pl-2 lg:pl-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="w-full min-w-0 sm:space-y-1 sm:pl-2 lg:pl-4">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-3 px-0.5">
             <span className="text-xs font-bold text-primary">Pool balances</span>
             {supplyMatch != null && (
               <div className="flex items-center gap-1.5">
@@ -702,31 +776,31 @@ function SupplyVerification({
               </div>
             )}
           </div>
-          <div>
+          <div className="divide-y divide-cipher-border/15 sm:divide-y-0">
             {transparentPools.map((row) => (
               <PoolBalanceRow key={row.name} row={row} currencyMode={currencyMode} zecPrice={zecPrice} />
             ))}
             {transparentPools.length > 0 && shieldedPools.length > 0 && (
-              <div className="my-2 border-t border-cipher-border-subtle" aria-hidden="true" />
+              <div className="my-1 border-t border-cipher-border-subtle sm:my-2" aria-hidden="true" />
             )}
             {shieldedPools.map((row) => (
               <PoolBalanceRow key={row.name} row={row} currencyMode={currencyMode} zecPrice={zecPrice} />
             ))}
           </div>
-          <div className="flex items-center justify-between pt-2 mt-1 border-t border-cipher-border/30 px-3">
-            <span className="text-xs text-secondary">Mined</span>
-            <span className="text-sm font-mono text-primary">{fmtValue(displayTotal, currencyMode, zecPrice)}</span>
+          <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-cipher-border/30 px-2 sm:px-3">
+            <span className="text-[11px] sm:text-xs text-secondary">Mined</span>
+            <span className="text-[11px] sm:text-sm font-mono text-primary">{fmtValue(displayTotal, currencyMode, zecPrice)}</span>
           </div>
-          <div className="flex items-center justify-between px-3 py-1">
-            <span className="text-xs text-secondary">Unmined</span>
-            <span className="text-sm font-mono text-primary">{fmtValue(unminedZat, currencyMode, zecPrice)}</span>
+          <div className="flex items-center justify-between px-2 sm:px-3 py-0.5 sm:py-1">
+            <span className="text-[11px] sm:text-xs text-secondary">Unmined</span>
+            <span className="text-[11px] sm:text-sm font-mono text-primary">{fmtValue(unminedZat, currencyMode, zecPrice)}</span>
           </div>
-          <div className="flex items-center justify-between pt-2 mt-1 border-t border-cipher-border/30 px-3">
+          <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-cipher-border/30 px-2 sm:px-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-primary">Max supply</span>
+              <span className="text-[11px] sm:text-xs font-bold text-primary">Max supply</span>
               {supplyBalanced && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
             </div>
-            <span className="text-sm font-mono font-bold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
+            <span className="text-[11px] sm:text-sm font-mono font-bold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
           </div>
         </div>
       </div>
@@ -749,18 +823,20 @@ function IronwoodLedgerStat({
   valueColor?: string;
 }) {
   return (
-    <div className="rounded-lg border border-cipher-border/25 bg-glass-3/20 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wide text-muted">
-        {icon}
-        {label}
+    <div className="rounded-lg border border-cipher-border/25 bg-glass-3/20 px-3 py-2 sm:py-2.5">
+      <div className="flex items-baseline justify-between gap-2 sm:flex-col sm:items-stretch sm:gap-0">
+        <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wide text-muted">
+          {icon}
+          {label}
+        </div>
+        <div
+          className="shrink-0 text-sm font-mono font-semibold tabular-nums text-primary sm:mt-1 sm:shrink"
+          style={valueColor ? { color: valueColor } : undefined}
+        >
+          {value}
+        </div>
       </div>
-      <div
-        className="mt-1 text-sm font-mono font-semibold tabular-nums text-primary"
-        style={valueColor ? { color: valueColor } : undefined}
-      >
-        {value}
-      </div>
-      <div className="mt-0.5 text-[9px] leading-snug text-muted/55">{hint}</div>
+      <div className="mt-1 text-[9px] leading-snug text-muted/55 sm:mt-0.5">{hint}</div>
     </div>
   );
 }
@@ -1022,8 +1098,18 @@ function MigrationActivity({
         : `Zcash Orchard → Ironwood migration activity on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
 
   const subtitle = view === 'cohorts'
-    ? <>Volume per 144-block boundary (~3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.{avgCohort > 0 ? <> Avg cohort size: <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.</> : null}</>
+    ? (
+      <>
+        <span className="sm:hidden">Volume per 144-block boundary (~3h). Each bar is one anonymity cohort.</span>
+        <span className="hidden sm:inline">
+          Volume per 144-block boundary (~3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
+          {avgCohort > 0 ? <> Avg cohort size: <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.</> : null}
+        </span>
+      </>
+    )
     : <>ZEC migrated from Orchard to Ironwood per {periodLabel} (UTC).{timeAvg > 0 ? <> Avg: <span className="font-mono text-primary">{fmtValue(Math.round(timeAvg * 1e8), currencyMode, zecPrice)}/{periodLabel}</span>.</> : null}</>;
+
+  const statsRowClass = 'mb-4 flex flex-col gap-2 text-[11px] font-mono leading-snug text-muted sm:mb-3 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1 sm:text-[10px]';
 
   const hasData = view === 'cohorts' ? cohortData.length > 0 : timeBuckets.length > 0;
 
@@ -1036,17 +1122,17 @@ function MigrationActivity({
         shareText={shareText}
         fileName="cipherscan-migration-activity.png"
       >
-        <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">{subtitle}</p>
+        <p className="mb-5 max-w-2xl text-xs leading-[1.65] text-muted sm:mb-4 sm:leading-relaxed">{subtitle}</p>
 
         {/* Stats row */}
         {view === 'cohorts' && activeCohorts > 0 ? (
-          <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-mono text-muted">
+          <div className={statsRowClass}>
             <span>Total migrated <span className="text-cipher-yellow-bright">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Peak cohort <span className="text-primary">{cohortPeak.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
-            <span>Active cohorts <span className="text-primary">{activeCohorts}</span></span>
+            <span>Active cohorts <span className="text-primary">{activeCohorts}</span>{avgCohort > 0 ? <span className="text-muted/70 sm:hidden"> · avg {avgCohort.toFixed(1)} txs</span> : null}</span>
           </div>
         ) : view !== 'cohorts' && timeTotalTxs > 0 ? (
-          <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-mono text-muted">
+          <div className={statsRowClass}>
             <span>Total migrated <span className="text-cipher-yellow-bright">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Peak {periodLabel} <span className="text-primary">{fmtValue(Math.round((timePeak?.volume ?? 0) * 1e8), currencyMode, zecPrice)}</span></span>
             <span>Transactions <span className="text-primary">{timeTotalTxs.toLocaleString()}</span></span>
@@ -1054,23 +1140,8 @@ function MigrationActivity({
         ) : null}
 
         {/* View toggle */}
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
-          <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
-            {ACTIVITY_VIEWS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setView(id)}
-                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
-                  view === id
-                    ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
-                    : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="mb-4 sm:mb-3 sm:flex sm:justify-end" data-html2canvas-ignore="true">
+          <SegmentedControl options={ACTIVITY_VIEWS} value={view} onChange={setView} />
         </div>
 
         {/* Chart */}
@@ -1189,6 +1260,12 @@ const DENOM_BUCKETS = [
   0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
   1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
 ];
+
+function formatDenomBucketLabel(denom: number): string {
+  if (denom >= 1) return String(denom);
+  const s = denom.toString();
+  return s.startsWith('0.') ? s.slice(1) : s;
+}
 
 const COMPLIANCE_GRADES = [
   {
@@ -1330,15 +1407,26 @@ function ComplianceLegend({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-mono text-muted">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono text-muted sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
       {COMPLIANCE_GRADES.map((g) => (
-        <span key={g.key} className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorMap[g.key] }} />
-          {g.label} ({g.checks})
+        <span key={g.key} className="flex min-w-0 items-center gap-1.5">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorMap[g.key] }} />
+          <span className="truncate sm:whitespace-normal">
+            {g.key === 'green' ? (
+              <>
+                <span className="sm:hidden">Compliant ({g.checks})</span>
+                <span className="hidden sm:inline">{g.label} ({g.checks})</span>
+              </>
+            ) : (
+              <>
+                {g.label} ({g.checks})
+              </>
+            )}
+          </span>
         </span>
       ))}
-      <span className="flex items-center gap-1.5">
-        <span className="inline-block h-0 w-4 border-t border-dashed" style={{ borderColor: denomLineColor, opacity: 0.75 }} />
+      <span className="col-span-2 flex items-center gap-1.5 sm:col-span-1">
+        <span className="inline-block h-0 w-4 shrink-0 border-t border-dashed" style={{ borderColor: denomLineColor, opacity: 0.75 }} />
         Target denominations
       </span>
     </div>
@@ -1468,62 +1556,39 @@ function PrivacyScore({
 
         {hasData && hasFilteredData ? (
           <>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-1.5" data-html2canvas-ignore="true">
-                {PRIVACY_VIEWS.map(({ id, label }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setView(id)}
-                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
-                      view === id
-                        ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
-                        : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
-                {PRIVACY_RANGES.map(({ id, label }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setRange(id)}
-                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
-                      range === id
-                        ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
-                        : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+            <div className="mb-4 flex flex-col gap-2 sm:mb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3" data-html2canvas-ignore="true">
+              <SegmentedControl options={PRIVACY_VIEWS} value={view} onChange={setView} />
+              <SegmentedControl options={PRIVACY_RANGES} value={range} onChange={setRange} className="sm:shrink-0" />
             </div>
 
             {view === 'denoms' ? (
               denomBuckets.length > 0 ? (
-                <div className="flex h-[280px] flex-col justify-end">
-                  <div className="flex h-[220px] items-end justify-center gap-3 border-b border-cipher-border/25 px-2 pb-2">
-                    {denomBuckets.map(({ denom, count }) => (
-                      <div key={denom} className="flex min-w-[44px] max-w-[56px] flex-1 flex-col items-center gap-2">
-                        <span className="text-[10px] font-mono text-primary">{count}</span>
+                <div className="min-w-0 w-full">
+                  <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:overflow-visible">
+                    <div className="flex h-[200px] min-w-max items-end gap-1 border-b border-cipher-border/25 pb-2 sm:h-[220px] sm:min-w-0 sm:w-full sm:gap-3 sm:px-2">
+                      {denomBuckets.map(({ denom, count }) => (
                         <div
-                          className="w-full rounded-t-md"
-                          style={{
-                            height: `${maxBucketCount > 0 ? Math.max(8, (count / maxBucketCount) * 180) : 8}px`,
-                            backgroundColor: colors.denominated,
-                            opacity: 0.9,
-                          }}
-                        />
-                        <span className="text-[10px] font-mono text-muted">{denom}</span>
-                      </div>
-                    ))}
+                          key={denom}
+                          className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:max-w-[56px] sm:flex-1 sm:gap-2 sm:min-w-[44px]"
+                        >
+                          <span className="text-[9px] font-mono tabular-nums text-primary sm:text-[10px]">{count}</span>
+                          <div
+                            className="w-full min-w-[4px] rounded-t-md"
+                            style={{
+                              height: `${maxBucketCount > 0 ? Math.max(8, (count / maxBucketCount) * 160) : 8}px`,
+                              backgroundColor: colors.denominated,
+                              opacity: 0.9,
+                            }}
+                          />
+                          <span className="max-w-full truncate text-[9px] font-mono text-muted sm:text-[10px]">
+                            {formatDenomBucketLabel(denom)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p className="mt-3 text-center text-[10px] font-mono text-muted">
-                    Standard denomination txs in selected range · {filteredTxs.length} total txs
+                  <p className="mt-3 text-center text-[10px] font-mono text-muted max-sm:px-1">
+                    {filteredTxs.length} txs · standard denominations
                   </p>
                 </div>
               ) : (
@@ -1549,12 +1614,12 @@ function PrivacyScore({
               </ParentSize>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-cipher-border/30 pt-3">
+            <div className="mt-3 flex flex-col gap-2 border-t border-cipher-border/30 pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <ComplianceLegend
                 privacyColors={PRIVACY_COLORS}
                 denomLineColor={colors.denominated}
               />
-              <div className="text-[10px] font-mono text-muted">
+              <div className="shrink-0 text-[10px] font-mono text-muted">
                 {filteredTxs.length} txs in range · log scale
               </div>
             </div>
@@ -1576,6 +1641,12 @@ function PrivacyScore({
 const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8];
 const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K+'];
 const TIER_COLORS = ['#94a3b8', '#60a5fa', '#a78bfa', '#f59e0b', '#ef4444'];
+
+function formatTierVolumePct(pct: number): string {
+  if (pct < 0.1 && pct > 0) return `${pct.toFixed(2)}%`;
+  if (pct < 1 && pct > 0) return `${pct.toFixed(1)}%`;
+  return `${Math.round(pct)}%`;
+}
 
 function classifyTierLocal(zat: number): number {
   for (let i = 0; i < TIER_BOUNDARIES_ZAT.length; i++) {
@@ -1666,41 +1737,67 @@ function MigrationTiers({
           <span><span className="text-primary font-bold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
         </div>
 
-        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+        {/* Mobile — horizontal breakdown (iOS Storage-style) */}
+        <div className="flex flex-col gap-3.5 sm:hidden">
+          {tierData.map((tier, i) => (
+              <div key={tier.label}>
+                <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-mono font-semibold text-primary">{tier.label}</span>
+                    <span className="ml-2 text-[10px] font-mono text-muted">{tier.count.toLocaleString()} txs</span>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className="text-xs font-mono font-bold tabular-nums text-primary">
+                      {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
+                    </span>
+                    <span className="ml-1.5 text-[10px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</span>
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-glass-3">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(tier.volumePct, tier.count > 0 ? 1 : 0)}%`,
+                      backgroundColor: TIER_COLORS[i],
+                      opacity: tier.count > 0 ? 0.9 : 0.25,
+                    }}
+                  />
+                </div>
+              </div>
+          ))}
+        </div>
+
+        {/* Desktop — vertical column chart */}
+        <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
           {tierData.map((tier, i) => {
             const barPct = maxVol > 0 ? (tier.volumeZec / maxVol) * 100 : 0;
-            const pctStr = tier.volumePct < 0.1 && tier.volumePct > 0
-              ? `${tier.volumePct.toFixed(2)}%`
-              : tier.volumePct < 1 && tier.volumePct > 0
-                ? `${tier.volumePct.toFixed(1)}%`
-                : `${Math.round(tier.volumePct)}%`;
             return (
               <div key={tier.label} className="flex flex-col items-center">
-                <div className="text-xs font-mono font-bold text-primary mb-1">
+                <div className="mb-1 text-xs font-mono font-bold text-primary">
                   {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                 </div>
-                <div className="text-[9px] font-mono text-muted mb-2">{pctStr}</div>
-                <div className="relative w-full flex justify-center" style={{ height: 140 }}>
-                  <div className="relative w-8 sm:w-10 h-full rounded-t-md overflow-hidden bg-glass-3">
+                <div className="mb-2 text-[9px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
+                <div className="relative flex h-[140px] w-full justify-center">
+                  <div className="relative h-full w-10 overflow-hidden rounded-t-md bg-glass-3">
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-md transition-all duration-500"
                       style={{ height: `${Math.max(barPct, 2)}%`, backgroundColor: TIER_COLORS[i], opacity: 0.85 }}
                     />
                   </div>
                 </div>
-                <div className="mt-2 text-[10px] font-mono text-muted text-center">{tier.label} ZEC</div>
+                <div className="mt-2 text-center text-[10px] font-mono text-muted">{tier.label}</div>
                 <div className="text-[10px] font-mono text-muted/60">{tier.count} txs</div>
               </div>
             );
           })}
         </div>
 
-        <div className="text-center text-[10px] font-mono text-muted mt-3 mb-4">
+        <div className="mb-4 mt-3 hidden text-center text-[10px] font-mono text-muted sm:block">
           Orchard → Ironwood volume by migration size · {totalTxs.toLocaleString()} total txs
         </div>
 
         {/* Scrubber */}
-        <div className="mt-2 rounded-xl border border-cipher-border/25 bg-glass-3 px-4 py-3">
+        <div className="mt-4 rounded-xl border sm:mt-2 border-cipher-border/25 bg-glass-3 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="relative min-w-0 flex-1">
               <div className="group relative py-2">
@@ -1763,12 +1860,14 @@ const WALLETS: { name: string; status: 'zip318' | 'ready' | 'in_progress' | 'unk
 
 function WalletReadiness() {
   return (
-    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-5">
+    <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-4 sm:p-5">
       <h2 className="text-sm font-bold text-primary">Wallet readiness</h2>
       <p className="text-xs text-muted mt-1 mb-4">
         Wallet support for Orchard → Ironwood migration and ZIP-318 compliance (standard denominations, correct actions, boundary-aligned anchors).
       </p>
-      <div className="overflow-x-auto">
+
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr className="text-left text-[10px] font-mono text-muted uppercase tracking-wider border-b border-cipher-border/50">
@@ -1793,6 +1892,23 @@ function WalletReadiness() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card list */}
+      <div className="sm:hidden space-y-3">
+        {WALLETS.map((w) => (
+          <div key={w.name} className="rounded-lg border border-cipher-border/25 bg-glass-3/30 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-mono text-primary">
+                {w.link ? (
+                  <a href={w.link} target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">{w.name}</a>
+                ) : w.name}
+              </span>
+              <WalletStatusBadge status={w.status} />
+            </div>
+            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{w.detail}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1840,6 +1956,94 @@ function Resources() {
 }
 
 // ─── Shared Components ───────────────────────────────────────────────────────
+
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  className = '',
+}: {
+  options: { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex w-full rounded-lg border border-cipher-border/35 bg-glass-3/50 p-1 sm:w-auto sm:gap-1.5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 ${className}`}
+    >
+      {options.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onChange(id)}
+          className={`flex-1 rounded-md py-1.5 text-[11px] font-mono transition-all sm:flex-none sm:rounded-full sm:border sm:px-2.5 sm:py-0.5 sm:text-[10px] ${
+            value === id
+              ? 'bg-cipher-yellow/15 text-cipher-yellow-bright shadow-sm sm:border-cipher-yellow/40 sm:bg-cipher-yellow/10 sm:shadow-none'
+              : 'text-muted hover:text-primary sm:border-cipher-border/50 sm:hover:border-cipher-border'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
+function KpiRow({
+  label,
+  value,
+  hint,
+  href,
+  scrollTo,
+  toneColor,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  href?: string;
+  scrollTo?: string;
+  toneColor?: string;
+}) {
+  const className =
+    'group flex items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-cipher-hover active:bg-cipher-hover';
+
+  const body = (
+    <>
+      <div className="min-w-0">
+        <div className="font-mono text-[11px] text-primary">{label}</div>
+        {hint ? (
+          <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60 group-hover:text-muted/80">{hint}</div>
+        ) : null}
+      </div>
+      <div
+        className="shrink-0 text-right font-mono text-sm font-bold tabular-nums text-primary"
+        style={toneColor ? { color: toneColor } : undefined}
+      >
+        {value}
+      </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  if (scrollTo) {
+    return (
+      <a href={scrollTo} className={className}>
+        {body}
+      </a>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
+}
 
 function KpiCell({
   label,
