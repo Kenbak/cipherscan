@@ -1344,6 +1344,59 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       ]
     },
     note: 'All amounts in zatoshis (1 ZEC = 100,000,000 zat). Categories are mutually exclusive. "Still held" means the deshielded output has not been spent yet. Updated daily at 04:00 UTC.'
+  },
+  // ============================================================================
+  // TRANSPARENT ADDRESS ANALYSIS (Quantum Exposure)
+  // ============================================================================
+  {
+    id: 'transparent-exposed',
+    category: 'Transparent Analysis',
+    method: 'GET',
+    path: '/api/transparent/exposed',
+    description: 'Paginated list of transparent t-addresses whose public keys are exposed on-chain (quantum-vulnerable). Includes addresses that have spent at least once (pubkey in input) and P2PK recipients (pubkey in output script). Supports offset and cursor pagination.',
+    params: [
+      { name: 'limit', type: 'number', description: 'Results per page (1-1000, default 100)', required: false },
+      { name: 'offset', type: 'number', description: 'Offset for pagination (default 0)', required: false },
+      { name: 'cursor', type: 'string', description: 'Last address from previous page (for cursor pagination, requires sort=address)', required: false },
+      { name: 'sort', type: 'string', description: 'Sort order: "balance" (default, descending) or "address" (ascending, required for cursor pagination)', required: false },
+      { name: 'min_balance', type: 'number', description: 'Minimum balance in zatoshis (default 0)', required: false }
+    ],
+    example: `curl "${baseUrl}/api/transparent/exposed?limit=10&sort=balance"`,
+    response: {
+      addresses: [
+        {
+          address: 't1Kvp5...abc',
+          balance: 1234567890,
+          balance_zec: 12.3456789,
+          exposure_reason: 'spent'
+        }
+      ],
+      pagination: {
+        total: 182345,
+        limit: 10,
+        offset: 0,
+        hasNext: true,
+        hasPrev: false,
+        next_cursor: 't1ZxV...'
+      }
+    },
+    note: 'Exposure reasons: "spent" = pubkey revealed via spending input, "p2pk_recipient" = pubkey embedded in P2PK output script. Balances in zatoshis (1 ZEC = 100,000,000 zat). For bulk pulls, use cursor pagination with sort=address for O(1) per page regardless of depth. Cached 5min fresh / 30min stale.'
+  },
+  {
+    id: 'transparent-exposed-summary',
+    category: 'Transparent Analysis',
+    method: 'GET',
+    path: '/api/transparent/exposed/summary',
+    description: 'Aggregate statistics about quantum-exposed transparent addresses: total count and total balance at risk.',
+    params: [],
+    example: `curl ${baseUrl}/api/transparent/exposed/summary`,
+    response: {
+      total_addresses: 182345,
+      total_balance: 1234567890000,
+      total_balance_zec: 12345.6789,
+      last_updated: '2026-07-29T20:00:00.000Z'
+    },
+    note: 'Total balance is the sum of all unspent outputs held by addresses with exposed public keys. Updated with each new block (~75s). Cached 5min fresh / 30min stale.'
   }
 ];
 

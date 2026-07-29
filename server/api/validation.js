@@ -152,6 +152,20 @@ const schemas = {
       txids: z.array(txidSchema).min(1).max(1000),
     }),
   },
+
+  // GET /api/transparent/exposed
+  exposedAddresses: {
+    query: z.object({
+      limit: z.coerce.number().int().min(1).max(1000).default(100),
+      offset: z.coerce.number().int().min(0).default(0),
+      cursor: z.string().regex(/^t[a-zA-Z0-9]+$/, 'cursor must be a valid t-address').optional(),
+      sort: z.enum(['balance', 'address']).default('balance'),
+      min_balance: z.coerce.number().int().min(0).default(0),
+    }).refine(
+      (d) => !(d.cursor && d.sort !== 'address'),
+      { message: 'cursor pagination requires sort=address' }
+    ),
+  },
 };
 
 // ============================================================================
