@@ -291,7 +291,7 @@ export default function TransactionPage() {
             transformedData.fee = txData.fee;
           } else {
             // Fallback: calculate fee = transparentInputs - transparentOutputs + valueBalance
-            const shieldedValueBalance = (transformedData.valueBalanceSapling || 0) + (transformedData.valueBalanceOrchard || 0);
+            const shieldedValueBalance = (transformedData.valueBalanceSapling || 0) + (transformedData.valueBalanceOrchard || 0) + (transformedData.valueBalanceIronwood || 0);
             const calculatedFee = transformedData.totalInput - transformedData.totalOutput + shieldedValueBalance;
             transformedData.fee = calculatedFee > 0 ? calculatedFee : 0;
           }

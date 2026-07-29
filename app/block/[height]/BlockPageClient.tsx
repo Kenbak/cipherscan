@@ -1180,7 +1180,8 @@ export default function BlockPageClient({
                         ) : isShielded ? (() => {
                           const vbSapling = parseInt(tx.value_balance_sapling || 0);
                           const vbOrchard = parseInt(tx.value_balance_orchard || 0);
-                          const vb = vbSapling + vbOrchard;
+                          const vbIronwood = parseInt(tx.value_balance_ironwood || 0);
+                          const vb = vbSapling + vbOrchard + vbIronwood;
                           if (vb !== 0) {
                             const amountZec = Math.abs(vb) / 1e8;
                             return (
@@ -1189,8 +1190,9 @@ export default function BlockPageClient({
                               </div>
                             );
                           }
+                          const poolColor = tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan';
                           return (
-                            <span className={`flex items-center justify-end gap-1 ${(tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan'}`} title="Amount hidden (shielded)">
+                            <span className={`flex items-center justify-end gap-1 ${poolColor}`} title="Amount hidden (shielded)">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
