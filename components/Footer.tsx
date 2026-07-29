@@ -65,6 +65,7 @@ export function Footer() {
               <Link href="/learn" className="footer-link text-[11px] font-mono">Learn Zcash</Link>
               <Link href="/newsletter" className="footer-link text-[11px] font-mono">Newsletter</Link>
               <Link href="/about" className="footer-link text-[11px] font-mono">About</Link>
+              <Link href="/press" className="footer-link text-[11px] font-mono">Press &amp; Brand</Link>
               <DonateButton variant="link" />
               <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">X / Twitter</a>
               <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="footer-link text-[11px] font-mono">GitHub</a>

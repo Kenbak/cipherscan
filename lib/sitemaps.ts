@@ -45,6 +45,7 @@ export const CONTENT_PATHS = [
   '/learn',
   '/newsletter',
   '/about',
+  '/press',
   '/privacy-policy',
   '/terms',
 ] as const;
