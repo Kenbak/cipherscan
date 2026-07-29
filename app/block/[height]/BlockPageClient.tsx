@@ -1181,6 +1181,16 @@ export default function BlockPageClient({
                           const vbSapling = parseInt(tx.value_balance_sapling || 0);
                           const vbOrchard = parseInt(tx.value_balance_orchard || 0);
                           const vbIronwood = parseInt(tx.value_balance_ironwood || 0);
+                          // Cross-pool migration: show the destination pool amount, not the net (which is just the fee)
+                          if (sourcePool && destPool && sourcePool !== destPool) {
+                            const destVb = destPool === 'Ironwood' ? vbIronwood : destPool === 'Orchard' ? vbOrchard : vbSapling;
+                            const amountZec = Math.abs(destVb) / 1e8;
+                            return (
+                              <div className="text-xs font-mono text-cipher-yellow font-semibold" title={`${amountZec.toFixed(8)} ZEC (${sourcePool} → ${destPool})`}>
+                                {amountZec.toFixed(4)}
+                              </div>
+                            );
+                          }
                           const vb = vbSapling + vbOrchard + vbIronwood;
                           if (vb !== 0) {
                             const amountZec = Math.abs(vb) / 1e8;
