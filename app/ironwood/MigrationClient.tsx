@@ -1254,28 +1254,45 @@ function ComplianceSummary({
   const hoveredSegment = hovered ? segments.find((s) => s.key === hovered) : null;
 
   return (
-    <div className="mb-4 rounded-xl border border-cipher-border/30 bg-glass-3 px-4 py-3.5">
-      <div className="flex items-end justify-between gap-4">
-        <div>
+    <div
+      className="mb-3 rounded-lg border border-cipher-border/30 bg-glass-3 px-3 py-2"
+      onMouseLeave={() => setHovered(null)}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <div
-            className="text-3xl font-semibold tabular-nums tracking-tight transition-colors"
+            className="text-xl font-semibold tabular-nums leading-none tracking-tight transition-colors"
             style={{ color: hoveredSegment?.color ?? privacyColors.best }}
           >
             {(hoveredSegment?.pct ?? greenPct).toFixed(hoveredSegment ? 1 : 0)}%
           </div>
-          <div className="mt-0.5 text-xs text-secondary">
-            {hoveredSegment ? `${hoveredSegment.label} (${hoveredSegment.checks})` : 'ZIP-318 compliant'}
+          <div className="mt-1 min-h-8 text-[10px] font-mono leading-snug text-muted">
+            {hoveredSegment ? (
+              <>
+                <span className="text-secondary">{hoveredSegment.label} ({hoveredSegment.checks})</span>
+                {' · '}
+                <span className="text-primary">{hoveredSegment.count.toLocaleString()} txs</span>
+                {' · '}
+                {hoveredSegment.hint}
+                {hoveredSegment.key === 'green' ? (
+                  <>
+                    {' · '}
+                    {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <span className="text-secondary">ZIP-318 compliant</span>
+            )}
           </div>
         </div>
-        <div className="text-right text-[10px] font-mono text-muted">
-          {stats.total.toLocaleString()} migrations
+
+        <div className="shrink-0 pt-0.5 text-[10px] font-mono text-muted">
+          {stats.total.toLocaleString()} txs
         </div>
       </div>
 
-      <div
-        className="mt-3 flex h-2 overflow-hidden rounded-full bg-cipher-border/20"
-        onMouseLeave={() => setHovered(null)}
-      >
+      <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-cipher-border/20">
         {segments.filter((s) => s.count > 0).map((s) => (
           <button
             key={s.key}
@@ -1290,27 +1307,9 @@ function ComplianceSummary({
             }}
             onMouseEnter={() => setHovered(s.key)}
             onFocus={() => setHovered(s.key)}
-            aria-label={`${s.label} (${s.checks}): ${s.pct.toFixed(1)}%, ${s.count} transactions`}
+            aria-label={`${s.label} (${s.checks}): ${s.pct.toFixed(1)}%, ${s.count} transactions. ${s.hint}`}
           />
         ))}
-      </div>
-
-      <div className="mt-2 min-h-[2rem] text-[10px] font-mono leading-relaxed text-muted">
-        {hoveredSegment && hoveredSegment.count > 0 ? (
-          <>
-            <span className="text-primary">{hoveredSegment.count.toLocaleString()} txs</span>
-            {' · '}
-            {hoveredSegment.hint}
-            {hoveredSegment.key === 'green' ? (
-              <>
-                {' · '}
-                {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
-              </>
-            ) : null}
-          </>
-        ) : (
-          <span className="text-muted/60">Hover a segment for breakdown</span>
-        )}
       </div>
     </div>
   );
