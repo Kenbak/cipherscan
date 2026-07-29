@@ -7,6 +7,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
@@ -306,7 +308,7 @@ export function MigrationClient({
                   zecPrice={zecPrice}
                 />
               )}
-              <MigrationActivity cohorts={cohorts} activated={activated} colors={colors} tipHeight={knownTip} />
+              <MigrationActivity cohorts={cohorts} scatter={scatter} activated={activated} colors={colors} tipHeight={knownTip} currencyMode={currencyMode} zecPrice={zecPrice} />
               <PrivacyScore scatter={scatter} activated={activated} colors={colors} tipHeight={knownTip} />
               <MigrationTiers activated={activated} colors={colors} tipHeight={knownTip} currencyMode={currencyMode} zecPrice={zecPrice} />
               <WalletReadiness />
@@ -901,28 +903,84 @@ function IronwoodInflowCard({
 
 // ─── Section 3: Migration Activity ───────────────────────────────────────────
 
-type ActivityRange = 'all' | '30' | '7d';
+type ActivityView = 'cohorts' | 'hourly' | 'daily';
 
-const ACTIVITY_RANGES: { id: ActivityRange; label: string }[] = [
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30', label: 'Last 30 cohorts' },
-  { id: 'all', label: 'All' },
+const ACTIVITY_VIEWS: { id: ActivityView; label: string }[] = [
+  { id: 'hourly', label: 'Hourly' },
+  { id: 'cohorts', label: 'Cohorts' },
+  { id: 'daily', label: 'Daily' },
 ];
+
+interface VelocityBucket {
+  label: string;
+  ts: number;
+  volume: number;
+  txCount: number;
+}
+
+function bucketTransactions(txs: ScatterTx[], mode: 'hourly' | 'daily'): VelocityBucket[] {
+  if (txs.length === 0) return [];
+
+  const msPerBucket = mode === 'hourly' ? 3600_000 : 86400_000;
+  const map = new Map<number, { volume: number; txCount: number }>();
+
+  for (const tx of txs) {
+    if (tx.timestamp == null) continue;
+    const bucket = Math.floor((tx.timestamp * 1000) / msPerBucket) * msPerBucket;
+    const existing = map.get(bucket);
+    if (existing) {
+      existing.volume += tx.amountZec;
+      existing.txCount += 1;
+    } else {
+      map.set(bucket, { volume: tx.amountZec, txCount: 1 });
+    }
+  }
+
+  const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]);
+
+  if (sorted.length >= 2) {
+    const [first] = sorted[0];
+    const [last] = sorted[sorted.length - 1];
+    for (let t = first; t <= last; t += msPerBucket) {
+      if (!map.has(t)) sorted.push([t, { volume: 0, txCount: 0 }]);
+    }
+    sorted.sort((a, b) => a[0] - b[0]);
+  }
+
+  const fmtHour = (d: Date) =>
+    `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:00`;
+  const fmtDay = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+
+  return sorted.map(([ts, data]) => ({
+    label: mode === 'hourly' ? fmtHour(new Date(ts)) : fmtDay(new Date(ts)),
+    ts,
+    volume: Math.round(data.volume * 100) / 100,
+    txCount: data.txCount,
+  }));
+}
 
 function MigrationActivity({
   cohorts,
+  scatter,
   activated,
   colors,
   tipHeight,
+  currencyMode,
+  zecPrice,
 }: {
   cohorts: Cohorts | null;
+  scatter: ScatterData | null;
   activated: boolean;
   colors: ChartColors;
   tipHeight: number;
+  currencyMode: CurrencyMode;
+  zecPrice: number | null;
 }) {
-  const [range, setRange] = useState<ActivityRange>('7d');
+  const [view, setView] = useState<ActivityView>('hourly');
 
-  const data = useMemo(
+  // Cohort data
+  const cohortData = useMemo(
     () =>
       (cohorts?.cohorts ?? []).map((c) => ({
         boundary: c.boundaryStartHeight,
@@ -933,23 +991,41 @@ function MigrationActivity({
     [cohorts?.cohorts],
   );
 
-  const filteredData = useMemo(() => {
-    if (range === 'all') return data;
-    if (range === '30') return data.slice(-30);
-    const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
-    return data.filter((c) => c.firstTime != null && c.firstTime >= cutoff);
-  }, [data, range]);
+  // Time-bucketed data (hourly/daily)
+  const timeBuckets = useMemo(
+    () => (view === 'cohorts' ? [] : bucketTransactions(scatter?.txs ?? [], view)),
+    [scatter?.txs, view],
+  );
 
   const avgCohort = cohorts?.avgAnonymitySet ?? 0;
-  const totalVolumeZec = data.reduce((sum, c) => sum + c.volume, 0);
-  const peakVolume = data.reduce((max, c) => Math.max(max, c.volume), 0);
-  const activeCohorts = data.filter((c) => c.volume > 0).length;
-  const visiblePeak = filteredData.reduce((max, c) => Math.max(max, c.volume), 0);
+  const totalVolumeZec = cohortData.reduce((sum, c) => sum + c.volume, 0);
+  const activeCohorts = cohortData.filter((c) => c.volume > 0).length;
+
+  // Stats for time views
+  const timeTotalVolume = timeBuckets.reduce((s, b) => s + b.volume, 0);
+  const timeTotalTxs = timeBuckets.reduce((s, b) => s + b.txCount, 0);
+  const timePeak = timeBuckets.reduce((max, b) => (b.volume > max.volume ? b : max), timeBuckets[0] ?? { volume: 0 });
+  const timeAvg = timeBuckets.length > 0 ? timeTotalVolume / timeBuckets.length : 0;
+
+  const periodLabel = view === 'hourly' ? 'hour' : view === 'daily' ? 'day' : 'cohort';
+
+  // Visible chart data + yMax
+  const cohortPeak = cohortData.reduce((max, c) => Math.max(max, c.volume), 0);
+  const visiblePeak = view === 'cohorts' ? cohortPeak : (timePeak?.volume ?? 0);
   const yMax = Math.max(Math.ceil(visiblePeak * 1.1), 1);
+
   const shareText =
-    activeCohorts > 0
+    view === 'cohorts' && activeCohorts > 0
       ? `${totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated across ${activeCohorts} Orchard→Ironwood cohorts. Avg anonymity set: ${avgCohort.toFixed(1)} txs.\n\nhttps://cipherscan.app/ironwood`
-      : `Zcash Orchard → Ironwood migration activity on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+      : view !== 'cohorts' && timeTotalTxs > 0
+        ? `${timeTotalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated Orchard→Ironwood. Peak ${periodLabel}: ${(timePeak?.volume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC.\n\nhttps://cipherscan.app/ironwood`
+        : `Zcash Orchard → Ironwood migration activity on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+
+  const subtitle = view === 'cohorts'
+    ? <>Volume per 144-block boundary (~3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.{avgCohort > 0 ? <> Avg cohort size: <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.</> : null}</>
+    : <>ZEC migrated from Orchard to Ironwood per {periodLabel} (UTC).{timeAvg > 0 ? <> Avg: <span className="font-mono text-primary">{fmtValue(Math.round(timeAvg * 1e8), currencyMode, zecPrice)}/{periodLabel}</span>.</> : null}</>;
+
+  const hasData = view === 'cohorts' ? cohortData.length > 0 : timeBuckets.length > 0;
 
   return (
     <div id="migration-activity" className="scroll-mt-20">
@@ -960,107 +1036,121 @@ function MigrationActivity({
         shareText={shareText}
         fileName="cipherscan-migration-activity.png"
       >
-        <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-          Volume per 144-block boundary (~3h). Each bar is one anonymity cohort — wallets sharing a boundary mix together.
-          {avgCohort > 0 ? (
-            <>
-              {' '}
-              Avg cohort size:{' '}
-              <span className="font-mono text-primary">{avgCohort.toFixed(1)} txs</span>.
-            </>
-          ) : null}
-        </p>
+        <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">{subtitle}</p>
 
-        {activeCohorts > 0 ? (
+        {/* Stats row */}
+        {view === 'cohorts' && activeCohorts > 0 ? (
           <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-mono text-muted">
-            <span>
-              Total migrated{' '}
-              <span className="text-cipher-yellow-bright">
-                {totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
-              </span>
-            </span>
-            <span>
-              Peak cohort{' '}
-              <span className="text-primary">
-                {peakVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC
-              </span>
-            </span>
-            <span>
-              Active cohorts <span className="text-primary">{activeCohorts}</span>
-            </span>
+            <span>Total migrated <span className="text-cipher-yellow-bright">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
+            <span>Peak cohort <span className="text-primary">{cohortPeak.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
+            <span>Active cohorts <span className="text-primary">{activeCohorts}</span></span>
+          </div>
+        ) : view !== 'cohorts' && timeTotalTxs > 0 ? (
+          <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-mono text-muted">
+            <span>Total migrated <span className="text-cipher-yellow-bright">{fmtValue(Math.round(timeTotalVolume * 1e8), currencyMode, zecPrice)}</span></span>
+            <span>Peak {periodLabel} <span className="text-primary">{fmtValue(Math.round((timePeak?.volume ?? 0) * 1e8), currencyMode, zecPrice)}</span></span>
+            <span>Transactions <span className="text-primary">{timeTotalTxs.toLocaleString()}</span></span>
           </div>
         ) : null}
 
-        {data.length > 0 ? (
-          <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
-            <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
-              {ACTIVITY_RANGES.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setRange(id)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
-                    range === id
-                      ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
-                      : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        {/* View toggle */}
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+          <div className="flex shrink-0 flex-wrap gap-1.5" data-html2canvas-ignore="true">
+            {ACTIVITY_VIEWS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono transition-all ${
+                  view === id
+                    ? 'border-cipher-yellow/40 bg-cipher-yellow/10 text-cipher-yellow-bright'
+                    : 'border-cipher-border/50 text-muted hover:border-cipher-border hover:text-primary'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        ) : null}
+        </div>
 
-        {filteredData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={filteredData} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
-              <XAxis
-                dataKey="boundary"
-                tick={{ fontSize: 10, fill: colors.axis }}
-                tickFormatter={(v: number) => v.toLocaleString()}
-                label={{
-                  value: 'Block height',
-                  position: 'insideBottom',
-                  offset: -8,
-                  style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
-                }}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: colors.axis }}
-                width={44}
-                domain={[0, yMax]}
-                tickFormatter={(v) => Number(v).toLocaleString()}
-                label={{
-                  value: 'Volume (ZEC)',
-                  angle: -90,
-                  position: 'insideLeft',
-                  dx: -6,
-                  style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' },
-                }}
-              />
-              <Tooltip
-                cursor={{ fill: colors.barCursor }}
-                contentStyle={{
-                  backgroundColor: colors.tooltipBg,
-                  border: `1px solid ${colors.tooltipBorder}`,
-                  borderRadius: '8px',
-                  fontSize: 12,
-                }}
-                itemStyle={{ color: colors.tooltipText }}
-                labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
-                labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
-                formatter={(val: unknown, name: unknown) =>
-                  name === 'volume'
-                    ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, 'Volume']
-                    : [Number(val), 'Txs (anonymity set)']
-                }
-              />
-              <Bar dataKey="volume" fill={colors.ironwoodPool} radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : data.length > 0 ? (
-          <p className="py-8 text-center text-xs font-mono text-muted">No migration activity in this range.</p>
+        {/* Chart */}
+        {hasData ? (
+          view === 'cohorts' ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={cohortData} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
+                <XAxis
+                  dataKey="boundary"
+                  tick={{ fontSize: 10, fill: colors.axis }}
+                  tickFormatter={(v: number) => v.toLocaleString()}
+                  label={{ value: 'Block height', position: 'insideBottom', offset: -8, style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: colors.axis }}
+                  width={44}
+                  domain={[0, yMax]}
+                  tickFormatter={(v) => Number(v).toLocaleString()}
+                  label={{ value: 'Volume (ZEC)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                />
+                <Tooltip
+                  cursor={{ fill: colors.barCursor }}
+                  contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontSize: 12 }}
+                  itemStyle={{ color: colors.tooltipText }}
+                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+                  labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
+                  formatter={(val: unknown, name: unknown) =>
+                    name === 'volume'
+                      ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, 'Volume']
+                      : [Number(val), 'Txs (anonymity set)']
+                  }
+                />
+                <Bar dataKey="volume" fill={colors.ironwoodPool} radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={timeBuckets} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
+                <defs>
+                  <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors.ironwoodPool} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={colors.ironwoodPool} stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 9, fill: colors.axis }}
+                  interval={view === 'hourly' ? Math.max(0, Math.floor(timeBuckets.length / 12) - 1) : 'preserveStartEnd'}
+                  angle={view === 'hourly' ? -35 : 0}
+                  textAnchor={view === 'hourly' ? 'end' : 'middle'}
+                  height={view === 'hourly' ? 48 : 32}
+                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: view === 'hourly' ? -4 : -8, style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: colors.axis }}
+                  width={50}
+                  domain={[0, yMax]}
+                  tickFormatter={(v) => Number(v).toLocaleString()}
+                  label={{ value: currencyMode === 'zec' ? 'Volume (ZEC)' : 'Volume (USD)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontSize: 12 }}
+                  itemStyle={{ color: colors.tooltipText }}
+                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+                  formatter={(val: unknown, name: unknown) =>
+                    name === 'volume'
+                      ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, `Volume / ${periodLabel}`]
+                      : [Number(val), 'Transactions']
+                  }
+                />
+                <Area
+                  type="monotone"
+                  dataKey="volume"
+                  stroke={colors.ironwoodPool}
+                  strokeWidth={2}
+                  fill="url(#velocityGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )
         ) : (
           <EmptyPanel activated={activated} />
         )}
