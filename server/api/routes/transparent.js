@@ -64,68 +64,65 @@ router.get('/api/transparent/exposed', validate('exposedAddresses'), async (req,
         let listResult;
         let countResult;
 
-        if (sort === 'address' && cursor) {
-          // Cursor-based pagination (for bulk sequential pulls)
-          [listResult, countResult] = await measure('db_exposed', () => Promise.all([
-            pool.query(
-              `SELECT address, balance, total_sent,
-                CASE WHEN total_sent > 0 THEN 'spent' ELSE 'p2pk_recipient' END AS exposure_reason
-              FROM addresses
-              WHERE balance > $1
-                AND address > $2
-                AND (
-                  total_sent > 0
-                  OR address IN (
+        const scriptTypeExpr = `CASE
+                WHEN pk.script_type IS NOT NULL THEN pk.script_type
+                WHEN a.address LIKE 't3%' THEN 'scripthash'
+                ELSE 'pubkeyhash'
+              END`;
+        const exposureExpr = `CASE WHEN a.total_sent > 0 THEN 'spent' ELSE 'p2pk_recipient' END`;
+        const lateralJoin = `LEFT JOIN LATERAL (
+                SELECT script_type FROM transaction_outputs
+                WHERE address = a.address AND script_type IN ('pubkey', 'multisig')
+                LIMIT 1
+              ) pk ON true`;
+        const exposureFilter = `AND (
+                  a.total_sent > 0
+                  OR a.address IN (
                     SELECT DISTINCT address FROM transaction_outputs
                     WHERE script_type IN ('pubkey', 'multisig') AND address IS NOT NULL
                   )
-                )
-              ORDER BY address ASC
+                )`;
+
+        if (sort === 'address' && cursor) {
+          [listResult, countResult] = await measure('db_exposed', () => Promise.all([
+            pool.query(
+              `SELECT a.address, a.balance, a.total_sent,
+                ${exposureExpr} AS exposure_reason,
+                ${scriptTypeExpr} AS script_type
+              FROM addresses a
+              ${lateralJoin}
+              WHERE a.balance > $1
+                AND a.address > $2
+                ${exposureFilter}
+              ORDER BY a.address ASC
               LIMIT $3`,
               [minBalance, cursor, limit]
             ),
             pool.query(
-              `SELECT COUNT(*) FROM addresses
-               WHERE balance > $1
-               AND (
-                 total_sent > 0
-                 OR address IN (
-                   SELECT DISTINCT address FROM transaction_outputs
-                   WHERE script_type IN ('pubkey', 'multisig') AND address IS NOT NULL
-                 )
-               )`,
+              `SELECT COUNT(*) FROM addresses a
+               WHERE a.balance > $1
+               ${exposureFilter}`,
               [minBalance]
             ),
           ]));
         } else {
-          // Offset-based pagination (default, sorted by balance)
           [listResult, countResult] = await measure('db_exposed', () => Promise.all([
             pool.query(
-              `SELECT address, balance, total_sent,
-                CASE WHEN total_sent > 0 THEN 'spent' ELSE 'p2pk_recipient' END AS exposure_reason
-              FROM addresses
-              WHERE balance > $1
-                AND (
-                  total_sent > 0
-                  OR address IN (
-                    SELECT DISTINCT address FROM transaction_outputs
-                    WHERE script_type IN ('pubkey', 'multisig') AND address IS NOT NULL
-                  )
-                )
-              ORDER BY balance DESC
+              `SELECT a.address, a.balance, a.total_sent,
+                ${exposureExpr} AS exposure_reason,
+                ${scriptTypeExpr} AS script_type
+              FROM addresses a
+              ${lateralJoin}
+              WHERE a.balance > $1
+                ${exposureFilter}
+              ORDER BY a.balance DESC
               LIMIT $2 OFFSET $3`,
               [minBalance, limit, offset]
             ),
             pool.query(
-              `SELECT COUNT(*) FROM addresses
-               WHERE balance > $1
-               AND (
-                 total_sent > 0
-                 OR address IN (
-                   SELECT DISTINCT address FROM transaction_outputs
-                   WHERE script_type IN ('pubkey', 'multisig') AND address IS NOT NULL
-                 )
-               )`,
+              `SELECT COUNT(*) FROM addresses a
+               WHERE a.balance > $1
+               ${exposureFilter}`,
               [minBalance]
             ),
           ]));
@@ -141,6 +138,7 @@ router.get('/api/transparent/exposed', validate('exposedAddresses'), async (req,
             address: row.address,
             balance: parseInt(row.balance),
             balance_zec: parseFloat(row.balance) / 1e8,
+            script_type: row.script_type,
             exposure_reason: row.exposure_reason,
           })),
           pagination: {
