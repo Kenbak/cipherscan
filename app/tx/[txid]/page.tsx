@@ -293,6 +293,7 @@ export default function TransactionPage() {
             stakingAction: txData.stakingAction || null,
             coinbaseHex: txData.coinbaseHex || null,
             coinbaseText: txData.coinbaseText || null,
+            zip318: txData.zip318 || null,
           };
 
           // Calculate fee using: fee = inputs - outputs + valueBalance
