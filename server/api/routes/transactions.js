@@ -748,6 +748,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         t.total_output,
         t.is_coinbase,
         t.expiry_height,
+        t.orchard_anchor,
         (b.hash IS NOT NULL) AS is_canonical${(await checkStakingColumns(pool))
           ? ', t.staking_action_type, t.staking_bond_key, t.staking_delegatee, t.staking_amount_zats'
           : ''}
@@ -897,6 +898,53 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       } catch (e) { /* non-critical */ }
     }
 
+    // ZIP-318 compliance for migrations (Orchard/Sapling → Ironwood)
+    let zip318 = null;
+    const isMigrationTx = tx.has_ironwood && !tx.is_coinbase
+      && (parseFloat(tx.value_balance_ironwood) || 0) < 0
+      && ((parseFloat(tx.value_balance_orchard) || 0) > 0 || (parseFloat(tx.value_balance_sapling) || 0) > 0);
+    if (isMigrationTx) {
+      const iwActions = parseInt(tx.ironwood_actions) || 0;
+      const oActions = parseInt(tx.orchard_actions) || 0;
+      const ironwoodInZec = Math.abs(parseFloat(tx.value_balance_ironwood) || 0) / 1e8;
+
+      const COMMON_DENOMS = [
+        0.001, 0.002, 0.005,
+        0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
+        1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
+      ];
+      let matchedDenomination = null;
+      for (const d of COMMON_DENOMS) {
+        if (Math.abs(ironwoodInZec - d) / d <= 0.001) { matchedDenomination = d; break; }
+      }
+
+      const isDenominated = matchedDenomination !== null;
+      const correctActions = oActions === 2 && iwActions === 1;
+
+      let anchorCompliant = false;
+      if (tx.orchard_anchor) {
+        try {
+          const anchorCheck = await pool.query(
+            `SELECT 1 FROM blocks WHERE final_orchard_root = $1 AND height % 144 = 0 LIMIT 1`,
+            [tx.orchard_anchor]
+          );
+          anchorCompliant = anchorCheck.rows.length > 0;
+        } catch (e) { /* non-critical */ }
+      }
+
+      const checks = (isDenominated ? 1 : 0) + (correctActions ? 1 : 0) + (anchorCompliant ? 1 : 0);
+      zip318 = {
+        compliant: checks === 3,
+        checks,
+        denomination: isDenominated,
+        matchedDenomination,
+        correctActions,
+        orchardActions: oActions,
+        ironwoodActions: iwActions,
+        anchorCompliant,
+      };
+    }
+
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
@@ -934,6 +982,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       coinbaseText,
       bridge,
       bridges: bridges.length > 0 ? bridges : undefined,
+      zip318,
       stakingAction: tx.staking_action_type ? {
         type: tx.staking_action_type,
         bondKey: tx.staking_bond_key,

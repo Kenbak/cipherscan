@@ -77,6 +77,16 @@ interface TransactionData {
   } | null;
   coinbaseHex?: string | null;
   coinbaseText?: string | null;
+  zip318?: {
+    compliant: boolean;
+    checks: number;
+    denomination: boolean;
+    matchedDenomination: number | null;
+    correctActions: boolean;
+    orchardActions: number;
+    ironwoodActions: number;
+    anchorCompliant: boolean;
+  } | null;
 }
 
 // Icon components (same as block page)
@@ -1081,7 +1091,7 @@ export default function TransactionPage() {
       <div className="flex items-center justify-between gap-2 mb-4 animate-fade-in-up">
         <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
           {txType === 'COINBASE' && <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>}
-          {txType === 'MIGRATION' && <Badge color="amber" icon={<Icons.Shield />}>MIGRATION</Badge>}
+          {txType === 'MIGRATION' && <Badge color={data.zip318?.compliant ? 'green' : 'amber'} icon={<Icons.Shield />}>MIGRATION</Badge>}
           {txType === 'IRONWOOD' && <Badge color="amber" icon={<Icons.Shield />}>IRONWOOD</Badge>}
           {(txType === 'ORCHARD' || txType === 'SHIELDED') && <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>}
           {txType === 'SHIELDING' && <Badge color="green" icon={<Icons.Shield />}>SHIELDING</Badge>}
@@ -1144,6 +1154,26 @@ export default function TransactionPage() {
                   <> Included in canonical Zcash block <Link href={`/block/${data.blockHeight}`} className="text-primary hover:underline">#{data.blockHeight.toLocaleString()}</Link> with {data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''}.</>
                 )}
               </p>
+
+              {/* ZIP-318 compliance for migrations */}
+              {txType === 'MIGRATION' && data.zip318 && (
+                <div className={`rounded-lg border px-3 py-2 text-xs font-mono ${
+                  data.zip318.compliant
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-cipher-border/30 bg-glass-3'
+                }`}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`font-semibold ${data.zip318.compliant ? 'text-emerald-400' : 'text-secondary'}`}>
+                      ZIP-318 {data.zip318.compliant ? 'compliant' : `(${data.zip318.checks}/3)`}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted">
+                    <span>{data.zip318.denomination ? '\u2713' : '\u2717'} Standard denomination{data.zip318.matchedDenomination ? ` (${data.zip318.matchedDenomination} ZEC)` : ''}</span>
+                    <span>{data.zip318.correctActions ? '\u2713' : '\u2717'} Correct actions (O:{data.zip318.orchardActions} I:{data.zip318.ironwoodActions})</span>
+                    <span>{data.zip318.anchorCompliant ? '\u2713' : '\u2717'} Boundary-aligned anchor</span>
+                  </div>
+                </div>
+              )}
 
               {/* Bridge explorer links */}
               {allBridges.length > 0 && (
