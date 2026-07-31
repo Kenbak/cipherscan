@@ -8,7 +8,6 @@ import RichListClient, {
 } from './RichListClient';
 
 export const revalidate = 60;
-export const dynamic = 'force-dynamic';
 
 interface InitialRichList {
   addresses: RichListEntry[];
