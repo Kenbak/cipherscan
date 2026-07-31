@@ -4,3 +4,5 @@ trustedRegistries:
 ignored:
   # Base image is pinned via the NODE_IMAGE ARG, not a literal tag.
   - DL3006
+  # HEALTHCHECK CMD requires shell form for variable interpolation.
+  - DL3025

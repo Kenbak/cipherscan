@@ -45,7 +45,7 @@ LABEL org.opencontainers.image.title="cipherscan-web" \
       org.opencontainers.image.revision="${GIT_COMMIT}"
 
 # Run as the non-root user that the base image already provides.
-USER node
+USER 1000
 
 # Standalone output: server, static assets, and public files (incl. WASM).
 COPY --from=builder --chown=node:node /app/.next/standalone ./

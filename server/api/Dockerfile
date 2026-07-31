@@ -21,7 +21,7 @@ LABEL org.opencontainers.image.title="cipherscan-api" \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-USER node
+USER 1000
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
