@@ -1017,7 +1017,7 @@ export default function BlockPageClient({
         ) : (
           <div className="overflow-x-auto -mx-6 px-6">
             {/* Table Header */}
-            <div className="min-w-[900px] grid grid-cols-12 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
+            <div className="min-w-[960px] grid grid-cols-13 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
               <div className="col-span-1">#</div>
               <div className="col-span-1">Type</div>
               <div className="col-span-2">Hash</div>
@@ -1025,12 +1025,12 @@ export default function BlockPageClient({
               <div className="col-span-2">To</div>
               <div className="col-span-1 text-center">Ins</div>
               <div className="col-span-1 text-center">Outs</div>
-              <div className="col-span-1 text-center">Size</div>
-              <div className="col-span-1 text-right whitespace-nowrap">Amount ({CURRENCY})</div>
+              <div className="col-span-1 text-right whitespace-nowrap">Value ({CURRENCY})</div>
+              <div className="col-span-1 text-right">Fee</div>
             </div>
 
             {/* Transaction Rows */}
-            <div className="space-y-2 min-w-[900px]">
+            <div className="space-y-2 min-w-[960px]">
               {data.transactions.map((tx, index) => {
                 // Detect coinbase first (takes priority in display)
                 const isCoinbase = tx.vin?.[0]?.coinbase;
@@ -1051,7 +1051,6 @@ export default function BlockPageClient({
 
                 const inputCount = tx.vin?.length || 0;
                 const outputCount = tx.vout?.length || 0;
-                const txSize = tx.size || 0;
 
                 // Derive source/destination pools from value balances for cross-pool txs
                 const vbSap = parseInt(tx.value_balance_sapling || 0);
@@ -1064,7 +1063,7 @@ export default function BlockPageClient({
 
                 return (
                   <Link href={`/tx/${tx.txid}`} key={tx.txid || index}>
-                    <div className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
+                    <div className="grid grid-cols-13 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all cursor-pointer group">
                       {/* # Column */}
                       <div className="col-span-1">
                         <span className="text-xs font-mono text-muted">#{index + 1}</span>
@@ -1164,26 +1163,19 @@ export default function BlockPageClient({
                         )}
                       </div>
 
-                      {/* Size Column */}
-                      <div className="col-span-1 text-center">
-                        <span className="text-xs text-secondary font-mono">
-                          {txSize > 0 ? (txSize / 1024).toFixed(1) : '-'}
-                        </span>
-                      </div>
-
-                      {/* Amount Column */}
+                      {/* Value Column */}
                       <div className="col-span-1 text-right">
-                        {totalOutput > 0 ? (
+                        {isCoinbase ? (
+                          <div className="text-xs font-mono text-primary font-semibold">
+                            {totalOutput.toFixed(4)}
+                          </div>
+                        ) : totalOutput > 0 ? (
                           <div className="text-xs font-mono text-primary font-semibold">
                             {totalOutput.toFixed(4)}
                           </div>
                         ) : isShielded ? (() => {
-                          const vbSapling = parseInt(tx.value_balance_sapling || 0);
-                          const vbOrchard = parseInt(tx.value_balance_orchard || 0);
-                          const vbIronwood = parseInt(tx.value_balance_ironwood || 0);
-                          // Cross-pool migration: show the destination pool amount, not the net (which is just the fee)
                           if (sourcePool && destPool && sourcePool !== destPool) {
-                            const destVb = destPool === 'Ironwood' ? vbIronwood : destPool === 'Orchard' ? vbOrchard : vbSapling;
+                            const destVb = destPool === 'Ironwood' ? vbIrn : destPool === 'Orchard' ? vbOrc : vbSap;
                             const amountZec = Math.abs(destVb) / 1e8;
                             return (
                               <div className="text-xs font-mono text-cipher-yellow font-semibold" title={`${amountZec.toFixed(8)} ZEC (${sourcePool} → ${destPool})`}>
@@ -1191,24 +1183,36 @@ export default function BlockPageClient({
                               </div>
                             );
                           }
-                          const vb = vbSapling + vbOrchard + vbIronwood;
-                          if (vb !== 0) {
-                            const amountZec = Math.abs(vb) / 1e8;
-                            return (
-                              <div className="text-xs font-mono text-primary font-semibold" title={`${amountZec.toFixed(8)} ZEC (publicly visible)`}>
-                                {amountZec.toFixed(4)}
-                              </div>
-                            );
-                          }
                           const poolColor = tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan';
                           return (
-                            <span className={`flex items-center justify-end gap-1 ${poolColor}`} title="Amount hidden (shielded)">
+                            <span className={`flex items-center justify-end gap-1 ${poolColor}`} title="Value is shielded (private)">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
                             </span>
                           );
-                        })() : null}
+                        })() : (
+                          <span className="text-xs text-muted">-</span>
+                        )}
+                      </div>
+
+                      {/* Fee Column */}
+                      <div className="col-span-1 text-right">
+                        {isCoinbase ? (
+                          <span className="text-xs text-muted">-</span>
+                        ) : (() => {
+                          const feeZat = parseInt(tx.fee || 0);
+                          if (feeZat === 0) return <span className="text-xs text-muted">-</span>;
+                          const feeZec = feeZat / 1e8;
+                          if (feeZat === 10000) {
+                            return <span className="text-[10px] text-muted font-mono">Std</span>;
+                          }
+                          return (
+                            <span className="text-[10px] text-muted font-mono">
+                              {feeZec < 0.001 ? feeZec.toFixed(5) : feeZec.toFixed(4)}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </Link>
