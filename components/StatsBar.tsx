@@ -147,12 +147,12 @@ export function StatsBar() {
             )}
 
             {stats.avgBlockTime !== null && (
-              <span className="hidden xl:contents">
+              <>
                 <StatItem href="/network" label="Block Time">
                   {stats.avgBlockTime}s
                 </StatItem>
                 <Sep />
-              </span>
+              </>
             )}
 
             {stats.hashrate && (

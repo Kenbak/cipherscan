@@ -86,6 +86,10 @@ async function fetchNetworkStatsOptimized() {
           SUM(transaction_count) as tx_24h
         FROM blocks
         WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
+      ),
+      rolling_block_time AS (
+        SELECT (MAX(timestamp) - MIN(timestamp))::float / NULLIF(COUNT(*) - 1, 0) AS avg_secs
+        FROM (SELECT timestamp FROM blocks ORDER BY height DESC LIMIT 1000) sub
       )
       SELECT
         latest.height,
@@ -93,15 +97,16 @@ async function fetchNetworkStatsOptimized() {
         latest.timestamp,
         last_24h.blocks_24h,
         last_24h.avg_difficulty,
-        last_24h.tx_24h
-      FROM latest, last_24h
+        last_24h.tx_24h,
+        rolling_block_time.avg_secs AS rolling_block_time_secs
+      FROM latest, last_24h, rolling_block_time
     `);
 
     if (!dbStats.rows[0]) {
       throw new Error('No blockchain data available');
     }
 
-    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h } = dbStats.rows[0];
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h, rolling_block_time_secs } = dbStats.rows[0];
 
     const [networkInfo, peerInfo, blockchainInfo, blockSubsidy] = await Promise.all([
       callZebraRPC('getnetworkinfo').catch(() => null),
@@ -157,7 +162,9 @@ async function fetchNetworkStatsOptimized() {
     // Calculate hashrate
     const blocks24h = parseInt(blocks_24h || 0);
     const tx24h = parseInt(tx_24h || 0);
-    const avgBlockTime = blocks24h > 0 ? Math.round(86400 / blocks24h) : 75;
+    const avgBlockTime = rolling_block_time_secs
+      ? Math.round(Number(rolling_block_time_secs) * 10) / 10
+      : (blocks24h > 0 ? Math.round(86400 / blocks24h) : 75);
     const difficultyNum = parseFloat(difficulty || 0);
     const networkHashrate = difficultyNum / avgBlockTime;
 
