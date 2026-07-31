@@ -148,6 +148,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Supports sitemap-detection tools; robots.txt remains the standards-based declaration. */}
+        <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
