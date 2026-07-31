@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 
 export type CurrencyMode = 'zec' | 'usd';
@@ -8,13 +8,22 @@ export type CurrencyMode = 'zec' | 'usd';
 const STORAGE_KEY = 'cipherscan-currency-mode';
 
 export function useCurrencyToggle() {
-  const [mode, setMode] = useState<CurrencyMode>(() => {
-    if (typeof window === 'undefined') return 'zec';
-    return (localStorage.getItem(STORAGE_KEY) as CurrencyMode) || 'zec';
-  });
+  const [mode, setMode] = useState<CurrencyMode>('zec');
   const [price, setPrice] = useState<number | null>(null);
+  const initialized = useRef(false);
 
+  // Read persisted preference after mount (avoids SSR hydration clobbering)
   useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY) as CurrencyMode | null;
+    if (saved === 'usd' || saved === 'zec') {
+      setMode(saved);
+    }
+    initialized.current = true;
+  }, []);
+
+  // Persist only after the initial read
+  useEffect(() => {
+    if (!initialized.current) return;
     localStorage.setItem(STORAGE_KEY, mode);
   }, [mode]);
 

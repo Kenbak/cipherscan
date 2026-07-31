@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 
 type Theme = 'dark' | 'light';
 
@@ -21,10 +21,11 @@ const ThemeContext = createContext<ThemeContextType>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
+  const userChose = useRef(false);
 
   useEffect(() => {
     setMounted(true);
-    // Read the theme that was set by the inline script
+    // Read the theme that was set by the inline script (respects system pref on first visit)
     const currentTheme = document.documentElement.classList.contains('light') ? 'light' : 'dark';
     setThemeState(currentTheme);
   }, []);
@@ -35,14 +36,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-    localStorage.setItem('theme', theme);
+
+    // Only persist when the user explicitly toggled (not on initial detection)
+    if (userChose.current) {
+      localStorage.setItem('theme', theme);
+      localStorage.setItem('theme-user-set', '1');
+    }
   }, [theme, mounted]);
 
   const toggleTheme = () => {
+    userChose.current = true;
     setThemeState(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
   const setTheme = (newTheme: Theme) => {
+    userChose.current = true;
     setThemeState(newTheme);
   };
 

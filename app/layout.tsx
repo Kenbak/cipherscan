@@ -131,7 +131,8 @@ const themeScript = `
   (function() {
     try {
       var theme = localStorage.getItem('theme');
-      if (!theme) {
+      var userChose = localStorage.getItem('theme-user-set');
+      if (!theme || !userChose) {
         theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       }
       document.documentElement.classList.remove('light', 'dark');
