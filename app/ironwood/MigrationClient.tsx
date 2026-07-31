@@ -1853,10 +1853,14 @@ type WalletStatus = 'zip318' | 'ready' | 'in_progress' | 'unknown';
 const WALLETS: { name: string; status: WalletStatus; detail: string; link: string | null }[] = [
   { name: 'Vizor', status: 'zip318', detail: 'First wallet with full ZIP-318 compliance — standard denominations, correct actions, boundary-aligned anchors', link: 'https://vizor.cash/' },
   { name: 'zcash_pool_migration', status: 'zip318', detail: 'Reference implementation of ZIP-318: canonical 1-2-5 denominations, boundary-aligned anchors, unpadded Ironwood bundles', link: 'https://docs.rs/zcash_pool_migration/latest/zcash_pool_migration/' },
+  { name: 'Cake Wallet', status: 'ready', detail: 'Mostly ZIP-318 migration is live on current app stores; automatic mainnet migration is confirmed.', link: 'https://github.com/cake-tech/cake_wallet/releases' },
   { name: 'Zcash iOS SDK', status: 'ready', detail: 'PR #1812 merged. Integrates migration crate.', link: 'https://github.com/zcash/zcash-swift-wallet-sdk/pull/1812' },
   { name: 'Zcash Android SDK', status: 'ready', detail: 'feature-orchard_migration branch. Integrates migration crate.', link: null },
-  { name: 'ZODL (iOS)', status: 'in_progress', detail: 'Migration works. ZIP-318 compliance waiting on release.', link: 'https://zodl.com/' },
-  { name: 'ZODL (Android)', status: 'in_progress', detail: 'Migration works. ZIP-318 compliance waiting on release.', link: 'https://zodl.com/' },
+  { name: 'ZODL (iOS)', status: 'ready', detail: 'Basic migration is live in v3.8.0; the private ZIP-318 flow is still in development.', link: 'https://zodl.com/' },
+  { name: 'ZODL (Android)', status: 'ready', detail: 'Basic migration is live in v3.8.0; the private ZIP-318 flow is still in development.', link: 'https://zodl.com/' },
+  { name: 'Zkool (Desktop)', status: 'ready', detail: 'Private migration, not ZIP-318: separate splitting and migration phases, privacy-first note selection, and a speed slider. Confirmed on mainnet in v6.25.1.', link: 'https://github.com/hhanh00/zkool2/releases' },
+  { name: 'Zkool (Android)', status: 'ready', detail: 'Private migration is available in Google Play v6.25.1.', link: 'https://github.com/hhanh00/zkool2/releases' },
+  { name: 'Zkool (iOS)', status: 'in_progress', detail: 'App Store v6.23.0 predates Ironwood support; awaiting a current release.', link: 'https://github.com/hhanh00/zkool2/releases' },
   { name: 'Brave', status: 'unknown', detail: 'No Ironwood migration support announced yet', link: null },
   { name: 'Edge', status: 'unknown', detail: 'Uses librustzcash SDK — depends on SDK integration', link: null },
 ];
