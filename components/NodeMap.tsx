@@ -279,7 +279,7 @@ export function NodeMap() {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-primary">Network Node Map</h2>
-              <p className="text-[10px] sm:text-xs text-muted">Global distribution of Zcash full nodes</p>
+              <p className="text-[10px] sm:text-xs text-muted">Global distribution of Zcash network nodes</p>
             </div>
           </div>
 
