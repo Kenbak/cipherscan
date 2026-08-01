@@ -1205,7 +1205,7 @@ export default function BlockPageClient({
                           if (feeZat === 0) return <span className="text-xs text-muted">-</span>;
                           const feeZec = feeZat / 1e8;
                           if (feeZat === 10000) {
-                            return <span className="text-[10px] text-muted font-mono">Std</span>;
+                            return <span className="text-[10px] text-muted font-mono">Standard</span>;
                           }
                           return (
                             <span className="text-[10px] text-muted font-mono">
