@@ -1,66 +1,109 @@
 /**
- * Trading Signals — Configuration
- * Weights, thresholds, and parameters for signal computation.
+ * Trading Signals V2 — Configuration
  *
  * All indicator scores are normalized to [-100, +100].
- * Composite = weighted average of all available indicators.
+ * Composite = regime-weighted average of available indicators, modified by confidence.
  */
 
 module.exports = {
-  // Indicator weights (must sum to 1.0)
+  // Default indicator weights (sum to 1.0, overridden by adaptive weights when available)
   weights: {
-    svr_7d: 0.25,
-    svr_30d: 0.20,
-    pool_momentum: 0.20,
-    miner_pressure: 0.15,
+    svr_7d: 0.12,
+    svr_30d: 0.10,
+    pool_momentum: 0.10,
+    miner_exchange: 0.08,
     crosschain_flow: 0.10,
-    shielded_tx_momentum: 0.10,
+    shielded_tx_momentum: 0.05,
+    exchange_velocity: 0.12,
+    whale_accumulation: 0.08,
+    mean_reversion: 0.10,
+    fee_pressure: 0.05,
+    network_momentum: 0.05,
+    volume_zscore: 0.05,
   },
 
-  // SVR (Shielded Velocity Ratio) parameters
+  // SVR (Shielded Velocity Ratio) — migration-neutral
   svr: {
-    // Ratio = shielded_zat / deshielded_zat over window
-    // > 1.0 means net accumulation, < 1.0 means net distribution
-    // Score mapping: ratio 0.5 → -100, ratio 1.0 → 0, ratio 2.0 → +100
     neutralRatio: 1.0,
-    minRatio: 0.5,   // maps to -100
-    maxRatio: 2.0,   // maps to +100
+    minRatio: 0.5,
+    maxRatio: 2.0,
   },
 
-  // Pool Momentum parameters
+  // Pool Momentum
   poolMomentum: {
-    // Compares current 7d pool growth rate vs 30d average growth rate
-    // Score = z-score of 7d rate vs 30d mean, clamped to [-100, +100]
     lookbackDays: 30,
     shortWindow: 7,
-    zScoreClamp: 3.0, // ±3 std devs → ±100
+    zScoreClamp: 3.0,
   },
 
-  // Miner Sell Pressure (Contrarian)
-  minerPressure: {
-    // Percentage of earned ZEC spent within the observation window
-    // Contrarian: miners selling aggressively = buy opportunity (they create dips)
-    // Miners holding = supply overhang building (eventual sell pressure)
-    // 100% spent → +100 (bullish), 0% spent → -100 (bearish)
-    neutralSpendPct: 50,
-  },
-
-  // Cross-chain Flow parameters
-  crosschainFlow: {
-    // Net ZEC value: inflows - outflows over window
-    // Positive = demand (bullish), negative = exits (bearish)
+  // Miner-to-Exchange Ratio (replaces crude miner_pressure)
+  minerExchange: {
     windowDays: 7,
-    // Normalize by dividing by median daily volume, clamp at ±3x
+    // High exchange ratio = bearish (miners dumping to sell)
+    // Low exchange ratio = bullish (miners holding/shielding)
+    neutralPct: 30,
+    zScoreClamp: 3.0,
+  },
+
+  // Cross-chain Flow (USD-denominated, lowered threshold)
+  crosschainFlow: {
+    windowDays: 7,
+    minSwaps: 5,
     normClamp: 3.0,
   },
 
-  // Shielded TX Momentum parameters
+  // Shielded TX Momentum
   shieldedTxMomentum: {
-    // Compare current 7d avg shielded_percentage vs 30d avg
-    // Rising privacy usage = bullish
     shortWindow: 7,
     longWindow: 30,
-    maxDelta: 10, // ±10 percentage points → ±100
+    maxDelta: 10,
+  },
+
+  // Exchange Deposit Velocity
+  exchangeVelocity: {
+    lookbackDays: 30,
+    shortWindow: 7,
+    zScoreClamp: 3.0,
+  },
+
+  // Whale Accumulation
+  whaleAccumulation: {
+    minBalance: 100000000000, // 1000 ZEC in zatoshis
+    lookbackDays: 14,
+    zScoreClamp: 3.0,
+  },
+
+  // Mean Reversion (Price Z-Score from 60d SMA)
+  meanReversion: {
+    smaDays: 60,
+    zScoreClamp: 3.0,
+  },
+
+  // Fee Market Pressure
+  feePressure: {
+    shortWindow: 7,
+    longWindow: 30,
+    zScoreClamp: 3.0,
+  },
+
+  // Network Activity Momentum
+  networkMomentum: {
+    shortWindow: 7,
+    longWindow: 30,
+    zScoreClamp: 3.0,
+  },
+
+  // Volume Z-Score (confidence multiplier, not directional)
+  volumeZscore: {
+    lookbackDays: 30,
+  },
+
+  // Regime detection
+  regime: {
+    smaDays: 30,
+    volDays: 30,
+    slopeThreshold: 0.005, // daily % change threshold for trend
+    volHighThreshold: 0.04, // daily vol > 4% = high volatility
   },
 
   // Composite signal thresholds
@@ -69,5 +112,13 @@ module.exports = {
     buy: 20,
     sell: -20,
     strongSell: -50,
+  },
+
+  // Adaptive weights
+  adaptiveWeights: {
+    correlationWindow: 90,
+    recomputeEveryDays: 30,
+    minCorrelation: 0.02, // indicators below this get minimum weight
+    minWeight: 0.02,
   },
 };

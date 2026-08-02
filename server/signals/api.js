@@ -73,7 +73,10 @@ router.get('/latest', async (req, res) => {
     const result = await req.app.locals.pool.query(`
       SELECT signal_date, svr_7d, svr_30d, pool_momentum, miner_pressure,
              crosschain_flow, shielded_tx_momentum, composite_score, signal,
-             price_usd, shielded_pool_pct
+             price_usd, shielded_pool_pct,
+             exchange_velocity, whale_accumulation, mean_reversion,
+             fee_pressure, network_momentum, volume_multiplier,
+             regime, confidence
       FROM trading_signals
       ORDER BY signal_date DESC
       LIMIT 7
@@ -86,7 +89,6 @@ router.get('/latest', async (req, res) => {
     const latest = result.rows[0];
     const history = result.rows;
 
-    // Trend: is the composite improving or declining?
     let trend = 'stable';
     if (history.length >= 3) {
       const recent = Number(history[0].composite_score);
@@ -100,12 +102,20 @@ router.get('/latest', async (req, res) => {
         date: latest.signal_date,
         signal: latest.signal,
         composite: Number(latest.composite_score),
+        regime: latest.regime || null,
+        confidence: latest.confidence ? Number(latest.confidence) : null,
+        volume_multiplier: latest.volume_multiplier ? Number(latest.volume_multiplier) : null,
         indicators: {
           svr_7d: latest.svr_7d ? Number(latest.svr_7d) : null,
           svr_30d: latest.svr_30d ? Number(latest.svr_30d) : null,
           pool_momentum: latest.pool_momentum ? Number(latest.pool_momentum) : null,
-          miner_pressure: latest.miner_pressure ? Number(latest.miner_pressure) : null,
+          miner_exchange: latest.miner_pressure ? Number(latest.miner_pressure) : null,
           crosschain_flow: latest.crosschain_flow ? Number(latest.crosschain_flow) : null,
+          exchange_velocity: latest.exchange_velocity ? Number(latest.exchange_velocity) : null,
+          whale_accumulation: latest.whale_accumulation ? Number(latest.whale_accumulation) : null,
+          mean_reversion: latest.mean_reversion ? Number(latest.mean_reversion) : null,
+          fee_pressure: latest.fee_pressure ? Number(latest.fee_pressure) : null,
+          network_momentum: latest.network_momentum ? Number(latest.network_momentum) : null,
           shielded_tx_momentum: latest.shielded_tx_momentum ? Number(latest.shielded_tx_momentum) : null,
         },
         price: latest.price_usd ? Number(latest.price_usd) : null,
@@ -116,6 +126,8 @@ router.get('/latest', async (req, res) => {
         date: r.signal_date,
         signal: r.signal,
         composite: Number(r.composite_score),
+        regime: r.regime || null,
+        confidence: r.confidence ? Number(r.confidence) : null,
         price: r.price_usd ? Number(r.price_usd) : null,
       })),
     });
@@ -132,7 +144,10 @@ router.get('/history', async (req, res) => {
     const result = await req.app.locals.pool.query(`
       SELECT signal_date, svr_7d, svr_30d, pool_momentum, miner_pressure,
              crosschain_flow, shielded_tx_momentum, composite_score, signal,
-             price_usd, shielded_pool_pct
+             price_usd, shielded_pool_pct,
+             exchange_velocity, whale_accumulation, mean_reversion,
+             fee_pressure, network_momentum, volume_multiplier,
+             regime, confidence
       FROM trading_signals
       WHERE signal_date >= CURRENT_DATE - ($1 || ' days')::interval
       ORDER BY signal_date DESC
@@ -144,12 +159,20 @@ router.get('/history', async (req, res) => {
         date: r.signal_date,
         signal: r.signal,
         composite: Number(r.composite_score),
+        regime: r.regime || null,
+        confidence: r.confidence ? Number(r.confidence) : null,
         svr_7d: r.svr_7d ? Number(r.svr_7d) : null,
         svr_30d: r.svr_30d ? Number(r.svr_30d) : null,
         pool_momentum: r.pool_momentum ? Number(r.pool_momentum) : null,
-        miner_pressure: r.miner_pressure ? Number(r.miner_pressure) : null,
+        miner_exchange: r.miner_pressure ? Number(r.miner_pressure) : null,
         crosschain_flow: r.crosschain_flow ? Number(r.crosschain_flow) : null,
+        exchange_velocity: r.exchange_velocity ? Number(r.exchange_velocity) : null,
+        whale_accumulation: r.whale_accumulation ? Number(r.whale_accumulation) : null,
+        mean_reversion: r.mean_reversion ? Number(r.mean_reversion) : null,
+        fee_pressure: r.fee_pressure ? Number(r.fee_pressure) : null,
+        network_momentum: r.network_momentum ? Number(r.network_momentum) : null,
         shielded_tx_momentum: r.shielded_tx_momentum ? Number(r.shielded_tx_momentum) : null,
+        volume_multiplier: r.volume_multiplier ? Number(r.volume_multiplier) : null,
         price: r.price_usd ? Number(r.price_usd) : null,
         shielded_pct: r.shielded_pool_pct ? Number(r.shielded_pool_pct) : null,
       })),
