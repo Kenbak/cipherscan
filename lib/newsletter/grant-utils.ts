@@ -15,9 +15,11 @@ export function linkifyGrantItem(item: string): string {
 }
 
 export function stripGrantGroupsFromBody(body: string): string {
-  const labelRegex = /^\*\*(Approved:?|Under [Rr]eview:?|Declined[^*]*:?|New(?:ly [Ff]iled)?[^*]*:?)\*\*\s*$/gm;
+  const blockLabelRegex = /^\*\*(Approved[^*]*|Under [Rr]eview[^*]*|Declined[^*]*|Closed[^*]*|New(?:ly [Ff]iled)?[^*]*|Previously [Aa]pproved[^*]*|Recently [Dd]eclined[^*]*)\*\*:?\s*$/gm;
+  const inlineLabelRegex = /^\*\*(Approved[^*]*|Under [Rr]eview[^*]*|Declined[^*]*|Closed[^*]*|New(?:ly [Ff]iled)?[^*]*|Previously [Aa]pproved[^*]*|Recently [Dd]eclined[^*]*)\*\*:?\s+.+$/gm;
   return body
-    .replace(labelRegex, '')
+    .replace(blockLabelRegex, '')
+    .replace(inlineLabelRegex, '')
     .replace(/^[\-\*] .+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

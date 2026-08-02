@@ -191,33 +191,57 @@ function resolveToolUpdates(body: string, subsections: ParsedSubsection[]): Pars
   return [];
 }
 
+function classifyGrantVariant(label: string): ParsedGrantGroup['variant'] {
+  const lower = label.toLowerCase();
+  if (lower.startsWith('approved') || lower.includes('previously approved')) return 'approved';
+  if (lower.includes('review')) return 'review';
+  if (lower.startsWith('declined') || lower.includes('recently declined')) return 'declined';
+  if (lower.startsWith('closed')) return 'declined';
+  if (lower.startsWith('new')) return 'new';
+  return 'neutral';
+}
+
 function parseGrantGroups(body: string): ParsedGrantGroup[] {
   const groups: ParsedGrantGroup[] = [];
-  const labelRegex =
-    /^\*\*(Approved[^*]*|Under [Rr]eview[^*]*|Declined[^*]*|New(?:ly [Ff]iled)?[^*]*|Previously [Aa]pproved[^*]*|Recently [Dd]eclined[^*]*)\*\*:?\s*$/gm;
-  const matches = [...body.matchAll(labelRegex)];
 
-  if (matches.length === 0) return groups;
+  const blockLabelRegex =
+    /^\*\*(Approved[^*]*|Under [Rr]eview[^*]*|Declined[^*]*|Closed[^*]*|New(?:ly [Ff]iled)?[^*]*|Previously [Aa]pproved[^*]*|Recently [Dd]eclined[^*]*)\*\*:?\s*$/gm;
+  const blockMatches = [...body.matchAll(blockLabelRegex)];
 
-  for (let i = 0; i < matches.length; i++) {
-    const label = matches[i][1].trim();
-    const start = (matches[i].index ?? 0) + matches[i][0].length;
-    const end = i < matches.length - 1 ? (matches[i + 1].index ?? body.length) : body.length;
-    const chunk = body.slice(start, end).trim();
+  const inlineLabelRegex =
+    /^\*\*(Approved[^*]*|Under [Rr]eview[^*]*|Declined[^*]*|Closed[^*]*|New(?:ly [Ff]iled)?[^*]*|Previously [Aa]pproved[^*]*|Recently [Dd]eclined[^*]*)\*\*:?\s+(.+)$/gm;
+  const inlineMatches = [...body.matchAll(inlineLabelRegex)];
 
-    const items = chunk
-      .split('\n')
-      .map((l) => l.replace(/^[\-\*]\s+/, '').trim())
-      .filter(Boolean);
+  const allLabels = [
+    ...blockMatches.map((m) => ({ index: m.index ?? 0, length: m[0].length, label: m[1].trim(), inline: false, inlineContent: '' })),
+    ...inlineMatches.map((m) => ({ index: m.index ?? 0, length: m[0].length, label: m[1].trim(), inline: true, inlineContent: m[2].trim() })),
+  ].sort((a, b) => a.index - b.index);
 
-    let variant: ParsedGrantGroup['variant'] = 'neutral';
-    const lower = label.toLowerCase();
-    if (lower.startsWith('approved') || lower.includes('previously approved')) variant = 'approved';
-    else if (lower.includes('review')) variant = 'review';
-    else if (lower.startsWith('declined') || lower.includes('recently declined')) variant = 'declined';
-    else if (lower.startsWith('new')) variant = 'new';
+  if (allLabels.length === 0) return groups;
 
-    groups.push({ label, variant, items });
+  for (let i = 0; i < allLabels.length; i++) {
+    const entry = allLabels[i];
+    let items: string[];
+
+    if (entry.inline) {
+      items = entry.inlineContent
+        .split(/,\s*(?=#)/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (items.length <= 1 && entry.inlineContent.includes(',')) {
+        items = entry.inlineContent.split(/,\s+/).map((s) => s.trim()).filter(Boolean);
+      }
+    } else {
+      const start = entry.index + entry.length;
+      const end = i < allLabels.length - 1 ? allLabels[i + 1].index : body.length;
+      const chunk = body.slice(start, end).trim();
+      items = chunk
+        .split('\n')
+        .map((l) => l.replace(/^[\-\*]\s+/, '').trim())
+        .filter(Boolean);
+    }
+
+    groups.push({ label: entry.label, variant: classifyGrantVariant(entry.label), items });
   }
 
   return groups;
