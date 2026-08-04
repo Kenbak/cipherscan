@@ -1301,7 +1301,7 @@ function ComplianceSummary({
   denomPct,
   volPct,
 }: {
-  stats: { total: number; green: number; partial2: number; partial1: number; weak: number };
+  stats: { total: number; green: number; partial2: number; partial1: number; weak: number; greenVol: number; partial2Vol: number; partial1Vol: number; weakVol: number };
   privacyColors: Record<string, string>;
   denomPct: number;
   volPct: number;
@@ -1320,11 +1320,18 @@ function ComplianceSummary({
     partial1: stats.partial1,
     weak: stats.weak,
   };
+  const volMap = {
+    green: stats.greenVol,
+    partial2: stats.partial2Vol,
+    partial1: stats.partial1Vol,
+    weak: stats.weakVol,
+  };
 
   const segments = COMPLIANCE_GRADES.map((g) => ({
     ...g,
     count: countMap[g.key],
     pct: stats.total > 0 ? (countMap[g.key] / stats.total) * 100 : 0,
+    volPct: volMap[g.key],
     color: colorMap[g.key],
   }));
 
@@ -1352,15 +1359,25 @@ function ComplianceSummary({
                 <span className="text-primary">{hoveredSegment.count.toLocaleString()} txs</span>
                 {' · '}
                 {hoveredSegment.hint}
+                {' · '}
+                {hoveredSegment.volPct.toFixed(0)}% by volume
                 {hoveredSegment.key === 'green' ? (
                   <>
                     {' · '}
-                    {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
+                    {denomPct.toFixed(0)}% standard denomination
                   </>
                 ) : null}
               </>
             ) : (
-              <span className="text-secondary">ZIP-318 compliant</span>
+              <>
+                <span className="text-secondary">ZIP-318 compliant ({stats.green}/{stats.total})</span>
+                {' · '}
+                <span className="text-primary">{stats.green.toLocaleString()} txs</span>
+                {' · '}
+                Standard denomination, correct actions (0:2, I:1), boundary-aligned anchor
+                {' · '}
+                {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
+              </>
             )}
           </div>
         </div>
@@ -1385,7 +1402,7 @@ function ComplianceSummary({
             }}
             onMouseEnter={() => setHovered(s.key)}
             onFocus={() => setHovered(s.key)}
-            aria-label={`${s.label} (${s.checks}): ${s.pct.toFixed(1)}%, ${s.count} transactions. ${s.hint}`}
+            aria-label={`${s.label} (${s.checks}): ${s.pct.toFixed(1)}%, ${s.count} transactions, ${s.volPct.toFixed(0)}% by volume. ${s.hint}`}
           />
         ))}
       </div>
@@ -1511,17 +1528,25 @@ function PrivacyScore({
     const t = filteredTxs.length;
     if (t === 0) return null;
     let g = 0, p2 = 0, p1 = 0, w = 0;
+    let gVol = 0, p2Vol = 0, p1Vol = 0, wVol = 0;
     for (const tx of filteredTxs) {
       let checks = 0;
       if (tx.privacy === 'denominated') checks++;
       if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
       if (tx.anchorCompliant) checks++;
-      if (checks === 3) g++;
-      else if (checks === 2) p2++;
-      else if (checks === 1) p1++;
-      else w++;
+      if (checks === 3) { g++; gVol += tx.amountZec; }
+      else if (checks === 2) { p2++; p2Vol += tx.amountZec; }
+      else if (checks === 1) { p1++; p1Vol += tx.amountZec; }
+      else { w++; wVol += tx.amountZec; }
     }
-    return { total: t, green: g, partial2: p2, partial1: p1, weak: w };
+    const totalVol = gVol + p2Vol + p1Vol + wVol;
+    return {
+      total: t, green: g, partial2: p2, partial1: p1, weak: w,
+      greenVol: totalVol > 0 ? (gVol / totalVol) * 100 : 0,
+      partial2Vol: totalVol > 0 ? (p2Vol / totalVol) * 100 : 0,
+      partial1Vol: totalVol > 0 ? (p1Vol / totalVol) * 100 : 0,
+      weakVol: totalVol > 0 ? (wVol / totalVol) * 100 : 0,
+    };
   }, [filteredTxs]);
 
   const hasData = (scatter?.total ?? 0) > 0;
