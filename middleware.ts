@@ -68,9 +68,31 @@ function handleApiRateLimit(request: NextRequest): NextResponse {
   return response;
 }
 
+const CANONICAL_HOST = 'cipherscan.app';
+const REDIRECT_HOSTS = [
+  'zecexplorer.com',
+  'www.zecexplorer.com',
+  'zecblock.com',
+  'www.zecblock.com',
+  'zecblocks.com',
+  'www.zecblocks.com',
+  'zblockexplorer.com',
+  'www.zblockexplorer.com',
+  'zcashblock.com',
+  'www.zcashblock.com',
+  'zcashblocks.com',
+  'www.zcashblocks.com',
+];
+
 export function middleware(request: NextRequest) {
   if (process.env.NODE_ENV === 'development') {
     return NextResponse.next();
+  }
+
+  const host = request.headers.get('host')?.replace(/:\d+$/, '') || '';
+  if (REDIRECT_HOSTS.includes(host)) {
+    const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${CANONICAL_HOST}`);
+    return NextResponse.redirect(url, 301);
   }
 
   const { pathname } = request.nextUrl;
