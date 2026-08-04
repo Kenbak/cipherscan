@@ -122,6 +122,12 @@ interface ScatterTx {
   orchardActions?: number;
   paddedBundle?: boolean;
   anchorCompliant?: boolean;
+  fee?: number;
+  expiryDelta?: number | null;
+  family?: string;
+  familyConfidence?: string;
+  familyLabel?: string;
+  familyShortLabel?: string;
 }
 interface ScatterData {
   success?: boolean;
@@ -132,6 +138,7 @@ interface ScatterData {
   denominatedPercent: number;
   denominatedVolumeZat?: number;
   distinctiveVolumeZat?: number;
+  familyCounts?: Record<string, number>;
   txs: ScatterTx[];
 }
 
@@ -1405,6 +1412,80 @@ function ComplianceSummary({
   );
 }
 
+const FAMILY_META: Record<string, { label: string; color: string }> = {
+  'zip318-current-sdk': { label: 'ZIP-318 SDK (ZODL etc.)', color: '#4ade80' },
+  'cake-zkool2-compatible': { label: 'Cake/zkool2', color: '#f97316' },
+  'multi-action-migration': { label: 'Multi-action', color: '#a78bfa' },
+  unknown: { label: 'Unknown', color: '#6b7280' },
+};
+
+function FamilySummary({ counts, total }: { counts: Record<string, number>; total: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const entries = Object.entries(counts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([id, count]) => ({
+      id,
+      count,
+      pct: total > 0 ? Math.round((count / total) * 100) : 0,
+      ...(FAMILY_META[id] || { label: id, color: '#6b7280' }),
+    }));
+
+  if (!entries.length) return null;
+
+  return (
+    <div className="mt-3 mb-4 rounded-lg border border-cipher-border/30 bg-cipher-surface/40 p-3">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted">
+          Implementation families
+        </span>
+        <span className="text-[10px] text-muted">{expanded ? '\u25B2' : '\u25BC'}</span>
+      </button>
+
+      <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-cipher-border/20">
+        {entries.map((e) => (
+          <div
+            key={e.id}
+            className="h-full transition-all"
+            style={{ width: `${e.pct}%`, backgroundColor: e.color }}
+            title={`${e.label}: ${e.count} (${e.pct}%)`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+        {entries.map((e) => (
+          <div key={e.id} className="flex items-center gap-1 text-[10px] font-mono text-muted">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: e.color }} />
+            <span>{e.label}</span>
+            <span className="text-primary">{e.pct}%</span>
+          </div>
+        ))}
+      </div>
+
+      {expanded && (
+        <div className="mt-3 border-t border-cipher-border/20 pt-2 text-[10px] text-muted leading-relaxed">
+          <p>
+            Fingerprints identify <em>compatible construction software</em>, not individual wallet
+            owners. Wallets sharing the same SDK are indistinguishable within a family. Transaction
+            proximity does not imply shared ownership.
+          </p>
+          <p className="mt-1">
+            <strong>ZIP-318 SDK:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
+            grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations.
+          </p>
+          <p className="mt-1">
+            <strong>Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,
+            power-of-10 denominations.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DenomMixChart({
   denomBuckets,
   maxBucketCount,
@@ -1561,6 +1642,11 @@ function PrivacyScore({
         iwActions: tx.ironwoodActions,
         orchardActions: tx.orchardActions,
         anchorCompliant: tx.anchorCompliant,
+        family: tx.family,
+        familyConfidence: tx.familyConfidence,
+        familyShortLabel: tx.familyShortLabel,
+        fee: tx.fee,
+        expiryDelta: tx.expiryDelta,
       })),
     [filteredTxs],
   );
@@ -1656,6 +1742,10 @@ function PrivacyScore({
             mode={view === 'scatter' ? 'txs' : 'volume'}
           />
         ) : null}
+
+        {scatter?.familyCounts && hasData && (
+          <FamilySummary counts={scatter.familyCounts} total={scatter.total} />
+        )}
 
         {hasData && hasFilteredData ? (
           <>

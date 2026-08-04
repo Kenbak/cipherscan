@@ -27,6 +27,11 @@ export interface ScatterPoint {
   iwActions?: number;
   orchardActions?: number;
   anchorCompliant?: boolean;
+  family?: string;
+  familyConfidence?: string;
+  familyShortLabel?: string;
+  fee?: number;
+  expiryDelta?: number | null;
 }
 
 export interface PrivacyScatterChartProps {
@@ -453,6 +458,31 @@ function ScatterTooltip({
         <div>{correctActions ? '\u2713' : '\u2717'} Correct actions (O:{oActions} I:{iwActions})</div>
         <div>{anchorOk ? '\u2713' : '\u2717'} Boundary-aligned anchor</div>
       </div>
+      {point.familyShortLabel && (
+        <div className="mt-1.5 border-t border-glass-8 pt-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted">Impl:</span>
+            <span className="text-primary font-medium">{point.familyShortLabel}</span>
+            {point.familyConfidence && (
+              <span className={`text-[9px] px-1 py-px rounded ${
+                point.familyConfidence === 'high'
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : point.familyConfidence === 'medium'
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-zinc-500/20 text-zinc-400'
+              }`}>
+                {point.familyConfidence}
+              </span>
+            )}
+          </div>
+          {point.fee != null && (
+            <div className="mt-0.5 text-muted text-[10px]">
+              Fee {(point.fee / 1000).toFixed(0)}k zat
+              {point.expiryDelta != null && <> · Expiry +{point.expiryDelta.toLocaleString()}</>}
+            </div>
+          )}
+        </div>
+      )}
       <div className="mt-2 text-[10px] text-cipher-cyan-bright">
         Click to view transaction &rarr;
       </div>

@@ -17,6 +17,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { classifyMigration } = require('../lib/migration-classifier');
 
 // NU6.3 / Ironwood activation heights.
 // Mainnet: height 3,428,143 (~July 28 2026 8AM EST). Announced by Sean Bowe.
@@ -650,6 +651,9 @@ router.get('/api/migration/scatter', async (req, res) => {
           COALESCE(t.ironwood_actions, 0) AS ironwood_actions,
           COALESCE(t.orchard_actions, 0) AS orchard_actions,
           t.orchard_anchor,
+          t.fee,
+          t.expiry_height,
+          t.locktime,
           CASE WHEN t.orchard_anchor IS NOT NULL AND EXISTS (
             SELECT 1 FROM blocks b
             WHERE b.final_orchard_root = t.orchard_anchor
@@ -665,15 +669,35 @@ router.get('/api/migration/scatter', async (req, res) => {
         ORDER BY t.block_height ASC
       `);
 
+      const familyCounts = {};
       const txs = plotResult.rows.map(r => {
         const zat = Number(r.ironwood_in_zat);
         const zec = zat / 1e8;
         const classification = classifyAmount(zec);
         const iwActions = Number(r.ironwood_actions) || 0;
         const oActions = Number(r.orchard_actions) || 0;
+        const feeVal = Number(r.fee) || 0;
+        const expiryHeight = Number(r.expiry_height) || 0;
+        const blockHeight = Number(r.block_height);
+        const expiryDelta = expiryHeight > 0 ? expiryHeight - blockHeight : null;
+        const anchorCompliant = r.anchor_compliant ?? false;
+        const locktimeVal = Number(r.locktime) || 0;
+
+        const fingerprint = classifyMigration({
+          ironwoodActions: iwActions,
+          orchardActions: oActions,
+          fee: feeVal,
+          expiryDelta,
+          anchorOnGrid: anchorCompliant,
+          amountZec: zec,
+          locktime: locktimeVal,
+        });
+
+        familyCounts[fingerprint.family] = (familyCounts[fingerprint.family] || 0) + 1;
+
         return {
           txid: r.txid,
-          height: Number(r.block_height),
+          height: blockHeight,
           timestamp: r.block_time ? Number(r.block_time) : null,
           amountZat: zat,
           amountZec: zec,
@@ -682,9 +706,15 @@ router.get('/api/migration/scatter', async (req, res) => {
           ironwoodActions: iwActions,
           orchardActions: oActions,
           paddedBundle: iwActions > 1,
-          anchorCompliant: r.anchor_compliant ?? false,
+          anchorCompliant,
           privacy: classification.privacy,
           matchedDenomination: classification.denomination,
+          fee: feeVal,
+          expiryDelta,
+          family: fingerprint.family,
+          familyConfidence: fingerprint.confidence,
+          familyLabel: fingerprint.label,
+          familyShortLabel: fingerprint.shortLabel,
         };
       });
 
@@ -697,6 +727,7 @@ router.get('/api/migration/scatter', async (req, res) => {
         denominatedPercent: total > 0 ? Math.round((denominatedCount / total) * 100) : 0,
         denominatedVolumeZat: denominatedVolume,
         distinctiveVolumeZat: distinctiveVolume,
+        familyCounts,
         txs,
       };
     });
