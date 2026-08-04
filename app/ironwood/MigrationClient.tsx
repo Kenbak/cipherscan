@@ -1420,13 +1420,31 @@ const FAMILY_META: Record<string, { label: string; color: string }> = {
   unknown: { label: 'Unknown', color: '#6b7280' },
 };
 
-function FamiliesTab({ counts, total }: { counts: Record<string, number>; total: number }) {
+function FamiliesTab({
+  counts,
+  compliance,
+  total,
+  privacyColors,
+}: {
+  counts: Record<string, number>;
+  compliance: Record<string, Record<string, number>>;
+  total: number;
+  privacyColors: Record<string, string>;
+}) {
+  const gradeColors = {
+    green: privacyColors.best,
+    partial2: privacyColors.denomPadded,
+    partial1: privacyColors.distinctUnpadded,
+    weak: privacyColors.worst,
+  };
+
   const entries = Object.entries(counts)
     .sort(([, a], [, b]) => b - a)
     .map(([id, count]) => ({
       id,
       count,
       pct: total > 0 ? Math.round((count / total) * 100) : 0,
+      compliance: compliance[id] || { green: 0, partial2: 0, partial1: 0, weak: 0 },
       ...(FAMILY_META[id] || { label: id, color: '#6b7280' }),
     }));
 
@@ -1446,16 +1464,36 @@ function FamiliesTab({ counts, total }: { counts: Record<string, number>; total:
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {entries.map((e) => (
-          <div key={e.id} className="rounded-lg border border-cipher-border/20 bg-cipher-surface/30 px-3 py-2">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
-              <span className="text-[11px] font-medium text-primary">{e.label}</span>
+        {entries.map((e) => {
+          const c = e.compliance;
+          const cTotal = c.green + c.partial2 + c.partial1 + c.weak;
+          const greenPct = cTotal > 0 ? Math.round((c.green / cTotal) * 100) : 0;
+          return (
+            <div key={e.id} className="rounded-lg border border-cipher-border/20 bg-cipher-surface/30 px-3 py-2">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
+                <span className="text-[11px] font-medium text-primary">{e.label}</span>
+              </div>
+              <div className="mt-1 text-lg font-mono font-semibold text-primary">{e.pct}%</div>
+              <div className="text-[10px] font-mono text-muted">{e.count.toLocaleString()} txs</div>
+              <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-cipher-border/20">
+                {(['green', 'partial2', 'partial1', 'weak'] as const).map((grade) => {
+                  const w = cTotal > 0 ? (c[grade] / cTotal) * 100 : 0;
+                  return w > 0 ? (
+                    <div
+                      key={grade}
+                      className="h-full"
+                      style={{ width: `${w}%`, backgroundColor: gradeColors[grade] }}
+                    />
+                  ) : null;
+                })}
+              </div>
+              <div className="mt-1 text-[9px] font-mono text-muted">
+                {greenPct}% compliant
+              </div>
             </div>
-            <div className="mt-1 text-lg font-mono font-semibold text-primary">{e.pct}%</div>
-            <div className="text-[10px] font-mono text-muted">{e.count.toLocaleString()} txs</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-4 border-t border-cipher-border/20 pt-3 text-[10px] text-muted leading-relaxed">
@@ -1745,12 +1783,20 @@ function PrivacyScore({
 
   const filteredFamilyCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    const compliance: Record<string, Record<string, number>> = {};
     for (const tx of filteredTxs) {
       if (tx.family) {
         counts[tx.family] = (counts[tx.family] || 0) + 1;
+        if (!compliance[tx.family]) compliance[tx.family] = { green: 0, partial2: 0, partial1: 0, weak: 0 };
+        let checks = 0;
+        if (tx.privacy === 'denominated') checks++;
+        if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
+        if (tx.anchorCompliant) checks++;
+        const grade = checks === 3 ? 'green' : checks === 2 ? 'partial2' : checks === 1 ? 'partial1' : 'weak';
+        compliance[tx.family][grade]++;
       }
     }
-    return counts;
+    return { counts, compliance };
   }, [filteredTxs]);
 
   const hasData = (scatter?.total ?? 0) > 0;
@@ -1791,8 +1837,13 @@ function PrivacyScore({
             </div>
 
             {view === 'families' ? (
-              Object.keys(filteredFamilyCounts).length > 0 ? (
-                <FamiliesTab counts={filteredFamilyCounts} total={filteredTxs.length} />
+              Object.keys(filteredFamilyCounts.counts).length > 0 ? (
+                <FamiliesTab
+                  counts={filteredFamilyCounts.counts}
+                  compliance={filteredFamilyCounts.compliance}
+                  total={filteredTxs.length}
+                  privacyColors={PRIVACY_COLORS}
+                />
               ) : (
                 <p className="py-16 text-center text-xs font-mono text-muted">No family data available.</p>
               )
