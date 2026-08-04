@@ -1413,7 +1413,7 @@ function ComplianceSummary({
 }
 
 const FAMILY_META: Record<string, { label: string; color: string }> = {
-  'zip318-current-sdk': { label: 'ZIP-318 SDK (ZODL etc.)', color: '#4ade80' },
+  'zip318-current-sdk': { label: 'ZIP-318 SDK (Vizor, ZODL etc.)', color: '#4ade80' },
   'cake-zkool2-compatible': { label: 'Cake/zkool2', color: '#f97316' },
   'multi-action-migration': { label: 'Multi-action', color: '#a78bfa' },
   unknown: { label: 'Unknown', color: '#6b7280' },
@@ -1548,9 +1548,13 @@ function DenomMixChart({
 function ComplianceLegend({
   privacyColors,
   denomLineColor,
+  activeGrades,
+  onToggle,
 }: {
   privacyColors: Record<string, string>;
   denomLineColor: string;
+  activeGrades?: Set<string>;
+  onToggle?: (key: string) => void;
 }) {
   const colorMap = {
     green: privacyColors.best,
@@ -1559,25 +1563,35 @@ function ComplianceLegend({
     weak: privacyColors.worst,
   };
 
+  const interactive = !!onToggle;
+
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono text-muted sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-      {COMPLIANCE_GRADES.map((g) => (
-        <span key={g.key} className="flex min-w-0 items-center gap-1.5">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorMap[g.key] }} />
-          <span className="truncate sm:whitespace-normal">
-            {g.key === 'green' ? (
-              <>
-                <span className="sm:hidden">Compliant ({g.checks})</span>
-                <span className="hidden sm:inline">{g.label} ({g.checks})</span>
-              </>
-            ) : (
-              <>
-                {g.label} ({g.checks})
-              </>
-            )}
-          </span>
-        </span>
-      ))}
+      {COMPLIANCE_GRADES.map((g) => {
+        const active = !activeGrades || activeGrades.has(g.key);
+        return (
+          <button
+            key={g.key}
+            type="button"
+            onClick={interactive ? () => onToggle(g.key) : undefined}
+            className={`flex min-w-0 items-center gap-1.5 transition-opacity ${interactive ? 'cursor-pointer hover:opacity-80' : 'cursor-default'} ${active ? 'opacity-100' : 'opacity-35'}`}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: colorMap[g.key] }} />
+            <span className="truncate sm:whitespace-normal">
+              {g.key === 'green' ? (
+                <>
+                  <span className="sm:hidden">Compliant ({g.checks})</span>
+                  <span className="hidden sm:inline">{g.label} ({g.checks})</span>
+                </>
+              ) : (
+                <>
+                  {g.label} ({g.checks})
+                </>
+              )}
+            </span>
+          </button>
+        );
+      })}
       <span className="col-span-2 flex items-center gap-1.5 sm:col-span-1">
         <span className="inline-block h-0 w-4 shrink-0 border-t border-dashed" style={{ borderColor: denomLineColor, opacity: 0.75 }} />
         Target denominations
@@ -1631,6 +1645,20 @@ function PrivacyScore({
     worst: '#dc2626',
   };
 
+  type GradeKey = 'green' | 'partial2' | 'partial1' | 'weak';
+  const [visibleGrades, setVisibleGrades] = useState<Set<GradeKey>>(
+    new Set(['green', 'partial2', 'partial1', 'weak']),
+  );
+  const toggleGrade = useCallback((key: string) => {
+    setVisibleGrades((prev) => {
+      const next = new Set(prev);
+      const k = key as GradeKey;
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }, []);
+
   const allPoints: ScatterPoint[] = useMemo(
     () =>
       filteredTxs.map((tx) => ({
@@ -1650,6 +1678,18 @@ function PrivacyScore({
       })),
     [filteredTxs],
   );
+
+  const visiblePoints: ScatterPoint[] = useMemo(() => {
+    if (visibleGrades.size === 4) return allPoints;
+    return allPoints.filter((p) => {
+      let checks = 0;
+      if (p.privacy === 'denominated') checks++;
+      if ((p.orchardActions ?? 0) === 2 && (p.iwActions ?? 0) === 1) checks++;
+      if (p.anchorCompliant) checks++;
+      const grade: GradeKey = checks === 3 ? 'green' : checks === 2 ? 'partial2' : checks === 1 ? 'partial1' : 'weak';
+      return visibleGrades.has(grade);
+    });
+  }, [allPoints, visibleGrades]);
 
   const volumeAreaData = useMemo(
     () =>
@@ -1802,7 +1842,7 @@ function PrivacyScore({
                 {({ width: parentWidth }) =>
                   parentWidth > 0 ? (
                     <PrivacyScatterChart
-                      data={allPoints}
+                      data={visiblePoints}
                       width={parentWidth}
                       height={280}
                       colors={colors}
@@ -1818,9 +1858,11 @@ function PrivacyScore({
               <ComplianceLegend
                 privacyColors={PRIVACY_COLORS}
                 denomLineColor={colors.denominated}
+                activeGrades={visibleGrades}
+                onToggle={toggleGrade}
               />
               <div className="shrink-0 text-[10px] font-mono text-muted">
-                {filteredTxs.length} txs in range · log scale
+                {visiblePoints.length} txs in range · log scale
               </div>
             </div>
             </>
