@@ -1743,6 +1743,16 @@ function PrivacyScore({
     };
   }, [filteredTxs]);
 
+  const filteredFamilyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tx of filteredTxs) {
+      if (tx.family) {
+        counts[tx.family] = (counts[tx.family] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [filteredTxs]);
+
   const hasData = (scatter?.total ?? 0) > 0;
   const hasFilteredData = filteredTxs.length > 0;
   const shareText =
@@ -1781,8 +1791,8 @@ function PrivacyScore({
             </div>
 
             {view === 'families' ? (
-              scatter?.familyCounts ? (
-                <FamiliesTab counts={scatter.familyCounts} total={scatter.total} />
+              Object.keys(filteredFamilyCounts).length > 0 ? (
+                <FamiliesTab counts={filteredFamilyCounts} total={filteredTxs.length} />
               ) : (
                 <p className="py-16 text-center text-xs font-mono text-muted">No family data available.</p>
               )
