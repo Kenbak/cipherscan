@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { ParentSize } from '@visx/responsive';
 import { PrivacyScatterChart, type ScatterPoint } from './PrivacyScatterChart';
+import { VolumeAreaChart } from './VolumeAreaChart';
 import { ShareableCard } from '@/components/ShareableCard';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -1241,9 +1242,10 @@ const PRIVACY_RANGES: { id: PrivacyRange; label: string }[] = [
   { id: 'all', label: 'All' },
 ];
 
-type PrivacyView = 'scatter' | 'denoms';
+type PrivacyView = 'volume' | 'scatter' | 'denoms';
 
 const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
+  { id: 'volume', label: 'Volume' },
   { id: 'scatter', label: 'Transactions' },
   { id: 'denoms', label: 'Denomination mix' },
 ];
@@ -1298,13 +1300,11 @@ const COMPLIANCE_GRADES = [
 function ComplianceSummary({
   stats,
   privacyColors,
-  denomPct,
-  volPct,
+  mode,
 }: {
   stats: { total: number; green: number; partial2: number; partial1: number; weak: number; greenVol: number; partial2Vol: number; partial1Vol: number; weakVol: number };
   privacyColors: Record<string, string>;
-  denomPct: number;
-  volPct: number;
+  mode: 'volume' | 'txs';
 }) {
   const [hovered, setHovered] = useState<(typeof COMPLIANCE_GRADES)[number]['key'] | null>(null);
 
@@ -1336,7 +1336,12 @@ function ComplianceSummary({
   }));
 
   const greenPct = stats.total > 0 ? (stats.green / stats.total) * 100 : 0;
+  const greenVolPct = stats.greenVol;
   const hoveredSegment = hovered ? segments.find((s) => s.key === hovered) : null;
+
+  const headlinePct = hoveredSegment
+    ? (mode === 'volume' ? hoveredSegment.volPct : hoveredSegment.pct)
+    : (mode === 'volume' ? greenVolPct : greenPct);
 
   return (
     <div
@@ -1349,7 +1354,7 @@ function ComplianceSummary({
             className="text-xl font-semibold tabular-nums leading-none tracking-tight transition-colors"
             style={{ color: hoveredSegment?.color ?? privacyColors.best }}
           >
-            {(hoveredSegment?.pct ?? greenPct).toFixed(hoveredSegment ? 1 : 0)}%
+            {headlinePct.toFixed(hoveredSegment ? 1 : 0)}%
           </div>
           <div className="mt-1 min-h-8 text-[10px] font-mono leading-snug text-muted">
             {hoveredSegment ? (
@@ -1361,12 +1366,6 @@ function ComplianceSummary({
                 {hoveredSegment.hint}
                 {' · '}
                 {hoveredSegment.volPct.toFixed(0)}% by volume
-                {hoveredSegment.key === 'green' ? (
-                  <>
-                    {' · '}
-                    {denomPct.toFixed(0)}% standard denomination
-                  </>
-                ) : null}
               </>
             ) : (
               <>
@@ -1374,17 +1373,13 @@ function ComplianceSummary({
                 {' · '}
                 <span className="text-primary">{stats.green.toLocaleString()} txs</span>
                 {' · '}
-                Standard denomination, correct actions (0:2, I:1), boundary-aligned anchor
-                {' · '}
-                {denomPct.toFixed(0)}% standard denomination · {volPct.toFixed(0)}% by volume
+                Standard denomination, correct actions (O:2, I:1), boundary-aligned anchor
               </>
             )}
           </div>
         </div>
 
-        <div className="shrink-0 pt-0.5 text-[10px] font-mono text-muted">
-          {stats.total.toLocaleString()} txs
-        </div>
+        <span className="shrink-0 text-[10px] font-mono text-muted pt-0.5">{stats.total.toLocaleString()} txs</span>
       </div>
 
       <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-cipher-border/20">
@@ -1394,7 +1389,7 @@ function ComplianceSummary({
             type="button"
             className="relative h-full transition-all focus:outline-none"
             style={{
-              width: `${s.pct}%`,
+              width: `${mode === 'volume' ? s.volPct : s.pct}%`,
               backgroundColor: s.color,
               minWidth: 4,
               opacity: hovered && hovered !== s.key ? 0.45 : 1,
@@ -1406,6 +1401,65 @@ function ComplianceSummary({
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function DenomMixChart({
+  denomBuckets,
+  maxBucketCount,
+  maxBucketVolume,
+  totalDenomVolume,
+  totalTxs,
+  barColor,
+  mode,
+}: {
+  denomBuckets: { denom: number; count: number; volume: number }[];
+  maxBucketCount: number;
+  maxBucketVolume: number;
+  totalDenomVolume: number;
+  totalTxs: number;
+  barColor: string;
+  mode: 'volume' | 'txs';
+}) {
+  const isVolume = mode === 'volume';
+  return (
+    <div className="min-w-0 w-full">
+      <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:overflow-visible">
+        <div className="flex h-[200px] min-w-max items-end gap-1 border-b border-cipher-border/25 pb-2 sm:h-[220px] sm:min-w-0 sm:w-full sm:gap-3 sm:px-2">
+          {denomBuckets.map(({ denom, count, volume }) => {
+            const value = isVolume ? volume : count;
+            const max = isVolume ? maxBucketVolume : maxBucketCount;
+            const label = isVolume
+              ? (totalDenomVolume > 0 ? `${((volume / totalDenomVolume) * 100).toFixed(0)}%` : '0%')
+              : String(count);
+            return (
+              <div
+                key={denom}
+                className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:max-w-[56px] sm:flex-1 sm:gap-2 sm:min-w-[44px]"
+              >
+                <span className="text-[9px] font-mono tabular-nums text-primary sm:text-[10px]">{label}</span>
+                <div
+                  className="w-full min-w-[4px] rounded-t-md"
+                  style={{
+                    height: `${max > 0 ? Math.max(8, (value / max) * 160) : 8}px`,
+                    backgroundColor: barColor,
+                    opacity: 0.9,
+                  }}
+                />
+                <span className="max-w-full truncate text-[9px] font-mono text-muted sm:text-[10px]">
+                  {formatDenomBucketLabel(denom)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[10px] font-mono text-muted max-sm:px-1">
+        {isVolume
+          ? `${totalDenomVolume.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC across ${totalTxs} txs`
+          : `${totalTxs} txs · standard denominations`}
+      </p>
     </div>
   );
 }
@@ -1511,18 +1565,42 @@ function PrivacyScore({
     [filteredTxs],
   );
 
+  const volumeAreaData = useMemo(
+    () =>
+      filteredTxs.map((tx) => {
+        let checks = 0;
+        if (tx.privacy === 'denominated') checks++;
+        if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
+        if (tx.anchorCompliant) checks++;
+        const grade = checks === 3 ? 'green' as const
+          : checks === 2 ? 'partial2' as const
+          : checks === 1 ? 'partial1' as const
+          : 'weak' as const;
+        return { height: tx.height, amountZec: tx.amountZec, grade };
+      }),
+    [filteredTxs],
+  );
+
   const denomBuckets = useMemo(() => {
-    const counts = new Map<number, number>();
+    const counts = new Map<number, { count: number; volume: number }>();
     for (const tx of filteredTxs) {
       if (tx.privacy === 'denominated' && tx.matchedDenomination != null) {
         const d = tx.matchedDenomination;
-        counts.set(d, (counts.get(d) ?? 0) + 1);
+        const existing = counts.get(d) ?? { count: 0, volume: 0 };
+        existing.count++;
+        existing.volume += tx.amountZec;
+        counts.set(d, existing);
       }
     }
-    return DENOM_BUCKETS.map((denom) => ({ denom, count: counts.get(denom) ?? 0 })).filter((b) => b.count > 0);
+    return DENOM_BUCKETS.map((denom) => {
+      const data = counts.get(denom) ?? { count: 0, volume: 0 };
+      return { denom, count: data.count, volume: data.volume };
+    }).filter((b) => b.count > 0);
   }, [filteredTxs]);
 
   const maxBucketCount = denomBuckets.reduce((m, b) => Math.max(m, b.count), 0);
+  const maxBucketVolume = denomBuckets.reduce((m, b) => Math.max(m, b.volume), 0);
+  const totalDenomVolume = denomBuckets.reduce((s, b) => s + b.volume, 0);
 
   const complianceStats = useMemo(() => {
     const t = filteredTxs.length;
@@ -1575,8 +1653,7 @@ function PrivacyScore({
           <ComplianceSummary
             stats={complianceStats}
             privacyColors={PRIVACY_COLORS}
-            denomPct={headlineStats.txPct}
-            volPct={headlineStats.volPct}
+            mode={view === 'scatter' ? 'txs' : 'volume'}
           />
         ) : null}
 
@@ -1589,37 +1666,45 @@ function PrivacyScore({
 
             {view === 'denoms' ? (
               denomBuckets.length > 0 ? (
-                <div className="min-w-0 w-full">
-                  <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:overflow-visible">
-                    <div className="flex h-[200px] min-w-max items-end gap-1 border-b border-cipher-border/25 pb-2 sm:h-[220px] sm:min-w-0 sm:w-full sm:gap-3 sm:px-2">
-                      {denomBuckets.map(({ denom, count }) => (
-                        <div
-                          key={denom}
-                          className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:max-w-[56px] sm:flex-1 sm:gap-2 sm:min-w-[44px]"
-                        >
-                          <span className="text-[9px] font-mono tabular-nums text-primary sm:text-[10px]">{count}</span>
-                          <div
-                            className="w-full min-w-[4px] rounded-t-md"
-                            style={{
-                              height: `${maxBucketCount > 0 ? Math.max(8, (count / maxBucketCount) * 160) : 8}px`,
-                              backgroundColor: colors.denominated,
-                              opacity: 0.9,
-                            }}
-                          />
-                          <span className="max-w-full truncate text-[9px] font-mono text-muted sm:text-[10px]">
-                            {formatDenomBucketLabel(denom)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-center text-[10px] font-mono text-muted max-sm:px-1">
-                    {filteredTxs.length} txs · standard denominations
-                  </p>
-                </div>
+                <DenomMixChart
+                  denomBuckets={denomBuckets}
+                  maxBucketCount={maxBucketCount}
+                  maxBucketVolume={maxBucketVolume}
+                  totalDenomVolume={totalDenomVolume}
+                  totalTxs={filteredTxs.length}
+                  barColor={colors.denominated}
+                  mode="volume"
+                />
               ) : (
                 <p className="py-16 text-center text-xs font-mono text-muted">No standard denominations in this range.</p>
               )
+            ) : view === 'volume' ? (
+            <>
+            <div style={{ width: '100%', height: 280 }}>
+              <ParentSize debounceTime={100}>
+                {({ width: parentWidth }) =>
+                  parentWidth > 0 ? (
+                    <VolumeAreaChart
+                      data={volumeAreaData}
+                      width={parentWidth}
+                      height={280}
+                      colors={colors}
+                      privacyColors={PRIVACY_COLORS}
+                    />
+                  ) : null
+                }
+              </ParentSize>
+            </div>
+            <div className="mt-3 flex flex-col gap-2 border-t border-cipher-border/30 pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <ComplianceLegend
+                privacyColors={PRIVACY_COLORS}
+                denomLineColor={colors.denominated}
+              />
+              <div className="shrink-0 text-[10px] font-mono text-muted">
+                {filteredTxs.length} txs in range · stacked volume
+              </div>
+            </div>
+            </>
             ) : (
             <>
             <div style={{ width: '100%', height: 280 }}>
@@ -1639,7 +1724,6 @@ function PrivacyScore({
                 }
               </ParentSize>
             </div>
-
             <div className="mt-3 flex flex-col gap-2 border-t border-cipher-border/30 pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <ComplianceLegend
                 privacyColors={PRIVACY_COLORS}
