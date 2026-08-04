@@ -1249,12 +1249,13 @@ const PRIVACY_RANGES: { id: PrivacyRange; label: string }[] = [
   { id: 'all', label: 'All' },
 ];
 
-type PrivacyView = 'volume' | 'scatter' | 'denoms';
+type PrivacyView = 'volume' | 'scatter' | 'denoms' | 'families';
 
 const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
   { id: 'volume', label: 'Volume' },
   { id: 'scatter', label: 'Transactions' },
   { id: 'denoms', label: 'Denomination mix' },
+  { id: 'families', label: 'Families' },
 ];
 
 const REFERENCE_DENOMS = [
@@ -1413,14 +1414,13 @@ function ComplianceSummary({
 }
 
 const FAMILY_META: Record<string, { label: string; color: string }> = {
-  'zip318-current-sdk': { label: 'ZIP-318 SDK (Vizor, ZODL etc.)', color: '#4ade80' },
+  'zip318-current-sdk': { label: 'Vizor', color: '#4ade80' },
   'cake-zkool2-compatible': { label: 'Cake/zkool2', color: '#f97316' },
   'multi-action-migration': { label: 'Multi-action', color: '#a78bfa' },
   unknown: { label: 'Unknown', color: '#6b7280' },
 };
 
-function FamilySummary({ counts, total }: { counts: Record<string, number>; total: number }) {
-  const [expanded, setExpanded] = useState(false);
+function FamiliesTab({ counts, total }: { counts: Record<string, number>; total: number }) {
   const entries = Object.entries(counts)
     .sort(([, a], [, b]) => b - a)
     .map(([id, count]) => ({
@@ -1430,58 +1430,48 @@ function FamilySummary({ counts, total }: { counts: Record<string, number>; tota
       ...(FAMILY_META[id] || { label: id, color: '#6b7280' }),
     }));
 
-  if (!entries.length) return null;
+  if (!entries.length) return <p className="py-16 text-center text-xs font-mono text-muted">No family data available.</p>;
 
   return (
-    <div className="mt-3 mb-4 rounded-lg border border-cipher-border/30 bg-cipher-surface/40 p-3">
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted">
-          Implementation families
-        </span>
-        <span className="text-[10px] text-muted">{expanded ? '\u25B2' : '\u25BC'}</span>
-      </button>
-
-      <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-cipher-border/20">
+    <div className="py-4">
+      <div className="flex h-5 w-full overflow-hidden rounded-full bg-cipher-border/20">
         {entries.map((e) => (
           <div
             key={e.id}
-            className="h-full transition-all"
+            className="h-full transition-all relative group"
             style={{ width: `${e.pct}%`, backgroundColor: e.color }}
             title={`${e.label}: ${e.count} (${e.pct}%)`}
           />
         ))}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {entries.map((e) => (
-          <div key={e.id} className="flex items-center gap-1 text-[10px] font-mono text-muted">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: e.color }} />
-            <span>{e.label}</span>
-            <span className="text-primary">{e.pct}%</span>
+          <div key={e.id} className="rounded-lg border border-cipher-border/20 bg-cipher-surface/30 px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
+              <span className="text-[11px] font-medium text-primary">{e.label}</span>
+            </div>
+            <div className="mt-1 text-lg font-mono font-semibold text-primary">{e.pct}%</div>
+            <div className="text-[10px] font-mono text-muted">{e.count.toLocaleString()} txs</div>
           </div>
         ))}
       </div>
 
-      {expanded && (
-        <div className="mt-3 border-t border-cipher-border/20 pt-2 text-[10px] text-muted leading-relaxed">
-          <p>
-            Fingerprints identify <em>compatible construction software</em>, not individual wallet
-            owners. Wallets sharing the same SDK are indistinguishable within a family. Transaction
-            proximity does not imply shared ownership.
-          </p>
-          <p className="mt-1">
-            <strong>ZIP-318 SDK:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
-            grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations.
-          </p>
-          <p className="mt-1">
-            <strong>Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,
-            power-of-10 denominations.
-          </p>
-        </div>
-      )}
+      <div className="mt-4 border-t border-cipher-border/20 pt-3 text-[10px] text-muted leading-relaxed">
+        <p>
+          Fingerprints identify <em>compatible construction software</em>, not individual wallet
+          owners. Wallets sharing the same SDK are indistinguishable within a family.
+        </p>
+        <p className="mt-1.5">
+          <strong className="text-primary">Vizor:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
+          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations.
+        </p>
+        <p className="mt-1">
+          <strong className="text-primary">Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,
+          power-of-10 denominations.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1783,10 +1773,6 @@ function PrivacyScore({
           />
         ) : null}
 
-        {scatter?.familyCounts && hasData && (
-          <FamilySummary counts={scatter.familyCounts} total={scatter.total} />
-        )}
-
         {hasData && hasFilteredData ? (
           <>
             <div className="mb-4 flex flex-col gap-2 sm:mb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3" data-html2canvas-ignore="true">
@@ -1794,7 +1780,13 @@ function PrivacyScore({
               <SegmentedControl options={PRIVACY_RANGES} value={range} onChange={setRange} className="sm:shrink-0" />
             </div>
 
-            {view === 'denoms' ? (
+            {view === 'families' ? (
+              scatter?.familyCounts ? (
+                <FamiliesTab counts={scatter.familyCounts} total={scatter.total} />
+              ) : (
+                <p className="py-16 text-center text-xs font-mono text-muted">No family data available.</p>
+              )
+            ) : view === 'denoms' ? (
               denomBuckets.length > 0 ? (
                 <DenomMixChart
                   denomBuckets={denomBuckets}

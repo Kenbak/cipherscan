@@ -16,8 +16,8 @@
 const FAMILIES = {
   ZIP318_CURRENT_SDK: {
     id: 'zip318-current-sdk',
-    label: 'Compatible with ZODL and current librustzcash SDK wallets',
-    shortLabel: 'ZIP-318 SDK',
+    label: 'Compatible with Vizor and current librustzcash SDK wallets',
+    shortLabel: 'Vizor',
     expected: {
       ironwoodActions: 1,
       fee: 15000,
