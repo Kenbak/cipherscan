@@ -1425,8 +1425,8 @@ function DenomMixChart({
   const isVolume = mode === 'volume';
   return (
     <div className="min-w-0 w-full">
-      <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] sm:overflow-visible">
-        <div className="flex h-[200px] min-w-max items-end gap-1 border-b border-cipher-border/25 pb-2 sm:h-[220px] sm:min-w-0 sm:w-full sm:gap-3 sm:px-2">
+      <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+        <div className="flex h-[200px] min-w-max items-end gap-1 border-b border-cipher-border/25 pb-2 sm:h-[220px] sm:min-w-0 sm:gap-1.5 sm:px-1">
           {denomBuckets.map(({ denom, count, volume }) => {
             const value = isVolume ? volume : count;
             const max = isVolume ? maxBucketVolume : maxBucketCount;
@@ -1436,7 +1436,7 @@ function DenomMixChart({
             return (
               <div
                 key={denom}
-                className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:max-w-[56px] sm:flex-1 sm:gap-2 sm:min-w-[44px]"
+                className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:shrink sm:flex-1 sm:gap-1.5"
               >
                 <span className="text-[9px] font-mono tabular-nums text-primary sm:text-[10px]">{label}</span>
                 <div
