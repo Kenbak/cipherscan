@@ -48,7 +48,7 @@ function formatDailyDigest({
     `📊 Zcash Daily — Block ${Number(chainTip.height).toLocaleString()}`,
     ``,
     `🛡 Shielded: ${shieldedStr} ZEC`,
-    `24h: +${shieldStr} in / -${deshieldStr} out`,
+    `🟢 +${shieldStr} in / 🔴 -${deshieldStr} out`,
     ``,
     `🌲 Ironwood: ${poolStr} ZEC`,
     `Orchard → Ironwood: ${fmtPct(ironwood.orchardToIronwoodPct)}`,
@@ -168,12 +168,15 @@ function formatChainRecovery({ blockHeight, gapMinutes }) {
 // ─── Cross-chain Whale Alert ──────────────────────────────────────────────
 
 function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, zecTxid }) {
-  const chain = direction === 'inflow' ? sourceChain.toUpperCase() : destChain.toUpperCase();
-  const flow = direction === 'inflow' ? `${chain} → ZEC` : `ZEC → ${chain}`;
+  const isInflow = direction === 'inflow';
+  const chain = isInflow ? sourceChain.toUpperCase() : destChain.toUpperCase();
+  const emoji = isInflow ? '🟢' : '🔴';
+  const title = isInflow ? `${emoji} Whale Inflow` : `${emoji} Whale Outflow`;
+  const flow = isInflow ? `${chain} → ZEC` : `ZEC → ${chain}`;
   const lines = [
-    `🔄 Bridge Flow`,
+    title,
     ``,
-    `$${Math.round(amountUsd).toLocaleString()} ${flow}`,
+    `$${Math.round(amountUsd).toLocaleString()} bridged (${flow})`,
   ];
   if (zecTxid) {
     lines.push(``);
@@ -187,17 +190,17 @@ function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, z
 function formatPrivacyRiskAlert({ highLinkages, batchClusters }) {
   let detail = '';
   if (highLinkages.highCount > 0) {
-    detail = `${highLinkages.highCount} high-confidence linkage patterns detected in 24h.`;
+    detail = `${highLinkages.highCount} high-confidence linkage patterns detected on Zcash in 24h.`;
   } else if (batchClusters.clusterCount > 0) {
-    detail = `${batchClusters.clusterCount} batch deshielding clusters detected in 24h.`;
+    detail = `${batchClusters.clusterCount} batch deshielding clusters detected on Zcash in 24h.`;
   }
 
   const lines = [
     `🔍 Privacy Alert`,
     ``,
     detail,
-    `Use standard denominations.`,
     ``,
+    `Use standard denominations. Learn more:`,
     `${BASE_URL}/privacy-risks`,
   ];
   return lines.join('\n');

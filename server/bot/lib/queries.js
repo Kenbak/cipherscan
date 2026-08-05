@@ -217,11 +217,11 @@ async function getCrossChain24h(pool) {
   const { rows } = await pool.query(`
     SELECT
       COUNT(*) AS swap_count,
-      COALESCE(SUM(CASE WHEN direction = 'in' THEN source_amount_usd ELSE 0 END), 0) AS inflow_usd,
-      COALESCE(SUM(CASE WHEN direction = 'out' THEN dest_amount_usd ELSE 0 END), 0) AS outflow_usd
+      COALESCE(SUM(CASE WHEN direction = 'inflow' THEN source_amount_usd ELSE 0 END), 0) AS inflow_usd,
+      COALESCE(SUM(CASE WHEN direction = 'outflow' THEN dest_amount_usd ELSE 0 END), 0) AS outflow_usd
     FROM cross_chain_swaps
     WHERE swap_created_at >= NOW() - INTERVAL '24 hours'
-      AND status = 'completed'
+      AND status = 'SUCCESS'
   `);
   return {
     swapCount: Number(rows[0].swap_count),
