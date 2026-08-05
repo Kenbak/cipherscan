@@ -10,7 +10,7 @@
 const DEFAULT_CONFIG = {
   // Large flow alert: must exceed BOTH absolute floor AND percentile
   largeFlow: {
-    absoluteFloorZat: 100_000_00000000, // 100,000 ZEC minimum
+    absoluteFloorZat: 10_000_00000000, // 10,000 ZEC minimum
     percentile: 0.995,                  // 99.5th percentile of 90-day flows
     windowDays: 90,
     maxAlertsPerDay: 2,
