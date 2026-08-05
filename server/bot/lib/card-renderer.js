@@ -137,7 +137,7 @@ const PAD = 72;
 
 // ─── 1. Daily Digest ──────────────────────────────────────────────────────────
 
-async function renderDailyDigest({ chainTip, shielded, flows, ironwood, compliance }) {
+async function renderDailyDigest({ chainTip, shielded, flows, ironwood, compliance, crossChain }) {
   ensureFonts();
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');

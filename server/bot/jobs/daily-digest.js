@@ -21,12 +21,13 @@ async function run(pool, xClient, { date, logger = console }) {
     return null;
   }
 
-  const [chainTip, shielded, flows, ironwood, compliance] = await Promise.all([
+  const [chainTip, shielded, flows, ironwood, compliance, crossChain] = await Promise.all([
     queries.getChainTip(pool),
     queries.getShieldedSupplyShare(pool),
     queries.get24hFlows(pool),
     queries.getIronwoodStats(pool),
     queries.getZip318Compliance(pool),
+    queries.getCrossChain24h(pool),
   ]);
 
   if (!chainTip) {
@@ -34,11 +35,11 @@ async function run(pool, xClient, { date, logger = console }) {
     return null;
   }
 
-  const content = formatDailyDigest({ chainTip, shielded, flows, ironwood, compliance });
+  const content = formatDailyDigest({ chainTip, shielded, flows, ironwood, compliance, crossChain });
 
   let imagePath = null;
   try {
-    imagePath = await renderDailyDigest({ chainTip, shielded, flows, ironwood, compliance });
+    imagePath = await renderDailyDigest({ chainTip, shielded, flows, ironwood, compliance, crossChain });
   } catch (err) {
     logger.warn(`[DailyDigest] Card render failed, posting text-only: ${err.message}`);
   }
