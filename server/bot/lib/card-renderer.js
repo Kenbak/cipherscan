@@ -163,76 +163,81 @@ async function renderDailyDigest({ chainTip, shielded, flows, ironwood, complian
   ctx.fillStyle = C.textMuted;
   ctx.fillText(`Block ${Number(chainTip.height).toLocaleString()}`, PAD + 140, 56);
 
-  // Three compact cards — vertically centered
-  const cardGap = 20;
-  const cardW = (W - PAD * 2 - cardGap * 2) / 3;
-  const cardH = 220;
+  // Four compact cards — vertically centered
+  const cardCount = 4;
+  const cardGap = 16;
+  const cardW = (W - PAD * 2 - cardGap * (cardCount - 1)) / cardCount;
+  const cardH = 200;
   const headerH = 70;
   const footerH = 70;
   const availableH = H - headerH - footerH;
   const cardY = headerH + (availableH - cardH) / 2;
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < cardCount; i++) {
     const cx = PAD + i * (cardW + cardGap);
     drawGlassCard(ctx, cx, cardY, cardW, cardH);
 
-    const innerX = cx + 24;
-    const innerW = cardW - 48;
+    const innerX = cx + 20;
+    const innerW = cardW - 40;
 
     if (i === 0) {
       ctx.font = 'normal 10px GeistMono';
       ctx.fillStyle = C.textMuted;
-      ctx.fillText('SHIELDED SUPPLY', innerX, cardY + 30);
-      ctx.font = 'bold 32px Geist';
+      ctx.fillText('SHIELDED SUPPLY', innerX, cardY + 28);
+      ctx.font = 'bold 28px Geist';
       ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${fmtZec(shielded.totalZat)} ZEC`, innerX, cardY + 68);
-      ctx.font = '500 14px Geist';
+      ctx.fillText(`${fmtZec(shielded.totalZat)} ZEC`, innerX, cardY + 62);
+      ctx.font = '500 13px Geist';
       ctx.fillStyle = C.green;
-      ctx.fillText(`+${fmtZec(flows.netShielded)}`, innerX, cardY + 105);
+      ctx.fillText(`+${fmtZec(flows.netShielded)}`, innerX, cardY + 95);
       const gw = ctx.measureText(`+${fmtZec(flows.netShielded)}`).width;
       ctx.fillStyle = C.red;
-      ctx.fillText(`-${fmtZec(flows.netDeshielded)}`, innerX + gw + 16, cardY + 105);
-      ctx.font = 'normal 10px GeistMono';
+      ctx.fillText(`-${fmtZec(flows.netDeshielded)}`, innerX + gw + 12, cardY + 95);
+      ctx.font = 'normal 9px GeistMono';
       ctx.fillStyle = C.textMuted;
-      ctx.fillText('24h shield / deshield', innerX, cardY + 128);
+      ctx.fillText('24h shield / deshield', innerX, cardY + 115);
     } else if (i === 1) {
       ctx.font = 'normal 10px GeistMono';
       ctx.fillStyle = C.textMuted;
-      ctx.fillText('IRONWOOD POOL', innerX, cardY + 30);
+      ctx.fillText('IRONWOOD POOL', innerX, cardY + 28);
+      ctx.font = 'bold 28px Geist';
+      ctx.fillStyle = C.textPrimary;
+      ctx.fillText(`${fmtZec(ironwood.poolSizeZat)} ZEC`, innerX, cardY + 62);
+      ctx.font = '500 12px Geist';
+      ctx.fillStyle = C.textSecondary;
+      ctx.fillText(`${ironwood.orchardToIronwoodPct.toFixed(1)}% from Orchard`, innerX, cardY + 90);
+      drawBar(ctx, innerX, cardY + 104, innerW, 5, ironwood.orchardToIronwoodPct, C.cyan);
+    } else if (i === 2) {
+      ctx.font = 'normal 10px GeistMono';
+      ctx.fillStyle = C.textMuted;
+      ctx.fillText('ZIP-318 COMPLIANCE', innerX, cardY + 28);
       ctx.font = 'bold 32px Geist';
       ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${fmtZec(ironwood.poolSizeZat)} ZEC`, innerX, cardY + 68);
-      ctx.font = '500 13px Geist';
-      ctx.fillStyle = C.textSecondary;
-      ctx.fillText(`${ironwood.orchardToIronwoodPct.toFixed(1)}% migrated from Orchard`, innerX, cardY + 100);
-      drawBar(ctx, innerX, cardY + 116, innerW, 5, ironwood.orchardToIronwoodPct, C.cyan);
+      ctx.fillText(`${compliance.pct.toFixed(1)}%`, innerX, cardY + 64);
+      ctx.font = 'normal 10px GeistMono';
+      ctx.fillStyle = C.textMuted;
+      ctx.fillText('compliant migrations', innerX, cardY + 88);
+      drawBar(ctx, innerX, cardY + 102, innerW, 5, compliance.pct, C.cyan);
     } else {
       ctx.font = 'normal 10px GeistMono';
       ctx.fillStyle = C.textMuted;
-      ctx.fillText('ZIP-318 COMPLIANCE', innerX, cardY + 30);
-      ctx.font = 'bold 36px Geist';
-      ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${compliance.pct.toFixed(1)}%`, innerX, cardY + 70);
-      ctx.font = 'normal 11px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('fully compliant migrations', innerX, cardY + 96);
-      drawBar(ctx, innerX, cardY + 112, innerW, 5, compliance.pct, C.cyan);
+      ctx.fillText('CROSS-CHAIN 24H', innerX, cardY + 28);
+      const hasData = crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0);
+      if (hasData) {
+        ctx.font = '500 13px Geist';
+        ctx.fillStyle = C.green;
+        ctx.fillText(`↑ ${fmtUsd(crossChain.inflowUsd)}`, innerX, cardY + 62);
+        ctx.fillStyle = C.red;
+        ctx.fillText(`↓ ${fmtUsd(crossChain.outflowUsd)}`, innerX, cardY + 88);
+        ctx.font = 'normal 9px GeistMono';
+        ctx.fillStyle = C.textMuted;
+        ctx.fillText(`${crossChain.swapCount} swaps`, innerX, cardY + 112);
+      } else {
+        ctx.font = '500 14px Geist';
+        ctx.fillStyle = C.textMuted;
+        ctx.fillText('No activity', innerX, cardY + 62);
+      }
     }
-  }
-
-  // Cross-chain summary below cards
-  if (crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0)) {
-    const ccY = cardY + cardH + 30;
-    ctx.font = 'bold 11px GeistMono';
-    ctx.fillStyle = C.cyan;
-    ctx.fillText('CROSS-CHAIN 24H', PAD, ccY);
-    ctx.font = '500 16px Geist';
-    ctx.fillStyle = C.green;
-    const inText = `↑ ${fmtUsd(crossChain.inflowUsd)}`;
-    ctx.fillText(inText, PAD + 160, ccY);
-    const inW = ctx.measureText(inText).width;
-    ctx.fillStyle = C.red;
-    ctx.fillText(`↓ ${fmtUsd(crossChain.outflowUsd)}`, PAD + 160 + inW + 24, ccY);
   }
 
   // Footer line
