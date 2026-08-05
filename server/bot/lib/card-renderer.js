@@ -435,7 +435,8 @@ async function renderCrossChain({ direction, amountUsd, sourceChain, destChain, 
 
 // ─── 4. Milestone ─────────────────────────────────────────────────────────────
 
-async function renderMilestone({ type, value, poolSizeZat, orchardPct }) {
+async function renderMilestone({ type, value, poolSizeZat, orchardPct, orchardToIronwoodPct }) {
+  const pct = orchardPct ?? orchardToIronwoodPct;
   ensureFonts();
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
@@ -449,8 +450,9 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct }) {
   // Hero stat — vertically centered
   let mainText = '';
   let subtitle = '';
-  if (type === 'volume') {
-    mainText = `${fmtZec(value * 1e8)} ZEC`;
+  if (type === 'volume' || type === 'pool_size') {
+    const zecVal = type === 'volume' ? value : (poolSizeZat ? poolSizeZat / 1e8 : value / 1e8);
+    mainText = `${fmtZec(zecVal * 1e8)} ZEC`;
     subtitle = 'Ironwood pool size';
   } else if (type === 'supply_pct') {
     mainText = `${value}%`;
@@ -469,19 +471,19 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct }) {
   ctx.fillText(subtitle, PAD, 295);
 
   // Progress bar with labels
-  if (orchardPct != null) {
+  if (pct != null) {
     const barY = 370;
     const barW = W - PAD * 2;
     ctx.font = 'normal 11px GeistMono';
     ctx.fillStyle = C.textMuted;
     ctx.fillText('ORCHARD → IRONWOOD MIGRATION', PAD, barY - 14);
-    drawBar(ctx, PAD, barY, barW, 10, orchardPct, C.yellow);
+    drawBar(ctx, PAD, barY, barW, 10, pct, C.yellow);
     // Labels at ends
     ctx.font = 'normal 11px GeistMono';
     ctx.fillStyle = C.textMuted;
     ctx.fillText('0%', PAD, barY + 28);
     ctx.fillStyle = C.yellow;
-    ctx.fillText(`${orchardPct.toFixed(1)}%`, PAD + barW * (orchardPct / 100) - 15, barY + 28);
+    ctx.fillText(`${pct.toFixed(1)}%`, PAD + barW * (pct / 100) - 15, barY + 28);
     ctx.fillStyle = C.textMuted;
     const hundredW = ctx.measureText('100%').width;
     ctx.fillText('100%', PAD + barW - hundredW, barY + 28);
