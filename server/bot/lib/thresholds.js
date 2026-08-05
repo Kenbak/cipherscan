@@ -30,6 +30,17 @@ const DEFAULT_CONFIG = {
     lookbackMinutes: 30,
   },
 
+  // Cross-chain whale alerts
+  crossChain: {
+    minUsd: 5000, // $5K minimum swap
+    maxAlertsPerDay: 3,
+  },
+
+  // Privacy risk alerts (daily aggregate)
+  privacyRisk: {
+    minHighLinkages: 3, // post only if >= 3 high-confidence linkages in 24h
+  },
+
   // Chain stall
   stall: {
     maxBlockIntervalSeconds: 600, // 10 minutes (8x target of 75s)

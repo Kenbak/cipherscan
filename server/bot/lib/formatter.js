@@ -135,6 +135,40 @@ function formatChainRecovery({ blockHeight, gapMinutes }) {
   ].join('\n');
 }
 
+// ─── Cross-chain Whale Alert ──────────────────────────────────────────────
+
+function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, zecTxid }) {
+  const arrow = direction === 'inflow' ? '🟢' : '🔴';
+  const verb = direction === 'inflow' ? 'in' : 'out';
+  const chain = direction === 'inflow' ? sourceChain : destChain;
+  const lines = [
+    `${arrow} Cross-chain ${verb}: $${Math.round(amountUsd).toLocaleString()}`,
+    `${chain.toUpperCase()} ${direction === 'inflow' ? '→' : '←'} ZEC`,
+  ];
+  if (zecTxid) lines.push(`${BASE_URL}/tx/${zecTxid}`);
+  return lines.join('\n');
+}
+
+// ─── Privacy Risk Alert ───────────────────────────────────────────────────
+
+function formatPrivacyRiskAlert({ highLinkages, batchClusters }) {
+  const lines = [
+    `🔍 24h Privacy Risk Summary`,
+  ];
+
+  if (highLinkages.highCount > 0) {
+    lines.push(`${highLinkages.highCount} high-confidence linkage patterns (${fmtZec(highLinkages.totalAmountZat)})`);
+  }
+
+  if (batchClusters.clusterCount > 0) {
+    lines.push(`${batchClusters.clusterCount} batch deshielding clusters (${batchClusters.totalMembers} txs, ${fmtZec(batchClusters.totalAmountZat)})`);
+  }
+
+  lines.push(``, `Use standard denominations. Avoid timing correlations.`);
+  lines.push(`${BASE_URL}/privacy`);
+  return lines.join('\n');
+}
+
 module.exports = {
   formatDailyDigest,
   formatLargeFlowAlert,
@@ -142,6 +176,8 @@ module.exports = {
   formatReorgAlert,
   formatChainStall,
   formatChainRecovery,
+  formatCrossChainAlert,
+  formatPrivacyRiskAlert,
   fmtZec,
   fmtPct,
   fmtHeight,

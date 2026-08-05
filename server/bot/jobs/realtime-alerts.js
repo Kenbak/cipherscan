@@ -8,13 +8,15 @@
  *
  * Alert types:
  *  - Large shield/deshield (adaptive percentile + absolute floor)
- *  - Ironwood milestones (volume, count, supply %, compliance)
+ *  - Ironwood milestones (pool size, Orchard→Ironwood %)
+ *  - Cross-chain whale swaps (>$5K)
+ *  - Privacy risk aggregate (daily HIGH-confidence linkages)
  *  - Chain reorgs (depth >= 2)
  */
 
 const queries = require('../lib/queries');
 const { DEFAULT_CONFIG, isExceptionalFlow, checkMilestone, computePercentileRank } = require('../lib/thresholds');
-const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert } = require('../lib/formatter');
+const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert } = require('../lib/formatter');
 
 async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } = {}) {
   const results = [];
@@ -83,28 +85,29 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     const ironwood = await queries.getIronwoodStats(pool);
     const milestoneConfig = config.ironwoodMilestones;
 
-    const volumeZec = ironwood.totalVolumeZat / 1e8;
-    const volumeMilestone = checkMilestone(volumeZec, milestoneConfig.volumeSteps);
+    // Pool size milestones (in ZEC)
+    const poolZec = ironwood.poolSizeZat / 1e8;
+    const volumeMilestone = checkMilestone(poolZec, milestoneConfig.volumeSteps);
     if (volumeMilestone) {
-      const dedupKey = `milestone:volume:${volumeMilestone}`;
+      const dedupKey = `milestone:pool_size:${volumeMilestone}`;
       if (!(await queries.isDuplicate(pool, dedupKey))) {
         const content = formatIronwoodMilestone({
           type: 'volume',
           value: volumeMilestone,
-          context: `${ironwood.totalMigrations.toLocaleString()} total migrations`,
+          context: `Orchard → Ironwood: ${ironwood.orchardToIronwoodPct.toFixed(1)}%`,
         });
         const outboxId = await queries.insertOutboxEntry(pool, {
           postType: 'milestone',
           dedupKey,
           content,
-          metadata: { volumeZec, totalMigrations: ironwood.totalMigrations },
+          metadata: { poolZec, orchardPct: ironwood.orchardToIronwoodPct },
           status: xClient.dryRun ? 'dry_run' : 'pending',
         });
         if (outboxId) {
           try {
             const result = await xClient.post(content);
             await queries.markPosted(pool, outboxId, result.id);
-            results.push({ type: 'milestone', milestone: `volume:${volumeMilestone}`, postId: result.id });
+            results.push({ type: 'milestone', milestone: `pool_size:${volumeMilestone}`, postId: result.id });
           } catch (err) {
             await queries.markFailed(pool, outboxId, err.message);
           }
@@ -112,27 +115,28 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       }
     }
 
-    const countMilestone = checkMilestone(ironwood.totalMigrations, milestoneConfig.countSteps);
-    if (countMilestone) {
-      const dedupKey = `milestone:count:${countMilestone}`;
+    // Orchard→Ironwood percentage milestones
+    const supplyPctMilestone = checkMilestone(ironwood.orchardToIronwoodPct, milestoneConfig.supplyPctSteps);
+    if (supplyPctMilestone) {
+      const dedupKey = `milestone:orchard_pct:${supplyPctMilestone}`;
       if (!(await queries.isDuplicate(pool, dedupKey))) {
         const content = formatIronwoodMilestone({
-          type: 'count',
-          value: countMilestone,
-          context: `${(volumeZec).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated`,
+          type: 'supply_pct',
+          value: supplyPctMilestone,
+          context: `Pool size: ${(poolZec / 1000).toFixed(0)}K ZEC`,
         });
         const outboxId = await queries.insertOutboxEntry(pool, {
           postType: 'milestone',
           dedupKey,
           content,
-          metadata: { count: ironwood.totalMigrations, volumeZec },
+          metadata: { orchardPct: ironwood.orchardToIronwoodPct, poolZec },
           status: xClient.dryRun ? 'dry_run' : 'pending',
         });
         if (outboxId) {
           try {
             const result = await xClient.post(content);
             await queries.markPosted(pool, outboxId, result.id);
-            results.push({ type: 'milestone', milestone: `count:${countMilestone}`, postId: result.id });
+            results.push({ type: 'milestone', milestone: `orchard_pct:${supplyPctMilestone}`, postId: result.id });
           } catch (err) {
             await queries.markFailed(pool, outboxId, err.message);
           }
@@ -143,7 +147,89 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     logger.error(`[Alerts] Ironwood milestone check failed: ${err.message}`);
   }
 
-  // ─── 3. Reorg alerts ─────────────────────────────────────────────────────
+  // ─── 3. Cross-chain whale alerts ────────────────────────────────────────
+  try {
+    const since = new Date(Date.now() - 5 * 60000).toISOString(); // last 5 minutes
+    const largeSwaps = await queries.getRecentLargeSwaps(pool, {
+      minUsd: config.crossChain.minUsd,
+      since,
+    });
+
+    for (const swap of largeSwaps) {
+      const dedupKey = `cross_chain:${swap.id}`;
+      if (await queries.isDuplicate(pool, dedupKey)) continue;
+
+      const content = formatCrossChainAlert({
+        direction: swap.direction,
+        amountUsd: swap.amountUsd,
+        sourceChain: swap.sourceChain,
+        destChain: swap.destChain,
+        zecTxid: swap.zecTxid,
+      });
+
+      const outboxId = await queries.insertOutboxEntry(pool, {
+        postType: 'cross_chain_alert',
+        dedupKey,
+        content,
+        metadata: swap,
+        status: xClient.dryRun ? 'dry_run' : 'pending',
+      });
+
+      if (outboxId) {
+        try {
+          const result = await xClient.post(content);
+          await queries.markPosted(pool, outboxId, result.id);
+          results.push({ type: 'cross_chain', id: swap.id, postId: result.id });
+        } catch (err) {
+          await queries.markFailed(pool, outboxId, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`[Alerts] Cross-chain check failed: ${err.message}`);
+  }
+
+  // ─── 4. Privacy risk aggregate (once daily) ────────────────────────────
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const dedupKey = `privacy_risk:${today}`;
+
+    if (!(await queries.isDuplicate(pool, dedupKey))) {
+      const since24h = new Date(Date.now() - 24 * 3600000).toISOString();
+      const [highLinkages, batchClusters] = await Promise.all([
+        queries.getRecentHighRiskLinkages(pool, { since: since24h }),
+        queries.getRecentBatchClusters(pool, { since: since24h }),
+      ]);
+
+      const hasRisk = highLinkages.highCount >= config.privacyRisk.minHighLinkages || batchClusters.clusterCount > 0;
+
+      if (hasRisk) {
+        const content = formatPrivacyRiskAlert({ highLinkages, batchClusters });
+
+        const outboxId = await queries.insertOutboxEntry(pool, {
+          postType: 'privacy_risk',
+          dedupKey,
+          content,
+          metadata: { highLinkages, batchClusters, date: today },
+          status: xClient.dryRun ? 'dry_run' : 'pending',
+        });
+
+        if (outboxId) {
+          try {
+            const result = await xClient.post(content);
+            await queries.markPosted(pool, outboxId, result.id);
+            results.push({ type: 'privacy_risk', postId: result.id });
+          } catch (err) {
+            await queries.markFailed(pool, outboxId, err.message);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`[Alerts] Privacy risk check failed: ${err.message}`);
+  }
+
+  // ─── 5. Reorg alerts ───────────────────────────────────────────────────
   try {
     const since = new Date(Date.now() - config.reorg.lookbackMinutes * 60000).toISOString();
     const reorgs = await queries.getRecentReorgs(pool, {

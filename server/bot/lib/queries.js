@@ -230,6 +230,71 @@ async function getCrossChain24h(pool) {
   };
 }
 
+// ─── Cross-chain whale swaps ──────────────────────────────────────────────
+
+async function getRecentLargeSwaps(pool, { minUsd, since }) {
+  const { rows } = await pool.query(`
+    SELECT
+      id,
+      direction,
+      source_chain,
+      dest_chain,
+      source_amount_usd,
+      dest_amount_usd,
+      zec_txid,
+      swap_created_at
+    FROM cross_chain_swaps
+    WHERE swap_created_at >= $2
+      AND GREATEST(COALESCE(source_amount_usd, 0), COALESCE(dest_amount_usd, 0)) >= $1
+      AND status = 'completed'
+    ORDER BY GREATEST(COALESCE(source_amount_usd, 0), COALESCE(dest_amount_usd, 0)) DESC
+    LIMIT 20
+  `, [minUsd, since]);
+  return rows.map(r => ({
+    id: r.id,
+    direction: r.direction,
+    sourceChain: r.source_chain,
+    destChain: r.dest_chain,
+    amountUsd: Math.max(Number(r.source_amount_usd || 0), Number(r.dest_amount_usd || 0)),
+    zecTxid: r.zec_txid,
+    createdAt: r.swap_created_at,
+  }));
+}
+
+// ─── Privacy risk aggregates ──────────────────────────────────────────────
+
+async function getRecentHighRiskLinkages(pool, { since }) {
+  const { rows } = await pool.query(`
+    SELECT
+      COUNT(*) AS high_count,
+      COALESCE(SUM(src_amount_zat), 0) AS total_amount_zat
+    FROM privacy_linkage_edges
+    WHERE warning_level = 'HIGH'
+      AND detected_at >= $1
+  `, [since]);
+  return {
+    highCount: Number(rows[0].high_count),
+    totalAmountZat: Number(rows[0].total_amount_zat),
+  };
+}
+
+async function getRecentBatchClusters(pool, { since }) {
+  const { rows } = await pool.query(`
+    SELECT
+      COUNT(*) AS cluster_count,
+      COALESCE(SUM(member_count), 0) AS total_members,
+      COALESCE(SUM(total_amount_zat), 0) AS total_amount_zat
+    FROM privacy_batch_clusters
+    WHERE detected_at >= $1
+      AND warning_level IN ('HIGH', 'MEDIUM')
+  `, [since]);
+  return {
+    clusterCount: Number(rows[0].cluster_count),
+    totalMembers: Number(rows[0].total_members),
+    totalAmountZat: Number(rows[0].total_amount_zat),
+  };
+}
+
 // ─── Outbox operations ───────────────────────────────────────────────────────
 
 async function isDuplicate(pool, dedupKey) {
@@ -279,6 +344,9 @@ module.exports = {
   getRecentReorgs,
   getMiningSnapshot,
   getCrossChain24h,
+  getRecentLargeSwaps,
+  getRecentHighRiskLinkages,
+  getRecentBatchClusters,
   isDuplicate,
   insertOutboxEntry,
   markPosted,
