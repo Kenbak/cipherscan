@@ -42,23 +42,17 @@ function formatDailyDigest({
 }) {
   const lines = [
     `📊 Zcash Daily — Block ${fmtHeight(chainTip.height)}`,
-    ``,
-    `⏱ Avg block time: ${fmtBlockTime(avgBlockTime)} (1000-block)`,
-    `🛡 Shielded supply: ${fmtPct(shieldedPct)}`,
-    ``,
-    `🌲 Ironwood pool: ${fmtZec(ironwood.totalVolumeZat)}`,
-    `   24h: ${fmtZec(ironwood.volume24hZat)} migrated (${ironwood.migrations24h} txs)`,
-    `   ZIP-318 compliance: ${fmtPct(compliance.pct)}`,
-    ``,
+    `⏱ ${fmtBlockTime(avgBlockTime)} avg | 🛡 ${fmtPct(shieldedPct)} shielded`,
+    `🌲 Ironwood: ${fmtZec(ironwood.totalVolumeZat)} total`,
+    `  24h: ${fmtZec(ironwood.volume24hZat)} (${ironwood.migrations24h} txs) | ZIP-318: ${fmtPct(compliance.pct)}`,
     `Shield: ${fmtZec(flows.netShielded)} | Deshield: ${fmtZec(flows.netDeshielded)}`,
-    `(migration-neutral)`,
   ];
 
   if (signalOfDay) {
-    lines.push(``, signalOfDay);
+    lines.push(signalOfDay);
   }
 
-  lines.push(``, `${BASE_URL}/ironwood`);
+  lines.push(`${BASE_URL}/ironwood`);
 
   return lines.join('\n');
 }
