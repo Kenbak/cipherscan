@@ -29,29 +29,34 @@ async function getAvgBlockTime1000(pool) {
 
 async function getPoolBalances(pool) {
   const { rows } = await pool.query(`
-    SELECT pool, balance_zat
+    SELECT
+      sprout_zat, sapling_zat, orchard_zat, ironwood_zat, transparent_zat
     FROM boundary_pool_snapshots
-    ORDER BY snapshot_height DESC
-    LIMIT 10
+    ORDER BY boundary_height DESC
+    LIMIT 1
   `);
-  const balances = {};
-  for (const r of rows) {
-    if (!balances[r.pool]) balances[r.pool] = Number(r.balance_zat);
-  }
-  return balances;
+  if (!rows[0]) return {};
+  const r = rows[0];
+  return {
+    sprout: Number(r.sprout_zat),
+    sapling: Number(r.sapling_zat),
+    orchard: Number(r.orchard_zat),
+    ironwood: Number(r.ironwood_zat),
+    transparent: Number(r.transparent_zat),
+  };
 }
 
 async function getShieldedSupplyShare(pool) {
   const { rows } = await pool.query(`
     SELECT
-      shielded_supply_zat,
-      total_supply_zat,
-      CASE WHEN total_supply_zat > 0
-        THEN (shielded_supply_zat::FLOAT / total_supply_zat * 100)
+      shielded_pool_size,
+      chain_supply,
+      CASE WHEN chain_supply > 0
+        THEN (shielded_pool_size::FLOAT / chain_supply * 100)
         ELSE 0
       END AS shielded_pct
     FROM privacy_stats
-    ORDER BY updated_at DESC LIMIT 1
+    ORDER BY id DESC LIMIT 1
   `);
   return rows[0] || null;
 }
@@ -104,16 +109,32 @@ async function getIronwoodStats(pool) {
 
 async function getZip318Compliance(pool) {
   const { rows } = await pool.query(`
+    WITH recent_migrations AS (
+      SELECT
+        t.ironwood_actions,
+        t.orchard_actions,
+        t.orchard_anchor,
+        t.value_balance_ironwood
+      FROM transactions t
+      WHERE t.version = 6
+        AND t.has_ironwood = true
+        AND t.value_balance_orchard > 0
+        AND t.value_balance_ironwood < 0
+        AND t.block_time >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '24 hours'))
+    )
     SELECT
       COUNT(*) AS total,
       COUNT(*) FILTER (WHERE
-        ironwood_actions = 1 AND orchard_actions = 2
-        AND anchor_compliant = true
-        AND matched_denomination IS NOT NULL
+        ironwood_actions = 1
+        AND orchard_actions = 2
+        AND orchard_anchor IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM blocks b
+          WHERE b.final_orchard_root = rm.orchard_anchor
+            AND b.height % 144 = 0
+        )
       ) AS compliant
-    FROM transactions t
-    WHERE t.is_migration = true
-      AND t.block_time >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '24 hours'))
+    FROM recent_migrations rm
   `);
   const total = Number(rows[0].total);
   const compliant = Number(rows[0].compliant);
@@ -166,10 +187,9 @@ async function getRecentReorgs(pool, { since, minDepth }) {
       fe.id,
       fe.depth,
       fe.detected_at,
-      fe.old_tip_hash,
-      fe.new_tip_hash,
-      fe.old_tip_height,
-      fe.new_tip_height
+      fe.fork_height,
+      fe.canonical_tip,
+      fe.description
     FROM fork_events fe
     WHERE fe.detected_at >= $1
       AND fe.depth >= $2
@@ -182,7 +202,10 @@ async function getRecentReorgs(pool, { since, minDepth }) {
 
 async function getMiningSnapshot(pool) {
   const { rows } = await pool.query(`
-    SELECT pool_name, blocks_mined, pct_share
+    SELECT
+      pool_name,
+      blocks_mined,
+      ROUND(blocks_mined::NUMERIC * 100.0 / NULLIF(SUM(blocks_mined) OVER (), 0), 1) AS pct_share
     FROM mining_behavior_daily
     WHERE date = (SELECT MAX(date) FROM mining_behavior_daily)
     ORDER BY blocks_mined DESC
@@ -197,16 +220,16 @@ async function getCrossChain24h(pool) {
   const { rows } = await pool.query(`
     SELECT
       COUNT(*) AS swap_count,
-      COALESCE(SUM(CASE WHEN direction = 'in' THEN amount_zat ELSE 0 END), 0) AS inflow_zat,
-      COALESCE(SUM(CASE WHEN direction = 'out' THEN amount_zat ELSE 0 END), 0) AS outflow_zat
+      COALESCE(SUM(CASE WHEN direction = 'in' THEN source_amount_usd ELSE 0 END), 0) AS inflow_usd,
+      COALESCE(SUM(CASE WHEN direction = 'out' THEN dest_amount_usd ELSE 0 END), 0) AS outflow_usd
     FROM cross_chain_swaps
-    WHERE completed_at >= NOW() - INTERVAL '24 hours'
-      AND status = 'SUCCESS'
+    WHERE swap_created_at >= NOW() - INTERVAL '24 hours'
+      AND status = 'completed'
   `);
   return {
     swapCount: Number(rows[0].swap_count),
-    inflowZat: Number(rows[0].inflow_zat),
-    outflowZat: Number(rows[0].outflow_zat),
+    inflowUsd: Number(rows[0].inflow_usd),
+    outflowUsd: Number(rows[0].outflow_usd),
   };
 }
 

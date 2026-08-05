@@ -157,8 +157,8 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
       const content = formatReorgAlert({
         depth: reorg.depth,
-        oldTipHeight: Number(reorg.old_tip_height),
-        newTipHeight: Number(reorg.new_tip_height),
+        forkHeight: Number(reorg.fork_height),
+        canonicalTip: Number(reorg.canonical_tip),
       });
 
       const outboxId = await queries.insertOutboxEntry(pool, {

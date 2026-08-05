@@ -49,8 +49,7 @@ async function run(pool, xClient, { date, logger = console }) {
     if (signalType === 'cross_chain') {
       const cc = await queries.getCrossChain24h(pool);
       if (cc.swapCount > 0) {
-        const { fmtZec } = require('../lib/formatter');
-        signalOfDay = `🔄 Cross-chain: ${cc.swapCount} swaps | In: ${fmtZec(cc.inflowZat)} | Out: ${fmtZec(cc.outflowZat)}`;
+        signalOfDay = `🔄 Cross-chain: ${cc.swapCount} swaps | In: $${Math.round(cc.inflowUsd).toLocaleString()} | Out: $${Math.round(cc.outflowUsd).toLocaleString()}`;
       }
     } else if (signalType === 'mining') {
       const miners = await queries.getMiningSnapshot(pool);

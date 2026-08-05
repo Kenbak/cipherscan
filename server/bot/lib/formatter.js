@@ -108,13 +108,13 @@ function formatIronwoodMilestone({ type, value, context }) {
 
 // ─── Reorg Alert ─────────────────────────────────────────────────────────────
 
-function formatReorgAlert({ depth, oldTipHeight, newTipHeight }) {
+function formatReorgAlert({ depth, forkHeight, canonicalTip }) {
   const lines = [
     `⚠️ Chain reorganization detected`,
     ``,
     `Depth: ${depth} blocks`,
-    `Old tip: ${fmtHeight(oldTipHeight)}`,
-    `New tip: ${fmtHeight(newTipHeight)}`,
+    `Fork height: ${fmtHeight(forkHeight)}`,
+    `Canonical tip: ${fmtHeight(canonicalTip)}`,
     ``,
     `Monitoring for stability.`,
   ];
