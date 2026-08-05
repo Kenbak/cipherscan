@@ -48,17 +48,14 @@ async function getPoolBalances(pool) {
 
 async function getShieldedSupplyShare(pool) {
   const { rows } = await pool.query(`
-    SELECT
-      shielded_pool_size,
-      chain_supply,
-      CASE WHEN chain_supply > 0
-        THEN (shielded_pool_size::FLOAT / chain_supply * 100)
-        ELSE 0
-      END AS shielded_pct
-    FROM privacy_stats
-    ORDER BY id DESC LIMIT 1
+    SELECT ironwood_zat, orchard_zat, sapling_zat, sprout_zat
+    FROM boundary_pool_snapshots
+    ORDER BY boundary_height DESC LIMIT 1
   `);
-  return rows[0] || null;
+  if (!rows[0]) return { totalZat: 0 };
+  const p = rows[0];
+  const totalZat = Number(p.ironwood_zat) + Number(p.orchard_zat) + Number(p.sapling_zat) + Number(p.sprout_zat);
+  return { totalZat };
 }
 
 // ─── Shielded flows (migration-neutral SVR) ──────────────────────────────────
@@ -90,39 +87,20 @@ async function get24hFlows(pool) {
 // ─── Ironwood migration data ─────────────────────────────────────────────────
 
 async function getIronwoodStats(pool) {
-  const [flowResult, poolResult] = await Promise.all([
-    pool.query(`
-      SELECT
-        COUNT(*) AS total_migrations,
-        COALESCE(SUM(amount_zat), 0) AS total_volume_zat,
-        COUNT(*) FILTER (WHERE block_time >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '24 hours'))) AS migrations_24h,
-        COALESCE(SUM(amount_zat) FILTER (WHERE block_time >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '24 hours'))), 0) AS volume_24h_zat
-      FROM shielded_flows
-      WHERE pool = 'ironwood' AND flow_type = 'shield'
-    `),
-    pool.query(`
-      SELECT ironwood_zat, orchard_zat, sapling_zat, sprout_zat
-      FROM boundary_pool_snapshots
-      ORDER BY boundary_height DESC LIMIT 1
-    `),
-  ]);
+  const { rows } = await pool.query(`
+    SELECT ironwood_zat, orchard_zat, sapling_zat, sprout_zat
+    FROM boundary_pool_snapshots
+    ORDER BY boundary_height DESC LIMIT 1
+  `);
 
-  const f = flowResult.rows[0];
-  const p = poolResult.rows[0];
+  const p = rows[0];
   const ironwoodZat = Number(p?.ironwood_zat ?? 0);
   const orchardZat = Number(p?.orchard_zat ?? 0);
-  const saplingZat = Number(p?.sapling_zat ?? 0);
-  const sproutZat = Number(p?.sprout_zat ?? 0);
-  const totalShielded = ironwoodZat + orchardZat + saplingZat + sproutZat;
+  const orchardPlusIronwood = ironwoodZat + orchardZat;
 
   return {
-    totalMigrations: Number(f.total_migrations),
-    totalVolumeZat: Number(f.total_volume_zat),
-    migrations24h: Number(f.migrations_24h),
-    volume24hZat: Number(f.volume_24h_zat),
     poolSizeZat: ironwoodZat,
-    orchardZat,
-    ironwoodPctOfShielded: totalShielded > 0 ? (ironwoodZat / totalShielded * 100) : 0,
+    orchardToIronwoodPct: orchardPlusIronwood > 0 ? (ironwoodZat / orchardPlusIronwood * 100) : 0,
   };
 }
 

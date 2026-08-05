@@ -33,27 +33,23 @@ function fmtHeight(h) {
 
 function formatDailyDigest({
   chainTip,
-  avgBlockTime,
-  shieldedPct,
+  shielded,
   flows,
   ironwood,
   compliance,
-  signalOfDay,
 }) {
   const lines = [
     `📊 Zcash Daily — Block ${fmtHeight(chainTip.height)}`,
-    `⏱ ${fmtBlockTime(avgBlockTime)} avg | 🛡 ${fmtPct(shieldedPct)} shielded`,
-    `🌲 Ironwood: ${fmtZec(ironwood.poolSizeZat)} (${fmtPct(ironwood.ironwoodPctOfShielded)} of shielded)`,
-    `  24h: ${fmtZec(ironwood.volume24hZat)} migrated (${ironwood.migrations24h} txs)`,
-    `  ZIP-318: ${fmtPct(compliance.pct)}`,
-    `💰 24h flows: +${fmtZec(flows.netShielded)} shielded / -${fmtZec(flows.netDeshielded)} deshielded`,
+    ``,
+    `🛡 Shielded: ${fmtZec(shielded.totalZat)}`,
+    `24h: +${fmtZec(flows.netShielded)} in / -${fmtZec(flows.netDeshielded)} out`,
+    ``,
+    `🌲 Ironwood: ${fmtZec(ironwood.poolSizeZat)}`,
+    `Orchard → Ironwood: ${fmtPct(ironwood.orchardToIronwoodPct)}`,
+    `ZIP-318 compliance: ${fmtPct(compliance.pct)}`,
+    ``,
+    `${BASE_URL}/ironwood`,
   ];
-
-  if (signalOfDay) {
-    lines.push(signalOfDay);
-  }
-
-  lines.push(`${BASE_URL}/ironwood`);
 
   return lines.join('\n');
 }
