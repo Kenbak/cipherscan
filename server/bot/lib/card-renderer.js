@@ -224,18 +224,25 @@ async function renderDailyDigest({ chainTip, shielded, flows, ironwood, complian
       ctx.fillText('CROSS-CHAIN 24H', innerX, cardY + 28);
       const hasData = crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0);
       if (hasData) {
+        const totalUsd = crossChain.inflowUsd + crossChain.outflowUsd;
+        ctx.font = 'bold 28px Geist';
+        ctx.fillStyle = C.textPrimary;
+        ctx.fillText(fmtUsd(totalUsd), innerX, cardY + 62);
         ctx.font = '500 13px Geist';
         ctx.fillStyle = C.green;
-        ctx.fillText(`↑ ${fmtUsd(crossChain.inflowUsd)}`, innerX, cardY + 62);
+        ctx.fillText(`+${fmtUsd(crossChain.inflowUsd)}`, innerX, cardY + 95);
+        const gw = ctx.measureText(`+${fmtUsd(crossChain.inflowUsd)}`).width;
         ctx.fillStyle = C.red;
-        ctx.fillText(`↓ ${fmtUsd(crossChain.outflowUsd)}`, innerX, cardY + 88);
+        ctx.fillText(`-${fmtUsd(crossChain.outflowUsd)}`, innerX + gw + 12, cardY + 95);
         ctx.font = 'normal 9px GeistMono';
         ctx.fillStyle = C.textMuted;
-        ctx.fillText(`${crossChain.swapCount} swaps`, innerX, cardY + 112);
+        ctx.fillText(`${crossChain.swapCount} swaps — inflow / outflow`, innerX, cardY + 115);
       } else {
-        ctx.font = '500 14px Geist';
+        ctx.font = 'bold 28px Geist';
         ctx.fillStyle = C.textMuted;
-        ctx.fillText('No activity', innerX, cardY + 62);
+        ctx.fillText('—', innerX, cardY + 62);
+        ctx.font = 'normal 9px GeistMono';
+        ctx.fillText('no activity', innerX, cardY + 88);
       }
     }
   }
