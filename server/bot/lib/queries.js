@@ -173,7 +173,7 @@ async function getFlowPercentile(pool, { percentile, windowDays }) {
     WHERE block_time >= EXTRACT(EPOCH FROM (NOW() - ($2 || ' days')::INTERVAL))
       AND flow_type IN ('shield', 'deshield')
   `, [percentile, windowDays]);
-  return Number(rows[0]?.threshold ?? 0);
+  return Math.floor(Number(rows[0]?.threshold ?? 0));
 }
 
 // ─── Fork/reorg events ───────────────────────────────────────────────────────
