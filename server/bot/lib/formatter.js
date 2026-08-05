@@ -39,15 +39,8 @@ function formatDailyDigest({
   compliance,
 }) {
   const lines = [
-    `📊 Zcash Daily — Block ${fmtHeight(chainTip.height)}`,
-    ``,
-    `🛡 Shielded: ${fmtZec(shielded.totalZat)}`,
-    `🟢 +${fmtZec(flows.netShielded)} in | 🔴 -${fmtZec(flows.netDeshielded)} out`,
-    ``,
-    `🌲 Ironwood: ${fmtZec(ironwood.poolSizeZat)}`,
-    `Orchard migrated to Ironwood: ${fmtPct(ironwood.orchardToIronwoodPct)}`,
-    `ZIP-318 compliance: ${fmtPct(compliance.pct)}`,
-    ``,
+    `📊 Daily Update`,
+    `Zcash network summary. Block ${fmtHeight(chainTip.height)}.`,
     `${BASE_URL}/ironwood`,
   ];
 
@@ -56,15 +49,19 @@ function formatDailyDigest({
 
 // ─── Large Flow Alert ────────────────────────────────────────────────────────
 
-function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, percentileRank }) {
-  const arrow = direction === 'shield' ? '🟢 Large Shield' : '🔴 Large Deshield';
+function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, percentileRank, priceUsd }) {
+  const verb = direction === 'shield' ? 'shielded' : 'deshielded';
+  const prep = direction === 'shield' ? 'into' : 'from';
+  const zec = amountZat / 1e8;
+  let amountStr = fmtZec(amountZat);
+  if (priceUsd) {
+    const usd = zec * priceUsd;
+    const usdStr = usd >= 1_000_000 ? `$${(usd / 1_000_000).toFixed(1)}M` : `$${(usd / 1_000).toFixed(0)}K`;
+    amountStr += ` (${usdStr})`;
+  }
   const lines = [
-    `${arrow}: ${fmtZec(amountZat)}`,
-    ``,
-    `Pool: ${pool}`,
-    `Block: ${fmtHeight(blockHeight)}`,
-    `Top ${(100 - percentileRank).toFixed(2)}% of 90-day flows`,
-    ``,
+    `🐳 Whale Alert`,
+    `${amountStr} ${verb} ${prep} ${pool}. Top ${(100 - percentileRank).toFixed(1)}% of 90-day flows.`,
     `${BASE_URL}/tx/${txid}`,
   ];
   return lines.join('\n');
@@ -73,27 +70,30 @@ function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, p
 // ─── Ironwood Milestone ──────────────────────────────────────────────────────
 
 function formatIronwoodMilestone({ type, value, context }) {
-  let headline;
+  let detail;
   switch (type) {
     case 'volume':
-      headline = `🌲 Ironwood milestone: ${fmtZec(value * 1e8)} migrated`;
+      detail = `Ironwood just crossed ${fmtZec(value * 1e8)}.`;
       break;
     case 'count':
-      headline = `🌲 Ironwood milestone: ${value.toLocaleString()} migration transactions`;
+      detail = `${value.toLocaleString()} migrations to Ironwood completed.`;
       break;
     case 'supply_pct':
-      headline = `🌲 Ironwood milestone: ${value}% of shielded supply migrated`;
+      detail = `${value}% of Orchard migrated to Ironwood.`;
       break;
     case 'compliance':
-      headline = `🌲 ZIP-318 compliance sustained above ${value}%`;
+      detail = `ZIP-318 compliance sustained above ${value}%.`;
       break;
     default:
-      headline = `🌲 Ironwood milestone reached`;
+      detail = `Ironwood milestone reached.`;
   }
+  if (context) detail += ` ${context}`;
 
-  const lines = [headline];
-  if (context) lines.push(``, context);
-  lines.push(``, `${BASE_URL}/ironwood`);
+  const lines = [
+    `🌲 Milestone`,
+    detail,
+    `${BASE_URL}/ironwood`,
+  ];
   return lines.join('\n');
 }
 
@@ -138,12 +138,12 @@ function formatChainRecovery({ blockHeight, gapMinutes }) {
 // ─── Cross-chain Whale Alert ──────────────────────────────────────────────
 
 function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, zecTxid }) {
-  const arrow = direction === 'inflow' ? '🟢' : '🔴';
-  const verb = direction === 'inflow' ? 'in' : 'out';
-  const chain = direction === 'inflow' ? sourceChain : destChain;
+  const verb = direction === 'inflow' ? 'inflow from' : 'outflow from ZEC to';
+  const chain = direction === 'inflow' ? sourceChain.toUpperCase() : destChain.toUpperCase();
+  const target = direction === 'inflow' ? `${chain} to ZEC` : `ZEC to ${chain}`;
   const lines = [
-    `${arrow} Cross-chain ${verb}: $${Math.round(amountUsd).toLocaleString()}`,
-    `${chain.toUpperCase()} ${direction === 'inflow' ? '→' : '←'} ZEC`,
+    `🔄 Bridge Flow`,
+    `$${Math.round(amountUsd).toLocaleString()} ${direction} ${target}.`,
   ];
   if (zecTxid) lines.push(`${BASE_URL}/tx/${zecTxid}`);
   return lines.join('\n');
@@ -152,20 +152,19 @@ function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, z
 // ─── Privacy Risk Alert ───────────────────────────────────────────────────
 
 function formatPrivacyRiskAlert({ highLinkages, batchClusters }) {
-  const lines = [
-    `🔍 24h Privacy Risk Summary`,
-  ];
-
+  let detail = '';
   if (highLinkages.highCount > 0) {
-    lines.push(`${highLinkages.highCount} high-confidence linkage patterns (${fmtZec(highLinkages.totalAmountZat)})`);
+    detail = `${highLinkages.highCount} high-confidence linkage patterns detected in 24h.`;
+  } else if (batchClusters.clusterCount > 0) {
+    detail = `${batchClusters.clusterCount} batch deshielding clusters detected in 24h.`;
   }
+  detail += ' Use standard denominations.';
 
-  if (batchClusters.clusterCount > 0) {
-    lines.push(`${batchClusters.clusterCount} batch deshielding clusters (${batchClusters.totalMembers} txs, ${fmtZec(batchClusters.totalAmountZat)})`);
-  }
-
-  lines.push(``, `Use standard denominations. Avoid timing correlations.`);
-  lines.push(`${BASE_URL}/privacy`);
+  const lines = [
+    `🔍 Privacy Alert`,
+    detail,
+    `${BASE_URL}/privacy-risks`,
+  ];
   return lines.join('\n');
 }
 

@@ -3,20 +3,44 @@
 /**
  * CipherScan Data Bot — Real-time Alerts Job
  *
- * Checks for exceptional events and posts alerts.
+ * Checks for exceptional events and posts alerts with branded image cards.
  * Runs every ~5 minutes via the orchestrator.
  *
  * Alert types:
  *  - Large shield/deshield (adaptive percentile + absolute floor)
- *  - Ironwood milestones (pool size, Orchard→Ironwood %)
+ *  - Ironwood milestones (pool size, Orchard->Ironwood %)
  *  - Cross-chain whale swaps (>$5K)
  *  - Privacy risk aggregate (daily HIGH-confidence linkages)
  *  - Chain reorgs (depth >= 2)
  */
 
+const fs = require('fs');
 const queries = require('../lib/queries');
 const { DEFAULT_CONFIG, isExceptionalFlow, checkMilestone, computePercentileRank } = require('../lib/thresholds');
 const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert } = require('../lib/formatter');
+const { renderLargeFlow, renderCrossChain, renderMilestone, renderPrivacyRisk } = require('../lib/card-renderer');
+
+function cleanup(filePath) {
+  if (filePath) try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+}
+
+async function postWithCard(xClient, content, renderFn, renderArgs, logger) {
+  let imagePath = null;
+  try {
+    imagePath = await renderFn(renderArgs);
+  } catch (err) {
+    logger.warn(`[Alerts] Card render failed, posting text-only: ${err.message}`);
+  }
+
+  try {
+    const result = imagePath
+      ? await xClient.postWithMedia(content, imagePath)
+      : await xClient.post(content);
+    return result;
+  } finally {
+    cleanup(imagePath);
+  }
+}
 
 async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } = {}) {
   const results = [];
@@ -28,7 +52,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       windowDays: config.largeFlow.windowDays,
     });
 
-    const since = Math.floor(Date.now() / 1000) - 300; // last 5 minutes
+    const since = Math.floor(Date.now() / 1000) - 300;
     const largeFlows = await queries.getLargeFlows(pool, {
       minZat: Math.min(config.largeFlow.absoluteFloorZat, rollingThreshold),
       since,
@@ -68,7 +92,14 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
       if (outboxId) {
         try {
-          const result = await xClient.post(content);
+          const result = await postWithCard(xClient, content, renderLargeFlow, {
+            direction: flow.direction,
+            amountZat: flow.amountZat,
+            pool: flow.pool,
+            blockHeight: flow.blockHeight,
+            txid: flow.txid,
+            percentileRank,
+          }, logger);
           await queries.markPosted(pool, outboxId, result.id);
           results.push({ type: 'large_flow', txid: flow.txid, postId: result.id });
         } catch (err) {
@@ -85,7 +116,6 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     const ironwood = await queries.getIronwoodStats(pool);
     const milestoneConfig = config.ironwoodMilestones;
 
-    // Pool size milestones (in ZEC)
     const poolZec = ironwood.poolSizeZat / 1e8;
     const volumeMilestone = checkMilestone(poolZec, milestoneConfig.volumeSteps);
     if (volumeMilestone) {
@@ -94,7 +124,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         const content = formatIronwoodMilestone({
           type: 'volume',
           value: volumeMilestone,
-          context: `Orchard → Ironwood: ${ironwood.orchardToIronwoodPct.toFixed(1)}%`,
+          context: `${ironwood.orchardToIronwoodPct.toFixed(1)}% of Orchard migrated.`,
         });
         const outboxId = await queries.insertOutboxEntry(pool, {
           postType: 'milestone',
@@ -105,7 +135,12 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         });
         if (outboxId) {
           try {
-            const result = await xClient.post(content);
+            const result = await postWithCard(xClient, content, renderMilestone, {
+              type: 'volume',
+              value: poolZec,
+              poolSizeZat: ironwood.poolSizeZat,
+              orchardPct: ironwood.orchardToIronwoodPct,
+            }, logger);
             await queries.markPosted(pool, outboxId, result.id);
             results.push({ type: 'milestone', milestone: `pool_size:${volumeMilestone}`, postId: result.id });
           } catch (err) {
@@ -115,7 +150,6 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       }
     }
 
-    // Orchard→Ironwood percentage milestones
     const supplyPctMilestone = checkMilestone(ironwood.orchardToIronwoodPct, milestoneConfig.supplyPctSteps);
     if (supplyPctMilestone) {
       const dedupKey = `milestone:orchard_pct:${supplyPctMilestone}`;
@@ -123,7 +157,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         const content = formatIronwoodMilestone({
           type: 'supply_pct',
           value: supplyPctMilestone,
-          context: `Pool size: ${(poolZec / 1000).toFixed(0)}K ZEC`,
+          context: `Pool size: ${(poolZec / 1000).toFixed(0)}K ZEC.`,
         });
         const outboxId = await queries.insertOutboxEntry(pool, {
           postType: 'milestone',
@@ -134,7 +168,12 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         });
         if (outboxId) {
           try {
-            const result = await xClient.post(content);
+            const result = await postWithCard(xClient, content, renderMilestone, {
+              type: 'supply_pct',
+              value: supplyPctMilestone,
+              poolSizeZat: ironwood.poolSizeZat,
+              orchardPct: ironwood.orchardToIronwoodPct,
+            }, logger);
             await queries.markPosted(pool, outboxId, result.id);
             results.push({ type: 'milestone', milestone: `orchard_pct:${supplyPctMilestone}`, postId: result.id });
           } catch (err) {
@@ -149,7 +188,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
   // ─── 3. Cross-chain whale alerts ────────────────────────────────────────
   try {
-    const since = new Date(Date.now() - 5 * 60000).toISOString(); // last 5 minutes
+    const since = new Date(Date.now() - 5 * 60000).toISOString();
     const largeSwaps = await queries.getRecentLargeSwaps(pool, {
       minUsd: config.crossChain.minUsd,
       since,
@@ -177,7 +216,13 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
       if (outboxId) {
         try {
-          const result = await xClient.post(content);
+          const result = await postWithCard(xClient, content, renderCrossChain, {
+            direction: swap.direction,
+            amountUsd: swap.amountUsd,
+            sourceChain: swap.sourceChain,
+            destChain: swap.destChain,
+            zecTxid: swap.zecTxid,
+          }, logger);
           await queries.markPosted(pool, outboxId, result.id);
           results.push({ type: 'cross_chain', id: swap.id, postId: result.id });
         } catch (err) {
@@ -216,7 +261,10 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
         if (outboxId) {
           try {
-            const result = await xClient.post(content);
+            const result = await postWithCard(xClient, content, renderPrivacyRisk, {
+              highLinkages,
+              batchClusters,
+            }, logger);
             await queries.markPosted(pool, outboxId, result.id);
             results.push({ type: 'privacy_risk', postId: result.id });
           } catch (err) {
@@ -229,7 +277,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     logger.error(`[Alerts] Privacy risk check failed: ${err.message}`);
   }
 
-  // ─── 5. Reorg alerts ───────────────────────────────────────────────────
+  // ─── 5. Reorg alerts (text-only, no card needed) ───────────────────────
   try {
     const since = new Date(Date.now() - config.reorg.lookbackMinutes * 60000).toISOString();
     const reorgs = await queries.getRecentReorgs(pool, {
