@@ -43,9 +43,10 @@ function formatDailyDigest({
   const lines = [
     `📊 Zcash Daily — Block ${fmtHeight(chainTip.height)}`,
     `⏱ ${fmtBlockTime(avgBlockTime)} avg | 🛡 ${fmtPct(shieldedPct)} shielded`,
-    `🌲 Ironwood: ${fmtZec(ironwood.totalVolumeZat)} total`,
-    `  24h: ${fmtZec(ironwood.volume24hZat)} (${ironwood.migrations24h} txs) | ZIP-318: ${fmtPct(compliance.pct)}`,
-    `Shield: ${fmtZec(flows.netShielded)} | Deshield: ${fmtZec(flows.netDeshielded)}`,
+    `🌲 Ironwood: ${fmtZec(ironwood.poolSizeZat)} (${fmtPct(ironwood.ironwoodPctOfShielded)} of shielded)`,
+    `  24h: ${fmtZec(ironwood.volume24hZat)} migrated (${ironwood.migrations24h} txs)`,
+    `  ZIP-318: ${fmtPct(compliance.pct)}`,
+    `💰 24h flows: +${fmtZec(flows.netShielded)} shielded / -${fmtZec(flows.netDeshielded)} deshielded`,
   ];
 
   if (signalOfDay) {
