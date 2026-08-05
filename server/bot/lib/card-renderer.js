@@ -30,6 +30,18 @@ const C = {
   orange: '#FF6B35',
 };
 
+const CHAIN_FILE_MAP = {
+  tron: 'tron', trx: 'trx', ethereum: 'eth', bitcoin: 'btc',
+  solana: 'sol', avalanche: 'avax', polygon: 'pol', matic: 'pol',
+  bnb: 'bsc', optimism: 'op', arbitrum: 'arb', zcash: 'zec',
+};
+
+function resolveChainFile(chain) {
+  const key = chain.toLowerCase();
+  const mapped = CHAIN_FILE_MAP[key] || key;
+  return path.join(ASSETS, 'chains', `${mapped}.png`);
+}
+
 let fontsRegistered = false;
 
 function ensureFonts() {
@@ -208,6 +220,21 @@ async function renderDailyDigest({ chainTip, shielded, flows, ironwood, complian
     }
   }
 
+  // Cross-chain summary below cards
+  if (crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0)) {
+    const ccY = cardY + cardH + 30;
+    ctx.font = 'bold 11px GeistMono';
+    ctx.fillStyle = C.cyan;
+    ctx.fillText('CROSS-CHAIN 24H', PAD, ccY);
+    ctx.font = '500 16px Geist';
+    ctx.fillStyle = C.green;
+    const inText = `↑ ${fmtUsd(crossChain.inflowUsd)}`;
+    ctx.fillText(inText, PAD + 160, ccY);
+    const inW = ctx.measureText(inText).width;
+    ctx.fillStyle = C.red;
+    ctx.fillText(`↓ ${fmtUsd(crossChain.outflowUsd)}`, PAD + 160 + inW + 24, ccY);
+  }
+
   // Footer line
   ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
   ctx.lineWidth = 1;
@@ -339,14 +366,13 @@ async function renderCrossChain({ direction, amountUsd, sourceChain, destChain, 
   const flowY = 200;
 
   // Load and draw chain logos
-  const chainsDir = path.join(ASSETS, 'chains');
   const logoSize = 56;
   const spacing = 180;
 
   // From logo
   const fromX = centerX - spacing;
   try {
-    const fromLogo = await loadImage(path.join(chainsDir, `${fromChain}.png`));
+    const fromLogo = await loadImage(resolveChainFile(fromChain));
     ctx.drawImage(fromLogo, fromX - logoSize / 2, flowY - logoSize / 2, logoSize, logoSize);
   } catch {
     ctx.beginPath();
@@ -371,7 +397,7 @@ async function renderCrossChain({ direction, amountUsd, sourceChain, destChain, 
   // To logo
   const toX = centerX + spacing;
   try {
-    const toLogo = await loadImage(path.join(chainsDir, `${toChain}.png`));
+    const toLogo = await loadImage(resolveChainFile(toChain));
     ctx.drawImage(toLogo, toX - logoSize / 2, flowY - logoSize / 2, logoSize, logoSize);
   } catch {
     ctx.beginPath();
