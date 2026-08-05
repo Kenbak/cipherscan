@@ -216,7 +216,7 @@ async function renderDailyDigest({ chainTip, shielded, flows, ironwood, complian
   ctx.lineTo(W - PAD, H - 56);
   ctx.stroke();
 
-  await drawFooter(ctx, 'cipherscan.app/ironwood');
+  await drawFooter(ctx, 'cipherscan.app');
   return saveTempPng(canvas);
 }
 

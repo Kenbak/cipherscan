@@ -38,10 +38,22 @@ function formatDailyDigest({
   ironwood,
   compliance,
 }) {
+  const shieldStr = fmtZec(flows.netShielded).replace(' ZEC', '');
+  const deshieldStr = fmtZec(flows.netDeshielded).replace(' ZEC', '');
+  const poolStr = fmtZec(ironwood.poolSizeZat).replace(' ZEC', '');
+  const shieldedStr = fmtZec(shielded.totalZat).replace(' ZEC', '');
+
   const lines = [
-    `📊 Daily Update`,
-    `Zcash network summary. Block ${fmtHeight(chainTip.height)}.`,
-    `${BASE_URL}/ironwood`,
+    `📊 Zcash Daily — Block ${Number(chainTip.height).toLocaleString()}`,
+    ``,
+    `🛡 Shielded: ${shieldedStr} ZEC`,
+    `24h: +${shieldStr} ZEC in / -${deshieldStr} ZEC out`,
+    ``,
+    `🌲 Ironwood: ${poolStr} ZEC`,
+    `Orchard → Ironwood: ${fmtPct(ironwood.orchardToIronwoodPct)}`,
+    `ZIP-318 compliance: ${fmtPct(compliance.pct)}`,
+    ``,
+    BASE_URL,
   ];
 
   return lines.join('\n');
