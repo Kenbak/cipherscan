@@ -38,8 +38,9 @@ class XClient {
     const mediaId = await this._apiRequest('api.x.com', '/2/media/upload/initialize', 'POST', initBody, {
       'Content-Type': 'application/json',
     }).then(res => {
-      if (!res.id) throw new Error(`Init failed: ${JSON.stringify(res).slice(0, 200)}`);
-      return res.id;
+      const id = res.data?.id || res.id || res.media_id_string;
+      if (!id) throw new Error(`Init failed: ${JSON.stringify(res).slice(0, 200)}`);
+      return id;
     });
 
     this.logger.info(`[XClient] Media init: ${mediaId}`);
@@ -88,8 +89,9 @@ class XClient {
       'Content-Type': 'application/json',
     });
 
-    this.logger.info(`[XClient] Media finalized: ${finalRes.id || mediaId}`);
-    return finalRes.id || mediaId;
+    const finalId = finalRes.data?.id || finalRes.id || mediaId;
+    this.logger.info(`[XClient] Media finalized: ${finalId}`);
+    return finalId;
   }
 
   _apiRequest(hostname, path, method, body, extraHeaders = {}) {
