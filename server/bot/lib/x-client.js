@@ -47,14 +47,18 @@ class XClient {
 
     // Step 2: APPEND (single chunk for images <5MB)
     const boundary = `----CipherScan${crypto.randomBytes(8).toString('hex')}`;
-    const parts = [
-      `--${boundary}\r\n`,
-      `Content-Disposition: form-data; name="media_data"\r\n`,
-      `Content-Type: application/octet-stream\r\n\r\n`,
-    ];
-    const prefix = Buffer.from(parts.join(''));
+    const segIndexPart = Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="segment_index"\r\n\r\n` +
+      `0\r\n`
+    );
+    const mediaPart = Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="media"; filename="image.png"\r\n` +
+      `Content-Type: ${mediaType}\r\n\r\n`
+    );
     const suffix = Buffer.from(`\r\n--${boundary}--\r\n`);
-    const payload = Buffer.concat([prefix, imageData, suffix]);
+    const payload = Buffer.concat([segIndexPart, mediaPart, imageData, suffix]);
 
     await new Promise((resolve, reject) => {
       const req = https.request({
