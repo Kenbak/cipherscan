@@ -1532,6 +1532,7 @@ function DenomMixChart({
   mode: 'volume' | 'txs';
 }) {
   const isVolume = mode === 'volume';
+  const totalDenomCount = denomBuckets.reduce((s, b) => s + b.count, 0);
   return (
     <div className="min-w-0 w-full">
       <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
@@ -1541,7 +1542,7 @@ function DenomMixChart({
             const max = isVolume ? maxBucketVolume : maxBucketCount;
             const label = isVolume
               ? (totalDenomVolume > 0 ? `${((volume / totalDenomVolume) * 100).toFixed(0)}%` : '0%')
-              : String(count);
+              : (totalDenomCount > 0 ? `${((count / totalDenomCount) * 100).toFixed(0)}%` : '0%');
             return (
               <div
                 key={denom}
@@ -1566,8 +1567,8 @@ function DenomMixChart({
       </div>
       <p className="mt-3 text-center text-[10px] font-mono text-muted max-sm:px-1">
         {isVolume
-          ? `${totalDenomVolume.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC across ${totalTxs} txs`
-          : `${totalTxs} txs · standard denominations`}
+          ? `${totalDenomVolume.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC across ${totalDenomCount.toLocaleString()} txs`
+          : `${totalDenomCount.toLocaleString()} txs using standard denominations`}
       </p>
     </div>
   );
@@ -1856,7 +1857,7 @@ function PrivacyScore({
                   totalDenomVolume={totalDenomVolume}
                   totalTxs={filteredTxs.length}
                   barColor={colors.denominated}
-                  mode="volume"
+                  mode="txs"
                 />
               ) : (
                 <p className="py-16 text-center text-xs font-mono text-muted">No standard denominations in this range.</p>
