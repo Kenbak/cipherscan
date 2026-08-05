@@ -1,0 +1,28 @@
+[Unit]
+Description=CipherScan Data Bot — Zcash intelligence feed
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=cipherscan
+WorkingDirectory=/opt/cipherscan/zcash-explorer/server/bot
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cipherscan-bot
+
+# Environment
+EnvironmentFile=/opt/cipherscan/.env.bot
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/cipherscan
+
+[Install]
+WantedBy=multi-user.target
