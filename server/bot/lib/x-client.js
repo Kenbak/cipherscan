@@ -26,52 +26,101 @@ class XClient {
   async uploadMedia(imagePath) {
     const imageData = fs.readFileSync(imagePath);
     const mediaType = imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    const totalBytes = imageData.length;
+
+    // Step 1: INIT
+    const initBody = JSON.stringify({
+      media_type: mediaType,
+      media_category: 'tweet_image',
+      total_bytes: totalBytes,
+    });
+
+    const mediaId = await this._apiRequest('api.x.com', '/2/media/upload/initialize', 'POST', initBody, {
+      'Content-Type': 'application/json',
+    }).then(res => {
+      if (!res.id) throw new Error(`Init failed: ${JSON.stringify(res).slice(0, 200)}`);
+      return res.id;
+    });
+
+    this.logger.info(`[XClient] Media init: ${mediaId}`);
+
+    // Step 2: APPEND (single chunk for images <5MB)
     const boundary = `----CipherScan${crypto.randomBytes(8).toString('hex')}`;
+    const parts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="media_data"\r\n`,
+      `Content-Type: application/octet-stream\r\n\r\n`,
+    ];
+    const prefix = Buffer.from(parts.join(''));
+    const suffix = Buffer.from(`\r\n--${boundary}--\r\n`);
+    const payload = Buffer.concat([prefix, imageData, suffix]);
 
-    const preamble = Buffer.from(
-      `--${boundary}\r\n` +
-      `Content-Disposition: form-data; name="media_data"\r\n\r\n` +
-      imageData.toString('base64') + `\r\n` +
-      `--${boundary}\r\n` +
-      `Content-Disposition: form-data; name="media_category"\r\n\r\n` +
-      `tweet_image\r\n` +
-      `--${boundary}--\r\n`
-    );
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(
-        {
-          hostname: 'upload.twitter.com',
-          path: '/1.1/media/upload.json',
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            'Content-Length': preamble.length,
-          },
+    await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.x.com',
+        path: `/2/media/upload/${mediaId}/append`,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': payload.length,
         },
-        (res) => {
-          let data = '';
-          res.on('data', (chunk) => { data += chunk; });
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(data);
-              if (res.statusCode === 200 && parsed.media_id_string) {
-                this.logger.info(`[XClient] Uploaded media ${parsed.media_id_string}`);
-                resolve(parsed.media_id_string);
-              } else {
-                const errMsg = parsed.error || parsed.errors?.[0]?.message || data.slice(0, 200);
-                this.logger.error(`[XClient] Media upload failed (${res.statusCode}): ${errMsg}`);
-                reject(new Error(`Media upload ${res.statusCode}: ${errMsg}`));
-              }
-            } catch (e) {
-              reject(new Error(`Media upload parse error: ${data.slice(0, 200)}`));
-            }
-          });
-        }
-      );
+      }, (res) => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Append failed (${res.statusCode}): ${data.slice(0, 200)}`));
+          }
+        });
+      });
       req.on('error', reject);
-      req.write(preamble);
+      req.write(payload);
+      req.end();
+    });
+
+    this.logger.info(`[XClient] Media appended`);
+
+    // Step 3: FINALIZE
+    const finalRes = await this._apiRequest('api.x.com', `/2/media/upload/${mediaId}/finalize`, 'POST', '{}', {
+      'Content-Type': 'application/json',
+    });
+
+    this.logger.info(`[XClient] Media finalized: ${finalRes.id || mediaId}`);
+    return finalRes.id || mediaId;
+  }
+
+  _apiRequest(hostname, path, method, body, extraHeaders = {}) {
+    return new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname,
+        path,
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          ...extraHeaders,
+          ...(body ? { 'Content-Length': Buffer.byteLength(body) } : {}),
+        },
+      }, (res) => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          try {
+            const parsed = data ? JSON.parse(data) : {};
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(parsed);
+            } else {
+              reject(new Error(`API ${path} (${res.statusCode}): ${data.slice(0, 300)}`));
+            }
+          } catch (e) {
+            reject(new Error(`API parse error ${path}: ${data.slice(0, 200)}`));
+          }
+        });
+      });
+      req.on('error', reject);
+      if (body) req.write(body);
       req.end();
     });
   }
