@@ -245,30 +245,47 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-cipher-border-subtle pt-5">
-            <MetricCell
-              label="Ironwood supply"
-              value={initialData.ironwoodZec != null
-                ? `${initialData.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`
-                : '—'}
-              accent="yellow"
-            />
-            <MetricCell
-              label="Legitimacy threshold"
-              value={`${NU7_VOTE.legitimacyThreshold.toLocaleString()} ZEC`}
-            />
-            <MetricCell
-              label="Sprout balance"
-              value={initialData.sproutZec != null
-                ? `${initialData.sproutZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`
-                : '—'}
-            />
-            <MetricCell
-              label="Snapshot"
-              value="Aug 24, 19:00 UTC"
-              accent="cyan"
-            />
+          <div className="border-t border-cipher-border-subtle pt-5">
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-2">
+              <span>Ironwood shielded supply (upper bound on eligibility)</span>
+              <span>{NU7_VOTE.legitimacyThreshold.toLocaleString()} ZEC threshold</span>
+            </div>
+            <div className="relative h-8 rounded-lg bg-glass-3 overflow-hidden">
+              {initialData.ironwoodZec != null && (
+                <>
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-lg bg-cipher-yellow/20 border-r-2 border-cipher-yellow"
+                    style={{ width: `${Math.min((initialData.ironwoodZec / (initialData.ironwoodZec * 1.15)) * 100, 100)}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 left-0 border-r-2 border-dashed border-primary/40"
+                    style={{ width: `${(NU7_VOTE.legitimacyThreshold / (initialData.ironwoodZec * 1.15)) * 100}%` }}
+                  />
+                </>
+              )}
+              <div className="absolute inset-0 flex items-center justify-between px-4">
+                <span className="text-sm font-bold font-mono text-cipher-yellow-bright tabular-nums">
+                  {initialData.ironwoodZec != null
+                    ? `${(initialData.ironwoodZec / 1_000_000).toFixed(2)}M ZEC`
+                    : '—'}
+                </span>
+                <span className="text-[10px] font-mono text-muted">
+                  {initialData.ironwoodZec != null
+                    ? `${((initialData.ironwoodZec / NU7_VOTE.legitimacyThreshold) * 100).toFixed(0)}% of threshold`
+                    : ''}
+                </span>
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Key Dates — right after countdown */}
+      <div className="rounded-2xl border border-cipher-border bg-cipher-surface mb-8">
+        <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border-subtle">
+          <DateCell label="Snapshot" date="Aug 24, 2026" time="19:00 UTC" note="Ironwood funds must be spendable" />
+          <DateCell label="Voting opens" date="Aug 25, 2026" time="" note="~18 days to cast votes" />
+          <DateCell label="Voting closes" date="Sep 12, 2026" time="19:00 UTC" note="Results published shortly after" />
         </div>
       </div>
 
@@ -306,18 +323,6 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
         ) : (
           <ChainExplorerTab chainState={chainState} />
         )}
-      </div>
-
-      {/* Key Dates */}
-      <div className="mb-8">
-        <SectionLabel label="KEY_DATES" />
-        <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
-          <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border-subtle">
-            <DateCell label="Snapshot" date="Aug 24, 2026" time="19:00 UTC" note="Ironwood funds must be spendable" />
-            <DateCell label="Voting opens" date="Aug 25, 2026" time="" note="~18 days to cast votes" />
-            <DateCell label="Voting closes" date="Sep 12, 2026" time="19:00 UTC" note="Results published shortly after" />
-          </div>
-        </div>
       </div>
 
       {/* Resources */}
@@ -660,7 +665,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="text-center">
-      <div className="text-3xl sm:text-4xl font-bold font-mono tabular-nums tracking-tight text-cipher-cyan-bright">
+      <div className="text-3xl sm:text-4xl font-bold font-mono tabular-nums tracking-tight text-primary">
         {String(value).padStart(2, '0')}
       </div>
       <div className="text-[10px] font-mono text-muted uppercase tracking-wider mt-1">{label}</div>
