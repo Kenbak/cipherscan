@@ -107,6 +107,7 @@ export function NavBar() {
         ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),
         ...(isMainnet ? [{ href: '/usage-clock', label: 'Usage Clock', desc: 'Activity rhythm vs geography' }] : []),
         ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
+        ...(isMainnet ? [{ href: '/governance/nu7', label: 'NU7 Vote', desc: 'Coinholder poll tracker' }] : []),
       ];
 
   const toolsItems: MenuItem[] = [

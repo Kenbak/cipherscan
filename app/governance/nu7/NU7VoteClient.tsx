@@ -1,0 +1,842 @@
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  NU7_VOTE,
+  VOTE_CHAIN,
+  QUESTIONS,
+  WALLETS,
+  RESOURCES,
+  type PollQuestion,
+} from '@/lib/nu7-vote-config';
+
+interface InitialData {
+  ironwoodZec: number | null;
+  sproutZec: number | null;
+  totalShielded: number | null;
+  chainSupply: number | null;
+}
+
+type Phase = 'pre-snapshot' | 'pre-vote' | 'active' | 'tallying' | 'results';
+
+function getPhase(): Phase {
+  const now = Date.now();
+  const snapshot = new Date(NU7_VOTE.snapshotTime).getTime();
+  const start = new Date(NU7_VOTE.voteStartTime).getTime();
+  const end = new Date(NU7_VOTE.voteEndTime).getTime();
+
+  if (now < snapshot) return 'pre-snapshot';
+  if (now < start) return 'pre-vote';
+  if (now < end) return 'active';
+  return 'tallying';
+}
+
+function useCountdown(targetIso: string) {
+  const [remaining, setRemaining] = useState<number>(
+    Math.max(0, new Date(targetIso).getTime() - Date.now())
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setRemaining(Math.max(0, new Date(targetIso).getTime() - Date.now()));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [targetIso]);
+
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+
+  return { days, hours, minutes, seconds, total: remaining };
+}
+
+/* ── Vote Chain data types ── */
+
+interface Validator {
+  moniker: string;
+  operatorAddress: string;
+  jailed: boolean;
+  status: string;
+  tokens: string;
+  joinedAt: string;
+}
+
+interface CeremonyData {
+  status: number;
+  eaPk: string;
+  validatorCount: number;
+  ackCount: number;
+  threshold: number;
+  phaseStart: number;
+}
+
+interface ChainState {
+  height: number;
+  time: string;
+  chainId: string;
+  validators: Validator[];
+  ceremony: CeremonyData | null;
+  voteServers: { url: string; label: string }[];
+  pirEndpoints: { url: string; label: string }[];
+  roundActive: boolean;
+  roundId: string | null;
+  voteManagers: number;
+  managerThreshold: number;
+  recentBlocks: RecentBlock[];
+}
+
+interface RecentBlock {
+  height: number;
+  time: string;
+  txCount: number;
+  sigCount: number;
+  proposer: string;
+}
+
+function useChainState(): ChainState | null {
+  const [state, setState] = useState<ChainState | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [blockRes, validatorsRes, ceremonyRes, configRes, roundRes, managersRes] = await Promise.all([
+        fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/latest`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.validators}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.ceremony}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(VOTE_CHAIN.dynamicConfig).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.activeRound}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.voteManagers}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+
+      const header = blockRes?.block?.header ?? blockRes?.sdk_block?.header;
+      const validators: Validator[] = (validatorsRes?.validators ?? []).map((v: any) => ({
+        moniker: v.description?.moniker ?? 'Unknown',
+        operatorAddress: v.operator_address ?? '',
+        jailed: v.jailed ?? false,
+        status: v.status ?? '',
+        tokens: v.tokens ?? '0',
+        joinedAt: v.commission?.update_time ?? '',
+      }));
+
+      const ceremony = ceremonyRes?.ceremony ? {
+        status: ceremonyRes.ceremony.status,
+        eaPk: ceremonyRes.ceremony.ea_pk,
+        validatorCount: ceremonyRes.ceremony.validators?.length ?? 0,
+        ackCount: ceremonyRes.ceremony.acks?.length ?? 0,
+        threshold: ceremonyRes.ceremony.threshold ?? 0,
+        phaseStart: ceremonyRes.ceremony.phase_start ?? 0,
+      } : null;
+
+      const latestHeight = header ? parseInt(header.height, 10) : 0;
+
+      // Fetch recent blocks
+      let recentBlocks: RecentBlock[] = [];
+      if (latestHeight > 0) {
+        const blockPromises = [];
+        for (let i = 0; i < 10; i++) {
+          const h = latestHeight - i;
+          if (h < 1) break;
+          blockPromises.push(
+            fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/${h}`)
+              .then(r => r.ok ? r.json() : null)
+              .catch(() => null)
+          );
+        }
+        const blockResults = await Promise.all(blockPromises);
+        recentBlocks = blockResults
+          .filter(Boolean)
+          .map((b: any) => {
+            const h = b?.block?.header ?? b?.sdk_block?.header;
+            const txCount = b?.block?.data?.txs?.length ?? 0;
+            const sigCount = b?.block?.last_commit?.signatures?.filter(
+              (s: any) => s.block_id_flag === 'BLOCK_ID_FLAG_COMMIT'
+            ).length ?? 0;
+            return {
+              height: parseInt(h?.height ?? '0', 10),
+              time: h?.time ?? '',
+              txCount,
+              sigCount,
+              proposer: h?.proposer_address ?? '',
+            };
+          });
+      }
+
+      setState({
+        height: latestHeight,
+        time: header?.time ?? '',
+        chainId: header?.chain_id ?? 'zvote-1',
+        validators,
+        ceremony,
+        voteServers: configRes?.vote_servers ?? [],
+        pirEndpoints: configRes?.pir_endpoints ?? [],
+        roundActive: !!roundRes?.round,
+        roundId: roundRes?.round?.vote_round_id ?? null,
+        voteManagers: managersRes?.vote_manager_addresses?.length ?? 0,
+        managerThreshold: managersRes?.threshold ?? 0,
+        recentBlocks,
+      });
+    } catch {
+      // leave null
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+    const id = setInterval(fetchAll, 15_000);
+    return () => clearInterval(id);
+  }, [fetchAll]);
+
+  return state;
+}
+
+/* ── Main component ── */
+
+export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
+  const phase = useMemo(getPhase, []);
+  const snapshotCountdown = useCountdown(NU7_VOTE.snapshotTime);
+  const voteEndCountdown = useCountdown(NU7_VOTE.voteEndTime);
+  const chainState = useChainState();
+  const [activeQuestion, setActiveQuestion] = useState(0);
+  const [activeTab, setActiveTab] = useState<'vote' | 'chain'>('vote');
+
+  const countdown = phase === 'pre-snapshot' ? snapshotCountdown : voteEndCountdown;
+  const countdownLabel = phase === 'pre-snapshot'
+    ? 'Until snapshot'
+    : phase === 'active'
+      ? 'Voting closes in'
+      : phase === 'tallying' || phase === 'results'
+        ? 'Vote closed'
+        : 'Until voting opens';
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            NU7 <span className="text-cipher-cyan-bright">Coinholder Vote</span>
+          </h1>
+          <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
+            Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon.
+          </p>
+        </div>
+        <PhaseBadge phase={phase} />
+      </div>
+
+      {/* Countdown + Context */}
+      <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
+        <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
+          <span className="h-2 w-2 rounded-full bg-cipher-cyan animate-pulse" />
+          <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">
+            {countdownLabel}
+          </span>
+        </div>
+
+        <div className="p-5 sm:p-6">
+          {countdown.total > 0 && (
+            <div className="flex items-center justify-center gap-3 sm:gap-5 mb-6">
+              <CountdownUnit value={countdown.days} label="days" />
+              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <CountdownUnit value={countdown.hours} label="hours" />
+              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <CountdownUnit value={countdown.minutes} label="min" />
+              <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-4">:</span>
+              <CountdownUnit value={countdown.seconds} label="sec" />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-cipher-border-subtle pt-5">
+            <MetricCell
+              label="Ironwood supply"
+              value={initialData.ironwoodZec != null
+                ? `${initialData.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`
+                : '—'}
+              accent="yellow"
+            />
+            <MetricCell
+              label="Legitimacy threshold"
+              value={`${NU7_VOTE.legitimacyThreshold.toLocaleString()} ZEC`}
+            />
+            <MetricCell
+              label="Sprout balance"
+              value={initialData.sproutZec != null
+                ? `${initialData.sproutZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`
+                : '—'}
+            />
+            <MetricCell
+              label="Snapshot"
+              value="Aug 24, 19:00 UTC"
+              accent="cyan"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Main tabs: Vote / Chain */}
+      <div className="mb-8">
+        <div className="flex border-b border-cipher-border mb-6">
+          <button
+            onClick={() => setActiveTab('vote')}
+            className={`px-5 py-3 text-sm font-mono font-semibold transition-colors border-b-2 ${
+              activeTab === 'vote'
+                ? 'border-cipher-cyan text-primary'
+                : 'border-transparent text-muted hover:text-secondary'
+            }`}
+          >
+            Vote
+          </button>
+          <button
+            onClick={() => setActiveTab('chain')}
+            className={`px-5 py-3 text-sm font-mono font-semibold transition-colors border-b-2 ${
+              activeTab === 'chain'
+                ? 'border-cipher-cyan text-primary'
+                : 'border-transparent text-muted hover:text-secondary'
+            }`}
+          >
+            Chain Explorer
+          </button>
+        </div>
+
+        {activeTab === 'vote' ? (
+          <VoteTab
+            activeQuestion={activeQuestion}
+            setActiveQuestion={setActiveQuestion}
+            chainState={chainState}
+          />
+        ) : (
+          <ChainExplorerTab chainState={chainState} />
+        )}
+      </div>
+
+      {/* Key Dates */}
+      <div className="mb-8">
+        <SectionLabel label="KEY_DATES" />
+        <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
+          <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border-subtle">
+            <DateCell label="Snapshot" date="Aug 24, 2026" time="19:00 UTC" note="Ironwood funds must be spendable" />
+            <DateCell label="Voting opens" date="Aug 25, 2026" time="" note="~18 days to cast votes" />
+            <DateCell label="Voting closes" date="Sep 12, 2026" time="19:00 UTC" note="Results published shortly after" />
+          </div>
+        </div>
+      </div>
+
+      {/* Resources */}
+      <div className="mb-8">
+        <SectionLabel label="RESOURCES_&_AUDIT" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {RESOURCES.map(r => (
+            <a
+              key={r.url}
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-cipher-cyan/40 hover:bg-glass-1 transition-colors text-xs font-mono text-secondary hover:text-primary"
+            >
+              <ExternalIcon />
+              <span className="truncate">{r.label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Methodology */}
+      <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
+        <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">What CipherScan shows</h3>
+        <p className="text-xs text-muted leading-relaxed max-w-3xl">
+          This page displays public vote parameters, countdowns, and live chain state from the Valar
+          zvote-1 REST API. CipherScan cannot determine individual eligibility, reveal
+          encrypted vote choices before tally, or verify the protocol without an independent
+          full node. The Ironwood supply shown is an upper bound on eligible ZEC — not a turnout estimate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Vote Tab ── */
+
+function VoteTab({
+  activeQuestion,
+  setActiveQuestion,
+  chainState,
+}: {
+  activeQuestion: number;
+  setActiveQuestion: (i: number) => void;
+  chainState: ChainState | null;
+}) {
+  return (
+    <div className="grid lg:grid-cols-3 gap-6">
+      {/* Questions — takes 2 cols */}
+      <div className="lg:col-span-2">
+        <SectionLabel label="POLL_QUESTIONS" />
+        <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
+          <div className="flex border-b border-cipher-border-subtle overflow-x-auto">
+            {QUESTIONS.map((q, i) => (
+              <button
+                key={q.id}
+                onClick={() => setActiveQuestion(i)}
+                className={`shrink-0 px-4 py-3 text-xs font-mono transition-colors border-b-2 ${
+                  i === activeQuestion
+                    ? 'border-cipher-cyan text-primary bg-glass-1'
+                    : 'border-transparent text-muted hover:text-secondary'
+                }`}
+              >
+                Q{i + 1}
+              </button>
+            ))}
+          </div>
+          <div className="p-5 sm:p-6">
+            <QuestionContent q={QUESTIONS[activeQuestion]} />
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div className="space-y-6">
+        {/* Wallet support */}
+        <div>
+          <SectionLabel label="WALLET_SUPPORT" />
+          <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5">
+            <div className="space-y-3">
+              {WALLETS.map(w => (
+                <div key={w.name} className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-secondary">{w.name}</span>
+                  <WalletBadge status={w.status} />
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-[10px] text-muted leading-relaxed">
+              Use a supported wallet to vote. CipherScan does not handle votes or keys.
+            </p>
+          </div>
+        </div>
+
+        {/* Quick chain status */}
+        <div>
+          <SectionLabel label="CHAIN_STATUS" live />
+          <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5">
+            <div className="space-y-3">
+              <StatusRow label="Height" value={chainState?.height?.toLocaleString() ?? '—'} mono />
+              <StatusRow label="Validators" value={chainState?.validators?.length?.toString() ?? '—'} />
+              <StatusRow
+                label="Active round"
+                value={chainState?.roundActive ? 'Yes' : 'Not yet'}
+                accent={chainState?.roundActive}
+              />
+              <StatusRow
+                label="DKG ceremony"
+                value={chainState?.ceremony ? `${chainState.ceremony.ackCount}/${chainState.ceremony.validatorCount} acks` : '—'}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Chain Explorer Tab ── */
+
+function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
+  if (!chainState) {
+    return (
+      <div className="h-64 rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-cyan rounded-full animate-spin" />
+          <span className="text-xs font-mono text-muted">Connecting to zvote-1…</span>
+        </div>
+      </div>
+    );
+  }
+
+  const ceremonyStatus = chainState.ceremony
+    ? chainState.ceremony.status === 3 ? 'Finalized' : chainState.ceremony.status === 2 ? 'Acknowledging' : 'In progress'
+    : 'Unknown';
+
+  const allActive = chainState.validators.filter(v => !v.jailed).length;
+
+  return (
+    <div className="space-y-8">
+      {/* Chain overview — compact stats bar */}
+      <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-5 py-2.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">zvote-1</span>
+          <span className="text-[10px] text-muted ml-1">— the dedicated voting chain</span>
+          <span className="ml-auto text-[10px] font-mono text-muted">
+            {chainState.time ? new Date(chainState.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC' : ''}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-cipher-border-subtle">
+          <StatCell label="Block height" value={chainState.height.toLocaleString()} />
+          <StatCell label="Validators" value={String(chainState.validators.length)} sub={`${allActive} signing`} />
+          <StatCell label="Vote servers" value={String(chainState.voteServers.length)} sub="Accept encrypted votes" />
+          <StatCell label="Coordinators" value={String(chainState.voteManagers)} sub={`${chainState.managerThreshold} needed to start`} />
+        </div>
+      </div>
+
+      {/* Two-column layout: Blocks + Key Setup */}
+      <div className="space-y-6">
+        {/* Recent blocks — the live heartbeat */}
+        <div>
+          <SectionLabel label="RECENT_BLOCKS" live />
+          <p className="text-[11px] text-muted -mt-2 mb-3">
+            Latest blocks on the voting chain. During the vote, blocks with transactions contain encrypted submissions.
+          </p>
+          <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
+                    <th className="text-left px-4 py-2.5 font-medium">Height</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Time</th>
+                    <th className="text-center px-4 py-2.5 font-medium">
+                      <Tip text="Transactions in this block — vote submissions appear here during active voting">Txs</Tip>
+                    </th>
+                    <th className="text-center px-4 py-2.5 font-medium">
+                      <Tip text="How many validators signed this block. Full consensus = all validators agree.">Consensus</Tip>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cipher-border-subtle">
+                  {chainState.recentBlocks.slice(0, 8).map(b => (
+                    <tr key={b.height} className="hover:bg-glass-1 transition-colors">
+                      <td className="px-4 py-2 text-cipher-cyan tabular-nums">{b.height.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-muted tabular-nums">
+                        {b.time ? new Date(b.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' }) : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        {b.txCount > 0 ? (
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cipher-green-bright/10 text-cipher-green-bright font-semibold text-[10px]">{b.txCount}</span>
+                        ) : (
+                          <span className="text-muted/30">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
+                          {b.sigCount}/{chainState.validators.length}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Ceremony — horizontal card */}
+        <div>
+          <SectionLabel label="KEY_CEREMONY" />
+          <p className="text-[11px] text-muted -mt-2 mb-3">
+            <Tip text="Distributed Key Generation — validators jointly create an encryption key without anyone holding the full private key">DKG</Tip>
+            {' '}splits decryption power across validators so no single party can read votes.
+          </p>
+          <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5">
+            {chainState.ceremony ? (
+              <div className="grid md:grid-cols-[1fr_1px_1fr] gap-5">
+                {/* Left: status + progress */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
+                      ceremonyStatus === 'Finalized'
+                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'
+                        : 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5'
+                    }`}>
+                      {ceremonyStatus}
+                    </span>
+                    <span className="text-[10px] text-muted font-mono">
+                      <Tip text="Minimum validators needed to decrypt the final tally.">Threshold</Tip>: {chainState.ceremony.threshold} of {chainState.ceremony.validatorCount}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] font-mono text-muted mb-1.5">
+                      <span><Tip text="Each validator must confirm they received and verified their share of the encryption key">Confirmations</Tip></span>
+                      <span className="text-secondary">{chainState.ceremony.ackCount}/{chainState.ceremony.validatorCount}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-glass-6 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                        style={{ width: `${(chainState.ceremony.ackCount / Math.max(chainState.ceremony.validatorCount, 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono text-muted mb-1">
+                      <Tip text="The combined public key used to encrypt all votes. No single validator holds the matching private key.">Election authority key</Tip>
+                    </div>
+                    <div className="font-mono text-[11px] text-secondary bg-glass-3 rounded-lg px-3 py-2 break-all leading-relaxed">
+                      {chainState.ceremony.eaPk}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="hidden md:block bg-cipher-border-subtle" />
+
+                {/* Right: key holders */}
+                <div>
+                  <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+                    <Tip text="Independent organizations that each hold a piece of the decryption key. They produce blocks and store encrypted vote shares.">Key holders</Tip>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {chainState.validators.map(v => (
+                      <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-1">
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                        <span className="text-[11px] font-mono text-secondary truncate">{v.moniker}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted mt-2.5">
+                    At least {chainState.ceremony.threshold} must cooperate to reveal the final tally.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted">No ceremony data available.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Network participants — unified */}
+        <div>
+          <SectionLabel label="NETWORK_PARTICIPANTS" />
+          <p className="text-[11px] text-muted -mt-2 mb-3">
+            Each organization runs a <Tip text="A validator produces blocks, runs a vote server for wallets, and holds a share of the decryption key. They are all three roles at once.">validator + vote server</Tip>. Some also operate <Tip text="Private Information Retrieval servers let wallets prove eligibility without revealing which Zcash note they own.">PIR servers</Tip>.
+          </p>
+          <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border-subtle">
+              {chainState.voteServers.map(s => {
+                const pirOp = chainState.pirEndpoints.some(p =>
+                  p.label.toLowerCase().includes(s.label.toLowerCase()) ||
+                  p.url.toLowerCase().includes(s.label.toLowerCase())
+                );
+                return (
+                  <div key={s.label} className="px-4 py-3 flex flex-col items-center text-center">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 mb-2" />
+                    <span className="text-[11px] font-mono font-semibold text-primary">{s.label}</span>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <RoleDot label="V" title="Validator" active />
+                      <RoleDot label="S" title="Vote server" active />
+                      <RoleDot label="P" title="PIR server" active={pirOp} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div className="border-t border-cipher-border-subtle px-4 py-2.5 flex items-center gap-4 text-[10px] text-muted font-mono">
+              <span className="flex items-center gap-1"><RoleDot label="V" title="" active /> Validator</span>
+              <span className="flex items-center gap-1"><RoleDot label="S" title="" active /> Vote server</span>
+              <span className="flex items-center gap-1"><RoleDot label="P" title="" active /> PIR server</span>
+              <span className="ml-auto">{chainState.pirEndpoints.length} PIR endpoints total</span>
+            </div>
+          </div>
+        </div>
+
+        {/* How it works — full width, compact */}
+        <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+            <div className="text-[10px] font-mono text-muted uppercase tracking-wider shrink-0">How voting works</div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <StepInline n={1} text="Prove Ironwood funds (ZK)" />
+              <StepArrow />
+              <StepInline n={2} text="Encrypt vote" />
+              <StepArrow />
+              <StepInline n={3} text="Accumulate on-chain" />
+              <StepArrow />
+              <StepInline n={4} text="Decrypt aggregate only" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Sub-components ── */
+
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-3xl sm:text-4xl font-bold font-mono tabular-nums tracking-tight text-cipher-cyan-bright">
+        {String(value).padStart(2, '0')}
+      </div>
+      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mt-1">{label}</div>
+    </div>
+  );
+}
+
+function PhaseBadge({ phase }: { phase: Phase }) {
+  const config: Record<Phase, { label: string; classes: string }> = {
+    'pre-snapshot': { label: 'Snapshot pending', classes: 'border-cipher-cyan/30 text-cipher-cyan bg-cipher-cyan/5' },
+    'pre-vote': { label: 'Vote starting soon', classes: 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5' },
+    active: { label: 'Voting open', classes: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
+    tallying: { label: 'Tallying', classes: 'border-cipher-purple-bright/30 text-cipher-purple-bright bg-cipher-purple-bright/5' },
+    results: { label: 'Results published', classes: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
+  };
+  const c = config[phase];
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-mono font-semibold border ${c.classes}`}>
+      {c.label}
+    </span>
+  );
+}
+
+function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'cyan' }) {
+  const valueColor = accent === 'yellow' ? 'text-cipher-yellow-bright' : accent === 'cyan' ? 'text-cipher-cyan-bright' : 'text-primary';
+  return (
+    <div>
+      <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
+      <div className={`mt-1 text-sm sm:text-base font-bold font-mono tabular-nums ${valueColor}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ label, live }: { label: string; live?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+      <h2 className="text-xs font-bold font-mono text-secondary uppercase tracking-wider">{label}</h2>
+      {live && (
+        <span className="relative flex h-2 w-2" aria-label="Live">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function QuestionContent({ q }: { q: PollQuestion }) {
+  return (
+    <div>
+      <h3 className="text-base font-bold text-primary mb-2">{q.title}</h3>
+      <p className="text-xs text-secondary leading-relaxed mb-5">{q.description}</p>
+      <div className="space-y-2.5">
+        {q.options.map((opt, i) => (
+          <div key={i} className="flex items-start gap-3 px-3.5 py-2.5 rounded-lg bg-glass-2 border border-cipher-border-subtle">
+            <span className="shrink-0 w-6 h-6 rounded-md bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+              {String.fromCharCode(65 + i)}
+            </span>
+            <span className="text-xs text-secondary leading-relaxed">{opt}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatusRow({ label, value, accent, mono }: { label: string; value: string; accent?: boolean; mono?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-mono text-muted">{label}</span>
+      <span className={`text-xs font-mono font-semibold ${accent ? 'text-emerald-400' : 'text-secondary'} ${mono ? 'tabular-nums' : ''}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function WalletBadge({ status }: { status: 'confirmed' | 'expected' | 'unknown' }) {
+  if (status === 'confirmed') {
+    return <span className="text-[10px] font-mono font-semibold text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 rounded-full px-2 py-0.5">Confirmed</span>;
+  }
+  if (status === 'expected') {
+    return <span className="text-[10px] font-mono font-semibold text-cipher-yellow border border-cipher-yellow/20 bg-cipher-yellow/5 rounded-full px-2 py-0.5">Expected</span>;
+  }
+  return <span className="text-[10px] font-mono font-semibold text-muted border border-cipher-border rounded-full px-2 py-0.5">Unknown</span>;
+}
+
+function DateCell({ label, date, time, note }: { label: string; date: string; time: string; note: string }) {
+  return (
+    <div className="p-5">
+      <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">{label}</div>
+      <div className="text-sm font-bold font-mono text-primary">
+        {date}
+        {time && <span className="text-muted font-normal ml-1.5">· {time}</span>}
+      </div>
+      <div className="text-[11px] text-muted mt-1">{note}</div>
+    </div>
+  );
+}
+
+function ExternalIcon() {
+  return (
+    <svg className="w-3 h-3 shrink-0 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  );
+}
+
+function Tip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <span className="group/tip relative inline-flex items-center gap-0.5 cursor-help border-b border-dashed border-muted/40">
+      {children}
+      <svg className="w-2.5 h-2.5 text-muted/50 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span className="absolute left-0 top-full mt-2 px-3 py-2 rounded-lg bg-cipher-bg border border-cipher-border text-[10px] text-secondary leading-relaxed normal-case tracking-normal font-normal w-52 opacity-0 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:pointer-events-auto transition-opacity z-50 shadow-lg">
+        {text}
+      </span>
+    </span>
+  );
+}
+
+function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-cipher-surface p-4">
+      <div className="text-[10px] font-mono text-muted uppercase tracking-wider">{label}</div>
+      <div className="text-lg font-bold font-mono text-primary tabular-nums mt-1">{value}</div>
+      {sub && <div className="text-[10px] text-muted mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function Step({ n, text }: { n: number; text: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="shrink-0 w-5 h-5 rounded-full bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+        {n}
+      </span>
+      <span className="text-[11px] text-secondary leading-relaxed">{text}</span>
+    </div>
+  );
+}
+
+function RoleDot({ label, title, active }: { label: string; title: string; active: boolean }) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-mono font-bold ${
+        active
+          ? 'bg-cipher-cyan/15 text-cipher-cyan'
+          : 'bg-glass-3 text-muted/30'
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function StepInline({ n, text }: { n: number; text: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="w-4 h-4 rounded-full bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[9px] font-mono font-bold shrink-0">
+        {n}
+      </span>
+      <span className="text-[11px] text-secondary">{text}</span>
+    </span>
+  );
+}
+
+function StepArrow() {
+  return (
+    <svg className="w-3 h-3 text-muted/30 shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}

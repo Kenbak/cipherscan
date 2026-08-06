@@ -36,6 +36,7 @@ export const CORE_PATHS = [
   '/reorgs',
   '/crosschain',
   '/ironwood',
+  '/governance/nu7',
   '/turnstile',
   '/usage-clock',
   '/zodl',
