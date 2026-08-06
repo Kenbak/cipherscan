@@ -42,20 +42,20 @@ const V3_CONFIG = {
 
   // MVRV zones (based on Zcash-specific research + Bitcoin analogs)
   mvrv: {
-    deepValue: 0.7,       // Historically extreme buy
-    value: 1.0,           // Below realized price = buy
-    fair: 1.5,            // Fair value zone
-    overheated: 2.0,      // Getting expensive
-    euphoria: 2.5,        // Historically tops
+    deepValue: 0.3,       // Historically extreme buy (ZEC-specific)
+    value: 0.6,           // Clearly undervalued
+    fair: 1.0,            // Fair value (at realized price)
+    overheated: 1.3,      // Getting expensive for ZEC
+    euphoria: 1.6,        // Historically near tops for ZEC
   },
 
   // Shielded SOPR thresholds
   sopr: {
-    capitulation: 0.85,   // Holders selling at steep loss
-    pain: 0.95,           // Mild loss-taking
-    neutral: 1.05,        // Break even
-    profit: 1.3,          // Healthy profit-taking
-    euphoria: 1.8,        // Extreme unrealized gains
+    capitulation: 0.7,    // Holders selling at steep loss
+    pain: 0.9,            // Mild loss-taking
+    neutral: 1.1,         // Break even zone
+    profit: 1.4,          // Healthy profit-taking
+    euphoria: 1.7,        // Extreme unrealized gains
   },
 
   // Flow pattern thresholds (from research: >2σ = significant)
@@ -96,43 +96,56 @@ async function computeValuationScore(targetDate) {
   const sopr = parseFloat(mvrv.shielded_sopr) || 1;
   const nupl = parseFloat(mvrv.nupl) || 0;
 
-  // MVRV score: below 1 = bullish, above 2 = bearish
+  // MVRV score: recalibrated for ZEC actual range (0.05-1.8)
   const { deepValue, value, fair, overheated, euphoria } = V3_CONFIG.mvrv;
   let mvrvScore;
   if (mvrvVal <= deepValue) mvrvScore = 100;
-  else if (mvrvVal <= value) mvrvScore = linearScale(mvrvVal, deepValue, value, 100, 60);
-  else if (mvrvVal <= fair) mvrvScore = linearScale(mvrvVal, value, fair, 60, 0);
+  else if (mvrvVal <= value) mvrvScore = linearScale(mvrvVal, deepValue, value, 100, 50);
+  else if (mvrvVal <= fair) mvrvScore = linearScale(mvrvVal, value, fair, 50, 0);
   else if (mvrvVal <= overheated) mvrvScore = linearScale(mvrvVal, fair, overheated, 0, -50);
   else if (mvrvVal <= euphoria) mvrvScore = linearScale(mvrvVal, overheated, euphoria, -50, -90);
   else mvrvScore = -100;
+
+  // MVRV momentum: 7d change (rising = bearish, falling = bullish)
+  const { rows: [prevMvrv] } = await pgPool.query(
+    `SELECT mvrv FROM mvrv_daily WHERE date = ($1::date - '7 days'::interval)`,
+    [targetDate]
+  );
+  let mvrvMomentumScore = 0;
+  if (prevMvrv && prevMvrv.mvrv) {
+    const prevVal = parseFloat(prevMvrv.mvrv);
+    const change = mvrvVal - prevVal;
+    mvrvMomentumScore = clamp(Math.round(-change * 200), -50, 50);
+  }
 
   // SOPR score: capitulation = buy, euphoria = sell
   const { capitulation, pain, neutral, profit, euphoria: soprEuphoria } = V3_CONFIG.sopr;
   let soprScore;
   if (sopr <= capitulation) soprScore = 80;
-  else if (sopr <= pain) soprScore = linearScale(sopr, capitulation, pain, 80, 40);
-  else if (sopr <= neutral) soprScore = linearScale(sopr, pain, neutral, 40, 0);
-  else if (sopr <= profit) soprScore = linearScale(sopr, neutral, profit, 0, -30);
-  else if (sopr <= soprEuphoria) soprScore = linearScale(sopr, profit, soprEuphoria, -30, -70);
-  else soprScore = -80;
+  else if (sopr <= pain) soprScore = linearScale(sopr, capitulation, pain, 80, 30);
+  else if (sopr <= neutral) soprScore = linearScale(sopr, pain, neutral, 30, 0);
+  else if (sopr <= profit) soprScore = linearScale(sopr, neutral, profit, 0, -40);
+  else if (sopr <= soprEuphoria) soprScore = linearScale(sopr, profit, soprEuphoria, -40, -80);
+  else soprScore = -100;
 
-  // NUPL score: negative = undervalued (buy), high positive = overheated (sell)
+  // NUPL score
   let nuplScore;
   if (nupl < -0.1) nuplScore = 80;
-  else if (nupl < 0) nuplScore = linearScale(nupl, -0.1, 0, 80, 40);
-  else if (nupl < 0.25) nuplScore = linearScale(nupl, 0, 0.25, 40, 0);
-  else if (nupl < 0.5) nuplScore = linearScale(nupl, 0.25, 0.5, 0, -40);
-  else if (nupl < 0.75) nuplScore = linearScale(nupl, 0.5, 0.75, -40, -80);
-  else nuplScore = -90;
+  else if (nupl < 0) nuplScore = linearScale(nupl, -0.1, 0, 80, 30);
+  else if (nupl < 0.15) nuplScore = linearScale(nupl, 0, 0.15, 30, 0);
+  else if (nupl < 0.3) nuplScore = linearScale(nupl, 0.15, 0.3, 0, -40);
+  else if (nupl < 0.5) nuplScore = linearScale(nupl, 0.3, 0.5, -40, -80);
+  else nuplScore = -100;
 
-  // Weighted valuation score (MVRV dominant)
-  const score = Math.round(mvrvScore * 0.5 + soprScore * 0.3 + nuplScore * 0.2);
+  // Weighted: MVRV level + momentum + SOPR + NUPL
+  const score = Math.round(mvrvScore * 0.35 + mvrvMomentumScore * 0.20 + soprScore * 0.25 + nuplScore * 0.20);
 
   return {
     score: clamp(score, -100, 100),
     components: {
       mvrv: mvrvVal,
       mvrv_score: Math.round(mvrvScore),
+      mvrv_momentum: mvrvMomentumScore,
       sopr,
       sopr_score: Math.round(soprScore),
       nupl,
