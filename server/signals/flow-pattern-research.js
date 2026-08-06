@@ -114,7 +114,7 @@ async function main() {
   console.log('\n--- H4: Deshield-to-Exchange Ratio ---');
   const { rows: turnstile } = await pool.query(`
     SELECT to_char(date, 'YYYY-MM-DD') as date,
-           COALESCE(SUM(to_exchange_zat), 0)::float / 1e8 as to_exchange,
+           COALESCE(SUM(exchange_zat), 0)::float / 1e8 as to_exchange,
            COALESCE(SUM(deshielded_zat), 0)::float / 1e8 as total_deshield
     FROM turnstile_daily
     GROUP BY 1 ORDER BY 1
