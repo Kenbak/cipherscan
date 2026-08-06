@@ -112,6 +112,12 @@
       "core": true
     },
     {
+      "id": "governance-nu7",
+      "routeGroup": "/governance/nu7",
+      "path": "/governance/nu7",
+      "core": true
+    },
+    {
       "id": "turnstile",
       "routeGroup": "/turnstile",
       "path": "/turnstile",
