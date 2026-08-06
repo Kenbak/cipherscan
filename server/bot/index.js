@@ -34,8 +34,14 @@ const pool = new Pool({
 const dryRun = process.env.BOT_DRY_RUN === '1';
 const digestHour = parseInt(process.env.BOT_DIGEST_HOUR || '8');
 
+const path = require('path');
+
 const xClient = new XClient({
   accessToken: process.env.X_ACCESS_TOKEN || '',
+  refreshToken: process.env.X_REFRESH_TOKEN || '',
+  clientId: process.env.X_CLIENT_ID || '',
+  clientSecret: process.env.X_CLIENT_SECRET || '',
+  tokenFile: path.resolve(__dirname, '.env'),
   dryRun,
 });
 
@@ -87,6 +93,16 @@ async function start() {
   } catch (err) {
     logger.error(`Database connection failed: ${err.message}`);
     process.exit(1);
+  }
+
+  // Proactively refresh token on startup (access tokens expire every 2h)
+  if (!dryRun && xClient.refreshTokenValue && xClient.clientId) {
+    try {
+      await xClient._doRefresh();
+      logger.info('Token refreshed on startup');
+    } catch (err) {
+      logger.warn(`Startup token refresh failed: ${err.message}`);
+    }
   }
 
   // Run immediately on start

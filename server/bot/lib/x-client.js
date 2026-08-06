@@ -13,10 +13,67 @@ const path = require('path');
 const crypto = require('crypto');
 
 class XClient {
-  constructor({ accessToken, dryRun = false, logger = console }) {
+  constructor({ accessToken, refreshToken, clientId, clientSecret, tokenFile, dryRun = false, logger = console }) {
     this.accessToken = accessToken;
+    this.refreshTokenValue = refreshToken || '';
+    this.clientId = clientId || '';
+    this.clientSecret = clientSecret || '';
+    this.tokenFile = tokenFile || null;
     this.dryRun = dryRun;
     this.logger = logger;
+    this._refreshing = null;
+  }
+
+  /**
+   * Attempt to refresh the token, retry once on 401.
+   * Wraps any async post/upload operation.
+   */
+  async _withAutoRefresh(fn) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err.message && err.message.includes('401') && this.refreshTokenValue && this.clientId) {
+        this.logger.info('[XClient] Got 401, attempting token refresh...');
+        await this._doRefresh();
+        return await fn();
+      }
+      throw err;
+    }
+  }
+
+  async _doRefresh() {
+    if (this._refreshing) return this._refreshing;
+    this._refreshing = (async () => {
+      try {
+        const result = await this.refreshToken({
+          clientId: this.clientId,
+          clientSecret: this.clientSecret,
+          refreshToken: this.refreshTokenValue,
+        });
+        if (result.refresh_token) {
+          this.refreshTokenValue = result.refresh_token;
+        }
+        this._persistTokens();
+      } finally {
+        this._refreshing = null;
+      }
+    })();
+    return this._refreshing;
+  }
+
+  _persistTokens() {
+    if (!this.tokenFile) return;
+    try {
+      let content = fs.readFileSync(this.tokenFile, 'utf8');
+      content = content.replace(/^X_ACCESS_TOKEN=.*$/m, `X_ACCESS_TOKEN=${this.accessToken}`);
+      if (this.refreshTokenValue) {
+        content = content.replace(/^X_REFRESH_TOKEN=.*$/m, `X_REFRESH_TOKEN=${this.refreshTokenValue}`);
+      }
+      fs.writeFileSync(this.tokenFile, content, 'utf8');
+      this.logger.info('[XClient] Tokens persisted to .env');
+    } catch (err) {
+      this.logger.warn(`[XClient] Failed to persist tokens: ${err.message}`);
+    }
   }
 
   /**
@@ -142,60 +199,62 @@ class XClient {
       return { id: `dry_run_${Date.now()}`, text };
     }
 
-    let mediaId = null;
-    try {
-      mediaId = await this.uploadMedia(imagePath);
-    } catch (err) {
-      this.logger.warn(`[XClient] Media upload failed, falling back to text-only: ${err.message}`);
-    }
+    return this._withAutoRefresh(async () => {
+      let mediaId = null;
+      try {
+        mediaId = await this.uploadMedia(imagePath);
+      } catch (err) {
+        this.logger.warn(`[XClient] Media upload failed, falling back to text-only: ${err.message}`);
+      }
 
-    if (text.length > 280) {
-      this.logger.warn(`[XClient] Post exceeds 280 chars (${text.length}), truncating`);
-      text = text.slice(0, 277) + '...';
-    }
+      if (text.length > 280) {
+        this.logger.warn(`[XClient] Post exceeds 280 chars (${text.length}), truncating`);
+        text = text.slice(0, 277) + '...';
+      }
 
-    const tweetPayload = { text };
-    if (mediaId) {
-      tweetPayload.media = { media_ids: [mediaId] };
-    }
+      const tweetPayload = { text };
+      if (mediaId) {
+        tweetPayload.media = { media_ids: [mediaId] };
+      }
 
-    const body = JSON.stringify(tweetPayload);
+      const body = JSON.stringify(tweetPayload);
 
-    return new Promise((resolve, reject) => {
-      const req = https.request(
-        {
-          hostname: 'api.x.com',
-          path: '/2/tweets',
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(body),
+      return new Promise((resolve, reject) => {
+        const req = https.request(
+          {
+            hostname: 'api.x.com',
+            path: '/2/tweets',
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.accessToken}`,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(body),
+            },
           },
-        },
-        (res) => {
-          let data = '';
-          res.on('data', (chunk) => { data += chunk; });
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(data);
-              if (res.statusCode === 201 && parsed.data) {
-                this.logger.info(`[XClient] Posted tweet ${parsed.data.id}${mediaId ? ' (with media)' : ''}`);
-                resolve({ id: parsed.data.id, text: parsed.data.text });
-              } else {
-                const errMsg = parsed.detail || parsed.title || JSON.stringify(parsed);
-                this.logger.error(`[XClient] Post failed (${res.statusCode}): ${errMsg}`);
-                reject(new Error(`X API ${res.statusCode}: ${errMsg}`));
+          (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                if (res.statusCode === 201 && parsed.data) {
+                  this.logger.info(`[XClient] Posted tweet ${parsed.data.id}${mediaId ? ' (with media)' : ''}`);
+                  resolve({ id: parsed.data.id, text: parsed.data.text });
+                } else {
+                  const errMsg = parsed.detail || parsed.title || JSON.stringify(parsed);
+                  this.logger.error(`[XClient] Post failed (${res.statusCode}): ${errMsg}`);
+                  reject(new Error(`X API ${res.statusCode}: ${errMsg}`));
+                }
+              } catch (e) {
+                reject(new Error(`X API response parse error: ${data.slice(0, 200)}`));
               }
-            } catch (e) {
-              reject(new Error(`X API response parse error: ${data.slice(0, 200)}`));
-            }
-          });
-        }
-      );
-      req.on('error', reject);
-      req.write(body);
-      req.end();
+            });
+          }
+        );
+        req.on('error', reject);
+        req.write(body);
+        req.end();
+      });
     });
   }
 
@@ -213,6 +272,10 @@ class XClient {
       return { id: `dry_run_${Date.now()}`, text };
     }
 
+    return this._withAutoRefresh(() => this._postTweet(text));
+  }
+
+  async _postTweet(text) {
     const body = JSON.stringify({ text });
 
     return new Promise((resolve, reject) => {
