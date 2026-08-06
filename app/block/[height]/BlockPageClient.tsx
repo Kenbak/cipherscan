@@ -1174,15 +1174,31 @@ export default function BlockPageClient({
                             {totalOutput.toFixed(4)}
                           </div>
                         ) : isShielded ? (() => {
+                          // Cross-pool shielded transfer (e.g. Orchard → Ironwood)
                           if (sourcePool && destPool && sourcePool !== destPool) {
                             const destVb = destPool === 'Ironwood' ? vbIrn : destPool === 'Orchard' ? vbOrc : vbSap;
                             const amountZec = Math.abs(destVb) / 1e8;
                             return (
-                              <div className="text-xs font-mono text-cipher-yellow font-semibold" title={`${amountZec.toFixed(8)} ZEC (${sourcePool} → ${destPool})`}>
+                              <div className={`text-xs font-mono font-semibold ${poolColorClass(destPool)}`} title={`${amountZec.toFixed(8)} ZEC (${sourcePool} → ${destPool})`}>
                                 {amountZec.toFixed(4)}
                               </div>
                             );
                           }
+                          // Shield-in from transparent (no sourcePool, but destPool is set)
+                          if (!sourcePool && destPool) {
+                            const destVb = destPool === 'Ironwood' ? vbIrn : destPool === 'Orchard' ? vbOrc : vbSap;
+                            const amountZec = Math.abs(destVb) / 1e8;
+                            if (amountZec > 0) {
+                              return (
+                                <div className={`text-xs font-mono font-semibold ${poolColorClass(destPool)}`} title={`${amountZec.toFixed(8)} ZEC (Transparent → ${destPool})`}>
+                                  {amountZec.toFixed(4)}
+                                </div>
+                              );
+                            }
+                          }
+                          // A source-only value balance can be just the transaction fee paid
+                          // from a shielded pool. Real deshields have transparent outputs and
+                          // are handled by totalOutput above, so keep source-only values private.
                           const poolColor = tx.has_ironwood ? 'text-cipher-yellow' : (tx.has_orchard || tx.orchard?.actions?.length > 0) ? 'text-cipher-purple' : 'text-cipher-cyan';
                           return (
                             <span className={`flex items-center justify-end gap-1 ${poolColor}`} title="Value is shielded (private)">
