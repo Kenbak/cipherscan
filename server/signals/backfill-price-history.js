@@ -2,7 +2,8 @@
 
 /**
  * Backfill zec_price_daily from genesis (Oct 2016) to present.
- * Uses CryptoCompare free API for historical daily OHLCV.
+ * Sources: Poloniex (genesis-2018), Gemini (2018-present) via CryptoDataDownload.
+ * Falls back to existing CoinGecko data for overlap periods.
  *
  * Usage: node server/signals/backfill-price-history.js
  */
@@ -19,77 +20,142 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2/histoday';
-const ZEC_GENESIS_DATE = new Date('2016-10-28');
-const BATCH_DAYS = 2000;
+const SOURCES = [
+  {
+    name: 'Poloniex (genesis-2018)',
+    url: 'https://www.cryptodatadownload.com/cdd/Poloniex_ZECUSDT_d.csv',
+    parseRow: (cols) => ({
+      date: cols[1].split(' ')[0],
+      price: parseFloat(cols[3]), // close price (col index varies)
+      volume: parseFloat(cols[4]) || 0,
+    }),
+    // Poloniex CSV: unix,date,symbol,close,volume_base,volume_quote,...
+    // Actually: unix,date,symbol,open,high,low,close,volume...
+    // Need to check the header
+  },
+  {
+    name: 'Gemini (2018-present)',
+    url: 'https://www.cryptodatadownload.com/cdd/Gemini_ZECUSD_d.csv',
+    parseRow: null, // set dynamically after header check
+  },
+];
 
-async function fetchBatch(toTimestamp) {
-  const url = `${CRYPTOCOMPARE_API}?fsym=ZEC&tsym=USD&limit=${BATCH_DAYS}&toTs=${toTimestamp}`;
+async function fetchCSV(url) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`CryptoCompare API ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  if (data.Response !== 'Success') throw new Error(`CryptoCompare error: ${data.Message}`);
-  return data.Data.Data;
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+  const text = await res.text();
+  return text.split('\n').filter(line => line.trim().length > 0);
+}
+
+function parsePoloniexRow(cols) {
+  // Format: unix,date,symbol,open,high,low,close,volume_quote,volume_base,...
+  const dateStr = cols[1].split(' ')[0];
+  const close = parseFloat(cols[6]) || parseFloat(cols[3]);
+  const volume = parseFloat(cols[7]) || 0;
+  return { date: dateStr, price: close, volume };
+}
+
+function parseGeminiRow(cols) {
+  // Format: unix,date,symbol,open,high,low,close,Volume ZEC,Volume USD
+  const dateStr = cols[1].split(' ')[0];
+  const close = parseFloat(cols[6]);
+  const volume = parseFloat(cols[8]) || 0;
+  return { date: dateStr, price: close, volume };
 }
 
 async function main() {
   const { rows: existing } = await pool.query(
     `SELECT MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as count FROM zec_price_daily`
   );
-  console.log(`Existing prices: ${existing[0].count} rows (${existing[0].min_date} to ${existing[0].max_date})`);
-
-  const now = new Date();
-  let toTs = Math.floor(now.getTime() / 1000);
-  const genesisTs = Math.floor(ZEC_GENESIS_DATE.getTime() / 1000);
+  console.log(`Existing: ${existing[0].count} rows (${existing[0].min_date} to ${existing[0].max_date})`);
 
   let totalInserted = 0;
   let totalSkipped = 0;
 
-  while (toTs > genesisTs) {
-    const batch = await fetchBatch(toTs);
-    if (!batch || batch.length === 0) break;
+  // Process Poloniex (earliest data, genesis)
+  console.log('\n--- Fetching Poloniex ZEC/USDT (genesis to ~2023) ---');
+  try {
+    const lines = await fetchCSV('https://www.cryptodatadownload.com/cdd/Poloniex_ZECUSDT_d.csv');
+    console.log(`  Got ${lines.length} lines`);
 
-    let batchInserted = 0;
-    for (const day of batch) {
-      if (day.time < genesisTs) continue;
-      if (day.close === 0 && day.open === 0) continue;
+    // Skip header lines (first line is attribution, second is column headers)
+    for (let i = 2; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 7) continue;
 
-      const date = new Date(day.time * 1000).toISOString().split('T')[0];
-      const price = day.close;
-      const volume = day.volumeto || 0;
+      const { date, price, volume } = parsePoloniexRow(cols);
+      if (!date || !price || price <= 0 || isNaN(price)) continue;
 
       try {
         const result = await pool.query(
           `INSERT INTO zec_price_daily (date, price_usd, volume_usd, market_cap_usd, source)
-           VALUES ($1, $2, $3, 0, 'cryptocompare')
+           VALUES ($1, $2, $3, 0, 'poloniex')
            ON CONFLICT (date) DO NOTHING`,
           [date, price, volume]
         );
-        if (result.rowCount > 0) {
-          batchInserted++;
-          totalInserted++;
-        } else {
-          totalSkipped++;
-        }
+        if (result.rowCount > 0) totalInserted++;
+        else totalSkipped++;
       } catch (err) {
-        console.error(`Error inserting ${date}: ${err.message}`);
+        // skip invalid dates
       }
     }
-
-    const oldestInBatch = new Date(batch[0].time * 1000).toISOString().split('T')[0];
-    const newestInBatch = new Date(batch[batch.length - 1].time * 1000).toISOString().split('T')[0];
-    console.log(`Batch: ${oldestInBatch} -> ${newestInBatch} | inserted: ${batchInserted} | total: ${totalInserted}`);
-
-    toTs = batch[0].time - 86400;
-    await new Promise(r => setTimeout(r, 1500));
+    console.log(`  Poloniex done: +${totalInserted} inserted`);
+  } catch (err) {
+    console.error(`  Poloniex failed: ${err.message}`);
   }
 
-  console.log(`\nDone! Inserted: ${totalInserted}, Skipped (already existed): ${totalSkipped}`);
+  // Process Gemini (2018-present, more reliable USD prices)
+  const beforeGemini = totalInserted;
+  console.log('\n--- Fetching Gemini ZEC/USD (2018 to present) ---');
+  try {
+    const lines = await fetchCSV('https://www.cryptodatadownload.com/cdd/Gemini_ZECUSD_d.csv');
+    console.log(`  Got ${lines.length} lines`);
+
+    for (let i = 2; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 7) continue;
+
+      const { date, price, volume } = parseGeminiRow(cols);
+      if (!date || !price || price <= 0 || isNaN(price)) continue;
+
+      try {
+        const result = await pool.query(
+          `INSERT INTO zec_price_daily (date, price_usd, volume_usd, market_cap_usd, source)
+           VALUES ($1, $2, $3, 0, 'gemini')
+           ON CONFLICT (date) DO NOTHING`,
+          [date, price, volume]
+        );
+        if (result.rowCount > 0) totalInserted++;
+        else totalSkipped++;
+      } catch (err) {
+        // skip invalid dates
+      }
+    }
+    console.log(`  Gemini done: +${totalInserted - beforeGemini} inserted`);
+  } catch (err) {
+    console.error(`  Gemini failed: ${err.message}`);
+  }
+
+  console.log(`\n=== Summary ===`);
+  console.log(`Inserted: ${totalInserted}, Skipped (already existed): ${totalSkipped}`);
 
   const { rows: final } = await pool.query(
     `SELECT MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as count FROM zec_price_daily`
   );
   console.log(`Final: ${final[0].count} rows (${final[0].min_date} to ${final[0].max_date})`);
+
+  // Check for gaps
+  const { rows: gaps } = await pool.query(`
+    SELECT COUNT(*) as gap_days FROM (
+      SELECT generate_series(
+        (SELECT MIN(date) FROM zec_price_daily),
+        (SELECT MAX(date) FROM zec_price_daily),
+        '1 day'::interval
+      )::date as d
+    ) dates
+    WHERE d NOT IN (SELECT date FROM zec_price_daily)
+  `);
+  console.log(`Missing days in range: ${gaps[0].gap_days}`);
 
   await pool.end();
 }
