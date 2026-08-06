@@ -32,7 +32,7 @@ const pool = new Pool({
 });
 
 const dryRun = process.env.BOT_DRY_RUN === '1';
-const digestHour = parseInt(process.env.BOT_DIGEST_HOUR || '8');
+const digestHour = parseInt(process.env.BOT_DIGEST_HOUR || '20');
 
 const path = require('path');
 
