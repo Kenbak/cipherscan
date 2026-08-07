@@ -49,7 +49,7 @@ router.get('/api/valuation/snapshot', async (req, res) => {
         SELECT m.date, m.market_cap_usd, m.realized_cap_usd,
                m.transparent_realized_cap_usd, m.shielded_realized_cap_usd,
                m.mvrv, m.realized_price, m.sopr, m.nupl,
-               p.price as price_usd
+               p.price_usd
         FROM mvrv_daily m
         LEFT JOIN zec_price_daily p ON p.date = m.date
         ORDER BY m.date DESC LIMIT 1
@@ -88,7 +88,7 @@ router.get('/api/valuation/history', async (req, res) => {
     const data = await cached(cacheKey, 600, async () => {
       const { rows } = await pool.query(`
         SELECT m.date,
-               p.price as price_usd,
+               p.price_usd,
                m.realized_price,
                m.mvrv,
                m.sopr,
