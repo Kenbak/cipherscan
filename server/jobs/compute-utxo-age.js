@@ -64,17 +64,19 @@ function log(msg) {
 
 async function computeForDate(client, dateStr) {
   const dateEpoch = Math.floor(new Date(dateStr + 'T23:59:59Z').getTime() / 1000);
+  const dateTs = new Date(dateStr + 'T23:59:59Z');
 
   // HODL waves: bucket unspent outputs by age at this date
+  // block_time is BIGINT (unix epoch), spent_at is TIMESTAMP
   const hodl = await client.query(`
     WITH unspent_at AS (
       SELECT o.value,
-             ($1::int - t.block_time) / 86400 AS age_days
+             ($1::bigint - t.block_time) / 86400 AS age_days
       FROM transaction_outputs o
       JOIN transactions t ON o.txid = t.txid
-      WHERE t.block_time <= $1
+      WHERE t.block_time <= $1::bigint
         AND o.value > 0
-        AND (o.spent = FALSE OR o.spent_at > $1)
+        AND (o.spent = FALSE OR o.spent_at > $2::timestamp)
     )
     SELECT
       COALESCE(SUM(CASE WHEN age_days < 30  THEN value ELSE 0 END), 0) AS lt_1m,
@@ -86,24 +88,27 @@ async function computeForDate(client, dateStr) {
       COALESCE(SUM(value), 0) AS total,
       COUNT(*) AS utxo_count
     FROM unspent_at
-  `, [dateEpoch]);
+  `, [dateEpoch, dateTs]);
 
   // CDD: coin-days destroyed by spends on this date
-  const dayStart = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
-  const dayEnd = dayStart + 86400;
+  // spent_at is TIMESTAMP — use TIMESTAMP params and EXTRACT(EPOCH FROM ...) for arithmetic
+  const dayStartTs = new Date(dateStr + 'T00:00:00Z');
+  const dayEndTs = new Date(dateStr + 'T23:59:59Z');
 
   const cddResult = await client.query(`
     SELECT
-      COALESCE(SUM((o.value::numeric / 1e8) * ((o.spent_at - t.block_time)::numeric / 86400)), 0) AS cdd,
-      COALESCE(AVG((o.spent_at - t.block_time)::numeric / 86400), 0) AS avg_dormancy,
+      COALESCE(SUM((o.value::numeric / 1e8) *
+        ((EXTRACT(EPOCH FROM o.spent_at) - t.block_time) / 86400)), 0) AS cdd,
+      COALESCE(AVG(
+        (EXTRACT(EPOCH FROM o.spent_at) - t.block_time) / 86400), 0) AS avg_dormancy,
       COUNT(*) AS spent_count
     FROM transaction_outputs o
     JOIN transactions t ON o.txid = t.txid
     WHERE o.spent = TRUE
-      AND o.spent_at >= $1
-      AND o.spent_at < $2
+      AND o.spent_at >= $1::timestamp
+      AND o.spent_at < $2::timestamp
       AND o.value > 0
-  `, [dayStart, dayEnd]);
+  `, [dayStartTs, dayEndTs]);
 
   const h = hodl.rows[0];
   const c = cddResult.rows[0];
