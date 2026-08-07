@@ -27,6 +27,7 @@ type ChartColors = ReturnType<typeof getChartColors>;
 
 import { NETWORK_LABEL, NETWORK_COLOR } from '@/lib/config';
 import { useCurrencyToggle, fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
+import { zatToZec } from '@/lib/format-numbers';
 import { TurnstileHero } from './TurnstileHero';
 import { InflowFlow, inflowPathDescription } from './InflowFlow';
 
@@ -142,9 +143,7 @@ interface ScatterData {
   txs: ScatterTx[];
 }
 
-function zec(zat: number): number {
-  return zat / 1e8;
-}
+const zec = zatToZec;
 function fmtZec(zat: number): string {
   const z = zec(zat);
   if (Math.abs(z) >= 1000) return Math.round(z).toLocaleString();
@@ -1656,8 +1655,8 @@ function PrivacyScore({
     if (!scatter) {
       return { denomCount: 0, total: 0, txPct: 0, volPct: 0 };
     }
-    const denomVol = (scatter.denominatedVolumeZat ?? 0) / 1e8;
-    const distVol = (scatter.distinctiveVolumeZat ?? 0) / 1e8;
+    const denomVol = zatToZec(scatter.denominatedVolumeZat ?? 0);
+    const distVol = zatToZec(scatter.distinctiveVolumeZat ?? 0);
     const totalVol = denomVol + distVol;
     return {
       denomCount: scatter.denominatedCount,
@@ -1996,7 +1995,7 @@ function MigrationTiers({
       label,
       count: counts[i],
       volumeZat: volumes[i],
-      volumeZec: volumes[i] / 1e8,
+      volumeZec: zatToZec(volumes[i]),
       volumePct: totalVol > 0 ? (volumes[i] / totalVol) * 100 : 0,
       fill: TIER_COLORS[i],
     }));
@@ -2004,7 +2003,7 @@ function MigrationTiers({
 
   const totalTxs = visibleTxs.length;
   const totalVolZat = tierData.reduce((s, t) => s + t.volumeZat, 0);
-  const totalVol = totalVolZat / 1e8;
+  const totalVol = zatToZec(totalVolZat);
   const maxVol = Math.max(...tierData.map(t => t.volumeZec));
   const scrubDate = useMemo(() => {
     if (mode === 'live' || !visibleTxs.length) return null;

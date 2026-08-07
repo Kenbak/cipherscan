@@ -13,6 +13,7 @@ import { InfoRow as SharedInfoRow } from '@/components/ui/InfoRow';
 import { HashLink } from '@/components/ui/HashLink';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
+import { zatToZec } from '@/lib/format-numbers';
 
 interface CanonicalBlockSummary {
   height: number;
@@ -180,14 +181,14 @@ export default function BlockPageClient({
               ? [{ coinbase: true }]
               : (tx.inputs || []).map((input: any) => ({
                   ...input,
-                  value: input.value ? parseFloat(input.value) / 100000000 : 0, // satoshis to ZEC
+                  value: input.value ? zatToZec(input.value) : 0,
                   txid: input.prev_txid,
                   vout: input.prev_vout,
                 }));
 
             // Transform outputs
             const transformedOutputs = (tx.outputs || []).map((output: any) => ({
-              value: output.value ? parseFloat(output.value) / 100000000 : 0, // satoshis to ZEC
+              value: output.value ? zatToZec(output.value) : 0,
               n: output.vout_index,
               spent: output.spent || false,
               scriptPubKey: {
@@ -273,7 +274,7 @@ export default function BlockPageClient({
             bits: blockData.bits,
             nonce: blockData.nonce,
             solution: blockData.solution,
-            totalFees: totalFeesZatoshi / 100000000,
+            totalFees: zatToZec(totalFeesZatoshi),
             minerAddress: blockData.miner_address || blockData.minerAddress,
             minerPool: blockData.miner_pool || null,
             minerPoolUrl: blockData.miner_pool_url || null,
@@ -1177,7 +1178,7 @@ export default function BlockPageClient({
                           // Cross-pool shielded transfer (e.g. Orchard → Ironwood)
                           if (sourcePool && destPool && sourcePool !== destPool) {
                             const destVb = destPool === 'Ironwood' ? vbIrn : destPool === 'Orchard' ? vbOrc : vbSap;
-                            const amountZec = Math.abs(destVb) / 1e8;
+                            const amountZec = zatToZec(Math.abs(destVb));
                             return (
                               <div className={`text-xs font-mono font-semibold ${poolColorClass(destPool)}`} title={`${amountZec.toFixed(8)} ZEC (${sourcePool} → ${destPool})`}>
                                 {amountZec.toFixed(4)}
@@ -1187,7 +1188,7 @@ export default function BlockPageClient({
                           // Shield-in from transparent (no sourcePool, but destPool is set)
                           if (!sourcePool && destPool) {
                             const destVb = destPool === 'Ironwood' ? vbIrn : destPool === 'Orchard' ? vbOrc : vbSap;
-                            const amountZec = Math.abs(destVb) / 1e8;
+                            const amountZec = zatToZec(Math.abs(destVb));
                             if (amountZec > 0) {
                               return (
                                 <div className={`text-xs font-mono font-semibold ${poolColorClass(destPool)}`} title={`${amountZec.toFixed(8)} ZEC (Transparent → ${destPool})`}>
@@ -1219,7 +1220,7 @@ export default function BlockPageClient({
                         ) : (() => {
                           const feeZat = parseInt(tx.fee || 0);
                           if (feeZat === 0) return <span className="text-xs text-muted">-</span>;
-                          const feeZec = feeZat / 1e8;
+                          const feeZec = zatToZec(feeZat);
                           if (feeZat === 10000) {
                             return <span className="text-[10px] text-muted font-mono">Standard</span>;
                           }

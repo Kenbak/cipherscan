@@ -16,6 +16,7 @@ import { HashLink } from '@/components/ui/HashLink';
 import { StakingActionBadge, stakingActionLabel } from '@/components/StakingActionBadge';
 import { displayPubkey } from '@/lib/utils';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
+import { zatToZec } from '@/lib/format-numbers';
 
 interface BridgeData {
   direction: 'entry' | 'exit';
@@ -238,13 +239,13 @@ export default function TransactionPage() {
           // Express API returns snake_case and values in satoshis
           const transformedInputs = (txData.inputs || []).map((input: any) => ({
             ...input,
-            value: input.value ? parseFloat(input.value) / 100000000 : 0, // satoshis to ZEC
+            value: input.value ? zatToZec(input.value) : 0,
             txid: input.prev_txid,
             vout: input.prev_vout,
           }));
 
           const transformedOutputs = (txData.outputs || []).map((output: any) => ({
-            value: output.value ? parseFloat(output.value) / 100000000 : 0, // satoshis to ZEC
+            value: output.value ? zatToZec(output.value) : 0,
             n: output.vout_index,
             spent: output.spent || false,
             scriptPubKey: {

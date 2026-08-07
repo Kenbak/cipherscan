@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
 import { decodeUnifiedAddress, UnifiedAddressComponents } from '@/lib/wasm-loader';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
+import { zatToZec } from '@/lib/format-numbers';
 
 interface PriceData {
   price: number;
@@ -191,7 +192,7 @@ function AddressPageContent() {
       return {
         txid: tx.txid,
         timestamp: tx.blockTime,
-        amount: Math.abs(tx.netChange / 100000000),
+        amount: Math.abs(zatToZec(tx.netChange)),
         type: isReceiving ? 'received' : 'sent',
         blockHeight: tx.blockHeight,
         from,
@@ -232,7 +233,7 @@ function AddressPageContent() {
         const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
         setData({
           address: apiData.address,
-          balance: apiData.balance / 100000000,
+          balance: zatToZec(apiData.balance),
           type: apiData.type || 'transparent',
           transactions: transformedTransactions,
           transactionCount: apiData.txCount || apiData.transactionCount,

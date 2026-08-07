@@ -141,8 +141,10 @@ export async function getTransaction(txid: string): Promise<TransactionInfo | nu
 /**
  * Format amount from zatoshi to ZEC/TAZ
  */
+export { zatToZec, ZATOSHI_PER_ZEC } from './format-numbers';
+
 export function formatZcash(zatoshi: number): string {
-  return (zatoshi / 100000000).toFixed(8);
+  return (zatoshi / 100_000_000).toFixed(8);
 }
 
 /**

@@ -15,6 +15,7 @@ import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/component
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
+import { zatToZec, formatZecCompact } from '@/lib/format-numbers';
 
 const SECTIONS = [
   { id: 'metrics', label: 'Network' },
@@ -77,7 +78,7 @@ interface BehaviorSummary {
 function formatZec(zatStr: string | number): string {
   const zat = typeof zatStr === 'string' ? parseInt(zatStr) : zatStr;
   if (isNaN(zat)) return '0';
-  const zec = zat / 1e8;
+  const zec = zatToZec(zat);
   if (zec >= 1000) return `${(zec / 1000).toFixed(1)}K`;
   if (zec >= 1) return zec.toFixed(2);
   return zec.toFixed(4);
@@ -583,9 +584,9 @@ function MinerBehaviorSection() {
 
   const chartData = series.map(p => ({
     date: p.date,
-    earned: parseInt(p.earnedZat) / 1e8,
-    spent: parseInt(p.spentZat) / 1e8,
-    held: parseInt(p.heldZat) / 1e8,
+    earned: zatToZec(parseInt(p.earnedZat)),
+    spent: zatToZec(parseInt(p.spentZat)),
+    held: zatToZec(parseInt(p.heldZat)),
     sellRatio: p.sellRatio * 100,
   }));
 

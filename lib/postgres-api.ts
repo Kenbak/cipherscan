@@ -6,6 +6,7 @@
  */
 
 import { API_CONFIG } from './api-config';
+import { zatToZec } from './format-numbers';
 
 const API_URL = API_CONFIG.POSTGRES_API_URL;
 
@@ -66,13 +67,13 @@ export async function fetchBlockByHeightFromPostgres(heightOrHash: number | stri
         ? [{ coinbase: true }]
         : (tx.inputs || []).map((input: any) => ({
             ...input,
-            value: input.value ? parseFloat(input.value) / 100000000 : 0,
+            value: input.value ? zatToZec(input.value) : 0,
             txid: input.prev_txid,
             vout: input.prev_vout,
           }));
 
       const transformedOutputs = (tx.outputs || []).map((output: any) => ({
-        value: output.value ? parseFloat(output.value) / 100000000 : 0,
+        value: output.value ? zatToZec(output.value) : 0,
         n: output.vout_index,
         spent: output.spent || false,
         scriptPubKey: {
@@ -169,9 +170,9 @@ export async function fetchTransactionFromPostgres(txid: string) {
     const totalOutputsSats = (tx.outputs || []).reduce((sum: number, output: any) => sum + (parseFloat(output.value) || 0), 0);
 
     // Convert to ZEC
-    const totalInput = totalInputsSats / 100000000;
-    const totalOutput = totalOutputsSats / 100000000;
-    const fee = totalInputsSats > 0 ? (totalInputsSats - totalOutputsSats) / 100000000 : 0;
+    const totalInput = zatToZec(totalInputsSats);
+    const totalOutput = zatToZec(totalOutputsSats);
+    const fee = totalInputsSats > 0 ? zatToZec(totalInputsSats - totalOutputsSats) : 0;
 
     // Count shielded components
     const saplingSpendCount = (tx.vShieldedSpend || []).length || 0;
@@ -181,7 +182,7 @@ export async function fetchTransactionFromPostgres(txid: string) {
     // Transform inputs and outputs to convert satoshis to ZEC
     const transformedInputs = (tx.inputs || []).map((input: any) => ({
       ...input,
-      value: input.value ? parseFloat(input.value) / 100000000 : 0, // Convert satoshis to ZEC
+      value: input.value ? zatToZec(input.value) : 0,
       txid: input.prev_txid,
       vout: input.prev_vout,
     }));
@@ -189,7 +190,7 @@ export async function fetchTransactionFromPostgres(txid: string) {
     const transformedOutputs = (tx.outputs || []).map((output: any) => {
       const address = output.address;
       return {
-        value: output.value ? parseFloat(output.value) / 100000000 : 0, // Convert satoshis to ZEC
+        value: output.value ? zatToZec(output.value) : 0,
         n: output.vout_index,
         spent: output.spent || false,
         scriptPubKey: {
@@ -299,15 +300,15 @@ export async function fetchAddressFromPostgres(address: string) {
     return {
       address: data.address,
       type: 'transparent', // All addresses in PostgreSQL are transparent
-      balance: data.balance / 100000000, // Convert satoshis to ZEC
-      totalReceived: data.totalReceived / 100000000,
-      totalSent: data.totalSent / 100000000,
+      balance: zatToZec(data.balance),
+      totalReceived: zatToZec(data.totalReceived),
+      totalSent: zatToZec(data.totalSent),
       txCount: data.txCount,
       transactionCount: data.txCount, // Add for compatibility
       transactions: (data.transactions || []).map((tx: any) => {
-        const inputValue = tx.inputValue / 100000000;
-        const outputValue = tx.outputValue / 100000000;
-        const netChange = tx.netChange / 100000000;
+        const inputValue = zatToZec(tx.inputValue);
+        const outputValue = zatToZec(tx.outputValue);
+        const netChange = zatToZec(tx.netChange);
 
         // Determine transaction type and amount
         const isReceived = netChange > 0;

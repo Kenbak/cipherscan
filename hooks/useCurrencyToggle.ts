@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getApiUrl } from '@/lib/api-config';
+import { zatToZec } from '@/lib/format-numbers';
 
 export type CurrencyMode = 'zec' | 'usd';
 
@@ -59,7 +60,7 @@ export function fmtValue(
   mode: CurrencyMode,
   price: number | null,
 ): string {
-  const zec = zat / 1e8;
+  const zec = zatToZec(zat);
   if (mode === 'usd' && price != null) {
     const usd = zec * price;
     if (Math.abs(usd) >= 1_000_000) {

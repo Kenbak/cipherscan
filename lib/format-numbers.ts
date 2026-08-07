@@ -1,5 +1,11 @@
 /** Compact number formatting for dashboard stat cards */
 
+export const ZATOSHI_PER_ZEC = 100_000_000;
+
+/** Convert zatoshis to ZEC. Accepts number, string, or bigint. */
+export const zatToZec = (zat: number | string | bigint): number =>
+  Number(zat) / ZATOSHI_PER_ZEC;
+
 export function formatDifficulty(value: number): string {
   if (!Number.isFinite(value)) return '—';
   if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;

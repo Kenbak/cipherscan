@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
-import { formatZecCompact } from '@/lib/format-numbers';
+import { formatZecCompact, zatToZec } from '@/lib/format-numbers';
 import { ShareableCard } from '@/components/ShareableCard';
 import { SupplyTreemap } from './SupplyTreemap';
 import { SupplyTimelineScrubber } from './SupplyTimelineScrubber';
@@ -46,12 +46,12 @@ interface HistoryPoint {
 
 type ScrubMode = 'live' | 'scrub';
 
-const CAP_ZEC = MAX_SUPPLY_ZAT / 1e8;
+const CAP_ZEC = zatToZec(MAX_SUPPLY_ZAT);
 
 function formatDeltaZec(deltas: PoolOverviewData['deltas'], pool: string, period: string) {
   const d = deltas[pool]?.[period];
   if (d == null) return null;
-  const zec = d / 1e8;
+  const zec = zatToZec(d);
   const sign = zec >= 0 ? '+' : '';
   return { text: `${sign}${formatZecCompact(zec)}`, zec };
 }
@@ -223,10 +223,10 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     [snapshot, colors],
   );
 
-  const minedZec = snapshot.chainSupply / 1e8;
-  const shieldedZec = snapshot.shielded / 1e8;
-  const transparentZec = snapshot.transparent / 1e8;
-  const unminedZec = Math.max(0, MAX_SUPPLY_ZAT - snapshot.chainSupply) / 1e8;
+  const minedZec = zatToZec(snapshot.chainSupply);
+  const shieldedZec = zatToZec(snapshot.shielded);
+  const transparentZec = zatToZec(snapshot.transparent);
+  const unminedZec = zatToZec(Math.max(0, MAX_SUPPLY_ZAT - snapshot.chainSupply));
   const shieldedPctOfMined = minedZec > 0 ? (shieldedZec / minedZec) * 100 : 0;
   const shieldedDelta7d = formatDeltaZec(deltas, 'shielded', '7d');
   const updatedLabel = formatUpdated(mode === 'live' ? current.updatedAt : snapshot.updatedAt);
@@ -255,7 +255,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const shieldedBreakdown = useMemo(() => {
     return SHIELDED_POOL_KEYS.filter((key) => poolMeta[key].zat > 0).map((key) => {
       const meta = poolMeta[key];
-      const zec = meta.zat / 1e8;
+      const zec = zatToZec(meta.zat);
       return {
         key,
         label: meta.label,
@@ -287,7 +287,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
 
     if (hoveredKey === 'transparent' || hoveredKey === 'unmined') {
       const meta = poolMeta[hoveredKey];
-      const zec = meta.zat / 1e8;
+      const zec = zatToZec(meta.zat);
       return {
         kind: 'segment' as const,
         label: meta.label,
