@@ -94,11 +94,15 @@ function drawGlassCard(ctx, x, y, w, h) {
 
 function drawBar(ctx, x, y, w, h, pct, color) {
   roundedRect(ctx, x, y, w, h, h / 2);
-  ctx.fillStyle = 'rgba(30, 41, 59, 0.25)';
+  ctx.fillStyle = 'rgba(30, 41, 59, 0.35)';
   ctx.fill();
   const fillW = Math.max(h, w * Math.min(pct / 100, 1));
   roundedRect(ctx, x, y, fillW, h, h / 2);
-  ctx.fillStyle = color;
+  // Subtle horizontal gradient on the fill
+  const grad = ctx.createLinearGradient(x, 0, x + fillW, 0);
+  grad.addColorStop(0, `${color}CC`);
+  grad.addColorStop(1, color);
+  ctx.fillStyle = grad;
   ctx.fill();
 }
 
@@ -147,6 +151,89 @@ function saveTempPng(canvas) {
 // Consistent card padding
 const PAD = 72;
 
+// ─── Shared layout helpers ────────────────────────────────────────────────────
+// Every card uses the same skeleton:
+//   y=60   header label (accent) + context pill (right)
+//   y=112  context line (accent, medium)
+//   y=240  hero value baseline (104px) with correctly measured unit
+//   y=286  secondary muted line
+//   mid    optional progress / route section
+//   y=428  stat row (3 glass boxes, 72 high)
+//   footer url + brand
+
+function drawHeaderRow(ctx, label, accent, pillText, pillDotColor) {
+  ctx.font = 'bold 12px GeistMono';
+  ctx.fillStyle = accent;
+  ctx.fillText(label, PAD, 60);
+
+  if (pillText) {
+    ctx.font = 'normal 10px GeistMono';
+    const tw = ctx.measureText(pillText).width;
+    const hasDot = Boolean(pillDotColor);
+    const pw = tw + (hasDot ? 36 : 22);
+    const px = W - PAD - pw;
+    roundedRect(ctx, px, 43, pw, 24, 12);
+    ctx.fillStyle = 'rgba(20, 22, 31, 0.7)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    let textX = px + 11;
+    if (hasDot) {
+      ctx.fillStyle = pillDotColor;
+      ctx.beginPath();
+      ctx.arc(px + 14, 55, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      textX = px + 25;
+    }
+    ctx.fillStyle = C.textSecondary;
+    ctx.fillText(pillText, textX, 59);
+  }
+}
+
+// Hero value with unit — measures the hero width with the CORRECT font before
+// placing the unit, so the unit never overlaps the number.
+function drawHero(ctx, x, baselineY, value, unit, opts = {}) {
+  const size = opts.size || 104;
+  ctx.font = `bold ${size}px Geist`;
+  ctx.fillStyle = opts.color || C.textPrimary;
+  ctx.fillText(value, x, baselineY);
+  const heroW = ctx.measureText(value).width;
+  if (unit) {
+    ctx.font = `bold ${Math.round(size * 0.36)}px Geist`;
+    ctx.fillStyle = opts.unitColor || C.textMuted;
+    ctx.fillText(unit, x + heroW + 14, baselineY);
+  }
+  return heroW;
+}
+
+// Row of glass stat boxes spanning the full width.
+function drawStatRow(ctx, y, stats, { boxH = 72, accentBorder } = {}) {
+  const gap = 14;
+  const boxW = Math.floor((W - PAD * 2 - gap * (stats.length - 1)) / stats.length);
+  stats.forEach((s, i) => {
+    const x = PAD + i * (boxW + gap);
+    roundedRect(ctx, x, y, boxW, boxH, 12);
+    ctx.fillStyle = 'rgba(14, 16, 24, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = accentBorder || 'rgba(30, 41, 59, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText(s.label, x + 20, y + 29);
+
+    ctx.font = 'bold 18px GeistMono';
+    ctx.fillStyle = s.color || C.textPrimary;
+    ctx.fillText(s.value, x + 20, y + 55);
+  });
+}
+
+function shortTxid(txid) {
+  return txid.slice(0, 20) + '…' + txid.slice(-8);
+}
+
 // ─── 1. Daily Digest ──────────────────────────────────────────────────────────
 
 async function renderDailyDigest({ chainTip, shielded, flows, ironwood, compliance, crossChain }) {
@@ -155,105 +242,139 @@ async function renderDailyDigest({ chainTip, shielded, flows, ironwood, complian
   const ctx = canvas.getContext('2d');
   drawBase(ctx);
 
-  // Header
-  ctx.font = 'bold 13px GeistMono';
-  ctx.fillStyle = C.cyan;
-  ctx.fillText('DAILY UPDATE', PAD, 56);
-  ctx.font = 'normal 13px GeistMono';
-  ctx.fillStyle = C.textMuted;
-  ctx.fillText(`Block ${Number(chainTip.height).toLocaleString()}`, PAD + 140, 56);
+  drawHeaderRow(ctx, 'DAILY DIGEST', C.cyan, `BLOCK ${Number(chainTip.height).toLocaleString()}`);
 
-  // Four compact cards — vertically centered
-  const cardCount = 4;
-  const cardGap = 16;
-  const cardW = (W - PAD * 2 - cardGap * (cardCount - 1)) / cardCount;
-  const cardH = 200;
-  const headerH = 70;
-  const footerH = 70;
-  const availableH = H - headerH - footerH;
-  const cardY = headerH + (availableH - cardH) / 2;
+  // ─── Equal 2x2 grid ─────────────────────────────────────────────────────
+  const gridTop = 92;
+  const gridBottom = 552;
+  const gap = 18;
+  const rowH = (gridBottom - gridTop - gap) / 2;   // ~221
+  const colW = (W - PAD * 2 - gap) / 2;            // ~519
+  const inset = 30;
 
-  for (let i = 0; i < cardCount; i++) {
-    const cx = PAD + i * (cardW + cardGap);
-    drawGlassCard(ctx, cx, cardY, cardW, cardH);
+  const cells = [
+    { x: PAD, y: gridTop },
+    { x: PAD + colW + gap, y: gridTop },
+    { x: PAD, y: gridTop + rowH + gap },
+    { x: PAD + colW + gap, y: gridTop + rowH + gap },
+  ];
 
-    const innerX = cx + 20;
-    const innerW = cardW - 40;
+  cells.forEach(c => drawGlassCard(ctx, c.x, c.y, colW, rowH));
 
-    if (i === 0) {
-      ctx.font = 'normal 10px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('SHIELDED SUPPLY', innerX, cardY + 28);
-      ctx.font = 'bold 28px Geist';
-      ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${fmtZec(shielded.totalZat)} ZEC`, innerX, cardY + 62);
-      ctx.font = '500 13px Geist';
-      ctx.fillStyle = C.green;
-      ctx.fillText(`+${fmtZec(flows.netShielded)}`, innerX, cardY + 95);
-      const gw = ctx.measureText(`+${fmtZec(flows.netShielded)}`).width;
-      ctx.fillStyle = C.red;
-      ctx.fillText(`-${fmtZec(flows.netDeshielded)}`, innerX + gw + 12, cardY + 95);
-      ctx.font = 'normal 9px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('24h shield / deshield', innerX, cardY + 115);
-    } else if (i === 1) {
-      ctx.font = 'normal 10px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('IRONWOOD POOL', innerX, cardY + 28);
-      ctx.font = 'bold 28px Geist';
-      ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${fmtZec(ironwood.poolSizeZat)} ZEC`, innerX, cardY + 62);
-      ctx.font = '500 12px Geist';
-      ctx.fillStyle = C.textSecondary;
-      ctx.fillText(`${ironwood.orchardToIronwoodPct.toFixed(1)}% from Orchard`, innerX, cardY + 90);
-      drawBar(ctx, innerX, cardY + 104, innerW, 5, ironwood.orchardToIronwoodPct, C.cyan);
-    } else if (i === 2) {
-      ctx.font = 'normal 10px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('ZIP-318 COMPLIANCE', innerX, cardY + 28);
-      ctx.font = 'bold 32px Geist';
-      ctx.fillStyle = C.textPrimary;
-      ctx.fillText(`${compliance.pct.toFixed(1)}%`, innerX, cardY + 64);
-      ctx.font = 'normal 10px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('compliant migrations', innerX, cardY + 88);
-      drawBar(ctx, innerX, cardY + 102, innerW, 5, compliance.pct, C.cyan);
-    } else {
-      ctx.font = 'normal 10px GeistMono';
-      ctx.fillStyle = C.textMuted;
-      ctx.fillText('CROSS-CHAIN 24H', innerX, cardY + 28);
-      const hasData = crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0);
-      if (hasData) {
-        const totalUsd = crossChain.inflowUsd + crossChain.outflowUsd;
-        ctx.font = 'bold 28px Geist';
-        ctx.fillStyle = C.textPrimary;
-        ctx.fillText(fmtUsd(totalUsd), innerX, cardY + 62);
-        ctx.font = '500 13px Geist';
-        ctx.fillStyle = C.green;
-        ctx.fillText(`+${fmtUsd(crossChain.inflowUsd)}`, innerX, cardY + 95);
-        const gw = ctx.measureText(`+${fmtUsd(crossChain.inflowUsd)}`).width;
-        ctx.fillStyle = C.red;
-        ctx.fillText(`-${fmtUsd(crossChain.outflowUsd)}`, innerX + gw + 12, cardY + 95);
-        ctx.font = 'normal 9px GeistMono';
-        ctx.fillStyle = C.textMuted;
-        ctx.fillText(`${crossChain.swapCount} swaps — inflow / outflow`, innerX, cardY + 115);
-      } else {
-        ctx.font = 'bold 28px Geist';
-        ctx.fillStyle = C.textMuted;
-        ctx.fillText('—', innerX, cardY + 62);
-        ctx.font = 'normal 9px GeistMono';
-        ctx.fillText('no activity', innerX, cardY + 88);
-      }
-    }
+  // Shared in-cell baselines
+  const labelY = 40;
+  const heroY = 108;
+  const subY = 152;
+  const barY = rowH - 40;
+  const innerW = colW - inset * 2;
+
+  // Cell 1 — Shielded Supply
+  {
+    const { x, y } = cells[0];
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('SHIELDED SUPPLY', x + inset, y + labelY);
+
+    ctx.font = 'bold 52px Geist';
+    ctx.fillStyle = C.textPrimary;
+    const v = fmtZec(shielded.totalZat);
+    ctx.fillText(v, x + inset, y + heroY);
+    const vw = ctx.measureText(v).width;
+    ctx.font = 'bold 20px Geist';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('ZEC', x + inset + vw + 10, y + heroY);
+
+    ctx.font = 'bold 16px Geist';
+    ctx.fillStyle = C.green;
+    const inStr = `+${fmtZec(flows.netShielded)}`;
+    ctx.fillText(inStr, x + inset, y + subY);
+    const inW = ctx.measureText(inStr).width;
+    ctx.fillStyle = C.red;
+    ctx.fillText(`−${fmtZec(flows.netDeshielded)}`, x + inset + inW + 18, y + subY);
+
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('24H SHIELD / DESHIELD', x + inset, y + barY + 8);
   }
 
-  // Footer line
-  ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, H - 56);
-  ctx.lineTo(W - PAD, H - 56);
-  ctx.stroke();
+  // Cell 2 — Ironwood Pool
+  {
+    const { x, y } = cells[1];
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('IRONWOOD POOL', x + inset, y + labelY);
+
+    ctx.font = 'bold 52px Geist';
+    ctx.fillStyle = C.textPrimary;
+    const v = fmtZec(ironwood.poolSizeZat);
+    ctx.fillText(v, x + inset, y + heroY);
+    const vw = ctx.measureText(v).width;
+    ctx.font = 'bold 20px Geist';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('ZEC', x + inset + vw + 10, y + heroY);
+
+    ctx.font = 'bold 15px Geist';
+    ctx.fillStyle = C.yellow;
+    const pctStr = `${ironwood.orchardToIronwoodPct.toFixed(1)}%`;
+    ctx.fillText(pctStr, x + inset, y + subY);
+    ctx.font = '500 15px Geist';
+    ctx.fillStyle = C.textSecondary;
+    ctx.fillText(' from Orchard', x + inset + ctx.measureText(pctStr).width + 2, y + subY);
+
+    drawBar(ctx, x + inset, y + barY, innerW, 8, ironwood.orchardToIronwoodPct, C.yellow);
+  }
+
+  // Cell 3 — ZIP-318 Compliance
+  {
+    const { x, y } = cells[2];
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('ZIP-318 COMPLIANCE', x + inset, y + labelY);
+
+    ctx.font = 'bold 52px Geist';
+    ctx.fillStyle = C.textPrimary;
+    ctx.fillText(`${compliance.pct.toFixed(1)}%`, x + inset, y + heroY);
+
+    ctx.font = '500 15px Geist';
+    ctx.fillStyle = C.textSecondary;
+    ctx.fillText('of Ironwood migrations compliant', x + inset, y + subY);
+
+    drawBar(ctx, x + inset, y + barY, innerW, 8, compliance.pct, C.cyan);
+  }
+
+  // Cell 4 — Cross-chain
+  {
+    const { x, y } = cells[3];
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText('CROSS-CHAIN 24H', x + inset, y + labelY);
+
+    const hasData = crossChain && (crossChain.inflowUsd > 0 || crossChain.outflowUsd > 0);
+    if (hasData) {
+      ctx.font = 'bold 52px Geist';
+      ctx.fillStyle = C.textPrimary;
+      ctx.fillText(fmtUsd(crossChain.inflowUsd + crossChain.outflowUsd), x + inset, y + heroY);
+
+      ctx.font = 'bold 16px Geist';
+      ctx.fillStyle = C.green;
+      const inStr = `+${fmtUsd(crossChain.inflowUsd)}`;
+      ctx.fillText(inStr, x + inset, y + subY);
+      const inW = ctx.measureText(inStr).width;
+      ctx.fillStyle = C.red;
+      ctx.fillText(`−${fmtUsd(crossChain.outflowUsd)}`, x + inset + inW + 18, y + subY);
+
+      ctx.font = 'normal 10px GeistMono';
+      ctx.fillStyle = C.textMuted;
+      const swaps = crossChain.swapCount ? `${crossChain.swapCount} SWAPS — ` : '';
+      ctx.fillText(`${swaps}INFLOW / OUTFLOW`, x + inset, y + barY + 8);
+    } else {
+      ctx.font = 'bold 52px Geist';
+      ctx.fillStyle = C.textMuted;
+      ctx.fillText('—', x + inset, y + heroY);
+      ctx.font = 'normal 10px GeistMono';
+      ctx.fillText('NO ACTIVITY', x + inset, y + subY);
+    }
+  }
 
   await drawFooter(ctx, 'cipherscan.app');
   return saveTempPng(canvas);
@@ -265,85 +386,71 @@ async function renderLargeFlow({ direction, amountZat, pool, blockHeight, txid, 
   ensureFonts();
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
-  drawBase(ctx);
 
   const isShield = direction === 'shield';
   const accent = isShield ? C.green : C.red;
+  drawBase(ctx, accent);
 
-  // Header
-  ctx.font = 'bold 13px GeistMono';
+  drawHeaderRow(ctx, isShield ? 'SHIELD ALERT' : 'DESHIELD ALERT', accent, 'MAINNET', C.green);
+
+  // Context line
+  const poolName = pool.charAt(0).toUpperCase() + pool.slice(1);
+  ctx.font = '500 15px Geist';
   ctx.fillStyle = accent;
-  ctx.fillText(isShield ? 'SHIELDED' : 'DESHIELDED', PAD, 56);
-  ctx.font = 'normal 13px GeistMono';
-  ctx.fillStyle = C.textMuted;
-  ctx.fillText(`${pool}  ·  Block ${Number(blockHeight).toLocaleString()}`, PAD + 120, 56);
+  ctx.fillText(isShield ? `Transparent → ${poolName}` : `${poolName} → Transparent`, PAD, 112);
 
-  // Hero amount — left side
+  // Hero
   const zec = amountZat / 1e8;
-  ctx.font = 'bold 80px Geist';
-  ctx.fillStyle = C.textPrimary;
-  ctx.fillText(`${zec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC`, PAD, 260);
+  const heroStr = zec >= 1000
+    ? `${(zec / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`
+    : zec.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  drawHero(ctx, PAD - 4, 240, heroStr, 'ZEC');
 
-  // USD below
+  // USD — muted secondary
   if (priceUsd) {
-    ctx.font = '500 30px Geist';
-    ctx.fillStyle = C.textSecondary;
-    ctx.fillText(fmtUsd(zec * priceUsd), PAD, 310);
+    ctx.font = '500 26px Geist';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText(fmtUsd(zec * priceUsd), PAD, 286);
   }
 
-  // Percentile
-  ctx.font = '500 16px Geist';
-  ctx.fillStyle = C.cyan;
-  ctx.fillText(`Top ${(100 - percentileRank).toFixed(1)}% of 90-day flows`, PAD, 370);
-
-  // Shield icon on the right — large decorative element
-  const shieldX = W - PAD - 140;
-  const shieldY = 200;
+  // Direction glyph — subtle decorative accent, right side
+  const iconX = W - PAD - 76;
+  const iconY = 205;
   ctx.save();
-  ctx.translate(shieldX, shieldY);
-  const s = 2.2; // scale
-  ctx.scale(s, s);
-  // Classic shield path (48x48 viewbox centered at 0,0)
+  ctx.globalAlpha = 0.12;
   ctx.beginPath();
-  ctx.moveTo(0, -24);
-  ctx.lineTo(20, -18);
-  ctx.lineTo(20, -2);
-  ctx.quadraticCurveTo(20, 14, 0, 24);
-  ctx.quadraticCurveTo(-20, 14, -20, -2);
-  ctx.lineTo(-20, -18);
-  ctx.closePath();
-  ctx.fillStyle = `${accent}0C`;
+  ctx.arc(iconX, iconY, 64, 0, Math.PI * 2);
+  ctx.fillStyle = accent;
   ctx.fill();
-  ctx.strokeStyle = `${accent}50`;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Arrow inside
+  ctx.restore();
+  ctx.save();
+  ctx.translate(iconX, iconY);
+  const dir = isShield ? -1 : 1;
   ctx.beginPath();
-  const arrowDir = isShield ? -1 : 1;
-  ctx.moveTo(0, arrowDir * 10);
-  ctx.lineTo(0, -arrowDir * 10);
-  ctx.moveTo(-6, -arrowDir * 4);
-  ctx.lineTo(0, -arrowDir * 10);
-  ctx.lineTo(6, -arrowDir * 4);
+  ctx.moveTo(0, dir * 22);
+  ctx.lineTo(0, -dir * 22);
+  ctx.moveTo(-11, -dir * 11);
+  ctx.lineTo(0, -dir * 22);
+  ctx.lineTo(11, -dir * 11);
   ctx.strokeStyle = accent;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 3.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.stroke();
   ctx.restore();
 
-  // Footer
-  ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, H - 56);
-  ctx.lineTo(W - PAD, H - 56);
-  ctx.stroke();
+  // Stat row
+  drawStatRow(ctx, 428, [
+    { label: 'PERCENTILE', value: `Top ${(100 - percentileRank).toFixed(1)}% · 90D`, color: accent },
+    { label: 'POOL', value: poolName },
+    { label: 'BLOCK', value: Number(blockHeight).toLocaleString() },
+  ], { accentBorder: `${accent}26` });
 
+  // Txid
   if (txid) {
-    ctx.font = 'normal 11px GeistMono';
+    ctx.font = 'normal 10px GeistMono';
     ctx.fillStyle = C.textMuted;
-    ctx.fillText(txid.slice(0, 16) + '...' + txid.slice(-8), PAD, H - 72);
+    ctx.fillText(shortTxid(txid), PAD, 396);
   }
 
   await drawFooter(ctx, 'cipherscan.app');
@@ -356,115 +463,94 @@ async function renderCrossChain({ direction, amountUsd, sourceChain, destChain, 
   ensureFonts();
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
-  drawBase(ctx);
 
   const isInflow = direction === 'inflow';
   const accent = isInflow ? C.green : C.red;
+  drawBase(ctx, accent);
 
-  // Header
-  ctx.font = 'bold 13px GeistMono';
-  ctx.fillStyle = accent;
-  ctx.fillText(isInflow ? 'INFLOW' : 'OUTFLOW', PAD, 56);
-  ctx.font = 'normal 13px GeistMono';
-  ctx.fillStyle = C.textMuted;
-  ctx.fillText('Cross-chain bridge swap', PAD + 90, 56);
+  drawHeaderRow(ctx, isInflow ? 'WHALE INFLOW' : 'WHALE OUTFLOW', accent, 'CROSS-CHAIN');
 
-  // Chain flow visualization — centered
-  const fromChain = isInflow ? sourceChain.toLowerCase() : 'zec';
-  const toChain = isInflow ? 'zec' : destChain.toLowerCase();
+  // Context line
   const fromLabel = isInflow ? sourceChain.toUpperCase() : 'ZEC';
   const toLabel = isInflow ? 'ZEC' : destChain.toUpperCase();
-  const centerX = W / 2;
-  const flowY = 200;
+  ctx.font = '500 15px Geist';
+  ctx.fillStyle = accent;
+  ctx.fillText(`${fromLabel} → ${toLabel}`, PAD, 112);
 
-  // Load and draw chain logos
-  const logoSize = 56;
-  const spacing = 180;
+  // Hero — USD amount
+  drawHero(ctx, PAD - 4, 240, `$${Math.round(amountUsd).toLocaleString()}`, null);
 
-  // From logo
-  const fromX = centerX - spacing;
+  // ZEC equivalent — muted
+  if (amountZec) {
+    ctx.font = '500 26px Geist';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText(`≈ ${amountZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC`, PAD, 286);
+  }
+
+  // Route strip — full-width glass card with chain logos
+  const routeY = 330;
+  const routeH = 72;
+  drawGlassCard(ctx, PAD, routeY, W - PAD * 2, routeH);
+
+  const logoSize = 36;
+  const logoY = routeY + (routeH - logoSize) / 2;
+  let cursor = PAD + 28;
+
+  // From
   try {
-    const fromLogo = await loadImage(resolveChainFile(fromChain));
-    ctx.drawImage(fromLogo, fromX - logoSize / 2, flowY - logoSize / 2, logoSize, logoSize);
+    const fromLogo = await loadImage(resolveChainFile(isInflow ? sourceChain : 'zec'));
+    ctx.drawImage(fromLogo, cursor, logoY, logoSize, logoSize);
   } catch {
     ctx.beginPath();
-    ctx.arc(fromX, flowY, logoSize / 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(20, 22, 31, 0.8)';
+    ctx.arc(cursor + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.6)';
     ctx.fill();
-    ctx.strokeStyle = C.border;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
   }
-  // Label below
-  ctx.font = 'bold 14px GeistMono';
+  cursor += logoSize + 14;
+  ctx.font = 'bold 15px GeistMono';
   ctx.fillStyle = C.textSecondary;
-  ctx.textAlign = 'center';
-  ctx.fillText(fromLabel, fromX, flowY + logoSize / 2 + 22);
+  ctx.fillText(fromLabel, cursor, routeY + routeH / 2 + 5);
+  cursor += ctx.measureText(fromLabel).width + 36;
 
   // Arrow
-  ctx.font = '500 32px Geist';
-  ctx.fillStyle = C.cyan;
-  ctx.fillText('→', centerX, flowY + 8);
+  ctx.font = '500 22px Geist';
+  ctx.fillStyle = accent;
+  ctx.fillText('→', cursor, routeY + routeH / 2 + 7);
+  cursor += 46;
 
-  // To logo
-  const toX = centerX + spacing;
+  // To
   try {
-    const toLogo = await loadImage(resolveChainFile(toChain));
-    ctx.drawImage(toLogo, toX - logoSize / 2, flowY - logoSize / 2, logoSize, logoSize);
+    const toLogo = await loadImage(resolveChainFile(isInflow ? 'zec' : destChain));
+    ctx.drawImage(toLogo, cursor, logoY, logoSize, logoSize);
   } catch {
     ctx.beginPath();
-    ctx.arc(toX, flowY, logoSize / 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(20, 22, 31, 0.8)';
+    ctx.arc(cursor + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.6)';
     ctx.fill();
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
   }
-  ctx.font = 'bold 14px GeistMono';
+  cursor += logoSize + 14;
+  ctx.font = 'bold 15px GeistMono';
   ctx.fillStyle = C.textPrimary;
-  ctx.fillText(toLabel, toX, flowY + logoSize / 2 + 22);
+  ctx.fillText(toLabel, cursor, routeY + routeH / 2 + 5);
 
-  ctx.textAlign = 'left';
+  // Bridge label on the right of the strip
+  ctx.font = 'normal 10px GeistMono';
+  ctx.fillStyle = C.textMuted;
+  const bridgeLabel = 'BRIDGE SWAP';
+  ctx.fillText(bridgeLabel, W - PAD - 28 - ctx.measureText(bridgeLabel).width, routeY + routeH / 2 + 4);
 
-  // Description line
-  ctx.font = '500 18px Geist';
-  ctx.fillStyle = C.textSecondary;
-  const descText = isInflow
-    ? `${amountZec ? amountZec.toFixed(1) + ' ZEC' : fmtUsd(amountUsd)} bridged from ${sourceChain.toUpperCase()} to Zcash`
-    : `${amountZec ? amountZec.toFixed(1) + ' ZEC' : fmtUsd(amountUsd)} bridged from Zcash to ${destChain.toUpperCase()}`;
-  const descW = ctx.measureText(descText).width;
-  ctx.textAlign = 'center';
-  ctx.fillText(descText, centerX, flowY + logoSize / 2 + 50);
-  ctx.textAlign = 'left';
+  // Stat row
+  drawStatRow(ctx, 428, [
+    { label: 'DIRECTION', value: isInflow ? 'Into Zcash' : 'Out of Zcash', color: accent },
+    { label: 'USD VALUE', value: `$${Math.round(amountUsd).toLocaleString()}` },
+    { label: 'ZEC AMOUNT', value: amountZec ? `${amountZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC` : '—' },
+  ], { accentBorder: `${accent}26` });
 
-  // Amounts — centered below
-  ctx.font = 'bold 64px Geist';
-  ctx.fillStyle = C.textPrimary;
-  const usdText = `$${Math.round(amountUsd).toLocaleString()}`;
-  const usdW = ctx.measureText(usdText).width;
-  ctx.fillText(usdText, centerX - usdW / 2, 380);
-
-  // ZEC amount
-  if (amountZec) {
-    ctx.font = '500 20px Geist';
-    ctx.fillStyle = C.textSecondary;
-    const zecText = `≈ ${amountZec.toFixed(1)} ZEC`;
-    const zecW = ctx.measureText(zecText).width;
-    ctx.fillText(zecText, centerX - zecW / 2, 415);
-  }
-
-  // Footer
-  ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, H - 56);
-  ctx.lineTo(W - PAD, H - 56);
-  ctx.stroke();
-
+  // Txid
   if (zecTxid) {
-    ctx.font = 'normal 11px GeistMono';
+    ctx.font = 'normal 10px GeistMono';
     ctx.fillStyle = C.textMuted;
-    ctx.fillText(zecTxid.slice(0, 16) + '...' + zecTxid.slice(-8), PAD, H - 72);
+    ctx.fillText(shortTxid(zecTxid), PAD, 540);
   }
 
   await drawFooter(ctx, 'cipherscan.app');
@@ -480,60 +566,51 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct, orchardTo
   const ctx = canvas.getContext('2d');
   drawBase(ctx, C.yellow);
 
-  // Header
-  ctx.font = 'bold 13px GeistMono';
-  ctx.fillStyle = C.yellow;
-  ctx.fillText('MILESTONE', PAD, 56);
+  drawHeaderRow(ctx, 'MILESTONE', C.yellow, 'IRONWOOD');
 
-  // Hero stat — vertically centered
+  // Hero + subtitle
   let mainText = '';
+  let unit = null;
   let subtitle = '';
   if (type === 'volume' || type === 'pool_size') {
     const zecVal = type === 'volume' ? value : (poolSizeZat ? poolSizeZat / 1e8 : value / 1e8);
-    mainText = `${fmtZec(zecVal * 1e8)} ZEC`;
-    subtitle = 'Ironwood pool size';
+    mainText = fmtZec(zecVal * 1e8);
+    unit = 'ZEC';
+    subtitle = 'Ironwood pool size just crossed';
   } else if (type === 'supply_pct') {
     mainText = `${value}%`;
     subtitle = 'of Orchard migrated to Ironwood';
   } else {
     mainText = String(value);
-    subtitle = '';
   }
 
-  ctx.font = 'bold 80px Geist';
-  ctx.fillStyle = C.textPrimary;
-  ctx.fillText(mainText, PAD, 250);
+  ctx.font = '500 15px Geist';
+  ctx.fillStyle = C.yellow;
+  ctx.fillText(subtitle, PAD, 112);
 
-  ctx.font = '500 20px Geist';
-  ctx.fillStyle = C.textSecondary;
-  ctx.fillText(subtitle, PAD, 295);
+  drawHero(ctx, PAD - 4, 240, mainText, unit);
 
-  // Progress bar with labels
+  // Progress bar
   if (pct != null) {
-    const barY = 370;
+    const barY = 330;
     const barW = W - PAD * 2;
-    ctx.font = 'normal 11px GeistMono';
+
+    ctx.font = 'bold 11px GeistMono';
     ctx.fillStyle = C.textMuted;
     ctx.fillText('ORCHARD → IRONWOOD MIGRATION', PAD, barY - 14);
-    drawBar(ctx, PAD, barY, barW, 10, pct, C.yellow);
-    // Labels at ends
-    ctx.font = 'normal 11px GeistMono';
-    ctx.fillStyle = C.textMuted;
-    ctx.fillText('0%', PAD, barY + 28);
     ctx.fillStyle = C.yellow;
-    ctx.fillText(`${pct.toFixed(1)}%`, PAD + barW * (pct / 100) - 15, barY + 28);
-    ctx.fillStyle = C.textMuted;
-    const hundredW = ctx.measureText('100%').width;
-    ctx.fillText('100%', PAD + barW - hundredW, barY + 28);
+    const pctStr = `${pct.toFixed(1)}%`;
+    ctx.fillText(pctStr, W - PAD - ctx.measureText(pctStr).width, barY - 14);
+
+    drawBar(ctx, PAD, barY, barW, 12, pct, C.yellow);
   }
 
-  // Footer
-  ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, H - 56);
-  ctx.lineTo(W - PAD, H - 56);
-  ctx.stroke();
+  // Stat row
+  const stats = [];
+  if (poolSizeZat) stats.push({ label: 'POOL SIZE', value: `${fmtZec(poolSizeZat)} ZEC`, color: C.yellow });
+  if (pct != null) stats.push({ label: 'MIGRATION PROGRESS', value: `${pct.toFixed(1)}%`, color: C.yellow });
+  stats.push({ label: 'NETWORK', value: 'Mainnet' });
+  drawStatRow(ctx, 428, stats, { accentBorder: 'rgba(244, 183, 40, 0.18)' });
 
   await drawFooter(ctx, 'cipherscan.app/ironwood');
   return saveTempPng(canvas);
@@ -550,113 +627,51 @@ async function renderMigration({ amountZat, fromPool, toPool, txid, orchardLeftZ
   const zec = amountZat / 1e8;
   const pct = orchardToIronwoodPct || 0;
 
-  // ─── Terminal-style protocol header ─────────────────────────────────────
-  // Bracket border (left + top)
-  ctx.strokeStyle = C.yellow;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(PAD - 12, 46);
-  ctx.lineTo(PAD - 12, 34);
-  ctx.lineTo(PAD + 4, 34);
-  ctx.stroke();
+  drawHeaderRow(ctx, 'POOL MIGRATION', C.yellow, 'MAINNET', C.green);
 
-  ctx.font = 'bold 13px GeistMono';
+  // Context line
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  ctx.font = '500 15px Geist';
   ctx.fillStyle = C.yellow;
-  ctx.fillText('CIPHERSCAN://', PAD, 48);
-  ctx.fillStyle = C.textPrimary;
-  ctx.fillText('POOL_MIGRATION', PAD + ctx.measureText('CIPHERSCAN:// ').width + 2, 48);
+  ctx.fillText(`${cap(fromPool)} → ${cap(toPool)}`, PAD, 112);
 
-  // Status indicator (right side)
-  ctx.fillStyle = C.green;
-  ctx.beginPath();
-  ctx.arc(W - PAD - 80, 44, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.font = 'normal 11px GeistMono';
-  ctx.fillStyle = C.textSecondary;
-  ctx.fillText('MAINNET · LIVE', W - PAD - 70, 48);
+  // Hero
+  const heroStr = zec >= 1000
+    ? `${(zec / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`
+    : zec.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  drawHero(ctx, PAD - 4, 240, heroStr, 'ZEC');
 
-  // ─── Flow direction label ───────────────────────────────────────────────
-  ctx.font = 'normal 12px GeistMono';
-  ctx.fillStyle = C.yellow;
-  ctx.fillText(`${fromPool.toUpperCase()} → ${toPool.toUpperCase()}`, PAD, 100);
-
-  // ─── Hero amount ────────────────────────────────────────────────────────
-  const heroStr = zec >= 1000 ? `${(zec / 1000).toFixed(1)}K` : zec.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  ctx.font = 'bold 96px Geist';
-  ctx.fillStyle = C.textPrimary;
-  ctx.fillText(`${heroStr} ZEC`, PAD, 210);
-
-  // USD value below
+  // USD — muted
   if (priceUsd) {
-    const usd = zec * priceUsd;
-    ctx.font = '500 28px Geist';
-    ctx.fillStyle = C.textSecondary;
-    ctx.fillText(fmtUsd(usd), PAD, 255);
+    ctx.font = '500 26px Geist';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText(fmtUsd(zec * priceUsd), PAD, 286);
   }
 
-  // ─── Progress bar ──────────────────────────────────────────────────────
-  const barY = 310;
-  const barH = 14;
+  // Progress bar
+  const barY = 330;
   const barW = W - PAD * 2;
-
-  // Track
-  roundedRect(ctx, PAD, barY, barW, barH, barH / 2);
-  ctx.fillStyle = 'rgba(30, 41, 59, 0.4)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(244, 183, 40, 0.15)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Fill
-  const fillW = Math.max(barH, barW * Math.min(pct / 100, 1));
-  roundedRect(ctx, PAD, barY, fillW, barH, barH / 2);
+  ctx.font = 'bold 11px GeistMono';
+  ctx.fillStyle = C.textMuted;
+  ctx.fillText('ORCHARD → IRONWOOD MIGRATION', PAD, barY - 14);
   ctx.fillStyle = C.yellow;
-  ctx.fill();
+  const pctStr = `${pct.toFixed(1)}%`;
+  ctx.fillText(pctStr, W - PAD - ctx.measureText(pctStr).width, barY - 14);
+  drawBar(ctx, PAD, barY, barW, 12, pct, C.yellow);
 
-  // Label above bar (right-aligned to fill)
-  ctx.font = 'bold 13px GeistMono';
-  ctx.fillStyle = C.textSecondary;
-  ctx.fillText('ORCHARD MIGRATED', PAD, barY - 10);
-  ctx.fillStyle = C.yellow;
-  const pctLabel = `${fmtZec(ironwoodBalZat || amountZat)} ZEC · ${pct.toFixed(1)}%`;
-  const pctLabelW = ctx.measureText(pctLabel).width;
-  ctx.fillText(pctLabel, W - PAD - pctLabelW, barY - 10);
+  // Stat row
+  drawStatRow(ctx, 428, [
+    { label: 'ORCHARD LEFT', value: `${fmtZec(orchardLeftZat || 0)} ZEC`, color: C.yellow },
+    { label: 'IRONWOOD BALANCE', value: `${fmtZec(ironwoodBalZat || 0)} ZEC`, color: C.yellow },
+    { label: 'MIGRATED 24H', value: `${fmtZec(migrated24hZat || amountZat)} ZEC`, color: C.yellow },
+  ], { accentBorder: 'rgba(244, 183, 40, 0.18)' });
 
-  // ─── Stat boxes at bottom ──────────────────────────────────────────────
-  const statsY = barY + 50;
-  const statBoxW = Math.floor((barW - 20) / 3);
-  const stats = [
-    { label: 'ORCHARD LEFT', value: `${fmtZec((orchardLeftZat || 0))} ZEC` },
-    { label: 'IRONWOOD BAL', value: `${fmtZec((ironwoodBalZat || 0))} ZEC` },
-    { label: 'MIGRATED · 24H', value: `${fmtZec((migrated24hZat || amountZat))} ZEC` },
-  ];
-
-  stats.forEach((stat, i) => {
-    const x = PAD + i * (statBoxW + 10);
-    // Border box
-    roundedRect(ctx, x, statsY, statBoxW, 56, 6);
-    ctx.strokeStyle = 'rgba(244, 183, 40, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Label
+  // Txid
+  if (txid) {
     ctx.font = 'normal 10px GeistMono';
     ctx.fillStyle = C.textMuted;
-    ctx.fillText(`> ${stat.label}`, x + 14, statsY + 22);
-
-    // Value
-    ctx.font = 'bold 14px GeistMono';
-    ctx.fillStyle = C.yellow;
-    ctx.fillText(stat.value, x + 14, statsY + 42);
-  });
-
-  // ─── Footer ─────────────────────────────────────────────────────────────
-  const footerY = H - 36;
-  ctx.font = 'normal 10px GeistMono';
-  ctx.fillStyle = C.textMuted;
-  const timeStr = `AS OF ${new Date().toUTCString().replace('GMT', 'UTC').toUpperCase()}`;
-  const timeW = ctx.measureText(timeStr).width;
-  ctx.fillText(timeStr, W - PAD - timeW, footerY);
+    ctx.fillText(shortTxid(txid), PAD, 396);
+  }
 
   await drawFooter(ctx, 'cipherscan.app/ironwood');
   return saveTempPng(canvas);
@@ -670,49 +685,46 @@ async function renderPrivacyRisk({ highLinkages, batchClusters }) {
   const ctx = canvas.getContext('2d');
   drawBase(ctx, C.orange);
 
-  // Header
-  ctx.font = 'bold 13px GeistMono';
+  drawHeaderRow(ctx, 'PRIVACY ALERT', C.orange, '24H SUMMARY');
+
+  const hasLinkages = highLinkages.highCount > 0;
+  const hasClusters = batchClusters.clusterCount > 0;
+
+  // Context line
+  ctx.font = '500 15px Geist';
   ctx.fillStyle = C.orange;
-  ctx.fillText('PRIVACY ALERT', PAD, 56);
-  ctx.font = 'normal 13px GeistMono';
-  ctx.fillStyle = C.textMuted;
-  ctx.fillText('24-hour summary', PAD + 150, 56);
+  ctx.fillText('Linkage patterns detected on Zcash', PAD, 112);
 
-  // Main stat — hero placement
-  if (highLinkages.highCount > 0) {
-    ctx.font = 'bold 72px Geist';
-    ctx.fillStyle = C.textPrimary;
-    ctx.fillText(String(highLinkages.highCount), PAD, 220);
-    ctx.font = '500 22px Geist';
-    ctx.fillStyle = C.textSecondary;
-    ctx.fillText('high-confidence linkage patterns', PAD, 260);
-    ctx.font = 'normal 13px GeistMono';
+  // Hero — the dominant number
+  if (hasLinkages) {
+    drawHero(ctx, PAD - 4, 240, String(highLinkages.highCount), 'high-confidence linkages');
+  } else if (hasClusters) {
+    drawHero(ctx, PAD - 4, 240, String(batchClusters.clusterCount), 'batch deshielding clusters');
+  }
+
+  // Secondary muted line
+  if (hasLinkages) {
+    ctx.font = '500 26px Geist';
     ctx.fillStyle = C.textMuted;
-    ctx.fillText(`${fmtZec(highLinkages.totalAmountZat)} ZEC potentially linked`, PAD, 295);
+    ctx.fillText(`${fmtZec(highLinkages.totalAmountZat)} ZEC potentially linked`, PAD, 286);
   }
 
-  // Secondary stat
-  if (batchClusters.clusterCount > 0) {
-    const secY = highLinkages.highCount > 0 ? 365 : 220;
-    ctx.font = 'bold 42px Geist';
-    ctx.fillStyle = C.textPrimary;
-    ctx.fillText(String(batchClusters.clusterCount), PAD, secY);
-    ctx.font = '500 18px Geist';
-    ctx.fillStyle = C.textSecondary;
-    ctx.fillText(`batch deshielding clusters (${batchClusters.totalMembers} txs)`, PAD, secY + 35);
-  }
-
-  // Footer
-  ctx.strokeStyle = 'rgba(30, 41, 59, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, H - 56);
-  ctx.lineTo(W - PAD, H - 56);
-  ctx.stroke();
-
-  ctx.font = 'normal 12px Geist';
+  // Advisory strip
+  const advY = 330;
+  drawGlassCard(ctx, PAD, advY, W - PAD * 2, 72);
+  ctx.font = 'normal 10px GeistMono';
   ctx.fillStyle = C.textMuted;
-  ctx.fillText('Use standard denominations. Avoid timing correlations.', PAD, H - 72);
+  ctx.fillText('RECOMMENDATION', PAD + 28, advY + 29);
+  ctx.font = '500 15px Geist';
+  ctx.fillStyle = C.textSecondary;
+  ctx.fillText('Use standard denominations. Avoid timing correlations.', PAD + 28, advY + 53);
+
+  // Stat row
+  drawStatRow(ctx, 428, [
+    { label: 'HIGH-CONF LINKAGES', value: String(highLinkages.highCount || 0), color: C.orange },
+    { label: 'ZEC LINKED', value: `${fmtZec(highLinkages.totalAmountZat || 0)} ZEC` },
+    { label: 'BATCH CLUSTERS', value: hasClusters ? `${batchClusters.clusterCount} (${batchClusters.totalMembers} txs)` : '0' },
+  ], { accentBorder: 'rgba(255, 107, 53, 0.18)' });
 
   await drawFooter(ctx, 'cipherscan.app/privacy-risks');
   return saveTempPng(canvas);
