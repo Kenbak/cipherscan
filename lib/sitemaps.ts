@@ -40,6 +40,8 @@ export const CORE_PATHS = [
   '/turnstile',
   '/usage-clock',
   '/zodl',
+  '/valuation',
+  '/pulse',
 ] as const;
 
 export const CONTENT_PATHS = [

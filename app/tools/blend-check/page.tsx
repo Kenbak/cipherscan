@@ -636,6 +636,7 @@ export default function BlendCheckPage() {
           </Card>
         </div>
       </div>
+
     </div>
   );
 }

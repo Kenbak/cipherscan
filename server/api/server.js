@@ -39,6 +39,8 @@ const analyticsRouter = require('./routes/analytics');
 const migrationRouter = require('./routes/migration');
 const sitemapsRouter = require('./routes/sitemaps');
 const transparentRouter = require('./routes/transparent');
+const valuationRouter = require('./routes/valuation');
+const pulseRouter = require('./routes/pulse');
 const signalsRouter = require('../signals/api');
 
 // Import privacy linkage functions
@@ -395,6 +397,8 @@ app.use(sitemapsRouter);
 
 // Transparent address analysis: /api/transparent/*
 app.use(transparentRouter);
+app.use(valuationRouter);
+app.use(pulseRouter);
 
 // Private trading signals: /api/signals/* (service-key protected)
 app.use('/api/signals', signalsRouter);

@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 
 
-type Category = 'all' | 'privacy' | 'mining' | 'pools' | 'network' | 'fees';
+type Category = 'all' | 'privacy' | 'mining' | 'pools' | 'network' | 'fees' | 'valuation';
 
 interface MiniChartData {
   [key: string]: number | string;
@@ -42,12 +42,16 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'chain-size', title: 'Chain Size', description: 'Blockchain disk size growth (GB)', category: 'network', href: '/network' },
   { id: 'protocol-stats', title: 'Protocol Stats', description: 'Monthly Sapling/Orchard commitments & nullifiers', category: 'network', href: '/network' },
   { id: 'fee-dist', title: 'Fee Distribution', description: 'Daily fee percentile bands (p10–p90)', category: 'fees', href: '/network', isNew: true },
+  { id: 'price-vs-realized', title: 'Price vs Realized Price', description: 'Market price overlaid with on-chain cost basis', category: 'valuation', href: '/valuation', isNew: true },
+  { id: 'mvrv-ratio', title: 'MVRV Ratio', description: 'Market value vs realized value — over/undervaluation', category: 'valuation', href: '/valuation', isNew: true },
+  { id: 'sopr-nupl', title: 'SOPR & NUPL', description: 'Spent output profit ratio and net unrealized P/L', category: 'valuation', href: '/valuation', isNew: true },
 ];
 
 const LIVE_VIZ_DEFS = [
   { id: 'node-map', title: 'Node Map', description: 'Geographic Zcash node distribution', href: '/network' },
   { id: 'mempool', title: 'Mempool Bubbles', description: 'Live unconfirmed transactions', href: '/mempool' },
   { id: 'privacy-risks', title: 'Privacy Risk Scanner', description: 'Round-trip and batch pattern detection', href: '/privacy-risks' },
+  { id: 'network-pulse', title: 'Network Pulse', description: 'Auto-detected statistical anomalies', href: '/pulse', isNew: true },
 ];
 
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -57,6 +61,7 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: 'mining', label: 'Mining' },
   { key: 'network', label: 'Network' },
   { key: 'fees', label: 'Fees' },
+  { key: 'valuation', label: 'Valuation' },
 ];
 
 const CATEGORY_ACCENT: Record<string, string> = {
@@ -65,6 +70,7 @@ const CATEGORY_ACCENT: Record<string, string> = {
   mining: '#E8C48D',
   network: '#5B9CF6',
   fees: '#f97316',
+  valuation: '#56D4C8',
 };
 
 function formatCompact(val: number): string {

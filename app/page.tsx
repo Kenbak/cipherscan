@@ -6,6 +6,7 @@ import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
+import { NetworkPulse } from '@/components/NetworkPulse';
 import { API_CONFIG } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
@@ -213,6 +214,22 @@ export default async function Home() {
               View All Shielded Transactions →
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Network Pulse — anomaly feed widget */}
+      {!crosslinkMode && (
+        <div className="mt-6 sm:mt-8 lg:mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+              <span className="text-muted opacity-50">{'>'}</span>
+              NETWORK_PULSE
+            </h2>
+            <Link href="/pulse" className="text-[10px] sm:text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+              View All →
+            </Link>
+          </div>
+          <NetworkPulse />
         </div>
       )}
 

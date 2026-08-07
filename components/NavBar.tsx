@@ -102,6 +102,8 @@ export function NavBar() {
         { href: '/pools', label: 'Shielded Pools', desc: 'Supply & shield/deshield flows' },
         { href: '/turnstile', label: 'Turnstile', desc: 'Where deshielded ZEC goes' },
         { href: '/ironwood', label: 'Zcash Ironwood', desc: 'NU6.3 upgrade & migration tracker' },
+        { href: '/valuation', label: 'Valuation', desc: 'MVRV, realized price & on-chain metrics' },
+        { href: '/pulse', label: 'Network Pulse', desc: 'Auto-detected on-chain anomalies' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
         { href: '/privacy/wallets', label: 'Wallet Analysis', desc: 'Fingerprints & anonymity sets' },
         ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),

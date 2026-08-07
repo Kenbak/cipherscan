@@ -106,6 +106,18 @@
       "core": true
     },
     {
+      "id": "valuation",
+      "routeGroup": "/valuation",
+      "path": "/valuation",
+      "core": true
+    },
+    {
+      "id": "pulse",
+      "routeGroup": "/pulse",
+      "path": "/pulse",
+      "core": true
+    },
+    {
       "id": "ironwood",
       "routeGroup": "/ironwood",
       "path": "/ironwood",
