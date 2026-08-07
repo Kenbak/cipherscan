@@ -62,16 +62,22 @@ const METRIC_QUERIES = {
     ORDER BY date`,
 
   shield_volume_zat: `
-    SELECT date, COALESCE(SUM(total_zat) FILTER (WHERE flow_type = 'shield'), 0) AS value
-    FROM flow_daily
-    WHERE date >= $1 AND date <= $2
-    GROUP BY date ORDER BY date`,
+    SELECT DATE(TO_TIMESTAMP(block_time)) AS date,
+           COALESCE(SUM(amount_zat), 0) AS value
+    FROM shielded_flows
+    WHERE flow_type = 'shield'
+      AND DATE(TO_TIMESTAMP(block_time)) >= $1
+      AND DATE(TO_TIMESTAMP(block_time)) <= $2
+    GROUP BY 1 ORDER BY 1`,
 
   deshield_volume_zat: `
-    SELECT date, COALESCE(SUM(total_zat) FILTER (WHERE flow_type = 'deshield'), 0) AS value
-    FROM flow_daily
-    WHERE date >= $1 AND date <= $2
-    GROUP BY date ORDER BY date`,
+    SELECT DATE(TO_TIMESTAMP(block_time)) AS date,
+           COALESCE(SUM(amount_zat), 0) AS value
+    FROM shielded_flows
+    WHERE flow_type = 'deshield'
+      AND DATE(TO_TIMESTAMP(block_time)) >= $1
+      AND DATE(TO_TIMESTAMP(block_time)) <= $2
+    GROUP BY 1 ORDER BY 1`,
 
   crosschain_inflow_usd: `
     SELECT day AS date, COALESCE(SUM(volume_usd) FILTER (WHERE direction = 'inflow'), 0) AS value
