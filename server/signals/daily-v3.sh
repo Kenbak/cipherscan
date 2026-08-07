@@ -14,7 +14,11 @@ cd /root/cipherscan/server/api
 
 echo "[$(date)] Starting daily V3 pipeline..."
 
-# 1. Update today's MVRV
+# 1a. Update pool realized caps (shielded pools — required before MVRV)
+echo "  Building pool realized caps..."
+node ../signals/build-pool-realized-cap.js --today-only 2>&1 | tail -3
+
+# 1b. Update today's MVRV
 echo "  Computing MVRV..."
 node ../signals/compute-mvrv.js --today-only 2>&1 | tail -3
 

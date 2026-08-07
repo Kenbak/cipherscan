@@ -116,10 +116,11 @@ async function computeForDate(targetDate, transparentNow) {
   const transparentZec = transparentZat / 1e8;
   const marketCap = spotPrice * chainSupplyZec;
 
-  // Get shielded pool realized cap (exact from pool_realized_cap_daily)
+  // Get shielded pool realized cap (latest available on or before target date)
   const { rows: poolCaps } = await pool.query(`
-    SELECT pool, realized_cap_usd, balance_zat
-    FROM pool_realized_cap_daily WHERE date = $1
+    SELECT DISTINCT ON (pool) pool, realized_cap_usd, balance_zat
+    FROM pool_realized_cap_daily WHERE date <= $1
+    ORDER BY pool, date DESC
   `, [targetDate]);
 
   let shieldedRealizedCap = 0;
