@@ -14,8 +14,8 @@
  *   30 21 * * * cd /root/cipherscan/server/jobs && node detect-anomalies.js >> /var/log/anomaly-detection.log 2>&1
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -35,10 +35,6 @@ const BACKFILL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 1;
 const LOOKBACK = 90;
 const Z_THRESHOLD = 2.5;
 
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
 
 // ─── Metric definitions ──────────────────────────────────────────────────────
 
@@ -237,78 +233,48 @@ async function processMetric(client, metric, targetDate) {
 async function run() {
   const client = await pool.connect();
   try {
-    const lockResult = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_ID]);
-    if (!lockResult.rows[0].acquired) {
-      log('Another instance running — exiting.');
-      return;
-    }
+    await withAdvisoryLock(client, LOCK_ID, async (client) => {
+      const metrics = Object.keys(METRIC_QUERIES);
+      const today = new Date();
+      let totalInserted = 0;
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS metric_anomalies (
-        id SERIAL PRIMARY KEY,
-        date DATE NOT NULL,
-        metric VARCHAR(64) NOT NULL,
-        value DOUBLE PRECISION NOT NULL,
-        zscore DOUBLE PRECISION NOT NULL,
-        mean DOUBLE PRECISION,
-        std DOUBLE PRECISION,
-        direction VARCHAR(4) NOT NULL,
-        description TEXT NOT NULL,
-        detail TEXT,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(date, metric)
-      )
-    `);
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_metric_anomalies_date ON metric_anomalies(date DESC)
-    `);
+      for (let d = 0; d < BACKFILL_DAYS; d++) {
+        const target = new Date(today);
+        target.setDate(target.getDate() - d);
+        const dateStr = target.toISOString().slice(0, 10);
 
-    const metrics = Object.keys(METRIC_QUERIES);
-    const today = new Date();
-    let totalInserted = 0;
+        let dayInserted = 0;
+        for (const metric of metrics) {
+          const anomaly = await processMetric(client, metric, dateStr);
+          if (!anomaly) continue;
 
-    for (let d = 0; d < BACKFILL_DAYS; d++) {
-      const target = new Date(today);
-      target.setDate(target.getDate() - d);
-      const dateStr = target.toISOString().slice(0, 10);
+          await client.query(`
+            INSERT INTO metric_anomalies (date, metric, value, zscore, mean, std, direction, description, detail)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (date, metric) DO UPDATE SET
+              value = EXCLUDED.value,
+              zscore = EXCLUDED.zscore,
+              mean = EXCLUDED.mean,
+              std = EXCLUDED.std,
+              direction = EXCLUDED.direction,
+              description = EXCLUDED.description,
+              detail = EXCLUDED.detail,
+              created_at = NOW()
+          `, [
+            anomaly.date, anomaly.metric, anomaly.value, anomaly.zscore,
+            anomaly.mean, anomaly.std, anomaly.direction, anomaly.description, anomaly.detail,
+          ]);
+          dayInserted++;
+        }
 
-      let dayInserted = 0;
-      for (const metric of metrics) {
-        const anomaly = await processMetric(client, metric, dateStr);
-        if (!anomaly) continue;
-
-        await client.query(`
-          INSERT INTO metric_anomalies (date, metric, value, zscore, mean, std, direction, description, detail)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (date, metric) DO UPDATE SET
-            value = EXCLUDED.value,
-            zscore = EXCLUDED.zscore,
-            mean = EXCLUDED.mean,
-            std = EXCLUDED.std,
-            direction = EXCLUDED.direction,
-            description = EXCLUDED.description,
-            detail = EXCLUDED.detail,
-            created_at = NOW()
-        `, [
-          anomaly.date, anomaly.metric, anomaly.value, anomaly.zscore,
-          anomaly.mean, anomaly.std, anomaly.direction, anomaly.description, anomaly.detail,
-        ]);
-        dayInserted++;
+        if (dayInserted > 0) {
+          log(`${dateStr}: ${dayInserted} anomalies detected`);
+        }
+        totalInserted += dayInserted;
       }
 
-      if (dayInserted > 0) {
-        log(`${dateStr}: ${dayInserted} anomalies detected`);
-      }
-      totalInserted += dayInserted;
-    }
-
-    log(`Done. ${totalInserted} anomalies inserted/updated across ${BACKFILL_DAYS} day(s).`);
-
-    await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]);
-  } catch (err) {
-    log(`ERROR: ${err.message}`);
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]); } catch {}
-    throw err;
+      log(`Done. ${totalInserted} anomalies inserted/updated across ${BACKFILL_DAYS} day(s).`);
+    });
   } finally {
     client.release();
     await pool.end();

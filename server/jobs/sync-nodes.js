@@ -11,9 +11,8 @@ const https = require('https');
 const http = require('http');
 const { parsePeerAddress, parsePeerClient } = require('../lib/peer-client');
 
-// Load .env from jobs folder first, then fallback to api folder
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const { loadEnv } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 

@@ -12,8 +12,8 @@
  *   node backfill-coinbase-hex.js --batch 500        — set batch size
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 const http = require('http');
@@ -95,10 +95,9 @@ async function getBlockCoinbaseHex(height) {
 async function run() {
   const { from, batchSize } = parseArgs();
 
-  // Acquire advisory lock to prevent concurrent runs
   const lockResult = await pool.query('SELECT pg_try_advisory_lock(8675309)');
   if (!lockResult.rows[0].pg_try_advisory_lock) {
-    console.log('Another backfill instance is running, exiting.');
+    log('Another backfill instance is running, exiting.');
     await pool.end();
     return;
   }
@@ -108,10 +107,10 @@ async function run() {
       'SELECT COUNT(*) as cnt FROM blocks WHERE coinbase_hex IS NULL'
     );
     const totalNull = parseInt(countResult.rows[0].cnt);
-    console.log(`[backfill-coinbase-hex] ${totalNull} blocks need coinbase_hex`);
+    log(`${totalNull} blocks need coinbase_hex`);
 
     if (totalNull === 0) {
-      console.log('Nothing to backfill.');
+      log('Nothing to backfill.');
       return;
     }
 
@@ -166,12 +165,12 @@ async function run() {
       cursor = lowestHeight - 1;
 
       const pct = ((processed / totalNull) * 100).toFixed(1);
-      console.log(`  Processed ${processed}/${totalNull} (${pct}%) — last height: ${lowestHeight}`);
+      log(`Processed ${processed}/${totalNull} (${pct}%) — last height: ${lowestHeight}`);
 
       if (cursor < 0) break;
     }
 
-    console.log(`[backfill-coinbase-hex] Done. Processed ${processed} blocks.`);
+    log(`Done. Processed ${processed} blocks.`);
   } finally {
     await pool.query('SELECT pg_advisory_unlock(8675309)');
     await pool.end();

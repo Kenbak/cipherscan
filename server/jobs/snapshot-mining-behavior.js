@@ -5,8 +5,7 @@
  * Pre-computes daily miner sell/hold metrics by checking whether coinbase
  * outputs have been spent (via transaction_inputs.prev_txid lookup).
  *
- * Creates and maintains the `mining_behavior_daily` table:
- *   (date, pool_name, earned_zat, spent_zat, held_zat, blocks_mined, outputs_spent, outputs_total)
+ * Maintains the mining_behavior_daily table.
  *
  * Modes:
  *   node snapshot-mining-behavior.js              — incremental (last 7 days)
@@ -16,8 +15,8 @@
  *   0 5 * * * cd /root/cipherscan/server/jobs && node snapshot-mining-behavior.js >> /var/log/mining-behavior.log 2>&1
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -35,43 +34,6 @@ const LOCK_ID = 839275;
 const BACKFILL_MODE = process.argv.includes('--backfill');
 const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
 const INCREMENTAL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 7;
-
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
-
-async function ensureTable(client) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS mining_behavior_daily (
-      date DATE NOT NULL,
-      pool_name TEXT NOT NULL,
-      miner_address TEXT NOT NULL,
-      earned_zat BIGINT NOT NULL DEFAULT 0,
-      spent_zat BIGINT NOT NULL DEFAULT 0,
-      held_zat BIGINT NOT NULL DEFAULT 0,
-      blocks_mined INTEGER NOT NULL DEFAULT 0,
-      outputs_spent INTEGER NOT NULL DEFAULT 0,
-      outputs_total INTEGER NOT NULL DEFAULT 0,
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      PRIMARY KEY (date, pool_name)
-    )
-  `);
-
-  await client.query(`
-    CREATE INDEX IF NOT EXISTS idx_mining_behavior_date
-    ON mining_behavior_daily (date)
-  `);
-}
-
-async function acquireLock(client) {
-  const result = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_ID]);
-  return result.rows[0].acquired;
-}
-
-async function releaseLock(client) {
-  await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]);
-}
 
 /**
  * Known pool map — mirrors server/api/mining-pools.js
@@ -151,7 +113,6 @@ async function computeDay(client, dateStr) {
     blockMap[row.miner_address] = parseInt(row.blocks);
   }
 
-  // Aggregate by pool name (multiple addresses can map to same pool)
   const poolAgg = {};
   for (const row of result.rows) {
     const poolName = getPoolNameForAddress(row.miner_address);
@@ -173,7 +134,6 @@ async function computeDay(client, dateStr) {
     entry.outputsTotal += parseInt(row.output_count || 0);
   }
 
-  // Upsert into mining_behavior_daily
   await client.query('DELETE FROM mining_behavior_daily WHERE date = $1', [dateStr]);
 
   for (const [poolName, data] of Object.entries(poolAgg)) {
@@ -201,51 +161,43 @@ async function computeDay(client, dateStr) {
 async function run() {
   const client = await pool.connect();
   try {
-    const locked = await acquireLock(client);
-    if (!locked) {
-      log('Another instance is running (advisory lock held). Exiting.');
-      return;
-    }
+    await withAdvisoryLock(client, LOCK_ID, async (client) => {
+      log(`Starting mining behavior snapshot (${BACKFILL_MODE ? 'BACKFILL' : 'incremental'})...`);
 
-    log(`Starting mining behavior snapshot (${BACKFILL_MODE ? 'BACKFILL' : 'incremental'})...`);
-    await ensureTable(client);
-
-    // Determine date range
-    let startDate;
-    if (BACKFILL_MODE) {
-      const earliest = await client.query(
-        `SELECT MIN(date_trunc('day', to_timestamp(timestamp)))::date as min_date FROM blocks WHERE miner_address IS NOT NULL`
-      );
-      startDate = earliest.rows[0]?.min_date || new Date('2016-10-28');
-    } else {
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - INCREMENTAL_DAYS);
-    }
-
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1); // Don't compute today (incomplete)
-
-    let current = new Date(startDate);
-    let daysProcessed = 0;
-
-    while (current <= endDate) {
-      const dateStr = current.toISOString().slice(0, 10);
-      const poolCount = await computeDay(client, dateStr);
-      daysProcessed++;
-
-      if (daysProcessed % 30 === 0 || !BACKFILL_MODE) {
-        log(`  ${dateStr}: ${poolCount} pools`);
+      let startDate;
+      if (BACKFILL_MODE) {
+        const earliest = await client.query(
+          `SELECT MIN(date_trunc('day', to_timestamp(timestamp)))::date as min_date FROM blocks WHERE miner_address IS NOT NULL`
+        );
+        startDate = earliest.rows[0]?.min_date || new Date('2016-10-28');
+      } else {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - INCREMENTAL_DAYS);
       }
 
-      current.setDate(current.getDate() + 1);
-    }
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1);
 
-    log(`Done. Processed ${daysProcessed} days.`);
-    await releaseLock(client);
+      let current = new Date(startDate);
+      let daysProcessed = 0;
+
+      while (current <= endDate) {
+        const dateStr = current.toISOString().slice(0, 10);
+        const poolCount = await computeDay(client, dateStr);
+        daysProcessed++;
+
+        if (daysProcessed % 30 === 0 || !BACKFILL_MODE) {
+          log(`  ${dateStr}: ${poolCount} pools`);
+        }
+
+        current.setDate(current.getDate() + 1);
+      }
+
+      log(`Done. Processed ${daysProcessed} days.`);
+    });
   } catch (error) {
     log(`ERROR: ${error.message}`);
     console.error(error);
-    await releaseLock(client).catch(() => {});
     process.exitCode = 1;
   } finally {
     client.release();

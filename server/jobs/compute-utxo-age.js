@@ -6,40 +6,17 @@
  * coin-days-destroyed (CDD) from spent UTXOs.
  *
  * HODL wave buckets: <1m, 1-3m, 3-6m, 6-12m, 1-2y, 2y+
- * Each bucket stores the total unspent ZEC whose creation falls in that age range.
- *
  * CDD = sum over all spent outputs that day of (value_zec * age_days)
  *
- * Writes to `utxo_age_daily` table (must be created out-of-band before first run).
- *
- * Required DDL (run once manually on the database):
- *
- *   CREATE TABLE IF NOT EXISTS utxo_age_daily (
- *     date DATE PRIMARY KEY,
- *     lt_1m_zat BIGINT DEFAULT 0,
- *     b_1_3m_zat BIGINT DEFAULT 0,
- *     b_3_6m_zat BIGINT DEFAULT 0,
- *     b_6_12m_zat BIGINT DEFAULT 0,
- *     b_1_2y_zat BIGINT DEFAULT 0,
- *     gt_2y_zat BIGINT DEFAULT 0,
- *     total_unspent_zat BIGINT DEFAULT 0,
- *     utxo_count INT DEFAULT 0,
- *     cdd DOUBLE PRECISION DEFAULT 0,
- *     avg_dormancy_days DOUBLE PRECISION DEFAULT 0,
- *     spent_count INT DEFAULT 0,
- *     created_at TIMESTAMPTZ DEFAULT NOW()
- *   );
+ * Writes to utxo_age_daily table (must exist before first run).
  *
  * Modes:
  *   node compute-utxo-age.js              — today only
  *   node compute-utxo-age.js --days=30    — backfill last 30 days
- *
- * Cron (after daily-v3.sh):
- *   45 21 * * * cd /root/cipherscan/server/jobs && node compute-utxo-age.js >> /var/log/utxo-age.log 2>&1
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -56,11 +33,6 @@ const pool = new Pool({
 const LOCK_ID = 839302;
 const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
 const BACKFILL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 1;
-
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
 
 async function computeForDate(client, dateStr) {
   const dateEpoch = Math.floor(new Date(dateStr + 'T23:59:59Z').getTime() / 1000);
@@ -91,7 +63,7 @@ async function computeForDate(client, dateStr) {
   `, [dateEpoch, dateTs]);
 
   // CDD: coin-days destroyed by spends on this date
-  // spent_at is TIMESTAMP — use TIMESTAMP params and EXTRACT(EPOCH FROM ...) for arithmetic
+  // spent_at is TIMESTAMP — use EXTRACT(EPOCH FROM ...) for arithmetic with BIGINT block_time
   const dayStartTs = new Date(dateStr + 'T00:00:00Z');
   const dayEndTs = new Date(dateStr + 'T23:59:59Z');
 
@@ -131,60 +103,51 @@ async function computeForDate(client, dateStr) {
 async function run() {
   const client = await pool.connect();
   try {
-    const lockResult = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_ID]);
-    if (!lockResult.rows[0].acquired) {
-      log('Another instance running — exiting.');
-      return;
-    }
+    await withAdvisoryLock(client, LOCK_ID, async (client) => {
+      const today = new Date();
 
-    const today = new Date();
+      for (let d = 0; d < BACKFILL_DAYS; d++) {
+        const target = new Date(today);
+        target.setDate(target.getDate() - d);
+        const dateStr = target.toISOString().slice(0, 10);
 
-    for (let d = 0; d < BACKFILL_DAYS; d++) {
-      const target = new Date(today);
-      target.setDate(target.getDate() - d);
-      const dateStr = target.toISOString().slice(0, 10);
+        log(`Processing ${dateStr}...`);
+        const start = Date.now();
+        const result = await computeForDate(client, dateStr);
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-      log(`Processing ${dateStr}...`);
-      const start = Date.now();
-      const result = await computeForDate(client, dateStr);
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+        await client.query(`
+          INSERT INTO utxo_age_daily (
+            date, lt_1m_zat, b_1_3m_zat, b_3_6m_zat, b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
+            total_unspent_zat, utxo_count, cdd, avg_dormancy_days, spent_count
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          ON CONFLICT (date) DO UPDATE SET
+            lt_1m_zat = EXCLUDED.lt_1m_zat,
+            b_1_3m_zat = EXCLUDED.b_1_3m_zat,
+            b_3_6m_zat = EXCLUDED.b_3_6m_zat,
+            b_6_12m_zat = EXCLUDED.b_6_12m_zat,
+            b_1_2y_zat = EXCLUDED.b_1_2y_zat,
+            gt_2y_zat = EXCLUDED.gt_2y_zat,
+            total_unspent_zat = EXCLUDED.total_unspent_zat,
+            utxo_count = EXCLUDED.utxo_count,
+            cdd = EXCLUDED.cdd,
+            avg_dormancy_days = EXCLUDED.avg_dormancy_days,
+            spent_count = EXCLUDED.spent_count,
+            created_at = NOW()
+        `, [
+          dateStr,
+          result.lt_1m.toString(), result.b_1_3m.toString(), result.b_3_6m.toString(),
+          result.b_6_12m.toString(), result.b_1_2y.toString(), result.gt_2y.toString(),
+          result.total.toString(), result.utxo_count,
+          result.cdd, result.avg_dormancy, result.spent_count,
+        ]);
 
-      await client.query(`
-        INSERT INTO utxo_age_daily (
-          date, lt_1m_zat, b_1_3m_zat, b_3_6m_zat, b_6_12m_zat, b_1_2y_zat, gt_2y_zat,
-          total_unspent_zat, utxo_count, cdd, avg_dormancy_days, spent_count
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        ON CONFLICT (date) DO UPDATE SET
-          lt_1m_zat = EXCLUDED.lt_1m_zat,
-          b_1_3m_zat = EXCLUDED.b_1_3m_zat,
-          b_3_6m_zat = EXCLUDED.b_3_6m_zat,
-          b_6_12m_zat = EXCLUDED.b_6_12m_zat,
-          b_1_2y_zat = EXCLUDED.b_1_2y_zat,
-          gt_2y_zat = EXCLUDED.gt_2y_zat,
-          total_unspent_zat = EXCLUDED.total_unspent_zat,
-          utxo_count = EXCLUDED.utxo_count,
-          cdd = EXCLUDED.cdd,
-          avg_dormancy_days = EXCLUDED.avg_dormancy_days,
-          spent_count = EXCLUDED.spent_count,
-          created_at = NOW()
-      `, [
-        dateStr,
-        result.lt_1m.toString(), result.b_1_3m.toString(), result.b_3_6m.toString(),
-        result.b_6_12m.toString(), result.b_1_2y.toString(), result.gt_2y.toString(),
-        result.total.toString(), result.utxo_count,
-        result.cdd, result.avg_dormancy, result.spent_count,
-      ]);
+        const totalZec = Number(result.total) / 1e8;
+        log(`  ${dateStr}: ${totalZec.toFixed(0)} ZEC across ${result.utxo_count.toLocaleString()} UTXOs, CDD=${result.cdd.toFixed(0)}, ${elapsed}s`);
+      }
 
-      const totalZec = Number(result.total) / 1e8;
-      log(`  ${dateStr}: ${totalZec.toFixed(0)} ZEC across ${result.utxo_count.toLocaleString()} UTXOs, CDD=${result.cdd.toFixed(0)}, ${elapsed}s`);
-    }
-
-    log(`Done. Processed ${BACKFILL_DAYS} day(s).`);
-    await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]);
-  } catch (err) {
-    log(`ERROR: ${err.message}`);
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]); } catch {}
-    throw err;
+      log(`Done. Processed ${BACKFILL_DAYS} day(s).`);
+    });
   } finally {
     client.release();
     await pool.end();

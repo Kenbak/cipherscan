@@ -6,9 +6,8 @@
  * Usage: node diagnose-missing-txids.js
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const { loadEnv } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 

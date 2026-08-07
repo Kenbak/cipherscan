@@ -18,8 +18,8 @@
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const { log, loadEnv } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -62,10 +62,6 @@ const lookupQuery = process.argv[process.argv.indexOf('--lookup') + 1] || null;
 // Populated on startup from the 1Click /v0/tokens endpoint
 let TOKEN_MAP = {};
 
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
 
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
 

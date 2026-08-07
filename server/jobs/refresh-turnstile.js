@@ -14,8 +14,8 @@
  *   0 4 * * *   cd /root/cipherscan/server/jobs && node refresh-turnstile.js --sweep >> /var/log/refresh-turnstile.log 2>&1
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -41,19 +41,6 @@ const RECENT_HELD_DAYS = 7;
 const SWEEP_WINDOW_DAYS = 120; // daily sweep only re-checks held outputs this recent
 const MAX_AUTO_DATES = 31; // safety cap for non-rebuild runs
 
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
-
-async function acquireLock(client) {
-  const result = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_ID]);
-  return result.rows[0].acquired;
-}
-
-async function releaseLock(client) {
-  await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]);
-}
 
 async function getLastProcessedTime(client) {
   const result = await client.query(
@@ -283,13 +270,7 @@ async function main() {
 
   const client = await pool.connect();
   try {
-    const locked = await acquireLock(client);
-    if (!locked) {
-      log('Another instance is running, skipping.');
-      return;
-    }
-
-    try {
+    await withAdvisoryLock(client, LOCK_ID, async (client) => {
       const lastProcessed = await getLastProcessedTime(client);
       log(`Last processed block_time: ${lastProcessed} (${lastProcessed > 0 ? new Date(lastProcessed * 1000).toISOString().split('T')[0] : 'never'})`);
 
@@ -339,9 +320,7 @@ async function main() {
 
       const elapsed = ((Date.now() - start) / 1000).toFixed(2);
       log(`=== Done in ${elapsed}s ===`);
-    } finally {
-      await releaseLock(client);
-    }
+    });
   } catch (err) {
     log(`ERROR: ${err.message}`);
     console.error(err.stack);

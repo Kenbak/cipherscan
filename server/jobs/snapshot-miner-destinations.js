@@ -21,8 +21,8 @@
  *   15 5 * * * cd /root/cipherscan/server/jobs && node snapshot-miner-destinations.js >> /var/log/miner-destinations.log 2>&1
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
+loadEnv(__dirname);
 
 const { Pool } = require('pg');
 
@@ -39,11 +39,6 @@ const pool = new Pool({
 const LOCK_ID = 839276;
 const DAYS_FLAG = process.argv.find((a) => a.startsWith('--days='));
 const INCREMENTAL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 7;
-
-function log(msg) {
-  const ts = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  console.log(`[${ts}] ${msg}`);
-}
 
 // Mirrors server/api/mining-pools.js / snapshot-mining-behavior.js (synced 2026-06-24)
 const POOL_MAP = {
@@ -70,14 +65,6 @@ function getPoolNameForAddress(address) {
   return POOL_MAP[address] || 'Other';
 }
 
-async function acquireLock(client) {
-  const result = await client.query('SELECT pg_try_advisory_lock($1) AS acquired', [LOCK_ID]);
-  return result.rows[0].acquired;
-}
-
-async function releaseLock(client) {
-  await client.query('SELECT pg_advisory_unlock($1)', [LOCK_ID]);
-}
 
 /**
  * Classify a single day's spent coinbase rewards by destination.
@@ -177,37 +164,31 @@ async function computeDay(client, dateStr) {
 async function run() {
   const client = await pool.connect();
   try {
-    const locked = await acquireLock(client);
-    if (!locked) {
-      log('Another instance is running (advisory lock held). Exiting.');
-      return;
-    }
+    await withAdvisoryLock(client, LOCK_ID, async (client) => {
+      log(`Starting miner destination snapshot (last ${INCREMENTAL_DAYS} days)...`);
 
-    log(`Starting miner destination snapshot (last ${INCREMENTAL_DAYS} days)...`);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - INCREMENTAL_DAYS);
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - 1);
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - INCREMENTAL_DAYS);
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1); // skip today (incomplete)
+      // Process most-recent first so the common short windows (30D/90D) become
+      // accurate quickly during a long backfill.
+      let current = new Date(endDate);
+      let daysProcessed = 0;
+      while (current >= startDate) {
+        const dateStr = current.toISOString().slice(0, 10);
+        const poolCount = await computeDay(client, dateStr);
+        daysProcessed++;
+        if (daysProcessed % 30 === 0) log(`  ${dateStr}: ${poolCount} pools`);
+        current.setDate(current.getDate() - 1);
+      }
 
-    // Process most-recent first so the common short windows (30D/90D) become
-    // accurate quickly during a long backfill.
-    let current = new Date(endDate);
-    let daysProcessed = 0;
-    while (current >= startDate) {
-      const dateStr = current.toISOString().slice(0, 10);
-      const poolCount = await computeDay(client, dateStr);
-      daysProcessed++;
-      if (daysProcessed % 30 === 0) log(`  ${dateStr}: ${poolCount} pools`);
-      current.setDate(current.getDate() - 1);
-    }
-
-    log(`Done. Processed ${daysProcessed} days.`);
-    await releaseLock(client);
+      log(`Done. Processed ${daysProcessed} days.`);
+    });
   } catch (error) {
     log(`ERROR: ${error.message}`);
     console.error(error);
-    await releaseLock(client).catch(() => {});
     process.exitCode = 1;
   } finally {
     client.release();
