@@ -17,16 +17,9 @@ if (fs.existsSync(apiEnvPath)) {
   if (apiEnv.ZEBRA_RPC_URL) process.env.ZEBRA_RPC_URL = apiEnv.ZEBRA_RPC_URL;
 }
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 3,
-});
+const pool = getPool({ max: 3 });
 
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';

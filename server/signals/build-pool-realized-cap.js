@@ -13,17 +13,12 @@
  * Usage: cd server/api && node ../signals/build-pool-realized-cap.js
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
-const { Pool } = require('pg');
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+loadEnv(__dirname);
+
+const pool = getPool();
 
 async function main() {
   console.log('Building pool realized cap from shielded_flows...\n');

@@ -15,21 +15,12 @@
  *  - BOT_DIGEST_HOUR=8 (UTC hour for daily digest, default 8)
  */
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 const { XClient } = require('./lib/x-client');
 const dailyDigest = require('./jobs/daily-digest');
 const realtimeAlerts = require('./jobs/realtime-alerts');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'zcash_explorer_mainnet',
-  user: process.env.DB_USER || 'zcash_user',
-  password: process.env.DB_PASSWORD,
-  max: 5,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 5000,
-});
+const pool = getPool({ max: 5, idleTimeoutMillis: 60000, connectionTimeoutMillis: 5000 });
 
 const dryRun = process.env.BOT_DRY_RUN === '1';
 const digestHour = parseInt(process.env.BOT_DIGEST_HOUR || '20');

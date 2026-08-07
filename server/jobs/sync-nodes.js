@@ -14,18 +14,9 @@ const { parsePeerAddress, parsePeerClient } = require('../lib/peer-client');
 const { loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 
-// PostgreSQL connection
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT ),
-  database: process.env.DB_NAME ,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 2,
-  idleTimeoutMillis: 10000,
-});
+const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
 
 // Configuration from environment
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL;

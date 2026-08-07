@@ -19,13 +19,14 @@
  *   --dry-run      Don't save to database, just print results
  */
 
-const { Pool } = require('pg');
 const crypto = require('crypto');
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
 
-// Import detection functions
+loadEnv(__dirname);
+
 const { detectBatchDeshields } = require('../api/privacy-linkage');
 
-// Parse command line arguments
 const args = process.argv.slice(2).reduce((acc, arg) => {
   const [key, value] = arg.replace('--', '').split('=');
   acc[key] = value === undefined ? true : value;
@@ -39,16 +40,7 @@ const CONFIG = {
   dryRun: args['dry-run'] === true,
 };
 
-// PostgreSQL connection (supports both DB_* and POSTGRES_* env vars)
-const pool = new Pool({
-  host: process.env.DB_HOST || process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5432'),
-  database: process.env.DB_NAME || process.env.POSTGRES_DATABASE || 'zcash_explorer',
-  user: process.env.DB_USER || process.env.POSTGRES_USER || 'postgres',
-  password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || '',
-  max: 2,
-  idleTimeoutMillis: 10000,
-});
+const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
 
 /**
  * Generate a unique hash for a set of txids (for deduplication)

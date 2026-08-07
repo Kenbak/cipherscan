@@ -18,17 +18,9 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 3,
-  idleTimeoutMillis: 30000,
-});
+const pool = getPool({ max: 3 });
 
 const LOCK_ID = 839302;
 const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));

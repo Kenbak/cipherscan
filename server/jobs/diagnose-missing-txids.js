@@ -9,16 +9,9 @@
 const { loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 2,
-});
+const pool = getPool({ max: 2 });
 
 const NEAR_API_BASE = 'https://explorer.near-intents.org/api/v0';
 const API_KEY = process.env.NEAR_INTENTS_API_KEY;

@@ -21,20 +21,11 @@ const fs = require('fs');
 const { log, loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { Pool } = require('pg');
+const { getPool } = require('../lib/db-pool');
 
 const LOCKFILE = path.join(__dirname, '.sync-crosschain.lock');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 2,
-  idleTimeoutMillis: 10000,
-  statement_timeout: 30000,
-});
+const pool = getPool({ max: 2, idleTimeoutMillis: 10000, statement_timeout: 30000 });
 
 process.on('SIGINT', async () => {
   log('SIGINT received — draining pool...');

@@ -17,18 +17,13 @@
  *   node server/signals/engine-v3.js --backfill     # all dates
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
-const { Pool } = require('pg');
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
+
+loadEnv(__dirname);
 const indicators = require('./indicators');
 
-const pgPool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pgPool = getPool();
 
 // --- V3 Configuration ---
 

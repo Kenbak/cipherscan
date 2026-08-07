@@ -6,20 +6,15 @@
  * Cron: 0 8 * * * (daily at 8 AM)
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
-const { Pool } = require('pg');
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
+
+loadEnv(__dirname);
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pool = getPool();
 
 const SIGNAL_EMOJI = {
   STRONG_BUY: '🟢🟢',

@@ -7,17 +7,12 @@
  * Usage: cd server/api && node ../signals/backfill-price-history.js
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
-const { Pool } = require('pg');
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+loadEnv(__dirname);
+
+const pool = getPool();
 
 async function fetchCSV(url) {
   const res = await fetch(url);
@@ -47,7 +42,6 @@ async function main() {
   let totalSkipped = 0;
   let totalErrors = 0;
 
-  // Poloniex: unix,date,symbol,open,high,low,close,Volume ZEC,Volume USDT,...
   console.log('\n--- Fetching Poloniex ZEC/USDT (genesis to ~2025) ---');
   try {
     const lines = await fetchCSV('https://www.cryptodatadownload.com/cdd/Poloniex_ZECUSDT_d.csv');
@@ -59,7 +53,7 @@ async function main() {
 
       const date = cols[1].split(' ')[0];
       const close = parseFloat(cols[6]);
-      const volUsd = parseFloat(cols[8]) || 0; // Volume USDT column
+      const volUsd = parseFloat(cols[8]) || 0;
 
       if (!date || !close || close <= 0 || isNaN(close)) continue;
 
@@ -77,7 +71,6 @@ async function main() {
     console.error(`  Poloniex fetch failed: ${err.message}`);
   }
 
-  // Gemini: unix,date,symbol,open,high,low,close,Volume ZEC,Volume USD
   const beforeGemini = totalInserted;
   const beforeErrors = totalErrors;
   console.log('\n--- Fetching Gemini ZEC/USD (2018 to present) ---');
@@ -91,7 +84,7 @@ async function main() {
 
       const date = cols[1].split(' ')[0];
       const close = parseFloat(cols[6]);
-      const volUsd = parseFloat(cols[8]) || 0; // Volume USD column
+      const volUsd = parseFloat(cols[8]) || 0;
 
       if (!date || !close || close <= 0 || isNaN(close)) continue;
 

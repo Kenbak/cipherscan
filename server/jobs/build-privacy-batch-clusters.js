@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
-require('dotenv').config({ path: path.join(__dirname, '../api/.env') });
+const { loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
 
-const { Pool } = require('pg');
+loadEnv(__dirname);
+
 const {
   computePrivacyBatchClusters,
   upsertPrivacyBatchClusters,
@@ -26,21 +26,7 @@ const CONFIG = {
   dryRun: args['dry-run'] === true,
 };
 
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 2,
-      idleTimeoutMillis: 10000,
-    })
-  : new Pool({
-      host: process.env.DB_HOST || process.env.POSTGRES_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5432', 10),
-      database: process.env.DB_NAME || process.env.POSTGRES_DATABASE || 'zcash_explorer',
-      user: process.env.DB_USER || process.env.POSTGRES_USER || 'postgres',
-      password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || '',
-      max: 2,
-      idleTimeoutMillis: 10000,
-    });
+const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
 
 async function main() {
   const startedAt = Date.now();
