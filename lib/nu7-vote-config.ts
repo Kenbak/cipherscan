@@ -2,7 +2,7 @@ export const NU7_VOTE = {
   title: 'NU7 Coinholder Vote',
   snapshotTime: '2026-08-24T19:00:00Z',
   voteStartTime: '2026-08-25T00:00:00Z',
-  voteEndTime: '2026-09-12T19:00:00Z',
+  voteEndTime: '2026-09-14T19:00:00Z',
   legitimacyThreshold: 1_000_000,
   forumUrl: 'https://forum.zcashcommunity.com/t/nu7-token-holder-vote/56912',
 } as const;
