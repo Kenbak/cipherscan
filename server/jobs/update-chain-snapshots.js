@@ -6,54 +6,15 @@
  *   0 * * * * cd /root/cipherscan/server/jobs && node update-chain-snapshots.js >> /var/log/chain-snapshots.log 2>&1
  */
 
-const path = require('path');
-const fs = require('fs');
-const dotenv = require('dotenv');
-
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const apiEnvPath = path.join(__dirname, '../api/.env');
-if (fs.existsSync(apiEnvPath)) {
-  const apiEnv = dotenv.parse(fs.readFileSync(apiEnvPath));
-  if (apiEnv.ZEBRA_RPC_URL) process.env.ZEBRA_RPC_URL = apiEnv.ZEBRA_RPC_URL;
-}
-
+const { log, loadEnv } = require('../lib/job-utils');
 const { getPool } = require('../lib/db-pool');
+const { callZebraRPC } = require('../lib/zebra-rpc');
+
+loadEnv(__dirname);
 
 const pool = getPool({ max: 3 });
 
-const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
-const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
-const isLocalZebraRpc = () => /localhost|127\.0\.0\.1/.test(ZEBRA_RPC_URL);
 const RETENTION_DAYS = 400;
-
-function log(msg) {
-  console.log(`[${new Date().toISOString().slice(11, 19)}] ${msg}`);
-}
-
-async function callZebraRPC(method, params = []) {
-  let auth = '';
-  if (isLocalZebraRpc()) {
-    try {
-      const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
-      auth = `Basic ${Buffer.from(cookie).toString('base64')}`;
-    } catch {
-      // no auth
-    }
-  }
-
-  const headers = { 'Content-Type': 'application/json' };
-  if (auth) headers.Authorization = auth;
-
-  const response = await fetch(ZEBRA_RPC_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ jsonrpc: '2.0', id: 'chain-snapshot', method, params }),
-  });
-
-  const data = await response.json();
-  if (data.error) throw new Error(`Zebra RPC error: ${data.error.message}`);
-  return data.result;
-}
 
 async function main() {
   log('=== Chain Snapshot ===');

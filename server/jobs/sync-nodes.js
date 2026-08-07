@@ -5,97 +5,16 @@
  * Schedule every 15 minutes via server/deploy/crontab.production.
  */
 
-const path = require('path');
-const fs = require('fs');
-const https = require('https');
-const http = require('http');
 const { parsePeerAddress, parsePeerClient } = require('../lib/peer-client');
-
 const { loadEnv } = require('../lib/job-utils');
-loadEnv(__dirname);
-
 const { getPool } = require('../lib/db-pool');
+const { callZebraRPC } = require('../lib/zebra-rpc');
+
+loadEnv(__dirname);
 
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
 
-// Configuration from environment
-const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL;
-const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE;
-const INACTIVE_THRESHOLD_HOURS = 24; // Mark nodes inactive after 24h
-
-// Validate required env vars
-if (!ZEBRA_RPC_URL || !ZEBRA_COOKIE_FILE) {
-  console.error('❌ Missing required environment variables:');
-  if (!ZEBRA_RPC_URL) console.error('   - ZEBRA_RPC_URL');
-  if (!ZEBRA_COOKIE_FILE) console.error('   - ZEBRA_RPC_COOKIE_FILE');
-  process.exit(1);
-}
-
-console.log(`📁 Cookie file: ${ZEBRA_COOKIE_FILE}`);
-console.log(`🔗 Zebra RPC: ${ZEBRA_RPC_URL}`);
-
-/**
- * Call Zebra RPC with cookie authentication
- */
-async function callZebraRPC(method, params = []) {
-  // Read cookie from file
-  let auth = '';
-  try {
-    const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
-    auth = Buffer.from(cookie).toString('base64');
-  } catch (err) {
-    console.error('❌ Could not read Zebra cookie file:', err.message);
-    throw err;
-  }
-
-  const requestBody = JSON.stringify({
-    jsonrpc: '2.0',
-    id: 'node-sync',
-    method,
-    params,
-  });
-
-  const url = new URL(ZEBRA_RPC_URL);
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: url.hostname,
-      port: url.port,
-      path: url.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': requestBody.length,
-        'Authorization': `Basic ${auth}`,
-      },
-    };
-
-    const protocol = url.protocol === 'https:' ? https : http;
-    const req = protocol.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data);
-          if (response.error) {
-            reject(new Error(response.error.message || 'RPC error'));
-          } else {
-            resolve(response.result);
-          }
-        } catch (error) {
-          reject(new Error(`Failed to parse RPC response: ${error.message}`));
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(new Error(`RPC request failed: ${error.message}`));
-    });
-
-    req.write(requestBody);
-    req.end();
-  });
-}
+const INACTIVE_THRESHOLD_HOURS = 24;
 
 /**
  * Batch GeoIP lookup using ip-api.com (free tier: 45 req/min, 100 IPs per batch).

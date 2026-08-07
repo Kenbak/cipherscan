@@ -13,58 +13,17 @@
  *   0 * * * * cd /root/cipherscan/server/jobs && node update-privacy-stats.js >> /var/log/privacy-stats.log 2>&1
  */
 
-const path = require('path');
-const fs = require('fs');
-const dotenv = require('dotenv');
+const { log, loadEnv } = require('../lib/job-utils');
+const { getPool } = require('../lib/db-pool');
+const { callZebraRPC } = require('../lib/zebra-rpc');
 
-// DB creds from jobs/.env; Zebra RPC from api/.env (fully-synced remote node).
-// jobs/.env must not override ZEBRA_RPC_URL — localhost is often mid-resync.
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const apiEnvPath = path.join(__dirname, '../api/.env');
-if (fs.existsSync(apiEnvPath)) {
-  const apiEnv = dotenv.parse(fs.readFileSync(apiEnvPath));
-  if (apiEnv.ZEBRA_RPC_URL) process.env.ZEBRA_RPC_URL = apiEnv.ZEBRA_RPC_URL;
-}
+loadEnv(__dirname);
 
 const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../lib/privacy-score');
-const { getPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
 
-const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
-const ZEBRA_COOKIE_FILE = process.env.ZEBRA_RPC_COOKIE_FILE || '/root/.cache/zebra/.cookie';
-const POOL_DROP_THRESHOLD = 0.8; // skip if shielded pool falls more than 20% vs prior day
-const isLocalZebraRpc = () => /localhost|127\.0\.0\.1/.test(ZEBRA_RPC_URL);
-
-function log(msg) {
-  const ts = new Date().toISOString().slice(11, 19);
-  console.log(`[${ts}] ${msg}`);
-}
-
-async function callZebraRPC(method, params = []) {
-  let auth = '';
-  if (isLocalZebraRpc()) {
-    try {
-      const cookie = fs.readFileSync(ZEBRA_COOKIE_FILE, 'utf8').trim();
-      auth = 'Basic ' + Buffer.from(cookie).toString('base64');
-    } catch {
-      // try without auth
-    }
-  }
-
-  const headers = { 'Content-Type': 'application/json' };
-  if (auth) headers['Authorization'] = auth;
-
-  const response = await fetch(ZEBRA_RPC_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ jsonrpc: '2.0', id: 'privacy-stats', method, params }),
-  });
-
-  const data = await response.json();
-  if (data.error) throw new Error(`Zebra RPC error: ${data.error.message}`);
-  return data.result;
-}
+const POOL_DROP_THRESHOLD = 0.8;
 
 function assertZebraSynced(blockchainInfo) {
   const progress = Number(blockchainInfo.verificationprogress ?? 0);
