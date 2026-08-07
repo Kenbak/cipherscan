@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from './ChartCard';
 
 function ChartEmptyState({ message }: { message: string }) {
@@ -20,25 +20,18 @@ function ChartEmptyState({ message }: { message: string }) {
 export function NetworkHistoryCharts() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [sizePoints, setSizePoints] = useState<{ time: string; sizeGB: number }[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/network/chain-size-history?period=1y`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((size) => {
-        if (size?.points?.length) {
-          setSizePoints(
-            size.points.map((p: { time: string; sizeGB: number }) => ({
-              time: new Date(p.time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              sizeGB: p.sizeGB,
-            }))
-          );
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, loading } = useApiQuery<{ points: { time: string; sizeGB: number }[] }>(
+    '/api/network/chain-size-history',
+    { period: '1y' },
+  );
+  const sizePoints = useMemo(
+    () => (data?.points ?? []).map((p) => ({
+      time: new Date(p.time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      sizeGB: p.sizeGB,
+    })),
+    [data],
+  );
 
   return (
     <ChartCard title="BLOCKCHAIN_SIZE" height={260} watermarkSize="sm">

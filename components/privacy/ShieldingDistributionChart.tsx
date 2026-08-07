@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,9 +10,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodSelector, Period } from './PeriodSelector';
 import {
@@ -49,20 +49,13 @@ export function ShieldingDistributionChart() {
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
   const [mode, setMode] = useState<ViewMode>('count');
-  const [data, setData] = useState<Bucket[]>([]);
-  const [loading, setLoading] = useState(true);
   const yLabel = mode === 'count' ? 'Transactions' : 'ZEC volume';
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${getApiUrl()}/api/analytics/shielding-distribution?period=${period}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((res) => {
-        if (res?.buckets) setData(res.buckets);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [period]);
+  const { data: res, loading } = useApiQuery<{ buckets: Bucket[] }>(
+    '/api/analytics/shielding-distribution',
+    { period },
+  );
+  const data = res?.buckets ?? [];
 
   const chartData = data.map((b) => ({
     label: `${b.label} ZEC`,

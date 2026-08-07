@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,10 +10,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { CURRENCY } from '@/lib/config';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from '@/components/network/ChartCard';
 import { PeriodSelector, Period } from './PeriodSelector';
 import {
@@ -36,19 +36,12 @@ export function AnonymitySetChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
-  const [data, setData] = useState<Threshold[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${getApiUrl()}/api/analytics/anonymity-set?period=${period}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((res) => {
-        if (res?.thresholds) setData(res.thresholds);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [period]);
+  const { data: res, loading } = useApiQuery<{ thresholds: Threshold[] }>(
+    '/api/analytics/anonymity-set',
+    { period },
+  );
+  const data = res?.thresholds ?? [];
 
   const chartData = data.map((t) => ({
     label: formatZec(t.thresholdZec),

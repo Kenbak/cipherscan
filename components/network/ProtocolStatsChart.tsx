@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from './ChartCard';
 
 interface RawPoint {
@@ -34,28 +34,19 @@ type Period = '2y' | '4y' | 'all';
 export function ProtocolStatsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
-  const [rawData, setRawData] = useState<RawPoint[]>([]);
-  const [current, setCurrent] = useState<RawPoint | null>(null);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
   const [period, setPeriod] = useState<Period>('4y');
 
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/network/protocol-stats`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.success) {
-          setCurrent(d.current);
-          // Filter out months before any meaningful data exists
-          const meaningful = (d.history || []).filter((p: RawPoint) =>
-            p.saplingCommitments > 0 || p.orchardCommitments > 0 || p.ironwoodCommitments > 0
-          );
-          setRawData(meaningful);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: apiData, loading } = useApiQuery<{ success: boolean; current: RawPoint; history: RawPoint[] }>(
+    '/api/network/protocol-stats',
+  );
+  const current = apiData?.current ?? null;
+  const rawData = useMemo(
+    () => (apiData?.history ?? []).filter((p) =>
+      p.saplingCommitments > 0 || p.orchardCommitments > 0 || p.ironwoodCommitments > 0
+    ),
+    [apiData],
+  );
 
   const data: ChartPoint[] = useMemo(() => {
     if (!rawData.length) return [];

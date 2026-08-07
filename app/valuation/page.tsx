@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   ResponsiveContainer,
@@ -14,7 +14,7 @@ import {
   Legend,
   ReferenceLine,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader, MetricCard } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -106,36 +106,22 @@ export default function ValuationPage() {
   const { theme } = useTheme();
   const colors = getChartColors((theme as 'dark' | 'light') || 'dark');
 
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [hodlWaves, setHodlWaves] = useState<HodlPoint[]>([]);
-  const [dormancy, setDormancy] = useState<DormancyPoint[]>([]);
   const [period, setPeriod] = useState<string>('1y');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/valuation/snapshot`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d?.mvrv != null) setSnapshot(d); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const api = getApiUrl();
-    Promise.all([
-      fetch(`${api}/api/valuation/history?period=${period}`).then(r => r.ok ? r.json() : null),
-      fetch(`${api}/api/valuation/hodl-waves?period=${period}`).then(r => r.ok ? r.json() : null),
-      fetch(`${api}/api/valuation/dormancy?period=${period}`).then(r => r.ok ? r.json() : null),
-    ])
-      .then(([hist, hodl, dorm]) => {
-        if (hist?.points) setHistory(hist.points);
-        if (hodl?.points) setHodlWaves(hodl.points);
-        if (dorm?.points) setDormancy(dorm.points);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [period]);
+  const { data: snapshot } = useApiQuery<Snapshot>('/api/valuation/snapshot');
+  const { data: histRes, loading: histLoading } = useApiQuery<{ points: HistoryPoint[] }>(
+    '/api/valuation/history', { period },
+  );
+  const { data: hodlRes, loading: hodlLoading } = useApiQuery<{ points: HodlPoint[] }>(
+    '/api/valuation/hodl-waves', { period },
+  );
+  const { data: dormRes, loading: dormLoading } = useApiQuery<{ points: DormancyPoint[] }>(
+    '/api/valuation/dormancy', { period },
+  );
+  const history = histRes?.points ?? [];
+  const hodlWaves = hodlRes?.points ?? [];
+  const dormancy = dormRes?.points ?? [];
+  const loading = histLoading || hodlLoading || dormLoading;
 
   const mvrvInfo = snapshot ? mvrvLabel(snapshot.mvrv) : null;
 

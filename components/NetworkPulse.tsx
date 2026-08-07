@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, memo } from 'react';
+import { memo } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/lib/api-config';
+import { useApiQuery } from '@/hooks/useApiQuery';
 
 interface PulseEvent {
   date: string;
@@ -26,14 +26,7 @@ const SEVERITY_STYLE: Record<string, { dot: string; text: string }> = {
 };
 
 function NetworkPulseInner() {
-  const [summary, setSummary] = useState<PulseSummary | null>(null);
-
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/pulse/summary`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d?.recent) setSummary(d); })
-      .catch(() => {});
-  }, []);
+  const { data: summary } = useApiQuery<PulseSummary>('/api/pulse/summary');
 
   if (!summary) {
     return (

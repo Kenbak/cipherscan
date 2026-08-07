@@ -13,10 +13,10 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact } from '@/lib/format-numbers';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
 import { formatChartDate, tooltipDate } from '@/lib/chart-dates';
 import { privacyAxisLabel } from '@/components/privacy/privacy-chart-axis';
@@ -207,22 +207,14 @@ export function PoolDistributionChart() {
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('all');
   const [view, setView] = useState<View>('pools');
-  const [points, setPoints] = useState<PoolPoint[]>([]);
-  const [hasPerPoolHistory, setHasPerPoolHistory] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${getApiUrl()}/api/network/pool-history?period=${period}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.points) setPoints(data.points);
-        setHasPerPoolHistory(!!data?.hasVerifiedPerPoolBreakdown);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [period]);
+  const { data: apiRes, loading } = useApiQuery<{ points: PoolPoint[]; hasVerifiedPerPoolBreakdown?: boolean }>(
+    '/api/network/pool-history',
+    { period },
+  );
+  const points = apiRes?.points ?? [];
+  const hasPerPoolHistory = !!apiRes?.hasVerifiedPerPoolBreakdown;
 
   const canShowPools =
     hasPerPoolHistory || points.some((p) => p.orchard > 0 || (p as PoolPoint).ironwood > 0);

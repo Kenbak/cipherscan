@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatZecCompact, zatToZec } from '@/lib/format-numbers';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
 import { SupplyTreemap } from './SupplyTreemap';
 import { SupplyTimelineScrubber } from './SupplyTimelineScrubber';
@@ -140,26 +140,21 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
   const colors = getChartColors(theme);
   const [hoveredKey, setHoveredKey] = useState<SupplyPoolKey | null>(null);
   const [pinnedShielded, setPinnedShielded] = useState(false);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [coverageStart, setCoverageStart] = useState<string | null>(null);
   const [mode, setMode] = useState<ScrubMode>('live');
   const [scrubIndex, setScrubIndex] = useState(0);
 
   const { current, deltas } = data;
 
+  const { data: historyRes } = useApiQuery<{ points: HistoryPoint[]; coverageStart?: string }>(
+    '/api/network/pool-history',
+    { period: 'all' },
+  );
+  const history = historyRes?.points ?? [];
+  const coverageStart = historyRes?.coverageStart ?? null;
+
   useEffect(() => {
-    fetch(`${getApiUrl()}/api/network/pool-history?period=all`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        const pts = (json?.points ?? []) as HistoryPoint[];
-        if (pts.length) {
-          setHistory(pts);
-          setScrubIndex(pts.length - 1);
-        }
-        setCoverageStart(typeof json?.coverageStart === 'string' ? json.coverageStart : null);
-      })
-      .catch(() => {});
-  }, []);
+    if (history.length) setScrubIndex(history.length - 1);
+  }, [history.length]);
 
   const liveSnapshot = useMemo(
     () => ({

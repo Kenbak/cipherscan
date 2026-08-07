@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { getApiUrl } from '@/lib/api-config';
+import { useState } from 'react';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { PageHeader, SectionHeader } from '@/components/ui';
 import { Card, CardBody } from '@/components/ui/Card';
 
@@ -47,36 +47,17 @@ const METRIC_LABELS: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PulsePage() {
-  const [events, setEvents] = useState<PulseEvent[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [severity, setSeverity] = useState<Severity>('all');
   const [page, setPage] = useState(0);
   const pageSize = 30;
 
-  const fetchEvents = useCallback(() => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      days: String(days),
-      limit: String(pageSize),
-      offset: String(page * pageSize),
-    });
-    fetch(`${getApiUrl()}/api/pulse?${params}`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
-        if (d?.events) {
-          setEvents(d.events);
-          setTotal(d.total);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [days, page]);
-
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+  const { data: pulseData, loading } = useApiQuery<{ events: PulseEvent[]; total: number }>(
+    '/api/pulse',
+    { days, limit: pageSize, offset: page * pageSize },
+  );
+  const events = pulseData?.events ?? [];
+  const total = pulseData?.total ?? 0;
 
   const filtered = severity === 'all' ? events : events.filter(e => e.severity === severity);
 

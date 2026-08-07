@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/lib/api-config';
 import { formatRelativeTime } from '@/lib/format-numbers';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { DataTable, EmptyState, SectionHeader, type DataTableColumn } from '@/components/ui';
 
 interface RecentBlock {
@@ -64,18 +63,11 @@ const columns: DataTableColumn<RecentBlock>[] = [
 ];
 
 export function RecentBlocksTable() {
-  const [blocks, setBlocks] = useState<RecentBlock[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/network/blocks/recent?limit=15`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.blocks) setBlocks(data.blocks);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, loading } = useApiQuery<{ blocks: RecentBlock[] }>(
+    '/api/network/blocks/recent',
+    { limit: 15 },
+  );
+  const blocks = data?.blocks ?? [];
 
   return (
     <div>

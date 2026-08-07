@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -13,12 +13,12 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatChartDate } from '@/lib/chart-dates';
 import { getFlowColors } from '@/lib/flow-colors';
 import { formatZecCompact } from '@/lib/format-numbers';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ShareableCard } from '@/components/ShareableCard';
 import { PeriodPillTags } from '@/components/ui/PeriodPillTags';
 
@@ -96,27 +96,16 @@ export function FlowVolumeChart() {
   const flowColors = getFlowColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
   const [poolFilter, setPoolFilter] = useState<PoolFilter>('all');
-  const [points, setPoints] = useState<FlowPoint[]>([]);
-  const [loading, setLoading] = useState(true);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${getApiUrl()}/api/pools/flows?period=${period}&pool=${poolFilter}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.points) {
-          setPoints(
-            data.points.map((p: FlowPoint) => ({
-              ...p,
-              deshield: -Math.abs(p.deshield),
-            })),
-          );
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [period, poolFilter]);
+  const { data: apiRes, loading } = useApiQuery<{ points: FlowPoint[] }>(
+    '/api/pools/flows',
+    { period, pool: poolFilter },
+  );
+  const points = useMemo(
+    () => (apiRes?.points ?? []).map((p) => ({ ...p, deshield: -Math.abs(p.deshield) })),
+    [apiRes],
+  );
 
   const poolLabel = POOL_OPTIONS.find((p) => p.key === poolFilter)?.label ?? 'All';
   const shareText = `Zcash shielding and deshielding flow (${poolLabel}, ${period.toUpperCase()}) on CipherScan.\n\nhttps://cipherscan.app/pools#flows`;

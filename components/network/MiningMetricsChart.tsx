@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { formatDifficulty, formatHashrate } from '@/lib/format-numbers';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from './ChartCard';
 
 type MetricKey = 'solrate' | 'difficulty' | 'blockTime' | 'txFees' | 'txCount';
@@ -20,24 +20,24 @@ const METRICS: { key: MetricKey; label: string; color: string; format: (v: numbe
   { key: 'txCount', label: 'TX count', color: 'cyan', format: (v) => v.toFixed(1) },
 ];
 
+interface MiningMetricsData {
+  points?: { height: number; solrate: number; difficulty: number; blockTime: number; txFees: number; txCount: number }[];
+  latest?: Record<string, number>;
+  window?: number;
+}
+
 export function MiningMetricsChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [active, setActive] = useState<MetricKey>('solrate');
-  const [points, setPoints] = useState<{ height: number; solrate: number; difficulty: number; blockTime: number; txFees: number; txCount: number }[]>([]);
-  const [latest, setLatest] = useState<Record<string, number>>({});
   const [window, setWindow] = useState(20);
 
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/network/mining-metrics?window=${window}&limit=120`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.points) setPoints(data.points);
-        if (data?.latest) setLatest(data.latest);
-        if (data?.window) setWindow(data.window);
-      })
-      .catch(() => {});
-  }, [window]);
+  const { data } = useApiQuery<MiningMetricsData>(
+    '/api/network/mining-metrics',
+    { window, limit: 120 },
+  );
+  const points = data?.points ?? [];
+  const latest = data?.latest ?? {};
 
   const metric = METRICS.find((m) => m.key === active)!;
   const stroke = metric.color === 'cyan' ? colors.cyan : metric.color === 'yellow' ? colors.yellow : metric.color === 'green' ? colors.orchard : colors.purple;

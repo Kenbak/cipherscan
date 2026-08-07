@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from './ChartCard';
 
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
@@ -28,19 +28,12 @@ export function FeeDistributionChart() {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
-  const [data, setData] = useState<DayFees[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${getApiUrl()}/api/network/fee-distribution?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(res => {
-        if (res?.daily) setData(res.daily);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [period]);
+  const { data: res, loading } = useApiQuery<{ daily: DayFees[] }>(
+    '/api/network/fee-distribution',
+    { period },
+  );
+  const data = res?.daily ?? [];
 
   const chartData = data.map(d => ({
     date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
