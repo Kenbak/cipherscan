@@ -17,8 +17,8 @@
 const fs = require('fs');
 const queries = require('../lib/queries');
 const { DEFAULT_CONFIG, isExceptionalFlow, checkMilestone, computePercentileRank } = require('../lib/thresholds');
-const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert } = require('../lib/formatter');
-const { renderLargeFlow, renderCrossChain, renderMilestone, renderPrivacyRisk } = require('../lib/card-renderer');
+const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert, formatMigrationAlert } = require('../lib/formatter');
+const { renderLargeFlow, renderCrossChain, renderMilestone, renderMigration, renderPrivacyRisk } = require('../lib/card-renderer');
 
 function cleanup(filePath) {
   if (filePath) try { fs.unlinkSync(filePath); } catch { /* ignore */ }
@@ -109,6 +109,84 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     }
   } catch (err) {
     logger.error(`[Alerts] Large flow check failed: ${err.message}`);
+  }
+
+  // ─── 1b. Pool migration alerts (>= 10K ZEC) ─────────────────────────────
+  try {
+    const since = Math.floor(Date.now() / 1000) - 300;
+    const migrations = await queries.getLargeMigrations(pool, {
+      minZat: 10_000_00000000, // >= 10,000 ZEC
+      since,
+    });
+
+    for (const mig of migrations) {
+      const dedupKey = `migration:${mig.txid}`;
+      if (await queries.isDuplicate(pool, dedupKey)) continue;
+
+      let priceUsd = null;
+      try {
+        const { rows } = await pool.query(`SELECT price FROM zec_price_daily ORDER BY date DESC LIMIT 1`);
+        priceUsd = rows[0]?.price ? Number(rows[0].price) : null;
+      } catch { /* non-critical */ }
+
+      let orchardLeftZat = null;
+      let ironwoodBalZat = null;
+      let migrated24hZat = null;
+      let orchardToIronwoodPct = null;
+      try {
+        const ironwood = await queries.getIronwoodStats(pool);
+        orchardLeftZat = ironwood.orchardBalanceZat || null;
+        ironwoodBalZat = ironwood.poolSizeZat || null;
+        orchardToIronwoodPct = ironwood.orchardToIronwoodPct || null;
+
+        const { rows: mig24h } = await pool.query(`
+          SELECT COALESCE(SUM(ABS(value_balance_ironwood)), 0) as total
+          FROM transactions
+          WHERE block_time >= $1
+            AND vin_count = 0 AND vout_count = 0
+            AND value_balance_orchard > 0 AND value_balance_ironwood < 0
+        `, [Math.floor(Date.now() / 1000) - 86400]);
+        migrated24hZat = Number(mig24h[0]?.total || 0);
+      } catch { /* non-critical */ }
+
+      const content = formatMigrationAlert({
+        amountZat: mig.amountZat,
+        fromPool: mig.fromPool,
+        toPool: mig.toPool,
+        txid: mig.txid,
+        priceUsd,
+      });
+
+      const outboxId = await queries.insertOutboxEntry(pool, {
+        postType: 'migration_alert',
+        dedupKey,
+        content,
+        metadata: { ...mig, priceUsd },
+        status: xClient.dryRun ? 'dry_run' : 'pending',
+      });
+
+      if (outboxId) {
+        try {
+          const result = await postWithCard(xClient, content, renderMigration, {
+            amountZat: mig.amountZat,
+            fromPool: mig.fromPool,
+            toPool: mig.toPool,
+            txid: mig.txid,
+            orchardLeftZat,
+            ironwoodBalZat,
+            migrated24hZat,
+            orchardToIronwoodPct,
+            priceUsd,
+          }, logger);
+          await queries.markPosted(pool, outboxId, result.id);
+          results.push({ type: 'migration', txid: mig.txid, postId: result.id });
+        } catch (err) {
+          await queries.markFailed(pool, outboxId, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`[Alerts] Migration check failed: ${err.message}`);
   }
 
   // ─── 2. Ironwood milestones ──────────────────────────────────────────────

@@ -539,6 +539,129 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct, orchardTo
   return saveTempPng(canvas);
 }
 
+// ─── 4b. Pool Migration ──────────────────────────────────────────────────────
+
+async function renderMigration({ amountZat, fromPool, toPool, txid, orchardLeftZat, ironwoodBalZat, migrated24hZat, orchardToIronwoodPct, priceUsd }) {
+  ensureFonts();
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  drawBase(ctx, C.yellow);
+
+  const zec = amountZat / 1e8;
+  const pct = orchardToIronwoodPct || 0;
+
+  // ─── Terminal-style protocol header ─────────────────────────────────────
+  // Bracket border (left + top)
+  ctx.strokeStyle = C.yellow;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(PAD - 12, 46);
+  ctx.lineTo(PAD - 12, 34);
+  ctx.lineTo(PAD + 4, 34);
+  ctx.stroke();
+
+  ctx.font = 'bold 13px GeistMono';
+  ctx.fillStyle = C.yellow;
+  ctx.fillText('CIPHERSCAN://', PAD, 48);
+  ctx.fillStyle = C.textPrimary;
+  ctx.fillText('POOL_MIGRATION', PAD + ctx.measureText('CIPHERSCAN:// ').width + 2, 48);
+
+  // Status indicator (right side)
+  ctx.fillStyle = C.green;
+  ctx.beginPath();
+  ctx.arc(W - PAD - 80, 44, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = 'normal 11px GeistMono';
+  ctx.fillStyle = C.textSecondary;
+  ctx.fillText('MAINNET · LIVE', W - PAD - 70, 48);
+
+  // ─── Flow direction label ───────────────────────────────────────────────
+  ctx.font = 'normal 12px GeistMono';
+  ctx.fillStyle = C.yellow;
+  ctx.fillText(`${fromPool.toUpperCase()} → ${toPool.toUpperCase()}`, PAD, 100);
+
+  // ─── Hero amount ────────────────────────────────────────────────────────
+  const heroStr = zec >= 1000 ? `${(zec / 1000).toFixed(1)}K` : zec.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  ctx.font = 'bold 96px Geist';
+  ctx.fillStyle = C.textPrimary;
+  ctx.fillText(`${heroStr} ZEC`, PAD, 210);
+
+  // USD value below
+  if (priceUsd) {
+    const usd = zec * priceUsd;
+    ctx.font = '500 28px Geist';
+    ctx.fillStyle = C.textSecondary;
+    ctx.fillText(fmtUsd(usd), PAD, 255);
+  }
+
+  // ─── Progress bar ──────────────────────────────────────────────────────
+  const barY = 310;
+  const barH = 14;
+  const barW = W - PAD * 2;
+
+  // Track
+  roundedRect(ctx, PAD, barY, barW, barH, barH / 2);
+  ctx.fillStyle = 'rgba(30, 41, 59, 0.4)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(244, 183, 40, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Fill
+  const fillW = Math.max(barH, barW * Math.min(pct / 100, 1));
+  roundedRect(ctx, PAD, barY, fillW, barH, barH / 2);
+  ctx.fillStyle = C.yellow;
+  ctx.fill();
+
+  // Label above bar (right-aligned to fill)
+  ctx.font = 'bold 13px GeistMono';
+  ctx.fillStyle = C.textSecondary;
+  ctx.fillText('ORCHARD MIGRATED', PAD, barY - 10);
+  ctx.fillStyle = C.yellow;
+  const pctLabel = `${fmtZec(ironwoodBalZat || amountZat)} ZEC · ${pct.toFixed(1)}%`;
+  const pctLabelW = ctx.measureText(pctLabel).width;
+  ctx.fillText(pctLabel, W - PAD - pctLabelW, barY - 10);
+
+  // ─── Stat boxes at bottom ──────────────────────────────────────────────
+  const statsY = barY + 50;
+  const statBoxW = Math.floor((barW - 20) / 3);
+  const stats = [
+    { label: 'ORCHARD LEFT', value: `${fmtZec((orchardLeftZat || 0))} ZEC` },
+    { label: 'IRONWOOD BAL', value: `${fmtZec((ironwoodBalZat || 0))} ZEC` },
+    { label: 'MIGRATED · 24H', value: `${fmtZec((migrated24hZat || amountZat))} ZEC` },
+  ];
+
+  stats.forEach((stat, i) => {
+    const x = PAD + i * (statBoxW + 10);
+    // Border box
+    roundedRect(ctx, x, statsY, statBoxW, 56, 6);
+    ctx.strokeStyle = 'rgba(244, 183, 40, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Label
+    ctx.font = 'normal 10px GeistMono';
+    ctx.fillStyle = C.textMuted;
+    ctx.fillText(`> ${stat.label}`, x + 14, statsY + 22);
+
+    // Value
+    ctx.font = 'bold 14px GeistMono';
+    ctx.fillStyle = C.yellow;
+    ctx.fillText(stat.value, x + 14, statsY + 42);
+  });
+
+  // ─── Footer ─────────────────────────────────────────────────────────────
+  const footerY = H - 36;
+  ctx.font = 'normal 10px GeistMono';
+  ctx.fillStyle = C.textMuted;
+  const timeStr = `AS OF ${new Date().toUTCString().replace('GMT', 'UTC').toUpperCase()}`;
+  const timeW = ctx.measureText(timeStr).width;
+  ctx.fillText(timeStr, W - PAD - timeW, footerY);
+
+  await drawFooter(ctx, 'cipherscan.app/ironwood');
+  return saveTempPng(canvas);
+}
+
 // ─── 5. Privacy Risk ──────────────────────────────────────────────────────────
 
 async function renderPrivacyRisk({ highLinkages, batchClusters }) {
@@ -600,5 +723,6 @@ module.exports = {
   renderLargeFlow,
   renderCrossChain,
   renderMilestone,
+  renderMigration,
   renderPrivacyRisk,
 };

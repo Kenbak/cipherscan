@@ -185,6 +185,26 @@ function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, z
   return lines.join('\n');
 }
 
+// ─── Pool Migration Alert ─────────────────────────────────────────────────
+
+function formatMigrationAlert({ amountZat, fromPool, toPool, txid, priceUsd }) {
+  const zec = amountZat / 1e8;
+  let amountStr = fmtZec(amountZat);
+  if (priceUsd) {
+    const usd = zec * priceUsd;
+    const usdStr = usd >= 1_000_000 ? `$${(usd / 1_000_000).toFixed(2)}M` : `$${(usd / 1_000).toFixed(0)}K`;
+    amountStr += ` (${usdStr})`;
+  }
+  const lines = [
+    `🔄 Migration Alert`,
+    ``,
+    `${amountStr} migrated from ${fromPool} → ${toPool}.`,
+    ``,
+    `${BASE_URL}/tx/${txid}`,
+  ];
+  return lines.join('\n');
+}
+
 // ─── Privacy Risk Alert ───────────────────────────────────────────────────
 
 function formatPrivacyRiskAlert({ highLinkages, batchClusters }) {
@@ -210,6 +230,7 @@ module.exports = {
   formatDailyDigest,
   formatLargeFlowAlert,
   formatIronwoodMilestone,
+  formatMigrationAlert,
   formatReorgAlert,
   formatChainStall,
   formatChainRecovery,

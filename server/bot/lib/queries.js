@@ -331,6 +331,33 @@ async function markFailed(pool, id, errorMessage) {
   `, [id, errorMessage]);
 }
 
+// ─── Pool migration alerts ───────────────────────────────────────────────────
+
+async function getLargeMigrations(pool, { minZat, since }) {
+  const { rows } = await pool.query(`
+    SELECT t.txid, t.block_height, t.block_time,
+           t.value_balance_orchard, t.value_balance_ironwood,
+           ABS(t.value_balance_ironwood) as amount_zat
+    FROM transactions t
+    WHERE t.block_time >= $1
+      AND t.vin_count = 0
+      AND t.vout_count = 0
+      AND t.value_balance_orchard > 0
+      AND t.value_balance_ironwood < 0
+      AND ABS(t.value_balance_ironwood) >= $2
+    ORDER BY ABS(t.value_balance_ironwood) DESC
+    LIMIT 20
+  `, [since, minZat]);
+  return rows.map(r => ({
+    txid: r.txid,
+    blockHeight: Number(r.block_height),
+    blockTime: Number(r.block_time),
+    amountZat: Math.abs(Number(r.value_balance_ironwood)),
+    fromPool: 'orchard',
+    toPool: 'ironwood',
+  }));
+}
+
 module.exports = {
   getChainTip,
   getAvgBlockTime1000,
@@ -341,6 +368,7 @@ module.exports = {
   getZip318Compliance,
   getLargeFlows,
   getFlowPercentile,
+  getLargeMigrations,
   getRecentReorgs,
   getMiningSnapshot,
   getCrossChain24h,
