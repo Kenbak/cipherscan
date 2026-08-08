@@ -88,14 +88,13 @@ async function get24hFlows(pool) {
 
 async function getIronwoodStats(pool) {
   const { rows } = await pool.query(`
-    SELECT ironwood_zat, orchard_zat, sapling_zat, sprout_zat
-    FROM boundary_pool_snapshots
-    ORDER BY boundary_height DESC LIMIT 1
+    SELECT ironwood_pool_size, orchard_pool_size, sapling_pool_size, sprout_pool_size
+    FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
   `);
 
   const p = rows[0];
-  const ironwoodZat = Number(p?.ironwood_zat ?? 0);
-  const orchardZat = Number(p?.orchard_zat ?? 0);
+  const ironwoodZat = Number(p?.ironwood_pool_size ?? 0);
+  const orchardZat = Number(p?.orchard_pool_size ?? 0);
   const orchardPlusIronwood = ironwoodZat + orchardZat;
 
   return {

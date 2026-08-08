@@ -642,10 +642,11 @@ async function renderMigration({ amountZat, fromPool, toPool, txid, orchardLeftZ
   drawHero(ctx, PAD - 4, 240, heroStr, 'ZEC');
 
   // USD — muted
-  if (priceUsd) {
-    ctx.font = '500 26px Geist';
-    ctx.fillStyle = C.textMuted;
-    ctx.fillText(fmtUsd(zec * priceUsd), PAD, 286);
+  if (priceUsd && priceUsd > 0) {
+    const usdStr = fmtUsd(zec * priceUsd);
+    ctx.font = '500 28px Geist';
+    ctx.fillStyle = '#8a8f98';
+    ctx.fillText(usdStr, PAD, 290);
   }
 
   // Progress bar
