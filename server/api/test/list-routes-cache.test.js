@@ -6,22 +6,36 @@ const test = require('node:test');
 function captureRoutes(relativePath, overrides = {}) {
   const handlers = new Map();
   const middleware = [];
-  const router = {
-    use(callback) { middleware.push(callback); },
-  };
-  for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
-    router[method] = (route, ...callbacks) => handlers.set(`${method}:${route}`, callbacks.at(-1));
+
+  function createRouter() {
+    const router = {
+      use(pathOrCallback) {
+        if (typeof pathOrCallback === 'function') {
+          middleware.push(pathOrCallback);
+        }
+        // router.use('/', subRouter) — routes are registered on the sub-router instance
+      },
+    };
+    for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+      router[method] = (route, ...callbacks) => handlers.set(`${method}:${route}`, callbacks.at(-1));
+    }
+    return router;
   }
 
   const filename = path.resolve(__dirname, '..', relativePath);
   const originalLoad = Module._load;
   Module._load = function loadWithOverrides(request, parent, isMain) {
-    if (request === 'express') return { Router: () => router };
+    if (request === 'express') return { Router: createRouter };
     if (Object.prototype.hasOwnProperty.call(overrides, request)) return overrides[request];
     return originalLoad.call(this, request, parent, isMain);
   };
   try {
     delete require.cache[filename];
+    for (const cachedPath of Object.keys(require.cache)) {
+      if (cachedPath.includes(`${path.sep}routes${path.sep}transactions${path.sep}`)) {
+        delete require.cache[cachedPath];
+      }
+    }
     require(filename);
   } finally {
     Module._load = originalLoad;
