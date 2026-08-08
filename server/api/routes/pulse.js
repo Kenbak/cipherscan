@@ -47,7 +47,7 @@ router.get('/api/pulse', async (req, res) => {
     const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
     const metric = req.query.metric || null;
 
-    const cacheKey = `zcash:pulse:feed:${days}:${limit}:${offset}:${metric || 'all'}`;
+    const cacheKey = `zcash:pulse:feed:v2:${days}:${limit}:${offset}:${metric || 'all'}`;
 
     const data = await cached(cacheKey, 300, async () => {
       let query = `
@@ -67,14 +67,27 @@ router.get('/api/pulse', async (req, res) => {
 
       const { rows } = await pool.query(query, params);
 
-      const countQuery = `
-        SELECT COUNT(*) AS total
+      // Period-wide severity counts + top metric so the UI header reflects the
+      // whole window, not just the current page of results.
+      const statsQuery = `
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE ABS(zscore) >= 4.0) AS critical,
+          COUNT(*) FILTER (WHERE ABS(zscore) >= 3.0 AND ABS(zscore) < 4.0) AS high,
+          COUNT(*) FILTER (WHERE ABS(zscore) < 3.0) AS notable
         FROM metric_anomalies
         WHERE date >= CURRENT_DATE - $1::int
         ${metric ? 'AND metric = $2' : ''}
       `;
-      const countParams = metric ? [days, metric] : [days];
-      const { rows: countRows } = await pool.query(countQuery, countParams);
+      const statsParams = metric ? [days, metric] : [days];
+      const { rows: statsRows } = await pool.query(statsQuery, statsParams);
+
+      const { rows: topRows } = await pool.query(`
+        SELECT metric, COUNT(*) AS c
+        FROM metric_anomalies
+        WHERE date >= CURRENT_DATE - $1::int
+        GROUP BY metric ORDER BY c DESC LIMIT 1
+      `, [days]);
 
       return {
         events: rows.map(r => ({
@@ -88,7 +101,13 @@ router.get('/api/pulse', async (req, res) => {
           severity: classifySeverity(Math.abs(Number(r.zscore))),
           createdAt: r.created_at,
         })),
-        total: Number(countRows[0].total),
+        total: Number(statsRows[0].total),
+        severityCounts: {
+          critical: Number(statsRows[0].critical),
+          high: Number(statsRows[0].high),
+          notable: Number(statsRows[0].notable),
+        },
+        topMetric: topRows[0] ? { metric: topRows[0].metric, count: Number(topRows[0].c) } : null,
         limit,
         offset,
       };
