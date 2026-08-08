@@ -273,7 +273,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
   // ─── 3. Cross-chain whale alerts ────────────────────────────────────────
   try {
-    const since = new Date(Date.now() - 5 * 60000).toISOString();
+    const since = new Date(Date.now() - 10 * 60000).toISOString();
     const largeSwaps = await queries.getRecentLargeSwaps(pool, {
       minUsd: config.crossChain.minUsd,
       since,

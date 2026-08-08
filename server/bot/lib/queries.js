@@ -289,7 +289,7 @@ async function getRecentLargeSwaps(pool, { minUsd, since }) {
     FROM cross_chain_swaps
     WHERE swap_created_at >= $2
       AND GREATEST(COALESCE(source_amount_usd, 0), COALESCE(dest_amount_usd, 0)) >= $1
-      AND status = 'completed'
+      AND status = 'SUCCESS'
     ORDER BY GREATEST(COALESCE(source_amount_usd, 0), COALESCE(dest_amount_usd, 0)) DESC
     LIMIT 20
   `, [minUsd, since]);
