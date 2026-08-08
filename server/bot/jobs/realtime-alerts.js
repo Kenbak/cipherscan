@@ -52,7 +52,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       windowDays: config.largeFlow.windowDays,
     });
 
-    const since = Math.floor(Date.now() / 1000) - 300;
+    const since = Math.floor(Date.now() / 1000) - 900;
     const largeFlows = await queries.getLargeFlows(pool, {
       minZat: Math.min(config.largeFlow.absoluteFloorZat, rollingThreshold),
       since,
@@ -113,7 +113,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
   // ─── 1b. Pool migration alerts (>= 10K ZEC) ─────────────────────────────
   try {
-    const since = Math.floor(Date.now() / 1000) - 300;
+    const since = Math.floor(Date.now() / 1000) - 900;
     const migrations = await queries.getLargeMigrations(pool, {
       minZat: 10_000_00000000, // >= 10,000 ZEC
       since,
