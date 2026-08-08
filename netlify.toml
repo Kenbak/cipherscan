@@ -10,3 +10,75 @@
   to = "https://cipherscan.app/:splat"
   status = 301
   force = true
+
+[[redirects]]
+  from = "https://zcashexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zcashexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://zblockexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zblockexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://zcashblock.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zcashblock.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://zcashblocks.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zcashblocks.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://zecblock.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zecblock.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://zecblocks.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zecblocks.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
