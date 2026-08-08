@@ -67,6 +67,7 @@ function formatDailyDigest({
 }
 
 function fmtUsd(usd) {
+  if (usd >= 1_000_000_000) return `$${(usd / 1_000_000_000).toFixed(2)}B`;
   if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`;
   if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`;
   return `$${Math.round(usd)}`;
@@ -111,6 +112,9 @@ function formatIronwoodMilestone({ type, value, context }) {
       break;
     case 'compliance':
       detail = `ZIP-318 compliance sustained above ${value}%.`;
+      break;
+    case 'usd_value':
+      detail = `Ironwood pool value just crossed ${fmtUsd(value)}.`;
       break;
     default:
       detail = `Ironwood milestone reached.`;

@@ -137,6 +137,7 @@ function fmtZec(zat) {
 }
 
 function fmtUsd(usd) {
+  if (usd >= 1_000_000_000) return `$${(usd / 1_000_000_000).toFixed(2)}B`;
   if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`;
   if (usd >= 1_000) return `$${(usd / 1_000).toFixed(0)}K`;
   return `$${Math.round(usd)}`;
@@ -580,6 +581,9 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct, orchardTo
   } else if (type === 'supply_pct') {
     mainText = `${value}%`;
     subtitle = 'of Orchard migrated to Ironwood';
+  } else if (type === 'usd_value') {
+    mainText = fmtUsd(value);
+    subtitle = 'Ironwood pool value just crossed';
   } else {
     mainText = String(value);
   }

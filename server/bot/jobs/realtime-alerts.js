@@ -18,7 +18,7 @@
 const fs = require('fs');
 const queries = require('../lib/queries');
 const { DEFAULT_CONFIG, isExceptionalFlow, checkMilestone, computePercentileRank } = require('../lib/thresholds');
-const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert, formatMigrationAlert, formatPulseAlert } = require('../lib/formatter');
+const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert, formatMigrationAlert, formatPulseAlert, fmtZec } = require('../lib/formatter');
 const { renderLargeFlow, renderCrossChain, renderMilestone, renderMigration, renderPrivacyRisk, renderPulse } = require('../lib/card-renderer');
 
 function cleanup(filePath) {
@@ -283,11 +283,10 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         if (usdMilestone) {
           const dedupKey = `milestone:pool_usd:${usdMilestone}`;
           if (!(await queries.isDuplicate(pool, dedupKey))) {
-            const label = usdMilestone >= 1e9 ? `$${(usdMilestone / 1e9).toFixed(0)}B` : `$${(usdMilestone / 1e6).toFixed(0)}M`;
             const content = formatIronwoodMilestone({
               type: 'usd_value',
               value: usdMilestone,
-              context: `Ironwood pool has surpassed ${label} in value. ${(poolZec / 1000).toFixed(0)}K ZEC at $${priceUsd.toFixed(0)}.`,
+              context: `${fmtZec(poolZec * 1e8)} at $${priceUsd.toFixed(0)}/ZEC.`,
             });
             const outboxId = await queries.insertOutboxEntry(pool, {
               postType: 'milestone',
