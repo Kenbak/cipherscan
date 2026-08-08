@@ -1,0 +1,12 @@
+# Domain-level 301 redirects — pass SEO equity from alias domains to primary
+[[redirects]]
+  from = "https://zecexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.zecexplorer.com/*"
+  to = "https://cipherscan.app/:splat"
+  status = 301
+  force = true
