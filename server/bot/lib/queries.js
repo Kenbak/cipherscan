@@ -341,10 +341,13 @@ async function getRecentBatchClusters(pool, { since }) {
 // ─── Network pulse anomalies ─────────────────────────────────────────────────
 
 async function getRecentAnomalies(pool, { minAbsZ, sinceHours }) {
+  // Guard on the anomaly's own date too, so a backfill run (which refreshes
+  // created_at on old rows) can never post stale events as if they were new.
   const { rows } = await pool.query(`
     SELECT date, metric, value, zscore, mean, std, direction, description, detail
     FROM metric_anomalies
     WHERE created_at >= NOW() - make_interval(hours => $2)
+      AND date >= CURRENT_DATE - 2
       AND ABS(zscore) >= $1
     ORDER BY ABS(zscore) DESC
     LIMIT 10
