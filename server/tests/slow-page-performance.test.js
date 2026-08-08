@@ -45,17 +45,23 @@ function loadJavaScriptModule(relativePath, imports = {}) {
 function captureTransactionRoutes() {
   const handlers = new Map();
   let middleware;
-  const router = {
-    use(callback) { middleware = callback; },
-    get(route, ...callbacks) { handlers.set(route, callbacks.at(-1)); },
-    post(route, ...callbacks) { handlers.set(route, callbacks.at(-1)); },
+
+  const helpers = require('../api/routes/transactions/_helpers');
+  middleware = helpers.injectDependencies;
+
+  const detailPath = path.join(repositoryRoot, 'server/api/routes/transactions/tx-detail.js');
+  const detailSource = fs.readFileSync(detailPath, 'utf8');
+  const detailModule = { exports: {} };
+  const detailRequire = (specifier) => {
+    if (specifier === 'express') return { Router: () => ({ get: (route, ...cbs) => handlers.set(route, cbs.at(-1)), post: (route, ...cbs) => handlers.set(route, cbs.at(-1)) }) };
+    if (specifier === '../../validation') return { validate: () => (_req, _res, next) => next() };
+    if (specifier === '../../coinbase-data') return { decodeCoinbaseText: () => null };
+    if (specifier === './_helpers') return helpers;
+    return require(specifier);
   };
-  loadJavaScriptModule('server/api/routes/transactions.js', {
-    express: { Router: () => router },
-    '../validation': { validate: () => (_req, _res, next) => next() },
-    '../coinbase-data': { decodeCoinbaseText: () => null },
-    '../list-cache': require('../api/list-cache'),
-  });
+  const detailEval = new Function('exports', 'require', 'module', '__filename', '__dirname', detailSource);
+  detailEval(detailModule.exports, detailRequire, detailModule, detailPath, path.dirname(detailPath));
+
   return { handlers, middleware };
 }
 
@@ -473,7 +479,7 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
 
   const addressPage = source('app/address/[address]/page.tsx');
   assert.match(addressPage, /<Suspense/);
-  assert.match(addressPage, /<AddressPageContent \/>/);
+  assert.match(addressPage, /<AddressDetailClient/);
   assert.match(source('app/block/[height]/page.tsx'), /retainLastGoodOrBuildFallback/);
 });
 
