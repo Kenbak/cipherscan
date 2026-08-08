@@ -100,6 +100,7 @@ async function getIronwoodStats(pool) {
 
   return {
     poolSizeZat: ironwoodZat,
+    orchardBalanceZat: orchardZat,
     orchardToIronwoodPct: orchardPlusIronwood > 0 ? (ironwoodZat / orchardPlusIronwood * 100) : 0,
   };
 }
