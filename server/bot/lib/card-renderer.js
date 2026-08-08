@@ -664,7 +664,7 @@ async function renderMigration({ amountZat, fromPool, toPool, txid, orchardLeftZ
   drawStatRow(ctx, 428, [
     { label: 'ORCHARD LEFT', value: `${fmtZec(orchardLeftZat || 0)} ZEC`, color: C.yellow },
     { label: 'IRONWOOD BALANCE', value: `${fmtZec(ironwoodBalZat || 0)} ZEC`, color: C.yellow },
-    { label: 'MIGRATED 24H', value: `${fmtZec(migrated24hZat || amountZat)} ZEC`, color: C.yellow },
+    { label: 'MIGRATED TODAY', value: `${fmtZec(migrated24hZat || amountZat)} ZEC`, color: C.yellow },
   ], { accentBorder: 'rgba(244, 183, 40, 0.18)' });
 
   // Txid

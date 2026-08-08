@@ -146,14 +146,14 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         ironwoodBalZat = ironwood.poolSizeZat || null;
         orchardToIronwoodPct = ironwood.orchardToIronwoodPct || null;
 
-        const { rows: mig24h } = await pool.query(`
+        const { rows: migToday } = await pool.query(`
           SELECT COALESCE(SUM(ABS(value_balance_ironwood)), 0) as total
           FROM transactions
-          WHERE block_time >= $1
-            AND vin_count = 0 AND vout_count = 0
-            AND value_balance_orchard > 0 AND value_balance_ironwood < 0
-        `, [Math.floor(Date.now() / 1000) - 86400]);
-        migrated24hZat = Number(mig24h[0]?.total || 0);
+          WHERE has_ironwood = true
+            AND value_balance_ironwood < 0
+            AND block_time >= EXTRACT(EPOCH FROM DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC'))
+        `);
+        migrated24hZat = Number(migToday[0]?.total || 0);
       } catch { /* non-critical */ }
 
       const content = formatMigrationAlert({

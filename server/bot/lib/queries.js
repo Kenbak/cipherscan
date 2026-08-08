@@ -89,37 +89,61 @@ async function get24hFlows(pool) {
 // ─── Ironwood migration data ─────────────────────────────────────────────────
 
 async function getIronwoodStats(pool) {
-  // Try live Zebra RPC first (same source as website)
+  // Try live Zebra RPC for current pool balances
+  let ironwoodZat = 0;
+  let orchardZat = 0;
+  let zebraOk = false;
   try {
     const info = await callZebraRPC('getblockchaininfo', [], { timeout: 2500 });
     if (info && Array.isArray(info.valuePools)) {
       const pools = new Map(info.valuePools.map(p => [p.id, p]));
-      const ironwoodZat = Number(pools.get('ironwood')?.chainValueZat ?? 0);
-      const orchardZat = Number(pools.get('orchard')?.chainValueZat ?? 0);
-      const orchardPlusIronwood = ironwoodZat + orchardZat;
-      return {
-        poolSizeZat: ironwoodZat,
-        orchardBalanceZat: orchardZat,
-        orchardToIronwoodPct: orchardPlusIronwood > 0 ? (ironwoodZat / orchardPlusIronwood * 100) : 0,
-      };
+      ironwoodZat = Number(pools.get('ironwood')?.chainValueZat ?? 0);
+      orchardZat = Number(pools.get('orchard')?.chainValueZat ?? 0);
+      zebraOk = true;
     }
   } catch {}
 
-  // Fallback to privacy_stats snapshot
-  const { rows } = await pool.query(`
-    SELECT ironwood_pool_size, orchard_pool_size, sapling_pool_size, sprout_pool_size
-    FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
-  `);
+  if (!zebraOk) {
+    const { rows } = await pool.query(`
+      SELECT ironwood_pool_size, orchard_pool_size
+      FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
+    `);
+    ironwoodZat = Number(rows[0]?.ironwood_pool_size ?? 0);
+    orchardZat = Number(rows[0]?.orchard_pool_size ?? 0);
+  }
 
-  const p = rows[0];
-  const ironwoodZat = Number(p?.ironwood_pool_size ?? 0);
-  const orchardZat = Number(p?.orchard_pool_size ?? 0);
-  const orchardPlusIronwood = ironwoodZat + orchardZat;
+  // Compute orchard→ironwood migration % using same formula as website:
+  // fromOrchardZat / (currentOrchard + fromOrchardZat)
+  let orchardToIronwoodPct = 0;
+  try {
+    const { rows } = await pool.query(`
+      SELECT COALESCE(SUM(-value_balance_ironwood)
+        FILTER (WHERE value_balance_ironwood < 0 AND value_balance_orchard > 0
+                AND NOT is_coinbase), 0) AS orchard_in,
+        COALESCE(SUM(-value_balance_ironwood) FILTER (WHERE value_balance_ironwood < 0 AND is_coinbase), 0) AS coinbase_in,
+        COALESCE(SUM(-value_balance_ironwood)
+          FILTER (WHERE value_balance_ironwood < 0 AND value_balance_sapling > 0
+                  AND NOT is_coinbase AND value_balance_orchard <= 0), 0) AS sapling_in,
+        COALESCE(SUM(-value_balance_ironwood)
+          FILTER (WHERE value_balance_ironwood < 0 AND vin_count > 0
+                  AND NOT is_coinbase AND value_balance_orchard <= 0
+                  AND value_balance_sapling <= 0), 0) AS transparent_in,
+        COALESCE(SUM(-value_balance_ironwood) FILTER (WHERE value_balance_ironwood < 0), 0) AS total_in
+      FROM transactions WHERE has_ironwood = true
+    `);
+    const totalIn = Number(rows[0]?.total_in ?? 0);
+    const coinbaseIn = Number(rows[0]?.coinbase_in ?? 0);
+    const saplingIn = Number(rows[0]?.sapling_in ?? 0);
+    const transparentIn = Number(rows[0]?.transparent_in ?? 0);
+    const fromOrchardZat = totalIn - coinbaseIn - saplingIn - transparentIn;
+    const originalOrchard = orchardZat + fromOrchardZat;
+    orchardToIronwoodPct = originalOrchard > 0 ? (fromOrchardZat / originalOrchard) * 100 : 0;
+  } catch {}
 
   return {
     poolSizeZat: ironwoodZat,
     orchardBalanceZat: orchardZat,
-    orchardToIronwoodPct: orchardPlusIronwood > 0 ? (ironwoodZat / orchardPlusIronwood * 100) : 0,
+    orchardToIronwoodPct,
   };
 }
 
