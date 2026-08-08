@@ -125,9 +125,16 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
       let priceUsd = null;
       try {
-        const { rows } = await pool.query(`SELECT price_usd FROM zec_price_daily ORDER BY date DESC LIMIT 1`);
-        priceUsd = rows[0]?.price_usd ? Number(rows[0].price_usd) : null;
-      } catch { /* non-critical */ }
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd');
+        const data = await res.json();
+        priceUsd = data?.zcash?.usd ? Number(data.zcash.usd) : null;
+      } catch {
+        // Fallback to daily table
+        try {
+          const { rows } = await pool.query(`SELECT price_usd FROM zec_price_daily ORDER BY date DESC LIMIT 1`);
+          priceUsd = rows[0]?.price_usd ? Number(rows[0].price_usd) : null;
+        } catch { /* non-critical */ }
+      }
 
       let orchardLeftZat = null;
       let ironwoodBalZat = null;
