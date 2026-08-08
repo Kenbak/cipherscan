@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
-import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
+import { getCoinbaseClientInfo } from '@/lib/coinbase-client';
+import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 
 interface Block {
   height: number;
@@ -21,15 +21,7 @@ interface Block {
   coinbase_hex?: string | null;
 }
 
-interface PaginationState {
-  page: number;
-  totalPages: number;
-  total: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-  nextCursor: number | null;
-  prevCursor: number | null;
-}
+const PAGE_SIZE = 25;
 
 const INTERVAL_TEXT_COLORS = {
   'fast':      'text-cipher-cyan',
@@ -174,7 +166,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
 interface BlocksClientProps {
   initialBlocks?: Block[];
   initialTrailingBlock?: Block | null;
-  initialPagination?: PaginationState | null;
+  initialPagination?: Partial<BasePaginationState> | null;
   initialCursor?: number | null;
   initialDirection?: 'next' | 'prev';
   initialPage?: number;
@@ -190,79 +182,59 @@ export default function BlocksClient({
   initialPage = 1,
   initialUnavailable = false,
 }: BlocksClientProps) {
-  const PAGE_SIZE = 25;
-  const isFirstPage = initialCursor === null;
-  const hasInitialData = initialPagination !== null || initialBlocks.length > 0;
-  const fallbackStarted = useRef(false);
-  const latestHeight = useRef(initialBlocks[0]?.height ?? 0);
-  const silentRefreshRef = useRef<() => void>(() => {});
-  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
-  const [trailingBlock, setTrailingBlock] = useState<Block | null>(initialTrailingBlock);
-  const [loading, setLoading] = useState(!hasInitialData);
-  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
-  const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
-    page: 1, totalPages: 0, total: 0, hasNext: false, hasPrev: false, nextCursor: null, prevCursor: null,
+  const {
+    items: blocks,
+    page,
+    pagination,
+    loading,
+    dataAvailable,
+    extra: trailingBlock,
+    firstHref,
+    prevHref,
+    nextHref,
+  } = usePaginatedList<Block, BasePaginationState, Block | null>({
+    endpoint: '/api/blocks/list',
+    pageSize: PAGE_SIZE,
+    archiveBasePath: '/blocks',
+    getItemsFromResponse: (json) => (json.blocks as Block[]) || [],
+    getLatestKey: (block) => Number(block.height),
+    buildCursors: (visibleItems) => ({
+      nextCursor: visibleItems.length > 0
+        ? Number(visibleItems[visibleItems.length - 1].height)
+        : null,
+      prevCursor: visibleItems.length > 0 ? Number(visibleItems[0].height) : null,
+    }),
+    processExtra: (all, _visible, direction) => {
+      if (direction === 'prev') return null;
+      return all.length > PAGE_SIZE ? all[PAGE_SIZE] : null;
+    },
+    shouldWsRefresh: (msg, latestKey) => {
+      const data = msg.data as { height?: number } | undefined;
+      const height = data?.height ?? 0;
+      return (
+        (msg.type === 'new_block' && height > Number(latestKey)) ||
+        (msg.type === 'chain_tip' && height > Number(latestKey))
+      );
+    },
+    buildArchiveHref: (cursor, _secondary, direction, targetPage) => {
+      if (targetPage <= 1 || cursor === null) return '/blocks';
+      const params = new URLSearchParams({
+        cursor: String(cursor),
+        direction,
+        page: String(targetPage),
+      });
+      return `/blocks?${params.toString()}`;
+    },
+    initialItems: initialBlocks,
+    initialPagination,
+    initialPage,
+    initialCursor,
+    initialDirection,
+    initialUnavailable,
+    initialExtra: initialTrailingBlock,
   });
+
   const [summary, setSummary] = useState<{ height: number | null; blocks24h: number | null; avgBlockTime: number | null; txsPerBlock: number | null }>({ height: null, blocks24h: null, avgBlockTime: null, txsPerBlock: null });
-
-  const fetchBlocks = useCallback(async (
-    cursor?: number | null,
-    direction?: 'next' | 'prev',
-    targetPage = 1,
-  ) => {
-    setLoading(true);
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
-      if (cursor !== undefined && cursor !== null) {
-        params.set('cursor', String(cursor));
-        params.set('direction', direction || 'next');
-      }
-      const res = await fetch(`${base}/api/blocks/list?${params}`);
-      if (!res.ok) throw new Error(`Block list returned ${res.status}`);
-      const json = await res.json();
-      if (json.success) {
-        const all: Block[] = json.blocks || [];
-        const reverseOffset = direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-        const visibleBlocks = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-        if (direction !== 'prev' && all.length > PAGE_SIZE) {
-          setTrailingBlock(all[PAGE_SIZE]);
-        } else {
-          setTrailingBlock(null);
-        }
-        setBlocks(visibleBlocks);
-        setPagination({
-          ...json.pagination,
-          page: targetPage,
-          totalPages: Math.ceil((Number(json.pagination?.total) || 0) / PAGE_SIZE),
-          hasNext: direction === 'prev'
-            ? cursor !== null && cursor !== undefined && visibleBlocks.length > 0
-            : all.length > PAGE_SIZE,
-          hasPrev: targetPage > 1,
-          nextCursor: visibleBlocks.length > 0
-            ? Number(visibleBlocks[visibleBlocks.length - 1].height)
-            : null,
-          prevCursor: visibleBlocks.length > 0 ? Number(visibleBlocks[0].height) : null,
-        });
-        setDataAvailable(true);
-      } else {
-        setDataAvailable(false);
-      }
-    } catch (err) {
-      console.error('Error fetching blocks:', err);
-      setDataAvailable(false);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch on mount only when the server couldn't provide data
-  useEffect(() => {
-    if (hasInitialData || fallbackStarted.current) return;
-    fallbackStarted.current = true;
-    fetchBlocks(initialCursor, initialDirection, initialPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -282,86 +254,11 @@ export default function BlocksClient({
       .catch(() => {});
   }, []);
 
-  // Silent refresh for page 1 — no loading spinner, update only when new blocks arrive
-  const silentRefresh = useCallback(async () => {
-    if (!isFirstPage) return;
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1) });
-      const res = await fetch(`${base}/api/blocks/list?${params}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.success || !json.blocks?.length) return;
-      const topHeight = Number(json.blocks[0].height);
-      if (topHeight === latestHeight.current) return;
-      latestHeight.current = topHeight;
-      const all: Block[] = json.blocks;
-      const visibleBlocks = all.slice(0, PAGE_SIZE);
-      setBlocks(visibleBlocks);
-      setTrailingBlock(all.length > PAGE_SIZE ? all[PAGE_SIZE] : null);
-      const total = Number(json.pagination?.total) || 0;
-      setPagination(prev => ({
-        ...prev,
-        page: 1,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: all.length > PAGE_SIZE,
-        hasPrev: false,
-        nextCursor: visibleBlocks.length > 0
-          ? Number(visibleBlocks[visibleBlocks.length - 1].height)
-          : null,
-        prevCursor: visibleBlocks.length > 0 ? Number(visibleBlocks[0].height) : null,
-      }));
-      setDataAvailable(true);
-    } catch { /* silent */ }
-  }, [isFirstPage]);
-
-  silentRefreshRef.current = silentRefresh;
-
-  const handleWsMessage = useCallback((msg: any) => {
-    if (!isFirstPage) return;
-    if (
-      (msg.type === 'new_block' && msg.data?.height > latestHeight.current) ||
-      (msg.type === 'chain_tip' && msg.data?.height > latestHeight.current)
-    ) {
-      silentRefreshRef.current();
-    }
-  }, [isFirstPage]);
-
-  const { isConnected: wsConnected } = useWebSocket(
-    isFirstPage ? { onMessage: handleWsMessage } : {},
-  );
-
-  useEffect(() => {
-    if (!isFirstPage) return;
-    const interval = setInterval(
-      () => silentRefreshRef.current(),
-      wsConnected ? 60000 : 15000,
-    );
-    return () => clearInterval(interval);
-  }, [isFirstPage, wsConnected]);
-
-  const buildArchiveHref = (cursor: number | null, direction: 'next' | 'prev', page: number) => {
-    if (page <= 1 || cursor === null) return '/blocks';
-    const params = new URLSearchParams({
-      cursor: String(cursor),
-      direction,
-      page: String(page),
-    });
-    return `/blocks?${params.toString()}`;
-  };
-
-  const firstHref = '/blocks';
-  const prevHref = pagination.page <= 2
-    ? firstHref
-    : buildArchiveHref(pagination.prevCursor, 'prev', pagination.page - 1);
-  const nextHref = buildArchiveHref(pagination.nextCursor, 'next', pagination.page + 1);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       <PageHeader
         eyebrow="ALL_BLOCKS"
-        title={pagination.page > 1 ? `Zcash Blocks - Page ${pagination.page}` : 'Latest Zcash Blocks'}
+        title={page > 1 ? `Zcash Blocks - Page ${page}` : 'Latest Zcash Blocks'}
         actions={
           <span className="text-xs font-mono text-muted">
             {!dataAvailable && blocks.length === 0
@@ -373,7 +270,6 @@ export default function BlocksClient({
         }
       />
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <MetricCard size="compact"
           label="Block Height"
@@ -393,17 +289,15 @@ export default function BlocksClient({
         />
       </div>
 
-      {/* Table */}
       <DataTable
-        columns={blockColumns(blocks, trailingBlock)}
+        columns={blockColumns(blocks, trailingBlock ?? null)}
         rows={blocks}
         rowKey={(block) => block.height}
         loading={loading}
       />
 
-      {/* Pagination */}
       <Pagination
-        page={pagination.page}
+        page={page}
         totalPages={pagination.totalPages}
         hasNext={pagination.hasNext}
         hasPrev={pagination.hasPrev}

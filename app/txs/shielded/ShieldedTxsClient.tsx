@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge, PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
+import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 
 type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
 type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
@@ -25,20 +25,16 @@ interface ShieldedFlow {
   addresses: string[];
 }
 
-interface PaginationState {
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-  nextCursor: number | null;
+interface ShieldedPaginationState extends BasePaginationState {
   nextCursorId: number | null;
-  prevCursor: number | null;
   prevCursorId: number | null;
 }
 
+const PAGE_SIZE = 25;
+
 interface ShieldedTxsClientProps {
   initialFlows?: ShieldedFlow[];
-  initialPagination?: PaginationState | null;
+  initialPagination?: Partial<ShieldedPaginationState> | null;
   initialPage?: number;
   initialFlow?: FlowFilter;
   initialPool?: PoolFilter;
@@ -125,108 +121,75 @@ export default function ShieldedTxsClient({
   initialDirection = 'next',
   initialUnavailable = false,
 }: ShieldedTxsClientProps) {
-  const PAGE_SIZE = 25;
-  const isFirstPage = initialCursor === null;
-  const hasInitialData = initialPagination !== null || initialFlows.length > 0;
-  const fallbackStarted = useRef(false);
+  const [flowFilter, setFlowFilter] = useState<FlowFilter>(initialFlow);
+  const [poolFilter, setPoolFilter] = useState<PoolFilter>(initialPool);
+  const [minZec, setMinZec] = useState<number>(initialMinZec);
+  const [summary, setSummary] = useState<{ shieldedPct: number | null; avgPerDay: number | null; poolSize: string | null }>({ shieldedPct: null, avgPerDay: null, poolSize: null });
   const previousFilters = useRef({
     flow: initialFlow,
     pool: initialPool,
     minZec: initialMinZec,
   });
-  const latestFlowKey = useRef(initialFlows[0] ? `${initialFlows[0].txid}:${initialFlows[0].flowType}` : '');
-  const silentRefreshRef = useRef<() => void>(() => {});
-  const [flows, setFlows] = useState<ShieldedFlow[]>(initialFlows);
-  const [loading, setLoading] = useState(!hasInitialData);
-  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
-  const [flowFilter, setFlowFilter] = useState<FlowFilter>(initialFlow);
-  const [poolFilter, setPoolFilter] = useState<PoolFilter>(initialPool);
-  const [minZec, setMinZec] = useState<number>(initialMinZec);
-  const [summary, setSummary] = useState<{ shieldedPct: number | null; avgPerDay: number | null; poolSize: string | null }>({ shieldedPct: null, avgPerDay: null, poolSize: null });
-  const [page, setPage] = useState(initialPage);
-  const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
-    total: 0, totalPages: 0, hasNext: false, hasPrev: false,
-    nextCursor: null, nextCursorId: null, prevCursor: null, prevCursorId: null,
-  });
 
-  const fetchFlows = useCallback(async (
-    cursor?: number | null,
-    cursorId?: number | null,
-    direction?: 'next' | 'prev',
-    flow?: FlowFilter,
-    pool?: PoolFilter,
-    minAmount?: number,
-    targetPage = 1,
-  ) => {
-    setLoading(true);
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE + 1),
-        flow_type: flow || flowFilter,
-        pool: pool || poolFilter,
-      });
-      const effectiveMin = minAmount !== undefined ? minAmount : minZec;
-      if (effectiveMin > 0) {
-        params.set('min_zec', String(effectiveMin));
-      }
-      if (cursor !== undefined && cursor !== null) {
+  const {
+    items: flows,
+    page,
+    pagination,
+    loading,
+    dataAvailable,
+    firstHref,
+    prevHref,
+    nextHref,
+    fetchPage,
+    setPage,
+  } = usePaginatedList<ShieldedFlow, ShieldedPaginationState>({
+    endpoint: '/api/shielded/list',
+    pageSize: PAGE_SIZE,
+    archiveBasePath: '/txs/shielded',
+    secondaryCursorParam: 'cursor_id',
+    secondaryCursorFields: { next: 'nextCursorId', prev: 'prevCursorId' },
+    buildParams: () => {
+      const params: Record<string, string> = {
+        flow_type: flowFilter,
+        pool: poolFilter,
+      };
+      if (minZec > 0) params.min_zec = String(minZec);
+      return params;
+    },
+    getItemsFromResponse: (json) => (json.flows as ShieldedFlow[]) || [],
+    getLatestKey: (flow) => `${flow.txid}:${flow.flowType}`,
+    buildCursors: (visibleItems) => {
+      const firstFlow = visibleItems[0] ?? null;
+      const lastFlow = visibleItems[visibleItems.length - 1] ?? null;
+      return {
+        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
+        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
+        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
+        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
+      };
+    },
+    buildArchiveHref: (cursor, cursorId, direction, targetPage) => {
+      const params = new URLSearchParams();
+      if (flowFilter !== 'all') params.set('flow_type', flowFilter);
+      if (poolFilter !== 'all') params.set('pool', poolFilter);
+      if (minZec > 0) params.set('min_zec', String(minZec));
+      if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('cursor_id', String(cursorId ?? 0));
-        params.set('direction', direction || 'next');
+        params.set('direction', direction);
+        params.set('page', String(targetPage));
       }
-      const res = await fetch(`${base}/api/shielded/list?${params}`);
-      if (!res.ok) throw new Error(`Shielded transaction list returned ${res.status}`);
-      const json = await res.json();
-      if (json.success) {
-        const all: ShieldedFlow[] = json.flows || [];
-        const reverseOffset = direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-        const visibleFlows = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-        const firstFlow = visibleFlows[0] ?? null;
-        const lastFlow = visibleFlows[visibleFlows.length - 1] ?? null;
-        const total = Number(json.pagination?.total) || 0;
-        setFlows(visibleFlows);
-        setPagination({
-          ...json.pagination,
-          total,
-          totalPages: Math.ceil(total / PAGE_SIZE),
-          hasNext: direction === 'prev'
-            ? cursor !== null && cursor !== undefined && visibleFlows.length > 0
-            : all.length > PAGE_SIZE,
-          hasPrev: targetPage > 1,
-          nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
-          nextCursorId: lastFlow ? Number(lastFlow.id) : null,
-          prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
-          prevCursorId: firstFlow ? Number(firstFlow.id) : null,
-        });
-        setDataAvailable(true);
-      } else {
-        setDataAvailable(false);
-      }
-    } catch (err) {
-      console.error('Error fetching shielded flows:', err);
-      setDataAvailable(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [flowFilter, poolFilter, minZec]);
-
-  useEffect(() => {
-    if (hasInitialData || fallbackStarted.current) return;
-    fallbackStarted.current = true;
-    setPage(initialPage);
-    fetchFlows(
-      initialCursor,
-      initialCursorId,
-      initialDirection,
-      initialFlow,
-      initialPool,
-      initialMinZec,
-      initialPage,
-    );
-    // The initial request inputs are fixed for this keyed client instance.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const query = params.toString();
+      return query ? `/txs/shielded?${query}` : '/txs/shielded';
+    },
+    initialItems: initialFlows,
+    initialPagination,
+    initialPage,
+    initialCursor,
+    initialSecondaryCursor: initialCursorId,
+    initialDirection,
+    initialUnavailable,
+  });
 
   useEffect(() => {
     const previous = previousFilters.current;
@@ -237,8 +200,8 @@ export default function ShieldedTxsClient({
     ) return;
     previousFilters.current = { flow: flowFilter, pool: poolFilter, minZec };
     setPage(1);
-    fetchFlows(null, null, undefined, flowFilter, poolFilter, minZec);
-  }, [flowFilter, poolFilter, minZec]);
+    fetchPage({ cursor: null, secondaryCursor: null, targetPage: 1 });
+  }, [flowFilter, poolFilter, minZec, fetchPage, setPage]);
 
   useEffect(() => {
     const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -258,93 +221,6 @@ export default function ShieldedTxsClient({
       })
       .catch(() => {});
   }, []);
-
-  // Silent refresh for page 1 — no loading spinner, update only when new flows arrive
-  const silentRefresh = useCallback(async () => {
-    if (!isFirstPage || page !== 1) return;
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE + 1),
-        flow_type: flowFilter,
-        pool: poolFilter,
-      });
-      if (minZec > 0) params.set('min_zec', String(minZec));
-      const res = await fetch(`${base}/api/shielded/list?${params}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.success || !json.flows?.length) return;
-      const topKey = `${json.flows[0].txid}:${json.flows[0].flowType}`;
-      if (topKey === latestFlowKey.current) return;
-      latestFlowKey.current = topKey;
-      const all: ShieldedFlow[] = json.flows;
-      const visibleFlows = all.slice(0, PAGE_SIZE);
-      const firstFlow = visibleFlows[0] ?? null;
-      const lastFlow = visibleFlows[visibleFlows.length - 1] ?? null;
-      const total = Number(json.pagination?.total) || 0;
-      setFlows(visibleFlows);
-      setPagination(prev => ({
-        ...prev,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: all.length > PAGE_SIZE,
-        hasPrev: false,
-        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
-        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
-        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
-        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
-      }));
-      setDataAvailable(true);
-    } catch { /* silent */ }
-  }, [isFirstPage, page, flowFilter, poolFilter, minZec]);
-
-  silentRefreshRef.current = silentRefresh;
-
-  const handleWsMessage = useCallback((msg: any) => {
-    if (!isFirstPage || page !== 1) return;
-    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
-      silentRefreshRef.current();
-    }
-  }, [isFirstPage, page]);
-
-  const { isConnected: wsConnected } = useWebSocket(
-    isFirstPage ? { onMessage: handleWsMessage } : {},
-  );
-
-  useEffect(() => {
-    if (!isFirstPage || page !== 1) return;
-    const interval = setInterval(
-      () => silentRefreshRef.current(),
-      wsConnected ? 60000 : 15000,
-    );
-    return () => clearInterval(interval);
-  }, [isFirstPage, page, wsConnected]);
-
-  const buildArchiveHref = (
-    cursor: number | null,
-    cursorId: number | null,
-    direction: 'next' | 'prev',
-    targetPage: number,
-  ) => {
-    const params = new URLSearchParams();
-    if (flowFilter !== 'all') params.set('flow_type', flowFilter);
-    if (poolFilter !== 'all') params.set('pool', poolFilter);
-    if (minZec > 0) params.set('min_zec', String(minZec));
-    if (targetPage > 1 && cursor !== null) {
-      params.set('cursor', String(cursor));
-      params.set('cursor_id', String(cursorId ?? 0));
-      params.set('direction', direction);
-      params.set('page', String(targetPage));
-    }
-    const query = params.toString();
-    return query ? `/txs/shielded?${query}` : '/txs/shielded';
-  };
-
-  const firstHref = buildArchiveHref(null, null, 'next', 1);
-  const prevHref = page <= 2
-    ? firstHref
-    : buildArchiveHref(pagination.prevCursor, pagination.prevCursorId, 'prev', page - 1);
-  const nextHref = buildArchiveHref(pagination.nextCursor, pagination.nextCursorId, 'next', page + 1);
 
   const flowFilters: { id: FlowFilter; label: string }[] = [
     { id: 'all', label: 'All' },

@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { useWebSocket } from '@/hooks/useWebSocket';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
 import { Badge, PageHeader, MetricCard, Tabs, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
+import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -45,16 +45,12 @@ interface TrendDay {
   shieldedPercentage: number;
 }
 
-interface PaginationState {
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-  nextCursor: number | null;
+interface TxPaginationState extends BasePaginationState {
   nextCursorIdx: number | null;
-  prevCursor: number | null;
   prevCursorIdx: number | null;
 }
+
+const PAGE_SIZE = 25;
 
 function getTxBadge(tx: Transaction) {
   if (tx.is_coinbase) return <Badge color="green">COINBASE</Badge>;
@@ -327,7 +323,7 @@ function TrendsChart() {
 
 interface TxsClientProps {
   initialTxs?: Transaction[];
-  initialPagination?: PaginationState | null;
+  initialPagination?: Partial<TxPaginationState> | null;
   initialPage?: number;
   initialType?: TxType;
   initialCursor?: number | null;
@@ -346,91 +342,68 @@ export default function TxsClient({
   initialDirection = 'next',
   initialUnavailable = false,
 }: TxsClientProps) {
-  const PAGE_SIZE = 25;
-  const isFirstPage = initialCursor === null;
-  const hasInitialData = initialPagination !== null || initialTxs.length > 0;
-  const fallbackStarted = useRef(false);
-  const previousTypeFilter = useRef<TxType>(initialType);
-  const latestTxid = useRef(initialTxs[0]?.txid ?? '');
-  const silentRefreshRef = useRef<() => void>(() => {});
-  const [txs, setTxs] = useState<Transaction[]>(initialTxs);
-  const [loading, setLoading] = useState(!hasInitialData);
-  const [dataAvailable, setDataAvailable] = useState(!initialUnavailable);
   const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
   const [viewTab, setViewTab] = useState<ViewTab>('recent');
   const [summary, setSummary] = useState<{ txs24h: number | null; shieldedPct24h: number | null; txsPerBlock: number | null }>({ txs24h: null, shieldedPct24h: null, txsPerBlock: null });
-  const [page, setPage] = useState(initialPage);
-  const [pagination, setPagination] = useState<PaginationState>(initialPagination ?? {
-    total: 0, totalPages: 0, hasNext: false, hasPrev: false,
-    nextCursor: null, nextCursorIdx: null, prevCursor: null, prevCursorIdx: null,
-  });
+  const previousTypeFilter = useRef<TxType>(initialType);
 
-  const fetchTxs = useCallback(async (
-    cursor?: number | null,
-    cursorIdx?: number | null,
-    direction?: 'next' | 'prev',
-    type?: TxType,
-    targetPage = 1,
-  ) => {
-    setLoading(true);
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1), type: type || typeFilter });
-      if (cursor !== undefined && cursor !== null) {
+  const {
+    items: txs,
+    page,
+    pagination,
+    loading,
+    dataAvailable,
+    firstHref,
+    prevHref,
+    nextHref,
+    fetchPage,
+    setPage,
+  } = usePaginatedList<Transaction, TxPaginationState>({
+    endpoint: '/api/transactions/list',
+    pageSize: PAGE_SIZE,
+    archiveBasePath: '/txs',
+    secondaryCursorParam: 'cursor_idx',
+    secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
+    buildParams: () => ({ type: typeFilter }),
+    getItemsFromResponse: (json) => (json.transactions as Transaction[]) || [],
+    getLatestKey: (tx) => tx.txid,
+    buildCursors: (visibleItems) => {
+      const firstTx = visibleItems[0] ?? null;
+      const lastTx = visibleItems[visibleItems.length - 1] ?? null;
+      return {
+        nextCursor: lastTx ? Number(lastTx.block_height) : null,
+        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
+        prevCursor: firstTx ? Number(firstTx.block_height) : null,
+        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
+      };
+    },
+    buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
+      const params = new URLSearchParams();
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      if (targetPage > 1 && cursor !== null) {
         params.set('cursor', String(cursor));
         params.set('cursor_idx', String(cursorIdx ?? 0));
-        params.set('direction', direction || 'next');
+        params.set('direction', direction);
+        params.set('page', String(targetPage));
       }
-      const res = await fetch(`${base}/api/transactions/list?${params}`);
-      if (!res.ok) throw new Error(`Transaction list returned ${res.status}`);
-      const json = await res.json();
-      if (json.success) {
-        const all: Transaction[] = json.transactions || [];
-        const reverseOffset = direction === 'prev' && all.length > PAGE_SIZE ? 1 : 0;
-        const visibleTxs = all.slice(reverseOffset, reverseOffset + PAGE_SIZE);
-        const firstTx = visibleTxs[0] ?? null;
-        const lastTx = visibleTxs[visibleTxs.length - 1] ?? null;
-        const total = Number(json.pagination?.total) || 0;
-        setTxs(visibleTxs);
-        setPagination({
-          ...json.pagination,
-          total,
-          totalPages: Math.ceil(total / PAGE_SIZE),
-          hasNext: direction === 'prev'
-            ? cursor !== null && cursor !== undefined && visibleTxs.length > 0
-            : all.length > PAGE_SIZE,
-          hasPrev: targetPage > 1,
-          nextCursor: lastTx ? Number(lastTx.block_height) : null,
-          nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-          prevCursor: firstTx ? Number(firstTx.block_height) : null,
-          prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-        });
-        setDataAvailable(true);
-      } else {
-        setDataAvailable(false);
-      }
-    } catch (err) {
-      console.error('Error fetching transactions:', err);
-      setDataAvailable(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [typeFilter]);
-
-  useEffect(() => {
-    if (hasInitialData || fallbackStarted.current) return;
-    fallbackStarted.current = true;
-    setPage(initialPage);
-    fetchTxs(initialCursor, initialCursorIdx, initialDirection, initialType, initialPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const query = params.toString();
+      return query ? `/txs?${query}` : '/txs';
+    },
+    initialItems: initialTxs,
+    initialPagination,
+    initialPage,
+    initialCursor,
+    initialSecondaryCursor: initialCursorIdx,
+    initialDirection,
+    initialUnavailable,
+  });
 
   useEffect(() => {
     if (previousTypeFilter.current === typeFilter) return;
     previousTypeFilter.current = typeFilter;
     setPage(1);
-    fetchTxs(null, null, undefined, typeFilter);
-  }, [typeFilter]);
+    fetchPage({ cursor: null, secondaryCursor: null, targetPage: 1 });
+  }, [typeFilter, fetchPage, setPage]);
 
   useEffect(() => {
     const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -457,86 +430,6 @@ export default function TxsClient({
       setSummary({ txs24h, shieldedPct24h, txsPerBlock });
     });
   }, []);
-
-  // Silent refresh for page 1 — no loading spinner, update only when new txs arrive
-  const silentRefresh = useCallback(async () => {
-    if (!isFirstPage || page !== 1) return;
-    try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE + 1), type: typeFilter });
-      const res = await fetch(`${base}/api/transactions/list?${params}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.success || !json.transactions?.length) return;
-      const topTxid = json.transactions[0].txid;
-      if (topTxid === latestTxid.current) return;
-      latestTxid.current = topTxid;
-      const all: Transaction[] = json.transactions;
-      const visibleTxs = all.slice(0, PAGE_SIZE);
-      const firstTx = visibleTxs[0] ?? null;
-      const lastTx = visibleTxs[visibleTxs.length - 1] ?? null;
-      const total = Number(json.pagination?.total) || 0;
-      setTxs(visibleTxs);
-      setPagination(prev => ({
-        ...prev,
-        total,
-        totalPages: Math.ceil(total / PAGE_SIZE),
-        hasNext: all.length > PAGE_SIZE,
-        hasPrev: false,
-        nextCursor: lastTx ? Number(lastTx.block_height) : null,
-        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-        prevCursor: firstTx ? Number(firstTx.block_height) : null,
-        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-      }));
-      setDataAvailable(true);
-    } catch { /* silent */ }
-  }, [isFirstPage, page, typeFilter]);
-
-  silentRefreshRef.current = silentRefresh;
-
-  const handleWsMessage = useCallback((msg: any) => {
-    if (!isFirstPage || page !== 1) return;
-    if (msg.type === 'new_block' || msg.type === 'chain_tip') {
-      silentRefreshRef.current();
-    }
-  }, [isFirstPage, page]);
-
-  const { isConnected: wsConnected } = useWebSocket(
-    isFirstPage ? { onMessage: handleWsMessage } : {},
-  );
-
-  useEffect(() => {
-    if (!isFirstPage || page !== 1) return;
-    const interval = setInterval(
-      () => silentRefreshRef.current(),
-      wsConnected ? 60000 : 15000,
-    );
-    return () => clearInterval(interval);
-  }, [isFirstPage, page, wsConnected]);
-
-  const buildArchiveHref = (
-    cursor: number | null,
-    cursorIdx: number | null,
-    direction: 'next' | 'prev',
-    targetPage: number,
-  ) => {
-    const params = new URLSearchParams();
-    if (typeFilter !== 'all') params.set('type', typeFilter);
-    if (targetPage > 1 && cursor !== null) {
-      params.set('cursor', String(cursor));
-      params.set('cursor_idx', String(cursorIdx ?? 0));
-      params.set('direction', direction);
-      params.set('page', String(targetPage));
-    }
-    const query = params.toString();
-    return query ? `/txs?${query}` : '/txs';
-  };
-
-  const firstHref = buildArchiveHref(null, null, 'next', 1);
-  const prevHref = page <= 2
-    ? firstHref
-    : buildArchiveHref(pagination.prevCursor, pagination.prevCursorIdx, 'prev', page - 1);
-  const nextHref = buildArchiveHref(pagination.nextCursor, pagination.nextCursorIdx, 'next', page + 1);
 
   const filters: { id: TxType; label: string }[] = [
     { id: 'all', label: 'All' },
