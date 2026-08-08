@@ -42,6 +42,13 @@ const DEFAULT_CONFIG = {
     minHighLinkages: 3, // post only if >= 3 high-confidence linkages in 24h
   },
 
+  // Network pulse anomaly alerts (statistical z-score events)
+  pulse: {
+    minAbsZ: 3.0,      // only high/critical severity (matches /pulse page tiers)
+    maxPerDay: 2,      // cap posts per day to stay signal, not noise
+    lookbackHours: 26, // detect-anomalies runs daily ~21:00 UTC; window covers a full cycle
+  },
+
   // Chain stall
   stall: {
     maxBlockIntervalSeconds: 600, // 10 minutes (8x target of 75s)

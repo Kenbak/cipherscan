@@ -205,6 +205,49 @@ function formatMigrationAlert({ amountZat, fromPool, toPool, txid, priceUsd }) {
   return lines.join('\n');
 }
 
+// ─── Network Pulse Anomaly Alert ──────────────────────────────────────────
+
+// Units per anomaly metric (mirrors server/jobs/detect-anomalies.js)
+const PULSE_METRIC_UNITS = {
+  tx_count_total: 'txs',
+  tx_count_shielded: 'txs',
+  shielded_pct: '%',
+  shield_volume_zat: 'ZEC',
+  deshield_volume_zat: 'ZEC',
+  crosschain_inflow_usd: 'USD',
+  crosschain_outflow_usd: 'USD',
+  daily_fees_zat: 'ZEC',
+  exchange_deposit_zat: 'ZEC',
+  mvrv: 'ratio',
+  migration_volume_zat: 'ZEC',
+  miner_exchange_ratio: 'ratio',
+};
+
+function fmtMetricValue(metric, value) {
+  const unit = PULSE_METRIC_UNITS[metric];
+  if (unit === 'ZEC') return fmtZec(value);
+  if (unit === 'USD') return fmtUsd(value);
+  if (unit === '%') return `${value.toFixed(1)}%`;
+  if (unit === 'ratio') return value.toFixed(2);
+  return `${Math.round(value).toLocaleString()} txs`;
+}
+
+function formatPulseAlert({ metric, description, value, zscore, mean, direction }) {
+  const valueStr = fmtMetricValue(metric, value);
+  const meanStr = fmtMetricValue(metric, mean);
+  const rel = direction === 'up' ? 'above' : 'below';
+  const sigma = Math.abs(zscore).toFixed(1);
+
+  const lines = [
+    `📊 Network Pulse`,
+    ``,
+    `${description}: ${valueStr} — ${sigma}σ ${rel} the 90-day average (${meanStr}).`,
+    ``,
+    `${BASE_URL}/pulse`,
+  ];
+  return lines.join('\n');
+}
+
 // ─── Privacy Risk Alert ───────────────────────────────────────────────────
 
 function formatPrivacyRiskAlert({ highLinkages, batchClusters }) {
@@ -236,6 +279,9 @@ module.exports = {
   formatChainRecovery,
   formatCrossChainAlert,
   formatPrivacyRiskAlert,
+  formatPulseAlert,
+  fmtMetricValue,
+  PULSE_METRIC_UNITS,
   fmtZec,
   fmtPct,
   fmtHeight,

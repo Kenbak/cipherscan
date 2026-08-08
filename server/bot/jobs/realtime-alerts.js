@@ -9,16 +9,17 @@
  * Alert types:
  *  - Large shield/deshield (adaptive percentile + absolute floor)
  *  - Ironwood milestones (pool size, Orchard->Ironwood %)
- *  - Cross-chain whale swaps (>$5K)
+ *  - Cross-chain whale swaps (>$25K)
  *  - Privacy risk aggregate (daily HIGH-confidence linkages)
  *  - Chain reorgs (depth >= 2)
+ *  - Network pulse anomalies (|z| >= 3 from metric_anomalies, max 2/day)
  */
 
 const fs = require('fs');
 const queries = require('../lib/queries');
 const { DEFAULT_CONFIG, isExceptionalFlow, checkMilestone, computePercentileRank } = require('../lib/thresholds');
-const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert, formatMigrationAlert } = require('../lib/formatter');
-const { renderLargeFlow, renderCrossChain, renderMilestone, renderMigration, renderPrivacyRisk } = require('../lib/card-renderer');
+const { formatLargeFlowAlert, formatIronwoodMilestone, formatReorgAlert, formatCrossChainAlert, formatPrivacyRiskAlert, formatMigrationAlert, formatPulseAlert } = require('../lib/formatter');
+const { renderLargeFlow, renderCrossChain, renderMilestone, renderMigration, renderPrivacyRisk, renderPulse } = require('../lib/card-renderer');
 
 function cleanup(filePath) {
   if (filePath) try { fs.unlinkSync(filePath); } catch { /* ignore */ }
@@ -447,6 +448,65 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
     }
   } catch (err) {
     logger.error(`[Alerts] Reorg check failed: ${err.message}`);
+  }
+
+  // ─── 6. Network pulse anomalies (daily batch from detect-anomalies) ─────
+  try {
+    const pulseCfg = config.pulse;
+    const postedToday = await queries.countPostedToday(pool, 'pulse_alert');
+
+    if (postedToday < pulseCfg.maxPerDay) {
+      const anomalies = await queries.getRecentAnomalies(pool, {
+        minAbsZ: pulseCfg.minAbsZ,
+        sinceHours: pulseCfg.lookbackHours,
+      });
+
+      let budget = pulseCfg.maxPerDay - postedToday;
+      for (const anomaly of anomalies) {
+        if (budget <= 0) break;
+
+        const dedupKey = `pulse:${anomaly.date}:${anomaly.metric}`;
+        if (await queries.isDuplicate(pool, dedupKey)) continue;
+
+        const content = formatPulseAlert({
+          metric: anomaly.metric,
+          description: anomaly.description,
+          value: anomaly.value,
+          zscore: anomaly.zscore,
+          mean: anomaly.mean,
+          direction: anomaly.direction,
+        });
+
+        const outboxId = await queries.insertOutboxEntry(pool, {
+          postType: 'pulse_alert',
+          dedupKey,
+          content,
+          metadata: anomaly,
+          status: xClient.dryRun ? 'dry_run' : 'pending',
+        });
+
+        if (outboxId) {
+          try {
+            const result = await postWithCard(xClient, content, renderPulse, {
+              metric: anomaly.metric,
+              description: anomaly.description,
+              value: anomaly.value,
+              zscore: anomaly.zscore,
+              mean: anomaly.mean,
+              std: anomaly.std,
+              direction: anomaly.direction,
+            }, logger);
+            await queries.markPosted(pool, outboxId, result.id);
+            results.push({ type: 'pulse', metric: anomaly.metric, date: anomaly.date, postId: result.id });
+            budget--;
+          } catch (err) {
+            await queries.markFailed(pool, outboxId, err.message);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`[Alerts] Pulse anomaly check failed: ${err.message}`);
   }
 
   return results;

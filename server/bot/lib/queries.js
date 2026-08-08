@@ -338,7 +338,41 @@ async function getRecentBatchClusters(pool, { since }) {
   };
 }
 
+// ─── Network pulse anomalies ─────────────────────────────────────────────────
+
+async function getRecentAnomalies(pool, { minAbsZ, sinceHours }) {
+  const { rows } = await pool.query(`
+    SELECT date, metric, value, zscore, mean, std, direction, description, detail
+    FROM metric_anomalies
+    WHERE created_at >= NOW() - make_interval(hours => $2)
+      AND ABS(zscore) >= $1
+    ORDER BY ABS(zscore) DESC
+    LIMIT 10
+  `, [minAbsZ, sinceHours]);
+  return rows.map(r => ({
+    date: String(r.date instanceof Date ? r.date.toISOString() : r.date).slice(0, 10),
+    metric: r.metric,
+    value: Number(r.value),
+    zscore: Number(r.zscore),
+    mean: Number(r.mean),
+    std: Number(r.std),
+    direction: r.direction,
+    description: r.description,
+    detail: r.detail,
+  }));
+}
+
 // ─── Outbox operations ───────────────────────────────────────────────────────
+
+async function countPostedToday(pool, postType) {
+  const { rows } = await pool.query(`
+    SELECT COUNT(*) AS c FROM social_post_outbox
+    WHERE post_type = $1
+      AND status IN ('posted', 'dry_run')
+      AND created_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+  `, [postType]);
+  return Number(rows[0].c);
+}
 
 async function isDuplicate(pool, dedupKey) {
   const { rows } = await pool.query(
@@ -418,6 +452,8 @@ module.exports = {
   getRecentLargeSwaps,
   getRecentHighRiskLinkages,
   getRecentBatchClusters,
+  getRecentAnomalies,
+  countPostedToday,
   isDuplicate,
   insertOutboxEntry,
   markPosted,

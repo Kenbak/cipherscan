@@ -731,6 +731,74 @@ async function renderPrivacyRisk({ highLinkages, batchClusters }) {
   return saveTempPng(canvas);
 }
 
+// ─── 6. Network Pulse Anomaly ─────────────────────────────────────────────────
+
+const { PULSE_METRIC_UNITS, fmtMetricValue } = require('./formatter');
+
+async function renderPulse({ metric, description, value, zscore, mean, std, direction }) {
+  ensureFonts();
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+
+  const absZ = Math.abs(zscore);
+  const isCritical = absZ >= 4.0;
+  const accent = isCritical ? C.red : C.cyan;
+  drawBase(ctx, accent);
+
+  drawHeaderRow(ctx, 'NETWORK PULSE', accent, isCritical ? 'CRITICAL ANOMALY' : 'ANOMALY DETECTED', accent);
+
+  // Context line — what happened
+  ctx.font = '500 15px Geist';
+  ctx.fillStyle = accent;
+  ctx.fillText(description, PAD, 112);
+
+  // Hero — the metric value, unit split per type
+  const unit = PULSE_METRIC_UNITS[metric];
+  let heroStr;
+  let heroUnit = null;
+  if (unit === 'ZEC') {
+    heroStr = fmtZec(value);
+    heroUnit = 'ZEC';
+  } else if (unit === 'txs') {
+    heroStr = Math.round(value).toLocaleString();
+    heroUnit = 'TXS';
+  } else if (unit === '%') {
+    heroStr = `${value.toFixed(1)}%`;
+  } else if (unit === 'USD') {
+    heroStr = fmtUsd(value);
+  } else {
+    heroStr = value.toFixed(2);
+  }
+  drawHero(ctx, PAD - 4, 240, heroStr, heroUnit);
+
+  // Secondary muted line — deviation summary
+  const rel = direction === 'up' ? 'above' : 'below';
+  ctx.font = '500 28px Geist';
+  ctx.fillStyle = '#8a8f98';
+  ctx.fillText(`${absZ.toFixed(1)}σ ${rel} the 90-day average`, PAD, 290);
+
+  // Deviation bar — |z| against a 5σ scale
+  const barY = 330;
+  const barW = W - PAD * 2;
+  ctx.font = 'bold 11px GeistMono';
+  ctx.fillStyle = C.textMuted;
+  ctx.fillText('DEVIATION FROM 90-DAY MEAN', PAD, barY - 14);
+  ctx.fillStyle = accent;
+  const zStr = `z = ${zscore >= 0 ? '+' : ''}${zscore.toFixed(2)}`;
+  ctx.fillText(zStr, W - PAD - ctx.measureText(zStr).width, barY - 14);
+  drawBar(ctx, PAD, barY, barW, 12, Math.min(absZ / 5, 1) * 100, accent);
+
+  // Stat row
+  drawStatRow(ctx, 428, [
+    { label: '90-DAY MEAN', value: fmtMetricValue(metric, mean) },
+    { label: 'STD DEVIATION', value: fmtMetricValue(metric, std) },
+    { label: 'Z-SCORE', value: zStr, color: accent },
+  ], { accentBorder: `${accent}26` });
+
+  await drawFooter(ctx, 'cipherscan.app/pulse');
+  return saveTempPng(canvas);
+}
+
 module.exports = {
   renderDailyDigest,
   renderLargeFlow,
@@ -738,4 +806,5 @@ module.exports = {
   renderMilestone,
   renderMigration,
   renderPrivacyRisk,
+  renderPulse,
 };
