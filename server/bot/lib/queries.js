@@ -7,6 +7,8 @@
  * Each function takes a `pool` (pg.Pool) and returns structured data.
  */
 
+const { callZebraRPC } = require('../../lib/zebra-rpc');
+
 // ─── Chain state ─────────────────────────────────────────────────────────────
 
 async function getChainTip(pool) {
@@ -87,6 +89,23 @@ async function get24hFlows(pool) {
 // ─── Ironwood migration data ─────────────────────────────────────────────────
 
 async function getIronwoodStats(pool) {
+  // Try live Zebra RPC first (same source as website)
+  try {
+    const info = await callZebraRPC('getblockchaininfo', [], { timeout: 2500 });
+    if (info && Array.isArray(info.valuePools)) {
+      const pools = new Map(info.valuePools.map(p => [p.id, p]));
+      const ironwoodZat = Number(pools.get('ironwood')?.chainValueZat ?? 0);
+      const orchardZat = Number(pools.get('orchard')?.chainValueZat ?? 0);
+      const orchardPlusIronwood = ironwoodZat + orchardZat;
+      return {
+        poolSizeZat: ironwoodZat,
+        orchardBalanceZat: orchardZat,
+        orchardToIronwoodPct: orchardPlusIronwood > 0 ? (ironwoodZat / orchardPlusIronwood * 100) : 0,
+      };
+    }
+  } catch {}
+
+  // Fallback to privacy_stats snapshot
   const { rows } = await pool.query(`
     SELECT ironwood_pool_size, orchard_pool_size, sapling_pool_size, sprout_pool_size
     FROM privacy_stats ORDER BY updated_at DESC LIMIT 1
