@@ -30,6 +30,7 @@
     "sharp": "0.35.3"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.12",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@tailwindcss/postcss": "^4.3.0",
