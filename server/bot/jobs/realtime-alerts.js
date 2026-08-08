@@ -125,8 +125,8 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
       let priceUsd = null;
       try {
-        const { rows } = await pool.query(`SELECT price FROM zec_price_daily ORDER BY date DESC LIMIT 1`);
-        priceUsd = rows[0]?.price ? Number(rows[0].price) : null;
+        const { rows } = await pool.query(`SELECT price_usd FROM zec_price_daily ORDER BY date DESC LIMIT 1`);
+        priceUsd = rows[0]?.price_usd ? Number(rows[0].price_usd) : null;
       } catch { /* non-critical */ }
 
       let orchardLeftZat = null;
