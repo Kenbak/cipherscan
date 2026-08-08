@@ -267,6 +267,53 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
         }
       }
     }
+
+    // USD-denominated pool milestone
+    if (milestoneConfig.usdSteps) {
+      let priceUsd = null;
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd');
+        const data = await res.json();
+        priceUsd = data?.zcash?.usd ? Number(data.zcash.usd) : null;
+      } catch {}
+      if (priceUsd) {
+        const poolUsd = poolZec * priceUsd;
+        const usdMilestone = checkMilestone(poolUsd, milestoneConfig.usdSteps);
+        if (usdMilestone) {
+          const dedupKey = `milestone:pool_usd:${usdMilestone}`;
+          if (!(await queries.isDuplicate(pool, dedupKey))) {
+            const label = usdMilestone >= 1e9 ? `$${(usdMilestone / 1e9).toFixed(0)}B` : `$${(usdMilestone / 1e6).toFixed(0)}M`;
+            const content = formatIronwoodMilestone({
+              type: 'usd_value',
+              value: usdMilestone,
+              context: `Ironwood pool has surpassed ${label} in value. ${(poolZec / 1000).toFixed(0)}K ZEC at $${priceUsd.toFixed(0)}.`,
+            });
+            const outboxId = await queries.insertOutboxEntry(pool, {
+              postType: 'milestone',
+              dedupKey,
+              content,
+              metadata: { poolUsd, poolZec, priceUsd },
+              status: xClient.dryRun ? 'dry_run' : 'pending',
+            });
+            if (outboxId) {
+              try {
+                const result = await postWithCard(xClient, content, renderMilestone, {
+                  type: 'usd_value',
+                  value: poolUsd,
+                  poolSizeZat: ironwood.poolSizeZat,
+                  orchardPct: ironwood.orchardToIronwoodPct,
+                  priceUsd,
+                }, logger);
+                await queries.markPosted(pool, outboxId, result.id);
+                results.push({ type: 'milestone', milestone: `pool_usd:${usdMilestone}`, postId: result.id });
+              } catch (err) {
+                await queries.markFailed(pool, outboxId, err.message);
+              }
+            }
+          }
+        }
+      }
+    }
   } catch (err) {
     logger.error(`[Alerts] Ironwood milestone check failed: ${err.message}`);
   }
