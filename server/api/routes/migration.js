@@ -742,8 +742,8 @@ router.get('/api/migration/scatter', async (req, res) => {
 // ---------------------------------------------------------------------------
 // GET /api/migration/tiers — volume distribution by size tier over time
 // ---------------------------------------------------------------------------
-const TIER_BOUNDARIES = [1e8, 10e8, 100e8, 1000e8]; // 1, 10, 100, 1000 ZEC in zat
-const TIER_LABELS = ['Under 1 ZEC', '1–10 ZEC', '10–100 ZEC', '100–1K ZEC', '1K+ ZEC'];
+const TIER_BOUNDARIES = [1e8, 10e8, 100e8, 1000e8, 5000e8, 10000e8]; // 1, 10, 100, 1K, 5K, 10K ZEC in zat
+const TIER_LABELS = ['Under 1 ZEC', '1–10 ZEC', '10–100 ZEC', '100–1K ZEC', '1K–5K ZEC', '5K–10K ZEC', '10K+ ZEC'];
 
 function classifyTier(zat) {
   for (let i = 0; i < TIER_BOUNDARIES.length; i++) {

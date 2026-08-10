@@ -7,9 +7,9 @@ import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import { zatToZec } from '@/lib/format-numbers';
 import type { ChartColors, TierTx } from './types';
 
-export const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8];
-export const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K+'];
-export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#a78bfa', '#f59e0b', '#ef4444'];
+export const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8, 5000e8, 10000e8];
+export const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K–5K', '5K–10K', '10K+'];
+export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#a78bfa', '#f59e0b', '#ef4444', '#dc2626', '#991b1b'];
 
 export function formatTierVolumePct(pct: number): string {
   if (pct < 0.1 && pct > 0) return `${pct.toFixed(2)}%`;
@@ -55,8 +55,9 @@ export function MigrationTiers({
   }, [allTxs, mode, scrubIdx, maxIdx]);
 
   const tierData = useMemo(() => {
-    const counts = new Array(5).fill(0);
-    const volumes = new Array(5).fill(0);
+    const numTiers = TIER_LABELS.length;
+    const counts = new Array(numTiers).fill(0);
+    const volumes = new Array(numTiers).fill(0);
     for (const tx of visibleTxs) {
       const tier = classifyTierLocal(tx.a);
       counts[tier]++;
@@ -134,17 +135,17 @@ export function MigrationTiers({
         </div>
 
         {/* Desktop — vertical column chart */}
-        <div className="hidden sm:grid sm:grid-cols-5 sm:gap-3">
+        <div className="hidden sm:grid sm:grid-cols-7 sm:gap-2">
           {tierData.map((tier, i) => {
             const barPct = maxVol > 0 ? (tier.volumeZec / maxVol) * 100 : 0;
             return (
               <div key={tier.label} className="flex flex-col items-center">
-                <div className="mb-1 text-xs font-mono font-bold text-primary">
+                <div className="mb-1 text-[11px] font-mono font-bold text-primary">
                   {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                 </div>
                 <div className="mb-2 text-[9px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
                 <div className="relative flex h-[140px] w-full justify-center">
-                  <div className="relative h-full w-10 overflow-hidden rounded-t-md bg-glass-3">
+                  <div className="relative h-full w-8 overflow-hidden rounded-t-md bg-glass-3">
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-md transition-all duration-500"
                       style={{ height: `${Math.max(barPct, 2)}%`, backgroundColor: TIER_COLORS[i], opacity: 0.85 }}
