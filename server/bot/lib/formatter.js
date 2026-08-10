@@ -82,7 +82,7 @@ function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, p
   let amountStr = fmtZec(amountZat);
   if (priceUsd) {
     const usd = zec * priceUsd;
-    const usdStr = usd >= 1_000_000 ? `$${(usd / 1_000_000).toFixed(1)}M` : `$${(usd / 1_000).toFixed(0)}K`;
+    const usdStr = fmtUsd(usd);
     amountStr += ` (${usdStr})`;
   }
   const lines = [
@@ -200,7 +200,7 @@ function formatMigrationAlert({ amountZat, fromPool, toPool, txid, priceUsd }) {
   let amountStr = fmtZec(amountZat);
   if (priceUsd) {
     const usd = zec * priceUsd;
-    const usdStr = usd >= 1_000_000 ? `$${(usd / 1_000_000).toFixed(2)}M` : `$${(usd / 1_000).toFixed(0)}K`;
+    const usdStr = fmtUsd(usd);
     amountStr += ` (${usdStr})`;
   }
   const lines = [

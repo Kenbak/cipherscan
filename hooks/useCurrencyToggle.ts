@@ -63,6 +63,9 @@ export function fmtValue(
   const zec = zatToZec(zat);
   if (mode === 'usd' && price != null) {
     const usd = zec * price;
+    if (Math.abs(usd) >= 1_000_000_000) {
+      return `$${(usd / 1_000_000_000).toFixed(2)}B`;
+    }
     if (Math.abs(usd) >= 1_000_000) {
       return `$${(usd / 1_000_000).toFixed(1)}M`;
     }
