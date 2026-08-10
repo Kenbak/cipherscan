@@ -477,6 +477,8 @@ const WALLET_COLORS: Record<string, string> = {
   'Zkool (historical)': '#F4B728',
   'Brave': '#f59e0b',
   'Nozy': '#a855f7',
+  'Cake Wallet (probable)': '#ec4899',
+  'Migration batches (ZIP-318)': '#6366f1',
   'librustzcash family (ZODL/Edge/Vizor/etc.)': '#56D4C8',
   'Unknown / Other': '#64748b',
 };
@@ -644,7 +646,7 @@ function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
   const label = status === 'supported' ? 'Nym' : 'Nym (partial)';
 
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[9px] font-medium uppercase tracking-wider ${styles}`}>
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[9px] font-medium uppercase tracking-wider whitespace-nowrap ${styles}`}>
       <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.5 7.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm5 0a1 1 0 112 0v3a1 1 0 11-2 0v-3zM7 5a1 1 0 112 0 1 1 0 01-2 0z" />
       </svg>
@@ -744,6 +746,32 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   const familyExpiry = find('librustzcash family')?.signals.expiry.matchCount || 0;
   const zkoolExpiry = find('Zkool (historical)')?.signals.expiry.matchCount || 0;
   const nozyFee = find('Nozy')?.signals.fee.matchCount || 0;
+  const cakeExpiry = find('Cake Wallet (probable)')?.signals.expiry.matchCount || 0;
+  const migrationActions = find('Migration batches (ZIP-318)')?.signals.expiry.matchCount || 0;
+
+  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool — all indistinguishable on-chain
+  if (familyExpiry > 0) {
+    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
+    identified += familyExpiry;
+  }
+
+  // Migration batches: ZIP-318 automated migration
+  if (migrationActions > 0) {
+    walletMap.push({ name: 'Migration batches (ZIP-318)', value: migrationActions, confidence: 'high' });
+    identified += migrationActions;
+  }
+
+  // Cake Wallet: expiry ~60
+  if (cakeExpiry > 0) {
+    walletMap.push({ name: 'Cake Wallet (probable)', value: cakeExpiry, confidence: 'medium' });
+    identified += cakeExpiry;
+  }
+
+  // Brave: cleanest signal is non-zero nLockTime (librustzcash never sets it)
+  if (braveLocktime > 0) {
+    walletMap.push({ name: 'Brave', value: braveLocktime, confidence: 'medium' });
+    identified += braveLocktime;
+  }
 
   // Nozy: very distinctive — 4× fee + short expiry combo is unique
   if (nozyFee > 0) {
@@ -755,18 +783,6 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   if (zkoolExpiry > 0) {
     walletMap.push({ name: 'Zkool (historical)', value: zkoolExpiry, confidence: 'high' });
     identified += zkoolExpiry;
-  }
-
-  // Brave: cleanest signal is non-zero nLockTime (librustzcash never sets it)
-  if (braveLocktime > 0) {
-    walletMap.push({ name: 'Brave', value: braveLocktime, confidence: 'medium' });
-    identified += braveLocktime;
-  }
-
-  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool — all indistinguishable on-chain
-  if (familyExpiry > 0) {
-    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
-    identified += familyExpiry;
   }
 
   // Unknown: everything we can't attribute
