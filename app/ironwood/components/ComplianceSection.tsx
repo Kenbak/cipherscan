@@ -158,7 +158,7 @@ export function ComplianceSummary({
 }
 
 const FAMILY_META: Record<string, { label: string; color: string }> = {
-  'zip318-current-sdk': { label: 'Vizor', color: '#4ade80' },
+  'zip318-current-sdk': { label: 'ZODL / Vizor', color: '#4ade80' },
   'cake-zkool2-compatible': { label: 'Cake/zkool2', color: '#f97316' },
   'multi-action-migration': { label: 'Multi-action', color: '#a78bfa' },
   unknown: { label: 'Unknown', color: '#6b7280' },
@@ -246,8 +246,8 @@ export function FamiliesTab({
           owners. Wallets sharing the same SDK are indistinguishable within a family.
         </p>
         <p className="mt-1.5">
-          <strong className="text-primary">Vizor:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
-          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations.
+          <strong className="text-primary">ZODL / Vizor:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
+          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations. Both use the <code className="text-[10px] bg-glass-5 px-1 rounded">zcash_pool_migration</code> crate.
         </p>
         <p className="mt-1">
           <strong className="text-primary">Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,
