@@ -569,7 +569,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
           onClick={() => setExpanded(!expanded)}
           className="w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 hover:bg-cipher-hover transition-colors"
         >
-          <div className="flex items-center gap-2 sm:w-48 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:min-w-[13rem] flex-shrink-0">
             <svg
               className={`w-3 h-3 transition-transform flex-shrink-0 text-muted ${expanded ? 'rotate-90' : ''}`}
               fill="currentColor"
