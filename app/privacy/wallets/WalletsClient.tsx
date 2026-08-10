@@ -474,12 +474,14 @@ export default function WalletsClient() {
 // ============================================================================
 
 const WALLET_COLORS: Record<string, string> = {
-  'Zkool (historical)': '#F4B728',
+  'ZODL / Vizor (Ironwood sends)': '#56D4C8',
+  'ZODL / Vizor (ZIP-318 migration)': '#6366f1',
+  'SDK wallets (Orchard pool)': '#22c55e',
+  'SDK wallets (shielding/deshielding)': '#14b8a6',
+  'Cake Wallet (probable)': '#ec4899',
   'Brave': '#f59e0b',
   'Nozy': '#a855f7',
-  'Cake Wallet (probable)': '#ec4899',
-  'Migration batches (ZIP-318)': '#6366f1',
-  'librustzcash family (ZODL/Edge/Vizor/etc.)': '#56D4C8',
+  'Zkool (historical)': '#F4B728',
   'Unknown / Other': '#64748b',
 };
 const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
@@ -742,50 +744,27 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   let identified = 0;
 
   const find = (name: string) => fingerprints.wallets.find(w => w.name === name);
-  const braveLocktime = find('Brave')?.signals.locktime.matchCount || 0;
-  const familyExpiry = find('librustzcash family')?.signals.expiry.matchCount || 0;
-  const zkoolExpiry = find('Zkool (historical)')?.signals.expiry.matchCount || 0;
-  const nozyFee = find('Nozy')?.signals.fee.matchCount || 0;
-  const cakeExpiry = find('Cake Wallet (probable)')?.signals.expiry.matchCount || 0;
-  const migrationActions = find('Migration batches (ZIP-318)')?.signals.expiry.matchCount || 0;
 
-  // librustzcash SDK family (+40): ZODL/Edge/Unstoppable/Vizor/current Zkool — all indistinguishable on-chain
-  if (familyExpiry > 0) {
-    walletMap.push({ name: 'librustzcash family (ZODL/Edge/Vizor/etc.)', value: familyExpiry, confidence: 'medium' });
-    identified += familyExpiry;
+  const entries: { name: string; key: string; signal: 'expiry' | 'fee' | 'locktime' | 'actionPadding'; confidence: 'high' | 'medium' | 'low' }[] = [
+    { name: 'ZODL / Vizor (Ironwood sends)', key: 'ZODL / Vizor (Ironwood sends)', signal: 'expiry', confidence: 'high' },
+    { name: 'ZODL / Vizor (ZIP-318 migration)', key: 'ZODL / Vizor (ZIP-318 migration)', signal: 'expiry', confidence: 'high' },
+    { name: 'SDK wallets (Orchard pool)', key: 'SDK wallets (Orchard pool)', signal: 'actionPadding', confidence: 'medium' },
+    { name: 'SDK wallets (shielding/deshielding)', key: 'SDK wallets (shielding/deshielding)', signal: 'expiry', confidence: 'medium' },
+    { name: 'Cake Wallet (probable)', key: 'Cake Wallet (probable)', signal: 'expiry', confidence: 'medium' },
+    { name: 'Brave', key: 'Brave', signal: 'locktime', confidence: 'medium' },
+    { name: 'Nozy', key: 'Nozy', signal: 'fee', confidence: 'high' },
+    { name: 'Zkool (historical)', key: 'Zkool (historical)', signal: 'expiry', confidence: 'high' },
+  ];
+
+  for (const entry of entries) {
+    const wallet = find(entry.key);
+    const count = wallet?.signals[entry.signal].matchCount || 0;
+    if (count > 0) {
+      walletMap.push({ name: entry.name, value: count, confidence: entry.confidence });
+      identified += count;
+    }
   }
 
-  // Migration batches: ZIP-318 automated migration
-  if (migrationActions > 0) {
-    walletMap.push({ name: 'Migration batches (ZIP-318)', value: migrationActions, confidence: 'high' });
-    identified += migrationActions;
-  }
-
-  // Cake Wallet: expiry ~60
-  if (cakeExpiry > 0) {
-    walletMap.push({ name: 'Cake Wallet (probable)', value: cakeExpiry, confidence: 'medium' });
-    identified += cakeExpiry;
-  }
-
-  // Brave: cleanest signal is non-zero nLockTime (librustzcash never sets it)
-  if (braveLocktime > 0) {
-    walletMap.push({ name: 'Brave', value: braveLocktime, confidence: 'medium' });
-    identified += braveLocktime;
-  }
-
-  // Nozy: very distinctive — 4× fee + short expiry combo is unique
-  if (nozyFee > 0) {
-    walletMap.push({ name: 'Nozy', value: nozyFee, confidence: 'high' });
-    identified += nozyFee;
-  }
-
-  // Zkool historical: distinguishable by expiry+100 (pre-March 2026)
-  if (zkoolExpiry > 0) {
-    walletMap.push({ name: 'Zkool (historical)', value: zkoolExpiry, confidence: 'high' });
-    identified += zkoolExpiry;
-  }
-
-  // Unknown: everything we can't attribute
   const unknown = Math.max(0, fingerprints.totalShielded - identified);
   if (unknown > 0) {
     walletMap.push({ name: 'Unknown / Other', value: unknown, confidence: 'low' });

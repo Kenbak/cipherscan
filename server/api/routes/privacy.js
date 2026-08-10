@@ -772,6 +772,27 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
 
         COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) BETWEEN 36 AND 40
+            AND has_ironwood = true AND has_orchard = false AND has_sapling = false
+            AND vin_count = 0 AND vout_count = 0
+        ) AS family40_ironwood_only,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) BETWEEN 36 AND 40
+            AND has_orchard = true AND has_ironwood = false
+            AND vin_count = 0 AND vout_count = 0
+        ) AS family40_orchard_shielded,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) BETWEEN 36 AND 40
+            AND (has_orchard = true OR has_ironwood = true)
+            AND (vin_count > 0 OR vout_count > 0)
+        ) AS family40_mixed_transparent,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
             AND (expiry_height - block_height) BETWEEN 90 AND 100
             AND (has_orchard = true OR has_sapling = true)
         ) AS zkool_expiry100,
@@ -824,21 +845,61 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
     const nozyCount = parseInt(r.nozy_expiry5_fee4x);
     const cakeCount = parseInt(r.cake_expiry60);
     const migrationCount = parseInt(r.migration_batches);
+    const ironwoodOnlyCount = parseInt(r.family40_ironwood_only);
+    const orchardShieldedCount = parseInt(r.family40_orchard_shielded);
+    const mixedTransparentCount = parseInt(r.family40_mixed_transparent);
 
     const wallets = [
       {
-        name: 'librustzcash family',
-        description: 'ZODL (formerly Zashi), Edge, Unstoppable, Vizor, and current Zkool all use the official Zcash SDK and are indistinguishable from one another on-chain. Includes Ironwood pool sends.',
-        familyMembers: ['ZODL', 'Edge', 'Unstoppable', 'Vizor', 'Zkool (current)'],
-        nym: 'partial',
-        nymNote: 'Zkool (within this family) ships Nym mixnet support since PR #1195. Other SDK wallets do not.',
+        name: 'ZODL / Vizor (Ironwood sends)',
+        description: 'Fully migrated SDK wallets now sending within the Ironwood pool. Expiry +40, standard fee, no transparent component. Primarily ZODL users (largest migrated user base).',
+        familyMembers: ['ZODL (iOS)', 'ZODL (Android)', 'Vizor'],
+        nym: 'none',
         signals: {
           fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
-          expiry: { value: '+40 blocks', matchCount: familyExpiry40, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40 (window 36–40 for confirmation delay). Includes Ironwood pool sends.' },
+          expiry: { value: '+40 blocks', matchCount: ironwoodOnlyCount, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40. Ironwood-only pool sends.' },
           locktime: { value: '0', confidence: 'high', source: 'librustzcash never sets nLockTime' },
-          actionPadding: { value: '2 actions', matchCount: parseInt(r.sdk_2action), confidence: 'high', source: 'librustzcash orchard BundleType::DEFAULT_ORCHARD pads to 2 actions' },
+          actionPadding: { value: '2 actions', confidence: 'high', source: 'Standard Ironwood BundleType padding' },
         },
-        note: 'Count is the whole SDK family combined — we cannot split these apart from expiry alone.',
+        note: 'Your anonymity set if you are a migrated ZODL/Vizor user sending within Ironwood.',
+      },
+      {
+        name: 'ZODL / Vizor (ZIP-318 migration)',
+        description: 'Automated pool migration from Orchard → Ironwood using the zcash_pool_migration crate. Canonical 1-2-5 ZEC denominations batched into high-action transactions.',
+        nym: 'none',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'Exact ZIP-317: fee = actions × 5000. Typical: 11-16 actions = 55,000-80,000 zat.' },
+          expiry: { value: '>20,000 blocks (~2+ weeks)', matchCount: migrationCount, confidence: 'high', source: 'Long expiry prevents timeout during multi-step automated migration.' },
+          locktime: { value: '0', confidence: 'high', source: 'SDK default' },
+          actionPadding: { value: '11-16 actions', confidence: 'high', source: 'zcash_pool_migration crate batches canonical denominations. 99.7% have exact ZIP-317 fee.' },
+        },
+        note: 'Trivially identifiable by high action count + extreme expiry. Zkool uses a different private-splitting approach not captured here.',
+      },
+      {
+        name: 'SDK wallets (Orchard pool)',
+        description: 'SDK wallets still transacting in Orchard — users who have not yet migrated to Ironwood. Includes Edge, Unstoppable, and older ZODL versions.',
+        familyMembers: ['Edge', 'Unstoppable', 'ZODL (pre-migration)', 'Zkool (current)'],
+        nym: 'partial',
+        nymNote: 'Zkool (within this group) ships Nym mixnet support since PR #1195. Other SDK wallets do not.',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
+          expiry: { value: '+40 blocks', confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40. Orchard-only fully-shielded sends.' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash never sets nLockTime' },
+          actionPadding: { value: '2 actions', matchCount: orchardShieldedCount, confidence: 'high', source: 'librustzcash orchard BundleType pads to 2 actions' },
+        },
+        note: 'Shrinking pool as users migrate to Ironwood. On-chain indistinguishable between Edge, Unstoppable, ZODL, and Zkool.',
+      },
+      {
+        name: 'SDK wallets (shielding/deshielding)',
+        description: 'SDK wallet transactions with transparent inputs or outputs — receiving from exchanges, auto-shielding, or transparent operations. Same +40 expiry as other SDK wallets.',
+        nym: 'none',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'ZIP-317 fee includes transparent inputs in logical action count' },
+          expiry: { value: '+40 blocks', matchCount: mixedTransparentCount, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash default' },
+          actionPadding: { value: '2 actions', confidence: 'high', source: 'Standard padding' },
+        },
+        note: 'Transparent component makes these distinguishable from fully-shielded sends but does not reveal which SDK wallet.',
       },
       {
         name: 'Cake Wallet (probable)',
@@ -878,18 +939,6 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
         note: 'Highly distinguishable: combination of 4× fee + short expiry is unique on the network. First wallet with mandatory priority fee.',
       },
       {
-        name: 'Migration batches (ZIP-318)',
-        description: 'Automated pool migration from Orchard → Ironwood using the zcash_pool_migration crate. Generated by ZODL and Vizor — canonical 1-2-5 denominations with very long expiry.',
-        nym: 'none',
-        signals: {
-          fee: { value: '5000/action', confidence: 'high', source: 'Standard ZIP-317 fee for 6-16 actions (typically 30,000-80,000 zat total)' },
-          expiry: { value: '>20,000 blocks (~2+ weeks)', matchCount: migrationCount, confidence: 'high', source: 'Long expiry ensures multi-step migration completes. Fully shielded, locktime=0.' },
-          locktime: { value: '0', confidence: 'high', source: 'SDK default' },
-          actionPadding: { value: '6-16 actions', confidence: 'high', source: 'zcash_pool_migration crate batches canonical 1-2-5 ZEC denominations per tx (ZODL, Vizor)' },
-        },
-        note: 'Trivially identifiable by high action count + extreme expiry. Zkool\'s migration uses a different approach (private splitting, shorter expiry) and is not captured here.',
-      },
-      {
         name: 'Zkool (historical)',
         description: 'Successor to YWallet (hhanh00). Used a distinctive +100 expiry delta until March 2026.',
         nym: 'supported',
@@ -900,7 +949,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
           locktime: { value: '0', confidence: 'high', source: 'librustzcash Builder (locktime=0)' },
           actionPadding: { value: '2 actions', confidence: 'high', source: 'librustzcash orchard BundleType pads to 2 actions' },
         },
-        note: 'Only historical txs are identifiable. Current Zkool folds into the librustzcash family.',
+        note: 'Only historical txs are identifiable. Current Zkool folds into the SDK wallets group.',
       },
       {
         name: 'YWallet (deprecated)',
