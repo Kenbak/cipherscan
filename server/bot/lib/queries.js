@@ -282,6 +282,8 @@ async function getRecentLargeSwaps(pool, { minUsd, since }) {
       direction,
       source_chain,
       dest_chain,
+      source_amount,
+      dest_amount,
       source_amount_usd,
       dest_amount_usd,
       zec_txid,
@@ -294,15 +296,20 @@ async function getRecentLargeSwaps(pool, { minUsd, since }) {
     ORDER BY GREATEST(COALESCE(source_amount_usd, 0), COALESCE(dest_amount_usd, 0)) DESC
     LIMIT 20
   `, [minUsd, since]);
-  return rows.map(r => ({
-    id: r.id,
-    direction: r.direction,
-    sourceChain: r.source_chain,
-    destChain: r.dest_chain,
-    amountUsd: Math.max(Number(r.source_amount_usd || 0), Number(r.dest_amount_usd || 0)),
-    zecTxid: r.zec_txid,
-    createdAt: r.swap_created_at,
-  }));
+  return rows.map(r => {
+    const isOutflow = r.source_chain === 'zec';
+    const zecAmount = isOutflow ? Number(r.source_amount || 0) : Number(r.dest_amount || 0);
+    return {
+      id: r.id,
+      direction: r.direction,
+      sourceChain: r.source_chain,
+      destChain: r.dest_chain,
+      amountUsd: Math.max(Number(r.source_amount_usd || 0), Number(r.dest_amount_usd || 0)),
+      amountZec: zecAmount,
+      zecTxid: r.zec_txid,
+      createdAt: r.swap_created_at,
+    };
+  });
 }
 
 // ─── Privacy risk aggregates ──────────────────────────────────────────────

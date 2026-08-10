@@ -333,6 +333,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       const content = formatCrossChainAlert({
         direction: swap.direction,
         amountUsd: swap.amountUsd,
+        amountZec: swap.amountZec,
         sourceChain: swap.sourceChain,
         destChain: swap.destChain,
         zecTxid: swap.zecTxid,
@@ -351,6 +352,7 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
           const result = await postWithCard(xClient, content, renderCrossChain, {
             direction: swap.direction,
             amountUsd: swap.amountUsd,
+            amountZec: swap.amountZec,
             sourceChain: swap.sourceChain,
             destChain: swap.destChain,
             zecTxid: swap.zecTxid,

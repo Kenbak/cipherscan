@@ -171,16 +171,20 @@ function formatChainRecovery({ blockHeight, gapMinutes }) {
 
 // ─── Cross-chain Whale Alert ──────────────────────────────────────────────
 
-function formatCrossChainAlert({ direction, amountUsd, sourceChain, destChain, zecTxid }) {
+function formatCrossChainAlert({ direction, amountUsd, amountZec, sourceChain, destChain, zecTxid }) {
   const isInflow = direction === 'inflow';
   const chain = isInflow ? sourceChain.toUpperCase() : destChain.toUpperCase();
   const emoji = isInflow ? '🟢' : '🔴';
   const title = isInflow ? `${emoji} Whale Inflow` : `${emoji} Whale Outflow`;
   const flow = isInflow ? `${chain} → ZEC` : `ZEC → ${chain}`;
+  let amountStr = `$${Math.round(amountUsd).toLocaleString()}`;
+  if (amountZec && amountZec > 0) {
+    amountStr += ` (${amountZec.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC)`;
+  }
   const lines = [
     title,
     ``,
-    `$${Math.round(amountUsd).toLocaleString()} bridged (${flow})`,
+    `${amountStr} bridged (${flow})`,
   ];
   if (zecTxid) {
     lines.push(``);
