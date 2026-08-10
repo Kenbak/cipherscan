@@ -793,6 +793,13 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
 
         COUNT(*) FILTER (
           WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) BETWEEN 36 AND 40
+            AND has_orchard = true AND has_ironwood = true
+            AND vin_count = 0 AND vout_count = 0
+        ) AS family40_cross_pool,
+
+        COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
             AND (expiry_height - block_height) BETWEEN 90 AND 100
             AND (has_orchard = true OR has_sapling = true)
         ) AS zkool_expiry100,
@@ -848,6 +855,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
     const ironwoodOnlyCount = parseInt(r.family40_ironwood_only);
     const orchardShieldedCount = parseInt(r.family40_orchard_shielded);
     const mixedTransparentCount = parseInt(r.family40_mixed_transparent);
+    const crossPoolCount = parseInt(r.family40_cross_pool);
 
     const wallets = [
       {
@@ -874,6 +882,18 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
           actionPadding: { value: '11-16 actions', confidence: 'high', source: 'zcash_pool_migration crate batches canonical denominations. 99.7% have exact ZIP-317 fee.' },
         },
         note: 'Trivially identifiable by high action count + extreme expiry. Zkool uses a different private-splitting approach not captured here.',
+      },
+      {
+        name: 'SDK wallets (cross-pool)',
+        description: 'Transactions touching both Orchard and Ironwood pools without transparent components — smaller manual migrations, cross-pool consolidation, or wallet-initiated pool moves with standard +40 expiry.',
+        nym: 'none',
+        signals: {
+          fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
+          expiry: { value: '+40 blocks', matchCount: crossPoolCount, confidence: 'high', source: 'Standard SDK expiry. Shorter than automated ZIP-318 migration (>20k blocks).' },
+          locktime: { value: '0', confidence: 'high', source: 'librustzcash default' },
+          actionPadding: { value: '2+ actions', confidence: 'high', source: 'Varies with amounts being moved' },
+        },
+        note: 'Distinct from ZIP-318 migration (which uses extreme expiry). These are smaller, user-initiated cross-pool sends.',
       },
       {
         name: 'SDK wallets (Orchard pool)',

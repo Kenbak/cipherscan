@@ -476,6 +476,7 @@ export default function WalletsClient() {
 const WALLET_COLORS: Record<string, string> = {
   'ZODL / Vizor (Ironwood sends)': '#56D4C8',
   'ZODL / Vizor (ZIP-318 migration)': '#6366f1',
+  'SDK wallets (cross-pool)': '#818cf8',
   'SDK wallets (Orchard pool)': '#22c55e',
   'SDK wallets (shielding/deshielding)': '#14b8a6',
   'Cake Wallet (probable)': '#ec4899',
@@ -748,6 +749,7 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   const entries: { name: string; key: string; signal: 'expiry' | 'fee' | 'locktime' | 'actionPadding'; confidence: 'high' | 'medium' | 'low' }[] = [
     { name: 'ZODL / Vizor (Ironwood sends)', key: 'ZODL / Vizor (Ironwood sends)', signal: 'expiry', confidence: 'high' },
     { name: 'ZODL / Vizor (ZIP-318 migration)', key: 'ZODL / Vizor (ZIP-318 migration)', signal: 'expiry', confidence: 'high' },
+    { name: 'SDK wallets (cross-pool)', key: 'SDK wallets (cross-pool)', signal: 'expiry', confidence: 'medium' },
     { name: 'SDK wallets (Orchard pool)', key: 'SDK wallets (Orchard pool)', signal: 'actionPadding', confidence: 'medium' },
     { name: 'SDK wallets (shielding/deshielding)', key: 'SDK wallets (shielding/deshielding)', signal: 'expiry', confidence: 'medium' },
     { name: 'Cake Wallet (probable)', key: 'Cake Wallet (probable)', signal: 'expiry', confidence: 'medium' },
