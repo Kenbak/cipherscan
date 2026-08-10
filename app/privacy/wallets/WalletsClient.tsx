@@ -476,6 +476,7 @@ export default function WalletsClient() {
 const WALLET_COLORS: Record<string, string> = {
   'Zkool (historical)': '#F4B728',
   'Brave': '#f59e0b',
+  'Nozy': '#a855f7',
   'librustzcash family (ZODL/Edge/Vizor/etc.)': '#56D4C8',
   'Unknown / Other': '#64748b',
 };
@@ -742,6 +743,13 @@ function buildUsageEstimates(fingerprints: FingerprintData | null) {
   const braveLocktime = find('Brave')?.signals.locktime.matchCount || 0;
   const familyExpiry = find('librustzcash family')?.signals.expiry.matchCount || 0;
   const zkoolExpiry = find('Zkool (historical)')?.signals.expiry.matchCount || 0;
+  const nozyFee = find('Nozy')?.signals.fee.matchCount || 0;
+
+  // Nozy: very distinctive — 4× fee + short expiry combo is unique
+  if (nozyFee > 0) {
+    walletMap.push({ name: 'Nozy', value: nozyFee, confidence: 'high' });
+    identified += nozyFee;
+  }
 
   // Zkool historical: distinguishable by expiry+100 (pre-March 2026)
   if (zkoolExpiry > 0) {

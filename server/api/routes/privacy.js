@@ -777,6 +777,15 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
         ) AS zkool_expiry100,
 
         COUNT(*) FILTER (
+          WHERE expiry_height IS NOT NULL AND expiry_height > 0
+            AND (expiry_height - block_height) BETWEEN 1 AND 6
+            AND fee = 40000
+            AND locktime = 0
+            AND has_orchard = true
+            AND vin_count = 0 AND vout_count = 0
+        ) AS nozy_expiry5_fee4x,
+
+        COUNT(*) FILTER (
           WHERE locktime > 0 AND locktime < 500000000
             AND has_orchard = true
         ) AS nonzero_locktime_height,
@@ -797,6 +806,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
 
     const r = result.rows[0];
     const familyExpiry40 = parseInt(r.family_expiry40);
+    const nozyCount = parseInt(r.nozy_expiry5_fee4x);
 
     // The librustzcash "+40 family" (ZODL, Edge, Unstoppable, Vizor, post-Mar Zkool)
     // is indistinguishable on the expiry signal alone — so the +40 count is attached
@@ -833,16 +843,16 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
       },
       {
         name: 'Nozy',
-        description: 'Privacy-first Orchard/Ironwood CLI wallet built in Rust for Zebrad. Ships network-level hygiene defaults and Nym mixnet protection for broadcast IP.',
+        description: 'Privacy-first Orchard/Ironwood CLI wallet built in Rust for Zebrad. Uses a custom dynamic fee pilot with 4× ZIP-317 priority and short expiry.',
         nym: 'supported',
         nymNote: 'Nym VPN/mixnet integrated for broadcast IP protection during Ironwood migration and normal sends. Ticketbooks ready.',
         signals: {
-          fee: { value: '5000/action', confidence: 'medium', source: 'Uses librustzcash SDK fee rules' },
-          expiry: { value: '+40 blocks', confidence: 'medium', source: 'librustzcash SDK default' },
-          locktime: { value: '0', confidence: 'medium', source: 'librustzcash SDK default' },
-          actionPadding: { value: '2 actions', confidence: 'medium', source: 'librustzcash SDK default' },
+          fee: { value: '40000 zat (4× ZIP-317)', matchCount: nozyCount, confidence: 'high', source: 'fee_policy.rs: PRIORITY_MULTIPLIER = 4, always applied. Typical 2-action send = 40,000 zat.' },
+          expiry: { value: '+5 blocks', matchCount: nozyCount, confidence: 'high', source: 'fee_policy.rs: PILOT_EXPIRY_DELTA_BLOCKS = 5 (raised from 2 in PR #59). Window 1–6 on-chain.' },
+          locktime: { value: '0', confidence: 'high', source: 'orchard_tx.rs: TransactionData::from_parts(..., 0, ...) — hardcoded zero locktime' },
+          actionPadding: { value: '2 actions', confidence: 'high', source: 'BundleType::Transactional with orchard Builder (same as librustzcash)' },
         },
-        note: 'On-chain fingerprint is identical to the librustzcash family. Distinguishable only by network-layer behavior (Nym, randomized broadcast delays, start-height obfuscation).',
+        note: 'Highly distinguishable: combination of 4× fee + short expiry is unique on the network. First wallet with mandatory priority fee.',
       },
       {
         name: 'Zkool (historical)',
