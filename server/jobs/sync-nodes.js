@@ -12,6 +12,8 @@ const { callZebraRPC } = require('../lib/zebra-rpc');
 
 loadEnv(__dirname);
 
+const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
+
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
 
 const INACTIVE_THRESHOLD_HOURS = 24;
