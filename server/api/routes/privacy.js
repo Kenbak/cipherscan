@@ -809,6 +809,8 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
         name: 'librustzcash family',
         description: 'ZODL (formerly Zashi), Edge, Unstoppable, Vizor, and current Zkool all use the official Zcash SDK and are indistinguishable from one another on-chain.',
         familyMembers: ['ZODL', 'Edge', 'Unstoppable', 'Vizor', 'Zkool (current)'],
+        nym: 'partial',
+        nymNote: 'Zkool (within this family) ships Nym mixnet support since PR #1195. Other SDK wallets do not.',
         signals: {
           fee: { value: '5000/action', confidence: 'high', source: 'librustzcash zip317 FeeRule' },
           expiry: { value: '+40 blocks', matchCount: familyExpiry40, confidence: 'high', source: 'librustzcash DEFAULT_TX_EXPIRY_DELTA = 40 (window 36–40 for confirmation delay)' },
@@ -820,6 +822,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
       {
         name: 'Brave',
         description: 'Browser wallet with its own C++ ZCash implementation (not librustzcash).',
+        nym: 'none',
         signals: {
           fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (brave-core PR #32580)' },
           expiry: { value: '+20 blocks', matchCount: parseInt(r.brave_expiry20), confidence: 'medium', source: 'zcashd legacy default (+20). Also matches legacy zcashd/zebra wallets.' },
@@ -829,8 +832,23 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
         note: 'Non-zero nLockTime is the strongest discriminator: librustzcash never sets it.',
       },
       {
+        name: 'Nozy',
+        description: 'Privacy-first Orchard/Ironwood CLI wallet built in Rust for Zebrad. Ships network-level hygiene defaults and Nym mixnet protection for broadcast IP.',
+        nym: 'supported',
+        nymNote: 'Nym VPN/mixnet integrated for broadcast IP protection during Ironwood migration and normal sends. Ticketbooks ready.',
+        signals: {
+          fee: { value: '5000/action', confidence: 'medium', source: 'Uses librustzcash SDK fee rules' },
+          expiry: { value: '+40 blocks', confidence: 'medium', source: 'librustzcash SDK default' },
+          locktime: { value: '0', confidence: 'medium', source: 'librustzcash SDK default' },
+          actionPadding: { value: '2 actions', confidence: 'medium', source: 'librustzcash SDK default' },
+        },
+        note: 'On-chain fingerprint is identical to the librustzcash family. Distinguishable only by network-layer behavior (Nym, randomized broadcast delays, start-height obfuscation).',
+      },
+      {
         name: 'Zkool (historical)',
         description: 'Successor to YWallet (hhanh00). Used a distinctive +100 expiry delta until March 2026.',
+        nym: 'supported',
+        nymNote: 'Nym mixnet added as pluggable transport and direct Nym Zcash RPC node option (PR #1195).',
         signals: {
           fee: { value: '5000/action', confidence: 'high', source: 'librustzcash FeeRule (zip317)' },
           expiry: { value: '+100 (pre-Mar 2026)', matchCount: parseInt(r.zkool_expiry100), confidence: 'high', source: 'zkool2 commit 393bf2d fixed delta 100→40 on Mar 10 2026' },
@@ -842,6 +860,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
       {
         name: 'YWallet (deprecated)',
         description: 'Deprecated mobile wallet, predecessor to Zkool. Custom Warp Sync engine.',
+        nym: 'none',
         signals: {
           fee: { value: '5000/action', confidence: 'medium', source: 'ZIP-317 compliant (own builder)' },
           expiry: { value: 'Unknown', confidence: 'low', source: 'custom builder, not verified' },

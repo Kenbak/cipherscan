@@ -44,6 +44,8 @@ interface WalletFingerprint {
   description?: string;
   note?: string;
   familyMembers?: string[];
+  nym?: 'supported' | 'partial' | 'none';
+  nymNote?: string;
   signals: {
     fee: WalletSignal;
     expiry: WalletSignal;
@@ -340,6 +342,10 @@ export default function WalletsClient() {
                 <span className="inline-block w-8 h-5 rounded-full bg-slate-500/20 border border-slate-500/40" />
                 Unknown
               </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-8 h-5 rounded-full bg-purple-500/15 border border-purple-500/30" />
+                Nym Mixnet
+              </span>
             </div>
           </div>
         )}
@@ -569,6 +575,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
             <span className="font-medium text-sm">{wallet.name}</span>
+            <NymBadge status={wallet.nym} />
           </div>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {signals.map(([key, signal]) => (
@@ -590,6 +597,12 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
                     {m}
                   </span>
                 ))}
+              </div>
+            )}
+            {wallet.nymNote && (
+              <div className="flex items-start gap-2 mb-3 px-2 py-1.5 rounded bg-purple-500/5 border border-purple-500/20">
+                <span className="text-[10px] uppercase tracking-wider text-purple-400 font-medium whitespace-nowrap mt-px">Nym</span>
+                <span className="text-xs text-purple-300/80">{wallet.nymNote}</span>
               </div>
             )}
             {wallet.note && (
@@ -617,6 +630,25 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
         )}
       </CardBody>
     </Card>
+  );
+}
+
+function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
+  if (!status || status === 'none') return null;
+
+  const styles = status === 'supported'
+    ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+    : 'bg-purple-500/10 border-purple-500/20 text-purple-400/70';
+
+  const label = status === 'supported' ? 'Nym' : 'Nym (partial)';
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[9px] font-medium uppercase tracking-wider ${styles}`}>
+      <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.5 7.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm5 0a1 1 0 112 0v3a1 1 0 11-2 0v-3zM7 5a1 1 0 112 0 1 1 0 01-2 0z" />
+      </svg>
+      {label}
+    </span>
   );
 }
 
