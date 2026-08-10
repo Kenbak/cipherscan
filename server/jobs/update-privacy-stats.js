@@ -19,6 +19,8 @@ const { callZebraRPC } = require('../lib/zebra-rpc');
 
 loadEnv(__dirname);
 
+const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
+
 const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../lib/privacy-score');
 
 const pool = getPool({ max: 3 });
