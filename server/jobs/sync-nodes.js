@@ -9,6 +9,8 @@ const { parsePeerAddress, parsePeerClient } = require('../lib/peer-client');
 const { loadEnv } = require('../lib/job-utils');
 const { getPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
+const http = require('http');
+const https = require('https');
 
 loadEnv(__dirname);
 
