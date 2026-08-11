@@ -1,7 +1,7 @@
 /**
  * Zcash Explorer API Server
  * Express.js + PostgreSQL + WebSocket
- * Runs on DigitalOcean, serves data to Netlify frontend
+ * Runs on Hetzner, serves data to Vercel frontend
  */
 
 require('dotenv').config();

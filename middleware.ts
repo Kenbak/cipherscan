@@ -101,15 +101,15 @@ export function middleware(request: NextRequest) {
     return handleApiRateLimit(request);
   }
 
-  // CDN cache hints for immutable content pages.
-  // The Netlify adapter translates Netlify-CDN-Cache-Control into its
-  // internal CDN cache layer, keeping browsers on short max-age while the
-  // edge serves stale content during background revalidation.
   const blockMatch = pathname.match(/^\/block\/(\d+)$/);
   if (blockMatch) {
     const response = NextResponse.next();
     response.headers.set(
-      'Netlify-CDN-Cache-Control',
+      'CDN-Cache-Control',
+      'public, s-maxage=3600, stale-while-revalidate=86400',
+    );
+    response.headers.set(
+      'Vercel-CDN-Cache-Control',
       'public, s-maxage=3600, stale-while-revalidate=86400',
     );
     return response;
