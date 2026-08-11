@@ -14,25 +14,25 @@ interface PulseEvent {
   direction: 'up' | 'down';
   description: string;
   detail: string;
-  severity: 'critical' | 'high' | 'notable';
+  severity: 'extreme' | 'strong' | 'mild';
   createdAt: string;
 }
 
 interface PulseResponse {
   events: PulseEvent[];
   total: number;
-  severityCounts?: { critical: number; high: number; notable: number };
+  severityCounts?: { extreme: number; strong: number; mild: number };
   topMetric?: { metric: string; count: number } | null;
 }
 
-type Severity = 'all' | 'critical' | 'high' | 'notable';
+type Severity = 'all' | 'extreme' | 'strong' | 'mild';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<string, { dot: string; text: string; bar: string; label: string }> = {
-  critical: { dot: 'bg-red-400', text: 'text-red-400', bar: 'bg-red-400', label: 'Critical' },
-  high: { dot: 'bg-amber-400', text: 'text-amber-400', bar: 'bg-amber-400', label: 'High' },
-  notable: { dot: 'bg-cipher-cyan', text: 'text-cipher-cyan', bar: 'bg-cipher-cyan', label: 'Notable' },
+  extreme: { dot: 'bg-cipher-cyan', text: 'text-cipher-cyan', bar: 'bg-cipher-cyan', label: 'Extreme' },
+  strong: { dot: 'bg-cipher-cyan/70', text: 'text-cipher-cyan/70', bar: 'bg-cipher-cyan/70', label: 'Strong' },
+  mild: { dot: 'bg-cipher-cyan/40', text: 'text-cipher-cyan/40', bar: 'bg-cipher-cyan/40', label: 'Mild' },
 };
 
 const METRIC_LABELS: Record<string, string> = {
@@ -174,7 +174,7 @@ export default function PulsePage() {
   );
   const events = pulseData?.events ?? [];
   const total = pulseData?.total ?? 0;
-  const counts = pulseData?.severityCounts ?? { critical: 0, high: 0, notable: 0 };
+  const counts = pulseData?.severityCounts ?? { extreme: 0, strong: 0, mild: 0 };
   const topMetric = pulseData?.topMetric ?? null;
 
   const filtered = severity === 'all' ? events : events.filter(e => e.severity === severity);
@@ -220,7 +220,7 @@ export default function PulsePage() {
             <div className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted">Anomalies</div>
             <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">Detected in period</div>
           </div>
-          {(['critical', 'high', 'notable'] as const).map(sev => {
+          {(['extreme', 'strong', 'mild'] as const).map(sev => {
             const cfg = SEVERITY_CONFIG[sev];
             return (
               <button
@@ -238,7 +238,7 @@ export default function PulsePage() {
                   <span className="truncate font-mono text-[10px] uppercase tracking-wider text-muted">{cfg.label}</span>
                 </div>
                 <div className="mt-0.5 truncate font-mono text-[10px] text-muted/60">
-                  {sev === 'critical' ? '|z| ≥ 4.0' : sev === 'high' ? '|z| ≥ 3.0' : '|z| ≥ 2.5'}
+                  {sev === 'extreme' ? '|z| ≥ 4.0' : sev === 'strong' ? '|z| ≥ 3.0' : '|z| ≥ 2.5'}
                 </div>
               </button>
             );
@@ -353,16 +353,16 @@ export default function PulsePage() {
               </p>
             </div>
             <div className="px-5 py-4">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Severity</div>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Signal Intensity</div>
               <div className="mt-1.5 space-y-1">
-                {(['critical', 'high', 'notable'] as const).map(sev => {
+                {(['extreme', 'strong', 'mild'] as const).map(sev => {
                   const cfg = SEVERITY_CONFIG[sev];
                   return (
                     <div key={sev} className="flex items-center gap-2 text-sm">
                       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                       <span className="text-secondary">{cfg.label}</span>
                       <span className="font-mono text-xs text-muted">
-                        {sev === 'critical' ? '|z| ≥ 4.0' : sev === 'high' ? '|z| ≥ 3.0' : '|z| ≥ 2.5'}
+                        {sev === 'extreme' ? '|z| ≥ 4.0' : sev === 'strong' ? '|z| ≥ 3.0' : '|z| ≥ 2.5'}
                       </span>
                     </div>
                   );

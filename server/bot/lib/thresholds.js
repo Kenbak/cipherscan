@@ -44,7 +44,7 @@ const DEFAULT_CONFIG = {
 
   // Network pulse anomaly alerts (statistical z-score events)
   pulse: {
-    minAbsZ: 3.0,      // only high/critical severity (matches /pulse page tiers)
+    minAbsZ: 3.0,      // only strong/extreme intensity (matches /pulse page tiers)
     maxPerDay: 2,      // cap posts per day to stay signal, not noise
     lookbackHours: 26, // detect-anomalies runs daily ~21:00 UTC; window covers a full cycle
   },

@@ -33,9 +33,9 @@ async function cached(key, ttlSeconds, fn) {
 }
 
 function classifySeverity(absZ) {
-  if (absZ >= 4.0) return 'critical';
-  if (absZ >= 3.0) return 'high';
-  return 'notable';
+  if (absZ >= 4.0) return 'extreme';
+  if (absZ >= 3.0) return 'strong';
+  return 'mild';
 }
 
 // ─── Paginated feed ───────────────────────────────────────────────────────────
@@ -72,9 +72,9 @@ router.get('/api/pulse', async (req, res) => {
       const statsQuery = `
         SELECT
           COUNT(*) AS total,
-          COUNT(*) FILTER (WHERE ABS(zscore) >= 4.0) AS critical,
-          COUNT(*) FILTER (WHERE ABS(zscore) >= 3.0 AND ABS(zscore) < 4.0) AS high,
-          COUNT(*) FILTER (WHERE ABS(zscore) < 3.0) AS notable
+          COUNT(*) FILTER (WHERE ABS(zscore) >= 4.0) AS extreme,
+          COUNT(*) FILTER (WHERE ABS(zscore) >= 3.0 AND ABS(zscore) < 4.0) AS strong,
+          COUNT(*) FILTER (WHERE ABS(zscore) < 3.0) AS mild
         FROM metric_anomalies
         WHERE date >= CURRENT_DATE - $1::int
         ${metric ? 'AND metric = $2' : ''}
@@ -103,9 +103,9 @@ router.get('/api/pulse', async (req, res) => {
         })),
         total: Number(statsRows[0].total),
         severityCounts: {
-          critical: Number(statsRows[0].critical),
-          high: Number(statsRows[0].high),
-          notable: Number(statsRows[0].notable),
+          extreme: Number(statsRows[0].extreme),
+          strong: Number(statsRows[0].strong),
+          mild: Number(statsRows[0].mild),
         },
         topMetric: topRows[0] ? { metric: topRows[0].metric, count: Number(topRows[0].c) } : null,
         limit,
@@ -132,7 +132,7 @@ router.get('/api/pulse/summary', async (req, res) => {
         ORDER BY date DESC, ABS(zscore) DESC
       `);
 
-      const bySeverity = { critical: 0, high: 0, notable: 0 };
+      const bySeverity = { extreme: 0, strong: 0, mild: 0 };
       const recent = [];
 
       for (const r of rows) {
