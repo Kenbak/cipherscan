@@ -653,6 +653,98 @@ export default function LearnPage() {
       </div>
 
       {/* ═══════════════════════════════════════ */}
+      {/* NETWORK PRIVACY */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="border-t border-cipher-border">
+        <div className="max-w-6xl mx-auto px-4 py-14">
+          <div className="flex items-center gap-3 mb-2">
+            <Icons.Shield className="w-5 h-5 text-cipher-cyan" />
+            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} NETWORK_PRIVACY</h2>
+          </div>
+          <p className="text-secondary mb-8 max-w-2xl">
+            Zcash encrypts your transaction data on-chain, but your <strong className="text-primary">IP address</strong> is
+            still visible to the server your wallet connects to. Network privacy tools hide this metadata layer.
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Nym */}
+            <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+              <CardBody>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-primary text-lg">Nym Mixnet</h3>
+                  <Badge color="green">STRONGEST</Badge>
+                </div>
+                <p className="text-sm text-secondary mb-4 leading-relaxed">
+                  A decentralized mixnet that routes packets through multiple hops with cover traffic,
+                  making timing analysis nearly impossible. Stronger than VPNs or Tor for metadata protection.
+                </p>
+                <div className="text-xs text-muted mb-4 bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
+                  <span className="font-medium text-primary">Supported by:</span> Zkool (via pluggable transport or direct Nym RPC node)
+                </div>
+                <a href="https://nymtech.net/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm w-full justify-center">
+                  <Icons.ExternalLink className="w-3.5 h-3.5" />
+                  nymtech.net
+                </a>
+              </CardBody>
+            </Card>
+
+            {/* Tor */}
+            <Card variant="glass" className="border-l-2 border-l-cipher-purple/30">
+              <CardBody>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-primary text-lg">Tor</h3>
+                  <Badge color="cyan">WIDELY AVAILABLE</Badge>
+                </div>
+                <p className="text-sm text-secondary mb-4 leading-relaxed">
+                  Onion routing through 3 volunteer relays. Hides your IP from the destination but vulnerable
+                  to traffic analysis by well-resourced adversaries. Still a major improvement over direct connections.
+                </p>
+                <div className="text-xs text-muted mb-4 bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
+                  <span className="font-medium text-primary">Supported by:</span> Zebra node (native), any wallet via system Tor proxy
+                </div>
+                <a href="https://www.torproject.org/" target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm w-full justify-center">
+                  <Icons.ExternalLink className="w-3.5 h-3.5" />
+                  torproject.org
+                </a>
+              </CardBody>
+            </Card>
+
+            {/* Why it matters */}
+            <Card variant="glass" className="border-l-2 border-l-amber-400/30">
+              <CardBody>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="font-bold text-primary text-lg">Why It Matters</h3>
+                </div>
+                <div className="space-y-3 text-sm text-secondary leading-relaxed">
+                  <p>
+                    Your wallet syncs by requesting specific blocks from a lightwalletd server. Without network
+                    privacy, that server knows:
+                  </p>
+                  <ul className="space-y-1.5 text-xs">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-400 mt-0.5">•</span>
+                      <span>Your IP address and geographic location</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-400 mt-0.5">•</span>
+                      <span>Which blocks contain your transactions (timing)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-400 mt-0.5">•</span>
+                      <span>When you come online and how often you transact</span>
+                    </li>
+                  </ul>
+                  <p className="text-xs text-muted pt-2 border-t border-cipher-border">
+                    A mixnet or Tor breaks this link. Your wallet&apos;s requests are indistinguishable from everyone else&apos;s.
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
       {/* WALLETS */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
