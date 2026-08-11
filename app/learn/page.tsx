@@ -333,12 +333,13 @@ export default function LearnPage() {
               </div>
               <h3 className="font-bold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                <strong className="text-cipher-purple">Orchard</strong> (newest, most private)
-                and <strong className="text-cipher-purple">Sapling</strong> pools use encryption.
-                The transparent pool works like Bitcoin. Always shield your ZEC.
+                <strong className="text-cipher-cyan">Ironwood</strong> is the latest pool — formally verified
+                cryptography with a quantum-recoverable design.
+                Older pools (<strong className="text-cipher-purple">Orchard</strong>, <strong className="text-cipher-purple">Sapling</strong>)
+                remain active. The transparent pool works like Bitcoin. Always shield your ZEC.
               </p>
-              <Link href="/privacy" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-cipher-cyan mt-3 transition-colors">
-                <span>View Pool Stats</span>
+              <Link href="/ironwood" className="inline-flex items-center gap-1 text-sm text-cipher-cyan hover:text-cipher-green mt-3 transition-colors">
+                <span>Ironwood Dashboard</span>
                 <Icons.ChevronRight className="w-3 h-3" />
               </Link>
             </CardBody>
@@ -754,8 +755,8 @@ export default function LearnPage() {
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} WALLETS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
-            Choose a wallet that supports shielded transactions. All wallets below support Unified Addresses
-            and full Orchard privacy.
+            Choose a wallet that supports shielded transactions. Modern wallets are migrating to the
+            Ironwood pool for formally verified, quantum-recoverable privacy.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
