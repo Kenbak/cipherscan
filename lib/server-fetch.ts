@@ -37,11 +37,25 @@ export function isServerRenderDeadlineError(error: unknown): boolean {
   return error instanceof Error && error.name === 'TimeoutError';
 }
 
+const SERVICE_API_KEY = process.env.SERVICE_API_KEY || '';
+
+/** Merge the service-key header into the request so server-side fetches
+ *  bypass the per-IP rate limiter on the API server. */
+function withServiceHeaders(init: NextFetchRequestInit): NextFetchRequestInit {
+  if (!SERVICE_API_KEY) return init;
+  const headers = new Headers(init.headers);
+  if (!headers.has('x-service-key')) headers.set('x-service-key', SERVICE_API_KEY);
+  return { ...init, headers };
+}
+
 /**
  * Bound upstream work that is allowed to delay server-rendered HTML.
  *
  * Callers either return an unavailable state or throw an availability error,
  * so a slow API cannot hold the page response open until the platform timeout.
+ *
+ * Automatically injects the SERVICE_API_KEY header so ISR revalidation
+ * bypasses the API server's per-IP rate limiter.
  */
 export async function fetchWithDeadline(
   input: RequestInfo | URL,
@@ -49,19 +63,20 @@ export async function fetchWithDeadline(
   timeoutMs = getServerRenderFetchTimeoutMs(),
   fetchImpl: FetchImplementation = fetch,
 ): Promise<Response> {
+  const mergedInit = withServiceHeaders(init);
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     controller.abort(new DOMException('Server-render fetch deadline exceeded', 'TimeoutError'));
   }, Math.max(1, timeoutMs));
-  const abortFromCaller = () => controller.abort(init.signal?.reason);
+  const abortFromCaller = () => controller.abort(mergedInit.signal?.reason);
 
-  if (init.signal?.aborted) abortFromCaller();
-  else init.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (mergedInit.signal?.aborted) abortFromCaller();
+  else mergedInit.signal?.addEventListener('abort', abortFromCaller, { once: true });
 
   try {
-    return await fetchImpl(input, { ...init, signal: controller.signal });
+    return await fetchImpl(input, { ...mergedInit, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
-    init.signal?.removeEventListener('abort', abortFromCaller);
+    mergedInit.signal?.removeEventListener('abort', abortFromCaller);
   }
 }

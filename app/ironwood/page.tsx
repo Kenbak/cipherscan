@@ -1,5 +1,6 @@
 import { MigrationClient } from './MigrationClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 import { notFound } from 'next/navigation';
 
 const PAGE_NAME = 'Zcash Ironwood Upgrade & Migration Tracker';
@@ -8,7 +9,7 @@ const PAGE_DESCRIPTION =
 
 async function fetchJson(apiBase: string, path: string, expectedNetwork: 'mainnet' | 'testnet') {
   try {
-    const res = await fetch(`${apiBase}${path}`, { next: { revalidate: 300 } });
+    const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate: 300 } });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.success === true && data.network === expectedNetwork ? data : null;
