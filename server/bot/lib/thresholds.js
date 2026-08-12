@@ -33,7 +33,7 @@ const DEFAULT_CONFIG = {
 
   // Cross-chain whale alerts
   crossChain: {
-    minUsd: 25000, // $25K minimum swap
+    minUsd: 50000, // $50K minimum swap
     maxAlertsPerDay: 3,
   },
 

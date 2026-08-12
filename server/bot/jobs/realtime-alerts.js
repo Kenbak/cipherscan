@@ -48,63 +48,72 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
   // ─── 1. Large flow alerts ────────────────────────────────────────────────
   try {
-    const rollingThreshold = await queries.getFlowPercentile(pool, {
-      percentile: config.largeFlow.percentile,
-      windowDays: config.largeFlow.windowDays,
-    });
-
-    const since = Math.floor(Date.now() / 1000) - 900;
-    const largeFlows = await queries.getLargeFlows(pool, {
-      minZat: Math.min(config.largeFlow.absoluteFloorZat, rollingThreshold),
-      since,
-    });
-
-    for (const flow of largeFlows) {
-      const check = isExceptionalFlow(flow.amountZat, {
-        absoluteFloorZat: config.largeFlow.absoluteFloorZat,
-        rollingThresholdZat: rollingThreshold,
+    const postedToday = await queries.countPostedToday(pool, 'shield_alert');
+    if (postedToday >= config.largeFlow.maxAlertsPerDay) {
+      logger.info(`[Alerts] Large flow daily cap reached (${postedToday}/${config.largeFlow.maxAlertsPerDay}), skipping`);
+    } else {
+      const rollingThreshold = await queries.getFlowPercentile(pool, {
+        percentile: config.largeFlow.percentile,
+        windowDays: config.largeFlow.windowDays,
       });
 
-      if (!check.triggered) continue;
-
-      const dedupKey = `large_flow:${flow.txid}`;
-      if (await queries.isDuplicate(pool, dedupKey)) continue;
-
-      const percentileRank = computePercentileRank(
-        flow.amountZat, rollingThreshold, config.largeFlow.percentile
-      );
-
-      const content = formatLargeFlowAlert({
-        direction: flow.direction,
-        amountZat: flow.amountZat,
-        pool: flow.pool,
-        blockHeight: flow.blockHeight,
-        txid: flow.txid,
-        percentileRank,
+      const since = Math.floor(Date.now() / 1000) - 900;
+      const largeFlows = await queries.getLargeFlows(pool, {
+        minZat: Math.min(config.largeFlow.absoluteFloorZat, rollingThreshold),
+        since,
       });
 
-      const outboxId = await queries.insertOutboxEntry(pool, {
-        postType: 'shield_alert',
-        dedupKey,
-        content,
-        metadata: { ...flow, percentileRank, threshold: rollingThreshold },
-        status: xClient.dryRun ? 'dry_run' : 'pending',
-      });
+      let posted = postedToday;
+      for (const flow of largeFlows) {
+        if (posted >= config.largeFlow.maxAlertsPerDay) break;
 
-      if (outboxId) {
-        try {
-          const result = await postWithCard(xClient, content, renderLargeFlow, {
-            direction: flow.direction,
-            amountZat: flow.amountZat,
-            pool: flow.pool,
-            blockHeight: flow.blockHeight,
-            txid: flow.txid,
-            percentileRank,
-          }, logger);
-          await queries.markPosted(pool, outboxId, result.id);
-          results.push({ type: 'large_flow', txid: flow.txid, postId: result.id });
-        } catch (err) {
-          await queries.markFailed(pool, outboxId, err.message);
+        const check = isExceptionalFlow(flow.amountZat, {
+          absoluteFloorZat: config.largeFlow.absoluteFloorZat,
+          rollingThresholdZat: rollingThreshold,
+        });
+
+        if (!check.triggered) continue;
+
+        const dedupKey = `large_flow:${flow.txid}`;
+        if (await queries.isDuplicate(pool, dedupKey)) continue;
+
+        const percentileRank = computePercentileRank(
+          flow.amountZat, rollingThreshold, config.largeFlow.percentile
+        );
+
+        const content = formatLargeFlowAlert({
+          direction: flow.direction,
+          amountZat: flow.amountZat,
+          pool: flow.pool,
+          blockHeight: flow.blockHeight,
+          txid: flow.txid,
+          percentileRank,
+        });
+
+        const outboxId = await queries.insertOutboxEntry(pool, {
+          postType: 'shield_alert',
+          dedupKey,
+          content,
+          metadata: { ...flow, percentileRank, threshold: rollingThreshold },
+          status: xClient.dryRun ? 'dry_run' : 'pending',
+        });
+
+        if (outboxId) {
+          try {
+            const result = await postWithCard(xClient, content, renderLargeFlow, {
+              direction: flow.direction,
+              amountZat: flow.amountZat,
+              pool: flow.pool,
+              blockHeight: flow.blockHeight,
+              txid: flow.txid,
+              percentileRank,
+            }, logger);
+            await queries.markPosted(pool, outboxId, result.id);
+            results.push({ type: 'large_flow', txid: flow.txid, postId: result.id });
+            posted++;
+          } catch (err) {
+            await queries.markFailed(pool, outboxId, err.message);
+          }
         }
       }
     }
@@ -320,47 +329,56 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
 
   // ─── 3. Cross-chain whale alerts ────────────────────────────────────────
   try {
-    const since = new Date(Date.now() - 10 * 60000).toISOString();
-    const largeSwaps = await queries.getRecentLargeSwaps(pool, {
-      minUsd: config.crossChain.minUsd,
-      since,
-    });
-
-    for (const swap of largeSwaps) {
-      const dedupKey = `cross_chain:${swap.id}`;
-      if (await queries.isDuplicate(pool, dedupKey)) continue;
-
-      const content = formatCrossChainAlert({
-        direction: swap.direction,
-        amountUsd: swap.amountUsd,
-        amountZec: swap.amountZec,
-        sourceChain: swap.sourceChain,
-        destChain: swap.destChain,
-        zecTxid: swap.zecTxid,
+    const postedToday = await queries.countPostedToday(pool, 'cross_chain_alert');
+    if (postedToday >= config.crossChain.maxAlertsPerDay) {
+      logger.info(`[Alerts] Cross-chain daily cap reached (${postedToday}/${config.crossChain.maxAlertsPerDay}), skipping`);
+    } else {
+      const since = new Date(Date.now() - 10 * 60000).toISOString();
+      const largeSwaps = await queries.getRecentLargeSwaps(pool, {
+        minUsd: config.crossChain.minUsd,
+        since,
       });
 
-      const outboxId = await queries.insertOutboxEntry(pool, {
-        postType: 'cross_chain_alert',
-        dedupKey,
-        content,
-        metadata: swap,
-        status: xClient.dryRun ? 'dry_run' : 'pending',
-      });
+      let posted = postedToday;
+      for (const swap of largeSwaps) {
+        if (posted >= config.crossChain.maxAlertsPerDay) break;
 
-      if (outboxId) {
-        try {
-          const result = await postWithCard(xClient, content, renderCrossChain, {
-            direction: swap.direction,
-            amountUsd: swap.amountUsd,
-            amountZec: swap.amountZec,
-            sourceChain: swap.sourceChain,
-            destChain: swap.destChain,
-            zecTxid: swap.zecTxid,
-          }, logger);
-          await queries.markPosted(pool, outboxId, result.id);
-          results.push({ type: 'cross_chain', id: swap.id, postId: result.id });
-        } catch (err) {
-          await queries.markFailed(pool, outboxId, err.message);
+        const dedupKey = `cross_chain:${swap.id}`;
+        if (await queries.isDuplicate(pool, dedupKey)) continue;
+
+        const content = formatCrossChainAlert({
+          direction: swap.direction,
+          amountUsd: swap.amountUsd,
+          amountZec: swap.amountZec,
+          sourceChain: swap.sourceChain,
+          destChain: swap.destChain,
+          zecTxid: swap.zecTxid,
+        });
+
+        const outboxId = await queries.insertOutboxEntry(pool, {
+          postType: 'cross_chain_alert',
+          dedupKey,
+          content,
+          metadata: swap,
+          status: xClient.dryRun ? 'dry_run' : 'pending',
+        });
+
+        if (outboxId) {
+          try {
+            const result = await postWithCard(xClient, content, renderCrossChain, {
+              direction: swap.direction,
+              amountUsd: swap.amountUsd,
+              amountZec: swap.amountZec,
+              sourceChain: swap.sourceChain,
+              destChain: swap.destChain,
+              zecTxid: swap.zecTxid,
+            }, logger);
+            await queries.markPosted(pool, outboxId, result.id);
+            results.push({ type: 'cross_chain', id: swap.id, postId: result.id });
+            posted++;
+          } catch (err) {
+            await queries.markFailed(pool, outboxId, err.message);
+          }
         }
       }
     }
