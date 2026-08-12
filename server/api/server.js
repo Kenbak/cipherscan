@@ -237,15 +237,31 @@ app.use(cors({
 // Internal service API keys bypass rate limiting (comma-separated in env)
 const SERVICE_API_KEYS = (process.env.SERVICE_API_KEYS || '').split(',').filter(Boolean);
 
+// Our own frontend domains — never rate-limit browsers visiting CipherScan
+const OWN_ORIGINS = [
+  'https://cipherscan.app',
+  'https://www.cipherscan.app',
+  'https://testnet.cipherscan.app',
+  'https://crosslink.cipherscan.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
+
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 600,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    // Service key bypass (Vercel ISR, CipherPay, bots)
     const key = req.headers['x-service-key'];
-    return key && SERVICE_API_KEYS.includes(key);
+    if (key && SERVICE_API_KEYS.includes(key)) return true;
+    // Own frontend bypass — browsers visiting our site send Origin or Referer
+    const origin = req.headers['origin'] || '';
+    const referer = req.headers['referer'] || '';
+    if (OWN_ORIGINS.some(o => origin === o || referer.startsWith(o))) return true;
+    return false;
   },
 });
 
