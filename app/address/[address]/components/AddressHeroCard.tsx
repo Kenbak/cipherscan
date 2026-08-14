@@ -41,7 +41,6 @@ export function AddressHeroCard({
               )}
             </div>
 
-            {/* Summary */}
             <p className="text-sm text-muted leading-relaxed max-w-lg">
               {summary}
             </p>

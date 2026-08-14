@@ -287,6 +287,51 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
     const totalTxCount = parseInt(summary.tx_count) || 0;
     const totalPages = Math.ceil(totalTxCount / limit);
 
+    // Earliest inbound output — who first funded this address
+    let firstFunding = null;
+    try {
+      const { rows: fundingRows } = await pool.query(
+        `WITH first_receive AS (
+          SELECT o.txid, t.block_time, o.value AS amount_zat, t.is_coinbase
+          FROM transaction_outputs o
+          JOIN transactions t ON t.txid = o.txid
+          WHERE o.address = $1
+          ORDER BY t.block_height ASC, o.vout ASC
+          LIMIT 1
+        )
+        SELECT
+          fr.txid,
+          fr.block_time,
+          fr.amount_zat,
+          fr.is_coinbase,
+          funder.address AS funder_address,
+          l.label AS funder_label
+        FROM first_receive fr
+        LEFT JOIN LATERAL (
+          SELECT i.address
+          FROM transaction_inputs i
+          WHERE i.txid = fr.txid AND i.address IS NOT NULL AND i.address != $1
+          ORDER BY i.value DESC NULLS LAST
+          LIMIT 1
+        ) funder ON true
+        LEFT JOIN address_labels l ON l.address = funder.address`,
+        [address]
+      );
+      if (fundingRows[0]) {
+        const row = fundingRows[0];
+        firstFunding = {
+          txid: row.txid,
+          blockTime: parseInt(row.block_time),
+          amountZec: parseFloat(row.amount_zat) / 1e8,
+          funderAddress: row.funder_address || null,
+          funderLabel: row.funder_label || null,
+          isCoinbase: row.is_coinbase === true,
+        };
+      }
+    } catch (fundingErr) {
+      console.error('Error fetching first funding for address:', fundingErr);
+    }
+
     // Try fast path: denormalized address_transactions table
     // Falls back to legacy UNION query if table doesn't exist yet
     let txResult;
@@ -425,6 +470,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       txCount: totalTxCount,
       firstSeen: summary.first_seen,
       lastSeen: summary.last_seen,
+      firstFunding,
       transactions,
       pagination: {
         page,
@@ -447,7 +493,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
  *
  * Returns:
  * - cluster: entity cluster info from common-input analysis (or null)
- * - peers: top cluster members by balance (same entity, max 20)
+ * - peers: cluster members (all if cluster ≤64 addresses, else top 20 by balance)
  * - counterparties: top addresses by value exchanged in recent txs (max 20)
  *
  * Counterparties are sampled from the 300 most recent transactions to keep
@@ -486,20 +532,21 @@ router.get('/api/address/:address/graph', validate('addressGraph'), async (req, 
           [address]
         );
         const cluster = clusterRows[0] || null;
+        const memberCount = cluster ? parseInt(cluster.member_count) : 0;
+        const FULL_CLUSTER_GRAPH_LIMIT = 64;
+        const showFullCluster = memberCount > 0 && memberCount <= FULL_CLUSTER_GRAPH_LIMIT;
 
-        // 2. Top cluster peers by balance (same entity)
+        // 2. Cluster peers — all members for small clusters, else top 20 by balance
         let peers = [];
         if (cluster) {
-          const { rows } = await pool.query(
-            `SELECT c.address, a.balance, a.tx_count, l.label, l.category
+          const peerSql = `SELECT c.address, a.balance, a.tx_count, l.label, l.category
              FROM address_clusters c
              JOIN addresses a ON a.address = c.address
              LEFT JOIN address_labels l ON l.address = c.address
              WHERE c.cluster_id = $1 AND c.address != $2
              ORDER BY a.balance DESC NULLS LAST
-             LIMIT 20`,
-            [cluster.cluster_id, address]
-          );
+             ${showFullCluster ? '' : 'LIMIT 20'}`;
+          const { rows } = await pool.query(peerSql, [cluster.cluster_id, address]);
           peers = rows.map(r => ({
             address: r.address,
             balanceZec: parseFloat(r.balance) / 1e8,
@@ -590,6 +637,7 @@ router.get('/api/address/:address/graph', validate('addressGraph'), async (req, 
             ? { clusterId: parseInt(cluster.cluster_id), memberCount: parseInt(cluster.member_count) }
             : null,
           peers,
+          peerSelection: showFullCluster ? 'full' : 'top_by_balance',
           counterparties,
           sampledRecentTxs: 300,
         };

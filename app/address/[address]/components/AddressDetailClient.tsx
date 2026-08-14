@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { decodeUnifiedAddress } from '@/lib/wasm-loader';
 import { zatToZec } from '@/lib/format-numbers';
@@ -13,11 +13,10 @@ import { EmptyAddressView, IndexingIssueView } from './AddressStateViews';
 import { ShieldedAddressView } from './ShieldedAddressView';
 import { CrossChainTable } from './CrossChainTable';
 import { TransactionTable } from './TransactionTable';
-import { TimeHover } from './TimeHover';
+import { AddressGraph } from './AddressGraph';
+import { AddressSummary } from './AddressSummary';
 import {
   transformTransactions,
-  formatTimestamp,
-  formatAbsoluteDate,
   getTypeInfo,
   isShieldedAddress,
   hasNoTransactions,
@@ -97,6 +96,7 @@ export function AddressDetailClient({ address }: AddressDetailClientProps) {
           note: apiData.note,
           firstSeen: apiData.firstSeen,
           lastSeen: apiData.lastSeen,
+          firstFunding: apiData.firstFunding ?? null,
         });
       } else {
         setData({
@@ -108,6 +108,7 @@ export function AddressDetailClient({ address }: AddressDetailClientProps) {
           note: apiData.note,
           firstSeen: apiData.firstSeen,
           lastSeen: apiData.lastSeen,
+          firstFunding: apiData.firstFunding ?? null,
         });
       }
 
@@ -203,29 +204,6 @@ export function AddressDetailClient({ address }: AddressDetailClientProps) {
   const typeInfo = getTypeInfo(data.type);
   const totalTxCount = data.transactionCount || data.transactions.length;
 
-  const generateAddressSummary = () => {
-    const typeLabel = data.type === 'transparent' ? 'transparent' : data.type === 'unified' ? 'unified' : 'shielded';
-    const parts: (string | ReactNode)[] = [];
-
-    parts.push(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} address with ${totalTxCount.toLocaleString()} transaction${totalTxCount !== 1 ? 's' : ''}.`);
-
-    if (data.firstSeen && data.lastSeen) {
-      parts.push(
-        <span key="times">
-          {' '}First seen <TimeHover relative={formatTimestamp(data.firstSeen)} absolute={formatAbsoluteDate(data.firstSeen)} />, last active <TimeHover relative={formatTimestamp(data.lastSeen)} absolute={formatAbsoluteDate(data.lastSeen)} />.
-        </span>,
-      );
-    } else if (data.firstSeen) {
-      parts.push(
-        <span key="first">
-          {' '}First seen <TimeHover relative={formatTimestamp(data.firstSeen)} absolute={formatAbsoluteDate(data.firstSeen)} />.
-        </span>,
-      );
-    }
-
-    return <>{parts}</>;
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       <AddressHeader
@@ -240,17 +218,20 @@ export function AddressDetailClient({ address }: AddressDetailClientProps) {
         data={data}
         priceData={priceData}
         crossChain={crossChain}
-        summary={generateAddressSummary()}
+        summary={<AddressSummary data={data} totalTxCount={totalTxCount} />}
       />
 
       <AddressTabBar
         activeTab={activeTab}
         totalTxCount={totalTxCount}
         crossChain={crossChain}
+        showGraph={data.type === 'transparent'}
         onTabChange={setActiveTab}
       />
 
-      {activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
+      {activeTab === 'graph' && data.type === 'transparent' ? (
+        <AddressGraph address={address} />
+      ) : activeTab === 'crosschain' && crossChain && crossChain.totalSwaps > 0 ? (
         <CrossChainTable crossChain={crossChain} />
       ) : (
         <TransactionTable

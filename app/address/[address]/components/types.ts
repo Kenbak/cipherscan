@@ -29,6 +29,16 @@ export interface AddressData {
   note?: string;
   firstSeen?: number | null;
   lastSeen?: number | null;
+  firstFunding?: FirstFunding | null;
+}
+
+export interface FirstFunding {
+  txid: string;
+  blockTime: number;
+  amountZec: number;
+  funderAddress: string | null;
+  funderLabel: string | null;
+  isCoinbase: boolean;
 }
 
 export interface CrossChainSwap {
@@ -54,7 +64,7 @@ export interface CrossChainActivity {
   swaps: CrossChainSwap[];
 }
 
-export type AddressTab = 'transactions' | 'crosschain';
+export type AddressTab = 'transactions' | 'crosschain' | 'graph';
 
 export type UnifiedAddressTab = 'unified' | 'transparent' | 'sapling' | 'orchard';
 

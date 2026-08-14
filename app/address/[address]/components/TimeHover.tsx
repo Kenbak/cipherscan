@@ -3,6 +3,7 @@ interface TimeHoverProps {
   absolute: string;
 }
 
+/** Relative time; absolute date shown on hover. */
 export function TimeHover({ relative, absolute }: TimeHoverProps) {
   return (
     <span className="relative inline-block group/time">

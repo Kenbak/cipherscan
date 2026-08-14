@@ -82,6 +82,15 @@ export function formatAbsoluteDate(timestamp: number): string {
   });
 }
 
+/** Long-form date for summary prose, e.g. "September 2, 2023". */
+export function formatHumanDate(timestamp: number): string {
+  return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 export function getTypeInfo(type: AddressData['type']) {
   switch (type) {
     case 'shielded':
