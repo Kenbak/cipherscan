@@ -296,7 +296,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
           FROM transaction_outputs o
           JOIN transactions t ON t.txid = o.txid
           WHERE o.address = $1
-          ORDER BY t.block_height ASC, o.vout ASC
+          ORDER BY t.block_height ASC, o.vout_index ASC
           LIMIT 1
         )
         SELECT
