@@ -54,6 +54,11 @@ const schemas = {
     }),
   },
 
+  // GET /api/address/:address/graph
+  addressGraph: {
+    params: z.object({ address: addressSchema }),
+  },
+
   // GET /api/crosschain/trends
   crosschainTrends: {
     query: z.object({

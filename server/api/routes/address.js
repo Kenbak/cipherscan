@@ -441,4 +441,167 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
   }
 });
 
+/**
+ * GET /api/address/:address/graph
+ * Bounded entity graph neighborhood for a transparent address.
+ *
+ * Returns:
+ * - cluster: entity cluster info from common-input analysis (or null)
+ * - peers: top cluster members by balance (same entity, max 20)
+ * - counterparties: top addresses by value exchanged in recent txs (max 20)
+ *
+ * Counterparties are sampled from the 300 most recent transactions to keep
+ * the query bounded for high-activity addresses (exchanges, pools).
+ */
+router.get('/api/address/:address/graph', validate('addressGraph'), async (req, res) => {
+  try {
+    const { address } = req.params;
+
+    // Graph analysis only applies to transparent addresses
+    if (!/^t[13m]/.test(address)) {
+      return res.json({
+        success: true,
+        address,
+        cluster: null,
+        peers: [],
+        counterparties: [],
+        note: 'Entity graphs are only available for transparent addresses.',
+      });
+    }
+
+    const cached = await listCache.getOrLoad({
+      family: 'address-graph',
+      params: { address },
+      freshTtlSeconds: 300,
+      staleTtlSeconds: 1800,
+      cacheable: true,
+      shouldCache: value => value?.success === true,
+      load: async () => {
+        // 1. Cluster membership
+        const { rows: clusterRows } = await pool.query(
+          `SELECT c.cluster_id, m.member_count
+           FROM address_clusters c
+           JOIN address_cluster_meta m ON m.cluster_id = c.cluster_id
+           WHERE c.address = $1`,
+          [address]
+        );
+        const cluster = clusterRows[0] || null;
+
+        // 2. Top cluster peers by balance (same entity)
+        let peers = [];
+        if (cluster) {
+          const { rows } = await pool.query(
+            `SELECT c.address, a.balance, a.tx_count, l.label, l.category
+             FROM address_clusters c
+             JOIN addresses a ON a.address = c.address
+             LEFT JOIN address_labels l ON l.address = c.address
+             WHERE c.cluster_id = $1 AND c.address != $2
+             ORDER BY a.balance DESC NULLS LAST
+             LIMIT 20`,
+            [cluster.cluster_id, address]
+          );
+          peers = rows.map(r => ({
+            address: r.address,
+            balanceZec: parseFloat(r.balance) / 1e8,
+            txCount: parseInt(r.tx_count) || 0,
+            label: r.label || null,
+            category: r.category || null,
+          }));
+        }
+
+        // 3. Top counterparties from recent transactions (bounded sample)
+        const { rows: cpRows } = await pool.query(
+          `WITH recent_txs AS (
+            SELECT txid, COALESCE(value_in, 0) AS my_in, COALESCE(value_out, 0) AS my_out
+            FROM address_transactions
+            WHERE address = $1
+            ORDER BY block_height DESC, tx_index DESC
+            LIMIT 300
+          ),
+          sent AS (
+            SELECT o.address AS cp, SUM(o.value) AS value, COUNT(DISTINCT o.txid) AS txs
+            FROM recent_txs r
+            JOIN transaction_outputs o ON o.txid = r.txid
+            WHERE r.my_in > 0 AND o.address IS NOT NULL AND o.address != $1
+            GROUP BY o.address
+          ),
+          received AS (
+            SELECT i.address AS cp, SUM(i.value) AS value, COUNT(DISTINCT i.txid) AS txs
+            FROM recent_txs r
+            JOIN transaction_inputs i ON i.txid = r.txid
+            WHERE r.my_out > 0 AND r.my_in = 0 AND i.address IS NOT NULL AND i.address != $1
+            GROUP BY i.address
+          )
+          SELECT COALESCE(s.cp, rc.cp) AS address,
+                 COALESCE(s.value, 0) AS sent_value,
+                 COALESCE(rc.value, 0) AS received_value,
+                 COALESCE(s.txs, 0) + COALESCE(rc.txs, 0) AS tx_count
+          FROM sent s
+          FULL OUTER JOIN received rc ON s.cp = rc.cp
+          ORDER BY COALESCE(s.value, 0) + COALESCE(rc.value, 0) DESC
+          LIMIT 20`,
+          [address]
+        );
+
+        // 4. Enrich counterparties with labels and cluster membership
+        const cpAddresses = cpRows.map(r => r.address);
+        let labelMap = new Map();
+        let cpClusterMap = new Map();
+        if (cpAddresses.length > 0) {
+          const [labelsRes, clustersRes] = await Promise.all([
+            pool.query(
+              `SELECT address, label, category FROM address_labels WHERE address = ANY($1)`,
+              [cpAddresses]
+            ),
+            pool.query(
+              `SELECT ac.address, ac.cluster_id, m.member_count
+               FROM address_clusters ac
+               JOIN address_cluster_meta m ON m.cluster_id = ac.cluster_id
+               WHERE ac.address = ANY($1)`,
+              [cpAddresses]
+            ),
+          ]);
+          labelMap = new Map(labelsRes.rows.map(r => [r.address, r]));
+          cpClusterMap = new Map(clustersRes.rows.map(r => [r.address, r]));
+        }
+
+        const counterparties = cpRows.map(r => {
+          const labelInfo = labelMap.get(r.address);
+          const clusterInfo = cpClusterMap.get(r.address);
+          return {
+            address: r.address,
+            sentZec: parseFloat(r.sent_value) / 1e8,
+            receivedZec: parseFloat(r.received_value) / 1e8,
+            txCount: parseInt(r.tx_count) || 0,
+            label: labelInfo?.label || null,
+            category: labelInfo?.category || null,
+            clusterId: clusterInfo ? parseInt(clusterInfo.cluster_id) : null,
+            clusterSize: clusterInfo ? parseInt(clusterInfo.member_count) : null,
+            sameEntity: cluster && clusterInfo
+              ? parseInt(clusterInfo.cluster_id) === parseInt(cluster.cluster_id)
+              : false,
+          };
+        });
+
+        return {
+          success: true,
+          address,
+          cluster: cluster
+            ? { clusterId: parseInt(cluster.cluster_id), memberCount: parseInt(cluster.member_count) }
+            : null,
+          peers,
+          counterparties,
+          sampledRecentTxs: 300,
+        };
+      },
+    });
+
+    applyListCacheHeaders(res, cached);
+    res.json(cached.value);
+  } catch (error) {
+    console.error('Error fetching address graph:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch address graph' });
+  }
+});
+
 module.exports = router;
