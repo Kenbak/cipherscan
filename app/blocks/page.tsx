@@ -72,7 +72,7 @@ export async function generateMetadata({ searchParams }: BlocksPageProps): Promi
       ? `Browse Zcash block archive page ${request.page}, including block heights, hashes, transaction counts, sizes, miners, and timestamps.`
       : 'Browse the latest Zcash blocks with transaction counts, sizes, mining rewards, and timestamps. Real-time block explorer data.',
     path: isForwardArchive ? getArchiveCanonicalPath(request) : '/blocks',
-    index: isForwardArchive,
+    index: isForwardArchive && request.page === 1,
     keywords: ['zcash blocks', 'zcash block explorer', 'zcash latest blocks', 'ZEC blocks', 'zcash block height'],
   });
 }
