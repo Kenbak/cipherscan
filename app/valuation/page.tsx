@@ -609,10 +609,25 @@ export default function ValuationPage() {
               <div>
                 <p className="font-medium text-cipher-text-primary">Realized Price &amp; Realized Cap</p>
                 <p>
-                  Each transparent UTXO is valued at the ZEC price on the day it was last moved.
-                  The sum of all unspent transparent UTXOs valued this way gives the transparent
-                  realized cap. Shielded pools use a flow-weighted approximation: shield/deshield
-                  events are priced at the day they occurred, accumulated into a running cost basis.
+                  Each transparent UTXO is valued at the ZEC price on the day it was created
+                  (i.e., last moved on-chain). This is the standard methodology used by
+                  CoinMetrics, Glassnode, and all major on-chain analytics platforms — a
+                  transparent move resets the cost basis because it represents a new economic
+                  event. The sum of all UTXOs valued this way gives the transparent realized cap.
+                </p>
+                <p className="mt-2">
+                  Shielded pools (Sapling, Orchard, Ironwood) use actual pool entry dates:
+                  each shield/deshield event is priced at the day it occurred, accumulated into
+                  a per-pool running cost basis. This is more granular than the CoinMetrics
+                  approach, which scales a single average price to all shielded supply.
+                </p>
+                <p className="mt-2 text-cipher-text-muted">
+                  Note: Other Zcash explorers may use alternative approaches (e.g., tracing
+                  transparent UTXOs back to their original mining or deshielding event and not
+                  repricing on subsequent transparent moves). This produces a lower realized cap
+                  figure. Neither method is incorrect — they reflect different definitions of
+                  &quot;cost basis.&quot; CipherScan follows the industry-standard UTXO creation
+                  date method for cross-chain comparability.
                 </p>
               </div>
               <div>
@@ -657,8 +672,13 @@ export default function ValuationPage() {
               <div className="border-t border-cipher-border/30 pt-4">
                 <p className="text-xs text-cipher-text-muted">
                   HODL waves and dormancy cover the transparent pool only. Shielded note ages
-                  are not publicly visible. Shielded pool realized cap is flow-approximated.
-                  Transparent UTXO data is fully backfilled from genesis. Data updates daily.
+                  are not publicly visible. Shielded pool realized cap uses actual pool entry
+                  dates (not scaled from transparent average). Transparent UTXO data is fully
+                  backfilled from genesis. Data updates daily.
+                </p>
+                <p className="text-xs text-cipher-text-muted mt-2">
+                  Transparent realized cap methodology: UTXO creation date pricing (CoinMetrics
+                  standard). ~27.5M unspent UTXOs holding ~12.4M ZEC are priced individually.
                 </p>
               </div>
             </div>
