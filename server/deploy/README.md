@@ -81,7 +81,7 @@ always validate the custom archive header and table of contents.
 Restore into a new database:
 
 ```bash
-scp -P 23 u630383@u630383.your-storagebox.de:backups/<backup>.dump /tmp/
+scp -P 23 "$STORAGEBOX":backups/<backup>.dump /tmp/
 sudo -u postgres createdb zcash_explorer_restore_test
 sudo -u postgres pg_restore \
   --exit-on-error \

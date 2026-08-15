@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 readonly DATABASE="${DATABASE:-zcash_explorer_mainnet}"
-readonly STORAGEBOX="${STORAGEBOX:-u630383@u630383.your-storagebox.de}"
+readonly STORAGEBOX="${STORAGEBOX:?Set STORAGEBOX (e.g. user@host.your-storagebox.de) in env or .env}"
 readonly STORAGEBOX_PORT="${STORAGEBOX_PORT:-23}"
 readonly STORAGEBOX_PATH="${STORAGEBOX_PATH:-/home/backups}"
 readonly RETENTION_DAYS="${RETENTION_DAYS:-7}"
