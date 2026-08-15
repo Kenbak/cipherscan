@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# General ops health check: disk space, backup age, Redis, PostgreSQL
-# connection-pool saturation, and indexer lag. Complements
-# cipherscan-rust/deploy/check-indexer-health.sh, which focuses specifically
-# on indexer process/heartbeat health — this script covers the rest of the
-# box so a problem in Redis, disk space, or backups doesn't go unnoticed
-# just because the indexer itself looks fine.
+# General ops health check: disk, backups, pgBackRest, WAL, Redis,
+# PostgreSQL pool, indexer lag, replication lag, replica connectivity,
+# and node sync. Complements cipherscan-rust/deploy/check-indexer-health.sh.
 #
-# Alert dedup/cooldown pattern matches check-indexer-health.sh: only re-alert
-# on a NEW failure signature or after the cooldown elapses, and send a single
-# "recovered" message when everything returns to healthy.
+# Alert dedup/cooldown: only re-alert on a NEW failure signature or after
+# the cooldown elapses, and send a single recovery message when all pass.
 
 STATE_DIR="${OPS_HEALTH_STATE_DIR:-/var/lib/cipherscan-ops-health}"
 STATE_FILE="${STATE_DIR}/health-alert-state.env"
@@ -35,6 +31,12 @@ PG_CONN_WARN_PCT="${OPS_HEALTH_PG_CONN_WARN_PCT:-80}"
 INDEXER_MAX_LAG="${OPS_HEALTH_INDEXER_MAX_LAG:-3}"
 INDEXER_MAX_HEARTBEAT_AGE_SECONDS="${OPS_HEALTH_INDEXER_MAX_HEARTBEAT_AGE_SECONDS:-600}"
 
+REPLICA_HOST="${REPLICA_HOST:-}"
+REPLICATION_MAX_LAG_SECONDS="${OPS_HEALTH_REPLICATION_MAX_LAG_SECONDS:-60}"
+
+NODE_RPC_URL="${NODE_RPC_URL:-http://127.0.0.1:8232}"
+NODE_MAX_LAG_BLOCKS="${OPS_HEALTH_NODE_MAX_LAG_BLOCKS:-5}"
+
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 TELEGRAM_API_BASE="${TELEGRAM_API_BASE:-https://api.telegram.org}"
@@ -53,6 +55,7 @@ send_telegram() {
     "${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
     --data-urlencode "text=${message}" \
+    --data-urlencode "parse_mode=HTML" \
     --data-urlencode "disable_web_page_preview=true" \
     >/dev/null
 }
@@ -71,25 +74,33 @@ previous_alert_at=$3
 EOF
 }
 
+# Track all check names and their pass/fail for the formatted summary
+declare -A check_results
 failures=()
 
+mark_check() {
+  local name="$1"
+  local passed="$2"
+  check_results["${name}"]="${passed}"
+}
+
 # --- Disk space ---
+disk_ok=1
 for path in ${DISK_PATHS}; do
   if [[ -d "${path}" ]]; then
     usage_pct="$(df -P "${path}" | awk 'NR==2 {gsub("%","",$5); print $5}')"
     if [[ "${usage_pct}" =~ ^[0-9]+$ ]] && (( usage_pct >= DISK_WARN_PCT )); then
-      failures+=("Disk ${path} at ${usage_pct}% (threshold ${DISK_WARN_PCT}%)")
+      failures+=("Disk ${path} at ${usage_pct}%")
+      disk_ok=0
     fi
   fi
 done
+mark_check "Disk" "${disk_ok}"
 
 # --- Backup age ---
+backup_ok=1
 if [[ -f "${BACKUP_STATE_FILE}" ]]; then
   backup_date_field="$(awk '{print $1}' "${BACKUP_STATE_FILE}")"
-  # backup-postgres.sh writes DATE as `date -u +%Y-%m-%d_%H%M%S` (e.g.
-  # 2026-08-15_000001), which `date -d` cannot parse directly (verified
-  # against the real state file on production — it errors with "invalid
-  # date"). Reformat to `YYYY-MM-DD HH:MM:SS` first.
   backup_date_part="${backup_date_field%_*}"
   backup_time_part="${backup_date_field#*_}"
   backup_epoch=0
@@ -100,47 +111,64 @@ if [[ -f "${BACKUP_STATE_FILE}" ]]; then
   now_epoch="$(date -u +%s)"
   age_hours=$(( (now_epoch - backup_epoch) / 3600 ))
   if (( backup_epoch == 0 )); then
-    failures+=("Backup state file unparseable: ${BACKUP_STATE_FILE}")
+    failures+=("Backup state file unparseable")
+    backup_ok=0
   elif (( age_hours >= BACKUP_MAX_AGE_HOURS )); then
-    failures+=("Last successful backup is ${age_hours}h old (threshold ${BACKUP_MAX_AGE_HOURS}h)")
+    failures+=("Backup ${age_hours}h old (max ${BACKUP_MAX_AGE_HOURS}h)")
+    backup_ok=0
   fi
 else
-  failures+=("No backup state file found at ${BACKUP_STATE_FILE} — has a backup ever succeeded?")
+  failures+=("No backup state file found")
+  backup_ok=0
 fi
+mark_check "Backup" "${backup_ok}"
 
-# --- pgBackRest backup age + WAL archiving freshness (added 2026-08-15) ---
+# --- pgBackRest backup age ---
+pgbackrest_ok=1
 if command -v pgbackrest >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   pgbackrest_json="$(sudo -u postgres pgbackrest --stanza="${PGBACKREST_STANZA}" info --output=json 2>&1 || true)"
   stanza_status_code="$(echo "${pgbackrest_json}" | jq -r '.[0].status.code' 2>/dev/null || echo "")"
   if [[ "${stanza_status_code}" != "0" ]]; then
-    failures+=("pgBackRest stanza ${PGBACKREST_STANZA} status not ok (code=${stanza_status_code:-unknown})")
+    failures+=("pgBackRest stanza not ok (code=${stanza_status_code:-unknown})")
+    pgbackrest_ok=0
   else
     latest_backup_stop="$(echo "${pgbackrest_json}" | jq -r '.[0].backup[-1].timestamp.stop' 2>/dev/null || echo "")"
     if [[ "${latest_backup_stop}" =~ ^[0-9]+$ ]]; then
       now_epoch="$(date -u +%s)"
       pgbackrest_age_hours=$(( (now_epoch - latest_backup_stop) / 3600 ))
       if (( pgbackrest_age_hours >= PGBACKREST_MAX_BACKUP_AGE_HOURS )); then
-        failures+=("Last pgBackRest backup is ${pgbackrest_age_hours}h old (threshold ${PGBACKREST_MAX_BACKUP_AGE_HOURS}h)")
+        failures+=("pgBackRest backup ${pgbackrest_age_hours}h old (max ${PGBACKREST_MAX_BACKUP_AGE_HOURS}h)")
+        pgbackrest_ok=0
       fi
     else
-      failures+=("Could not read latest pgBackRest backup timestamp")
+      failures+=("Cannot read pgBackRest backup timestamp")
+      pgbackrest_ok=0
     fi
   fi
 else
-  failures+=("pgbackrest or jq not found — cannot check PITR backup status")
+  failures+=("pgbackrest or jq not installed")
+  pgbackrest_ok=0
 fi
+mark_check "pgBackRest" "${pgbackrest_ok}"
 
 # --- Redis ---
+redis_ok=1
 if command -v redis-cli >/dev/null 2>&1; then
   redis_reply="$(redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping 2>&1 || true)"
   if [[ "${redis_reply}" != "PONG" ]]; then
-    failures+=("Redis ping failed: ${redis_reply}")
+    failures+=("Redis ping failed")
+    redis_ok=0
   fi
 else
-  failures+=("redis-cli not found — cannot check Redis")
+  failures+=("redis-cli not found")
+  redis_ok=0
 fi
+mark_check "Redis" "${redis_ok}"
 
-# --- PostgreSQL connections ---
+# --- PostgreSQL connections + WAL archiving + indexer lag ---
+pg_ok=1
+wal_ok=1
+indexer_ok=1
 if command -v psql >/dev/null 2>&1; then
   pg_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
     "SELECT (SELECT count(*) FROM pg_stat_activity), (SELECT setting FROM pg_settings WHERE name = 'max_connections')" \
@@ -150,13 +178,15 @@ if command -v psql >/dev/null 2>&1; then
     max_conn="${BASH_REMATCH[2]}"
     conn_pct=$(( active * 100 / max_conn ))
     if (( conn_pct >= PG_CONN_WARN_PCT )); then
-      failures+=("PostgreSQL connections at ${active}/${max_conn} (${conn_pct}%, threshold ${PG_CONN_WARN_PCT}%)")
+      failures+=("PG connections ${active}/${max_conn} (${conn_pct}%)")
+      pg_ok=0
     fi
   else
-    failures+=("Could not read PostgreSQL connection stats: ${pg_stats}")
+    failures+=("Cannot read PG connection stats")
+    pg_ok=0
   fi
 
-  # --- WAL archiving freshness (added 2026-08-15) ---
+  # --- WAL archiving freshness ---
   archiver_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
     "SELECT (SELECT setting FROM pg_settings WHERE name = 'archive_mode'), failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1) FROM pg_stat_archiver" \
     2>&1 || true)"
@@ -165,24 +195,22 @@ if command -v psql >/dev/null 2>&1; then
     archive_failed_count="${BASH_REMATCH[2]}"
     archive_age_seconds="${BASH_REMATCH[3]}"
     if [[ "${archive_mode}" != "on" && "${archive_mode}" != "always" ]]; then
-      failures+=("PostgreSQL archive_mode is '${archive_mode}', not on/always — WAL archiving (PITR) is not active")
+      failures+=("WAL archive_mode '${archive_mode}' (not on)")
+      wal_ok=0
     elif (( archive_age_seconds >= 0 )) && (( archive_age_seconds > PGBACKREST_MAX_WAL_AGE_MINUTES * 60 )); then
-      # A stale last-archived-WAL timestamp on an otherwise idle database is
-      # not itself abnormal (no WAL segment has filled recently); this
-      # threshold is generous (default 30 min) to avoid false positives on
-      # a quiet chain, while still catching a genuinely stuck archiver.
-      failures+=("Last WAL archive was $((archive_age_seconds / 60))m ago (threshold ${PGBACKREST_MAX_WAL_AGE_MINUTES}m) — archive_command may be failing")
+      failures+=("Last WAL archive $((archive_age_seconds / 60))m ago (max ${PGBACKREST_MAX_WAL_AGE_MINUTES}m)")
+      wal_ok=0
     fi
     if (( archive_failed_count > 0 )); then
-      failures+=("pg_stat_archiver reports ${archive_failed_count} failed archive attempts since last reset")
+      failures+=("WAL archiver: ${archive_failed_count} failed attempts")
+      wal_ok=0
     fi
   else
-    failures+=("Could not read pg_stat_archiver: ${archiver_stats}")
+    failures+=("Cannot read pg_stat_archiver")
+    wal_ok=0
   fi
 
-  # --- Indexer lag (direct DB check, independent of the indexer binary —
-  # a redundant signal to cipherscan-rust-health.timer in case the indexer
-  # process is wedged in a way its own CLI health check can't observe) ---
+  # --- Indexer lag ---
   lag_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
     "SELECT
        (SELECT value::bigint FROM indexer_state WHERE key = 'last_indexed_height'),
@@ -197,28 +225,133 @@ if command -v psql >/dev/null 2>&1; then
     now_epoch="$(date -u +%s)"
     heartbeat_age=$(( now_epoch - last_success_at ))
     if (( lag > INDEXER_MAX_LAG )); then
-      failures+=("Indexer lag ${lag} blocks (indexed ${indexed}, tip ${tip}, threshold ${INDEXER_MAX_LAG})")
+      failures+=("Indexer lag ${lag} blocks (tip ${tip})")
+      indexer_ok=0
     fi
     if (( heartbeat_age > INDEXER_MAX_HEARTBEAT_AGE_SECONDS )); then
-      failures+=("Indexer heartbeat stale: ${heartbeat_age}s since last success (threshold ${INDEXER_MAX_HEARTBEAT_AGE_SECONDS}s)")
+      failures+=("Indexer heartbeat stale ${heartbeat_age}s")
+      indexer_ok=0
     fi
   else
-    failures+=("Could not read indexer_state for lag check: ${lag_stats}")
+    failures+=("Cannot read indexer_state")
+    indexer_ok=0
   fi
 else
-  failures+=("psql not found — cannot check PostgreSQL/indexer state")
+  failures+=("psql not found")
+  pg_ok=0
+  wal_ok=0
+  indexer_ok=0
 fi
+mark_check "PG pool" "${pg_ok}"
+mark_check "WAL" "${wal_ok}"
+mark_check "Indexer" "${indexer_ok}"
+
+# --- Replication lag (HA check) ---
+replication_ok=1
+if command -v psql >/dev/null 2>&1; then
+  repl_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
+    "SELECT count(*), COALESCE(MAX(EXTRACT(EPOCH FROM replay_lag))::bigint, 0) FROM pg_stat_replication" \
+    2>&1 || true)"
+  if [[ "${repl_stats}" =~ ^([0-9]+)\|([0-9]+)$ ]]; then
+    repl_count="${BASH_REMATCH[1]}"
+    repl_lag_sec="${BASH_REMATCH[2]}"
+    if (( repl_count == 0 )); then
+      failures+=("No active replication slots")
+      replication_ok=0
+    elif (( repl_lag_sec > REPLICATION_MAX_LAG_SECONDS )); then
+      failures+=("Replication lag ${repl_lag_sec}s (max ${REPLICATION_MAX_LAG_SECONDS}s)")
+      replication_ok=0
+    fi
+  else
+    failures+=("Cannot read pg_stat_replication")
+    replication_ok=0
+  fi
+fi
+mark_check "Replication" "${replication_ok}"
+
+# --- Replica connectivity (HA check) ---
+replica_ok=1
+if [[ -n "${REPLICA_HOST}" ]]; then
+  if command -v pg_isready >/dev/null 2>&1; then
+    if ! pg_isready -h "${REPLICA_HOST}" -t 5 >/dev/null 2>&1; then
+      failures+=("Replica ${REPLICA_HOST} unreachable")
+      replica_ok=0
+    fi
+  else
+    failures+=("pg_isready not found")
+    replica_ok=0
+  fi
+else
+  replica_ok=1
+fi
+mark_check "Replica" "${replica_ok}"
+
+# --- Node sync (HA check) ---
+node_ok=1
+if command -v curl >/dev/null 2>&1; then
+  node_height="$(curl -sf --max-time 5 -X POST "${NODE_RPC_URL}" \
+    -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"1.0","method":"getblockcount","params":[]}' 2>/dev/null \
+    | jq -r '.result // empty' 2>/dev/null || echo "")"
+  if [[ "${node_height}" =~ ^[0-9]+$ ]]; then
+    if command -v psql >/dev/null 2>&1; then
+      db_tip="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
+        "SELECT COALESCE((SELECT value::bigint FROM indexer_state WHERE key = 'last_indexed_height'), 0)" \
+        2>&1 || echo "0")"
+      if [[ "${db_tip}" =~ ^[0-9]+$ ]]; then
+        node_delta=$(( node_height - db_tip ))
+        if (( node_delta < 0 )); then node_delta=$(( -node_delta )); fi
+        if (( node_delta > NODE_MAX_LAG_BLOCKS )); then
+          failures+=("Node sync delta ${node_delta} blocks (node ${node_height}, db ${db_tip})")
+          node_ok=0
+        fi
+      fi
+    fi
+  else
+    failures+=("Node RPC unreachable")
+    node_ok=0
+  fi
+fi
+mark_check "Node sync" "${node_ok}"
 
 timestamp="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 now="$(date +%s)"
 
+total_checks="${#check_results[@]}"
+passing=0
+for k in "${!check_results[@]}"; do
+  if [[ "${check_results[$k]}" == "1" ]]; then
+    (( passing++ )) || true
+  fi
+done
+failing=$(( total_checks - passing ))
+
+build_check_line() {
+  local name="$1"
+  local passed="${check_results[$name]:-0}"
+  if [[ "${passed}" == "1" ]]; then
+    echo "✅ ${name}"
+  else
+    echo "❌ ${name}"
+  fi
+}
+
+CHECK_NAMES=("Disk" "Backup" "pgBackRest" "WAL" "Redis" "PG pool" "Indexer" "Replication" "Replica" "Node sync")
+
 if (( ${#failures[@]} == 0 )); then
   if [[ "${previous_status}" == "unhealthy" ]]; then
+    check_summary=""
+    for name in "${CHECK_NAMES[@]}"; do
+      [[ -n "${check_results[${name}]+x}" ]] && check_summary+="$(build_check_line "${name}")  "
+    done
     send_telegram "$(cat <<EOF
-Ops health recovered
-Host: ${HOST_LABEL}
-Time: ${timestamp}
-All checks passing (disk, backup age, Redis, PostgreSQL connections, indexer lag).
+🟢 <b>CipherScan Recovered</b>
+
+<b>Host:</b> ${HOST_LABEL}
+<b>Time:</b> ${timestamp}
+
+All ${total_checks} checks passing
+${check_summary}
 EOF
 )"
   fi
@@ -239,12 +372,25 @@ elif (( now - previous_alert_at >= ALERT_COOLDOWN_SECONDS )); then
 fi
 
 if (( should_alert == 1 )); then
-  send_telegram "$(cat <<EOF
-Ops health check failed
-Host: ${HOST_LABEL}
-Time: ${timestamp}
+  check_lines=""
+  for name in "${CHECK_NAMES[@]}"; do
+    [[ -n "${check_results[${name}]+x}" ]] && check_lines+="$(build_check_line "${name}")"$'\n'
+  done
 
-${summary}
+  failure_details=""
+  for f in "${failures[@]}"; do
+    failure_details+="  • ${f}"$'\n'
+  done
+
+  send_telegram "$(cat <<EOF
+🔴 <b>CipherScan Alert</b>
+
+<b>Host:</b> ${HOST_LABEL}
+<b>Time:</b> ${timestamp}
+
+${check_lines}
+${failing} of ${total_checks} checks failing:
+${failure_details}
 EOF
 )"
   persist_state "unhealthy" "${fingerprint}" "${now}"

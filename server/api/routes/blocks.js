@@ -1,6 +1,6 @@
 /**
  * Block Routes
- * /health, /api/info, /api/blocks, /api/block/:height
+ * /health, /health/deep, /api/info, /api/blocks, /api/block/:height
  */
 
 const express = require('express');
@@ -78,9 +78,90 @@ async function getFinalizedHeight() {
 // HEALTH & INFO
 // ============================================================================
 
-// Health check
+// Health check — fast liveness probe for Docker/LB
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Deep health check — external monitoring (Better Stack, status page)
+router.get('/health/deep', async (req, res) => {
+  const checks = {};
+  let critical = false;
+  let degraded = false;
+
+  // PostgreSQL primary (write pool)
+  const writePool = req.app.locals.writePool || pool;
+  try {
+    const start = Date.now();
+    await Promise.race([
+      writePool.query('SELECT 1'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+    ]);
+    checks.database = { status: 'up', latency_ms: Date.now() - start };
+  } catch {
+    checks.database = { status: 'down' };
+    critical = true;
+  }
+
+  // PostgreSQL replica
+  const routing = req.app.locals.poolRouting;
+  if (routing && routing.hasReplica()) {
+    try {
+      const lagBlocks = await routing.replicaLagBlocks();
+      checks.replica = { status: 'up', lag_blocks: lagBlocks };
+      if (lagBlocks > 3) degraded = true;
+    } catch {
+      checks.replica = { status: 'down' };
+      degraded = true;
+    }
+  } else {
+    checks.replica = { status: 'not_configured' };
+  }
+
+  // Redis
+  if (redisClient) {
+    try {
+      if (redisClient.isOpen) {
+        await Promise.race([
+          redisClient.ping(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000)),
+        ]);
+        checks.redis = { status: 'up' };
+      } else {
+        checks.redis = { status: 'down' };
+        degraded = true;
+      }
+    } catch {
+      checks.redis = { status: 'down' };
+      degraded = true;
+    }
+  } else {
+    checks.redis = { status: 'not_configured' };
+  }
+
+  // Zakura/Zebra node via RPC
+  try {
+    const nodeHeight = await Promise.race([
+      callZebraRPC('getblockcount'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+    ]);
+    const dbTip = chainTip.height || 0;
+    const nodeLag = Math.abs(nodeHeight - dbTip);
+    checks.node = { status: 'up', height: nodeHeight, db_height: dbTip };
+    if (nodeLag > 10) degraded = true;
+  } catch {
+    checks.node = { status: 'down' };
+    critical = true;
+  }
+
+  const status = critical ? 'unhealthy' : degraded ? 'degraded' : 'healthy';
+  const httpCode = critical ? 503 : 200;
+
+  res.status(httpCode).json({
+    status,
+    checks,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Get blockchain info (current height, etc.)
