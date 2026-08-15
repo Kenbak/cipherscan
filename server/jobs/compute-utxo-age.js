@@ -18,9 +18,10 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
+const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839302;
 const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
@@ -30,9 +31,8 @@ async function computeForDate(client, dateStr) {
   const dateEpoch = Math.floor(new Date(dateStr + 'T23:59:59Z').getTime() / 1000);
   const dateTs = new Date(dateStr + 'T23:59:59Z');
 
-  // HODL waves: bucket unspent outputs by age at this date
-  // block_time is BIGINT (unix epoch), spent_at is TIMESTAMP
-  const hodl = await client.query(`
+  // Heavy reads go to readPool (replica when available); writes stay on primary client
+  const hodl = await readPool.query(`
     WITH unspent_at AS (
       SELECT o.value,
              ($1::bigint - t.block_time) / 86400 AS age_days
@@ -59,7 +59,7 @@ async function computeForDate(client, dateStr) {
   const dayStartTs = new Date(dateStr + 'T00:00:00Z');
   const dayEndTs = new Date(dateStr + 'T23:59:59Z');
 
-  const cddResult = await client.query(`
+  const cddResult = await readPool.query(`
     SELECT
       COALESCE(SUM((o.value::numeric / 1e8) *
         ((EXTRACT(EPOCH FROM o.spent_at) - t.block_time) / 86400)), 0) AS cdd,
@@ -143,6 +143,7 @@ async function run() {
   } finally {
     client.release();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

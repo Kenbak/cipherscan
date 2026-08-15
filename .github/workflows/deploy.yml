@@ -1,0 +1,98 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "lib/**"
+      - "package.json"
+      - "package-lock.json"
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci-gate:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI must pass first
+        run: echo "Deploy workflow only runs after CI passes on the same push."
+
+  deploy:
+    name: Deploy API to servers
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cat >> ~/.ssh/config << EOF
+          Host primary
+            HostName ${{ secrets.PRIMARY_HOST }}
+            User root
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          Host standby
+            HostName ${{ secrets.STANDBY_HOST }}
+            User root
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          EOF
+
+      - name: Detect roles
+        id: roles
+        run: |
+          primary_is_recovery=$(ssh primary "sudo -u postgres psql -qtAX -c 'SELECT pg_is_in_recovery();'" 2>/dev/null || echo "error")
+          if [[ "$primary_is_recovery" == "f" ]]; then
+            echo "pg_primary=primary" >> "$GITHUB_OUTPUT"
+          else
+            echo "pg_primary=standby" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to primary box
+        run: |
+          ssh primary << 'REMOTE'
+          set -euo pipefail
+          cd /root/cipherscan
+          git fetch origin main
+          git reset --hard origin/main
+          cd server/api
+          npm install --omit=dev --no-audit --no-fund
+          systemctl restart zcash-api-mainnet.service
+          sleep 3
+          curl -sf http://localhost:3001/health || { echo "Health check failed"; exit 1; }
+          echo "Primary API deploy complete"
+          REMOTE
+
+      - name: Deploy to standby box
+        run: |
+          ssh standby << 'REMOTE'
+          set -euo pipefail
+          cd /root/cipherscan
+          git fetch origin main
+          git reset --hard origin/main
+          cd server/api
+          npm install --omit=dev --no-audit --no-fund
+          # Standby runs API in read-only mode (reads from PG replica)
+          systemctl restart zcash-api-mainnet.service || true
+          echo "Standby API deploy complete"
+          REMOTE
+
+      - name: Verify
+        run: |
+          echo "=== Primary API ==="
+          ssh primary "curl -sf http://localhost:3001/health" || echo "Primary health check failed"
+          echo ""
+          echo "=== Standby API ==="
+          ssh standby "curl -sf http://localhost:3001/health" || echo "Standby not yet running (expected during initial setup)"

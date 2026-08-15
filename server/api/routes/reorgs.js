@@ -9,9 +9,11 @@ const { getPoolName, getPoolInfo } = require('../mining-pools');
 const router = express.Router();
 
 let pool;
+let writePool;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
+  writePool = req.app.locals.writePool || req.app.locals.pool;
   next();
 });
 
@@ -239,7 +241,7 @@ router.post('/api/uncle/report', async (req, res) => {
     const isMatch = canonical.rows[0].hash === hash;
 
     // Store the report (ignore duplicates via unique index)
-    await pool.query(
+    await writePool.query(
       `INSERT INTO tip_reports (height, hash, node_id, ip_hash, is_match)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (height, hash, COALESCE(node_id, '')) DO NOTHING`,
@@ -248,7 +250,7 @@ router.post('/api/uncle/report', async (req, res) => {
 
     // If mismatch, archive as external orphan report
     if (!isMatch) {
-      await pool.query(
+      await writePool.query(
         `INSERT INTO orphaned_blocks (height, hash, canonical_hash, source, reported_by)
          VALUES ($1, $2, $3, 'external', $4)
          ON CONFLICT (hash) DO NOTHING`,

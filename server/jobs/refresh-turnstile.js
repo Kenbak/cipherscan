@@ -17,9 +17,10 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
+const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839271; // arbitrary advisory lock ID for this job
 const STATE_KEY = 'turnstile_last_processed_time';

@@ -6,12 +6,14 @@ const deps = {
   callZebraRPC: null,
   redisClient: null,
   pool: null,
+  writePool: null,
 };
 
 function attachLocals(req, res, next) {
   deps.callZebraRPC = req.app.locals.callZebraRPC;
   deps.redisClient = req.app.locals.redisClient;
   deps.pool = req.app.locals.pool;
+  deps.writePool = req.app.locals.writePool || req.app.locals.pool;
   next();
 }
 

@@ -14,7 +14,7 @@
  */
 
 const { log, loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
 
 loadEnv(__dirname);
@@ -24,6 +24,7 @@ const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../lib/privacy-score');
 
 const pool = getPool({ max: 3 });
+const readPool = getReadPool({ max: 3 });
 
 const POOL_DROP_THRESHOLD = 0.8;
 
@@ -45,7 +46,7 @@ function assertZebraSynced(blockchainInfo) {
 
 async function validatePoolSizesAgainstPriorDay(pools) {
   const today = new Date().toISOString().split('T')[0];
-  const prev = await pool.query(
+  const prev = await readPool.query(
     `SELECT pool_size, chain_supply FROM privacy_trends_daily
      WHERE date < $1::date AND pool_size > 0 ORDER BY date DESC LIMIT 1`,
     [today],
@@ -98,7 +99,7 @@ async function updatePoolSizes() {
 async function updateTransactionCounts() {
   log('Updating transaction counts...');
 
-  const txCounts = (await pool.query(`
+  const txCounts = (await readPool.query(`
     SELECT
       COUNT(*) as total_transactions,
       COUNT(*) FILTER (WHERE is_coinbase) as coinbase_count,
@@ -108,14 +109,14 @@ async function updateTransactionCounts() {
     FROM transactions WHERE block_height > 0
   `)).rows[0];
 
-  const shieldedTypes = (await pool.query(`
+  const shieldedTypes = (await readPool.query(`
     SELECT
       COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count > 0 AND vout_count > 0) as mixed_count,
       COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND vin_count = 0 AND vout_count = 0) as fully_shielded_count
     FROM transactions WHERE block_height > 0 AND (has_sapling OR has_orchard OR has_ironwood) AND NOT is_coinbase
   `)).rows[0];
 
-  const blockCount = (await pool.query('SELECT COUNT(*) as total_blocks FROM blocks')).rows[0];
+  const blockCount = (await readPool.query('SELECT COUNT(*) as total_blocks FROM blocks')).rows[0];
 
   const totalTx = parseInt(txCounts.total_transactions) || 0;
   const shieldedTx = parseInt(txCounts.shielded_count) || 0;
@@ -126,12 +127,12 @@ async function updateTransactionCounts() {
   const totalBlocks = parseInt(blockCount.total_blocks) || 0;
   const shieldedPercentage = totalTx > 0 ? (shieldedTx / totalTx) * 100 : 0;
 
-  const avgPerDay = (await pool.query(`
+  const avgPerDay = (await readPool.query(`
     SELECT COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) / 30.0 as avg
     FROM transactions WHERE block_height > 0 AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')
   `)).rows[0];
 
-  const trend = (await pool.query(`
+  const trend = (await readPool.query(`
     SELECT
       COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as recent,
       COUNT(*) FILTER (WHERE (has_sapling OR has_orchard OR has_ironwood) AND block_time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '14 days') AND block_time < EXTRACT(EPOCH FROM NOW() - INTERVAL '7 days')) as previous
@@ -172,7 +173,7 @@ async function updatePrivacyStats(pools, txStats) {
   const privacyScore = scoreResult.total;
   const scoreBreakdown = JSON.stringify(scoreResult.breakdown);
 
-  const existing = await pool.query('SELECT id FROM privacy_stats ORDER BY updated_at DESC LIMIT 1');
+  const existing = await readPool.query('SELECT id FROM privacy_stats ORDER BY updated_at DESC LIMIT 1');
 
   if (existing.rows.length > 0) {
     try {
@@ -250,14 +251,14 @@ async function updatePrivacyTrendsDaily(pools, txStats) {
   log('Updating privacy_trends_daily...');
 
   const today = new Date().toISOString().split('T')[0];
-  const existing = await pool.query('SELECT id FROM privacy_trends_daily WHERE date = $1', [today]);
+  const existing = await readPool.query('SELECT id FROM privacy_trends_daily WHERE date = $1', [today]);
 
   // Get today's shielded counts
   const latestBlock = txStats.latestBlock;
   const blocksPerDay = 1152;
   const startBlock = latestBlock - blocksPerDay;
 
-  const dayStats = (await pool.query(`
+  const dayStats = (await readPool.query(`
     SELECT
       COUNT(*) FILTER (WHERE has_sapling OR has_orchard OR has_ironwood) as shielded_count,
       COUNT(*) FILTER (WHERE NOT is_coinbase AND NOT has_sapling AND NOT has_orchard AND NOT has_ironwood) as transparent_count

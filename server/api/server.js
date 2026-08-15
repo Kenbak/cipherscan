@@ -126,12 +126,15 @@ pool.query('SELECT NOW()', (err, res) => {
   console.log('✅ Database connected:', res.rows[0].now);
 });
 
-// Read/write pool routing seam (both point to primary today)
+// Read/write pool routing — auto-creates replica pool if REPLICA_DATABASE_URL is set
 const poolRouting = require('./pool-routing');
-poolRouting.configure({ primary: pool });
+poolRouting.configureFromEnv({ primary: pool });
 
 // Make dependencies available to routes via app.locals
-app.locals.pool = pool;
+// Read-heavy routes use the read pool (replica when available, primary fallback).
+// The few write routes (fork-monitor, reorgs) use app.locals.writePool.
+app.locals.pool = poolRouting.getReadPool();
+app.locals.writePool = pool;
 app.locals.poolRouting = poolRouting;
 
 // ============================================================================

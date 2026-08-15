@@ -13,15 +13,16 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
 const pool = getPool();
+const readPool = getReadPool();
 
 async function computeCurrentTransparentRealizedCap() {
   console.log('Computing current transparent realized cap from UTXO set...');
-  const { rows: [result] } = await pool.query(`
+  const { rows: [result] } = await readPool.query(`
     SELECT SUM(o.value::numeric / 1e8 * p.price_usd) as realized_cap,
            COUNT(*) as utxo_count,
            SUM(o.value)::numeric / 1e8 as total_zec
@@ -53,12 +54,13 @@ async function main() {
       printResult(result);
     }
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
   // Step 2: Backfill all dates using shielded (exact) + transparent (approx)
   console.log('\nBackfilling MVRV for all available dates...');
-  const { rows: dates } = await pool.query(`
+  const { rows: dates } = await readPool.query(`
     SELECT DISTINCT date FROM pool_realized_cap_daily ORDER BY date
   `);
   console.log(`${dates.length} dates to process`);
@@ -81,25 +83,26 @@ async function main() {
   console.log(`\nDone! ${count} MVRV rows computed in ${((Date.now()-startTime)/1000).toFixed(0)}s.`);
 
   // Print latest 5
-  const { rows: latest } = await pool.query(
+  const { rows: latest } = await readPool.query(
     `SELECT * FROM mvrv_daily ORDER BY date DESC LIMIT 5`
   );
   console.log('\nLatest MVRV values:');
   for (const r of latest) printResult(r);
 
   await pool.end();
+  if (readPool !== pool) await readPool.end();
 }
 
 async function computeForDate(targetDate, transparentNow) {
   // Get spot price
-  const { rows: [priceRow] } = await pool.query(
+  const { rows: [priceRow] } = await readPool.query(
     `SELECT price_usd FROM zec_price_daily WHERE date = $1`, [targetDate]
   );
   if (!priceRow) return null;
   const spotPrice = parseFloat(priceRow.price_usd);
 
   // Get chain supply
-  const { rows: [supplyRow] } = await pool.query(`
+  const { rows: [supplyRow] } = await readPool.query(`
     SELECT chain_supply, transparent_pool_size
     FROM privacy_trends_daily WHERE date <= $1 ORDER BY date DESC LIMIT 1
   `, [targetDate]);
@@ -112,7 +115,7 @@ async function computeForDate(targetDate, transparentNow) {
   const marketCap = spotPrice * chainSupplyZec;
 
   // Get shielded pool realized cap (latest available on or before target date)
-  const { rows: poolCaps } = await pool.query(`
+  const { rows: poolCaps } = await readPool.query(`
     SELECT DISTINCT ON (pool) pool, realized_cap_usd, balance_zat
     FROM pool_realized_cap_daily WHERE date <= $1
     ORDER BY pool, date DESC

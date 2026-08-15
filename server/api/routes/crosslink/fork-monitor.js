@@ -314,10 +314,10 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
     }
 
     // Evict oldest if at capacity (DB-based)
-    const { rows: countRows } = await deps.pool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
-    const existing = await deps.pool.query('SELECT 1 FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
+    const { rows: countRows } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
+    const existing = await deps.writePool.query('SELECT 1 FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
     if (countRows[0].cnt >= MAX_REGISTERED_NODES && existing.rows.length === 0) {
-      await deps.pool.query(
+      await deps.writePool.query(
         `DELETE FROM fork_monitor_nodes WHERE name = (
            SELECT name FROM fork_monitor_nodes ORDER BY reported_at ASC LIMIT 1
          )`
@@ -329,7 +329,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       hash: normalizeHash(s.hash),
     }));
 
-    await deps.pool.query(
+    await deps.writePool.query(
       `INSERT INTO fork_monitor_nodes (name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (name) DO UPDATE SET
@@ -358,7 +358,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
       try { await deps.redisClient.del(FORK_MONITOR_CACHE_KEY); } catch {}
     }
 
-    const { rows: nodeCount } = await deps.pool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
+    const { rows: nodeCount } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
     res.json({ success: true, registered: cleanName, node_count: nodeCount[0].cnt });
   } catch (error) {
     console.error('Fork monitor report error:', error);
@@ -377,7 +377,7 @@ router.delete('/api/crosslink/fork-monitor/report/:name', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid node name' });
     }
 
-    const { rowCount } = await deps.pool.query(
+    const { rowCount } = await deps.writePool.query(
       'DELETE FROM fork_monitor_nodes WHERE name = $1',
       [cleanName]
     );
