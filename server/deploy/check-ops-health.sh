@@ -296,7 +296,7 @@ fi
 if command -v curl >/dev/null 2>&1; then
   node_height="$(curl -sf --max-time 5 "${rpc_auth_args[@]}" -X POST "${NODE_RPC_URL}" \
     -H 'Content-Type: application/json' \
-    -d '{"jsonrpc":"1.0","method":"getblockcount","params":[]}' 2>/dev/null \
+    -d '{"jsonrpc":"1.0","id":"health","method":"getblockcount","params":[]}' 2>/dev/null \
     | jq -r '.result // empty' 2>/dev/null || echo "")"
   if [[ "${node_height}" =~ ^[0-9]+$ ]]; then
     if command -v psql >/dev/null 2>&1; then
