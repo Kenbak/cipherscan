@@ -158,7 +158,7 @@ if command -v psql >/dev/null 2>&1; then
 
   # --- WAL archiving freshness (added 2026-08-15) ---
   archiver_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
-    "SELECT archive_mode, failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1) FROM pg_settings, pg_stat_archiver WHERE name = 'archive_mode'" \
+    "SELECT (SELECT setting FROM pg_settings WHERE name = 'archive_mode'), failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1) FROM pg_stat_archiver" \
     2>&1 || true)"
   if [[ "${archiver_stats}" =~ ^([a-z]+)\|([0-9]+)\|(-?[0-9]+)$ ]]; then
     archive_mode="${BASH_REMATCH[1]}"
