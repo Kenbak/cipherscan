@@ -291,7 +291,7 @@ mark_check "Replica" "${replica_ok}"
 node_ok=1
 rpc_auth_args=()
 if [[ -f "${NODE_COOKIE_FILE}" ]]; then
-  rpc_auth_args=(-u "__cookie__:$(cat "${NODE_COOKIE_FILE}")")
+  rpc_auth_args=(-u "$(cat "${NODE_COOKIE_FILE}")")
 fi
 if command -v curl >/dev/null 2>&1; then
   node_height="$(curl -sf --max-time 5 "${rpc_auth_args[@]}" -X POST "${NODE_RPC_URL}" \
