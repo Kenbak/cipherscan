@@ -90,6 +90,8 @@ export function Footer() {
               <Link href="/privacy-policy" className="hover:text-muted/60 transition-colors">Privacy</Link>
               <span className="text-muted/20">·</span>
               <Link href="/terms" className="hover:text-muted/60 transition-colors">Terms</Link>
+              <span className="text-muted/20">·</span>
+              <a href="https://status.cipherscan.app" target="_blank" rel="noopener noreferrer" className="hover:text-muted/60 transition-colors">Status</a>
             </div>
 
             <div className="flex items-center gap-3">

@@ -35,6 +35,7 @@ REPLICA_HOST="${REPLICA_HOST:-}"
 REPLICATION_MAX_LAG_SECONDS="${OPS_HEALTH_REPLICATION_MAX_LAG_SECONDS:-60}"
 
 NODE_RPC_URL="${NODE_RPC_URL:-http://127.0.0.1:8232}"
+NODE_COOKIE_FILE="${NODE_COOKIE_FILE:-/root/.cache/zebra/.cookie}"
 NODE_MAX_LAG_BLOCKS="${OPS_HEALTH_NODE_MAX_LAG_BLOCKS:-5}"
 
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
@@ -288,8 +289,12 @@ mark_check "Replica" "${replica_ok}"
 
 # --- Node sync (HA check) ---
 node_ok=1
+rpc_auth_args=()
+if [[ -f "${NODE_COOKIE_FILE}" ]]; then
+  rpc_auth_args=(-u "__cookie__:$(cat "${NODE_COOKIE_FILE}")")
+fi
 if command -v curl >/dev/null 2>&1; then
-  node_height="$(curl -sf --max-time 5 -X POST "${NODE_RPC_URL}" \
+  node_height="$(curl -sf --max-time 5 "${rpc_auth_args[@]}" -X POST "${NODE_RPC_URL}" \
     -H 'Content-Type: application/json' \
     -d '{"jsonrpc":"1.0","method":"getblockcount","params":[]}' 2>/dev/null \
     | jq -r '.result // empty' 2>/dev/null || echo "")"
