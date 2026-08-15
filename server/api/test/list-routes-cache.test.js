@@ -181,6 +181,7 @@ test('transaction list preserves its payload and skips PostgreSQL on a cache hit
     cursorIdx: null,
     direction: 'next',
     type: 'all',
+    tipHeight: 0,
   });
 });
 
@@ -332,7 +333,7 @@ test('rich list preserves calculations and skips all three queries on a cache hi
         }] };
       }
       if (sql.includes('COUNT(*)')) return { rows: [{ count: '1' }] };
-      return { rows: [{ top10: '500000000', top100: '500000000', total_transparent: '1000000000' }] };
+      return { rows: [{ top10: '500000000', top100: '500000000', total_addressed: '800000000', direct_addressless: '200000000', total_transparent: '1000000000' }] };
     },
   };
   const locals = { pool, listCache };
@@ -347,6 +348,8 @@ test('rich list preserves calculations and skips all three queries on a cache hi
     top10: 5,
     top100: 5,
     totalTransparent: 10,
+    totalAddressed: 8,
+    directAddressless: 2,
     top10Pct: 50,
     top100Pct: 50,
   });
