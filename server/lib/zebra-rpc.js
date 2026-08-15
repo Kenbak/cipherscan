@@ -18,6 +18,11 @@ const zebraAgent = new http.Agent({
   timeout: 10000,
 });
 
+// Caps how much of a single RPC response we will buffer in memory. A
+// misbehaving/oversized response (e.g. a huge verbose block or mempool dump)
+// aborts the request instead of growing `data` without bound.
+const MAX_RPC_RESPONSE_BYTES = 50 * 1024 * 1024; // 50 MB
+
 let _auth = null;
 
 function getAuth() {
@@ -65,8 +70,20 @@ async function callZebraRPC(method, params = [], { timeout = 8000 } = {}) {
       },
       (res) => {
         let data = '';
-        res.on('data', (chunk) => { data += chunk; });
+        let bytes = 0;
+        let aborted = false;
+        res.on('data', (chunk) => {
+          if (aborted) return;
+          bytes += chunk.length;
+          if (bytes > MAX_RPC_RESPONSE_BYTES) {
+            aborted = true;
+            req.destroy(new Error(`RPC response exceeded ${MAX_RPC_RESPONSE_BYTES} bytes`));
+            return;
+          }
+          data += chunk;
+        });
         res.on('end', () => {
+          if (aborted) return;
           try {
             const response = JSON.parse(data);
             if (response.error) {

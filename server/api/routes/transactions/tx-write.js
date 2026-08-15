@@ -39,7 +39,7 @@ router.post('/api/tx/broadcast', validate('txBroadcast'), async (req, res) => {
 
     const txid = await deps.callZebraRPC('sendrawtransaction', [rawTx]);
 
-    console.log(`✅ [BROADCAST] Transaction broadcast successfully: ${txid}`);
+    console.log('✅ [BROADCAST] Transaction broadcast successfully');
 
     res.json({
       success: true,

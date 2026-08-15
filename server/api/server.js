@@ -14,12 +14,50 @@ const WebSocket = require('ws');
 const http = require('http');
 const redis = require('redis');
 const fs = require('fs');
+const crypto = require('crypto');
 const { createListCache } = require('./list-cache');
+
+// Constant-time string comparison via fixed-length SHA-256 digests, so
+// mismatched lengths or values never leak timing information. Used for
+// service-key checks (HTTP + WebSocket) instead of === / Array.includes.
+function constantTimeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
+// Checks `key` against every entry in `knownKeys` without early-returning,
+// so the number of valid keys configured does not create a timing signal.
+function isKnownServiceKey(key, knownKeys) {
+  if (!key) return false;
+  let matched = false;
+  for (const known of knownKeys) {
+    if (constantTimeEqual(key, known)) matched = true;
+  }
+  return matched;
+}
+
+// Redacts dynamic path segments (addresses, tx/block hashes, heights) before
+// logging so request logs never contain queried identifiers or amounts.
+function redactPathForLogging(path) {
+  return path
+    .split('/')
+    .map((segment) => {
+      if (/^[0-9a-fA-F]{64}$/.test(segment)) return ':txhash';
+      if (/^[0-9a-fA-F]{40,66}$/.test(segment)) return ':hash';
+      if (/^(t1|t3|zc|zs|u1|utest1|ztestsapling1|tm|tn)[0-9a-zA-Z]{10,}$/.test(segment)) {
+        return ':address';
+      }
+      if (/^\d+$/.test(segment)) return ':n';
+      return segment;
+    })
+    .join('/');
+}
 
 // Initialize Express
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
 // Import routes
 const blocksRouter = require('./routes/blocks');
@@ -71,6 +109,12 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  // Bounds a runaway/heavy query instead of letting it pin a pool connection
+  // indefinitely. Endpoints that need longer should use a cached/estimated
+  // query pattern (see reltuples-based counts) rather than raising this.
+  statement_timeout: 15000,
+  query_timeout: 15000,
+  application_name: 'cipherscan-api',
 });
 
 // Test database connection
@@ -189,8 +233,11 @@ try {
   console.error('   Make sure proto files exist in proto/ directory');
 }
 
-// Trust proxy (for Nginx reverse proxy)
-app.set('trust proxy', true);
+// Trust proxy: exactly one hop (Caddy). With `true`, Express would trust the
+// left-most X-Forwarded-For entry, which a client can set arbitrarily to
+// spoof the IP used for rate limiting. `1` makes Express use the right-most
+// entry, which Caddy appends and a client cannot override.
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -247,6 +294,26 @@ const OWN_ORIGINS = [
   'http://localhost:3001',
 ];
 
+// WebSocket upgrades are gated here (no cookies/CORS involved in the
+// handshake): allow a valid service key from any origin (CipherPay, internal
+// services), allow our own frontend origins, and allow requests with no
+// Origin header at all (native apps, curl, mobile clients reading public
+// chain data). Reject only unrecognized cross-site browser origins.
+const wss = new WebSocket.Server({
+  server,
+  verifyClient: (info, callback) => {
+    const serviceKey = info.req.headers['x-service-key'];
+    if (isKnownServiceKey(serviceKey, SERVICE_API_KEYS)) {
+      return callback(true);
+    }
+    const origin = info.origin || info.req.headers['origin'];
+    if (!origin || OWN_ORIGINS.includes(origin)) {
+      return callback(true);
+    }
+    return callback(false, 403, 'Origin not allowed');
+  },
+});
+
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 600,
@@ -256,7 +323,7 @@ const limiter = rateLimit({
   skip: (req) => {
     // Service key bypass (Vercel ISR, CipherPay, bots)
     const key = req.headers['x-service-key'];
-    if (key && SERVICE_API_KEYS.includes(key)) return true;
+    if (isKnownServiceKey(key, SERVICE_API_KEYS)) return true;
     // Own frontend bypass — browsers visiting our site send Origin or Referer
     const origin = req.headers['origin'] || '';
     const referer = req.headers['referer'] || '';
@@ -270,9 +337,10 @@ app.use(limiter);
 // Body parser
 app.use(express.json());
 
-// Request logging
+// Request logging — path is redacted (see redactPathForLogging) so
+// addresses, tx/block hashes, and heights never reach application logs.
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${redactPathForLogging(req.path)}`);
   next();
 });
 
@@ -371,13 +439,39 @@ let clients = new Set();
 let rawMempoolSubscribers = 0;
 
 /**
+ * In-process fallback limiter used only when Redis is unavailable, so the
+ * WebSocket rate limit fails CLOSED (still bounded) instead of allowing
+ * unlimited connections. Not shared across API instances, which is
+ * acceptable for a fallback path.
+ */
+const wsFallbackLimiter = new Map(); // ip -> { count, resetAt }
+function checkWebSocketRateLimitFallback(ip) {
+  const now = Date.now();
+  const entry = wsFallbackLimiter.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    wsFallbackLimiter.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= 10;
+}
+// Periodic sweep so the fallback map cannot grow unbounded under sustained
+// distinct-IP traffic while Redis is down.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of wsFallbackLimiter) {
+    if (now >= entry.resetAt) wsFallbackLimiter.delete(ip);
+  }
+}, 5 * 60_000).unref();
+
+/**
  * Rate limit WebSocket connections using Redis
  * Returns true if allowed, false if rate limited
  */
 async function checkWebSocketRateLimit(ip) {
   try {
     if (!redisClient.isOpen) {
-      return true; // Allow if Redis is down
+      return checkWebSocketRateLimitFallback(ip);
     }
 
     const key = `ws:ratelimit:${ip}`;
@@ -390,12 +484,16 @@ async function checkWebSocketRateLimit(ip) {
     return count <= 10;
   } catch (err) {
     console.error('Redis rate limit error:', err);
-    return true;
+    return checkWebSocketRateLimitFallback(ip);
   }
 }
 
 wss.on('connection', async (ws, req) => {
-  const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+  // Behind a single reverse proxy (Caddy), the right-most X-Forwarded-For
+  // entry is the real client (Caddy appends it and a client cannot override
+  // that final hop). The left-most entry is attacker-controlled.
+  const xff = req.headers['x-forwarded-for'];
+  const ip = (xff ? xff.split(',').pop().trim() : null) || req.socket.remoteAddress || 'unknown';
 
   const allowed = await checkWebSocketRateLimit(ip);
   if (!allowed) {
@@ -405,11 +503,11 @@ wss.on('connection', async (ws, req) => {
 
   // Authenticate service clients via X-Service-Key header on upgrade
   const serviceKey = req.headers['x-service-key'];
-  ws.isService = !!(serviceKey && SERVICE_API_KEYS.includes(serviceKey));
+  ws.isService = isKnownServiceKey(serviceKey, SERVICE_API_KEYS);
   ws.subscriptions = new Set();
 
   if (ws.isService) {
-    console.log(`🔑 [WS] Service client connected from ${ip}`);
+    console.log('🔑 [WS] Service client connected');
   }
 
   clients.add(ws);

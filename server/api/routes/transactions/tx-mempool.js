@@ -84,7 +84,7 @@ router.get('/api/mempool', async (req, res) => {
             version: tx.version,
           };
         } catch (error) {
-          console.error(`Error fetching tx ${txid}:`, error.message);
+          console.error('Error fetching mempool tx:', error.message);
           return null;
         }
       })

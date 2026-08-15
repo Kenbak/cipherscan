@@ -150,7 +150,7 @@ router.get('/api/tx/:txid/linkability', validate('txLinkability'), async (req, r
     const toleranceZec = Math.min(Math.max(parseFloat(req.query.tolerance) || 0.001, 0.0001), 0.1);
     const toleranceZat = Math.round(toleranceZec * 100000000);
 
-    console.log(`🔗 [LINKABILITY] Analyzing ${txid.slice(0, 8)}... (limit=${limit}, tolerance=${toleranceZec} ZEC)`);
+    console.log(`🔗 [LINKABILITY] Analyzing transaction (limit=${limit}, tolerance=${toleranceZec} ZEC)`);
 
     const result = await deps.findLinkedTransactions(deps.pool, txid, { limit, toleranceZat });
 

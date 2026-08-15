@@ -17,7 +17,17 @@
  */
 
 const { Router } = require('express');
+const crypto = require('crypto');
 const router = Router();
+
+// Constant-time comparison via fixed-length SHA-256 digests, so a mismatched
+// length or value never leaks timing information about the real key.
+function constantTimeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
 
 // x402 paywall — loaded asynchronously (ESM module in CJS context)
 let paywall = null;
@@ -50,7 +60,7 @@ let paywall = null;
 function authMiddleware(req, res, next) {
   const serviceKey = req.headers['x-service-key'];
   const expected = process.env.SIGNALS_API_KEY;
-  if (expected && serviceKey === expected) {
+  if (expected && serviceKey && constantTimeEqual(serviceKey, expected)) {
     return next();
   }
 

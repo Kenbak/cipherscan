@@ -273,6 +273,22 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
       });
     }
 
+    // Guard against an unbounded scan (memory-exhaustion DoS): a request
+    // with no endHeight defaults to the chain tip, and startHeight=1 would
+    // otherwise buffer the entire chain into `allBlocks` below.
+    if (startHeight < 1) {
+      return res.status(400).json({ error: 'startHeight must be >= 1' });
+    }
+    if (startHeight > finalEndHeight) {
+      return res.status(400).json({ error: 'startHeight cannot be greater than endHeight' });
+    }
+    const MAX_LIGHTWALLETD_SCAN_RANGE = 50000;
+    if (finalEndHeight - startHeight + 1 > MAX_LIGHTWALLETD_SCAN_RANGE) {
+      return res.status(400).json({
+        error: `Range too large (max ${MAX_LIGHTWALLETD_SCAN_RANGE} blocks per request)`,
+      });
+    }
+
     const totalBlocks = finalEndHeight - startHeight + 1;
 
     // Check cache first

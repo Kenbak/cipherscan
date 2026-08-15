@@ -7,6 +7,22 @@ const router = express.Router();
 const { validate } = require('../../validation');
 const { deps } = require('./_helpers');
 
+// Runs `fn` over `items` with at most `limit` in flight at once, instead of
+// an unbounded Promise.all — caps concurrent gRPC/RPC fan-out per request.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await fn(items[index], index);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 // Get raw transaction hex (via RPC)
 router.get('/api/tx/:txid/raw', async (req, res) => {
   try {
@@ -72,65 +88,59 @@ router.post('/api/tx/raw/batch', validate('txRawBatch'), async (req, res) => {
       return res.json({ transactions: [] });
     }
 
-    if (txids.length > 1000) {
-      return res.status(400).json({ error: 'Maximum 1000 transactions per batch' });
+    if (txids.length > 100) {
+      return res.status(400).json({ error: 'Maximum 100 transactions per batch' });
     }
 
-    console.log(`🔍 [BATCH RAW] Fetching ${txids.length} raw transactions`);
-    console.log(`🔍 [BATCH RAW] First 3 TXIDs:`, txids.slice(0, 3));
+    // One shared gRPC client per request (not one per txid), and bounded
+    // concurrency instead of an unbounded Promise.all fan-out.
+    const client = deps.CompactTxStreamer
+      ? new deps.CompactTxStreamer('127.0.0.1:9067', deps.grpc.credentials.createInsecure())
+      : null;
 
-    // Try Lightwalletd first (has full TX index), fallback to Zebra RPC
-    const results = await Promise.all(
-      txids.map(async (txid) => {
+    let results;
+    try {
+      results = await mapWithConcurrency(txids, 8, async (txid) => {
         try {
-          // Try Lightwalletd GetTransaction first
-          if (deps.CompactTxStreamer) {
+          if (client) {
             try {
-              const client = new deps.CompactTxStreamer(
-                '127.0.0.1:9067',
-                deps.grpc.credentials.createInsecure()
-              );
-
               const rawTx = await new Promise((resolve, reject) => {
-                client.GetTransaction(
-                  { hash: Buffer.from(txid, 'hex') },
-                  (error, response) => {
-                    client.close();
-                    if (error) {
-                      reject(error);
-                    } else {
-                      resolve(response);
-                    }
+                client.GetTransaction({ hash: Buffer.from(txid, 'hex') }, (error, response) => {
+                  if (error) {
+                    reject(error);
+                  } else {
+                    resolve(response);
                   }
-                );
+                });
               });
 
               if (rawTx && rawTx.data) {
-                const hexData = Buffer.from(rawTx.data).toString('hex');
-                console.log(`✅ [BATCH RAW] Found in Lightwalletd: ${txid.slice(0, 8)}`);
-                return { txid, hex: hexData, success: true, source: 'lightwalletd' };
+                return {
+                  txid,
+                  hex: Buffer.from(rawTx.data).toString('hex'),
+                  success: true,
+                  source: 'lightwalletd',
+                };
               }
             } catch (lwdError) {
-              // Lightwalletd failed, try Zebra RPC
-              console.log(`⚠️  [BATCH RAW] Lightwalletd failed for ${txid.slice(0, 8)}, trying Zebra...`);
+              // Lightwalletd failed for this txid — fall through to Zebra RPC.
             }
           }
 
-          // Fallback to Zebra RPC
           const rawHex = await deps.callZebraRPC('getrawtransaction', [txid, 0]);
-          console.log(`✅ [BATCH RAW] Found in Zebra RPC: ${txid.slice(0, 8)}`);
           return { txid, hex: rawHex, success: true, source: 'rpc' };
         } catch (error) {
-          console.error(`❌ [BATCH RAW] Error fetching ${txid.slice(0, 8)}:`, error.message);
           return { txid, error: error.message, success: false };
         }
-      })
-    );
+      });
+    } finally {
+      if (client) client.close();
+    }
 
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
 
-    console.log(`✅ [BATCH RAW] Success: ${successful.length}, Failed: ${failed.length}`);
+    console.log(`✅ [BATCH RAW] ${successful.length}/${results.length} transactions resolved`);
 
     res.json({
       transactions: successful.map(r => ({ txid: r.txid, hex: r.hex })),
@@ -139,7 +149,7 @@ router.post('/api/tx/raw/batch', validate('txRawBatch'), async (req, res) => {
       successful: successful.length,
     });
   } catch (error) {
-    console.error('Error in batch raw transaction fetch:', error);
+    console.error('Error in batch raw transaction fetch:', error.message);
     res.status(500).json({ error: 'Failed to fetch raw transactions' });
   }
 });

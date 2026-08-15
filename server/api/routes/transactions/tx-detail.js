@@ -251,7 +251,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       }
       if (bridges.length > 0) bridge = bridges[0];
     } catch (bridgeErr) {
-      console.error('❌ [TX] Bridge lookup error for txid', txid, ':', bridgeErr.message);
+      console.error('❌ [TX] Bridge lookup error:', bridgeErr.message);
     }
 
     // Coinbase data for coinbase transactions
