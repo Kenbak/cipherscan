@@ -12,5 +12,16 @@ TimeoutStopSec=300
 LimitNOFILE=65536
 Environment=RUST_LOG=info
 
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/mnt/data
+ReadOnlyPaths=/root/.config/zebrad
+
 [Install]
 WantedBy=multi-user.target

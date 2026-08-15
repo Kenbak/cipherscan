@@ -216,9 +216,6 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       };
 
       for (const b of bridgeResult.rows) {
-        if (!b.matched) {
-          deps.pool.query('UPDATE cross_chain_swaps SET matched = true WHERE id = $1', [b.id]).catch(() => {});
-        }
         const isInflow = b.direction === 'inflow';
         const otherChain = isInflow ? b.source_chain : b.dest_chain;
         const otherToken = isInflow ? b.source_token : b.dest_token;

@@ -41,11 +41,13 @@ function hasConsistentAddressSummary(summary) {
 // Dependencies injected via app.locals
 let pool;
 let listCache;
+let chainTip;
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   listCache = req.app.locals.listCache || disabledListCache;
+  chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
 });
 
@@ -129,7 +131,7 @@ router.get('/api/rich-list', async (req, res) => {
 
     const cached = await listCache.getOrLoad({
       family: 'rich-list',
-      params: { limit, offset: Number.isFinite(offset) ? offset : null },
+      params: { limit, offset: Number.isFinite(offset) ? offset : null, tipHeight: chainTip.height },
       freshTtlSeconds: 60,
       staleTtlSeconds: 600,
       cacheable,

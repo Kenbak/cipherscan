@@ -21,10 +21,12 @@ const disabledListCache = createListCache({ enabled: false });
 
 let pool;
 let listCache;
+let chainTip;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   listCache = req.app.locals.listCache || disabledListCache;
+  chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
 });
 
@@ -54,7 +56,7 @@ router.get('/api/transparent/exposed', validate('exposedAddresses'), async (req,
 
     const cached = await listCache.getOrLoad({
       family: 'transparent-exposed',
-      params: { limit, offset, cursor, sort, minBalance },
+      params: { limit, offset, cursor, sort, minBalance, tipHeight: chainTip.height },
       freshTtlSeconds: 300,
       staleTtlSeconds: 1800,
       cacheable,
@@ -179,7 +181,7 @@ router.get('/api/transparent/exposed/summary', async (req, res) => {
   try {
     const cached = await listCache.getOrLoad({
       family: 'transparent-exposed-summary',
-      params: {},
+      params: { tipHeight: chainTip.height },
       freshTtlSeconds: 300,
       staleTtlSeconds: 1800,
       cacheable: true,

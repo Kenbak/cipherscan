@@ -25,12 +25,14 @@ let pool;
 let redisClient;
 let callZebraRPC;
 let listCache;
+let chainTip;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   redisClient = req.app.locals.redisClient;
   callZebraRPC = req.app.locals.callZebraRPC;
   listCache = req.app.locals.listCache || disabledListCache;
+  chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
 });
 
@@ -118,6 +120,7 @@ router.get('/api/blocks/list', async (req, res) => {
         limit,
         cursor: Number.isFinite(cursor) ? cursor : null,
         direction: isLatest ? 'next' : normalizedDirection,
+        tipHeight: chainTip.height,
       },
       freshTtlSeconds: isLatest ? 15 : 300,
       staleTtlSeconds: isLatest ? 300 : 3600,

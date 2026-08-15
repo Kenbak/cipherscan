@@ -14,5 +14,15 @@ RestartSec=5
 TimeoutStopSec=30
 LimitNOFILE=65536
 
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadOnlyPaths=/root/cipherscan
+
 [Install]
 WantedBy=multi-user.target

@@ -13,6 +13,7 @@ const deps = {
   grpc: null,
   findLinkedTransactions: null,
   listCache: disabledListCache,
+  chainTip: { height: 0, hash: '' },
 };
 
 let hasStakingColumns = null;
@@ -58,6 +59,7 @@ function injectDependencies(req, res, next) {
   deps.grpc = req.app.locals.grpc;
   deps.findLinkedTransactions = req.app.locals.findLinkedTransactions;
   deps.listCache = req.app.locals.listCache || disabledListCache;
+  deps.chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
 }
 

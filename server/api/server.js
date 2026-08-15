@@ -126,8 +126,13 @@ pool.query('SELECT NOW()', (err, res) => {
   console.log('✅ Database connected:', res.rows[0].now);
 });
 
+// Read/write pool routing seam (both point to primary today)
+const poolRouting = require('./pool-routing');
+poolRouting.configure({ primary: pool });
+
 // Make dependencies available to routes via app.locals
 app.locals.pool = pool;
+app.locals.poolRouting = poolRouting;
 
 // ============================================================================
 // REDIS CLIENT
@@ -615,8 +620,19 @@ async function broadcastToAll(message, serviceExtra = null) {
   }
 }
 
+// In-memory canonical chain tip, updated on every new block (gRPC or poll).
+// Routes include this in list-cache keys for chain-derived families so a
+// reorg (same height, different hash) automatically invalidates stale data.
+let chainTip = { height: 0, hash: '' };
+app.locals.chainTip = chainTip;
+
 // Broadcast new block to all connected clients
 function broadcastNewBlock(block) {
+  const h = parseInt(block.height, 10);
+  if (h >= chainTip.height) {
+    chainTip = { height: h, hash: block.hash || '' };
+    app.locals.chainTip = chainTip;
+  }
   broadcastToAll({
     type: 'new_block',
     data: block,
