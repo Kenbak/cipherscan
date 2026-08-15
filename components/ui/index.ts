@@ -19,6 +19,7 @@ export { PageHeader, SectionHeader } from './SectionHeader';
 
 // Data display
 export { HashLink } from './HashLink';
+export { IconTooltip } from './IconTooltip';
 export { MetricCard } from './MetricCard';
 export { InfoRow } from './InfoRow';
 export { EmptyState, SkeletonTable } from './EmptyState';

@@ -689,8 +689,12 @@ const zebraGrpc = new ZebraGrpcClient(
               hasIronwood: ironwoodActions > 0,
               orchardActions,
               ironwoodActions,
+              // Public regardless of pool — needed so the frontend can show a
+              // known amount for shield/deshield txs (see /api/mempool parity).
+              valueBalanceSapling: tx.valueBalance || 0,
               valueBalanceOrchard: tx.orchard?.valueBalance || 0,
               valueBalanceIronwood: tx.ironwood?.valueBalance || 0,
+              totalOutput: (tx.vout || []).reduce((sum, o) => sum + (o.value || 0), 0),
               inputCount: tx.vin?.length || 0,
               outputCount: tx.vout?.length || 0,
               time: Math.floor(Date.now() / 1000),

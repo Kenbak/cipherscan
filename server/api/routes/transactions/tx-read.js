@@ -65,15 +65,18 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         t.block_time,
         t.has_sapling,
         t.has_orchard,
+        t.has_ironwood,
         t.sapling_spend_count,
         t.sapling_output_count,
         t.orchard_actions,
+        t.ironwood_actions,
         t.vin_count,
         t.vout_count,
         t.size,
         t.fee,
         t.value_balance_sapling,
-        t.value_balance_orchard
+        t.value_balance_orchard,
+        t.value_balance_ironwood
       FROM transactions t
       ${whereClause}
       ORDER BY t.block_height DESC
@@ -103,15 +106,18 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         blockTime: parseInt(tx.block_time),
         hasSapling: tx.has_sapling,
         hasOrchard: tx.has_orchard,
+        hasIronwood: tx.has_ironwood,
         saplingSpendCount: parseInt(tx.sapling_spend_count || 0),
         saplingOutputCount: parseInt(tx.sapling_output_count || 0),
         orchardActions: parseInt(tx.orchard_actions || 0),
+        ironwoodActions: parseInt(tx.ironwood_actions || 0),
         vinCount: parseInt(tx.vin_count || 0),
         voutCount: parseInt(tx.vout_count || 0),
         size: parseInt(tx.size || 0),
         fee: tx.fee ? tx.fee / 100000000 : null,
         valueBalanceSapling: tx.value_balance_sapling ? tx.value_balance_sapling / 100000000 : 0,
         valueBalanceOrchard: tx.value_balance_orchard ? tx.value_balance_orchard / 100000000 : 0,
+        valueBalanceIronwood: tx.value_balance_ironwood ? tx.value_balance_ironwood / 100000000 : 0,
         type: (tx.vin_count === 0 && tx.vout_count === 0) ? 'fully-shielded' : 'partial',
       })),
       pagination: {

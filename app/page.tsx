@@ -29,11 +29,16 @@ interface ShieldedTx {
   blockTime: number;
   hasSapling: boolean;
   hasOrchard: boolean;
+  hasIronwood: boolean;
   saplingSpendCount: number;
   saplingOutputCount: number;
   orchardActions: number;
+  ironwoodActions: number;
   vinCount: number;
   voutCount: number;
+  valueBalanceSapling: number;
+  valueBalanceOrchard: number;
+  valueBalanceIronwood: number;
   type: 'fully-shielded' | 'partial';
 }
 
@@ -94,11 +99,11 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       {/* Hero Section - z-index for dropdown to appear above widgets */}
-      <div className="text-center mb-8 sm:mb-10 relative z-30">
+      <div className="text-center mb-10 sm:mb-14 relative z-30">
         {/* Tagline - SEO friendly */}
-        <h1 className="text-xl sm:text-2xl lg:text-[1.75rem] font-semibold text-primary mb-2 sm:mb-3 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-3 sm:mb-4 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight text-balance">
           <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
           {crosslinkMode
             ? 'CipherScan: Zcash Crosslink Explorer'
@@ -106,7 +111,7 @@ export default async function Home() {
               ? 'CipherScan: Zcash Testnet Explorer (TAZ)'
               : 'CipherScan: Zcash Block Explorer'}
         </h1>
-        <p className="text-xs sm:text-sm text-muted/60 mb-5 sm:mb-6 max-w-lg mx-auto text-center leading-relaxed">
+        <p className="text-sm sm:text-base text-muted/60 mb-7 sm:mb-8 max-w-xl mx-auto text-center leading-relaxed">
           {crosslinkMode
             ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
             : isTestnet
@@ -168,10 +173,10 @@ export default async function Home() {
           </div>
         </>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-6 sm:mt-8 lg:mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 mt-10 sm:mt-12 lg:mt-16">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 RECENT_BLOCKS
               </h2>
@@ -184,20 +189,20 @@ export default async function Home() {
               </div>
             </div>
             <RecentBlocks initialBlocks={initialBlocks} />
-            <div className="flex items-center justify-center gap-4 mt-3">
-              <Link href="/blocks" className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <Link href="/blocks" className="text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
                 View All Blocks →
               </Link>
               <span className="text-cipher-border">·</span>
-              <Link href="/txs" className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+              <Link href="/txs" className="text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
                 View All Transactions →
               </Link>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 SHIELDED_ACTIVITY
               </h2>
@@ -209,8 +214,8 @@ export default async function Home() {
                 <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
               </div>
             </div>
-            <RecentShieldedTxs initialTxs={initialShieldedTxs} />
-            <Link href="/txs/shielded" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+            <RecentShieldedTxs initialTxs={initialShieldedTxs} showLegend={false} />
+            <Link href="/txs/shielded" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
               View All Shielded Transactions →
             </Link>
           </div>
@@ -221,9 +226,9 @@ export default async function Home() {
       {!crosslinkMode && <PulseWidget />}
 
       {/* Pending Mempool */}
-      <div className="mt-6 sm:mt-8 lg:mt-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+      <div className="mt-10 sm:mt-12 lg:mt-16">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
             <span className="text-muted opacity-50">{'>'}</span>
             MEMPOOL
           </h2>
@@ -236,7 +241,7 @@ export default async function Home() {
           </div>
         </div>
         <RecentMempool />
-        <Link href="/mempool" className="block mt-3 text-center text-xs font-mono text-muted hover:text-cipher-cyan transition-colors">
+        <Link href="/mempool" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
           View All Pending Transactions →
         </Link>
       </div>

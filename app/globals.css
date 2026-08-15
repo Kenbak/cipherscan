@@ -862,6 +862,23 @@
     -webkit-backdrop-filter: blur(20px);
   }
 
+  /* Fades whichever edge(s) of the scrollable stat list currently have more
+     content off-screen, so it reads as "scroll this way" instead of an abrupt
+     cut-off. Which edge(s) fade is driven by scroll position in StatsBar.tsx —
+     never fade an edge that's already fully at rest (e.g. "Block" at scrollLeft 0). */
+  .stats-bar-fade-left {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 28px, black 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 28px, black 100%);
+  }
+  .stats-bar-fade-right {
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%);
+  }
+  .stats-bar-fade-both {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 28px, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 28px, black calc(100% - 28px), transparent 100%);
+  }
+
   .ironwood-banner {
     background-color: var(--chrome-bg);
     backdrop-filter: blur(20px);

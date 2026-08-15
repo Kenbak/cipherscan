@@ -77,7 +77,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-6 pt-4 border-t border-cipher-border/30">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[10px] font-mono text-muted/30">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[10px] font-mono text-muted/30 text-center">
               <Link href="/" className="inline-flex items-center gap-1 mr-1">
                 <Image src="/logo.png" alt="CipherScan" width={14} height={14} quality={100} unoptimized />
                 <span className="font-bold text-cipher-cyan tracking-wider">CIPHERSCAN</span>

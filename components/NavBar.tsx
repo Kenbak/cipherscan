@@ -141,10 +141,10 @@ export function NavBar() {
     <Link
       href={item.href}
       onClick={onClick}
-      className="flex flex-col px-3 py-2 dropdown-item rounded-md transition-colors duration-150"
+      className="flex flex-col px-3 py-2.5 dropdown-item rounded-md transition-colors duration-150"
     >
-      <span className="text-[13px] font-mono">{item.label}</span>
-      <span className="text-[10px] text-muted leading-tight">{item.desc}</span>
+      <span className="text-sm font-mono">{item.label}</span>
+      <span className="text-xs text-muted leading-snug mt-0.5">{item.desc}</span>
     </Link>
   );
 
@@ -178,7 +178,7 @@ export function NavBar() {
                 <div key={cat.id} className="relative">
                   <button
                     onClick={() => toggleDropdown(cat.id)}
-                    className={`flex items-center gap-1 text-[13px] font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
+                    className={`flex items-center gap-1 text-sm font-medium font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
                       openDropdown === cat.id ? 'text-cipher-cyan bg-cipher-hover' : 'text-muted hover:text-primary'
                     }`}
                   >
@@ -194,7 +194,11 @@ export function NavBar() {
                   </button>
 
                   {openDropdown === cat.id && (
-                    <div className="absolute left-0 mt-1 w-56 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-left">
+                    <div
+                      className={`absolute left-0 mt-1 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-left ${
+                        cat.items.length > 7 ? 'w-[30rem] grid grid-cols-2 gap-0.5' : 'w-60'
+                      }`}
+                    >
                       {cat.items.map(item => (
                         <DropdownLink key={item.href} item={item} onClick={() => setOpenDropdown(null)} />
                       ))}

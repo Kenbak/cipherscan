@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge } from '@/components/ui';
+import { Badge, IconTooltip } from '@/components/ui';
 import {
   ShieldFlowIcon,
   MixedIcon,
@@ -28,13 +28,9 @@ export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: S
 
   if (type === 'mixed' && variant === 'compact') {
     return (
-      <span
-        className={`inline-flex items-center text-muted ${className}`}
-        title={label}
-        aria-label={label}
-      >
+      <IconTooltip label={label} className={`text-muted ${className}`}>
         <MixedIcon size={18} />
-      </span>
+      </IconTooltip>
     );
   }
 
@@ -49,14 +45,9 @@ export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: S
   }
 
   return (
-    <span
-      className={`inline-flex items-center justify-center ${SHIELD_FLOW_COLORS[type]} ${className}`}
-      title={label}
-      aria-label={label}
-      role="img"
-    >
+    <IconTooltip label={label} className={`${SHIELD_FLOW_COLORS[type]} ${className}`}>
       {icon}
-    </span>
+    </IconTooltip>
   );
 }
 

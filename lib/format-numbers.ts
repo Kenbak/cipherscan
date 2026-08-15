@@ -30,11 +30,29 @@ export function formatZecCompact(zec: number): string {
   return zec.toFixed(zec >= 10 ? 1 : 4);
 }
 
+/**
+ * Readable ZEC amount (trailing zeros trimmed), e.g. `1.3767`, `46.273`.
+ * 4 decimals is plenty for a "how much moved" glance — full 8-decimal
+ * zatoshi precision belongs on the tx detail page, not a table row. Falls
+ * back to `formatZecCompact` above 1000 ZEC. Falls back to full precision
+ * below 0.0001 ZEC so genuine dust amounts don't just round to "0".
+ * Only ever pass amounts that are genuinely public (e.g. a shield/deshield's
+ * transparent-side value balance) — never derive this for fully-shielded txs.
+ */
+export function formatZecPrecise(zec: number): string {
+  if (!Number.isFinite(zec)) return '—';
+  if (zec === 0) return '0';
+  if (Math.abs(zec) >= 1_000) return formatZecCompact(zec);
+  const decimals = Math.abs(zec) < 0.0001 ? 8 : 4;
+  return zec.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '');
+}
+
 export function formatBytesCompact(bytes: number): string {
   if (!Number.isFinite(bytes)) return '—';
   if (bytes >= 1e12) return `${(bytes / 1e12).toFixed(2)} TB`;
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`;
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
+  if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
   return `${bytes} B`;
 }
 

@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
+import { formatBytesCompact } from '@/lib/format-numbers';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { HashLink, SkeletonTable } from '@/components/ui';
+import { SkeletonTable } from '@/components/ui';
 
 interface Block {
   height: number;
@@ -93,48 +94,51 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
   if (loading) {
     return (
       <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-[52px]" />
+        <SkeletonTable rows={5} rowHeight="h-[58px]" />
       </div>
     );
   }
 
   return (
     <div className="card p-0 overflow-hidden">
-      {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}
-      <table className="w-full">
-        <thead>
-          <tr>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Block</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Hash</th>
-            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
-            <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
-          </tr>
-        </thead>
-        <tbody>
-          {blocks.map((block, i) => (
-            <tr
-              key={block.height}
-              className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
-              style={{ animationDelay: `${i * 30}ms` }}
-            >
-              <td className="px-4 h-[52px] border-b border-cipher-border">
-                <Link href={`/block/${block.height}`} className="font-mono text-xs sm:text-sm font-normal text-primary group-hover:text-cipher-cyan transition-colors">
-                  #{block.height.toLocaleString()}
-                </Link>
-              </td>
-              <td className="px-4 h-[52px] border-b border-cipher-border hidden sm:table-cell">
-                <HashLink value={block.hash} lead={8} tail={6} linkClassName="font-mono text-xs text-muted" />
-              </td>
-              <td className="px-4 h-[52px] border-b border-cipher-border text-right">
-                <span className="font-mono text-xs sm:text-sm text-primary">{block.transactions}</span>
-              </td>
-              <td className="px-4 h-[52px] border-b border-cipher-border text-right">
-                <span className="text-xs sm:text-sm text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
-              </td>
+      {/* overflow-x-auto, not overflow-hidden: never silently clip a column, scroll instead */}
+      <div className="overflow-x-auto no-scrollbar">
+        {/* Live-row animations — DataTable lacks per-row classes; classes mirror its conventions */}
+        <table className="w-full min-w-[420px]">
+          <thead>
+            <tr>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Block</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Size</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {blocks.map((block, i) => (
+              <tr
+                key={block.height}
+                className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
+                style={{ animationDelay: `${i * 30}ms` }}
+              >
+                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
+                  <Link href={`/block/${block.height}`} className="font-mono text-sm sm:text-base font-normal text-primary group-hover:text-cipher-cyan transition-colors">
+                    #{block.height.toLocaleString()}
+                  </Link>
+                </td>
+                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                  <span className="font-mono text-xs text-muted whitespace-nowrap">{block.size > 0 ? formatBytesCompact(block.size) : '—'}</span>
+                </td>
+                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                  <span className="font-mono text-sm sm:text-base text-primary">{block.transactions}</span>
+                </td>
+                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                  <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { CURRENCY, isCrosslink } from '@/lib/config';
@@ -26,7 +26,7 @@ function formatCompact(num: number): string {
 
 function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1 text-xs font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+    <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
       <span className="text-muted/50">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
@@ -52,6 +52,42 @@ export function StatsBar() {
   });
 
   const usePostgresApi = usePostgresApiClient();
+
+  // Fade whichever edge(s) have more content off-screen — never fade an edge
+  // that's already fully at rest (e.g. don't fade "Block" while scrollLeft is 0).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollFade = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollFade();
+    el.addEventListener('scroll', updateScrollFade, { passive: true });
+    const resizeObserver = new ResizeObserver(updateScrollFade);
+    resizeObserver.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollFade);
+      resizeObserver.disconnect();
+    };
+    // Re-check once stats finish loading, since that's what changes content width.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateScrollFade, stats]);
+
+  const scrollFadeClass = canScrollLeft && canScrollRight
+    ? 'stats-bar-fade-both'
+    : canScrollLeft
+      ? 'stats-bar-fade-left'
+      : canScrollRight
+        ? 'stats-bar-fade-right'
+        : '';
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -134,8 +170,11 @@ export function StatsBar() {
   return (
     <div className="stats-bar sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-8 items-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar">
-          <div className="flex items-center gap-2.5 sm:gap-3">
+        <div
+          ref={scrollRef}
+          className={`${scrollFadeClass} flex h-10 sm:h-11 items-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
+        >
+          <div className="flex items-center gap-3 sm:gap-4 pr-4">
             {/* Chain state */}
             {stats.blockHeight !== null && (
               <>
