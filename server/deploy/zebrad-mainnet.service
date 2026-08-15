@@ -20,7 +20,7 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
-ReadWritePaths=/mnt/data
+ReadWritePaths=/mnt/data /root/.cache/zebra
 ReadOnlyPaths=/root/.config/zebrad
 
 [Install]
