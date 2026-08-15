@@ -424,14 +424,16 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       ],
       pagination: { limit: 10, offset: 0, total: 500 },
       concentration: {
-        top10: 2500000000000000,
-        top100: 5000000000000000,
-        totalTransparent: 8000000000000000,
+        top10: 2500000,
+        top100: 5000000,
+        totalTransparent: 8000000,
+        totalAddressed: 7999999.99,
+        directAddressless: 0.01,
         top10Pct: 31.25,
         top100Pct: 62.5
       }
     },
-    note: 'Balances are in zatoshis. Known addresses are labeled (exchanges, miners, custodians). Concentration metrics show supply distribution across the transparent pool only.'
+    note: 'Known addresses are labeled (exchanges, miners, custodians). Rich-list amounts are in ZEC. totalTransparent includes both address balances and direct addressless P2PK/bare-multisig UTXOs; direct outputs are included only in the denominator and are never assigned a synthetic rich-list address.'
   },
   {
     id: 'address-labels',
@@ -1353,7 +1355,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Transparent Analysis',
     method: 'GET',
     path: '/api/transparent/exposed',
-    description: 'Paginated list of transparent t-addresses whose public keys are exposed on-chain (quantum-vulnerable). Includes addresses that have spent at least once (pubkey in input) and P2PK recipients (pubkey in output script). Supports offset and cursor pagination.',
+    description: 'Paginated list of reusable transparent address balances whose public keys are exposed on-chain (quantum-vulnerable). Direct addressless P2PK and bare-multisig UTXOs are excluded from address balances and reported by the summary endpoint. Supports offset and cursor pagination.',
     params: [
       { name: 'limit', type: 'number', description: 'Results per page (1-1000, default 100)', required: false },
       { name: 'offset', type: 'number', description: 'Offset for pagination (default 0)', required: false },
@@ -1378,25 +1380,46 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         hasNext: true,
         hasPrev: false,
         next_cursor: 't1ZxV...'
+      },
+      coverage: {
+        listed: 'reusable_address_balances',
+        directAddressless: 'reported_by_summary'
       }
     },
-    note: 'Exposure reasons: "spent" = pubkey revealed via spending input, "p2pk_recipient" = pubkey embedded in P2PK output script. Balances in zatoshis (1 ZEC = 100,000,000 zat). For bulk pulls, use cursor pagination with sort=address for O(1) per page regardless of depth. Cached 5min fresh / 30min stale.'
+    note: 'Reusable balances are exposed either because that address spent ("spent") or because its public key was disclosed by a direct P2PK/bare-multisig script ("public_key_disclosed"). Synthetic identifiers never receive the direct output value. Balances are in zatoshis (1 ZEC = 100,000,000 zat). For bulk pulls, use cursor pagination with sort=address for O(1) per page regardless of depth. Cached 5min fresh / 30min stale.'
   },
   {
     id: 'transparent-exposed-summary',
     category: 'Transparent Analysis',
     method: 'GET',
     path: '/api/transparent/exposed/summary',
-    description: 'Aggregate statistics about quantum-exposed transparent addresses: total count and total balance at risk.',
+    description: 'Aggregate quantum-exposure statistics, separating reusable address balances from direct addressless P2PK and bare-multisig UTXOs.',
     params: [],
     example: `curl ${baseUrl}/api/transparent/exposed/summary`,
     response: {
       total_addresses: 182345,
       total_balance: 1234567890000,
       total_balance_zec: 12345.6789,
+      directAddressless: {
+        output_count: 42,
+        exposed_key_count: 57,
+        total_balance: 2500000000,
+        total_balance_zec: 25,
+        p2pk_output_count: 40,
+        p2pk_balance: 2000000000,
+        multisig_output_count: 2,
+        multisig_balance: 500000000
+      },
+      combined_total_balance: 1237067890000,
+      combined_total_balance_zec: 12370.6789,
+      coverage: {
+        reusableAddressBalances: 'canonical_exposed_addresses',
+        directAddressless: 'unspent_p2pk_and_bare_multisig_outputs',
+        mutuallyExclusive: true
+      },
       last_updated: '2026-07-29T20:00:00.000Z'
     },
-    note: 'Total balance is the sum of all unspent outputs held by addresses with exposed public keys. Updated with each new block (~75s). Cached 5min fresh / 30min stale.'
+    note: 'total_balance preserves the original field but now means reusable P2PKH/P2SH address balance only. directAddressless totals each unspent output once even when a multisig script exposes multiple keys. combined_total_balance is their mutually exclusive sum. Updated with each new block (~75s). Cached 5min fresh / 30min stale.'
   }
 ];
 

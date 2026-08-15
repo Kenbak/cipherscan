@@ -30,6 +30,8 @@ export interface Concentration {
   top10: number;
   top100: number;
   totalTransparent: number;
+  totalAddressed: number;
+  directAddressless: number;
   top10Pct: number;
   top100Pct: number;
 }

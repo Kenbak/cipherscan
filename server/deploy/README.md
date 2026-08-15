@@ -68,11 +68,15 @@ Prerequisites:
 1. Add the server's SSH public key to the Storage Box.
 2. Verify key-only access on port 23.
 3. Install SSHFS (`apt install sshfs` on Ubuntu).
-4. Run `server/deploy/backup-postgres.sh` once manually.
+4. Run `server/deploy/backup-postgres.sh` once manually. Before a destructive
+   migration, use `FULL_VERIFY=true server/deploy/backup-postgres.sh` so every
+   archive member is read and decompressed before the backup is published.
 5. Confirm a non-empty `.dump` exists remotely and record a restore drill.
 
 Override `DATABASE`, `STORAGEBOX`, `STORAGEBOX_PORT`, `STORAGEBOX_PATH`,
 `MOUNT_DIR`, or `RETENTION_DAYS` through the environment when needed.
+`FULL_VERIFY=true` enables a complete archive read; normal scheduled backups
+always validate the custom archive header and table of contents.
 
 Restore into a new database:
 

@@ -6,6 +6,7 @@ readonly STORAGEBOX="${STORAGEBOX:-u630383@u630383.your-storagebox.de}"
 readonly STORAGEBOX_PORT="${STORAGEBOX_PORT:-23}"
 readonly STORAGEBOX_PATH="${STORAGEBOX_PATH:-/home/backups}"
 readonly RETENTION_DAYS="${RETENTION_DAYS:-7}"
+readonly FULL_VERIFY="${FULL_VERIFY:-false}"
 readonly STATE_DIR="${STATE_DIR:-/var/lib/cipherscan-backup}"
 readonly MOUNT_DIR="${MOUNT_DIR:-/mnt/cipherscan-storagebox-backups}"
 declare DATE
@@ -66,6 +67,18 @@ remote_size="$(stat -c %s "$PARTIAL")"
 if [[ ! "$remote_size" =~ ^[0-9]+$ ]] || (( remote_size < 1048576 )); then
   echo "Remote backup verification failed: invalid size '$remote_size'" >&2
   exit 1
+fi
+
+# Validate the custom archive before publishing it. The SSHFS mount is
+# root-owned, so verification runs as root while pg_dump itself stays postgres.
+# pg_restore --list checks the header and table of contents without local disk.
+pg_restore --list "$PARTIAL" >/dev/null
+
+# For pre-migration backups, read and decompress every archive member. This is
+# intentionally opt-in because a full verification roughly doubles backup I/O.
+if [[ "$FULL_VERIFY" == "true" ]]; then
+  echo "[$(date -Is)] Fully validating PostgreSQL archive"
+  pg_restore --file=/dev/null "$PARTIAL"
 fi
 
 mv "$PARTIAL" "$FINAL"

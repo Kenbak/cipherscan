@@ -20,6 +20,24 @@ function isCanonicalIntegerQuery(value) {
   return Number.isSafeInteger(Number.parseInt(value, 10));
 }
 
+function hasConsistentAddressSummary(summary) {
+  try {
+    const balance = BigInt(summary.balance);
+    const totalReceived = BigInt(summary.total_received);
+    const totalSent = BigInt(summary.total_sent);
+    const txCount = BigInt(summary.tx_count);
+
+    return balance >= 0n
+      && totalReceived >= 0n
+      && totalSent >= 0n
+      && txCount >= 0n
+      && totalReceived >= totalSent
+      && balance === totalReceived - totalSent;
+  } catch {
+    return false;
+  }
+}
+
 // Dependencies injected via app.locals
 let pool;
 let listCache;
@@ -133,18 +151,49 @@ router.get('/api/rich-list', async (req, res) => {
             ),
             pool.query(`SELECT COUNT(*) FROM addresses WHERE balance > 0`),
             pool.query(
-              `SELECT
-                 (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 10) t) AS top10,
-                 (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 100) t) AS top100,
-                 COALESCE(SUM(balance), 0) AS total_transparent
-               FROM addresses
-               WHERE balance > 0`
+              `WITH direct_outputs AS (
+                 SELECT txid, vout_index
+                 FROM transparent_key_exposures
+                 WHERE script_type IN ('pubkey', 'multisig')
+                 GROUP BY txid, vout_index
+               ),
+               direct_addressless AS (
+                 SELECT COALESCE(SUM(o.value), 0) AS balance
+                 FROM direct_outputs d
+                 JOIN transaction_outputs o
+                   ON o.txid = d.txid AND o.vout_index = d.vout_index
+                 WHERE o.address IS NULL
+                   AND NOT EXISTS (
+                     SELECT 1
+                     FROM transaction_inputs i
+                     WHERE i.prev_txid = d.txid AND i.prev_vout = d.vout_index
+                   )
+               ),
+               address_concentration AS (
+                 SELECT
+                   (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 10) t) AS top10,
+                   (SELECT COALESCE(SUM(balance), 0) FROM (SELECT balance FROM addresses WHERE balance > 0 ORDER BY balance DESC LIMIT 100) t) AS top100,
+                   COALESCE(SUM(balance), 0) AS total_addressed
+                 FROM addresses
+                 WHERE balance > 0
+               )
+               SELECT a.top10, a.top100, a.total_addressed,
+                      d.balance AS direct_addressless,
+                      a.total_addressed + d.balance AS total_transparent
+               FROM address_concentration a
+               CROSS JOIN direct_addressless d`
             ),
           ])
         );
 
         const totalAddresses = parseInt(countResult.rows[0].count);
-        const { top10, top100, total_transparent } = concentrationResult.rows[0];
+        const {
+          top10,
+          top100,
+          total_addressed,
+          direct_addressless,
+          total_transparent,
+        } = concentrationResult.rows[0];
         const totalTransparent = parseFloat(total_transparent) / 1e8;
 
         return {
@@ -177,6 +226,8 @@ router.get('/api/rich-list', async (req, res) => {
             top10: parseFloat(top10) / 1e8,
             top100: parseFloat(top100) / 1e8,
             totalTransparent: totalTransparent,
+            totalAddressed: parseFloat(total_addressed) / 1e8,
+            directAddressless: parseFloat(direct_addressless) / 1e8,
             top10Pct: totalTransparent > 0 ? (parseFloat(top10) / 1e8 / totalTransparent) * 100 : 0,
             top100Pct: totalTransparent > 0 ? (parseFloat(top100) / 1e8 / totalTransparent) * 100 : 0,
           },
@@ -284,6 +335,16 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
     }
 
     const summary = summaryResult.rows[0];
+    if (!hasConsistentAddressSummary(summary)) {
+      // Do not include the address or query error details in logs.
+      console.error('Address summary integrity check failed');
+      return res.status(500).json({
+        success: false,
+        error: 'Address data integrity check failed',
+        code: 'ADDRESS_SUMMARY_INCONSISTENT',
+      });
+    }
+
     const totalTxCount = parseInt(summary.tx_count) || 0;
     const totalPages = Math.ceil(totalTxCount / limit);
 
@@ -461,10 +522,9 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       };
     });
 
-    const rawBalance = parseFloat(summary.balance);
     res.json({
       address: summary.address,
-      balance: Math.max(0, rawBalance),
+      balance: parseFloat(summary.balance),
       totalReceived: parseFloat(summary.total_received),
       totalSent: parseFloat(summary.total_sent),
       txCount: totalTxCount,
