@@ -35,25 +35,36 @@ jobs:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          cat >> ~/.ssh/config << EOF
+          cat > ~/.ssh/config << 'SSHEOF'
           Host primary
             HostName ${{ secrets.PRIMARY_HOST }}
             User root
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
           Host standby
             HostName ${{ secrets.STANDBY_HOST }}
             User root
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
-          EOF
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
+          SSHEOF
+          sed -i 's/^          //' ~/.ssh/config
+          echo "SSH config written:"
+          cat ~/.ssh/config
 
       - name: Detect roles
         id: roles
         run: |
-          primary_is_recovery=$(ssh primary "sudo -u postgres psql -qtAX -c 'SELECT pg_is_in_recovery();'" 2>/dev/null || echo "error")
+          echo "Testing SSH connectivity..."
+          ssh primary "echo 'primary OK'" || { echo "::error::SSH to primary failed"; exit 1; }
+          ssh standby "echo 'standby OK'" || { echo "::error::SSH to standby failed"; exit 1; }
+          primary_is_recovery=$(ssh primary "sudo -u postgres psql -qtAX -c 'SELECT pg_is_in_recovery();'")
+          echo "primary pg_is_in_recovery=$primary_is_recovery"
           if [[ "$primary_is_recovery" == "f" ]]; then
             echo "pg_primary=primary" >> "$GITHUB_OUTPUT"
           else
