@@ -69,7 +69,7 @@ export function ExportButton({
     return (
       <button
         onClick={exportAsJson}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-cipher-cyan border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
         title="Export as JSON"
       >
         {exported === 'JSON' ? (
@@ -95,7 +95,7 @@ export function ExportButton({
     return (
       <button
         onClick={exportAsCsv}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-cipher-cyan border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
         title="Export as CSV"
       >
         {exported === 'CSV' ? (
@@ -122,7 +122,7 @@ export function ExportButton({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-cipher-cyan border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:border-cipher-cyan rounded-lg transition-all"
       >
         {exported ? (
           <>

@@ -74,14 +74,14 @@ export default function NotFound() {
               className="card-bg hover:border-cipher-cyan border border-transparent rounded-lg p-3 transition-all group"
             >
               <div className="text-2xl mb-2">🏠</div>
-              <div className="text-xs font-mono text-secondary group-hover:text-cipher-cyan transition-colors">Home</div>
+              <div className="text-xs font-mono text-secondary group-hover:text-primary transition-colors">Home</div>
             </Link>
             <Link
               href="/privacy"
               className="card-bg hover:border-cipher-purple border border-transparent rounded-lg p-3 transition-all group"
             >
               <div className="text-2xl mb-2">🛡️</div>
-              <div className="text-xs font-mono text-secondary group-hover:text-cipher-purple transition-colors">Privacy Stats</div>
+              <div className="text-xs font-mono text-secondary group-hover:text-primary transition-colors">Privacy Stats</div>
             </Link>
             <Link
               href="/network"

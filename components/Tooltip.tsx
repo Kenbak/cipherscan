@@ -108,7 +108,7 @@ export function Tooltip({ content, children }: TooltipProps) {
         onMouseLeave={() => !isMobile && setShow(false)}
         onFocus={() => !isMobile && handleShow()}
         onBlur={() => !isMobile && setShow(false)}
-        className="inline-flex text-muted hover:text-cipher-cyan transition-colors cursor-help"
+        className="inline-flex text-muted hover:text-primary transition-colors cursor-help"
         aria-label="More information"
       >
         {children || (

@@ -22,7 +22,7 @@ export function CopyButton({ text, className = '' }: { text: string; className?:
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
-      className={`text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors ${className}`}
+      className={`text-[10px] font-mono text-muted hover:text-primary transition-colors ${className}`}
       title="Copy"
     >
       {copied ? 'Copied' : 'Copy'}

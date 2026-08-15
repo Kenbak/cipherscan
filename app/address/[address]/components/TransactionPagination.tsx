@@ -53,7 +53,7 @@ export function TransactionPagination({
         {currentPage > 1 ? (
           <Link
             href={`/address/${address}`}
-            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-primary transition-colors"
             title="First page"
           >
             ««
@@ -65,7 +65,7 @@ export function TransactionPagination({
         {currentPage > 1 ? (
           <Link
             href={currentPage === 2 ? `/address/${address}` : `/address/${address}?page=${currentPage - 1}`}
-            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-primary transition-colors"
             title="Previous page"
           >
             «
@@ -88,7 +88,7 @@ export function TransactionPagination({
                 <Link
                   key={idx}
                   href={p === 1 ? `/address/${address}` : `/address/${address}?page=${p}`}
-                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+                  className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-primary transition-colors"
                 >
                   {p}
                 </Link>
@@ -102,7 +102,7 @@ export function TransactionPagination({
         {currentPage < totalPages ? (
           <Link
             href={`/address/${address}?page=${currentPage + 1}`}
-            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-primary transition-colors"
             title="Next page"
           >
             »
@@ -114,7 +114,7 @@ export function TransactionPagination({
         {currentPage < totalPages ? (
           <Link
             href={`/address/${address}?page=${totalPages}`}
-            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-cipher-cyan transition-colors"
+            className="px-3 py-1.5 text-sm rounded border border-cipher-border hover:border-cipher-cyan hover:text-primary transition-colors"
             title="Last page"
           >
             »»

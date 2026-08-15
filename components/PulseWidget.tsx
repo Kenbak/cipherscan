@@ -111,7 +111,7 @@ export function PulseWidget() {
           <div className="border-t border-cipher-border-subtle px-4 py-2">
             <Link
               href="/pulse"
-              className="flex items-center justify-end gap-1 text-[11px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+              className="flex items-center justify-end gap-1 text-[11px] font-mono text-muted hover:text-primary transition-colors"
               onClick={() => setOpen(false)}
             >
               View Pulse <span className="text-[9px]">→</span>

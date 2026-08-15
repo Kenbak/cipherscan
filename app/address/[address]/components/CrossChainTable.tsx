@@ -95,7 +95,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
                     {/* ZEC TX */}
                     <div className="col-span-2 text-right">
                       {swap.zecTxid ? (
-                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline font-mono group-hover:text-cipher-cyan transition-colors">
+                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline font-mono group-hover:text-primary transition-colors">
                           {swap.zecTxid.slice(0, 8)}...
                         </Link>
                       ) : (

@@ -92,7 +92,7 @@ export function CrosslinkLearn() {
                   href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.ExternalLink className="w-3.5 h-3.5" />
                   <span>Download Desktop App</span>
@@ -163,7 +163,7 @@ export function CrosslinkLearn() {
                 Run a validator node that votes to finalize blocks.
                 Top 100 finalizers by stake are active. Your node must stay online.
               </p>
-              <Link href="/validators" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-cipher-cyan mt-3 transition-colors">
+              <Link href="/validators" className="inline-flex items-center gap-1 text-sm text-cipher-purple hover:text-primary mt-3 transition-colors">
                 <span>View Active Roster</span>
                 <Icons.ChevronRight className="w-3 h-3" />
               </Link>

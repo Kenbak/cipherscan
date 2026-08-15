@@ -5,7 +5,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { Badge, HashLink, SkeletonTable } from '@/components/ui';
+import { Badge, HashLink, RedactedAmount, SkeletonTable } from '@/components/ui';
 
 interface MempoolTx {
   txid: string;
@@ -130,7 +130,7 @@ export const RecentMempool = memo(function RecentMempool() {
   if (loading) {
     return (
       <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-[58px]" />
+        <SkeletonTable rows={5} rowHeight="h-12" />
       </div>
     );
   }
@@ -182,30 +182,23 @@ export const RecentMempool = memo(function RecentMempool() {
                 className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
                   {getTypeBadge(tx.type)}
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
                   <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} responsive />
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                   {knownAmount !== null ? (
-                    <span className="font-mono text-sm text-secondary whitespace-nowrap">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
+                    <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
                   ) : (
-                    <span
-                      className="relative inline-block h-2.5 w-14 rounded-sm overflow-hidden bg-glass-6 align-middle"
-                      title="Amount hidden — fully shielded transaction"
-                      aria-label="Amount hidden — fully shielded transaction"
-                      role="img"
-                    >
-                      <span className="absolute inset-0 shimmer" />
-                    </span>
+                    <RedactedAmount />
                   )}
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right hidden sm:table-cell">
-                  <span className="font-mono text-xs text-muted">{(tx.size / 1024).toFixed(2)} KB</span>
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right hidden sm:table-cell">
+                  <span className="font-mono text-xs text-muted tabular-nums">{(tx.size / 1024).toFixed(2)} KB</span>
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                   <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.time)}</span>
                 </td>
               </tr>

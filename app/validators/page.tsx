@@ -344,13 +344,13 @@ export default function ValidatorsPage() {
                           >
                             {label ? (
                               <>
-                                <span className="block text-sm font-semibold text-primary group-hover/link:text-cipher-cyan transition-colors">
+                                <span className="block text-sm font-semibold text-primary group-hover/link:text-primary transition-colors">
                                   {label.name}
                                 </span>
                                 <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-[11px] font-mono text-muted leading-tight" />
                               </>
                             ) : (
-                              <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-sm font-mono text-primary group-hover/link:text-cipher-cyan transition-colors" />
+                              <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-sm font-mono text-primary group-hover/link:text-primary transition-colors" />
                             )}
                           </Link>
                           <CopyButton

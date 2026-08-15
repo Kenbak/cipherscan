@@ -93,7 +93,7 @@ const flowColumns: DataTableColumn<ShieldedFlow>[] = [
     align: 'right',
     className: 'hidden sm:table-cell',
     cell: (flow) => (
-      <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
+      <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-primary transition-colors">
         #{flow.blockHeight.toLocaleString()}
       </Link>
     ),

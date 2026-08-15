@@ -48,7 +48,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       skeletonWidth: 'w-24',
       cell: (block) => (
         <div className="flex items-center gap-2">
-          <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-cipher-cyan transition-colors">
+          <Link href={`/block/${block.height}`} className="font-mono text-sm text-primary hover:text-primary transition-colors">
             {block.height.toLocaleString()}
           </Link>
           {block.finality_status === 'Finalized' && (

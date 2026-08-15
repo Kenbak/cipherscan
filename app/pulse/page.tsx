@@ -143,7 +143,7 @@ function EventRow({
       {/* Metric chip */}
       <button
         onClick={() => onMetricClick(event.metric)}
-        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-cipher-cyan/40 hover:text-cipher-cyan sm:block"
+        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-cipher-cyan/40 hover:text-primary sm:block"
       >
         {METRIC_LABELS[event.metric] || event.metric}
       </button>

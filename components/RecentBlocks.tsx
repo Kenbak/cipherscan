@@ -94,7 +94,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
   if (loading) {
     return (
       <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-[58px]" />
+        <SkeletonTable rows={5} rowHeight="h-12" />
       </div>
     );
   }
@@ -120,18 +120,18 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
                 className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
                 style={{ animationDelay: `${i * 30}ms` }}
               >
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
-                  <Link href={`/block/${block.height}`} className="font-mono text-sm sm:text-base font-normal text-primary group-hover:text-cipher-cyan transition-colors">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
+                  <Link href={`/block/${block.height}`} className="font-mono text-sm font-medium text-primary group-hover:text-primary transition-colors tabular-nums">
                     #{block.height.toLocaleString()}
                   </Link>
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
-                  <span className="font-mono text-xs text-muted whitespace-nowrap">{block.size > 0 ? formatBytesCompact(block.size) : '—'}</span>
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
+                  <span className="font-mono text-xs text-muted whitespace-nowrap tabular-nums">{block.size > 0 ? formatBytesCompact(block.size) : '—'}</span>
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
-                  <span className="font-mono text-sm sm:text-base text-primary">{block.transactions}</span>
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
+                  <span className="font-mono text-sm text-primary tabular-nums">{block.transactions}</span>
                 </td>
-                <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                   <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
                 </td>
               </tr>

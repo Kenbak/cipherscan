@@ -119,7 +119,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
       <Link
         href="/newsletter"
-        className="inline-flex items-center gap-2 text-sm font-mono text-muted hover:text-cipher-cyan transition-colors mb-8"
+        className="inline-flex items-center gap-2 text-sm font-mono text-muted hover:text-primary transition-colors mb-8"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -161,7 +161,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="text-xs font-mono text-secondary hover:text-cipher-cyan transition-colors rounded px-2 py-1 nl-toc-pill"
+                className="text-xs font-mono text-secondary hover:text-primary transition-colors rounded px-2 py-1 nl-toc-pill"
               >
                 {s.title.replace(/^Privacy Corner:\s*/i, 'Privacy Corner')}
               </a>
@@ -189,7 +189,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
         {prevIssue ? (
           <Link
             href={`/newsletter/${prevIssue.slug}`}
-            className="group flex items-center gap-2 text-sm font-mono text-muted hover:text-cipher-cyan transition-colors"
+            className="group flex items-center gap-2 text-sm font-mono text-muted hover:text-primary transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -203,7 +203,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
         {nextIssue ? (
           <Link
             href={`/newsletter/${nextIssue.slug}`}
-            className="group flex items-center gap-2 text-sm font-mono text-muted hover:text-cipher-cyan transition-colors"
+            className="group flex items-center gap-2 text-sm font-mono text-muted hover:text-primary transition-colors"
           >
             <span className="hidden sm:inline">{nextIssue.title}</span>
             <span className="sm:hidden">Next</span>
@@ -227,7 +227,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className="block text-[13px] text-muted hover:text-cipher-cyan transition-colors py-0.5 leading-snug"
+                  className="block text-[13px] text-muted hover:text-primary transition-colors py-0.5 leading-snug"
                 >
                   {s.title.replace(/^Privacy Corner:\s*/i, 'Privacy Corner')}
                 </a>
@@ -237,7 +237,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
             <div className="mt-8 pt-6 border-t border-cipher-border-alpha/30">
               <a
                 href="/newsletter/rss"
-                className="flex items-center gap-2 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors"
+                className="flex items-center gap-2 text-xs font-mono text-muted hover:text-primary transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z" />

@@ -44,7 +44,7 @@ export function BlockInfoCard({
               </span>
             ) : (
               <span
-                className="text-primary font-semibold cursor-pointer hover:text-cipher-cyan transition-colors"
+                className="text-primary font-semibold cursor-pointer hover:text-primary transition-colors"
                 onClick={onScrollToTransactions}
                 title="Click to view all transactions"
               >

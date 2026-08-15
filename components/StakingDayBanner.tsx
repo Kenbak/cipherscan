@@ -235,7 +235,7 @@ function NotifyButton({
   return (
     <button
       onClick={onToggle}
-      className="text-[10px] font-mono text-secondary flex items-center gap-1 hover:text-cipher-cyan transition-colors"
+      className="text-[10px] font-mono text-secondary flex items-center gap-1 hover:text-primary transition-colors"
       title="Get a browser notification when the staking window opens"
     >
       <BellIcon />

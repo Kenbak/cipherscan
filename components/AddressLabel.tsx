@@ -125,7 +125,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className={`text-gray-500 hover:text-cipher-cyan transition-colors text-xs font-mono flex items-center gap-1 ${className}`}
+        className={`text-gray-500 hover:text-primary transition-colors text-xs font-mono flex items-center gap-1 ${className}`}
         title="Add a label for this address"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

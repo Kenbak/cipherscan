@@ -140,7 +140,7 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
         </div>
         <Link href={`/block/${data.blockHeight}`}>
           <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border hover:border-cipher-cyan transition-colors max-w-full">
-            <code className="text-xs text-secondary hover:text-cipher-cyan break-all block">
+            <code className="text-xs text-secondary hover:text-primary break-all block">
               {data.blockHash}
             </code>
           </div>

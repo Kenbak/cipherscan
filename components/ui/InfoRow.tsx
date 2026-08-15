@@ -42,7 +42,7 @@ export function InfoRow({
       </div>
       <div
         className={`flex-1 font-mono text-xs sm:text-sm ${valueClass} break-all ${
-          onClick ? 'cursor-pointer hover:text-cipher-cyan transition-colors' : ''
+          onClick ? 'cursor-pointer hover:text-primary transition-colors' : ''
         }`}
         onClick={onClick}
       >

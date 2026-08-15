@@ -293,7 +293,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
               <Link
                 key={txid}
                 href={`/tx/${txid}`}
-                className="font-mono text-xs text-muted hover:text-cipher-cyan flex items-center gap-2 py-0.5 transition-colors"
+                className="font-mono text-xs text-muted hover:text-primary flex items-center gap-2 py-0.5 transition-colors"
               >
                 <span className="text-muted/50 w-5 text-right tabular-nums">{index + 1}.</span>
                 <span className="truncate">{txid.slice(0, 16)}…</span>

@@ -46,7 +46,7 @@ function CopyableRow({
       <button
         type="button"
         onClick={copy}
-        className="shrink-0 p-1.5 rounded-md text-muted hover:text-cipher-cyan hover:bg-cipher-hover transition-colors"
+        className="shrink-0 p-1.5 rounded-md text-muted hover:text-primary hover:bg-cipher-hover transition-colors"
         aria-label={`Copy ${valueToCopy}`}
       >
         {copied ? (
@@ -136,7 +136,7 @@ export default function UnitConverterClient() {
       <div className="mb-8">
         <Link
           href="/tools"
-          className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors mb-4 inline-block"
+          className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block"
         >
           ← All Tools
         </Link>
@@ -170,7 +170,7 @@ export default function UnitConverterClient() {
                   type="button"
                   onClick={() => copyToClipboard(zecForCopy, setCopiedZec)}
                   disabled={!zecForCopy}
-                  className="p-2 rounded-md text-muted hover:text-cipher-cyan hover:bg-cipher-hover transition-colors disabled:opacity-40 disabled:pointer-events-none self-center shrink-0"
+                  className="p-2 rounded-md text-muted hover:text-primary hover:bg-cipher-hover transition-colors disabled:opacity-40 disabled:pointer-events-none self-center shrink-0"
                   aria-label="Copy ZEC value"
                 >
                   <CopyIcon copied={copiedZec} />
@@ -199,7 +199,7 @@ export default function UnitConverterClient() {
                   type="button"
                   onClick={() => copyToClipboard(zatoshiForCopy, setCopiedZatoshi)}
                   disabled={!zatoshiForCopy}
-                  className="p-2 rounded-md text-muted hover:text-cipher-cyan hover:bg-cipher-hover transition-colors disabled:opacity-40 disabled:pointer-events-none self-center shrink-0"
+                  className="p-2 rounded-md text-muted hover:text-primary hover:bg-cipher-hover transition-colors disabled:opacity-40 disabled:pointer-events-none self-center shrink-0"
                   aria-label="Copy zatoshi value"
                 >
                   <CopyIcon copied={copiedZatoshi} />

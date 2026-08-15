@@ -165,7 +165,7 @@ export function NavBar() {
                 className="transition-transform duration-200 group-hover:scale-105 sm:w-8 sm:h-8 object-contain"
               />
               <div>
-                <span className="text-base sm:text-lg font-bold font-mono text-cipher-cyan-bright group-hover:text-cipher-yellow transition-colors duration-200">
+                <span className="text-base sm:text-lg font-bold font-mono text-cipher-cyan-bright">
                   CIPHERSCAN
                 </span>
                 <p className={`text-[10px] sm:text-[11px] font-mono ${NETWORK_COLOR} leading-tight`}>[ {NETWORK_LABEL} ]</p>
@@ -179,7 +179,7 @@ export function NavBar() {
                   <button
                     onClick={() => toggleDropdown(cat.id)}
                     className={`flex items-center gap-1 text-sm font-medium font-mono px-2.5 py-1.5 rounded-md transition-colors duration-150 ${
-                      openDropdown === cat.id ? 'text-cipher-cyan bg-cipher-hover' : 'text-muted hover:text-primary'
+                      openDropdown === cat.id ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
                     }`}
                   >
                     <span>{cat.label}</span>
@@ -287,7 +287,7 @@ export function NavBar() {
               {/* Mobile: hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-muted hover:text-cipher-cyan transition-all duration-150"
+                className="md:hidden p-2 rounded-md text-muted hover:text-primary transition-all duration-150"
                 aria-label="Menu"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +324,7 @@ export function NavBar() {
               <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-md text-muted hover:text-cipher-cyan transition-all"
+                className="p-2 rounded-md text-muted hover:text-primary transition-all"
                 aria-label="Close menu"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

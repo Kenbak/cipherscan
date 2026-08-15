@@ -71,7 +71,7 @@ export function BlockTransactionRow({ tx, index }: { tx: any; index: number }) {
         </div>
 
         <div className="col-span-2">
-          <HashLink value={tx.txid} href={`/tx/${tx.txid}`} copy={false} linkClassName="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" />
+          <HashLink value={tx.txid} href={`/tx/${tx.txid}`} copy={false} linkClassName="text-xs text-secondary group-hover:text-primary transition-colors font-mono" />
         </div>
 
         <div className="col-span-2">

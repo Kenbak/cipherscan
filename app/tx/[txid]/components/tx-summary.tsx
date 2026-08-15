@@ -65,6 +65,25 @@ export function generateTxSummary(
 
   if (classification.isCoinbase) {
     const recipient = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    // A lockbox/funding-stream output sends part of the subsidy straight into
+    // the shielded pool. That amount is consensus-public (not a private
+    // spend), so the summary should account for it rather than implying the
+    // named address received the entire newly-created supply.
+    const shieldedPortion = valueBalance < 0 ? Math.abs(valueBalance) : 0;
+    if (shieldedPortion > 0) {
+      const transparentPortion = data.totalOutput;
+      if (recipient && transparentPortion > 0) {
+        return (
+          <>
+            New {CURRENCY} created as a block reward: {transparentPortion.toFixed(4)} {CURRENCY} sent
+            to the address <AddressWithLabel address={recipient} />, plus {shieldedPortion.toFixed(4)}{' '}
+            {CURRENCY} deposited directly into the shielded pool as a protocol-mandated funding
+            stream.
+          </>
+        );
+      }
+      return `New ${CURRENCY} created as a block reward, entirely deposited into the shielded pool as a protocol-mandated funding stream.`;
+    }
     if (recipient) {
       return (
         <>

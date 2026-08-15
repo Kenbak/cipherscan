@@ -32,7 +32,7 @@ function FinalizerHero({
     <div className="mb-6 animate-fade-in">
       <Link
         href="/validators"
-        className="inline-flex items-center gap-1.5 text-xs font-mono text-muted hover:text-cipher-cyan transition-colors mb-3"
+        className="inline-flex items-center gap-1.5 text-xs font-mono text-muted hover:text-primary transition-colors mb-3"
       >
         <span>&larr;</span>
         <span>All finalizers</span>
@@ -101,7 +101,7 @@ function FinalizerHero({
             </code>
             <button
               onClick={() => setShowFullPubkey((v) => !v)}
-              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-cyan/40 shrink-0"
+              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-cyan/40 shrink-0"
             >
               {showFullPubkey ? 'short' : 'full'}
             </button>

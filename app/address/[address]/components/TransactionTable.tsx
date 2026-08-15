@@ -78,7 +78,7 @@ export function TransactionTable({
 
                       {/* Hash Column */}
                       <div className="col-span-3">
-                        <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} linkClassName="text-xs text-secondary group-hover:text-cipher-cyan transition-colors font-mono" />
+                        <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} linkClassName="text-xs text-secondary group-hover:text-primary transition-colors font-mono" />
                       </div>
 
                       {/* Block Column */}

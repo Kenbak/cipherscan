@@ -166,6 +166,12 @@ export function TxHeroFlow({
 
   if (isCoinbase) {
     const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    // valueBalance < 0 here means part of the subsidy went straight into the
+    // shielded pool as a lockbox/funding-stream output — public and consensus-
+    // enforced, not a private spend, so it belongs in "total reward" the same
+    // way the transparent output does.
+    const shieldedPortion = valueBalance < 0 ? Math.abs(valueBalance) : 0;
+    const totalReward = data.totalOutput + shieldedPortion;
     return (
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
         <Badge color="green" icon={<Icons.Currency />}>
@@ -173,10 +179,17 @@ export function TxHeroFlow({
         </Badge>
         <FlowArrow />
         <FlowArrowDown />
-        <span className="text-sm font-mono text-primary">{data.totalOutput.toFixed(4)} {CURRENCY}</span>
+        <span className="text-sm font-mono text-primary">{totalReward.toFixed(4)} {CURRENCY}</span>
         <FlowArrow />
         <FlowArrowDown />
-        {toAddr ? (
+        {shieldedPortion > 0 ? (
+          <div className="flex flex-col items-center gap-1.5">
+            {toAddr && <AddressDisplay address={toAddr} className="text-xs" />}
+            <Badge color="amber" icon={<Icons.Shield />}>
+              Ironwood Pool
+            </Badge>
+          </div>
+        ) : toAddr ? (
           <AddressDisplay address={toAddr} className="text-xs" />
         ) : (
           <span className="text-sm text-muted">—</span>

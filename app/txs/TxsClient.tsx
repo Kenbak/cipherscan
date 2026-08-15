@@ -109,7 +109,7 @@ const txColumns: DataTableColumn<Transaction>[] = [
     align: 'right',
     className: 'hidden sm:table-cell',
     cell: (tx) => (
-      <Link href={`/block/${tx.block_height}`} className="font-mono text-xs text-muted hover:text-cipher-cyan transition-colors">
+      <Link href={`/block/${tx.block_height}`} className="font-mono text-xs text-muted hover:text-primary transition-colors">
         #{tx.block_height.toLocaleString()}
       </Link>
     ),

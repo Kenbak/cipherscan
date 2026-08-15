@@ -30,7 +30,7 @@ export function BridgeExplorerLinks({ bridges }: { bridges: BridgeData[] }) {
             href={b.explorerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mr-3 text-xs text-cipher-cyan hover:text-cipher-cyan/80 transition-colors font-mono"
+            className="inline-flex items-center gap-1.5 mr-3 text-xs text-cipher-cyan hover:text-primary transition-colors font-mono"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

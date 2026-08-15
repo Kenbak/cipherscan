@@ -104,7 +104,7 @@ export function AddressWithLabel({
     return (
       <Link
         href={`/address/${address}`}
-        className="hover:text-cipher-cyan transition-colors"
+        className="hover:text-primary transition-colors"
       >
         {content}
       </Link>
@@ -143,7 +143,7 @@ export function AddressDisplay({
   return (
     <Link
       href={`/address/${address}`}
-      className={`font-mono hover:text-cipher-cyan transition-colors ${className}`}
+      className={`font-mono hover:text-primary transition-colors ${className}`}
       title={address}
     >
       {labelInfo ? labelInfo.label : truncatedAddress}

@@ -72,7 +72,7 @@ function CopyBlock({ children }: { children: string }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-cipher-bg border border-cipher-border px-2 py-1 text-[10px] font-mono text-muted hover:text-cipher-cyan rounded"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-cipher-bg border border-cipher-border px-2 py-1 text-[10px] font-mono text-muted hover:text-primary rounded"
       >
         {copied ? 'copied' : 'copy'}
       </button>

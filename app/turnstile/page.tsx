@@ -45,7 +45,7 @@ export default function TurnstilePage() {
       <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-glass-4 pt-6">
         <Link
           href="/"
-          className="text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+          className="text-[10px] font-mono text-muted hover:text-primary transition-colors"
         >
           <span className="text-cipher-cyan font-bold">CipherScan</span>
           <span className="text-muted/60"> — Zcash Block Explorer</span>

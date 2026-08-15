@@ -167,7 +167,7 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
         <div className="flex-1 min-w-0 px-3.5 py-2.5 flex flex-col justify-between gap-1">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="font-mono text-[15px] font-semibold tabular-nums shrink-0 text-black dark:text-white group-hover:text-cipher-cyan transition-colors">
+            <span className="font-mono text-[15px] font-semibold tabular-nums shrink-0 text-black dark:text-white group-hover:text-primary transition-colors">
               #{block.height.toLocaleString()}
             </span>
             <span
@@ -305,7 +305,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
                   <Link
                     key={k}
                     href={`/finalizer/${pretty}`}
-                    className="flex items-center gap-1.5 text-[10px] font-mono text-secondary hover:text-cipher-cyan truncate"
+                    className="flex items-center gap-1.5 text-[10px] font-mono text-secondary hover:text-primary truncate"
                   >
                     {label && (
                       <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-[8px] uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40">
@@ -817,7 +817,7 @@ export function CrosslinkChainGraph({
           <button
             onClick={loadOlder}
             disabled={loadingMore || limit >= 200}
-            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-cipher-cyan disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
+            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
           >
             {limit >= 500
               ? 'Maximum history loaded'

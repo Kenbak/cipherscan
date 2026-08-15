@@ -15,7 +15,7 @@ export function CopyButton({ text, label, copiedText, onCopy }: CopyButtonProps)
         e.stopPropagation();
         onCopy(text, label);
       }}
-      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
+      className="ml-2 p-1 text-muted hover:text-primary transition-colors"
       title="Copy to clipboard"
     >
       {copiedText === label ? (

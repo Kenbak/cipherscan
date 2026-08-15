@@ -242,7 +242,7 @@ export default function PrivacyClient() {
               </div>
               <a
                 href="#how-it-works"
-                className="text-[11px] font-mono text-cipher-cyan transition-colors hover:text-cipher-cyan-bright"
+                className="text-[11px] font-mono text-cipher-cyan transition-colors hover:text-primary"
               >
                 How it works ↓
               </a>
@@ -294,7 +294,7 @@ export default function PrivacyClient() {
             <div className="mt-4 flex justify-end border-t border-cipher-border/30 pt-4">
               <Link
                 href="/txs/shielded"
-                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-cyan/40 hover:text-cipher-cyan"
+                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-cyan/40 hover:text-primary"
               >
                 View all shielded transactions
                 <span aria-hidden>→</span>
@@ -340,7 +340,7 @@ export default function PrivacyClient() {
               href={href}
               className="group flex h-full flex-col rounded-xl border border-glass-6 bg-glass-3 p-5 transition-colors hover:border-cipher-cyan/30"
             >
-              <p className="text-sm font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
+              <p className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
                 {title}
               </p>
               <p className="mt-2 flex-1 text-xs leading-relaxed text-muted">{description}</p>

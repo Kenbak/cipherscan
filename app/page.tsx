@@ -133,7 +133,7 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/learn/crosslink"
-              className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
             >
               Learn Crosslink →
             </Link>
@@ -141,7 +141,7 @@ export default async function Home() {
               href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
             >
               Join Season 1 →
             </a>
@@ -160,7 +160,7 @@ export default async function Home() {
               </h2>
               <Link
                 href="/chain"
-                className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors"
+                className="text-xs font-mono text-muted hover:text-primary transition-colors"
               >
                 Open full view →
               </Link>
@@ -190,11 +190,11 @@ export default async function Home() {
             </div>
             <RecentBlocks initialBlocks={initialBlocks} />
             <div className="flex items-center justify-center gap-4 mt-4">
-              <Link href="/blocks" className="text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
+              <Link href="/blocks" className="text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
                 View All Blocks →
               </Link>
               <span className="text-cipher-border">·</span>
-              <Link href="/txs" className="text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
+              <Link href="/txs" className="text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
                 View All Transactions →
               </Link>
             </div>
@@ -215,7 +215,7 @@ export default async function Home() {
               </div>
             </div>
             <RecentShieldedTxs initialTxs={initialShieldedTxs} showLegend={false} />
-            <Link href="/txs/shielded" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
+            <Link href="/txs/shielded" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
               View All Shielded Transactions →
             </Link>
           </div>
@@ -241,7 +241,7 @@ export default async function Home() {
           </div>
         </div>
         <RecentMempool />
-        <Link href="/mempool" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-cipher-cyan transition-colors">
+        <Link href="/mempool" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
           View All Pending Transactions →
         </Link>
       </div>

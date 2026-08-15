@@ -44,7 +44,7 @@ function TxLink({ href }: { href: string }) {
     <Link
       href={href}
       aria-label="View transaction"
-      className="text-muted hover:text-cipher-cyan transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
+      className="text-muted hover:text-primary transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
       title="View transaction"
     >
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

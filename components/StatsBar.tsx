@@ -56,8 +56,26 @@ export function StatsBar() {
   // Fade whichever edge(s) have more content off-screen — never fade an edge
   // that's already fully at rest (e.g. don't fade "Block" while scrollLeft is 0).
   const scrollRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Expose measured bar height for sticky offsets below it (Ironwood banner) —
+  // the bar's height changes across breakpoints (h-10 sm:h-11), so a static
+  // CSS var would drift out of sync the way --app-nav-height would without this.
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+
+    const syncStatsHeight = () => {
+      document.documentElement.style.setProperty('--app-stats-height', `${bar.offsetHeight}px`);
+    };
+
+    syncStatsHeight();
+    const observer = new ResizeObserver(syncStatsHeight);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, []);
 
   const updateScrollFade = useCallback(() => {
     const el = scrollRef.current;
@@ -168,7 +186,7 @@ export function StatsBar() {
   const hasAnyData = stats.blockHeight !== null || stats.price !== null;
 
   return (
-    <div className="stats-bar sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
+    <div ref={barRef} className="stats-bar sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
           ref={scrollRef}

@@ -211,7 +211,7 @@ export default function MempoolClient() {
             {/* Fullscreen */}
             <button
               onClick={() => bubblesRef.current?.toggleFullscreen()}
-              className="p-1.5 rounded-md bg-glass-3 text-muted hover:text-cipher-cyan transition-colors"
+              className="p-1.5 rounded-md bg-glass-3 text-muted hover:text-primary transition-colors"
               title="Fullscreen (ESC to exit)"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -221,7 +221,7 @@ export default function MempoolClient() {
             {/* Screensaver mode */}
             <Link
               href="/mempool/live"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-[10px] font-mono text-muted hover:text-cipher-cyan transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-[10px] font-mono text-muted hover:text-primary transition-colors"
               title="Ambient screensaver mode — great on a second monitor"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

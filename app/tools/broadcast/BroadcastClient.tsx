@@ -130,7 +130,7 @@ export default function BroadcastClient() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <Link href="/tools" className="text-xs font-mono text-muted hover:text-cipher-cyan transition-colors mb-4 inline-block">
+        <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
           &larr; All Tools
         </Link>
         <h1 className="text-2xl md:text-3xl font-bold text-primary">Broadcast Transaction</h1>
@@ -227,7 +227,7 @@ export default function BroadcastClient() {
                       <code className="text-xs text-cipher-cyan break-all block">{result.txid}</code>
                       <button
                         onClick={() => copyTxid(result.txid!)}
-                        className={`p-1 rounded transition-colors flex-shrink-0 ${txidCopied ? 'text-cipher-green' : 'text-muted hover:text-cipher-cyan'}`}
+                        className={`p-1 rounded transition-colors flex-shrink-0 ${txidCopied ? 'text-cipher-green' : 'text-muted hover:text-primary'}`}
                         title="Copy TXID"
                       >
                         {txidCopied ? (

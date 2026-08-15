@@ -118,7 +118,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="absolute top-2 right-2 p-1.5 rounded-md bg-cipher-surface/80 hover:bg-cipher-hover text-muted hover:text-cipher-cyan transition-all opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-cipher-surface/80 hover:bg-cipher-hover text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
       title="Copy"
     >
       {copied ? <CheckIcon className="w-3.5 h-3.5 text-cipher-green" /> : <CopyIcon className="w-3.5 h-3.5" />}
@@ -281,7 +281,7 @@ export default function LearnPage() {
                   href="http://pool.tazminer.com:3000"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.Gift className="w-3.5 h-3.5" />
                   <span>Mine TAZ in browser</span>
@@ -290,7 +290,7 @@ export default function LearnPage() {
                   href="https://discord.gg/zcash"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-cipher-cyan rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.Chat className="w-3.5 h-3.5" />
                   <span>Discord</span>
@@ -532,7 +532,7 @@ export default function LearnPage() {
                         <code className="text-sm text-cipher-cyan font-mono group-hover:text-cipher-green transition-colors">{ex.name}</code>
                         <span className="text-xs text-muted ml-2">{ex.desc}</span>
                       </div>
-                      <Icons.ChevronRight className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors" />
+                      <Icons.ChevronRight className="w-3 h-3 text-muted group-hover:text-primary transition-colors" />
                     </Link>
                   ))}
                 </div>
@@ -547,8 +547,8 @@ export default function LearnPage() {
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
-                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}</span>
-                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                        <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}</span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
                     ))}
                   </div>
@@ -885,8 +885,8 @@ export default function LearnPage() {
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
-                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}</span>
-                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                        <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}</span>
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
                     ))}
                   </div>
@@ -905,10 +905,10 @@ export default function LearnPage() {
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
-                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}
+                        <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}
                           <span className="text-xs text-muted ml-2">{item.desc}</span>
                         </span>
-                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
                     ))}
                   </div>
@@ -927,10 +927,10 @@ export default function LearnPage() {
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
-                        <span className="text-sm text-primary group-hover:text-cipher-cyan transition-colors">{item.label}
+                        <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}
                           <span className="text-xs text-muted ml-2">{item.desc}</span>
                         </span>
-                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-cipher-cyan transition-colors flex-shrink-0 ml-3" />
+                        <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
                     ))}
                   </div>
@@ -984,7 +984,7 @@ export default function LearnPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Link
               href="/newsletter"
-              className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
             >
               Weekly Newsletter
             </Link>
@@ -1001,7 +1001,7 @@ export default function LearnPage() {
                 href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-mono text-muted hover:text-cipher-cyan px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+                className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
               >
                 {item.label}
               </a>

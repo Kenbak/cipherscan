@@ -23,6 +23,12 @@ export function OutputsSection({
 }: OutputsSectionProps) {
   const { valueBalance, bridgeOutputAddresses } = classification;
 
+  // valueBalance is a consensus-public field (needed for the binding signature
+  // balance equation), never hidden — that's why the SHIELDED row below renders
+  // its exact value instead of "encrypted". The header total must include it
+  // whenever that row is shown, or it silently undercounts what's listed.
+  const knownOutputTotal = data.totalOutput + (valueBalance < 0 ? Math.abs(valueBalance) : 0);
+
   return (
     <Card>
       <CardHeader>
@@ -45,9 +51,9 @@ export function OutputsSection({
             })()}
           </Badge>
         </div>
-        {data.totalOutput > 0 && (
+        {knownOutputTotal > 0 && (
           <span className="text-xs text-muted font-mono ml-auto">
-            {data.totalOutput.toFixed(4)} {CURRENCY}
+            {knownOutputTotal.toFixed(4)} {CURRENCY}
           </span>
         )}
       </CardHeader>
@@ -70,7 +76,7 @@ export function OutputsSection({
                   {outputAddr ? (
                     <div className="flex items-center gap-1 min-w-0">
                       <Link href={`/address/${outputAddr}`} className="min-w-0 block overflow-hidden">
-                        <code className="text-[11px] text-secondary hover:text-cipher-cyan transition-colors font-mono truncate block">
+                        <code className="text-[11px] text-secondary hover:text-primary transition-colors font-mono truncate block">
                           {outputAddr}
                         </code>
                       </Link>

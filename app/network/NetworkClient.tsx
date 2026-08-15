@@ -488,7 +488,7 @@ export default function NetworkClient() {
                     </div>
                     <Link
                       href="/mining"
-                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-cyan hover:text-cipher-cyan-bright transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-cyan hover:text-primary transition-colors"
                     >
                       <span>Pool distribution & miner behavior</span>
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

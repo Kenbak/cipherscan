@@ -451,7 +451,7 @@ function PrivacyRisksContent() {
                         {item.tone}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-primary group-hover:text-cipher-cyan transition-colors">{item.title}</p>
+                    <p className="text-sm font-medium text-primary group-hover:text-primary transition-colors">{item.title}</p>
                     <p className="mt-1 text-xs text-secondary">{item.subtitle}</p>
                   </button>
                 ))}
@@ -519,7 +519,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-cipher-cyan hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
                       >
                         {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
                       </button>
@@ -581,7 +581,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMoreBatch}
                         disabled={batchLoadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-cipher-cyan hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
                       >
                         {batchLoadingMore ? 'Loading...' : 'Load More'}
                       </button>

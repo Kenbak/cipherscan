@@ -96,7 +96,7 @@ export default function NamePage() {
         e.stopPropagation();
         copyToClipboard(text, label);
       }}
-      className="ml-2 p-1 text-muted hover:text-cipher-cyan transition-colors"
+      className="ml-2 p-1 text-muted hover:text-primary transition-colors"
       title="Copy to clipboard"
     >
       {copiedText === label ? (
@@ -178,7 +178,7 @@ function RegisteredView({
             <div className="flex items-center">
               <Link
                 href={`/address/${registration.address}`}
-                className="font-mono text-sm hover:text-cipher-cyan transition-colors break-all"
+                className="font-mono text-sm hover:text-primary transition-colors break-all"
               >
                 {registration.address}
               </Link>
@@ -200,7 +200,7 @@ function RegisteredView({
             <div className="flex items-center">
               <Link
                 href={`/block/${registration.height}`}
-                className="font-mono text-sm hover:text-cipher-cyan transition-colors"
+                className="font-mono text-sm hover:text-primary transition-colors"
               >
                 {registration.height.toLocaleString()}
               </Link>
@@ -261,7 +261,7 @@ function RegisteredView({
                       <td className="py-2 pr-4 font-mono">
                         <Link
                           href={`/block/${e.height}`}
-                          className="hover:text-cipher-cyan transition-colors"
+                          className="hover:text-primary transition-colors"
                         >
                           {e.height.toLocaleString()}
                         </Link>

@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { HashLink, SkeletonTable } from '@/components/ui';
+import { HashLink, RedactedAmount, SkeletonTable } from '@/components/ui';
 
 interface ShieldedTx {
   txid: string;
@@ -120,7 +120,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
   if (loading) {
     return (
       <div className="card p-4">
-        <SkeletonTable rows={5} rowHeight="h-[58px]" />
+        <SkeletonTable rows={5} rowHeight="h-12" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                   className="group transition-colors duration-100 hover:bg-cipher-hover animate-fade-in-up"
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
-                  <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
+                  <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
                     <HashLink
                       value={tx.txid}
                       href={`/tx/${tx.txid}`}
@@ -156,10 +156,10 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                       tail={6}
                       responsive
                       accent="purple"
-                      linkClassName="font-mono text-sm sm:text-base text-primary hover:text-cipher-purple transition-colors truncate"
+                      linkClassName="font-mono text-sm font-medium text-primary hover:text-primary transition-colors truncate"
                     />
                   </td>
-                  <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border">
+                  <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
                     <ShieldFlowBadge
                       type={resolveShieldFlowType({
                         type: tx.type,
@@ -169,21 +169,14 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                       variant="compact"
                     />
                   </td>
-                  <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                  <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                     {knownAmount !== null ? (
-                      <span className="font-mono text-sm text-secondary whitespace-nowrap">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
+                      <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
                     ) : (
-                      <span
-                        className="relative inline-block h-2.5 w-14 rounded-sm overflow-hidden bg-glass-6 align-middle"
-                        title="Amount hidden — fully shielded transaction"
-                        aria-label="Amount hidden — fully shielded transaction"
-                        role="img"
-                      >
-                        <span className="absolute inset-0 shimmer" />
-                      </span>
+                      <RedactedAmount />
                     )}
                   </td>
-                  <td className="px-4 sm:px-5 h-[58px] border-b border-cipher-border text-right">
+                  <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                     <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.blockTime)}</span>
                   </td>
                 </tr>

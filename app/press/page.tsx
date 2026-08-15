@@ -90,7 +90,7 @@ function DownloadRow({ label, href, note }: { label: string; href: string; note:
         <a
           href={href}
           download
-          className="text-sm font-mono font-semibold text-cipher-cyan hover:text-cipher-cyan-bright transition-colors"
+          className="text-sm font-mono font-semibold text-cipher-cyan hover:text-primary transition-colors"
         >
           {label}
         </a>
@@ -174,7 +174,7 @@ function ContactCard({
       </span>
       <div className="min-w-0">
         <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
-        <div className="mt-0.5 truncate text-sm font-mono font-medium text-primary group-hover:text-cipher-cyan transition-colors">
+        <div className="mt-0.5 truncate text-sm font-mono font-medium text-primary group-hover:text-primary transition-colors">
           {value}
         </div>
       </div>

@@ -46,7 +46,7 @@ function TurnstileLinkCard() {
       className="group flex items-center justify-between gap-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 transition-colors hover:border-cipher-cyan/30"
     >
       <div>
-        <p className="text-sm font-semibold text-primary group-hover:text-cipher-cyan transition-colors">
+        <p className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
           Turnstile Tracker
         </p>
         <p className="mt-1 max-w-xl text-xs leading-relaxed text-secondary font-sans">

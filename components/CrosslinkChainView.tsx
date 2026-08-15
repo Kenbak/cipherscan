@@ -298,7 +298,7 @@ function ChainRow({
       <div className="flex-1 min-w-0 px-3 py-2 flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono text-[13px] font-semibold tabular-nums text-black dark:text-white group-hover:text-cipher-cyan transition-colors shrink-0">
+            <span className="font-mono text-[13px] font-semibold tabular-nums text-black dark:text-white group-hover:text-primary transition-colors shrink-0">
               #{block.height.toLocaleString()}
             </span>
             <span
@@ -637,7 +637,7 @@ function DivergencePanel({
         {recentEvents.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-xs font-mono text-muted hover:text-cipher-cyan"
+            className="text-xs font-mono text-muted hover:text-primary"
           >
             {expanded ? 'hide history' : `history (${recentEvents.length})`}
           </button>

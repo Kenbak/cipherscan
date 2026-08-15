@@ -48,7 +48,10 @@ export function HashLink({
   linkClassName?: string;
   className?: string;
 }) {
-  const hover = accent === 'purple' ? 'hover:text-cipher-purple' : 'hover:text-cipher-cyan';
+  // Hover is intentionally unified to text-primary regardless of accent —
+  // `accent` still exists for callers that want a distinct resting-state
+  // color, but hover no longer varies by context.
+  const hover = 'hover:text-primary';
 
   const display = full ? (
     value

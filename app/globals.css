@@ -184,17 +184,17 @@
 
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
-  /* Sticky chrome offsets — --app-nav-height synced from NavBar at runtime */
+  /* Sticky chrome offsets — synced from NavBar/StatsBar at runtime via ResizeObserver */
   --app-nav-height: 4rem;
-  --app-stats-height: 2rem;
+  --app-stats-height: 2.75rem;
 
   /* Colors - Dark Theme (default) */
   --color-bg: #08090F;
-  --color-elevated: #0E1018;
-  --color-surface: rgba(20, 22, 31, 0.55);
-  --color-surface-solid: #14161F;
-  --color-hover: #1A1D28;
-  --color-active: #22252F;
+  --color-elevated: #0A0B12;
+  --color-surface: rgba(14, 16, 24, 0.45);
+  --color-surface-solid: #0E1018;
+  --color-hover: #13151E;
+  --color-active: #1A1D28;
   --color-border: rgba(30, 41, 59, 0.6);
   --color-border-subtle: rgba(255, 255, 255, 0.04);
   --color-border-rgb: 30 41 59;
@@ -291,17 +291,17 @@
 
   /* Cards */
   --card-border: rgba(255, 255, 255, 0.06);
-  --card-border-hover: rgba(255, 255, 255, 0.06);
+  --card-border-hover: rgba(255, 255, 255, 0.08);
   --card-blur: blur(12px);
-  --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.1);
-  --card-shadow-hover: 0 0 0 1px rgba(0, 212, 255, 0.06), 0 4px 8px rgba(0, 0, 0, 0.06), 0 16px 32px rgba(0, 0, 0, 0.12);
-  --card-glass-bg: rgba(20, 22, 31, 0.8);
+  --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 24px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 0 0 1px rgba(0, 212, 255, 0.05), 0 4px 8px rgba(0, 0, 0, 0.05), 0 16px 32px rgba(0, 0, 0, 0.1);
+  --card-glass-bg: rgba(14, 16, 24, 0.6);
   --card-glass-blur: blur(24px);
-  --card-glass-border: rgba(255, 255, 255, 0.08);
+  --card-glass-border: rgba(255, 255, 255, 0.06);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(255, 255, 255, 0.04);
-  --card-featured-border: rgba(0, 212, 255, 0.15);
-  --card-interactive-shadow: 0 0 0 1px rgba(0, 212, 255, 0.08), 0 4px 8px rgba(0, 0, 0, 0.08), 0 20px 40px rgba(0, 0, 0, 0.15);
+  --card-featured-border: rgba(0, 212, 255, 0.12);
+  --card-interactive-shadow: 0 0 0 1px rgba(0, 212, 255, 0.06), 0 4px 8px rgba(0, 0, 0, 0.06), 0 20px 40px rgba(0, 0, 0, 0.12);
   --card-interactive-border-hover: var(--card-border);
   --divider: rgba(255, 255, 255, 0.06);
 
@@ -329,9 +329,9 @@
   --filter-warning-bg: rgba(251, 191, 36, 0.08);
   --amber-strong: #FBBF24;
 
-  /* App chrome (navbar, drawer, footer) */
-  --navbar-bg: rgba(20, 22, 31, 0.9);
-  --chrome-bg: var(--color-surface-solid);
+  /* App chrome (navbar, drawer, footer) — matches page bg for a seamless edge */
+  --navbar-bg: rgba(8, 9, 15, 0.8);
+  --chrome-bg: var(--color-bg);
   --nav-accent-hover: #00D4FF;
 
   /* Search bar accessories */
@@ -344,8 +344,8 @@
   --tag-bg-hover: var(--color-hover);
 
   /* Popovers, dropdowns, modals */
-  --popover-bg: #14161F;
-  --popover-border: rgba(255, 255, 255, 0.1);
+  --popover-bg: #0C0D14;
+  --popover-border: rgba(255, 255, 255, 0.08);
   --suggestions-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 20px 25px -5px rgba(0, 0, 0, 0.3);
   --modal-backdrop: rgba(0, 0, 0, 0.8);
@@ -359,7 +359,7 @@
   --inset-bg-30: rgba(8, 9, 15, 0.3);    /* tx summary box */
   --inset-bg-50: rgba(8, 9, 15, 0.5);    /* block tx rows */
   --inset-panel: rgba(20, 22, 31, 0.5);  /* scan progress */
-  --raised-bg: var(--color-surface);     /* docs sidebar, card-bg */
+  --raised-bg: var(--color-elevated);    /* docs sidebar, card-bg */
   --decrypt-bg: var(--color-bg);
   --sticky-header-bg: rgba(8, 9, 15, 0.95);
   --warning-box-text: #FBBF24;
@@ -380,14 +380,14 @@
 
 /* Light Theme Overrides */
 .light {
-  --color-bg: #F7F8FC;
-  --color-elevated: #ECEEF2;
-  --color-surface: #F8FAFC;
-  --color-surface-solid: #F8FAFC;
-  --color-hover: #ECEEF2;
-  --color-active: #E2E8F0;
-  --color-border: #D8DEE6;
-  --color-border-subtle: #ECEEF2;
+  --color-bg: #FAFBFE;
+  --color-elevated: #F5F6FA;
+  --color-surface: #F7F8FC;
+  --color-surface-solid: #F5F6FA;
+  --color-hover: #F0F1F5;
+  --color-active: #E8EAF0;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-subtle: rgba(0, 0, 0, 0.04);
   --color-border-rgb: 216 222 230;
 
   /* Brand — RGB channels for Tailwind opacity support */
@@ -444,19 +444,19 @@
 
   /* ===== COMPONENT TOKENS (light theme) ===== */
 
-  /* Cards — flat borders instead of glass/shadows */
-  --card-border: #E2E8F0;
-  --card-border-hover: #CBD5E1;
+  /* Cards — subtle borders, minimal elevation */
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-border-hover: rgba(0, 0, 0, 0.1);
   --card-blur: none;
-  --card-shadow: none;
-  --card-shadow-hover: none;
-  --card-glass-bg: var(--color-surface);
-  --card-glass-blur: none;
-  --card-glass-border: #E2E8F0;
-  --card-dark-bg: var(--color-elevated);
-  --card-dark-border: #E2E8F0;
-  --card-featured-border: rgba(14, 116, 144, 0.15);
-  --card-interactive-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --card-glass-bg: rgba(255, 255, 255, 0.6);
+  --card-glass-blur: blur(20px);
+  --card-glass-border: rgba(0, 0, 0, 0.06);
+  --card-dark-bg: var(--color-bg);
+  --card-dark-border: rgba(0, 0, 0, 0.06);
+  --card-featured-border: rgba(14, 116, 144, 0.2);
+  --card-interactive-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   --card-interactive-border-hover: var(--color-cyan);
   --divider: rgba(0, 0, 0, 0.06);
 
@@ -484,9 +484,9 @@
   --filter-warning-bg: rgba(245, 158, 11, 0.06);
   --amber-strong: #D97706;
 
-  /* App chrome */
-  --navbar-bg: rgba(255, 255, 255, 0.9);
-  --chrome-bg: var(--color-surface);
+  /* App chrome — matches page bg for a seamless edge */
+  --navbar-bg: rgba(250, 251, 254, 0.85);
+  --chrome-bg: var(--color-bg);
   --nav-accent-hover: #0C7792;
 
   /* Search bar accessories */
@@ -499,10 +499,10 @@
   --tag-bg-hover: #F3F4F6;
 
   /* Popovers, dropdowns, modals */
-  --popover-bg: var(--color-surface);
-  --popover-border: var(--color-border);
-  --suggestions-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --popover-bg: rgba(255, 255, 255, 0.95);
+  --popover-border: rgba(0, 0, 0, 0.08);
+  --suggestions-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --dropdown-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --modal-backdrop: rgba(0, 0, 0, 0.5);
   --modal-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 
@@ -856,7 +856,10 @@
 
   /* ===== STATS BAR ===== */
   .stats-bar {
-    background-color: var(--chrome-bg);
+    /* --navbar-bg (translucent), not --chrome-bg (opaque) — this bar is
+       sticky over scrolling content, so backdrop-filter needs something to
+       actually show through, same as the navbar directly above it. */
+    background-color: var(--navbar-bg);
     border-color: var(--color-border);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -880,7 +883,9 @@
   }
 
   .ironwood-banner {
-    background-color: var(--chrome-bg);
+    /* Same reasoning as .stats-bar above — needs translucency for the blur
+       to be visible while sticky over scrolling content. */
+    background-color: var(--navbar-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -907,7 +912,7 @@
 
   .mobile-menu-item:hover {
     background-color: var(--color-hover);
-    color: var(--color-cyan);
+    color: var(--color-text-primary);
   }
 
   .mobile-drawer {
@@ -927,7 +932,7 @@
   }
 
   .footer-link:hover {
-    color: var(--color-cyan);
+    color: var(--color-text-primary);
   }
 
   .footer-border {
@@ -962,7 +967,7 @@
   }
 
   .donate-btn:hover {
-    color: var(--nav-accent-hover);
+    color: var(--color-text-primary);
   }
 
   /* ===== SEARCH BAR ===== */
@@ -1021,8 +1026,8 @@
 
   .example-tag-default:hover {
     background-color: var(--tag-bg-hover);
-    border-color: var(--color-cyan);
-    color: var(--color-cyan);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
   }
 
   /* Search suggestions dropdown - must be opaque */
@@ -1068,7 +1073,7 @@
 
   .dropdown-item:hover {
     background-color: var(--color-hover);
-    color: var(--color-cyan);
+    color: var(--color-text-primary);
   }
 
   /* ===== GRADIENT CARDS ===== */
