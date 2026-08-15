@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CURRENCY } from '@/lib/config';
 import { AddressWithLabel, AddressDisplay } from '@/components/AddressWithLabel';
+import { firstOutputAddress } from './tx-classification';
 import type { TransactionData, TxClassification } from './types';
 
 export function generateTxSummary(
@@ -15,7 +16,7 @@ export function generateTxSummary(
       const addr =
         b.zecAddress ||
         (b.direction === 'exit' ? data.inputs[0]?.address : null) ||
-        (b.direction === 'entry' ? data.outputs[0]?.scriptPubKey?.addresses?.[0] : null);
+        (b.direction === 'entry' ? firstOutputAddress(data.outputs) : null);
       const addrNode = addr ? (
         <AddressDisplay address={addr} className="text-xs inline" />
       ) : (
@@ -64,7 +65,7 @@ export function generateTxSummary(
   }
 
   if (classification.isCoinbase) {
-    const recipient = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    const recipient = firstOutputAddress(data.outputs);
     // A lockbox/funding-stream output sends part of the subsidy straight into
     // the shielded pool. That amount is consensus-public (not a private
     // spend), so the summary should account for it rather than implying the
@@ -129,7 +130,7 @@ export function generateTxSummary(
 
   if (txType === 'UNSHIELDING') {
     const amount = Math.abs(valueBalance);
-    const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    const toAddr = firstOutputAddress(data.outputs);
     if (toAddr) {
       return (
         <>
@@ -146,21 +147,28 @@ export function generateTxSummary(
   }
 
   const fromAddr = data.inputs[0]?.address;
-  const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+  const toAddr = firstOutputAddress(data.outputs);
 
   if (fromAddr && toAddr) {
+    // Must actually have an address — a zero-value/no-address output (e.g. an
+    // empty or OP_RETURN-style output) is not "any address other than
+    // fromAddr", it's not a recipient at all, and without this check it could
+    // outrank the real recipient as "primary" with an amount of 0.
     const recipientOutputs = data.outputs.filter(
-      (out: any) => out.scriptPubKey?.addresses?.[0] !== fromAddr,
+      (out: any) => out.scriptPubKey?.addresses?.[0] && out.scriptPubKey.addresses[0] !== fromAddr,
     );
 
+    // No output actually goes anywhere but back to fromAddr (self-transfer /
+    // consolidation) — still show the real destination output, just with
+    // zero "other recipients" rather than falling back to outputs[0] blindly.
     const primaryOutput =
       recipientOutputs.length > 0
         ? recipientOutputs.sort((a: any, b: any) => (b.value || 0) - (a.value || 0))[0]
-        : data.outputs[0];
+        : data.outputs.find((out: any) => out.scriptPubKey?.addresses?.[0]) || data.outputs[0];
 
     const primaryAddr = primaryOutput?.scriptPubKey?.addresses?.[0];
     const primaryAmount = primaryOutput?.value || 0;
-    const otherRecipients = recipientOutputs.length - 1;
+    const otherRecipients = Math.max(0, recipientOutputs.length - 1);
 
     return (
       <>

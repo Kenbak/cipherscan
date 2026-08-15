@@ -16,11 +16,12 @@ interface ShieldFlowBadgeProps {
   className?: string;
 }
 
-const BADGE_COLOR: Record<ShieldFlowType, 'purple' | 'green' | 'orange' | 'muted'> = {
+const BADGE_COLOR: Record<ShieldFlowType, 'purple' | 'green' | 'orange' | 'muted' | 'amber'> = {
   shielded: 'purple',
   shielding: 'green',
   unshielding: 'orange',
   mixed: 'muted',
+  migration: 'amber',
 };
 
 export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: ShieldFlowBadgeProps) {
@@ -53,7 +54,7 @@ export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: S
 
 /** Inline legend for table footers — teaches icon meanings once. */
 export function ShieldFlowLegend({ className = '' }: { className?: string }) {
-  const items: ShieldFlowType[] = ['shielding', 'unshielding', 'shielded', 'mixed'];
+  const items: ShieldFlowType[] = ['shielding', 'unshielding', 'shielded', 'migration', 'mixed'];
 
   return (
     <div

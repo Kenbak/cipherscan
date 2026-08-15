@@ -379,6 +379,7 @@ async function fetchCanonicalBlockSummary(blockHeight) {
     miner_pool: poolInfo?.name || null,
     miner_pool_url: poolInfo?.url || null,
     miner_pool_region: poolInfo?.region || null,
+    miner_pool_is_funding_stream: poolInfo?.isFundingStream || false,
   };
 }
 
@@ -487,6 +488,7 @@ async function buildOrphanedBlockResponse(orphanRow) {
     miner_pool: poolInfo?.name || null,
     miner_pool_url: poolInfo?.url || null,
     miner_pool_region: poolInfo?.region || null,
+    miner_pool_is_funding_stream: poolInfo?.isFundingStream || false,
   };
 }
 
@@ -574,6 +576,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         miner_pool: poolInfo?.name || null,
         miner_pool_url: poolInfo?.url || null,
         miner_pool_region: poolInfo?.region || null,
+        miner_pool_is_funding_stream: poolInfo?.isFundingStream || false,
       });
     }
 
@@ -672,6 +675,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       miner_pool: poolInfo?.name || null,
       miner_pool_url: poolInfo?.url || null,
       miner_pool_region: poolInfo?.region || null,
+      miner_pool_is_funding_stream: poolInfo?.isFundingStream || false,
       coinbase_text: coinbaseText,
     };
 

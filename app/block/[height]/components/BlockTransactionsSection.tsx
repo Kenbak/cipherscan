@@ -1,97 +1,249 @@
 import { forwardRef } from 'react';
-import Link from 'next/link';
+import { Badge, DataTable, HashLink, RedactedAmount, type DataTableColumn } from '@/components/ui';
+import { StakingActionBadge } from '@/components/StakingActionBadge';
+import { zatToZec } from '@/lib/format-numbers';
 import { CURRENCY } from '@/lib/config';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { BlockTransactionRow } from './BlockTransactionRow';
 import type { BlockData } from './types';
+
+function ShieldIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
+}
+
+/** Same pool-priority + color convention as getTxBadge on /txs, so the Type badge means the same thing everywhere in the app. */
+function poolBadge(tx: any) {
+  if (tx.staking_action_type) return <StakingActionBadge type={tx.staking_action_type} compact />;
+  if (tx.vin?.[0]?.coinbase) return <Badge color="green">COINBASE</Badge>;
+  if (tx.has_ironwood) return <Badge color="amber">IRONWOOD</Badge>;
+  if (tx.has_orchard) return <Badge color="purple">ORCHARD</Badge>;
+  if (tx.has_sapling) return <Badge color="cyan">SAPLING</Badge>;
+  return <Badge color="muted">Regular</Badge>;
+}
+
+function poolColorClass(pool: string | null) {
+  return pool === 'Ironwood' ? 'text-cipher-yellow' : pool === 'Orchard' ? 'text-cipher-purple' : 'text-cipher-cyan';
+}
+
+function poolBalances(tx: any) {
+  return {
+    sap: parseInt(tx.value_balance_sapling || 0),
+    orc: parseInt(tx.value_balance_orchard || 0),
+    irn: parseInt(tx.value_balance_ironwood || 0),
+  };
+}
+
+function sourcePoolLabel(tx: any): string | null {
+  const { sap, orc, irn } = poolBalances(tx);
+  if (orc > 0) return 'Orchard';
+  if (sap > 0) return 'Sapling';
+  if (irn > 0) return 'Ironwood';
+  return null;
+}
+
+function hasTransparentOutput(tx: any): boolean {
+  return (tx.vout || []).some((o: any) => (o.value || 0) > 0);
+}
+
+/**
+ * The "destination" output for display — not always vout[0]. Some
+ * transactions carry a zero-value, no-address output before the real
+ * recipient (e.g. an empty/OP_RETURN-style output), and vout[0] alone can
+ * land on that placeholder instead of the actual recipient, making a normal
+ * transfer render as if it had no destination at all.
+ */
+function firstOutputAddress(tx: any): string | undefined {
+  return (tx.vout || []).find((o: any) => o.scriptPubKey?.addresses?.[0])?.scriptPubKey?.addresses?.[0];
+}
+
+function destPoolLabel(tx: any): string | null {
+  const { sap, orc, irn } = poolBalances(tx);
+  if (irn < 0) return 'Ironwood';
+  if (orc < 0) return 'Orchard';
+  if (sap < 0) return 'Sapling';
+
+  // No pool shows a net arrival and no transparent output exists either —
+  // by the binding-signature balance equation (public, even for fully-shielded
+  // txs), whatever nominally "left" the source pool can only have covered the
+  // fee. It never actually left the pool: a self-contained spend-and-return,
+  // not an unknown destination, so show the source pool as the destination
+  // too rather than "—" (which reads as "hidden/unknown").
+  if (!hasTransparentOutput(tx)) {
+    const source = sourcePoolLabel(tx);
+    if (source) return source;
+  }
+  return null;
+}
+
+/**
+ * The transparent-side value balance is public consensus data (needed for
+ * the binding-signature balance equation), not a private spend — same rule
+ * as the tx-detail and homepage tables. A fully-shielded tx has genuinely no
+ * known amount and gets RedactedAmount instead of a fabricated number.
+ *
+ * Pool-to-pool migrations (Orchard -> Ironwood) are a special case: source
+ * and destination value balances net to ~0 when summed, but the destination
+ * pool's balance alone is the publicly-known migration amount — same rule
+ * tx-summary/TxHeroFlow use for the MIGRATION tx type.
+ */
+function knownAmount(tx: any): number | null {
+  const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
+  const transparentOut = (tx.vout || []).reduce((sum: number, o: any) => sum + (o.value || 0), 0);
+  const { sap, orc, irn } = poolBalances(tx);
+
+  const source = sourcePoolLabel(tx);
+  const dest = destPoolLabel(tx);
+  if (source && dest && source !== dest && transparentOut === 0) {
+    const destVb = dest === 'Ironwood' ? irn : dest === 'Orchard' ? orc : sap;
+    return zatToZec(Math.abs(destVb));
+  }
+
+  const valueBalanceZat = sap + orc + irn;
+  const shieldedDeposit = valueBalanceZat < 0 ? zatToZec(Math.abs(valueBalanceZat)) : 0;
+  const total = transparentOut + shieldedDeposit;
+  if (total > 0) return total;
+  if (isCoinbase) return total; // legitimately zero
+  return null;
+}
+
+const columns: DataTableColumn<any>[] = [
+  {
+    id: 'index',
+    header: '#',
+    skeletonWidth: 'w-4',
+    cell: (_tx, i) => <span className="text-xs font-mono text-muted tabular-nums">{i + 1}</span>,
+  },
+  {
+    id: 'type',
+    header: 'Type',
+    skeletonWidth: 'w-16',
+    cell: (tx) => poolBadge(tx),
+  },
+  {
+    id: 'hash',
+    header: 'Hash',
+    skeletonWidth: 'w-28',
+    cell: (tx) => <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} responsive copy={false} />,
+  },
+  {
+    id: 'from',
+    header: 'From',
+    skeletonWidth: 'w-24',
+    cell: (tx) => {
+      const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
+      const fromAddress = !isCoinbase && tx.vin?.[0]?.address;
+      if (isCoinbase) return <span className="text-xs text-muted font-mono">Block Reward</span>;
+      if (fromAddress) return <HashLink value={fromAddress} copy={false} lead={8} tail={4} responsive />;
+      const label = sourcePoolLabel(tx);
+      if (label) {
+        return (
+          <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
+            <ShieldIcon className="w-3 h-3" />
+            {label}
+          </span>
+        );
+      }
+      return <span className="text-xs text-muted font-mono">—</span>;
+    },
+  },
+  {
+    id: 'to',
+    header: 'To',
+    skeletonWidth: 'w-24',
+    cell: (tx) => {
+      const toAddress = firstOutputAddress(tx);
+      if (toAddress) return <HashLink value={toAddress} copy={false} lead={8} tail={4} responsive />;
+      const label = destPoolLabel(tx);
+      if (label) {
+        return (
+          <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
+            <ShieldIcon className="w-3 h-3" />
+            {label}
+          </span>
+        );
+      }
+      return <span className="text-xs text-muted font-mono">—</span>;
+    },
+  },
+  {
+    id: 'ins',
+    header: 'Ins',
+    align: 'center',
+    skeletonWidth: 'w-4',
+    cell: (tx) => {
+      const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
+      const inputCount = isCoinbase ? 0 : (tx.vin?.length || 0);
+      const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
+      if (isShielded && inputCount === 0 && !isCoinbase) {
+        return <ShieldIcon className={`w-3 h-3 mx-auto ${tx.has_ironwood ? 'text-cipher-yellow' : tx.has_orchard ? 'text-cipher-purple' : 'text-cipher-cyan'}`} />;
+      }
+      return <span className="text-xs font-mono text-secondary tabular-nums">{inputCount}</span>;
+    },
+  },
+  {
+    id: 'outs',
+    header: 'Outs',
+    align: 'center',
+    skeletonWidth: 'w-4',
+    cell: (tx) => {
+      const outputCount = tx.vout?.length || 0;
+      const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
+      if (isShielded && outputCount === 0) {
+        return <ShieldIcon className={`w-3 h-3 mx-auto ${tx.has_ironwood ? 'text-cipher-yellow' : tx.has_orchard ? 'text-cipher-purple' : 'text-cipher-cyan'}`} />;
+      }
+      return <span className="text-xs font-mono text-secondary tabular-nums">{outputCount}</span>;
+    },
+  },
+  {
+    id: 'value',
+    header: `Value (${CURRENCY})`,
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (tx) => {
+      const amount = knownAmount(tx);
+      if (amount === null) return <RedactedAmount className="!text-xs" />;
+      return <span className="text-xs font-mono text-primary font-semibold tabular-nums">{amount.toFixed(4)}</span>;
+    },
+  },
+  {
+    id: 'fee',
+    header: 'Fee',
+    align: 'right',
+    skeletonWidth: 'w-12',
+    cell: (tx) => {
+      if (tx.vin?.[0]?.coinbase) return <span className="text-xs text-muted">—</span>;
+      const feeZat = parseInt(tx.fee || 0);
+      if (feeZat === 0) return <span className="text-xs text-muted">—</span>;
+      if (feeZat === 10000) return <span className="text-[10px] text-muted font-mono">Standard</span>;
+      const feeZec = zatToZec(feeZat);
+      return (
+        <span className="text-[10px] text-muted font-mono tabular-nums">
+          {feeZec < 0.001 ? feeZec.toFixed(5) : feeZec.toFixed(4)}
+        </span>
+      );
+    },
+  },
+];
 
 export const BlockTransactionsSection = forwardRef<HTMLDivElement, { data: BlockData }>(
   function BlockTransactionsSection({ data }, ref) {
     if (data.isOrphaned) return null;
 
     return (
-      <Card ref={ref}>
-        <CardHeader>
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
-                Transactions
-              </h2>
-              <Badge color="muted">{data.transactionCount}</Badge>
-            </div>
-            <div className="flex items-center gap-1">
-              <Link
-                href={`/block/${data.height - 1}`}
-                className={`p-1.5 rounded transition-colors ${
-                  data.previousBlockHash
-                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
-                    : 'text-muted cursor-not-allowed pointer-events-none'
-                }`}
-                title={`Block #${(data.height - 1).toLocaleString()}`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
-              <span className="text-xs font-mono text-muted">#{data.height.toLocaleString()}</span>
-              <Link
-                href={`/block/${data.height + 1}`}
-                className={`p-1.5 rounded transition-colors ${
-                  data.nextBlockHash
-                    ? 'text-secondary hover:text-primary hover:bg-glass-4'
-                    : 'text-muted cursor-not-allowed pointer-events-none'
-                }`}
-                title={`Block #${(data.height + 1).toLocaleString()}`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </CardHeader>
-        <CardBody>
-
-        {data.isOrphaned ? (
-          <div className="text-center py-12">
-            <p className="text-sm text-secondary font-mono">Transaction data not stored for orphaned blocks</p>
-            {data.canonicalBlock && (
-              <Link
-                href={`/block/${data.canonicalBlock.height}`}
-                className="inline-block mt-3 text-xs font-mono text-cipher-green hover:underline"
-              >
-                View canonical block at #{data.canonicalBlock.height.toLocaleString()}
-              </Link>
-            )}
-          </div>
-        ) : !data.transactions || data.transactions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-secondary font-mono text-sm">No transaction details available</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto -mx-6 px-6">
-            <div className="min-w-[960px] grid grid-cols-13 gap-3 px-4 py-2 mb-2 text-xs font-semibold text-muted uppercase tracking-wider border-b block-info-border">
-              <div className="col-span-1">#</div>
-              <div className="col-span-1">Type</div>
-              <div className="col-span-2">Hash</div>
-              <div className="col-span-2">From</div>
-              <div className="col-span-2">To</div>
-              <div className="col-span-1 text-center">Ins</div>
-              <div className="col-span-1 text-center">Outs</div>
-              <div className="col-span-1 text-right whitespace-nowrap">Value ({CURRENCY})</div>
-              <div className="col-span-1 text-right">Fee</div>
-            </div>
-
-            <div className="space-y-2 min-w-[960px]">
-              {data.transactions.map((tx, index) => (
-                <BlockTransactionRow key={tx.txid || index} tx={tx} index={index} />
-              ))}
-            </div>
-          </div>
-        )}
-        </CardBody>
-      </Card>
+      <div ref={ref}>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">Transactions</h2>
+          <Badge color="muted">{data.transactionCount}</Badge>
+        </div>
+        <DataTable
+          columns={columns}
+          rows={data.transactions || []}
+          rowKey={(tx, i) => tx.txid || i}
+          empty={<p className="text-center py-12 text-secondary font-mono text-sm">No transaction details available</p>}
+        />
+      </div>
     );
   },
 );

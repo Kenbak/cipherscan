@@ -18,6 +18,16 @@ function randomGlyphs(): string[] {
   return Array.from({ length: LENGTH }, randomGlyph);
 }
 
+// Deterministic — no Math.random() — so the server-rendered HTML and the
+// client's first render agree exactly. Randomizing here caused a hydration
+// mismatch on every RedactedAmount instance (server picks one random set,
+// client's initial render picks another), forcing React to discard and
+// re-render the whole tree on mount. The actual churn only starts in
+// useEffect below, which runs client-only after hydration is already done.
+function initialGlyphs(): string[] {
+  return Array.from({ length: LENGTH }, (_, i) => GLYPHS[i % GLYPHS.length]);
+}
+
 /**
  * Placeholder for an amount that isn't just unloaded but genuinely
  * unknowable — a fully-shielded transaction's value never touches the
@@ -33,10 +43,15 @@ function randomGlyphs(): string[] {
  * flickering in lockstep.
  */
 export function RedactedAmount({ className = '' }: { className?: string }) {
-  const [glyphs, setGlyphs] = useState<string[]>(randomGlyphs);
+  const [glyphs, setGlyphs] = useState<string[]>(initialGlyphs);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Shuffle once immediately post-mount (client-only, after hydration) so
+    // instances don't all sit on the same deterministic pattern for the
+    // first 220ms before the interval below kicks in.
+    setGlyphs(randomGlyphs());
 
     const interval = setInterval(() => {
       setGlyphs(prev => {

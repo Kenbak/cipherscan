@@ -3,6 +3,7 @@ import { AddressDisplay } from '@/components/AddressWithLabel';
 import { Badge } from '@/components/ui/Badge';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 import { Icons } from './Icons';
+import { firstOutputAddress } from './tx-classification';
 import type { TransactionData, TxClassification } from './types';
 
 export function TxHeroFlow({
@@ -142,7 +143,7 @@ export function TxHeroFlow({
   }
 
   if (txType === 'UNSHIELDING') {
-    const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    const toAddr = firstOutputAddress(data.outputs);
     return (
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
         <Badge color="purple" icon={<Icons.Shield />}>
@@ -165,7 +166,7 @@ export function TxHeroFlow({
   }
 
   if (isCoinbase) {
-    const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+    const toAddr = firstOutputAddress(data.outputs);
     // valueBalance < 0 here means part of the subsidy went straight into the
     // shielded pool as a lockbox/funding-stream output — public and consensus-
     // enforced, not a private spend, so it belongs in "total reward" the same
@@ -199,7 +200,7 @@ export function TxHeroFlow({
   }
 
   const fromAddr = data.inputs[0]?.address;
-  const toAddr = data.outputs[0]?.scriptPubKey?.addresses?.[0];
+  const toAddr = firstOutputAddress(data.outputs);
   return (
     <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
       {fromAddr ? (

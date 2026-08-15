@@ -157,7 +157,16 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       align: 'right',
       skeletonWidth: 'w-16',
       cell: (block) => (
-        <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
+        // formatRelativeTime() reads Date.now(), which necessarily differs
+        // between the server render and the client's hydration pass by
+        // however long that round-trip took — usually not enough to change
+        // the rounded text, but enough to flip it right at a unit boundary
+        // (e.g. "59 seconds ago" -> "1 minute ago"). The mismatch is
+        // expected and harmless (React docs list this exact case), so it's
+        // suppressed here rather than fixed by forcing a client-only render.
+        <span className="text-xs text-muted whitespace-nowrap" suppressHydrationWarning>
+          {formatRelativeTime(block.timestamp)}
+        </span>
       ),
     },
   ];

@@ -8,6 +8,7 @@ export interface CanonicalBlockSummary {
   minerPool: string | null;
   minerPoolUrl?: string | null;
   minerPoolRegion?: string | null;
+  minerPoolIsFundingStream?: boolean;
 }
 
 export interface BlockData {
@@ -34,6 +35,15 @@ export interface BlockData {
   minerPool?: string | null;
   minerPoolUrl?: string | null;
   minerPoolRegion?: string | null;
+  /**
+   * True when blocks.miner_address (indexer-derived) actually resolved to a
+   * known non-miner address (e.g. the ZIP-207 dev fund) rather than a real
+   * mining pool — happens when a block's real miner reward is deposited
+   * entirely into a shielded pool and the funding-stream output is the only
+   * transparent coinbase output left. Consumers should not label that
+   * recipient "Miner".
+   */
+  minerPoolIsFundingStream?: boolean;
   finality?: string | null;
   isOrphaned?: boolean;
   orphanSource?: string | null;

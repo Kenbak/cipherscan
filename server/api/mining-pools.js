@@ -131,10 +131,16 @@ const POOL_BY_ADDRESS = {
   },
 
   // --- Dev Fund (not a pool) ---
+  // ZIP-207 funding-stream payout address, not a miner. blocks.miner_address
+  // (written by the indexer) can still end up pointing here on blocks where
+  // the actual miner reward is deposited entirely into a shielded pool and
+  // this is the only transparent coinbase output left — isFundingStream lets
+  // callers detect and correctly relabel that case instead of showing "Miner".
   't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': {
     name: 'Dev Fund',
     url: null,
     region: null,
+    isFundingStream: true,
   },
 };
 

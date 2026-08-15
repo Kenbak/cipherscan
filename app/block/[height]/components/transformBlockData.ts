@@ -6,8 +6,15 @@ export function transformExpressBlockData(blockData: any): BlockData {
     const hasShieldedActivity = tx.has_sapling || tx.has_orchard || tx.has_ironwood ||
       (tx.sapling_spend_count > 0) || (tx.sapling_output_count > 0) || (tx.orchard_actions > 0) || (tx.ironwood_actions > 0);
 
-    const isCoinbase = !hasShieldedActivity &&
-      ((tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid));
+    // Coinbase is a consensus fact recorded per-transaction in the DB (is_coinbase),
+    // not something inferrable from shielded activity — a coinbase can *also* deposit
+    // its reward straight into a shielded pool (e.g. an Ironwood funding stream), so
+    // "no shielded activity" is not a valid precondition for "this is the coinbase tx".
+    // Only fall back to the no-real-inputs heuristic when is_coinbase is missing
+    // (e.g. older cached responses).
+    const isCoinbase = typeof tx.is_coinbase === 'boolean'
+      ? tx.is_coinbase
+      : (tx.inputs || []).length === 0 || (tx.inputs || []).every((input: any) => !input.prev_txid);
 
     const transformedInputs = isCoinbase
       ? [{ coinbase: true }]
@@ -74,6 +81,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
         minerPool: blockData.canonicalBlock.miner_pool || null,
         minerPoolUrl: blockData.canonicalBlock.miner_pool_url || null,
         minerPoolRegion: blockData.canonicalBlock.miner_pool_region || null,
+        minerPoolIsFundingStream: Boolean(blockData.canonicalBlock.miner_pool_is_funding_stream),
       }
     : null;
 
@@ -101,6 +109,7 @@ export function transformExpressBlockData(blockData: any): BlockData {
     minerPool: blockData.miner_pool || null,
     minerPoolUrl: blockData.miner_pool_url || null,
     minerPoolRegion: blockData.miner_pool_region || null,
+    minerPoolIsFundingStream: Boolean(blockData.miner_pool_is_funding_stream),
     finality: blockData.finality || blockData.finality_status || null,
     isOrphaned: Boolean(blockData.isOrphaned),
     orphanSource: blockData.orphanSource || null,

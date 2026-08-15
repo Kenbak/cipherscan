@@ -29,6 +29,28 @@ interface ShieldedTx {
 }
 
 /**
+ * A pool-to-pool migration (e.g. Orchard -> Ironwood) has no transparent leg,
+ * so it comes back from the API as `type: 'fully-shielded'` same as a truly
+ * unknowable shielded spend — but it's not actually unknowable: the
+ * binding-signature balance equation requires one pool's valueBalance to be
+ * positive (source) and another's negative (dest), publicly, with nothing
+ * left over for a transparent output or the fee to fully absorb. The dest
+ * pool's balance is exactly the migrated amount.
+ */
+function migrationAmount(tx: ShieldedTx): number | null {
+  if (tx.vinCount !== 0 || tx.voutCount !== 0) return null;
+  const sap = tx.valueBalanceSapling || 0;
+  const orc = tx.valueBalanceOrchard || 0;
+  const irn = tx.valueBalanceIronwood || 0;
+  const source = orc > 0 ? 'orchard' : sap > 0 ? 'sapling' : irn > 0 ? 'ironwood' : null;
+  if (!source) return null;
+  if (irn < 0 && source !== 'ironwood') return Math.abs(irn);
+  if (orc < 0 && source !== 'orchard') return Math.abs(orc);
+  if (sap < 0 && source !== 'sapling') return Math.abs(sap);
+  return null;
+}
+
+/**
  * Amount CipherScan is allowed to show for a shielded-activity row.
  *
  * For a `partial` (shield/deshield) tx, the transparent-side value balance is
@@ -37,16 +59,23 @@ interface ShieldedTx {
  * (Sapling, Orchard, Ironwood) since a tx's transparent leg can settle into
  * any of them.
  *
- * For a `fully-shielded` tx there is no transparent leg, so no amount is
- * public. We render that as a redacted placeholder rather than "0" — the
- * amount isn't zero, it's unknowable, and the UI should say so honestly.
+ * For a migration, see migrationAmount above — also public, for a different
+ * reason (cross-pool balance, not a transparent leg).
+ *
+ * For a genuinely fully-shielded tx (spend and output both stay in the same
+ * pool) there is no transparent leg and no other pool absorbing the balance,
+ * so no amount is public. We render that as a redacted placeholder rather
+ * than "0" — the amount isn't zero, it's unknowable, and the UI should say
+ * so honestly.
  */
 function getKnownAmount(tx: ShieldedTx): number | null {
-  if (tx.type !== 'partial') return null;
-  const amount = Math.abs(tx.valueBalanceSapling || 0)
-    + Math.abs(tx.valueBalanceOrchard || 0)
-    + Math.abs(tx.valueBalanceIronwood || 0);
-  return amount > 0 ? amount : null;
+  if (tx.type === 'partial') {
+    const amount = Math.abs(tx.valueBalanceSapling || 0)
+      + Math.abs(tx.valueBalanceOrchard || 0)
+      + Math.abs(tx.valueBalanceIronwood || 0);
+    return amount > 0 ? amount : null;
+  }
+  return migrationAmount(tx);
 }
 
 interface RecentShieldedTxsProps {
@@ -165,6 +194,9 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                         type: tx.type,
                         vinCount: tx.vinCount,
                         voutCount: tx.voutCount,
+                        valueBalanceSapling: tx.valueBalanceSapling,
+                        valueBalanceOrchard: tx.valueBalanceOrchard,
+                        valueBalanceIronwood: tx.valueBalanceIronwood,
                       })}
                       variant="compact"
                     />

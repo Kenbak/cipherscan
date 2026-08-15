@@ -1,5 +1,17 @@
 import type { BridgeData, TransactionData, TxClassification } from './types';
 
+/**
+ * The "destination" output for display purposes — not always outputs[0].
+ * Some transactions carry a zero-value, no-address output before the real
+ * recipient (e.g. an empty/OP_RETURN-style output, or just wallet-specific
+ * output ordering), and outputs[0] on its own can land on that placeholder
+ * instead of the actual transparent recipient, making a perfectly normal
+ * transfer render as if it had no destination at all.
+ */
+export function firstOutputAddress(outputs: TransactionData['outputs']): string | undefined {
+  return outputs.find((o) => o.scriptPubKey?.addresses?.[0])?.scriptPubKey?.addresses?.[0];
+}
+
 export function classifyTransaction(data: TransactionData): TxClassification {
   const isCoinbase = data.isCoinbase || (data.inputs.length > 0 && data.inputs[0].coinbase);
   const hasIronwood = (data.ironwoodActions || 0) > 0;

@@ -70,7 +70,14 @@ function getFlowBadge(tx: Transaction) {
     );
   }
 
-  const type = resolveShieldFlowType({ flowType: tx.flow_type, vinCount: tx.vin_count, voutCount: tx.vout_count });
+  const type = resolveShieldFlowType({
+    flowType: tx.flow_type,
+    vinCount: tx.vin_count,
+    voutCount: tx.vout_count,
+    valueBalanceSapling: tx.value_balance_sapling,
+    valueBalanceOrchard: tx.value_balance_orchard,
+    valueBalanceIronwood: tx.value_balance_ironwood,
+  });
 
   if (!tx.has_orchard && !tx.has_sapling && !tx.has_ironwood && !tx.flow_type) {
     return (

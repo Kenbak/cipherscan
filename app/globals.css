@@ -184,9 +184,10 @@
 
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
-  /* Sticky chrome offsets — synced from NavBar/StatsBar at runtime via ResizeObserver */
+  /* Sticky chrome offsets — synced from NavBar/StatsBar/IronwoodBanner at runtime via ResizeObserver */
   --app-nav-height: 4rem;
   --app-stats-height: 2.75rem;
+  --app-ironwood-height: 0px;
 
   /* Colors - Dark Theme (default) */
   --color-bg: #08090F;
@@ -886,6 +887,45 @@
     /* Same reasoning as .stats-bar above — needs translucency for the blur
        to be visible while sticky over scrolling content. */
     background-color: var(--navbar-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Block page fact-row sizing (BlockFactsCard) — only meaningful once those
+     boxes are laid out as a flex row (sm+ / 640px, matching Tailwind's `sm:`
+     breakpoint). Below that they're grid cells sized by the grid column, and
+     a forced min-width there would overflow the cell — this must be a real
+     media query, not an inline style, since inline styles apply at every
+     breakpoint with no way to scope them.
+     All sizing for this row lives in this one plain-CSS block (rather than
+     split between here and `sm:` Tailwind utilities) so there's exactly one
+     cascade layer and source order to reason about — .fact-box-hash /
+     .fact-box-timestamp override .fact-box-fit's defaults simply by being
+     declared later, no cross-layer utilities-vs-components precedence to
+     get right. */
+  @media (min-width: 640px) {
+    .fact-box-fit {
+      flex: 1 1 0%;
+      min-width: 150px;
+    }
+    .fact-box-hash {
+      flex-grow: 1.4;
+      min-width: 260px;
+    }
+    .fact-box-timestamp {
+      flex-grow: 1.8;
+      min-width: 260px;
+    }
+  }
+
+  .page-section-nav {
+    /* Same chrome treatment as .stats-bar/.ironwood-banner directly above it —
+       it previously used --color-border-subtle (rgba(255,255,255,0.04), almost
+       invisible) instead of --color-border, so even though it was already
+       full-width in the DOM, it had no visible edge and read as a floating
+       pill rather than a continuous bar. */
+    background-color: var(--navbar-bg);
+    border-color: var(--color-border);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }

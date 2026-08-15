@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { API_CONFIG } from '@/lib/api-config';
 import { isCrosslink, isMainnet } from '@/lib/config';
@@ -19,6 +19,30 @@ interface BannerState {
 export function IronwoodBanner() {
   const [state, setState] = useState<BannerState | null>(null);
   const [dismissed, setDismissed] = useState(true);
+  const bannerRef = useRef<HTMLAnchorElement>(null);
+  const visible = !isCrosslink && !dismissed && !!state;
+
+  // Mirrors StatsBar's --app-stats-height tracking: this banner is
+  // conditionally rendered (dismissible, async-fetched, testnet-only), so
+  // anything sticky below it (e.g. PageSectionNav) needs a live CSS var
+  // rather than a hardcoded offset that assumes it's always/never present.
+  useEffect(() => {
+    if (!visible) {
+      document.documentElement.style.setProperty('--app-ironwood-height', '0px');
+      return;
+    }
+    const el = bannerRef.current;
+    if (!el) return;
+
+    const syncHeight = () => {
+      document.documentElement.style.setProperty('--app-ironwood-height', `${el.offsetHeight}px`);
+    };
+
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible]);
 
   useEffect(() => {
     if (isCrosslink) return;
@@ -91,6 +115,7 @@ export function IronwoodBanner() {
 
   return (
     <Link
+      ref={bannerRef}
       href="/ironwood"
       className="ironwood-banner backdrop-blur-xl group sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 block w-full border-b border-cipher-border/50 transition-all duration-300"
     >

@@ -342,6 +342,7 @@ test('block summary feed avoids transaction detail fan-out', async () => {
     miner_pool: 'Example Pool',
     miner_pool_url: 'https://pool.invalid',
     miner_pool_region: 'US',
+    miner_pool_is_funding_stream: false,
   });
   assert.equal(
     response.headers.get('cache-control'),

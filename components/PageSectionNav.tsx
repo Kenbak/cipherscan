@@ -45,10 +45,13 @@ export function PageSectionNav({ sections, ariaLabel, className = '' }: PageSect
 
   return (
     <nav
-      className={`sticky top-[96px] z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 border-b backdrop-blur-xl ${className}`.trim()}
+      className={`page-section-nav sticky z-40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 border-b ${className}`.trim()}
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--color-bg) 85%, transparent)',
-        borderColor: 'var(--color-border-subtle)',
+        // Matches the same chrome stack StatsBar/IronwoodBanner position
+        // themselves below — a hardcoded 96px assumed a fixed navbar+stats
+        // height and no Ironwood banner, so this sat too high and overlapped
+        // whichever of those was actually taller/present.
+        top: 'calc(var(--app-nav-height, 4rem) + var(--app-stats-height, 2.75rem) + var(--app-ironwood-height, 0px))',
       }}
       aria-label={ariaLabel}
     >
