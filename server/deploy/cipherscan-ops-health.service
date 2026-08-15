@@ -11,6 +11,9 @@ Type=oneshot
 User=root
 WorkingDirectory=/root/cipherscan/server/deploy
 
+# TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID live in the indexer's .env (same
+# credentials cipherscan-rust-health.service already uses), not the API's.
+EnvironmentFile=/root/cipherscan-rust/.env
 EnvironmentFile=/root/cipherscan/server/api/.env
 
 # systemd creates /var/lib/cipherscan-ops-health automatically.
