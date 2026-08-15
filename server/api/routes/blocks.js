@@ -145,10 +145,18 @@ router.get('/health/deep', async (req, res) => {
       callZebraRPC('getblockcount'),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
     ]);
-    const dbTip = chainTip.height || 0;
+    let dbTip = chainTip.height || 0;
+    if (dbTip === 0 && checks.database.status === 'up') {
+      try {
+        const tipResult = await writePool.query(
+          "SELECT value::bigint AS h FROM indexer_state WHERE key = 'last_indexed_height'"
+        );
+        if (tipResult.rows.length > 0) dbTip = Number(tipResult.rows[0].h);
+      } catch { /* fall through with 0 */ }
+    }
     const nodeLag = Math.abs(nodeHeight - dbTip);
     checks.node = { status: 'up', height: nodeHeight, db_height: dbTip };
-    if (nodeLag > 10) degraded = true;
+    if (dbTip > 0 && nodeLag > 10) degraded = true;
   } catch {
     checks.node = { status: 'down' };
     critical = true;
