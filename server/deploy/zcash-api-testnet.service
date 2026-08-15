@@ -1,0 +1,20 @@
+# Captured from the live testnet host on 2026-08-15 and
+# committed to version control for the first time — this unit was live-only
+# and undocumented previously (see the mainnet equivalent, zcash-api-mainnet.service).
+
+[Unit]
+Description=Zcash Explorer API Server (Testnet)
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/cipherscan/server/api
+ExecStart=/usr/bin/node /root/cipherscan/server/api/server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=NODE_PATH=/root/cipherscan/server/api/node_modules
+
+[Install]
+WantedBy=multi-user.target

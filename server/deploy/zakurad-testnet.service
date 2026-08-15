@@ -1,0 +1,19 @@
+# Captured from the live testnet host on 2026-08-15 and
+# committed to version control for the first time — this unit was live-only
+# and undocumented previously (see the mainnet equivalent, zebrad-mainnet.service,
+# for the tracked pattern this follows).
+
+[Unit]
+Description=Zakura Zcash Node (Testnet)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/zakurad --config /root/.config/zakura.toml
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
