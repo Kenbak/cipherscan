@@ -22,6 +22,10 @@ DISK_PATHS="${OPS_HEALTH_DISK_PATHS:-/ /mnt/data}"
 BACKUP_STATE_FILE="${OPS_HEALTH_BACKUP_STATE_FILE:-/var/lib/cipherscan-backup/last-success}"
 BACKUP_MAX_AGE_HOURS="${OPS_HEALTH_BACKUP_MAX_AGE_HOURS:-26}"
 
+PGBACKREST_STANZA="${PGBACKREST_STANZA:-zcash_explorer_mainnet}"
+PGBACKREST_MAX_BACKUP_AGE_HOURS="${OPS_HEALTH_PGBACKREST_MAX_BACKUP_AGE_HOURS:-30}"
+PGBACKREST_MAX_WAL_AGE_MINUTES="${OPS_HEALTH_PGBACKREST_MAX_WAL_AGE_MINUTES:-30}"
+
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 
@@ -104,6 +108,28 @@ else
   failures+=("No backup state file found at ${BACKUP_STATE_FILE} — has a backup ever succeeded?")
 fi
 
+# --- pgBackRest backup age + WAL archiving freshness (added 2026-08-15) ---
+if command -v pgbackrest >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  pgbackrest_json="$(sudo -u postgres pgbackrest --stanza="${PGBACKREST_STANZA}" info --output=json 2>&1 || true)"
+  stanza_status_code="$(echo "${pgbackrest_json}" | jq -r '.[0].status.code' 2>/dev/null || echo "")"
+  if [[ "${stanza_status_code}" != "0" ]]; then
+    failures+=("pgBackRest stanza ${PGBACKREST_STANZA} status not ok (code=${stanza_status_code:-unknown})")
+  else
+    latest_backup_stop="$(echo "${pgbackrest_json}" | jq -r '.[0].backup[-1].timestamp.stop' 2>/dev/null || echo "")"
+    if [[ "${latest_backup_stop}" =~ ^[0-9]+$ ]]; then
+      now_epoch="$(date -u +%s)"
+      pgbackrest_age_hours=$(( (now_epoch - latest_backup_stop) / 3600 ))
+      if (( pgbackrest_age_hours >= PGBACKREST_MAX_BACKUP_AGE_HOURS )); then
+        failures+=("Last pgBackRest backup is ${pgbackrest_age_hours}h old (threshold ${PGBACKREST_MAX_BACKUP_AGE_HOURS}h)")
+      fi
+    else
+      failures+=("Could not read latest pgBackRest backup timestamp")
+    fi
+  fi
+else
+  failures+=("pgbackrest or jq not found — cannot check PITR backup status")
+fi
+
 # --- Redis ---
 if command -v redis-cli >/dev/null 2>&1; then
   redis_reply="$(redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping 2>&1 || true)"
@@ -128,6 +154,30 @@ if command -v psql >/dev/null 2>&1; then
     fi
   else
     failures+=("Could not read PostgreSQL connection stats: ${pg_stats}")
+  fi
+
+  # --- WAL archiving freshness (added 2026-08-15) ---
+  archiver_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
+    "SELECT archive_mode, failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1) FROM pg_settings, pg_stat_archiver WHERE name = 'archive_mode'" \
+    2>&1 || true)"
+  if [[ "${archiver_stats}" =~ ^([a-z]+)\|([0-9]+)\|(-?[0-9]+)$ ]]; then
+    archive_mode="${BASH_REMATCH[1]}"
+    archive_failed_count="${BASH_REMATCH[2]}"
+    archive_age_seconds="${BASH_REMATCH[3]}"
+    if [[ "${archive_mode}" != "on" && "${archive_mode}" != "always" ]]; then
+      failures+=("PostgreSQL archive_mode is '${archive_mode}', not on/always — WAL archiving (PITR) is not active")
+    elif (( archive_age_seconds >= 0 )) && (( archive_age_seconds > PGBACKREST_MAX_WAL_AGE_MINUTES * 60 )); then
+      # A stale last-archived-WAL timestamp on an otherwise idle database is
+      # not itself abnormal (no WAL segment has filled recently); this
+      # threshold is generous (default 30 min) to avoid false positives on
+      # a quiet chain, while still catching a genuinely stuck archiver.
+      failures+=("Last WAL archive was $((archive_age_seconds / 60))m ago (threshold ${PGBACKREST_MAX_WAL_AGE_MINUTES}m) — archive_command may be failing")
+    fi
+    if (( archive_failed_count > 0 )); then
+      failures+=("pg_stat_archiver reports ${archive_failed_count} failed archive attempts since last reset")
+    fi
+  else
+    failures+=("Could not read pg_stat_archiver: ${archiver_stats}")
   fi
 
   # --- Indexer lag (direct DB check, independent of the indexer binary —
