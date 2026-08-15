@@ -186,7 +186,7 @@ export function StatsBar() {
   const hasAnyData = stats.blockHeight !== null || stats.price !== null;
 
   return (
-    <div ref={barRef} className="stats-bar sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
+    <div ref={barRef} className="stats-bar backdrop-blur-xl sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
           ref={scrollRef}
