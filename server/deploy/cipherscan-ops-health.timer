@@ -1,0 +1,12 @@
+[Unit]
+Description=Run CipherScan General Ops Health Check Every 10 Minutes
+
+[Timer]
+OnBootSec=3m
+OnUnitActiveSec=10m
+AccuracySec=30s
+Persistent=true
+Unit=cipherscan-ops-health.service
+
+[Install]
+WantedBy=timers.target

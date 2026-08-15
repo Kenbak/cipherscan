@@ -1,0 +1,23 @@
+# NOTE: This unit runs as root for internal deployments. For production use,
+# create a dedicated service user and adapt paths accordingly.
+
+[Unit]
+Description=CipherScan General Ops Health Check (disk, backup age, Redis, PostgreSQL, indexer lag)
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/cipherscan/server/deploy
+
+EnvironmentFile=/root/cipherscan/server/api/.env
+
+# systemd creates /var/lib/cipherscan-ops-health automatically.
+StateDirectory=cipherscan-ops-health
+
+ExecStart=/root/cipherscan/server/deploy/check-ops-health.sh
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cipherscan-ops-health
