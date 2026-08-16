@@ -17,14 +17,12 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
             label="Sapling Spends"
             value={data.saplingSpendCount}
             tooltip="Number of Sapling shielded inputs"
-            valueClass="text-cipher-cyan"
           />
           <InfoRow
             icon={Icons.Shield}
             label="Sapling Outputs"
             value={data.saplingOutputCount}
             tooltip="Number of Sapling shielded outputs"
-            valueClass="text-cipher-cyan"
           />
         </>
       )}
@@ -35,7 +33,6 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
           label="Orchard Actions"
           value={data.orchardActions}
           tooltip="Number of Orchard actions"
-          valueClass="text-cipher-purple"
         />
       )}
 
@@ -45,7 +42,6 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
           label="Ironwood Actions"
           value={data.ironwoodActions}
           tooltip="Number of Ironwood actions (NU6.3)"
-          valueClass="text-cipher-yellow"
         />
       )}
 
@@ -54,7 +50,6 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
           icon={Icons.Currency}
           label="Sapling Value Balance"
           tooltip="Net value flow for the Sapling shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)."
-          valueClass="text-cipher-cyan"
           value={
             <span className="flex items-center gap-2">
               <span>
@@ -74,7 +69,6 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
           icon={Icons.Currency}
           label="Orchard Value Balance"
           tooltip="Net value flow for the Orchard shielded pool. Positive = entering pool (shielding), negative = leaving pool (unshielding)."
-          valueClass="text-cipher-purple"
           value={
             <span className="flex items-center gap-2">
               <span>
@@ -94,7 +88,6 @@ export function ShieldedDetailsSection({ data }: { data: TransactionData }) {
           icon={Icons.Currency}
           label="Ironwood Value Balance"
           tooltip="Net value flow for the Ironwood shielded pool (NU6.3). Positive = entering pool (shielding), negative = leaving pool (unshielding)."
-          valueClass="text-cipher-yellow"
           value={
             <span className="flex items-center gap-2">
               <span>

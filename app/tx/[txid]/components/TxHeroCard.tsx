@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { CURRENCY } from '@/lib/config';
 import { PrivacyRiskInline } from '@/components/PrivacyRiskInline';
 import { Card, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import {
   BridgeExplorerLinks,
 } from './BridgeExplorerLinks';
@@ -15,31 +17,35 @@ interface MigrationBannerProps {
 }
 
 export function MigrationBanner({ zip318 }: MigrationBannerProps) {
+  const checks = [
+    {
+      label: `Standard denomination${zip318.matchedDenomination ? ` (${zip318.matchedDenomination} ${CURRENCY})` : ''}`,
+      passed: zip318.denomination,
+    },
+    {
+      label: `Correct actions (Orchard ${zip318.orchardActions}, Ironwood ${zip318.ironwoodActions})`,
+      passed: zip318.correctActions,
+    },
+    { label: 'Boundary-aligned anchor', passed: zip318.anchorCompliant },
+  ];
+
   return (
-    <div
-      className={`rounded-lg border px-3 py-2 text-xs font-mono ${
-        zip318.compliant
-          ? 'border-emerald-500/30 bg-emerald-500/5'
-          : 'border-cipher-border/30 bg-glass-3'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        <span
-          className={`font-semibold ${zip318.compliant ? 'text-emerald-400' : 'text-secondary'}`}
-        >
-          ZIP-318 {zip318.compliant ? 'compliant' : `(${zip318.checks}/3)`}
-        </span>
+    <div className="rounded-xl border border-cipher-border/70 p-3.5 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-secondary">ZIP-318 privacy-set compliance</span>
+        <Badge color={zip318.compliant ? 'green' : 'muted'}>
+          {zip318.compliant ? 'Compliant' : `${zip318.checks}/3 checks`}
+        </Badge>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted">
-        <span>
-          {zip318.denomination ? '\u2713' : '\u2717'} Standard denomination
-          {zip318.matchedDenomination ? ` (${zip318.matchedDenomination} ZEC)` : ''}
-        </span>
-        <span>
-          {zip318.correctActions ? '\u2713' : '\u2717'} Correct actions (O:
-          {zip318.orchardActions} I:{zip318.ironwoodActions})
-        </span>
-        <span>{zip318.anchorCompliant ? '\u2713' : '\u2717'} Boundary-aligned anchor</span>
+      <div className="space-y-1">
+        {checks.map((check) => (
+          <div key={check.label} className="flex items-center gap-2 text-xs text-muted">
+            <span className={check.passed ? 'text-cipher-green' : 'text-muted'} aria-hidden>
+              {check.passed ? '\u2713' : '\u2717'}
+            </span>
+            {check.label}
+          </div>
+        ))}
       </div>
     </div>
   );

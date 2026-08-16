@@ -335,9 +335,9 @@ export default function NetworkClient() {
                   {(stats.supply!.ironwood || 0) > 0 && (
                     <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.ironwood / stats.supply!.chainSupply) * 100}%` }} title="Ironwood" />
                   )}
-                  <div className="h-full bg-cipher-green" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
+                  <div className="h-full bg-cipher-purple" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
                   <div className="h-full bg-cipher-cyan" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
-                  <div className="h-full bg-cipher-orange" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout" />
+                  <div className="h-full bg-cipher-border" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout (legacy, deprecated)" />
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
 
@@ -345,9 +345,9 @@ export default function NetworkClient() {
                   {(stats.supply!.ironwood || 0) > 0 && (
                     <PoolCard name="Ironwood" amount={stats.supply!.ironwood} color="amber" zecPrice={zecPrice} />
                   )}
-                  <PoolCard name="Orchard" amount={stats.supply!.orchard} color="green" zecPrice={zecPrice} />
+                  <PoolCard name="Orchard" amount={stats.supply!.orchard} color="purple" zecPrice={zecPrice} />
                   <PoolCard name="Sapling" amount={stats.supply!.sapling} color="cyan" zecPrice={zecPrice} />
-                  <PoolCard name="Sprout" amount={stats.supply!.sprout} color="amber" zecPrice={zecPrice} isSmall />
+                  <PoolCard name="Sprout" amount={stats.supply!.sprout} color="muted" zecPrice={zecPrice} isSmall />
                 </div>
 
                 {breakdown && breakdown.categories.length > 0 && (
@@ -720,11 +720,15 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
     green: 'text-cipher-green',
     cyan: 'text-cipher-cyan',
     amber: 'text-cipher-yellow',
+    purple: 'text-cipher-purple',
+    muted: 'text-muted',
   };
   const dotColor: Record<string, string> = {
     green: 'bg-cipher-green',
     cyan: 'bg-cipher-cyan',
     amber: 'bg-cipher-yellow',
+    purple: 'bg-cipher-purple',
+    muted: 'bg-cipher-border',
   };
 
   const display = isSmall ? `${(amount / 1000).toFixed(1)}K` : `${(amount / 1e6).toFixed(2)}M`;

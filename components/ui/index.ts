@@ -5,7 +5,8 @@ export { Card, CardHeader, CardBody, CardFooter, CardDivider } from './Card';
 export { Button, IconButton } from './Button';
 
 // Badge components
-export { Badge, StatusBadge, CountBadge } from './Badge';
+export { Badge, StatusBadge, CountBadge, type BadgeColor } from './Badge';
+export { TxTypeBadge, TX_CATEGORY_CONFIG, resolveTxCategory, type TxCategory } from './TxTypeBadge';
 
 // Input components
 export { Input, Textarea, SearchInput } from './Input';

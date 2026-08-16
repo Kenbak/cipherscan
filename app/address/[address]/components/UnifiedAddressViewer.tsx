@@ -84,7 +84,7 @@ export function UnifiedAddressViewer({
                 {selectedAddressTab === 'transparent' && uaComponents.has_transparent && uaComponents.transparent_address && (
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge color="cyan">TRANSPARENT</Badge>
+                      <Badge color="muted">TRANSPARENT</Badge>
                       <span className="text-[10px] text-muted font-mono">public on-chain</span>
                     </div>
                     <div className="flex items-start gap-2 mb-4">

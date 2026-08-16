@@ -12,6 +12,39 @@ export function firstOutputAddress(outputs: TransactionData['outputs']): string 
   return outputs.find((o) => o.scriptPubKey?.addresses?.[0])?.scriptPubKey?.addresses?.[0];
 }
 
+export interface RankedRecipient {
+  address: string;
+  amount: number;
+}
+
+/**
+ * Every transparent recipient of a transaction, excluding the sender's own
+ * address(es) (self-change), grouped by address (a wallet often gets several
+ * outputs in one tx — a real recipient shouldn't be double-counted as
+ * multiple "others") and sorted by amount received, largest first.
+ *
+ * This is the ONE place that decides "who is the primary recipient" — the
+ * hero flow diagram and the plain-language summary both call it, so they
+ * can never again show two different addresses/amounts for the same
+ * transaction the way a fixed bug once did (diagram picked the first two
+ * unique addresses in output order; the summary picked the highest-value
+ * output — different algorithms, different answers).
+ */
+export function rankedRecipients(
+  outputs: TransactionData['outputs'],
+  excludeAddresses: string[],
+): RankedRecipient[] {
+  const totals = new Map<string, number>();
+  for (const output of outputs) {
+    const address = output.scriptPubKey?.addresses?.[0];
+    if (!address || excludeAddresses.includes(address)) continue;
+    totals.set(address, (totals.get(address) || 0) + (output.value || 0));
+  }
+  return Array.from(totals, ([address, amount]) => ({ address, amount })).sort(
+    (a, b) => b.amount - a.amount,
+  );
+}
+
 export function classifyTransaction(data: TransactionData): TxClassification {
   const isCoinbase = data.isCoinbase || (data.inputs.length > 0 && data.inputs[0].coinbase);
   const hasIronwood = (data.ironwoodActions || 0) > 0;

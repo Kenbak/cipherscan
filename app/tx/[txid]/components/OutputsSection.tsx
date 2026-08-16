@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { CURRENCY } from '@/lib/config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
+import { RedactedAmount } from '@/components/ui/RedactedAmount';
 import { CopyButton } from './CopyButton';
-import { Icons } from './Icons';
 import type { TransactionData, TxClassification } from './types';
 
 interface OutputsSectionProps {
@@ -22,12 +23,30 @@ export function OutputsSection({
   onCopy,
 }: OutputsSectionProps) {
   const { valueBalance, bridgeOutputAddresses } = classification;
+  const ironwoodBalance = data.valueBalanceIronwood || 0;
+  const orchardBalance = data.valueBalanceOrchard || 0;
 
   // valueBalance is a consensus-public field (needed for the binding signature
   // balance equation), never hidden — that's why the SHIELDED row below renders
   // its exact value instead of "encrypted". The header total must include it
   // whenever that row is shown, or it silently undercounts what's listed.
   const knownOutputTotal = data.totalOutput + (valueBalance < 0 ? Math.abs(valueBalance) : 0);
+
+  // Which pool (if any) the aggregate "<POOL> POOL" row below already
+  // represents, so the per-action placeholder loops never double-count the
+  // same deposit under two rows.
+  const aggregateRowPool: 'ironwood' | 'orchard' | 'sapling' | null =
+    valueBalance < 0 ? (ironwoodBalance < 0 ? 'ironwood' : orchardBalance < 0 ? 'orchard' : 'sapling') : null;
+  // Ambiguous only when there's no transparent or Sapling output at all to
+  // anchor direction (a pure pool self-loop, or a migration) — Orchard and
+  // Ironwood actions bundle spend + output into one indivisible unit, so
+  // otherwise a pool's own negative balance (net deposit) is what puts its
+  // action count here rather than in InputsSection.
+  const ambiguousDirection = data.outputs.length === 0 && data.saplingOutputCount === 0;
+  const showOrchardPlaceholder =
+    (data.orchardActions || 0) > 0 && aggregateRowPool !== 'orchard' && (ambiguousDirection || orchardBalance < 0);
+  const showIronwoodPlaceholder =
+    (data.ironwoodActions || 0) > 0 && aggregateRowPool !== 'ironwood' && (ambiguousDirection || ironwoodBalance < 0);
 
   return (
     <Card>
@@ -40,13 +59,8 @@ export function OutputsSection({
               if (valueBalance < 0) count += 1;
               if (data.saplingOutputCount > 0 && valueBalance >= 0)
                 count += data.saplingOutputCount;
-              if (
-                (data.orchardActions || 0) > 0 &&
-                data.outputs.length === 0 &&
-                data.saplingOutputCount === 0 &&
-                valueBalance >= 0
-              )
-                count += data.orchardActions || 0;
+              if (showOrchardPlaceholder) count += data.orchardActions || 0;
+              if (showIronwoodPlaceholder) count += data.ironwoodActions || 0;
               return count;
             })()}
           </Badge>
@@ -89,6 +103,7 @@ export function OutputsSection({
                       {matchedBridge && (
                         <Badge
                           color="cyan"
+                          variant="subtle"
                           icon={
                             <svg
                               className="w-3 h-3"
@@ -126,24 +141,24 @@ export function OutputsSection({
                 {data.outputs.length}
               </span>
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <Badge
-                  color={(data.valueBalanceIronwood || 0) < 0 ? 'amber' : 'purple'}
-                  icon={<Icons.Shield />}
-                >
-                  SHIELDED
-                </Badge>
-                <span
-                  className={`text-[11px] font-mono truncate ${(data.valueBalanceIronwood || 0) < 0 ? 'text-cipher-yellow' : 'text-cipher-purple'}`}
-                >
-                  {(data.valueBalanceIronwood || 0) < 0
-                    ? 'Ironwood'
-                    : (data.valueBalanceOrchard || 0) < 0
-                      ? 'Orchard'
-                      : 'Sapling'}{' '}
-                  Pool
-                </span>
+                <TxTypeBadge
+                  category={
+                    (data.valueBalanceIronwood || 0) < 0
+                      ? 'ironwood'
+                      : (data.valueBalanceOrchard || 0) < 0
+                        ? 'orchard'
+                        : 'sapling'
+                  }
+                  label={`${
+                    (data.valueBalanceIronwood || 0) < 0
+                      ? 'IRONWOOD'
+                      : (data.valueBalanceOrchard || 0) < 0
+                        ? 'ORCHARD'
+                        : 'SAPLING'
+                  } POOL`}
+                />
               </div>
-              <span className="text-[11px] font-mono text-cipher-purple font-semibold shrink-0">
+              <span className="text-[11px] font-mono text-primary font-semibold shrink-0 tabular-nums">
                 {Math.abs(valueBalance).toFixed(8)}
               </span>
             </div>
@@ -157,57 +172,43 @@ export function OutputsSection({
                   {data.outputs.length + index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <Badge color="purple" icon={<Icons.Shield />}>
-                    SAPLING
-                  </Badge>
-                  <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                  <TxTypeBadge category="sapling" />
                 </div>
-                <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                <RedactedAmount className="shrink-0 !text-[10px]" />
               </div>
             ))}
 
-          {(data.orchardActions || 0) > 0 &&
-            data.outputs.length === 0 &&
-            data.saplingOutputCount === 0 &&
-            valueBalance >= 0 &&
+          {showOrchardPlaceholder &&
             Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
               <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                 <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <Badge color="purple" icon={<Icons.Shield />}>
-                    ORCHARD
-                  </Badge>
-                  <span className="text-[10px] text-cipher-purple/50 font-mono">encrypted</span>
+                  <TxTypeBadge category="orchard" />
                 </div>
-                <span className="text-[10px] text-cipher-purple/40 font-mono shrink-0">████████</span>
+                <RedactedAmount className="shrink-0 !text-[10px]" />
               </div>
             ))}
 
-          {(data.ironwoodActions || 0) > 0 &&
-            data.outputs.length === 0 &&
-            data.saplingOutputCount === 0 &&
+          {showIronwoodPlaceholder &&
             Array.from({ length: data.ironwoodActions || 0 }).map((_, index) => (
               <div key={`iw-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
                 <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <Badge color="amber" icon={<Icons.Shield />}>
-                    IRONWOOD
-                  </Badge>
-                  <span className="text-[10px] text-cipher-yellow/50 font-mono">encrypted</span>
+                  <TxTypeBadge category="ironwood" />
                 </div>
-                <span className="text-[10px] text-cipher-yellow/40 font-mono shrink-0">████████</span>
+                <RedactedAmount className="shrink-0 !text-[10px]" />
               </div>
             ))}
 
           {data.outputs.length === 0 &&
+            valueBalance >= 0 &&
             data.saplingOutputCount === 0 &&
-            (data.orchardActions || 0) === 0 &&
-            (data.ironwoodActions || 0) === 0 &&
-            valueBalance >= 0 && (
+            !showOrchardPlaceholder &&
+            !showIronwoodPlaceholder && (
               <p className="text-xs text-muted font-mono py-2 text-center">No outputs</p>
             )}
         </div>

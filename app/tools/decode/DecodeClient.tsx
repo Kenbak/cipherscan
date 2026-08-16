@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
 import { Tooltip } from '@/components/Tooltip';
 import { parseZcashTransaction, type ParsedTransaction } from '@/lib/zcash-tx-parser';
 
@@ -68,13 +69,13 @@ function deriveTxType(tx: ParsedTransaction): TxType {
 function txTypeBadge(txType: TxType) {
   switch (txType) {
     case 'COINBASE':
-      return <Badge color="green" icon={<Icons.Currency />}>COINBASE</Badge>;
+      return <TxTypeBadge category="coinbase" icon={<Icons.Currency />} />;
     case 'SHIELDED':
-      return <Badge color="purple" icon={<Icons.Shield />}>SHIELDED</Badge>;
+      return <TxTypeBadge category="shielded" icon={<Icons.Shield />} />;
     case 'TRANSPARENT':
-      return <Badge color="cyan">TRANSPARENT</Badge>;
+      return <TxTypeBadge category="transparent" />;
     case 'MIXED':
-      return <Badge color="orange" icon={<Icons.Shield />}>MIXED</Badge>;
+      return <TxTypeBadge category="mixed" icon={<Icons.Shield />} />;
   }
 }
 
@@ -507,9 +508,9 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted font-mono">INPUT #{i}</span>
                             {vin.coinbase ? (
-                              <Badge color="green">COINBASE</Badge>
+                              <TxTypeBadge category="coinbase" />
                             ) : (
-                              <Badge color="cyan">TRANSPARENT</Badge>
+                              <TxTypeBadge category="transparent" />
                             )}
                           </div>
                         </div>
@@ -633,7 +634,7 @@ export default function DecodeClient() {
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted font-mono">OUTPUT #{vout.n}</span>
-                            <Badge color="cyan">TRANSPARENT</Badge>
+                            <TxTypeBadge category="transparent" />
                           </div>
                           <span className="text-sm font-mono text-primary font-semibold">
                             {vout.value.toFixed(8)} ZEC
@@ -693,42 +694,42 @@ export default function DecodeClient() {
                   <div className="space-y-3">
                     {/* Sapling Spends */}
                     {result.nSpendsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge color="purple" icon={<Icons.Shield />}>SAPLING SPENDS</Badge>
+                            <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING SPENDS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.nSpendsSapling}</span>
+                          <span className="text-xl font-bold font-mono text-primary">{result.nSpendsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge color="purple">(amount hidden)</Badge>
+                          <Badge color="muted">(amount hidden)</Badge>
                         </div>
                       </div>
                     )}
 
                     {/* Sapling Outputs */}
                     {result.nOutputsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge color="purple" icon={<Icons.Shield />}>SAPLING OUTPUTS</Badge>
+                            <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING OUTPUTS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.nOutputsSapling}</span>
+                          <span className="text-xl font-bold font-mono text-primary">{result.nOutputsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge color="purple">(amount hidden)</Badge>
+                          <Badge color="muted">(amount hidden)</Badge>
                         </div>
                       </div>
                     )}
 
                     {/* Sapling Value Balance */}
                     {result.valueBalanceSapling !== undefined && result.valueBalanceSapling !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge color="purple" icon={<Icons.Currency />}>SAPLING VALUE BALANCE</Badge>
+                            <TxTypeBadge category="sapling" icon={<Icons.Currency />} label="SAPLING VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-cipher-purple">
+                          <span className="text-lg font-bold font-mono text-primary">
                             {result.valueBalanceSapling.toFixed(8)} ZEC
                           </span>
                         </div>
@@ -740,12 +741,12 @@ export default function DecodeClient() {
                       <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge color="purple" icon={<Icons.Shield />}>ORCHARD ACTIONS</Badge>
+                            <TxTypeBadge category="orchard" icon={<Icons.Shield />} label="ORCHARD ACTIONS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-cipher-purple">{result.orchardActions}</span>
+                          <span className="text-xl font-bold font-mono text-primary">{result.orchardActions}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge color="purple">(amount hidden)</Badge>
+                          <Badge color="muted">(amount hidden)</Badge>
                           {result.orchardFlags !== undefined && (
                             <span className="text-xs text-muted font-mono">flags: 0x{result.orchardFlags.toString(16).padStart(2, '0')}</span>
                           )}
@@ -758,9 +759,9 @@ export default function DecodeClient() {
                       <div className="shielded-input-row p-4 rounded-lg border border-cipher-purple/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge color="purple" icon={<Icons.Currency />}>ORCHARD VALUE BALANCE</Badge>
+                            <TxTypeBadge category="orchard" icon={<Icons.Currency />} label="ORCHARD VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-cipher-purple">
+                          <span className="text-lg font-bold font-mono text-primary">
                             {result.valueBalanceOrchard.toFixed(8)} ZEC
                           </span>
                         </div>

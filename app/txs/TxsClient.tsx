@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge, PageHeader, MetricCard, Tabs, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
+import { PageHeader, MetricCard, Tabs, DataTable, HashLink, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
@@ -53,12 +53,18 @@ interface TxPaginationState extends BasePaginationState {
 const PAGE_SIZE = 25;
 
 function getTxBadge(tx: Transaction) {
-  if (tx.is_coinbase) return <Badge color="green">COINBASE</Badge>;
-  if (tx.has_ironwood) return <Badge color="amber">IRONWOOD</Badge>;
-  if (tx.has_orchard && tx.has_sapling) return <Badge color="purple">ORCHARD+SAPLING</Badge>;
-  if (tx.has_orchard) return <Badge color="purple">ORCHARD</Badge>;
-  if (tx.has_sapling) return <Badge color="cyan">SAPLING</Badge>;
-  return <Badge color="muted">TRANSPARENT</Badge>;
+  const category: TxCategory = tx.is_coinbase
+    ? 'coinbase'
+    : tx.has_ironwood
+      ? 'ironwood'
+      : tx.has_orchard && tx.has_sapling
+        ? 'orchard_sapling'
+        : tx.has_orchard
+          ? 'orchard'
+          : tx.has_sapling
+            ? 'sapling'
+            : 'transparent';
+  return <TxTypeBadge category={category} />;
 }
 
 function getFlowBadge(tx: Transaction) {

@@ -7,6 +7,7 @@ import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { TxTypeBadge, resolveTxCategory, type TxCategory } from '@/components/ui/TxTypeBadge';
 import { PageHeader, SectionHeader } from '@/components/ui/SectionHeader';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { HashLink } from '@/components/ui/HashLink';
@@ -126,15 +127,16 @@ export default function MempoolClient() {
     }
   }, [autoRefresh, wsConnected]);
 
-  const getTypeBadgeColor = (type: string): 'purple' | 'orange' | 'cyan' => {
-    switch (type) {
-      case 'shielded':
-        return 'purple';
-      case 'mixed':
-        return 'orange';
-      default:
-        return 'cyan';
-    }
+  // Pool-specific whenever the row data allows, same as confirmed-tx tables;
+  // generic 'shielded' only when per-pool detail is missing.
+  const getTypeCategory = (tx: MempoolTransaction): TxCategory => {
+    if (tx.type === 'mixed') return 'mixed';
+    if (tx.type !== 'shielded') return 'transparent';
+    return resolveTxCategory({
+      hasIronwood: (tx.ironwoodActions || 0) > 0,
+      hasOrchard: (tx.orchardActions || 0) > 0,
+      hasSapling: (tx.vShieldedSpend || 0) > 0 || (tx.vShieldedOutput || 0) > 0,
+    });
   };
 
   if (loading) {
@@ -315,9 +317,7 @@ export default function MempoolClient() {
                             <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={12} tail={6} responsive />
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border">
-                            <Badge color={getTypeBadgeColor(tx.type)}>
-                              {tx.type.toUpperCase()}
-                            </Badge>
+                            <TxTypeBadge category={getTypeCategory(tx)} />
                           </td>
                           <td className="px-4 h-[44px] border-b border-cipher-border text-right">
                             {tx.type === 'shielded' ? (

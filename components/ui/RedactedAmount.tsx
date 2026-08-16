@@ -66,7 +66,7 @@ export function RedactedAmount({ className = '' }: { className?: string }) {
   return (
     <IconTooltip
       label="Amount hidden — fully shielded transaction"
-      className={`font-mono text-sm text-cipher-purple/70 whitespace-nowrap ${className}`}
+      className={`font-mono text-sm text-secondary whitespace-nowrap ${className}`}
     >
       <span aria-hidden="true" className="tabular-nums">{glyphs.join('')}</span>
       <span aria-hidden="true" className="text-muted/40 ml-1.5">ZEC</span>

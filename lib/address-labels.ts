@@ -5,6 +5,8 @@
  * Custom labels are stored in localStorage (user's browser)
  */
 
+import { useEffect, useState } from 'react';
+
 // Cache for official labels from API
 let officialLabelsCache: Record<string, { label: string; description?: string; category?: string }> = {};
 let labelsCacheExpiry = 0;
@@ -123,6 +125,37 @@ export function getAddressLabel(address: string): { label: string; isOfficial: b
   }
 
   return null;
+}
+
+export type AddressLabelInfo = {
+  label: string;
+  isOfficial: boolean;
+  description?: string;
+  category?: string;
+};
+
+/**
+ * Shared hook for looking up an address's label — fetches the official
+ * label set once (cached module-wide) and resolves official-or-custom for
+ * this address. Every component that needs "is this a known entity?" (flow
+ * diagram nodes, prose mentions, tables) should use this instead of
+ * duplicating the fetch-then-lookup effect.
+ */
+export function useAddressLabel(address: string): AddressLabelInfo | null {
+  const [labelInfo, setLabelInfo] = useState<AddressLabelInfo | null>(() => getAddressLabel(address));
+
+  useEffect(() => {
+    let cancelled = false;
+    setLabelInfo(getAddressLabel(address));
+    fetchOfficialLabels().then(() => {
+      if (!cancelled) setLabelInfo(getAddressLabel(address));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  return labelInfo;
 }
 
 /**

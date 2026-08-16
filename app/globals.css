@@ -312,6 +312,7 @@
   --badge-green-bg: rgba(0, 230, 118, 0.12);
   --badge-orange-bg: rgba(255, 107, 53, 0.12);
   --badge-amber-bg: rgba(245, 158, 11, 0.15);
+  --badge-danger-bg: rgba(248, 113, 113, 0.14);
   --badge-amber-text: #F59E0B;
 
   /* Buttons */
@@ -467,6 +468,7 @@
   --badge-green-bg: rgba(4, 120, 87, 0.14);
   --badge-orange-bg: rgba(194, 65, 12, 0.12);
   --badge-amber-bg: rgba(217, 119, 6, 0.12);
+  --badge-danger-bg: rgba(220, 38, 38, 0.12);
   --badge-amber-text: #D97706;
 
   /* Buttons */
@@ -671,9 +673,68 @@
     color: var(--badge-amber-text);
   }
 
+  .badge-danger {
+    background: var(--badge-danger-bg);
+    color: var(--color-danger);
+  }
+
   .badge-muted {
     background: var(--color-hover);
     color: var(--color-text-muted);
+  }
+
+  /* Subtle variant — a neutral chip where only the icon carries color.
+     Used where several badges sit in one row (tx-detail header) so the row
+     reads as one calm strip instead of a different saturated fill per badge.
+     The default (non-subtle) fully-tinted style stays for dense table
+     columns, where color is the only way to scan a Type/Pool column at a
+     glance without an icon.
+     Must come after every .badge-{color} rule (including .badge-muted) —
+     same specificity (one class each), so source order decides the winner.
+     This was previously placed before .badge-muted, so muted subtle badges
+     (network, mixed, unknown) silently kept the opaque .badge-muted
+     background instead of the translucent one every other color got. */
+  .badge-subtle {
+    background: var(--card-glass-bg);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--card-glass-border);
+    color: var(--color-text-secondary);
+  }
+
+  .badge-subtle .badge-icon {
+    color: var(--color-text-muted);
+  }
+
+  /* Opt-in hover for a badge that's also a link (e.g. a labeled address in a
+     flow diagram) — plain informational badges elsewhere shouldn't visually
+     react to hover since they aren't clickable. */
+  .badge-link:hover {
+    color: var(--color-text-primary);
+  }
+
+  .badge-subtle.badge-cyan .badge-icon {
+    color: var(--color-cyan);
+  }
+
+  .badge-subtle.badge-purple .badge-icon {
+    color: var(--color-purple);
+  }
+
+  .badge-subtle.badge-green .badge-icon {
+    color: var(--color-green);
+  }
+
+  .badge-subtle.badge-orange .badge-icon {
+    color: var(--color-orange);
+  }
+
+  .badge-subtle.badge-amber .badge-icon {
+    color: var(--badge-amber-text);
+  }
+
+  .badge-subtle.badge-danger .badge-icon {
+    color: var(--color-danger);
   }
 
   /* ===== BUTTONS ===== */

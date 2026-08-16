@@ -109,7 +109,7 @@ export function getTypeInfo(type: AddressData['type']) {
     default:
       return {
         label: 'TRANSPARENT',
-        color: 'cyan',
+        color: 'muted',
         description: 'Public address - all transactions are visible',
       };
   }

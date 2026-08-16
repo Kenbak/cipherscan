@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, IconTooltip } from '@/components/ui';
+import { Badge, IconTooltip, TX_CATEGORY_CONFIG } from '@/components/ui';
 import {
   ShieldFlowIcon,
   MixedIcon,
@@ -16,14 +16,6 @@ interface ShieldFlowBadgeProps {
   className?: string;
 }
 
-const BADGE_COLOR: Record<ShieldFlowType, 'purple' | 'green' | 'orange' | 'muted' | 'amber'> = {
-  shielded: 'purple',
-  shielding: 'green',
-  unshielding: 'orange',
-  mixed: 'muted',
-  migration: 'amber',
-};
-
 export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: ShieldFlowBadgeProps) {
   const label = SHIELD_FLOW_LABELS[type];
 
@@ -38,8 +30,10 @@ export function ShieldFlowBadge({ type, variant = 'compact', className = '' }: S
   const icon = <ShieldFlowIcon type={type} size={variant === 'compact' ? 20 : 14} />;
 
   if (variant === 'full') {
+    // Color comes from the same TX_CATEGORY_CONFIG registry as every Type
+    // badge in the app — ShieldFlowType names map 1:1 onto TxCategory names.
     return (
-      <Badge color={BADGE_COLOR[type]} icon={icon} className={className}>
+      <Badge color={TX_CATEGORY_CONFIG[type].color} icon={icon} className={className}>
         {label.toUpperCase()}
       </Badge>
     );

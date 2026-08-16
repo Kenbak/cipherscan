@@ -65,7 +65,7 @@ export function AddressHeader({
         />
       </div>
 
-      <Badge color={typeInfo.color as 'purple' | 'cyan'} icon={<Icons.Shield />}>
+      <Badge color={typeInfo.color as 'purple' | 'cyan' | 'muted'} icon={<Icons.Shield />}>
         {typeInfo.label}
       </Badge>
 

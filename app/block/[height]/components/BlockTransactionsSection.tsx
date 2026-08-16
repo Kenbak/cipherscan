@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Badge, DataTable, HashLink, RedactedAmount, type DataTableColumn } from '@/components/ui';
+import { Badge, DataTable, HashLink, RedactedAmount, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { zatToZec } from '@/lib/format-numbers';
 import { CURRENCY } from '@/lib/config';
@@ -13,14 +13,19 @@ function ShieldIcon({ className = '' }: { className?: string }) {
   );
 }
 
-/** Same pool-priority + color convention as getTxBadge on /txs, so the Type badge means the same thing everywhere in the app. */
+/** Same category registry as every other Type column in the app — see TxTypeBadge. */
 function poolBadge(tx: any) {
   if (tx.staking_action_type) return <StakingActionBadge type={tx.staking_action_type} compact />;
-  if (tx.vin?.[0]?.coinbase) return <Badge color="green">COINBASE</Badge>;
-  if (tx.has_ironwood) return <Badge color="amber">IRONWOOD</Badge>;
-  if (tx.has_orchard) return <Badge color="purple">ORCHARD</Badge>;
-  if (tx.has_sapling) return <Badge color="cyan">SAPLING</Badge>;
-  return <Badge color="muted">Regular</Badge>;
+  const category: TxCategory = tx.vin?.[0]?.coinbase
+    ? 'coinbase'
+    : tx.has_ironwood
+      ? 'ironwood'
+      : tx.has_orchard
+        ? 'orchard'
+        : tx.has_sapling
+          ? 'sapling'
+          : 'transparent';
+  return <TxTypeBadge category={category} />;
 }
 
 function poolColorClass(pool: string | null) {

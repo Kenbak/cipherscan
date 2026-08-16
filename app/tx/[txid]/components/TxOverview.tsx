@@ -5,6 +5,7 @@ import { CURRENCY } from '@/lib/config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
+import { RedactedAmount } from '@/components/ui/RedactedAmount';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { displayPubkey } from '@/lib/utils';
 import { InfoRow } from './InfoRow';
@@ -113,53 +114,17 @@ export function TxOverview({ data, classification, priceUsd }: TxOverviewProps) 
             }
             value={
               txType === 'MIGRATION' ? (
-                <span className="font-semibold text-cipher-yellow">
+                <span className="font-semibold text-primary">
                   {Math.abs(data.valueBalanceIronwood || 0).toFixed(4)} {CURRENCY}
                   <span className="text-xs text-muted font-normal ml-2">
                     {migrationSourcePool} → Ironwood
                   </span>
                 </span>
               ) : txType === 'IRONWOOD' ? (
-                <div className="flex items-center gap-3">
-                  <svg
-                    className="w-3.5 h-3.5 text-cipher-yellow shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  <span className="text-cipher-yellow/40 font-mono tracking-tight">████████</span>
-                  <span className="text-[10px] text-cipher-yellow/60 font-mono uppercase">
-                    encrypted
-                  </span>
-                </div>
+                <RedactedAmount />
               ) : (txType === 'ORCHARD' || txType === 'SHIELDED') && (hasOrchard || hasSapling) ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="w-3.5 h-3.5 text-cipher-purple shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                    <span className="text-cipher-purple/40 font-mono tracking-tight">████████</span>
-                    <span className="text-[10px] text-cipher-purple/60 font-mono uppercase">
-                      encrypted
-                    </span>
-                  </div>
+                  <RedactedAmount />
                   <Link
                     href={`/decrypt?prefill=${data.txid}`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-cipher-purple/20 hover:border-cipher-purple/40 hover:bg-cipher-purple/10 text-cipher-purple text-xs font-medium rounded-md transition-colors w-fit"

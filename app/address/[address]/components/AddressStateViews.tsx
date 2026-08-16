@@ -19,7 +19,7 @@ export function EmptyAddressView({ address, copiedText, onCopy }: EmptyAddressVi
         <span className="text-xs font-mono text-muted tracking-wider">&gt; ADDRESS_LOOKUP</span>
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-primary mt-1 mb-3">Address Details</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge color="cyan">TRANSPARENT</Badge>
+          <Badge color="muted">TRANSPARENT</Badge>
           <code className="text-xs text-secondary break-all font-mono">{address}</code>
           <CopyButton text={address} label="address" copiedText={copiedText} onCopy={onCopy} />
         </div>

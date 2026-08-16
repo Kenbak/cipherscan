@@ -7,7 +7,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { Badge, PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
+import { PageHeader, MetricCard, DataTable, HashLink, TxTypeBadge, type DataTableColumn } from '@/components/ui';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
 
 type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
@@ -50,11 +50,10 @@ function getFlowBadge(flowType: string) {
 }
 
 function getPoolBadge(pool: string) {
-  if (pool === 'ironwood') return <Badge color="amber">IRONWOOD</Badge>;
-  if (pool === 'orchard') return <Badge color="purple">ORCHARD</Badge>;
-  if (pool === 'sapling') return <Badge color="cyan">SAPLING</Badge>;
-  if (pool === 'mixed') return <Badge color="orange">MIXED</Badge>;
-  return <Badge color="muted">{pool.toUpperCase()}</Badge>;
+  if (pool === 'ironwood' || pool === 'orchard' || pool === 'sapling' || pool === 'mixed') {
+    return <TxTypeBadge category={pool} />;
+  }
+  return <TxTypeBadge category="transparent" label={pool.toUpperCase()} />;
 }
 
 const flowColumns: DataTableColumn<ShieldedFlow>[] = [

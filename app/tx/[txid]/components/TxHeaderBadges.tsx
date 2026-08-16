@@ -2,62 +2,69 @@
 
 import { ExportButton } from '@/components/ExportButton';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
-import { Icons } from './Icons';
-import type { TransactionData, TxClassification } from './types';
+import { TxTypeBadge, type TxCategory } from '@/components/ui/TxTypeBadge';
+import type { TransactionData, TxClassification, TxType } from './types';
 
 interface TxHeaderBadgesProps {
   data: TransactionData;
   classification: TxClassification;
 }
 
+// The header's one categorical "Type" badge — same registry (label, color,
+// AND icon) as every other Type column in the app (block table, /txs,
+// /txs/shielded, mempool). No local icon logic needed — TxTypeBadge already
+// carries the right icon for every category.
+const TX_TYPE_TO_CATEGORY: Partial<Record<TxType, TxCategory>> = {
+  COINBASE: 'coinbase',
+  MIGRATION: 'migration',
+  IRONWOOD: 'ironwood',
+  ORCHARD: 'orchard',
+  SHIELDED: 'sapling',
+  SHIELDING: 'shielding',
+  UNSHIELDING: 'unshielding',
+  MIXED: 'mixed',
+  REGULAR: 'transparent',
+};
+
+const NetworkIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+    <path strokeLinecap="round" strokeWidth={1.5} d="M3 12h18M12 3c2.5 2.7 3.75 6 3.75 9s-1.25 6.3-3.75 9c-2.5-2.7-3.75-6-3.75-9S9.5 5.7 12 3z" />
+  </svg>
+);
+
 export function TxHeaderBadges({ data, classification }: TxHeaderBadgesProps) {
   const { txType, allBridges } = classification;
+  const category = TX_TYPE_TO_CATEGORY[txType];
+
+  const networkLabel =
+    process.env.NEXT_PUBLIC_NETWORK === 'testnet'
+      ? 'ZCASH TESTNET (TAZ)'
+      : process.env.NEXT_PUBLIC_NETWORK === 'crosslink-testnet'
+        ? 'ZCASH CROSSLINK TESTNET'
+        : 'ZCASH MAINNET';
 
   return (
     <div className="flex items-center justify-between gap-2 mb-4 animate-fade-in-up">
+      {/* General -> specific: network context, lifecycle status, bridge marker, then the tx category.
+          All subtle — several badges sitting in one row read as one calm strip
+          this way, with color living only in each icon rather than in four
+          separate saturated fills. */}
       <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-        {txType === 'COINBASE' && (
-          <Badge color="green" icon={<Icons.Currency />}>
-            COINBASE
-          </Badge>
+        <Badge color="muted" icon={<NetworkIcon />} variant="subtle">
+          {networkLabel}
+        </Badge>
+        {data.status === 'stale' || data.isCanonical === false ? (
+          <StatusBadge status="reorganized" variant="subtle" />
+        ) : data.status === 'unknown' ? (
+          <Badge color="muted" variant="subtle">UNKNOWN</Badge>
+        ) : (
+          <StatusBadge status="confirmed" variant="subtle" />
         )}
-        {txType === 'MIGRATION' && (
-          <Badge
-            color={data.zip318?.compliant ? 'green' : 'amber'}
-            icon={<Icons.Shield />}
-          >
-            MIGRATION
-          </Badge>
-        )}
-        {txType === 'IRONWOOD' && (
-          <Badge color="amber" icon={<Icons.Shield />}>
-            IRONWOOD
-          </Badge>
-        )}
-        {(txType === 'ORCHARD' || txType === 'SHIELDED') && (
-          <Badge color="purple" icon={<Icons.Shield />}>
-            SHIELDED
-          </Badge>
-        )}
-        {txType === 'SHIELDING' && (
-          <Badge color="green" icon={<Icons.Shield />}>
-            SHIELDING
-          </Badge>
-        )}
-        {txType === 'UNSHIELDING' && (
-          <Badge color="orange" icon={<Icons.Shield />}>
-            UNSHIELDING
-          </Badge>
-        )}
-        {txType === 'MIXED' && (
-          <Badge color="orange" icon={<Icons.Shield />}>
-            MIXED
-          </Badge>
-        )}
-        {txType === 'REGULAR' && <Badge color="cyan">TRANSFER</Badge>}
         {allBridges.length > 0 && (
           <Badge
             color="cyan"
+            variant="subtle"
             icon={
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -72,20 +79,7 @@ export function TxHeaderBadges({ data, classification }: TxHeaderBadgesProps) {
             {allBridges[0].direction === 'entry' ? 'BRIDGE IN' : 'BRIDGE OUT'}
           </Badge>
         )}
-        {data.status === 'stale' || data.isCanonical === false ? (
-          <StatusBadge status="reorganized" />
-        ) : data.status === 'unknown' ? (
-          <Badge color="muted">UNKNOWN</Badge>
-        ) : (
-          <StatusBadge status="confirmed" />
-        )}
-        <span className="text-xs font-mono text-muted">
-          {process.env.NEXT_PUBLIC_NETWORK === 'testnet'
-            ? 'Zcash testnet (TAZ)'
-            : process.env.NEXT_PUBLIC_NETWORK === 'crosslink-testnet'
-              ? 'Zcash Crosslink testnet'
-              : 'Zcash mainnet'}
-        </span>
+        {category && <TxTypeBadge category={category} variant="subtle" />}
       </div>
       <ExportButton
         data={{

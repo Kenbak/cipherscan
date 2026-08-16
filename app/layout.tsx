@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { NavBar } from "@/components/NavBar";
 import { StatsBar } from "@/components/StatsBar";
@@ -152,7 +153,18 @@ export default function RootLayout({
       <head>
         {/* Supports sitemap-detection tools; robots.txt remains the standards-based declaration. */}
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/*
+          next/script's beforeInteractive strategy is Next's own documented
+          mechanism for exactly this case (must run before hydration/paint
+          to avoid a flash of the wrong theme). It's injected outside the
+          normal React child-render path, which avoids React 19's "script
+          tag inside a component" warning that a plain <script> here would
+          trigger. JSON-LD scripts below stay as plain <script> tags on
+          purpose — that's the separate Next-recommended pattern for
+          structured data, needed to keep it in the initial server HTML for
+          crawlers (next/script's strategies inject client-side instead).
+        */}
+        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>

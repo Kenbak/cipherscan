@@ -5,7 +5,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { Badge, HashLink, RedactedAmount, SkeletonTable } from '@/components/ui';
+import { HashLink, RedactedAmount, SkeletonTable, TxTypeBadge, resolveTxCategory } from '@/components/ui';
 
 interface MempoolTx {
   txid: string;
@@ -13,6 +13,9 @@ interface MempoolTx {
   type: 'transparent' | 'shielded' | 'mixed';
   time: number;
   totalOutput?: number;
+  hasIronwood?: boolean;
+  hasOrchard?: boolean;
+  hasSapling?: boolean;
   valueBalanceSapling?: number;
   valueBalanceOrchard?: number;
   valueBalanceIronwood?: number;
@@ -24,15 +27,21 @@ interface MempoolStats {
   totalSizeBytes: number;
 }
 
-function getTypeBadge(type: string) {
-  switch (type) {
-    case 'shielded':
-      return <Badge color="purple">SHIELDED</Badge>;
-    case 'mixed':
-      return <Badge color="orange">MIXED</Badge>;
-    default:
-      return <Badge color="cyan">TRANSPARENT</Badge>;
-  }
+// Pool-specific whenever the data allows (IRONWOOD/ORCHARD/SAPLING, same as
+// every confirmed-tx table); generic SHIELDED only when the per-pool flags
+// aren't available on this row.
+function getTypeBadge(tx: MempoolTx) {
+  if (tx.type === 'mixed') return <TxTypeBadge category="mixed" />;
+  if (tx.type !== 'shielded') return <TxTypeBadge category="transparent" />;
+  return (
+    <TxTypeBadge
+      category={resolveTxCategory({
+        hasIronwood: tx.hasIronwood,
+        hasOrchard: tx.hasOrchard,
+        hasSapling: tx.hasSapling,
+      })}
+    />
+  );
 }
 
 function classifyTxType(tx: any): 'shielded' | 'mixed' | 'transparent' {
@@ -76,6 +85,9 @@ export const RecentMempool = memo(function RecentMempool() {
         type: classifyTxType(msg.data),
         time: msg.data.time || Math.floor(Date.now() / 1000),
         totalOutput: msg.data.totalOutput || 0,
+        hasIronwood: !!msg.data.hasIronwood,
+        hasOrchard: !!msg.data.hasOrchard,
+        hasSapling: !!msg.data.hasSapling,
         valueBalanceSapling: msg.data.valueBalanceSapling || 0,
         valueBalanceOrchard: msg.data.valueBalanceOrchard || 0,
         valueBalanceIronwood: msg.data.valueBalanceIronwood || 0,
@@ -100,7 +112,14 @@ export const RecentMempool = memo(function RecentMempool() {
 
       const result = await response.json();
       if (result.success) {
-        const allTxs = result.transactions || [];
+        // REST rows carry per-pool activity as counts — normalize to the same
+        // boolean flags the WebSocket path uses.
+        const allTxs = (result.transactions || []).map((tx: any) => ({
+          ...tx,
+          hasIronwood: !!tx.hasIronwood || (tx.ironwoodActions || 0) > 0,
+          hasOrchard: (tx.orchardActions || 0) > 0,
+          hasSapling: (tx.vShieldedSpend || 0) > 0 || (tx.vShieldedOutput || 0) > 0,
+        }));
         setTxs(allTxs.slice(0, 5));
         if (result.stats) {
           // Sum size across every fetched tx (not just the 5 shown) so the
@@ -183,7 +202,7 @@ export const RecentMempool = memo(function RecentMempool() {
                 style={{ animationDelay: `${i * 30}ms` }}
               >
                 <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
-                  {getTypeBadge(tx.type)}
+                  {getTypeBadge(tx)}
                 </td>
                 <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
                   <HashLink value={tx.txid} href={`/tx/${tx.txid}`} lead={10} tail={6} responsive />
