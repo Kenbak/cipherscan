@@ -15,9 +15,6 @@ ALERT_COOLDOWN_SECONDS="${OPS_HEALTH_ALERT_COOLDOWN_SECONDS:-1800}"
 DISK_WARN_PCT="${OPS_HEALTH_DISK_WARN_PCT:-90}"
 DISK_PATHS="${OPS_HEALTH_DISK_PATHS:-/ /mnt/data}"
 
-BACKUP_STATE_FILE="${OPS_HEALTH_BACKUP_STATE_FILE:-/var/lib/cipherscan-backup/last-success}"
-BACKUP_MAX_AGE_HOURS="${OPS_HEALTH_BACKUP_MAX_AGE_HOURS:-26}"
-
 PGBACKREST_STANZA="${PGBACKREST_STANZA:-zcash_explorer_mainnet}"
 PGBACKREST_MAX_BACKUP_AGE_HOURS="${OPS_HEALTH_PGBACKREST_MAX_BACKUP_AGE_HOURS:-30}"
 PGBACKREST_MAX_WAL_AGE_MINUTES="${OPS_HEALTH_PGBACKREST_MAX_WAL_AGE_MINUTES:-30}"
@@ -98,32 +95,6 @@ for path in ${DISK_PATHS}; do
 done
 mark_check "Disk" "${disk_ok}"
 
-# --- Backup age ---
-backup_ok=1
-if [[ -f "${BACKUP_STATE_FILE}" ]]; then
-  backup_date_field="$(awk '{print $1}' "${BACKUP_STATE_FILE}")"
-  backup_date_part="${backup_date_field%_*}"
-  backup_time_part="${backup_date_field#*_}"
-  backup_epoch=0
-  if [[ "${backup_time_part}" =~ ^[0-9]{6}$ ]]; then
-    backup_formatted="${backup_date_part} ${backup_time_part:0:2}:${backup_time_part:2:2}:${backup_time_part:4:2}"
-    backup_epoch="$(date -u -d "${backup_formatted}" +%s 2>/dev/null || echo 0)"
-  fi
-  now_epoch="$(date -u +%s)"
-  age_hours=$(( (now_epoch - backup_epoch) / 3600 ))
-  if (( backup_epoch == 0 )); then
-    failures+=("Backup state file unparseable")
-    backup_ok=0
-  elif (( age_hours >= BACKUP_MAX_AGE_HOURS )); then
-    failures+=("Backup ${age_hours}h old (max ${BACKUP_MAX_AGE_HOURS}h)")
-    backup_ok=0
-  fi
-else
-  failures+=("No backup state file found")
-  backup_ok=0
-fi
-mark_check "Backup" "${backup_ok}"
-
 # --- pgBackRest backup age ---
 pgbackrest_ok=1
 if command -v pgbackrest >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
@@ -150,7 +121,7 @@ else
   failures+=("pgbackrest or jq not installed")
   pgbackrest_ok=0
 fi
-mark_check "pgBackRest" "${pgbackrest_ok}"
+mark_check "Backup" "${pgbackrest_ok}"
 
 # --- Redis ---
 redis_ok=1
@@ -341,7 +312,7 @@ build_check_line() {
   fi
 }
 
-CHECK_NAMES=("Disk" "Backup" "pgBackRest" "WAL" "Redis" "PG pool" "Indexer" "Replication" "Replica" "Node sync")
+CHECK_NAMES=("Disk" "Backup" "WAL" "Redis" "PG pool" "Indexer" "Replication" "Replica" "Node sync")
 
 if (( ${#failures[@]} == 0 )); then
   if [[ "${previous_status}" == "unhealthy" ]]; then
