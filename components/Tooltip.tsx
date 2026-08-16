@@ -108,11 +108,16 @@ export function Tooltip({ content, children }: TooltipProps) {
         onMouseLeave={() => !isMobile && setShow(false)}
         onFocus={() => !isMobile && handleShow()}
         onBlur={() => !isMobile && setShow(false)}
-        className="inline-flex text-muted hover:text-primary transition-colors cursor-help"
+        // Muted at half-opacity by default — a solid-filled 16px circle at
+        // full text-muted still reads as a bold shape sitting next to plain
+        // text labels. Full opacity (+ text-primary) only on hover/focus, so
+        // it's there when you go looking for it but doesn't compete with
+        // the label it's attached to at rest.
+        className="inline-flex text-muted/50 hover:text-primary transition-colors cursor-help"
         aria-label="More information"
       >
         {children || (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
           </svg>
         )}

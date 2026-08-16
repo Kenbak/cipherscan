@@ -5,10 +5,24 @@ import { FlowChain, type FlowNode } from './FlowChain';
 import { firstOutputAddress, rankedRecipients, type RankedRecipient } from './tx-classification';
 import type { TransactionData, TxClassification } from './types';
 
-function ZecAmount({ value, className = '' }: { value: number; className?: string }) {
+function ZecAmount({
+  value,
+  priceUsd,
+  className = '',
+}: {
+  value: number;
+  /** Shown as a muted secondary suffix — this is the headline number, the $ figure is context, not a second equally-weighted amount. */
+  priceUsd?: number | null;
+  className?: string;
+}) {
   return (
     <span className={`text-sm font-mono font-semibold text-primary tabular-nums ${className}`}>
       {value.toFixed(4)} {CURRENCY}
+      {priceUsd != null && value > 0 && (
+        <span className="text-muted font-normal text-xs ml-1.5">
+          (${(value * priceUsd).toLocaleString(undefined, { maximumFractionDigits: 2 })})
+        </span>
+      )}
     </span>
   );
 }
@@ -105,9 +119,11 @@ function rankedNodes(
 export function TxHeroFlow({
   data,
   classification,
+  priceUsd,
 }: {
   data: TransactionData;
   classification: TxClassification;
+  priceUsd?: number | null;
 }) {
   const { txType, allBridges, migrationSourcePool, valueBalance, isCoinbase } = classification;
 
@@ -138,7 +154,7 @@ export function TxHeroFlow({
       return (
         <FlowChain
           sources={capped(entries)}
-          amount={<ZecAmount value={totalZec} />}
+          amount={<ZecAmount value={totalZec} priceUsd={priceUsd} />}
           destinations={[{ kind: 'token', token: 'ZEC', chain: 'zec' }]}
         />
       );
@@ -148,7 +164,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={[{ kind: 'token', token: 'ZEC', chain: 'zec' }]}
-        amount={<ZecAmount value={totalZec} />}
+        amount={<ZecAmount value={totalZec} priceUsd={priceUsd} />}
         destinations={capped(exits)}
       />
     );
@@ -160,7 +176,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={[poolFlowNode(srcCategory, migrationSourcePool || 'Shielded')]}
-        amount={<ZecAmount value={ironwoodAmt} />}
+        amount={<ZecAmount value={ironwoodAmt} priceUsd={priceUsd} />}
         destinations={[poolFlowNode('ironwood', 'Ironwood')]}
       />
     );
@@ -185,7 +201,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={fromAddr ? [{ kind: 'address', address: fromAddr }] : []}
-        amount={<ZecAmount value={Math.abs(valueBalance)} />}
+        amount={<ZecAmount value={Math.abs(valueBalance)} priceUsd={priceUsd} />}
         destinations={[poolNode(data)]}
       />
     );
@@ -196,7 +212,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={[poolNode(data)]}
-        amount={<ZecAmount value={Math.abs(valueBalance)} />}
+        amount={<ZecAmount value={Math.abs(valueBalance)} priceUsd={priceUsd} />}
         destinations={toAddr ? [{ kind: 'address', address: toAddr }] : []}
       />
     );
@@ -216,7 +232,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={[poolFlowNode('coinbase', 'Block Reward')]}
-        amount={<ZecAmount value={totalReward} />}
+        amount={<ZecAmount value={totalReward} priceUsd={priceUsd} />}
         destinations={destinations}
       />
     );
@@ -253,7 +269,7 @@ export function TxHeroFlow({
     return (
       <FlowChain
         sources={sources}
-        amount={<ZecAmount value={centerAmount} />}
+        amount={<ZecAmount value={centerAmount} priceUsd={priceUsd} />}
         destinations={destinations}
       />
     );
@@ -281,7 +297,7 @@ export function TxHeroFlow({
     <FlowChain
       sources={rankedNodes(rankedSenders(data.inputs))}
       amount={
-        <ZecAmount value={recipientTotal > 0 ? recipientTotal : data.totalOutput > 0 ? data.totalOutput : data.totalInput} />
+        <ZecAmount value={recipientTotal > 0 ? recipientTotal : data.totalOutput > 0 ? data.totalOutput : data.totalInput} priceUsd={priceUsd} />
       }
       destinations={destinations}
     />

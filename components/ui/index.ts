@@ -24,6 +24,8 @@ export { IconTooltip } from './IconTooltip';
 export { RedactedAmount } from './RedactedAmount';
 export { MetricCard } from './MetricCard';
 export { InfoRow } from './InfoRow';
+export { FactBox, CopyableHash, BoldZec } from './FactBox';
 export { EmptyState, SkeletonTable } from './EmptyState';
 export { DataTable, type DataTableColumn } from './DataTable';
 export { Tabs } from './Tabs';
+export { SegmentedToggle } from './SegmentedToggle';

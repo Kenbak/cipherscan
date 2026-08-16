@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PageHeader, MetricCard, DataTable, type DataTableColumn } from '@/components/ui';
+import { PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
+import { zatToZec } from '@/lib/format-numbers';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { getCoinbaseClientInfo } from '@/lib/coinbase-client';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
+import { CURRENCY } from '@/lib/config';
 
 interface Block {
   height: number;
@@ -19,6 +21,7 @@ interface Block {
   finality_status?: string | null;
   miner_pool?: string | null;
   coinbase_hex?: string | null;
+  total_fees?: number | string | null;
 }
 
 const PAGE_SIZE = 25;
@@ -63,9 +66,15 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       className: 'hidden sm:table-cell',
       skeletonWidth: 'w-40',
       cell: (block) => (
-        <Link href={`/block/${block.height}`} className="font-mono text-xs text-muted hover:text-secondary transition-colors truncate block max-w-[200px] lg:max-w-[300px]" title={`Canonical block ${block.height.toLocaleString()}`}>
-          {block.hash}
-        </Link>
+        // Same lead/tail convention as every other hash display (e.g. the
+        // block detail page's CopyableHash) — a block hash's leading zeros
+        // (from proof-of-work) aren't distinguishing, but keeping the same
+        // truncation shape everywhere matters more than trying to skip past
+        // them here. The old plain CSS `truncate` on a fixed-width column
+        // just clipped wherever the pixel width ran out, so it kept a
+        // different number of characters depending on font/zoom instead of a
+        // consistent, predictable lead+tail.
+        <HashLink value={block.hash} href={`/block/${block.height}`} lead={10} tail={8} copy={false} linkClassName="font-mono text-xs text-muted hover:text-secondary transition-colors" />
       ),
     },
     {
@@ -84,7 +93,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
               <span className="text-sm leading-none" title={tooltip}>{clientInfo.emoji}</span>
             )}
             {block.miner_pool ? (
-              <span className="text-xs font-mono text-cipher-cyan">{block.miner_pool}</span>
+              <span className="text-xs font-mono text-primary">{block.miner_pool}</span>
             ) : (
               <span className="text-xs font-mono text-muted/40">—</span>
             )}
@@ -119,6 +128,22 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
               {(block.size / 1024).toFixed(1)} KB
             </span>
           </div>
+        );
+      },
+    },
+    {
+      id: 'fees',
+      header: 'Fees',
+      align: 'right',
+      className: 'hidden lg:table-cell',
+      skeletonWidth: 'w-14',
+      cell: (block) => {
+        if (block.total_fees == null) return <span className="font-mono text-xs text-muted/40">—</span>;
+        const feeZec = zatToZec(block.total_fees);
+        return (
+          <span className="font-mono text-xs text-muted tabular-nums">
+            {feeZec < 0.001 ? feeZec.toFixed(5) : feeZec.toFixed(4)} {CURRENCY}
+          </span>
         );
       },
     },
@@ -243,7 +268,8 @@ export default function BlocksClient({
     initialExtra: initialTrailingBlock,
   });
 
-  const [summary, setSummary] = useState<{ height: number | null; blocks24h: number | null; avgBlockTime: number | null; txsPerBlock: number | null }>({ height: null, blocks24h: null, avgBlockTime: null, txsPerBlock: null });
+  const [summary, setSummary] = useState<{ height: number | null; blocks24h: number | null; avgBlockTime: number | null; avgBlockFee: number | null; txsPerBlock: number | null }>({ height: null, blocks24h: null, avgBlockTime: null, avgBlockFee: null, txsPerBlock: null });
+  const [zecPriceUsd, setZecPriceUsd] = useState<number | null>(null);
 
   useEffect(() => {
     const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -252,16 +278,36 @@ export default function BlocksClient({
       .then(data => {
         if (!data) return;
         const blocks24h = data.mining?.blocks24h ?? null;
-        const tx24h = data.blockchain?.tx24h ?? null;
+        // Excludes each block's mandatory coinbase tx — nobody "sent" it, so
+        // counting it here would inflate "per block" activity with a
+        // transaction every single block has by construction.
+        const tx24hExclCoinbase = data.blockchain?.tx24hExclCoinbase ?? null;
         setSummary({
           height: data.network?.height ?? data.blockchain?.height ?? null,
           blocks24h,
           avgBlockTime: data.mining?.avgBlockTime ?? null,
-          txsPerBlock: blocks24h && tx24h ? Math.round((tx24h / blocks24h) * 10) / 10 : null,
+          avgBlockFee: data.mining?.avgBlockFee ?? null,
+          txsPerBlock: blocks24h && tx24hExclCoinbase ? Math.round((tx24hExclCoinbase / blocks24h) * 10) / 10 : null,
         });
       })
       .catch(() => {});
+    fetch(`${base}/api/price`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => setZecPriceUsd(data?.price ?? null))
+      .catch(() => {});
   }, []);
+
+  // /api/network/stats is cached up to 2 minutes server-side, while the
+  // block list itself refreshes live over the websocket (~15s cache) — right
+  // after a new block, the list already shows it but this fetch hasn't
+  // caught up yet, so the "Block Height" card would read one block behind
+  // the table underneath it. Only the list's own live head is trustworthy
+  // for "is there a newer block than what summary last saw", so take
+  // whichever is higher; on page 2+ blocks[0] is a historical block, not the
+  // tip, so summary.height (the actual network tip) is used untouched.
+  const liveHeight = page === 1 && blocks[0]?.height
+    ? Math.max(summary.height ?? 0, blocks[0].height) || null
+    : summary.height;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -279,22 +325,30 @@ export default function BlocksClient({
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <MetricCard size="compact"
           label="Block Height"
-          value={summary.height != null ? summary.height.toLocaleString() : '—'}
+          value={liveHeight != null ? liveHeight.toLocaleString() : '—'}
         />
         <MetricCard size="compact"
           label="Blocks (24h)"
           value={summary.blocks24h != null ? summary.blocks24h.toLocaleString() : '—'}
+          hint="~1,152/day is normal"
         />
         <MetricCard size="compact"
           label="Avg Block Time"
           value={summary.avgBlockTime != null ? `${summary.avgBlockTime}s` : '—'}
+          hint="Last 1,000 blocks · target 75s"
+        />
+        <MetricCard size="compact"
+          label="Avg Block Fee (24h)"
+          value={summary.avgBlockFee != null ? `${summary.avgBlockFee.toFixed(8)} ${CURRENCY}` : '—'}
+          hint={summary.avgBlockFee != null && zecPriceUsd != null ? `≈ $${(summary.avgBlockFee * zecPriceUsd).toFixed(2)}` : undefined}
         />
         <MetricCard size="compact"
           label="Txs Per Block"
           value={summary.txsPerBlock != null ? summary.txsPerBlock.toLocaleString() : '—'}
+          hint="Coinbase not counted"
         />
       </div>
 

@@ -21,6 +21,18 @@ export function getConfiguredNetwork(): AppNetwork | undefined {
 }
 
 /**
+ * The one visible "which network am I looking at" label — used by every
+ * page-level network badge (tx detail, block detail, …) so they can't drift
+ * into different wording for the same three states.
+ */
+export function getNetworkLabel(): string {
+  const network = getConfiguredNetwork();
+  if (network === 'testnet') return 'ZCASH TESTNET (TAZ)';
+  if (network === 'crosslink-testnet') return 'ZCASH CROSSLINK TESTNET';
+  return 'ZCASH MAINNET';
+}
+
+/**
  * Public API helpers append their own `/api/...` paths. Accept the legacy
  * Crosslink setting that ended in `/api`, but normalize every configured base
  * to an origin-style URL so callers cannot accidentally request `/api/api/...`.

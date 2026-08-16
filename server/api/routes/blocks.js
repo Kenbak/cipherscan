@@ -228,7 +228,7 @@ router.get('/api/blocks/list', async (req, res) => {
           result = await measure(
             'db_blocks',
             () => pool.query(
-              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex, total_fees
                FROM blocks ORDER BY height DESC LIMIT $1`,
               [limit]
             )
@@ -237,7 +237,7 @@ router.get('/api/blocks/list', async (req, res) => {
           result = await measure(
             'db_blocks',
             () => pool.query(
-              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex, total_fees
                FROM blocks WHERE height > $1 ORDER BY height ASC LIMIT $2`,
               [cursor, limit]
             )
@@ -247,7 +247,7 @@ router.get('/api/blocks/list', async (req, res) => {
           result = await measure(
             'db_blocks',
             () => pool.query(
-              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex
+              `SELECT height, hash, timestamp, transaction_count, size, difficulty, miner_address, coinbase_hex, total_fees
                FROM blocks WHERE height < $1 ORDER BY height DESC LIMIT $2`,
               [cursor, limit]
             )

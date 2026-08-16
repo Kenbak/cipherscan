@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ExportButtonProps {
   data: any;
@@ -23,6 +24,33 @@ export function ExportButton({
 }: ExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [exported, setExported] = useState<string | null>(null);
+  // Portal-rendered to document.body (like Tooltip/IconTooltip) — a plain
+  // absolutely-positioned dropdown here sits inside a header block that's an
+  // earlier DOM sibling of the facts card below it. The facts card's own
+  // backdrop-filter (glass effect) creates a new stacking context, and as a
+  // later sibling it paints over an in-flow dropdown regardless of the
+  // dropdown's own z-index — portaling to body sidesteps that entirely.
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+
+  const computeDropdownPos = useCallback(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    computeDropdownPos();
+    const reposition = () => computeDropdownPos();
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [isOpen, computeDropdownPos]);
 
   const downloadFile = (content: string, ext: string, mimeType: string) => {
     const blob = new Blob([content], { type: mimeType });
@@ -121,6 +149,7 @@ export function ExportButton({
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition-all"
       >
@@ -144,16 +173,19 @@ export function ExportButton({
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && dropdownPos && typeof document !== 'undefined' && createPortal(
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Dropdown */}
-          <div className="dropdown-menu absolute right-0 mt-2 w-40 border rounded-lg shadow-xl z-20 overflow-hidden">
+          <div
+            className="dropdown-menu fixed w-40 border rounded-lg shadow-xl z-[9999] overflow-hidden"
+            style={{ top: dropdownPos.top, right: dropdownPos.right }}
+          >
             <button
               onClick={exportAsJson}
               className="dropdown-item w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-2"
@@ -175,7 +207,8 @@ export function ExportButton({
               </button>
             )}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

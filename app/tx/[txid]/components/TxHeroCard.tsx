@@ -54,9 +54,10 @@ export function MigrationBanner({ zip318 }: MigrationBannerProps) {
 interface TxHeroCardProps {
   data: TransactionData;
   classification: TxClassification;
+  priceUsd?: number | null;
 }
 
-export function TxHeroCard({ data, classification }: TxHeroCardProps) {
+export function TxHeroCard({ data, classification, priceUsd }: TxHeroCardProps) {
   const { txType, allBridges } = classification;
 
   return (
@@ -65,7 +66,7 @@ export function TxHeroCard({ data, classification }: TxHeroCardProps) {
         <CardBody>
           <div className="space-y-3">
             <div className="flex justify-center">
-              <TxHeroFlow data={data} classification={classification} />
+              <TxHeroFlow data={data} classification={classification} priceUsd={priceUsd} />
             </div>
 
             <p className="text-sm text-muted leading-relaxed">

@@ -71,7 +71,7 @@ export default function TxDetailClient({ txid }: TxDetailClientProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6 sm:pt-6 sm:pb-12 animate-fade-in">
       <TxHeaderBadges data={data} classification={classification} />
 
-      <TxHeroCard data={data} classification={classification} />
+      <TxHeroCard data={data} classification={classification} priceUsd={priceUsd} />
 
       <div className="mb-6 animate-fade-in-up stagger-2">
         <Tabs
@@ -86,7 +86,7 @@ export default function TxDetailClient({ txid }: TxDetailClientProps) {
       </div>
 
       {activeTab === 'summary' && (
-        <TxOverview data={data} classification={classification} priceUsd={priceUsd} />
+        <TxOverview data={data} classification={classification} />
       )}
 
       {activeTab === 'io' && (

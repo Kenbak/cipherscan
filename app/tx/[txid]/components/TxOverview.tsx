@@ -5,60 +5,119 @@ import { CURRENCY } from '@/lib/config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
-import { RedactedAmount } from '@/components/ui/RedactedAmount';
+import { FactBox, CopyableHash } from '@/components/ui/FactBox';
+import { TxTypeBadge, type TxCategory } from '@/components/ui/TxTypeBadge';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { displayPubkey } from '@/lib/utils';
-import { InfoRow } from './InfoRow';
-import { Icons } from './Icons';
 import { formatTimestamp } from './format-timestamp';
-import { ShieldedDetailsSection } from './ShieldedDetailsSection';
 import type { TransactionData, TxClassification } from './types';
 
 interface TxOverviewProps {
   data: TransactionData;
   classification: TxClassification;
-  priceUsd: number | null;
 }
 
-export function TxOverview({ data, classification, priceUsd }: TxOverviewProps) {
-  const { txType, migrationSourcePool, valueBalance, hasOrchard, hasSapling } = classification;
+/**
+ * One shielded pool's activity — spend/output (or action) counts plus its
+ * value balance, grouped into a single box instead of five separate flat
+ * label:value rows. Sapling separates spends from outputs; Orchard/Ironwood
+ * only have one combined "action" count, hence the two different `counts`
+ * shapes rather than forcing both into the same three fields.
+ */
+function PoolActivityBox({
+  category,
+  counts,
+  valueBalance,
+}: {
+  category: TxCategory;
+  counts: { spends: number; outputs: number } | { actions: number };
+  valueBalance?: number;
+}) {
+  return (
+    <FactBox label={`${category[0].toUpperCase()}${category.slice(1)} Pool`}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <TxTypeBadge category={category} />
+        <span className="text-xs text-muted font-mono whitespace-nowrap">
+          {'actions' in counts
+            ? `${counts.actions} action${counts.actions !== 1 ? 's' : ''}`
+            : `${counts.spends} spend${counts.spends !== 1 ? 's' : ''} · ${counts.outputs} output${counts.outputs !== 1 ? 's' : ''}`}
+        </span>
+      </div>
+      {valueBalance != null && valueBalance !== 0 && (
+        <div className="mt-2.5 pt-2.5 border-t border-cipher-border/50 flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-sm text-primary tabular-nums">
+            {valueBalance < 0 ? '+' : '-'}
+            {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
+          </span>
+          <span className="text-[10px] text-muted font-mono whitespace-nowrap">
+            {valueBalance < 0 ? '→ entering pool' : '← leaving pool'}
+          </span>
+        </div>
+      )}
+    </FactBox>
+  );
+}
+
+export function TxOverview({ data }: TxOverviewProps) {
+  // `data.hasShieldedData` means "this tx has *some* shielded component",
+  // not specifically Sapling — using it here showed an empty "0 spends · 0
+  // outputs" Sapling box on pure Orchard/Ironwood transactions. Each pool's
+  // own counts are the only reliable signal that pool was actually active.
+  const hasSaplingActivity = data.saplingSpendCount > 0 || data.saplingOutputCount > 0;
+  const hasOrchardActivity = (data.orchardActions || 0) > 0;
+  const hasIronwoodActivity = (data.ironwoodActions || 0) > 0;
+  const hasAnyPoolActivity = hasSaplingActivity || hasOrchardActivity || hasIronwoodActivity;
 
   return (
     <div>
       <Card className="mb-6">
-        <CardBody className="space-y-0">
-          <InfoRow
-            icon={Icons.Cube}
-            label="Block"
-            tooltip="The block that includes this transaction"
-            value={
-              <div className="flex items-center gap-2 flex-wrap">
-                <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline">
+        <CardBody>
+          {/* Line 1: the facts most people came here for. `hug` instead of
+              `fit` — these hold very different amounts of content (Block
+              has a link + confirmation count + a badge; Size is one short
+              string), so equal-width columns just padded the short ones
+              with empty space. Sized to content instead. */}
+          <div className="flex flex-wrap items-start gap-3">
+            <FactBox hug label="Block" tooltip="The block that includes this transaction">
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <Link href={`/block/${data.blockHeight}`} className="text-cipher-cyan hover:underline font-mono">
                   #{data.blockHeight.toLocaleString()}
                 </Link>
-                <span className="text-muted">
-                  ({data.confirmations.toLocaleString()} confirmation
-                  {data.confirmations !== 1 ? 's' : ''})
+                <span className="text-muted text-xs whitespace-nowrap">
+                  ({data.confirmations.toLocaleString()} confirmation{data.confirmations !== 1 ? 's' : ''})
                 </span>
                 {data.finality && (
-                  <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'}>
+                  <Badge color={data.finality === 'Finalized' ? 'green' : 'orange'} variant="subtle">
                     {data.finality === 'Finalized' ? 'Finalized' : 'Pending'}
                   </Badge>
                 )}
               </div>
-            }
-          />
+            </FactBox>
+
+            <FactBox hug label="Timestamp" tooltip="When this transaction was mined">
+              <span className="text-sm text-primary whitespace-nowrap">{formatTimestamp(data.timestamp)}</span>
+            </FactBox>
+
+            <FactBox hug label="Fee" tooltip="Fee paid to the miner">
+              <span className="text-sm font-mono font-semibold text-primary whitespace-nowrap">
+                {data.fee.toFixed(8)} {CURRENCY}
+              </span>
+            </FactBox>
+
+            <FactBox hug label="Size" tooltip="Transaction size in bytes">
+              <span className="text-sm font-mono text-primary whitespace-nowrap tabular-nums">
+                {data.size.toLocaleString()} bytes ({(data.size / 1024).toFixed(2)} KB)
+              </span>
+            </FactBox>
+          </div>
 
           {data.stakingAction && (
-            <InfoRow
-              icon={Icons.Shield}
-              label="Crosslink Action"
-              tooltip="Crosslink staking action encoded in this transaction"
-              value={
+            <div className="mt-3">
+              <FactBox span label="Crosslink Action" tooltip="Crosslink staking action encoded in this transaction">
                 <div className="flex items-center gap-2 flex-wrap">
                   <StakingActionBadge type={data.stakingAction.type} />
                   {data.stakingAction.amountZec !== null && (
-                    <span className="font-semibold text-primary">
+                    <span className="font-mono font-semibold text-primary text-sm">
                       {data.stakingAction.amountZec.toFixed(4)} {CURRENCY}
                     </span>
                   )}
@@ -75,155 +134,79 @@ export function TxOverview({ data, classification, priceUsd }: TxOverviewProps) 
                     </span>
                   )}
                 </div>
-              }
-            />
+              </FactBox>
+            </div>
           )}
 
-          <InfoRow
-            icon={Icons.Clock}
-            label="Timestamp"
-            value={formatTimestamp(data.timestamp)}
-            tooltip="When this transaction was mined"
-          />
+          {/* Line 2: consensus/technical fields, always visible — no
+              "Show More" gate. Block Hash gets its own wider min-width
+              (.fact-box-hash-inline) since a truncated hash + copy button
+              needs more room than a short number. */}
+          <div className="mt-3 flex flex-wrap items-start gap-3">
+            <FactBox hug label="Version" tooltip="Transaction version number">
+              <span className="text-sm font-mono text-primary tabular-nums">{data.version}</span>
+            </FactBox>
 
-          <InfoRow
-            icon={Icons.Currency}
-            label="Fee"
-            tooltip="Fee paid to the miner"
-            value={
-              <span className="font-semibold text-primary">
-                {data.fee.toFixed(8)} {CURRENCY}
-                {priceUsd && data.fee > 0 && (
-                  <span className="text-muted font-normal text-[11px] ml-2">
-                    (${(data.fee * priceUsd).toFixed(2)})
-                  </span>
+            <FactBox hug label="Lock Time" tooltip="Block height or timestamp at which this transaction is unlocked">
+              <span className="text-sm font-mono text-primary tabular-nums">{data.locktime}</span>
+            </FactBox>
+
+            {data.expiryHeight != null && data.expiryHeight > 0 && (
+              <FactBox
+                hug
+                label="Expiry Height"
+                tooltip="Block height after which this transaction can no longer be mined. The delta from the mined block height indicates the wallet's configured expiry window."
+              >
+                <span className="text-sm font-mono text-primary tabular-nums whitespace-nowrap">
+                  {data.expiryHeight.toLocaleString()}
+                  <span className="text-[10px] text-muted ml-1.5">+{data.expiryHeight - (data.blockHeight || 0)} blocks</span>
+                </span>
+              </FactBox>
+            )}
+
+            <FactBox hug label="Block Hash" tooltip="Hash of the block containing this transaction" className="fact-box-hash-inline">
+              <CopyableHash value={data.blockHash} href={`/block/${data.blockHeight}`} />
+            </FactBox>
+
+            {data.bindingSigSapling && (
+              <FactBox label="Sapling Binding Signature" tooltip="Cryptographic proof that the transaction is balanced" className="w-full">
+                <code className="text-xs text-cipher-purple/70 break-all block font-mono">{data.bindingSigSapling}</code>
+              </FactBox>
+            )}
+          </div>
+
+          {/* Line 3: shielded pool activity — one box per active pool
+              instead of six flat rows (spends, outputs, actions, value
+              balance × 3 pools) that gave every pool's data equal weight
+              regardless of which pools this transaction actually touched. */}
+          {hasAnyPoolActivity && (
+            <div className="mt-5 pt-4 border-t border-cipher-border/50">
+              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">Shielded Pool Activity</span>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {hasSaplingActivity && (
+                  <PoolActivityBox
+                    category="sapling"
+                    counts={{ spends: data.saplingSpendCount, outputs: data.saplingOutputCount }}
+                    valueBalance={data.valueBalanceSapling}
+                  />
                 )}
-              </span>
-            }
-          />
-
-          <InfoRow
-            icon={Icons.Database}
-            label="Value"
-            tooltip={
-              txType === 'ORCHARD' || txType === 'SHIELDED' || txType === 'IRONWOOD'
-                ? 'Transaction amount is private and encrypted'
-                : txType === 'MIGRATION'
-                  ? `Amount crossing from ${migrationSourcePool} to Ironwood pool`
-                  : 'Total amount transferred'
-            }
-            value={
-              txType === 'MIGRATION' ? (
-                <span className="font-semibold text-primary">
-                  {Math.abs(data.valueBalanceIronwood || 0).toFixed(4)} {CURRENCY}
-                  <span className="text-xs text-muted font-normal ml-2">
-                    {migrationSourcePool} → Ironwood
-                  </span>
-                </span>
-              ) : txType === 'IRONWOOD' ? (
-                <RedactedAmount />
-              ) : (txType === 'ORCHARD' || txType === 'SHIELDED') && (hasOrchard || hasSapling) ? (
-                <div className="flex flex-col gap-2">
-                  <RedactedAmount />
-                  <Link
-                    href={`/decrypt?prefill=${data.txid}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-cipher-purple/20 hover:border-cipher-purple/40 hover:bg-cipher-purple/10 text-cipher-purple text-xs font-medium rounded-md transition-colors w-fit"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Decrypt with viewing key
-                  </Link>
-                </div>
-              ) : txType === 'SHIELDING' ? (
-                <span className="font-semibold text-primary">
-                  {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
-                  {priceUsd && (
-                    <span className="text-muted font-normal text-[11px] ml-2">
-                      ($
-                      {(Math.abs(valueBalance) * priceUsd).toLocaleString(undefined, {
-                        maximumFractionDigits: 2,
-                      })}
-                      )
-                    </span>
-                  )}
-                </span>
-              ) : txType === 'UNSHIELDING' ? (
-                <span className="font-semibold text-primary">
-                  {data.totalOutput.toFixed(8)} {CURRENCY}
-                  {priceUsd && (
-                    <span className="text-muted font-normal text-[11px] ml-2">
-                      ($
-                      {(data.totalOutput * priceUsd).toLocaleString(undefined, {
-                        maximumFractionDigits: 2,
-                      })}
-                      )
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="font-semibold text-primary">
-                  {(data.totalOutput > 0 ? data.totalOutput : data.totalInput).toFixed(8)} {CURRENCY}
-                  {priceUsd && (
-                    <span className="text-muted font-normal text-[11px] ml-2">
-                      ($
-                      {(
-                        (data.totalOutput > 0 ? data.totalOutput : data.totalInput) * priceUsd
-                      ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      )
-                    </span>
-                  )}
-                </span>
-              )
-            }
-          />
-
-          <InfoRow
-            icon={Icons.Database}
-            label="Size"
-            value={`${data.size.toLocaleString()} bytes (${(data.size / 1024).toFixed(2)} KB)`}
-            tooltip="Transaction size in bytes"
-          />
-          <InfoRow
-            icon={Icons.Code}
-            label="Version"
-            value={data.version}
-            tooltip="Transaction version number"
-          />
-          <InfoRow
-            icon={Icons.Clock}
-            label="Lock Time"
-            value={data.locktime}
-            tooltip="Block height or timestamp at which this transaction is unlocked"
-          />
-
-          {data.expiryHeight != null && data.expiryHeight > 0 && (
-            <InfoRow
-              icon={Icons.Clock}
-              label="Expiry Height"
-              tooltip="Block height after which this transaction can no longer be mined. The delta from the mined block height indicates the wallet's configured expiry window."
-              value={
-                <span className="flex items-center gap-2 flex-wrap">
-                  <span>{data.expiryHeight.toLocaleString()}</span>
-                  <span className="text-[10px] text-muted font-mono">
-                    +{data.expiryHeight - (data.blockHeight || 0)} blocks
-                  </span>
-                </span>
-              }
-            />
+                {hasOrchardActivity && (
+                  <PoolActivityBox
+                    category="orchard"
+                    counts={{ actions: data.orchardActions || 0 }}
+                    valueBalance={data.valueBalanceOrchard}
+                  />
+                )}
+                {hasIronwoodActivity && (
+                  <PoolActivityBox
+                    category="ironwood"
+                    counts={{ actions: data.ironwoodActions || 0 }}
+                    valueBalance={data.valueBalanceIronwood}
+                  />
+                )}
+              </div>
+            </div>
           )}
-
-          <ShieldedDetailsSection data={data} />
         </CardBody>
       </Card>
     </div>

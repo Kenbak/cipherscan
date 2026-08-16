@@ -63,7 +63,7 @@ export function Badge({
  * Pre-configured badges for common statuses.
  */
 interface StatusBadgeProps {
-  status: 'confirmed' | 'pending' | 'reorganized' | 'shielded' | 'transparent' | 'warning';
+  status: 'confirmed' | 'pending' | 'reorganized' | 'shielded' | 'transparent' | 'warning' | 'canonical' | 'orphan';
   className?: string;
   variant?: 'solid' | 'subtle';
 }
@@ -81,6 +81,29 @@ export function StatusBadge({ status, className = '', variant = 'solid' }: Statu
     },
     reorganized: {
       label: 'REORGANIZED',
+      color: 'orange',
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+      ),
+    },
+    // Block-page equivalent of confirmed/reorganized — same colors and icons,
+    // since "on the canonical chain" vs. "knocked off it" is the same shape
+    // of fact as "confirmed" vs. "reorganized", just for a block instead of
+    // a transaction. Reusing them keeps the two badge vocabularies in sync
+    // instead of drifting into a second set of icons for the same meaning.
+    canonical: {
+      label: 'CANONICAL',
+      color: 'green',
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+    },
+    orphan: {
+      label: 'ORPHAN',
       color: 'orange',
       icon: (
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

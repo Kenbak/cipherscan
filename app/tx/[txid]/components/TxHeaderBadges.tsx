@@ -3,6 +3,8 @@
 import { ExportButton } from '@/components/ExportButton';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { TxTypeBadge, type TxCategory } from '@/components/ui/TxTypeBadge';
+import { NetworkIcon } from '@/components/icons/common';
+import { getNetworkLabel } from '@/lib/network';
 import type { TransactionData, TxClassification, TxType } from './types';
 
 interface TxHeaderBadgesProps {
@@ -26,23 +28,10 @@ const TX_TYPE_TO_CATEGORY: Partial<Record<TxType, TxCategory>> = {
   REGULAR: 'transparent',
 };
 
-const NetworkIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
-    <path strokeLinecap="round" strokeWidth={1.5} d="M3 12h18M12 3c2.5 2.7 3.75 6 3.75 9s-1.25 6.3-3.75 9c-2.5-2.7-3.75-6-3.75-9S9.5 5.7 12 3z" />
-  </svg>
-);
-
 export function TxHeaderBadges({ data, classification }: TxHeaderBadgesProps) {
   const { txType, allBridges } = classification;
   const category = TX_TYPE_TO_CATEGORY[txType];
-
-  const networkLabel =
-    process.env.NEXT_PUBLIC_NETWORK === 'testnet'
-      ? 'ZCASH TESTNET (TAZ)'
-      : process.env.NEXT_PUBLIC_NETWORK === 'crosslink-testnet'
-        ? 'ZCASH CROSSLINK TESTNET'
-        : 'ZCASH MAINNET';
+  const networkLabel = getNetworkLabel();
 
   return (
     <div className="flex items-center justify-between gap-2 mb-4 animate-fade-in-up">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SegmentedToggle } from '@/components/ui/SegmentedToggle';
 
 export interface PageSection {
   id: string;
@@ -55,29 +56,7 @@ export function PageSectionNav({ sections, ariaLabel, className = '' }: PageSect
       }}
       aria-label={ariaLabel}
     >
-      <div
-        className="inline-flex gap-1 p-1 rounded-lg overflow-x-auto no-scrollbar w-fit max-w-full"
-        style={{ backgroundColor: 'var(--glass-3)' }}
-      >
-        {sections.map(({ id, label }) => {
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => scrollTo(id)}
-              className={`flex-shrink-0 px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-md transition-all whitespace-nowrap ${
-                isActive
-                  ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
-                  : 'text-muted hover:text-secondary'
-              }`}
-              aria-current={isActive ? 'true' : undefined}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedToggle options={sections} value={active} onChange={scrollTo} />
     </nav>
   );
 }

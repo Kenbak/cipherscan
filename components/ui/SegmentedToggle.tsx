@@ -1,0 +1,50 @@
+'use client';
+
+/**
+ * SegmentedToggle — quiet, neutral pill switch for a small, fixed set of
+ * mutually-exclusive *display modes* of the same content (e.g. Decoded JSON
+ * vs Hex, or the block/tx page's section-jump nav). The active option is a
+ * raised neutral chip (bg-cipher-bg + a faint ring), not a colored fill —
+ * deliberately quieter than FilterGroup's cyan-highlight `.filter-btn-active`,
+ * which is reserved for actual data *filters* (narrowing a list/table by
+ * category) where a strong color cue helps you scan which of several values
+ * is selected. Switching how the same data is displayed isn't a filter and
+ * shouldn't borrow that same visual loudness.
+ */
+export function SegmentedToggle<T extends string>({
+  options,
+  value,
+  onChange,
+  className = '',
+}: {
+  options: readonly { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`inline-flex gap-1 p-1 rounded-lg overflow-x-auto no-scrollbar w-fit max-w-full ${className}`.trim()}
+      style={{ backgroundColor: 'var(--glass-3)' }}
+      role="tablist"
+    >
+      {options.map((opt) => {
+        const isActive = value === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(opt.id)}
+            className={`flex-shrink-0 px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-md transition-all whitespace-nowrap ${
+              isActive ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12' : 'text-muted hover:text-secondary'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

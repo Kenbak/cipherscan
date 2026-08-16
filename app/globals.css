@@ -977,6 +977,27 @@
       flex-grow: 1.8;
       min-width: 260px;
     }
+    /* Content-hugging variant (tx-detail fact rows) — .fact-box-fit's equal
+       flex-grow makes every box in a row the same width regardless of how
+       little it holds (e.g. "Size" ends up as wide as "Block", which has a
+       link + confirmation count + a badge), leaving visibly empty padding
+       in the shorter ones. This sizes to *content* first (flex-basis: auto)
+       instead of an equal share, so mixed-length facts still read as
+       mixed-length boxes — but flex-grow: 1 lets them then share out
+       whatever's left so the row still reaches the card's full width
+       instead of stopping short and leaving a dead gap when the boxes'
+       combined natural width doesn't fill it.
+       .fact-box-hash-inline is the equivalent for a hash sharing this row
+       (e.g. Block Hash) — the truncated hash + copy button need more floor
+       width than a short numeric fact does. */
+    .fact-box-hug {
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
+    .fact-box-hash-inline {
+      flex: 1 1 auto;
+      min-width: 220px;
+    }
   }
 
   .page-section-nav {

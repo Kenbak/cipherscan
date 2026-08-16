@@ -1,17 +1,10 @@
 import { forwardRef } from 'react';
 import { Badge, DataTable, HashLink, RedactedAmount, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
+import { ShieldedIcon } from '@/components/icons/shield-flow';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { zatToZec } from '@/lib/format-numbers';
 import { CURRENCY } from '@/lib/config';
 import type { BlockData } from './types';
-
-function ShieldIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  );
-}
 
 /** Same category registry as every other Type column in the app — see TxTypeBadge. */
 function poolBadge(tx: any) {
@@ -28,8 +21,14 @@ function poolBadge(tx: any) {
   return <TxTypeBadge category={category} />;
 }
 
-function poolColorClass(pool: string | null) {
-  return pool === 'Ironwood' ? 'text-cipher-yellow' : pool === 'Orchard' ? 'text-cipher-purple' : 'text-cipher-cyan';
+/** Sapling/Orchard/Ironwood pool label -> the same category TxTypeBadge uses
+ *  elsewhere, so a "From: Orchard" cell here carries the exact color/icon as
+ *  the Type badge on this same row instead of a separate, uncoordinated
+ *  color scale. */
+function poolLabelCategory(pool: string): TxCategory {
+  if (pool === 'Ironwood') return 'ironwood';
+  if (pool === 'Orchard') return 'orchard';
+  return 'sapling';
 }
 
 function poolBalances(tx: any) {
@@ -142,14 +141,7 @@ const columns: DataTableColumn<any>[] = [
       if (isCoinbase) return <span className="text-xs text-muted font-mono">Block Reward</span>;
       if (fromAddress) return <HashLink value={fromAddress} copy={false} lead={8} tail={4} responsive />;
       const label = sourcePoolLabel(tx);
-      if (label) {
-        return (
-          <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
-            <ShieldIcon className="w-3 h-3" />
-            {label}
-          </span>
-        );
-      }
+      if (label) return <TxTypeBadge category={poolLabelCategory(label)} label={label} />;
       return <span className="text-xs text-muted font-mono">—</span>;
     },
   },
@@ -161,14 +153,7 @@ const columns: DataTableColumn<any>[] = [
       const toAddress = firstOutputAddress(tx);
       if (toAddress) return <HashLink value={toAddress} copy={false} lead={8} tail={4} responsive />;
       const label = destPoolLabel(tx);
-      if (label) {
-        return (
-          <span className={`text-xs font-mono flex items-center gap-1 ${poolColorClass(label)}`}>
-            <ShieldIcon className="w-3 h-3" />
-            {label}
-          </span>
-        );
-      }
+      if (label) return <TxTypeBadge category={poolLabelCategory(label)} label={label} />;
       return <span className="text-xs text-muted font-mono">—</span>;
     },
   },
@@ -181,8 +166,10 @@ const columns: DataTableColumn<any>[] = [
       const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
       const inputCount = isCoinbase ? 0 : (tx.vin?.length || 0);
       const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
+      // Muted, not pool-tinted — the Type badge on this row already carries
+      // the pool color; repeating it here per-cell is what read as "rainbow".
       if (isShielded && inputCount === 0 && !isCoinbase) {
-        return <ShieldIcon className={`w-3 h-3 mx-auto ${tx.has_ironwood ? 'text-cipher-yellow' : tx.has_orchard ? 'text-cipher-purple' : 'text-cipher-cyan'}`} />;
+        return <ShieldedIcon size={12} className="mx-auto text-muted" />;
       }
       return <span className="text-xs font-mono text-secondary tabular-nums">{inputCount}</span>;
     },
@@ -196,7 +183,7 @@ const columns: DataTableColumn<any>[] = [
       const outputCount = tx.vout?.length || 0;
       const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
       if (isShielded && outputCount === 0) {
-        return <ShieldIcon className={`w-3 h-3 mx-auto ${tx.has_ironwood ? 'text-cipher-yellow' : tx.has_orchard ? 'text-cipher-purple' : 'text-cipher-cyan'}`} />;
+        return <ShieldedIcon size={12} className="mx-auto text-muted" />;
       }
       return <span className="text-xs font-mono text-secondary tabular-nums">{outputCount}</span>;
     },

@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
+import { SegmentedToggle } from '@/components/ui/SegmentedToggle';
 import type { RawTxData } from './types';
+
+const RAW_VIEWS = [
+  { id: 'decoded', label: 'Decoded JSON' },
+  { id: 'hex', label: 'Hex' },
+] as const;
 
 interface RawDataSectionProps {
   txid: string;
@@ -35,7 +41,8 @@ export function RawDataSection({
   }, [txid, rawData, setRawData, setRawLoading]);
 
   const [copiedRaw, setCopiedRaw] = useState(false);
-  const [showDecoded, setShowDecoded] = useState(true);
+  const [rawView, setRawView] = useState<(typeof RAW_VIEWS)[number]['id']>('decoded');
+  const showDecoded = rawView === 'decoded';
 
   const copyHex = async () => {
     if (!rawData?.hex) return;
@@ -70,20 +77,7 @@ export function RawDataSection({
   return (
     <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center gap-3 mb-4">
-        <div className="filter-group">
-          <button
-            onClick={() => setShowDecoded(true)}
-            className={`filter-btn ${showDecoded ? 'filter-btn-active' : ''}`}
-          >
-            Decoded JSON
-          </button>
-          <button
-            onClick={() => setShowDecoded(false)}
-            className={`filter-btn ${!showDecoded ? 'filter-btn-active' : ''}`}
-          >
-            Hex
-          </button>
-        </div>
+        <SegmentedToggle options={RAW_VIEWS} value={rawView} onChange={setRawView} />
         <button
           onClick={copyHex}
           className="ml-auto px-3 py-1.5 text-xs font-mono text-muted hover:text-primary transition-colors"

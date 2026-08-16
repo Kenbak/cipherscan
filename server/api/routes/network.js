@@ -83,7 +83,13 @@ async function fetchNetworkStatsOptimized() {
         SELECT
           COUNT(*) as blocks_24h,
           AVG(difficulty) as avg_difficulty,
-          SUM(transaction_count) as tx_24h
+          SUM(transaction_count) as tx_24h,
+          -- transaction_count includes each block's mandatory coinbase tx,
+          -- which would otherwise inflate "txs per block" with a transaction
+          -- nobody sent — exactly one coinbase per block, so COUNT(*) is the
+          -- exact amount to subtract, no separate transactions-table query.
+          SUM(transaction_count) - COUNT(*) as tx_24h_excl_coinbase,
+          AVG(total_fees) as avg_block_fee_zat
         FROM blocks
         WHERE timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
       ),
@@ -98,6 +104,8 @@ async function fetchNetworkStatsOptimized() {
         last_24h.blocks_24h,
         last_24h.avg_difficulty,
         last_24h.tx_24h,
+        last_24h.tx_24h_excl_coinbase,
+        last_24h.avg_block_fee_zat,
         rolling_block_time.avg_secs AS rolling_block_time_secs
       FROM latest, last_24h, rolling_block_time
     `);
@@ -106,7 +114,7 @@ async function fetchNetworkStatsOptimized() {
       throw new Error('No blockchain data available');
     }
 
-    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h, rolling_block_time_secs } = dbStats.rows[0];
+    const { height, difficulty, timestamp, blocks_24h, avg_difficulty, tx_24h, tx_24h_excl_coinbase, avg_block_fee_zat, rolling_block_time_secs } = dbStats.rows[0];
 
     const [networkInfo, peerInfo, blockchainInfo, blockSubsidy] = await Promise.all([
       callZebraRPC('getnetworkinfo').catch(() => null),
@@ -162,11 +170,13 @@ async function fetchNetworkStatsOptimized() {
     // Calculate hashrate
     const blocks24h = parseInt(blocks_24h || 0);
     const tx24h = parseInt(tx_24h || 0);
+    const tx24hExclCoinbase = parseInt(tx_24h_excl_coinbase || 0);
     const avgBlockTime = rolling_block_time_secs
       ? Math.round(Number(rolling_block_time_secs) * 10) / 10
       : (blocks24h > 0 ? Math.round(86400 / blocks24h) : 75);
     const difficultyNum = parseFloat(difficulty || 0);
     const networkHashrate = difficultyNum / avgBlockTime;
+    const avgBlockFee = avg_block_fee_zat != null ? parseFloat(avg_block_fee_zat) / 100000000 : null;
 
     function formatHashrate(h) {
       if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TH/s`;
@@ -191,6 +201,7 @@ async function fetchNetworkStatsOptimized() {
         networkHashrateRaw: networkHashrate,
         difficulty: difficultyNum,
         avgBlockTime, // in seconds
+        avgBlockFee, // in ZEC, null if no blocks in the last 24h
         blocks24h,
         blockReward: totalBlockSubsidy,
         minerReward,
@@ -212,6 +223,7 @@ async function fetchNetworkStatsOptimized() {
         sizeBytes: blockchainInfo?.size_on_disk || 0,
         sizeGB: parseFloat(((blockchainInfo?.size_on_disk || 0) / (1024 * 1024 * 1024)).toFixed(2)),
         tx24h,
+        tx24hExclCoinbase,
       },
       supply: supplyData,
       timestamp: Date.now(),
