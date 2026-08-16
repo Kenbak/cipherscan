@@ -105,11 +105,12 @@ export function AddressDisplay({
   return (
     <Link
       href={`/address/${address}`}
-      // Explicit resting color, not inherited — most callers sit inside
-      // text that's already text-primary (prose sentences, flow diagram
-      // nodes), so `hover:text-primary` alone was hovering to the same
-      // color it started at and never visibly changing.
-      className={`font-mono text-secondary hover:text-primary transition-colors ${className}`}
+      // The address is the identifying fact here (this is the hero flow
+      // diagram's node in most call sites), so it rests at text-primary
+      // like the block hash / reward addresses elsewhere — hover:underline
+      // instead of hover:text-primary, since hovering to the same color
+      // it started at wouldn't visibly change anything.
+      className={`font-mono text-primary hover:underline transition-colors ${className}`}
       title={address}
     >
       {labelInfo ? labelInfo.label : truncatedAddress}

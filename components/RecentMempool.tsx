@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
 import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
@@ -71,7 +71,7 @@ function getKnownAmount(tx: MempoolTx): number | null {
   return null;
 }
 
-export const RecentMempool = memo(function RecentMempool() {
+export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: ReactNode } = {}) {
   const [txs, setTxs] = useState<MempoolTx[]>([]);
   const [stats, setStats] = useState<MempoolStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,6 +168,7 @@ export const RecentMempool = memo(function RecentMempool() {
         <div className="px-4 py-8 text-center text-sm text-muted font-mono">
           No pending transactions
         </div>
+        {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
       </div>
     );
   }
@@ -226,6 +227,7 @@ export const RecentMempool = memo(function RecentMempool() {
           </tbody>
         </table>
       </div>
+      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
     </div>
   );
 });

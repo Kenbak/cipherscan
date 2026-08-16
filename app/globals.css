@@ -232,9 +232,11 @@
     radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
 
-  /* Text */
+  /* Text — three distinct steps (primary brightest, muted dimmest).
+     secondary and muted previously collapsed to the same #9CA3AF, flattening
+     the hierarchy to two effective tiers instead of three. */
   --color-text-primary: #E5E7EB;
-  --color-text-secondary: #9CA3AF;
+  --color-text-secondary: #C4CAD4;
   --color-text-muted: #9CA3AF;
 
   /* Node map */

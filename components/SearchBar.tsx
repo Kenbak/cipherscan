@@ -39,7 +39,32 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [labelsLoaded, setLabelsLoaded] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Global ⌘K / Ctrl+K — exactly one SearchBar (compact in the navbar, or
+  // full-size in the homepage hero) is ever mounted per page, so focusing
+  // "the" input here is unambiguous without a shared context/store. Skipped
+  // while another input/textarea/contentEditable already has focus so this
+  // doesn't hijack typing elsewhere on the page.
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        const active = document.activeElement;
+        const isTyping =
+          active instanceof HTMLElement &&
+          (active.tagName === 'TEXTAREA' ||
+            active.isContentEditable ||
+            (active.tagName === 'INPUT' && active !== inputRef.current));
+        if (isTyping) return;
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    }
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Fetch official labels on mount
   useEffect(() => {
@@ -264,6 +289,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             {'>'}
           </div>
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -299,6 +325,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
           </div>
 
           <input
+            ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -309,7 +336,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             }}
             onBlur={() => setIsFocused(false)}
             placeholder="Search address, tx hash, block, or name..."
-            className={`w-full pl-10 sm:pl-12 pr-24 lg:pr-36 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
+            className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
               search-input-hero border-2 rounded-xl text-primary
               placeholder:text-muted transition-all duration-300
               ${isFocused
@@ -319,24 +346,29 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
               focus:outline-none`}
           />
 
-          {/* Keyboard shortcut hint */}
-          <div className={`hidden lg:flex absolute right-36 top-1/2 -translate-y-1/2 items-center gap-1 text-muted transition-opacity ${query ? 'opacity-0 pointer-events-none' : ''}`}>
+          {/* Keyboard shortcut hint — real now: a global listener above
+              focuses this input on ⌘K/Ctrl+K from anywhere on the page. */}
+          <div className={`hidden lg:flex absolute right-14 top-1/2 -translate-y-1/2 items-center gap-1 text-muted transition-opacity ${query ? 'opacity-0 pointer-events-none' : ''}`}>
             <kbd className="kbd-hint">⌘</kbd>
             <kbd className="kbd-hint">K</kbd>
           </div>
 
-          {/* Search Button */}
+          {/* Icon-only submit — Enter already submits for keyboard users;
+              this is just a touch/click target, not a second "you must
+              click this" affordance competing with the input itself. */}
           <button
             type="submit"
+            aria-label="Search"
             className="absolute right-2 top-1/2 -translate-y-1/2
               inline-flex items-center justify-center
-              px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg
-              font-mono font-bold text-xs sm:text-sm
-              bg-cipher-cyan-bright text-cipher-bg-dark
-              hover:opacity-90
+              w-9 h-9 sm:w-10 sm:h-10 rounded-lg
+              text-cipher-cyan border border-cipher-border
+              hover:border-white/[0.12] hover:bg-cipher-hover
               transition-all duration-150"
           >
-            SEARCH
+            <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+            </svg>
           </button>
 
           <SuggestionsDropdown />

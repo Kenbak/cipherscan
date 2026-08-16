@@ -139,7 +139,7 @@ const columns: DataTableColumn<any>[] = [
       const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
       const fromAddress = !isCoinbase && tx.vin?.[0]?.address;
       if (isCoinbase) return <span className="text-xs text-muted font-mono">Block Reward</span>;
-      if (fromAddress) return <HashLink value={fromAddress} copy={false} lead={8} tail={4} responsive />;
+      if (fromAddress) return <HashLink value={fromAddress} href={`/address/${fromAddress}`} copy={false} lead={8} tail={4} responsive />;
       const label = sourcePoolLabel(tx);
       if (label) return <TxTypeBadge category={poolLabelCategory(label)} label={label} />;
       return <span className="text-xs text-muted font-mono">—</span>;
@@ -151,7 +151,7 @@ const columns: DataTableColumn<any>[] = [
     skeletonWidth: 'w-24',
     cell: (tx) => {
       const toAddress = firstOutputAddress(tx);
-      if (toAddress) return <HashLink value={toAddress} copy={false} lead={8} tail={4} responsive />;
+      if (toAddress) return <HashLink value={toAddress} href={`/address/${toAddress}`} copy={false} lead={8} tail={4} responsive />;
       const label = destPoolLabel(tx);
       if (label) return <TxTypeBadge category={poolLabelCategory(label)} label={label} />;
       return <span className="text-xs text-muted font-mono">—</span>;

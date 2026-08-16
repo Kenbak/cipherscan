@@ -71,8 +71,10 @@ export function CopyableHash({
 }) {
   // Only a real link should visually react to hover — a hash with no href
   // renders as plain <code> (see HashLink), and giving it a hover color
-  // would suggest it's clickable when it isn't.
-  const hoverClass = href ? 'hover:text-primary transition-colors' : '';
+  // would suggest it's clickable when it isn't. The underline covers the
+  // case where colorClass is already text-primary at rest (e.g. the reward
+  // breakdown addresses), where hover:text-primary alone is invisible.
+  const hoverClass = href ? 'hover:text-primary hover:underline transition-colors' : '';
 
   return (
     <div className="flex items-center gap-1.5 min-w-0">

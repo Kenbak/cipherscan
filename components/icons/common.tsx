@@ -8,3 +8,15 @@ export function NetworkIcon({ className = 'w-3.5 h-3.5' }: { className?: string 
     </svg>
   );
 }
+
+/** "Customize" affordance — mixer/sliders, distinct from a gear (which usually implies app-wide settings, not "swap this one card's content"). */
+export function SlidersIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h10m4 0h2M4 12h2m4 0h10M4 18h14m4 0h2" />
+      <circle cx="16" cy="6" r="2" strokeWidth={1.5} />
+      <circle cx="8" cy="12" r="2" strokeWidth={1.5} />
+      <circle cx="20" cy="18" r="2" strokeWidth={1.5} />
+    </svg>
+  );
+}

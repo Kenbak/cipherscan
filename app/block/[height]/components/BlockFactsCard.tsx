@@ -90,7 +90,7 @@ function BlockRewardBreakdown({
             <div className="flex items-center gap-1.5 min-w-0 text-muted">
               <span className="shrink-0">{r.label}</span>
               {r.address ? (
-                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-[11px]" />
+                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-[11px]" colorClass="text-primary" />
               ) : (
                 <span className="font-mono text-cipher-yellow">Shielded Pool</span>
               )}
@@ -181,7 +181,7 @@ export function BlockFactsCard({
         */}
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-start">
           <FactBox fit className="order-1 sm:order-none fact-box-hash" label="Block Hash" tooltip="Unique cryptographic identifier for this block">
-            <CopyableHash value={data.hash} />
+            <CopyableHash value={data.hash} colorClass="text-primary" />
           </FactBox>
 
           {/*
@@ -206,14 +206,14 @@ export function BlockFactsCard({
           </FactBox>
 
           <FactBox fit className="order-4 sm:order-none" label="Transactions" tooltip="Click to jump to the transaction list">
-            <button onClick={onScrollToTransactions} className="text-sm text-secondary font-semibold hover:text-primary transition-colors whitespace-nowrap">
+            <button onClick={onScrollToTransactions} className="text-sm text-primary font-semibold hover:underline transition-colors whitespace-nowrap">
               {data.transactionCount} transaction{data.transactionCount !== 1 ? 's' : ''}
             </button>
           </FactBox>
 
           {data.totalFees !== undefined && !data.isOrphaned && (
             <FactBox fit className="order-5 sm:order-none" label="Total Fees" tooltip="Total fees paid by all transactions in this block">
-              <BoldZec value={data.totalFees} accent="text-secondary" />
+              <BoldZec value={data.totalFees} />
             </FactBox>
           )}
         </div>
@@ -279,7 +279,7 @@ export function BlockFactsCard({
 
               {data.merkleRoot && (
                 <FactBox label="Merkle Root" tooltip="Proves all transparent transactions in this block are valid and unmodified">
-                  <CopyableHash value={data.merkleRoot} />
+                  <CopyableHash value={data.merkleRoot} colorClass="text-primary" />
                 </FactBox>
               )}
 

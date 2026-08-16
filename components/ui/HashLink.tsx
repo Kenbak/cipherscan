@@ -50,8 +50,12 @@ export function HashLink({
 }) {
   // Hover is intentionally unified to text-primary regardless of accent —
   // `accent` still exists for callers that want a distinct resting-state
-  // color, but hover no longer varies by context.
-  const hover = 'hover:text-primary';
+  // color, but hover no longer varies by context. Default-styled links
+  // already rest at text-primary (max brightness), so text-primary on
+  // hover alone produced zero visible change — the underline is the actual
+  // hover affordance for those; it's a harmless no-op color-wise for
+  // callers whose `linkClassName` rests at a dimmer shade.
+  const hover = 'hover:text-primary hover:underline';
 
   const display = full ? (
     value

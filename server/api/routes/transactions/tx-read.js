@@ -79,7 +79,7 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
         t.value_balance_ironwood
       FROM transactions t
       ${whereClause}
-      ORDER BY t.block_height DESC
+      ORDER BY t.block_height DESC, t.tx_index DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       queryParams
     );

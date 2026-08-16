@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
+import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { PageHeader, MetricCard, Tabs, DataTable, HashLink, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
+import { PageHeader, MetricCard, Tabs, DataTable, HashLink, RedactedAmount, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
@@ -34,8 +35,39 @@ interface Transaction {
   value_balance_sapling: number;
   value_balance_orchard: number;
   value_balance_ironwood: number;
+  total_output: number | string;
   flow_type: string | null;
   tx_index?: number;
+}
+
+/**
+ * Same public-data rule as RecentTransactions / RecentShieldedTxs / the
+ * block page's reward breakdown: a transparent output is always public, a
+ * shield/deshield's transparent-side value balance is public (needed for
+ * the binding-signature balance equation), and a pool-to-pool migration's
+ * destination-pool balance is public. A genuinely fully-shielded self-loop
+ * (spend and output in the same pool, nothing else) has no public amount.
+ */
+function knownAmountZec(tx: Transaction): number | null {
+  const sap = Number(tx.value_balance_sapling) || 0;
+  const orc = Number(tx.value_balance_orchard) || 0;
+  const irn = Number(tx.value_balance_ironwood) || 0;
+  const transparentOutZat = Number(tx.total_output) || 0;
+
+  if (tx.vin_count === 0 && tx.vout_count === 0) {
+    const source = orc > 0 ? 'orchard' : sap > 0 ? 'sapling' : irn > 0 ? 'ironwood' : null;
+    if (source) {
+      const destZat = irn < 0 ? Math.abs(irn) : orc < 0 ? Math.abs(orc) : sap < 0 ? Math.abs(sap) : 0;
+      if (destZat > 0) return zatToZec(destZat);
+    }
+  }
+
+  const valueBalanceZat = sap + orc + irn;
+  const shieldedDepositZat = valueBalanceZat < 0 ? Math.abs(valueBalanceZat) : 0;
+  const totalZat = transparentOutZat + shieldedDepositZat;
+  if (totalZat > 0) return zatToZec(totalZat);
+  if (tx.is_coinbase) return zatToZec(totalZat); // legitimately zero, not unknown
+  return null;
 }
 
 interface TrendDay {
@@ -115,6 +147,17 @@ const txColumns: DataTableColumn<Transaction>[] = [
     className: 'hidden lg:table-cell',
     skeletonWidth: 'w-16',
     cell: (tx) => getFlowBadge(tx),
+  },
+  {
+    id: 'amount',
+    header: 'Amount',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (tx) => {
+      const amount = knownAmountZec(tx);
+      if (amount === null) return <RedactedAmount className="!text-xs" />;
+      return <span className="font-mono text-xs text-primary font-semibold tabular-nums whitespace-nowrap">{formatZecPrecise(amount)} <span className="text-muted font-normal">ZEC</span></span>;
+    },
   },
   {
     id: 'block',

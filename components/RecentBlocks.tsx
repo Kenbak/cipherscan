@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatBytesCompact } from '@/lib/format-numbers';
@@ -19,6 +19,8 @@ interface Block {
 
 interface RecentBlocksProps {
   initialBlocks?: Block[];
+  /** Rendered inside the card, below the table (e.g. a "View all" link) — same slot DataTable's own `footer` prop fills. */
+  footer?: ReactNode;
 }
 
 function parseBlock(b: any): Block {
@@ -31,7 +33,7 @@ function parseBlock(b: any): Block {
   };
 }
 
-export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: RecentBlocksProps) {
+export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], footer }: RecentBlocksProps) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [loading, setLoading] = useState(initialBlocks.length === 0);
   const latestKey = useRef(initialBlocks[0]?.height ?? 0);
@@ -139,6 +141,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [] }: R
           </tbody>
         </table>
       </div>
+      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
     </div>
   );
 });

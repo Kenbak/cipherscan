@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SearchBar } from '@/components/SearchBar';
-import { RecentBlocks } from '@/components/RecentBlocks';
-import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { HomeFeedCard } from '@/components/HomeFeedCard';
 import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
@@ -174,76 +174,34 @@ export default async function Home() {
         </>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 mt-10 sm:mt-12 lg:mt-16">
-          <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
-                <span className="text-muted opacity-50">{'>'}</span>
-                RECENT_BLOCKS
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
-                </span>
-                <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
-              </div>
-            </div>
-            <RecentBlocks initialBlocks={initialBlocks} />
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <Link href="/blocks" className="text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
-                View All Blocks →
-              </Link>
-              <span className="text-cipher-border">·</span>
-              <Link href="/txs" className="text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
-                View All Transactions →
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
-                <span className="text-muted opacity-50">{'>'}</span>
-                SHIELDED_ACTIVITY
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
-                </span>
-                <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
-              </div>
-            </div>
-            <RecentShieldedTxs initialTxs={initialShieldedTxs} showLegend={false} />
-            <Link href="/txs/shielded" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
-              View All Shielded Transactions →
-            </Link>
-          </div>
+          <HomeFeedCard
+            storageKey="cipherscan-home-card-left"
+            defaultType="blocks"
+            initialBlocks={initialBlocks}
+          />
+          <HomeFeedCard
+            storageKey="cipherscan-home-card-right"
+            defaultType="shielded"
+            initialShieldedTxs={initialShieldedTxs}
+          />
         </div>
       )}
 
       {/* Network Pulse — floating widget */}
       {!crosslinkMode && <PulseWidget />}
 
-      {/* Pending Mempool */}
+      {/* Pending Mempool — fixed, not customizable: always the baseline
+          "what's about to confirm" view regardless of what the two cards
+          above are set to. */}
       <div className="mt-10 sm:mt-12 lg:mt-16">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base sm:text-lg font-bold font-mono text-secondary flex items-center gap-2">
-            <span className="text-muted opacity-50">{'>'}</span>
-            MEMPOOL
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green"></span>
-            </span>
-            <span className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider">Live</span>
-          </div>
-        </div>
-        <RecentMempool />
-        <Link href="/mempool" className="block mt-4 text-center text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
-          View All Pending Transactions →
-        </Link>
+        <SectionHeader label="MEMPOOL" live size="lg" />
+        <RecentMempool
+          footer={
+            <Link href="/mempool" className="text-xs sm:text-sm font-mono text-muted hover:text-primary transition-colors">
+              View all
+            </Link>
+          }
+        />
       </div>
     </div>
   );

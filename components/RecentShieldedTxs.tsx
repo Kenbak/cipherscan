@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise } from '@/lib/format-numbers';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
@@ -83,6 +83,8 @@ interface RecentShieldedTxsProps {
   initialTxs?: ShieldedTx[];
   limit?: number;
   showLegend?: boolean;
+  /** Rendered inside the card, below the table/legend (e.g. a "View all" link) — same slot DataTable's own `footer` prop fills. */
+  footer?: ReactNode;
 }
 
 export const RecentShieldedTxs = memo(function RecentShieldedTxs({
@@ -90,6 +92,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
   initialTxs = [],
   limit = 5,
   showLegend = true,
+  footer,
 }: RecentShieldedTxsProps) {
   const [txs, setTxs] = useState<ShieldedTx[]>(initialTxs);
   const [loading, setLoading] = useState(initialTxs.length === 0);
@@ -163,7 +166,8 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
           <thead>
             <tr>
               <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Type</th>
+              {/* Shield/deshield/mixed/migration direction — "Flow" to match /txs's own naming for the exact same ShieldFlowBadge, not "Type" (that word means pool category everywhere else in the app). */}
+              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Flow</th>
               <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
               <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
             </tr>
@@ -185,7 +189,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                       tail={6}
                       responsive
                       accent="purple"
-                      linkClassName="font-mono text-sm font-medium text-primary hover:text-primary transition-colors truncate"
+                      linkClassName="font-mono text-sm font-medium text-primary hover:underline transition-colors truncate"
                     />
                   </td>
                   <td className="px-4 sm:px-5 h-12 border-b border-cipher-border">
@@ -218,6 +222,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
         </table>
       </div>
       {showLegend && <ShieldFlowLegend />}
+      {footer && <div className="px-4 py-3 border-t border-cipher-border text-center">{footer}</div>}
     </div>
   );
 });

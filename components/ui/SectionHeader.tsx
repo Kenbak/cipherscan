@@ -46,6 +46,15 @@ export function PageHeader({
   );
 }
 
+const LABEL_SIZE = {
+  /** Default — a sub-page's own card/list section label (/mining, /pools, /mempool). */
+  sm: 'text-xs sm:text-sm',
+  /** A page's primary top-level landmarks (e.g. the homepage), which need more
+   *  separation from the data-table column headers sitting directly below them
+   *  than a sub-page's in-card section label does. */
+  lg: 'text-sm sm:text-base',
+} as const;
+
 /**
  * SectionHeader — the standard in-page section header.
  *
@@ -57,6 +66,7 @@ export function SectionHeader({
   label,
   live = false,
   actions,
+  size = 'sm',
   className = '',
 }: {
   /** Mono uppercase section label, e.g. "POOL_RANKING" */
@@ -64,13 +74,15 @@ export function SectionHeader({
   /** Show a green pulsing dot after the label (live data sections) */
   live?: boolean;
   actions?: ReactNode;
+  /** 'lg' for a page's primary top-level sections; default 'sm' matches every other SectionHeader. */
+  size?: keyof typeof LABEL_SIZE;
   className?: string;
 }) {
   return (
     <div className={`flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap ${className}`}>
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+        <h2 className={`${LABEL_SIZE[size]} font-bold font-mono text-secondary uppercase tracking-wider`}>
           {label}
         </h2>
         {live && (
