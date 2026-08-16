@@ -278,6 +278,42 @@ async function run(pool, xClient, { logger = console, config = DEFAULT_CONFIG } 
       }
     }
 
+    // Ironwood transaction count milestone
+    if (milestoneConfig.countSteps && ironwood.txCount > 0) {
+      const countMilestone = checkMilestone(ironwood.txCount, milestoneConfig.countSteps);
+      if (countMilestone) {
+        const dedupKey = `milestone:tx_count:${countMilestone}`;
+        if (!(await queries.isDuplicate(pool, dedupKey))) {
+          const content = formatIronwoodMilestone({
+            type: 'count',
+            value: countMilestone,
+            context: `Pool size: ${(poolZec / 1000).toFixed(0)}K ZEC.`,
+          });
+          const outboxId = await queries.insertOutboxEntry(pool, {
+            postType: 'milestone',
+            dedupKey,
+            content,
+            metadata: { txCount: ironwood.txCount, poolZec },
+            status: xClient.dryRun ? 'dry_run' : 'pending',
+          });
+          if (outboxId) {
+            try {
+              const result = await postWithCard(xClient, content, renderMilestone, {
+                type: 'count',
+                value: countMilestone,
+                poolSizeZat: ironwood.poolSizeZat,
+                orchardPct: ironwood.orchardToIronwoodPct,
+              }, logger);
+              await queries.markPosted(pool, outboxId, result.id);
+              results.push({ type: 'milestone', milestone: `tx_count:${countMilestone}`, postId: result.id });
+            } catch (err) {
+              await queries.markFailed(pool, outboxId, err.message);
+            }
+          }
+        }
+      }
+    }
+
     // USD-denominated pool milestone
     if (milestoneConfig.usdSteps) {
       let priceUsd = null;

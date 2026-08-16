@@ -581,6 +581,9 @@ async function renderMilestone({ type, value, poolSizeZat, orchardPct, orchardTo
   } else if (type === 'supply_pct') {
     mainText = `${value}%`;
     subtitle = 'of Orchard migrated to Ironwood';
+  } else if (type === 'count') {
+    mainText = Number(value).toLocaleString();
+    subtitle = 'Ironwood transactions completed';
   } else if (type === 'usd_value') {
     mainText = fmtUsd(value);
     subtitle = 'Ironwood pool value just crossed';

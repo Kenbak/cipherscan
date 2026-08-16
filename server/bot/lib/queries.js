@@ -140,10 +140,19 @@ async function getIronwoodStats(pool) {
     orchardToIronwoodPct = originalOrchard > 0 ? (fromOrchardZat / originalOrchard) * 100 : 0;
   } catch {}
 
+  let txCount = 0;
+  try {
+    const { rows } = await pool.query(
+      `SELECT COUNT(*) AS c FROM transactions WHERE has_ironwood = true`
+    );
+    txCount = Number(rows[0]?.c ?? 0);
+  } catch {}
+
   return {
     poolSizeZat: ironwoodZat,
     orchardBalanceZat: orchardZat,
     orchardToIronwoodPct,
+    txCount,
   };
 }
 
