@@ -30,25 +30,29 @@ const INCREMENTAL_DAYS = DAYS_FLAG ? parseInt(DAYS_FLAG.split('=')[1]) : 7;
 /**
  * Known pool map — mirrors server/api/mining-pools.js
  * Duplicated here so the job is self-contained (no import path issues from cron).
- * Last synced: 2026-06-24
+ * Last synced: 2026-08-16
  */
 const POOL_MAP = {
-  't1SqwRAAdSig6dE4EBPLonAait219VmkUjP': 'Foundry USA',
-  't1PEp2GJLSdhDfCKqc2J211WKDUS1NfoQNy': 'F2Pool',
+  't1MKn34KBa8Xh4g8qU8psibBXvURafphVn7': 'ViaBTC',
   't1at7nVNsv6taLRrNRvnQdtfLNRDfsGc3Ak': 'ViaBTC',
-  't1ZVi2YGk98tEGYcNpXYnJFWCoLG2oYwv3J': 'AntPool',
-  't1L2b66MXbgpVMXDfUa94GCBFAN4dCxGohM': 'AntPool',
-  't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': 'Unidentified #5',
-  't1MKn34KBa8Xh4g8qU8psibBXvURafphVn7': 'Unidentified (Dominant)',
-  't1bnxtY7aLCjWx9Ru1YcGwRWch3eEWUFK7u': '2Miners',
-  't1fu6KgYtHEXk2ZhTpM1XD7jbnSmW6wokDM': '2Miners',
+  't1SEgZvXCu3ceE42qrq5pCeSq7HbLjX8NJv': 'ViaBTC-Solo',
+  't1PEp2GJLSdhDfCKqc2J211WKDUS1NfoQNy': 'F2Pool',
+  't1SqwRAAdSig6dE4EBPLonAait219VmkUjP': 'Foundry USA',
   't1XQZdZMnzXBcL8yx2PR27dSNrqctgwLgux': 'Luxor',
-  't1egMFNkP7EfkK25y8s4GeiMkEGnqcMnTb1': 'Mining Dutch',
+  't1VTjv7XF3hYqxQkxKmHHErvus3bDrbbkGg': '2Miners',
+  't1QxTHUputbmZRxd3EqP671sLqd6KNBQbXJ': '2Miners',
+  't1fu6KgYtHEXk2ZhTpM1XD7jbnSmW6wokDM': '2Miners',
+  't1bnxtY7aLCjWx9Ru1YcGwRWch3eEWUFK7u': '2Miners',
+  't1eBv4a3wBhVaFgWYjXrFYTU7pruCWaBpLW': 'NiceHash',
+  't1L2b66MXbgpVMXDfUa94GCBFAN4dCxGohM': 'AntPool',
+  't1ZVi2YGk98tEGYcNpXYnJFWCoLG2oYwv3J': 'AntPool',
+  't1e6hceYHkzCbwcwGZzKeMfXXW7x7gr19Cw': 'Kryptex',
   't1Mofe2EigYNfgqSTPbK4k1iJTxyCEEQCEC': 'Kryptex',
-  't1SEgZvXCu3ceE42qrq5pCeSq7HbLjX8NJv': 'NiceHash',
-  't1fpcZ2Dbwn4oj35oWBTUhtmUciSq7HG7LU': 'Solopool',
+  't1Uo7EN1A3GN29UjQJbUFYvrhxQd6Gt7qdA': 'ZEC Mining Pool',
+  't1egMFNkP7EfkK25y8s4GeiMkEGnqcMnTb1': 'Mining Dutch',
   't1Na7ykQ6vE4CbxBPuUDUQx5n6aEWXu1VQq': 'Binance Pool',
-  't1e6hceYHkzCbwcwGZzKeMfXXW7x7gr19Cw': 'Poolin',
+  't1K79TgQbqu74d6rBmsMu2oFEXEwAmdYiT7': 'Unidentified #5',
+  't1fpcZ2Dbwn4oj35oWBTUhtmUciSq7HG7LU': 'Private Miner B',
   't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': 'Dev Fund',
 };
 
