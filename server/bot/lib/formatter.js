@@ -112,7 +112,10 @@ function formatIronwoodMilestone({ type, value, context }) {
       detail = `Ironwood just crossed ${fmtZec(value * 1e8)}.`;
       break;
     case 'count':
-      detail = `${value.toLocaleString()} migrations to Ironwood completed.`;
+      // NB: this counts all transactions touching Ironwood (has_ironwood = true),
+      // not just inbound migrations — an Ironwood-to-Ironwood spend counts too.
+      // Keep this wording aligned with the card subtitle in card-renderer.js.
+      detail = `${value.toLocaleString()} Ironwood transactions completed.`;
       break;
     case 'supply_pct':
       detail = `${value}% of Orchard migrated to Ironwood.`;
