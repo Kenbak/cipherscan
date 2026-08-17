@@ -73,6 +73,13 @@ function fmtUsd(usd) {
   return `$${Math.round(usd)}`;
 }
 
+function fmtTopPct(percentileRank) {
+  const top = 100 - percentileRank;
+  if (top >= 1) return `Top ${top.toFixed(1)}%`;
+  if (top >= 0.01) return `Top ${top.toFixed(2)}%`;
+  return 'Top <0.01%';
+}
+
 // ─── Large Flow Alert ────────────────────────────────────────────────────────
 
 function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, percentileRank, priceUsd }) {
@@ -89,7 +96,7 @@ function formatLargeFlowAlert({ direction, amountZat, pool, blockHeight, txid, p
     `🐳 Whale Alert`,
     ``,
     `${amountStr} ${verb} ${prep} ${pool}.`,
-    `Top ${(100 - percentileRank).toFixed(1)}% of 90-day flows.`,
+    `${fmtTopPct(percentileRank)} of 90-day flows.`,
     ``,
     `${BASE_URL}/tx/${txid}`,
   ];
@@ -293,4 +300,5 @@ module.exports = {
   fmtZec,
   fmtPct,
   fmtHeight,
+  fmtTopPct,
 };

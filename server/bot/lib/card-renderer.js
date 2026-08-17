@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+const { fmtTopPct, PULSE_METRIC_UNITS, fmtMetricValue } = require('./formatter');
 const ASSETS = path.join(__dirname, '..', 'assets');
 const FONTS_DIR = path.join(ASSETS, 'fonts');
 const LOGO_PATH = path.join(ASSETS, 'logo-icon.png');
@@ -442,7 +443,7 @@ async function renderLargeFlow({ direction, amountZat, pool, blockHeight, txid, 
 
   // Stat row
   drawStatRow(ctx, 428, [
-    { label: 'PERCENTILE', value: `Top ${(100 - percentileRank).toFixed(1)}% · 90D`, color: accent },
+    { label: 'PERCENTILE', value: `${fmtTopPct(percentileRank)} · 90D`, color: accent },
     { label: 'POOL', value: poolName },
     { label: 'BLOCK', value: Number(blockHeight).toLocaleString() },
   ], { accentBorder: `${accent}26` });
@@ -739,8 +740,6 @@ async function renderPrivacyRisk({ highLinkages, batchClusters }) {
 }
 
 // ─── 6. Network Pulse Anomaly ─────────────────────────────────────────────────
-
-const { PULSE_METRIC_UNITS, fmtMetricValue } = require('./formatter');
 
 async function renderPulse({ metric, description, value, zscore, mean, std, direction }) {
   ensureFonts();
