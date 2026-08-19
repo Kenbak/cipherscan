@@ -342,23 +342,33 @@ function registerNetworkAnalyticsRoutes(router) {
         SELECT
           date_trunc('day', to_timestamp(timestamp)) as day,
           AVG(difficulty) as avg_difficulty,
-          COUNT(*) as block_count
+          COUNT(*) as block_count,
+          MIN(timestamp) as first_ts,
+          MAX(timestamp) as last_ts
         FROM blocks
         WHERE ${dateFilter}
         GROUP BY day
         ORDER BY day ASC
       `);
 
-      // Realized rate over the bucket (blockCount / 86400), not the 75s target —
-      // immune to the same per-block retarget noise that plain difficulty has.
+      // Realized rate over the bucket: blockCount / actual-elapsed-seconds, not a fixed
+      // 86400 — the "today" bucket is always partial (the day isn't over yet), so
+      // dividing its handful-of-blocks by a full day's seconds would make the most
+      // recent point look like a cliff-edge crash even though nothing changed.
       const points = result.rows.map((r) => {
         const avgDifficulty = parseFloat(r.avg_difficulty) || 0;
         const blockCount = parseInt(r.block_count, 10) || 0;
+        const firstTs = parseInt(r.first_ts, 10) || 0;
+        const lastTs = parseInt(r.last_ts, 10) || 0;
+        const elapsedSeconds = lastTs - firstTs;
+        const hashrate = blockCount > 1 && elapsedSeconds > 0
+          ? (avgDifficulty * 8192 * (blockCount - 1)) / elapsedSeconds
+          : (avgDifficulty * 8192) / 75; // single-block bucket: fall back to target block time
         return {
           date: r.day.toISOString().slice(0, 10),
           avgDifficulty,
           blockCount,
-          hashrate: (avgDifficulty * 8192 * blockCount) / 86400,
+          hashrate,
         };
       });
 
