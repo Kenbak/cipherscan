@@ -5,9 +5,9 @@
  * mutually-exclusive *display modes* of the same content (e.g. Decoded JSON
  * vs Hex, or the block/tx page's section-jump nav). The active option is a
  * raised neutral chip (bg-cipher-bg + a faint ring), not a colored fill —
- * deliberately quieter than FilterGroup's cyan-highlight `.filter-btn-active`,
- * which is reserved for actual data *filters* (narrowing a list/table by
- * category) where a strong color cue helps you scan which of several values
+ * visually aligned with FilterGroup's `.filter-btn-active` (both use neutral
+ * raised chips), but this component is for display-mode toggles rather than
+ * data filters (narrowing a list). The distinction is semantic, not visual.
  * is selected. Switching how the same data is displayed isn't a filter and
  * shouldn't borrow that same visual loudness.
  */

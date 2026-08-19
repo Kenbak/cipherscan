@@ -894,9 +894,11 @@
   }
 
   .filter-btn-active {
-    background: rgb(var(--color-cyan-rgb) / 0.15);
-    color: var(--color-cyan);
+    background: var(--color-cipher-bg);
+    color: var(--color-text-primary);
     font-weight: 700;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+    outline: 1px solid var(--glass-12);
   }
 
   .filter-btn-danger {
