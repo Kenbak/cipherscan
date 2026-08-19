@@ -213,10 +213,6 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
       ...commonImports,
       './TxsClient': { __esModule: true, default: () => null },
     }),
-    loadTypeScriptModule('app/txs/shielded/page.tsx', {
-      ...commonImports,
-      './ShieldedTxsClient': { __esModule: true, default: () => null },
-    }),
   ];
 
   for (const page of pages) {
@@ -241,7 +237,6 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
   const cases = [
     ['app/blocks/page.tsx', './BlocksClient'],
     ['app/txs/page.tsx', './TxsClient'],
-    ['app/txs/shielded/page.tsx', './ShieldedTxsClient'],
   ];
   const failures = [
     async () => new Response('unavailable', { status: 503 }),
@@ -470,7 +465,6 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
   for (const filename of [
     'app/blocks/latest/page.tsx',
     'app/txs/latest/page.tsx',
-    'app/txs/shielded/latest/page.tsx',
   ]) {
     const latestSource = source(filename);
     assert.match(latestSource, /unavailablePolicy: 'shell'/);

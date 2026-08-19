@@ -23,7 +23,7 @@ export const CORE_PATHS = [
   '/',
   '/blocks',
   '/txs',
-  '/txs/shielded',
+  '/txs?type=shielded',
   '/mempool',
   '/network',
   '/privacy',

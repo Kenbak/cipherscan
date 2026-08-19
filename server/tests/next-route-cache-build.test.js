@@ -17,7 +17,6 @@ test('latest list pages are emitted as 30-second ISR pages with on-demand revali
   const expected = [
     '/blocks/latest',
     '/txs/latest',
-    '/txs/shielded/latest',
   ];
 
   for (const route of expected) {
@@ -28,7 +27,7 @@ test('latest list pages are emitted as 30-second ISR pages with on-demand revali
 });
 
 test('query-aware archive handlers remain outside the full route cache', () => {
-  for (const route of ['/blocks', '/txs', '/txs/shielded']) {
+  for (const route of ['/blocks', '/txs']) {
     assert.equal(
       manifest.routes?.[route],
       undefined,

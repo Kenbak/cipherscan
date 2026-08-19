@@ -293,7 +293,7 @@ export default function PrivacyClient() {
             <RecentShieldedTxs nested limit={10} />
             <div className="mt-4 flex justify-end border-t border-cipher-border/30 pt-4">
               <Link
-                href="/txs/shielded"
+                href="/txs?type=shielded"
                 className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-cyan/40 hover:text-primary"
               >
                 View all shielded transactions

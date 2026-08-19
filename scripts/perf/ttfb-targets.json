@@ -41,8 +41,8 @@
     },
     {
       "id": "shielded-latest",
-      "routeGroup": "/txs/shielded",
-      "path": "/txs/shielded",
+      "routeGroup": "/txs",
+      "path": "/txs?type=shielded",
       "core": true
     },
     {
@@ -149,8 +149,8 @@
     },
     {
       "id": "shielded-archive",
-      "routeGroup": "/txs/shielded",
-      "path": "/txs/shielded?cursor=1784145023&cursor_id=7403498&direction=next",
+      "routeGroup": "/txs",
+      "path": "/txs?type=shielded&cursor=1784145023&cursor_id=7403498&direction=next",
       "core": false
     },
     {

@@ -80,7 +80,7 @@ function RecentLargeFlows() {
         <SectionHeader
           label="RECENT_LARGE_FLOWS"
           actions={
-            <Link href="/txs/shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
+            <Link href="/txs?type=shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
               View all →
             </Link>
           }

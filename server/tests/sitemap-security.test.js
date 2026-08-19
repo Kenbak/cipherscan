@@ -560,12 +560,7 @@ test('legacy migration and swap routes permanently consolidate authority', async
 
   const latestRoutes = [
     ['/blocks', '/blocks/latest', ['cursor', 'direction', 'page']],
-    ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'direction', 'page', 'type']],
-    [
-      '/txs/shielded',
-      '/txs/shielded/latest',
-      ['cursor', 'cursor_id', 'direction', 'page', 'flow_type', 'pool', 'min_zec'],
-    ],
+    ['/txs', '/txs/latest', ['cursor', 'cursor_idx', 'cursor_id', 'direction', 'page', 'type', 'flow_type', 'pool', 'min_zec']],
   ];
   for (const [source, destination, queryKeys] of latestRoutes) {
     const rewrite = rewrites.beforeFiles.find((candidate) => candidate.source === source);
@@ -718,7 +713,6 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     },
   });
   const txs = loadPage('app/txs/page.tsx', './TxsClient');
-  const shielded = loadPage('app/txs/shielded/page.tsx', './ShieldedTxsClient');
 
   const txFirst = await txs.generateMetadata({ searchParams: Promise.resolve({}) });
   const txArchive = await txs.generateMetadata({
@@ -731,18 +725,18 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
   assert.equal(txFilter.index, false);
   assert.equal(txFilter.path, '/txs');
 
-  const shieldedFirst = await shielded.generateMetadata({ searchParams: Promise.resolve({}) });
-  const shieldedArchive = await shielded.generateMetadata({
-    searchParams: Promise.resolve({ cursor: '100', cursor_id: '1', direction: 'next', page: '2' }),
+  const shieldedFirst = await txs.generateMetadata({ searchParams: Promise.resolve({ type: 'shielded' }) });
+  const shieldedArchive = await txs.generateMetadata({
+    searchParams: Promise.resolve({ type: 'shielded', cursor: '100', cursor_id: '1', direction: 'next', page: '2' }),
   });
-  const shieldedFilter = await shielded.generateMetadata({
-    searchParams: Promise.resolve({ pool: 'orchard' }),
+  const shieldedFilter = await txs.generateMetadata({
+    searchParams: Promise.resolve({ type: 'shielded', pool: 'orchard' }),
   });
   assert.equal(shieldedFirst.index, true);
   assert.equal(shieldedArchive.index, false);
-  assert.match(shieldedArchive.path, /^\/txs\/shielded\?cursor=/);
+  assert.match(shieldedArchive.path, /^\/txs\?type=shielded/);
   assert.equal(shieldedFilter.index, false);
-  assert.equal(shieldedFilter.path, '/txs/shielded');
+  assert.equal(shieldedFilter.path, '/txs?type=shielded');
 });
 
 test('sitemap API feeds enforce bounds and canonical transaction identity', async () => {

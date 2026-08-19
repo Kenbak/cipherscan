@@ -23,7 +23,7 @@ const FEED_ORDER: HomeFeedType[] = ['blocks', 'shielded', 'transactions', 'reorg
 
 const FEED_META: Record<HomeFeedType, { sectionLabel: string; menuLabel: string; viewAllHref: string }> = {
   blocks: { sectionLabel: 'RECENT_BLOCKS', menuLabel: 'Recent Blocks', viewAllHref: '/blocks' },
-  shielded: { sectionLabel: 'SHIELDED_ACTIVITY', menuLabel: 'Shielded Activity', viewAllHref: '/txs/shielded' },
+  shielded: { sectionLabel: 'SHIELDED_ACTIVITY', menuLabel: 'Shielded Activity', viewAllHref: '/txs?type=shielded' },
   transactions: { sectionLabel: 'RECENT_TRANSACTIONS', menuLabel: 'Recent Transactions', viewAllHref: '/txs' },
   reorgs: { sectionLabel: 'RECENT_REORGS', menuLabel: 'Forks & Reorgs', viewAllHref: '/reorgs' },
   miners: { sectionLabel: 'TOP_MINERS', menuLabel: 'Top Miners (24h)', viewAllHref: '/mining' },

@@ -8,7 +8,7 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
-import { PageHeader, MetricCard, Tabs, DataTable, HashLink, RedactedAmount, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
+import { PageHeader, MetricCard, Tabs, DataTable, HashLink, RedactedAmount, TxTypeBadge, FilterGroup, FilterButton, type DataTableColumn, type TxCategory } from '@/components/ui';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
@@ -16,7 +16,11 @@ import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';
+type FlowFilter = 'all' | 'shield' | 'deshield' | 'fully_shielded';
+type PoolFilter = 'all' | 'ironwood' | 'sapling' | 'orchard' | 'mixed';
 type ViewTab = 'recent' | 'trends';
 
 interface Transaction {
@@ -40,14 +44,20 @@ interface Transaction {
   tx_index?: number;
 }
 
-/**
- * Same public-data rule as RecentTransactions / RecentShieldedTxs / the
- * block page's reward breakdown: a transparent output is always public, a
- * shield/deshield's transparent-side value balance is public (needed for
- * the binding-signature balance equation), and a pool-to-pool migration's
- * destination-pool balance is public. A genuinely fully-shielded self-loop
- * (spend and output in the same pool, nothing else) has no public amount.
- */
+interface ShieldedFlow {
+  id: number;
+  txid: string;
+  blockHeight: number;
+  blockTime: number;
+  flowType: string;
+  amountZec: number | null;
+  actions?: number;
+  pool: string;
+  addresses: string[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function knownAmountZec(tx: Transaction): number | null {
   const sap = Number(tx.value_balance_sapling) || 0;
   const orc = Number(tx.value_balance_orchard) || 0;
@@ -66,23 +76,9 @@ function knownAmountZec(tx: Transaction): number | null {
   const shieldedDepositZat = valueBalanceZat < 0 ? Math.abs(valueBalanceZat) : 0;
   const totalZat = transparentOutZat + shieldedDepositZat;
   if (totalZat > 0) return zatToZec(totalZat);
-  if (tx.is_coinbase) return zatToZec(totalZat); // legitimately zero, not unknown
+  if (tx.is_coinbase) return zatToZec(totalZat);
   return null;
 }
-
-interface TrendDay {
-  date: string;
-  shielded: number;
-  transparent: number;
-  shieldedPercentage: number;
-}
-
-interface TxPaginationState extends BasePaginationState {
-  nextCursorIdx: number | null;
-  prevCursorIdx: number | null;
-}
-
-const PAGE_SIZE = 25;
 
 function getTxBadge(tx: Transaction) {
   const category: TxCategory = tx.is_coinbase
@@ -130,6 +126,19 @@ function getFlowBadge(tx: Transaction) {
 
   return <ShieldFlowBadge type={type} variant="compact" />;
 }
+
+function getShieldedFlowBadge(flowType: string) {
+  return <ShieldFlowBadge type={resolveShieldFlowType({ flowType })} variant="compact" />;
+}
+
+function getPoolBadge(pool: string) {
+  if (pool === 'ironwood' || pool === 'orchard' || pool === 'sapling' || pool === 'mixed') {
+    return <TxTypeBadge category={pool} />;
+  }
+  return <TxTypeBadge category="transparent" label={pool.toUpperCase()} />;
+}
+
+// ─── Column Definitions ───────────────────────────────────────────────────────
 
 const txColumns: DataTableColumn<Transaction>[] = [
   {
@@ -190,6 +199,272 @@ const txColumns: DataTableColumn<Transaction>[] = [
     ),
   },
 ];
+
+const shieldedColumns: DataTableColumn<ShieldedFlow>[] = [
+  {
+    id: 'txid',
+    header: 'TxID',
+    skeletonWidth: 'w-28',
+    cell: (flow) => (
+      <HashLink value={flow.txid} href={`/tx/${flow.txid}`} lead={12} tail={6} responsive />
+    ),
+  },
+  {
+    id: 'pool',
+    header: 'Pool',
+    skeletonWidth: 'w-16',
+    cell: (flow) => getPoolBadge(flow.pool),
+  },
+  {
+    id: 'flow',
+    header: 'Flow',
+    className: 'hidden lg:table-cell',
+    skeletonWidth: 'w-16',
+    cell: (flow) => getShieldedFlowBadge(flow.flowType),
+  },
+  {
+    id: 'amount',
+    header: 'Amount',
+    align: 'right',
+    cell: (flow) => (
+      <span className="font-mono text-xs text-primary">
+        {flow.amountZec != null
+          ? <span className="font-semibold tabular-nums whitespace-nowrap">{flow.amountZec.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} <span className="text-muted font-normal">ZEC</span></span>
+          : <RedactedAmount className="!text-xs" />
+        }
+      </span>
+    ),
+  },
+  {
+    id: 'block',
+    header: 'Block',
+    align: 'right',
+    className: 'hidden sm:table-cell',
+    cell: (flow) => (
+      <Link href={`/block/${flow.blockHeight}`} className="font-mono text-xs text-muted hover:text-primary transition-colors">
+        #{flow.blockHeight.toLocaleString()}
+      </Link>
+    ),
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    align: 'right',
+    skeletonWidth: 'w-16',
+    cell: (flow) => (
+      <span className="text-xs text-muted whitespace-nowrap">{formatRelativeTime(flow.blockTime)}</span>
+    ),
+  },
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface TxPaginationState extends BasePaginationState {
+  nextCursorIdx: number | null;
+  prevCursorIdx: number | null;
+}
+
+interface ShieldedPaginationState extends BasePaginationState {
+  nextCursorId: number | null;
+  prevCursorId: number | null;
+}
+
+const PAGE_SIZE = 25;
+
+function useTransactionsList({
+  typeFilter,
+  initialTxs,
+  initialPagination,
+  initialPage,
+  initialCursor,
+  initialCursorIdx,
+  initialDirection,
+  initialUnavailable,
+}: {
+  typeFilter: TxType;
+  initialTxs: Transaction[];
+  initialPagination: Partial<TxPaginationState> | null;
+  initialPage: number;
+  initialCursor: number | null;
+  initialCursorIdx: number | null;
+  initialDirection: 'next' | 'prev';
+  initialUnavailable: boolean;
+}) {
+  const previousTypeFilter = useRef<TxType>(typeFilter);
+
+  const {
+    items: txs,
+    page,
+    pagination,
+    loading,
+    dataAvailable,
+    firstHref,
+    prevHref,
+    nextHref,
+    fetchPage,
+    setPage,
+  } = usePaginatedList<Transaction, TxPaginationState>({
+    endpoint: '/api/transactions/list',
+    pageSize: PAGE_SIZE,
+    archiveBasePath: '/txs',
+    secondaryCursorParam: 'cursor_idx',
+    secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
+    buildParams: () => ({ type: typeFilter }),
+    getItemsFromResponse: (json) => (json.transactions as Transaction[]) || [],
+    getLatestKey: (tx) => tx.txid,
+    buildCursors: (visibleItems) => {
+      const firstTx = visibleItems[0] ?? null;
+      const lastTx = visibleItems[visibleItems.length - 1] ?? null;
+      return {
+        nextCursor: lastTx ? Number(lastTx.block_height) : null,
+        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
+        prevCursor: firstTx ? Number(firstTx.block_height) : null,
+        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
+      };
+    },
+    buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
+      const params = new URLSearchParams();
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      if (targetPage > 1 && cursor !== null) {
+        params.set('cursor', String(cursor));
+        params.set('cursor_idx', String(cursorIdx ?? 0));
+        params.set('direction', direction);
+        params.set('page', String(targetPage));
+      }
+      const query = params.toString();
+      return query ? `/txs?${query}` : '/txs';
+    },
+    initialItems: initialTxs,
+    initialPagination,
+    initialPage,
+    initialCursor,
+    initialSecondaryCursor: initialCursorIdx,
+    initialDirection,
+    initialUnavailable,
+  });
+
+  useEffect(() => {
+    if (previousTypeFilter.current === typeFilter) return;
+    previousTypeFilter.current = typeFilter;
+    setPage(1);
+    fetchPage({ cursor: null, secondaryCursor: null, targetPage: 1 });
+  }, [typeFilter, fetchPage, setPage]);
+
+  return {
+    txs, page, pagination, loading, dataAvailable,
+    firstHref, prevHref, nextHref,
+  };
+}
+
+function useShieldedFlowsList({
+  flowFilter,
+  poolFilter,
+  minZec,
+  initialFlows,
+  initialPagination,
+  initialPage,
+  initialCursor,
+  initialCursorId,
+  initialDirection,
+  initialUnavailable,
+}: {
+  flowFilter: FlowFilter;
+  poolFilter: PoolFilter;
+  minZec: number;
+  initialFlows: ShieldedFlow[];
+  initialPagination: Partial<ShieldedPaginationState> | null;
+  initialPage: number;
+  initialCursor: number | null;
+  initialCursorId: number | null;
+  initialDirection: 'next' | 'prev';
+  initialUnavailable: boolean;
+}) {
+  const previousFilters = useRef({ flow: flowFilter, pool: poolFilter, minZec });
+
+  const {
+    items: flows,
+    page,
+    pagination,
+    loading,
+    dataAvailable,
+    firstHref,
+    prevHref,
+    nextHref,
+    fetchPage,
+    setPage,
+  } = usePaginatedList<ShieldedFlow, ShieldedPaginationState>({
+    endpoint: '/api/shielded/list',
+    pageSize: PAGE_SIZE,
+    archiveBasePath: '/txs',
+    secondaryCursorParam: 'cursor_id',
+    secondaryCursorFields: { next: 'nextCursorId', prev: 'prevCursorId' },
+    buildParams: () => {
+      const params: Record<string, string> = {
+        type: 'shielded',
+        flow_type: flowFilter,
+        pool: poolFilter,
+      };
+      if (minZec > 0) params.min_zec = String(minZec);
+      return params;
+    },
+    getItemsFromResponse: (json) => (json.flows as ShieldedFlow[]) || [],
+    getLatestKey: (flow) => `${flow.txid}:${flow.flowType}`,
+    buildCursors: (visibleItems) => {
+      const firstFlow = visibleItems[0] ?? null;
+      const lastFlow = visibleItems[visibleItems.length - 1] ?? null;
+      return {
+        nextCursor: lastFlow ? Number(lastFlow.blockTime) : null,
+        nextCursorId: lastFlow ? Number(lastFlow.id) : null,
+        prevCursor: firstFlow ? Number(firstFlow.blockTime) : null,
+        prevCursorId: firstFlow ? Number(firstFlow.id) : null,
+      };
+    },
+    buildArchiveHref: (cursor, cursorId, direction, targetPage) => {
+      const params = new URLSearchParams();
+      params.set('type', 'shielded');
+      if (flowFilter !== 'all') params.set('flow_type', flowFilter);
+      if (poolFilter !== 'all') params.set('pool', poolFilter);
+      if (minZec > 0) params.set('min_zec', String(minZec));
+      if (targetPage > 1 && cursor !== null) {
+        params.set('cursor', String(cursor));
+        params.set('cursor_id', String(cursorId ?? 0));
+        params.set('direction', direction);
+        params.set('page', String(targetPage));
+      }
+      const query = params.toString();
+      return query ? `/txs?${query}` : '/txs?type=shielded';
+    },
+    initialItems: initialFlows,
+    initialPagination,
+    initialPage,
+    initialCursor,
+    initialSecondaryCursor: initialCursorId,
+    initialDirection,
+    initialUnavailable,
+  });
+
+  useEffect(() => {
+    const prev = previousFilters.current;
+    if (prev.flow === flowFilter && prev.pool === poolFilter && prev.minZec === minZec) return;
+    previousFilters.current = { flow: flowFilter, pool: poolFilter, minZec };
+    setPage(1);
+    fetchPage({ cursor: null, secondaryCursor: null, targetPage: 1 });
+  }, [flowFilter, poolFilter, minZec, fetchPage, setPage]);
+
+  return {
+    flows, page, pagination, loading, dataAvailable,
+    firstHref, prevHref, nextHref,
+  };
+}
+
+// ─── Trends Chart ─────────────────────────────────────────────────────────────
+
+interface TrendDay {
+  date: string;
+  shielded: number;
+  transparent: number;
+  shieldedPercentage: number;
+}
 
 type TrendPeriod = '7' | '30' | '365' | 'all';
 
@@ -252,17 +527,13 @@ function TrendsChart() {
       <div className="card p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-mono text-muted uppercase tracking-wider">Daily Transaction Volume</h3>
-          <div className="filter-group inline-flex">
+          <FilterGroup inline>
             {PERIOD_OPTIONS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setPeriod(p.id)}
-                className={`filter-btn ${period === p.id ? 'filter-btn-active' : ''}`}
-              >
+              <FilterButton key={p.id} active={period === p.id} onClick={() => setPeriod(p.id)}>
                 {p.label}
-              </button>
+              </FilterButton>
             ))}
-          </div>
+          </FilterGroup>
         </div>
         {loading ? (
           <div className="h-[320px] flex items-center justify-center text-muted text-sm">Loading...</div>
@@ -358,7 +629,6 @@ function TrendsChart() {
         )}
       </div>
 
-      {/* Derived stats below chart */}
       <div className="grid grid-cols-3 gap-3 mt-4">
         <MetricCard size="compact"
           label={`Total (${periodLabel})`}
@@ -377,89 +647,91 @@ function TrendsChart() {
   );
 }
 
-interface TxsClientProps {
+// ─── Filter Definitions ───────────────────────────────────────────────────────
+
+const TYPE_FILTERS: { id: TxType; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'shielded', label: 'Shielded' },
+  { id: 'transparent', label: 'Transparent' },
+  { id: 'coinbase', label: 'Coinbase' },
+];
+
+const FLOW_FILTERS: { id: FlowFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'shield', label: 'Shielding' },
+  { id: 'deshield', label: 'Unshielding' },
+  { id: 'fully_shielded', label: 'Fully Shielded' },
+];
+
+const POOL_FILTERS: { id: PoolFilter; label: string }[] = [
+  { id: 'all', label: 'All Pools' },
+  { id: 'ironwood', label: 'Ironwood' },
+  { id: 'orchard', label: 'Orchard' },
+  { id: 'sapling', label: 'Sapling' },
+  { id: 'mixed', label: 'Mixed' },
+];
+
+const AMOUNT_PRESETS = [
+  { value: 0, label: 'Any' },
+  { value: 10, label: '> 10 ZEC' },
+  { value: 100, label: '> 100 ZEC' },
+  { value: 1000, label: '> 1K ZEC' },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export interface TxsClientProps {
   initialTxs?: Transaction[];
-  initialPagination?: Partial<TxPaginationState> | null;
+  initialFlows?: ShieldedFlow[];
+  initialPagination?: Partial<TxPaginationState & ShieldedPaginationState> | null;
   initialPage?: number;
   initialType?: TxType;
+  initialFlowFilter?: FlowFilter;
+  initialPoolFilter?: PoolFilter;
+  initialMinZec?: number;
   initialCursor?: number | null;
   initialCursorIdx?: number | null;
+  initialCursorId?: number | null;
   initialDirection?: 'next' | 'prev';
   initialUnavailable?: boolean;
 }
 
 export default function TxsClient({
   initialTxs = [],
+  initialFlows = [],
   initialPagination = null,
   initialPage = 1,
   initialType = 'all',
+  initialFlowFilter = 'all',
+  initialPoolFilter = 'all',
+  initialMinZec = 0,
   initialCursor = null,
   initialCursorIdx = null,
+  initialCursorId = null,
   initialDirection = 'next',
   initialUnavailable = false,
 }: TxsClientProps) {
   const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
+  const [flowFilter, setFlowFilter] = useState<FlowFilter>(initialFlowFilter);
+  const [poolFilter, setPoolFilter] = useState<PoolFilter>(initialPoolFilter);
+  const [minZec, setMinZec] = useState<number>(initialMinZec);
   const [viewTab, setViewTab] = useState<ViewTab>('recent');
-  const [summary, setSummary] = useState<{ txs24h: number | null; shieldedPct24h: number | null; txsPerBlock: number | null }>({ txs24h: null, shieldedPct24h: null, txsPerBlock: null });
-  const previousTypeFilter = useRef<TxType>(initialType);
 
-  const {
-    items: txs,
-    page,
-    pagination,
-    loading,
-    dataAvailable,
-    firstHref,
-    prevHref,
-    nextHref,
-    fetchPage,
-    setPage,
-  } = usePaginatedList<Transaction, TxPaginationState>({
-    endpoint: '/api/transactions/list',
-    pageSize: PAGE_SIZE,
-    archiveBasePath: '/txs',
-    secondaryCursorParam: 'cursor_idx',
-    secondaryCursorFields: { next: 'nextCursorIdx', prev: 'prevCursorIdx' },
-    buildParams: () => ({ type: typeFilter }),
-    getItemsFromResponse: (json) => (json.transactions as Transaction[]) || [],
-    getLatestKey: (tx) => tx.txid,
-    buildCursors: (visibleItems) => {
-      const firstTx = visibleItems[0] ?? null;
-      const lastTx = visibleItems[visibleItems.length - 1] ?? null;
-      return {
-        nextCursor: lastTx ? Number(lastTx.block_height) : null,
-        nextCursorIdx: lastTx ? Number(lastTx.tx_index ?? 0) : null,
-        prevCursor: firstTx ? Number(firstTx.block_height) : null,
-        prevCursorIdx: firstTx ? Number(firstTx.tx_index ?? 0) : null,
-      };
-    },
-    buildArchiveHref: (cursor, cursorIdx, direction, targetPage) => {
-      const params = new URLSearchParams();
-      if (typeFilter !== 'all') params.set('type', typeFilter);
-      if (targetPage > 1 && cursor !== null) {
-        params.set('cursor', String(cursor));
-        params.set('cursor_idx', String(cursorIdx ?? 0));
-        params.set('direction', direction);
-        params.set('page', String(targetPage));
-      }
-      const query = params.toString();
-      return query ? `/txs?${query}` : '/txs';
-    },
-    initialItems: initialTxs,
-    initialPagination,
-    initialPage,
-    initialCursor,
-    initialSecondaryCursor: initialCursorIdx,
-    initialDirection,
-    initialUnavailable,
-  });
+  const isShielded = typeFilter === 'shielded';
 
-  useEffect(() => {
-    if (previousTypeFilter.current === typeFilter) return;
-    previousTypeFilter.current = typeFilter;
-    setPage(1);
-    fetchPage({ cursor: null, secondaryCursor: null, targetPage: 1 });
-  }, [typeFilter, fetchPage, setPage]);
+  // Summary stats — fetched once, covers both modes
+  const [generalSummary, setGeneralSummary] = useState<{
+    totalTxs: number | null;
+    txs24h: number | null;
+    shieldedPct24h: number | null;
+    txsPerBlock: number | null;
+  }>({ totalTxs: null, txs24h: null, shieldedPct24h: null, txsPerBlock: null });
+
+  const [shieldedSummary, setShieldedSummary] = useState<{
+    shieldedPct: number | null;
+    avgPerDay: number | null;
+    poolSize: string | null;
+  }>({ shieldedPct: null, avgPerDay: null, poolSize: null });
 
   useEffect(() => {
     const base = usePostgresApiClient() ? getApiUrl() : '';
@@ -476,100 +748,211 @@ export default function TxsClient({
         txsPerBlock = txs24h && blocks24h ? Math.round((txs24h / blocks24h) * 10) / 10 : null;
       }
       let shieldedPct24h: number | null = null;
+      let avgPerDay: number | null = null;
+      let poolSize: string | null = null;
       if (privacyRes.status === 'fulfilled' && privacyRes.value.ok) {
         const data = await privacyRes.value.json();
         const dailyTrends = data.trends?.daily || [];
         if (dailyTrends.length > 0) {
           shieldedPct24h = dailyTrends[0].shieldedPercentage;
         }
+        const pct = data.metrics?.shieldedPercentage != null ? Number(data.metrics.shieldedPercentage) : null;
+        avgPerDay = data.metrics?.avgShieldedPerDay != null ? Math.round(Number(data.metrics.avgShieldedPerDay)) : null;
+        const poolVal = data.shieldedPool?.currentSize;
+        poolSize = poolVal != null
+          ? Number(poolVal) >= 1_000_000
+            ? `${(Number(poolVal) / 1_000_000).toFixed(2)}M ZEC`
+            : `${Math.round(Number(poolVal)).toLocaleString()} ZEC`
+          : null;
+        setShieldedSummary({ shieldedPct: pct, avgPerDay, poolSize });
       }
-      setSummary({ txs24h, shieldedPct24h, txsPerBlock });
+      setGeneralSummary({ totalTxs: null, txs24h, shieldedPct24h, txsPerBlock });
     });
   }, []);
 
-  const filters: { id: TxType; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'shielded', label: 'Shielded' },
-    { id: 'transparent', label: 'Transparent' },
-    { id: 'coinbase', label: 'Coinbase' },
-  ];
+  // Pagination hooks — both always mounted (React rules)
+  const txList = useTransactionsList({
+    typeFilter: isShielded ? 'all' : typeFilter,
+    initialTxs: isShielded ? [] : initialTxs,
+    initialPagination: isShielded ? null : initialPagination,
+    initialPage: isShielded ? 1 : initialPage,
+    initialCursor: isShielded ? null : initialCursor,
+    initialCursorIdx: isShielded ? null : initialCursorIdx,
+    initialDirection: isShielded ? 'next' : initialDirection,
+    initialUnavailable: isShielded ? false : initialUnavailable,
+  });
+
+  const shieldedList = useShieldedFlowsList({
+    flowFilter,
+    poolFilter,
+    minZec,
+    initialFlows: isShielded ? initialFlows : [],
+    initialPagination: isShielded ? initialPagination : null,
+    initialPage: isShielded ? initialPage : 1,
+    initialCursor: isShielded ? initialCursor : null,
+    initialCursorId: isShielded ? initialCursorId : null,
+    initialDirection: isShielded ? initialDirection : 'next',
+    initialUnavailable: isShielded ? initialUnavailable : false,
+  });
+
+  const activeList = isShielded ? shieldedList : txList;
+  const activePage = activeList.page;
+
+  // Reset sub-filters when leaving shielded mode
+  const prevType = useRef(typeFilter);
+  useEffect(() => {
+    if (prevType.current === 'shielded' && typeFilter !== 'shielded') {
+      setFlowFilter('all');
+      setPoolFilter('all');
+      setMinZec(0);
+    }
+    prevType.current = typeFilter;
+  }, [typeFilter]);
 
   const viewTabs: { id: ViewTab; label: string }[] = [
     { id: 'recent', label: 'Recent Transactions' },
     { id: 'trends', label: 'Trends' },
   ];
 
+  const pageTitle = activePage > 1
+    ? `Zcash Transactions - Page ${activePage}`
+    : 'Latest Zcash Transactions';
+
+  const eyebrow = 'ALL_TRANSACTIONS';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
       <PageHeader
-        eyebrow="ALL_TRANSACTIONS"
-        title={page > 1 ? `Zcash Transactions - Page ${page}` : 'Latest Zcash Transactions'}
+        eyebrow={eyebrow}
+        title={pageTitle}
         actions={
           <span className="text-xs font-mono text-muted">
-            {!dataAvailable && txs.length === 0
+            {!activeList.dataAvailable
               ? 'Transaction data temporarily unavailable'
-              : `${pagination.total.toLocaleString()} transactions`}
+              : `${activeList.pagination.total.toLocaleString()} ${isShielded ? 'shielded txs' : 'transactions'}`}
           </span>
         }
       />
 
-      {/* Summary Stats */}
+      {/* Metric Cards — switch based on mode */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <MetricCard size="compact"
-          label="Total Transactions"
-          value={pagination.total > 0 ? pagination.total.toLocaleString() : '—'}
-        />
-        <MetricCard size="compact"
-          label="Transactions (24h)"
-          value={summary.txs24h != null ? summary.txs24h.toLocaleString() : '—'}
-        />
-        <MetricCard size="compact"
-          label="% Shielded (24h)"
-          value={summary.shieldedPct24h != null ? `${summary.shieldedPct24h.toFixed(1)}%` : '—'}
-        />
-        <MetricCard size="compact"
-          label="Txs Per Block"
-          value={summary.txsPerBlock != null ? summary.txsPerBlock.toLocaleString() : '—'}
-        />
+        {isShielded ? (
+          <>
+            <MetricCard size="compact"
+              label="Shielded Txs"
+              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
+              hint="Total shielded flows"
+            />
+            <MetricCard size="compact"
+              label="% Shielded"
+              value={shieldedSummary.shieldedPct != null ? `${shieldedSummary.shieldedPct.toFixed(1)}%` : '—'}
+              hint="Of all network activity"
+            />
+            <MetricCard size="compact"
+              label="Avg Shielded / Day"
+              value={shieldedSummary.avgPerDay != null ? shieldedSummary.avgPerDay.toLocaleString() : '—'}
+              hint="Last 30 days"
+            />
+            <MetricCard size="compact"
+              label="Shielded Pool"
+              value={shieldedSummary.poolSize ?? '—'}
+              hint="Current pool balance"
+            />
+          </>
+        ) : (
+          <>
+            <MetricCard size="compact"
+              label="Total Transactions"
+              value={activeList.pagination.total > 0 ? activeList.pagination.total.toLocaleString() : '—'}
+              hint="All confirmed Zcash txs"
+            />
+            <MetricCard size="compact"
+              label="Transactions (24h)"
+              value={generalSummary.txs24h != null ? generalSummary.txs24h.toLocaleString() : '—'}
+              hint="Excluding coinbase"
+            />
+            <MetricCard size="compact"
+              label="% Shielded (24h)"
+              value={generalSummary.shieldedPct24h != null ? `${generalSummary.shieldedPct24h.toFixed(1)}%` : '—'}
+              hint="Of non-coinbase txs"
+            />
+            <MetricCard size="compact"
+              label="Txs Per Block"
+              value={generalSummary.txsPerBlock != null ? generalSummary.txsPerBlock.toLocaleString() : '—'}
+              hint="Coinbase not counted"
+            />
+          </>
+        )}
       </div>
 
-      {/* View Tabs + Filters */}
-      <Tabs tabs={viewTabs} active={viewTab} onChange={setViewTab} className="mb-6">
+      {/* View Tabs + Type Filter */}
+      <Tabs tabs={viewTabs} active={viewTab} onChange={setViewTab} className="mb-4">
         {viewTab === 'recent' && (
-          <div className="filter-group inline-flex">
-            {filters.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setTypeFilter(f.id)}
-                className={`filter-btn ${typeFilter === f.id ? 'filter-btn-active' : ''}`}
-              >
+          <FilterGroup inline>
+            {TYPE_FILTERS.map(f => (
+              <FilterButton key={f.id} active={typeFilter === f.id} onClick={() => setTypeFilter(f.id)}>
                 {f.label}
-              </button>
+              </FilterButton>
             ))}
-          </div>
+          </FilterGroup>
         )}
       </Tabs>
 
+      {/* Shielded Sub-filters — progressive disclosure */}
+      {viewTab === 'recent' && isShielded && (
+        <div className="flex flex-wrap gap-3 mb-4 animate-fade-in-up">
+          <FilterGroup inline>
+            {FLOW_FILTERS.map(f => (
+              <FilterButton key={f.id} active={flowFilter === f.id} onClick={() => setFlowFilter(f.id)}>
+                {f.label}
+              </FilterButton>
+            ))}
+          </FilterGroup>
+          <FilterGroup inline>
+            {POOL_FILTERS.map(f => (
+              <FilterButton key={f.id} active={poolFilter === f.id} onClick={() => setPoolFilter(f.id)}>
+                {f.label}
+              </FilterButton>
+            ))}
+          </FilterGroup>
+          <FilterGroup inline>
+            {AMOUNT_PRESETS.map(p => (
+              <FilterButton key={p.value} active={minZec === p.value} onClick={() => setMinZec(p.value)}>
+                {p.label}
+              </FilterButton>
+            ))}
+          </FilterGroup>
+        </div>
+      )}
+
+      {/* Data Table */}
       {viewTab === 'recent' && (
         <>
-          {/* Table */}
-          <DataTable
-            columns={txColumns}
-            rows={txs}
-            rowKey={(tx) => tx.txid}
-            loading={loading}
-          />
+          {isShielded ? (
+            <DataTable
+              columns={shieldedColumns}
+              rows={shieldedList.flows}
+              rowKey={(flow) => `${flow.txid}-${flow.flowType}-${flow.id}`}
+              loading={shieldedList.loading}
+            />
+          ) : (
+            <DataTable
+              columns={txColumns}
+              rows={txList.txs}
+              rowKey={(tx) => tx.txid}
+              loading={txList.loading}
+            />
+          )}
 
-          {/* Pagination */}
           <Pagination
-            page={page}
-            totalPages={pagination.totalPages}
-            hasNext={pagination.hasNext}
-            hasPrev={pagination.hasPrev}
-            firstHref={firstHref}
-            prevHref={prevHref}
-            nextHref={nextHref}
-            loading={loading}
+            page={activeList.page}
+            totalPages={activeList.pagination.totalPages}
+            hasNext={activeList.pagination.hasNext}
+            hasPrev={activeList.pagination.hasPrev}
+            firstHref={activeList.firstHref}
+            prevHref={activeList.prevHref}
+            nextHref={activeList.nextHref}
+            loading={activeList.loading}
           />
         </>
       )}

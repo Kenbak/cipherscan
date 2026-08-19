@@ -21,23 +21,10 @@ const nextConfig: NextConfig = {
         {
           source: '/txs',
           destination: '/txs/latest',
-          missing: ['cursor', 'cursor_idx', 'direction', 'page', 'type'].map((key) => ({
+          missing: ['cursor', 'cursor_idx', 'cursor_id', 'direction', 'page', 'type', 'flow_type', 'pool', 'min_zec'].map((key) => ({
             type: 'query' as const,
             key,
           })),
-        },
-        {
-          source: '/txs/shielded',
-          destination: '/txs/shielded/latest',
-          missing: [
-            'cursor',
-            'cursor_id',
-            'direction',
-            'page',
-            'flow_type',
-            'pool',
-            'min_zec',
-          ].map((key) => ({ type: 'query' as const, key })),
         },
       ],
       afterFiles: [
