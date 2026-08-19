@@ -611,9 +611,9 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     response: {
       success: true,
       mining: {
-        networkHashrate: '9.52 GH/s',
-        networkHashrateRaw: 9520000000,
-        difficulty: '86753422.14',
+        networkHashrate: '21.43 GSol/s',
+        networkHashrateRaw: 21428930259,
+        difficulty: '196187715.96',
         avgBlockTime: 75,
         blocks24h: 1152,
         blockReward: 1.5625,
@@ -663,11 +663,31 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     response: {
       success: true,
       window: 20,
-      latest: { solrate: 9520000000, difficulty: 86753422.14, blockTime: 74.5, txFees: 50000, txCount: 3 },
+      latest: { solrate: 21428930259, difficulty: 196187715.96, blockTime: 74.5, txFees: 50000, txCount: 3 },
       points: [
-        { height: 2500000, solrate: 9520000000, difficulty: 86753422.14, blockTime: 74.5, txFees: 50000, txCount: 3 }
+        { height: 3452517, solrate: 21428930259, difficulty: 196187715.96, blockTime: 74.5, txFees: 50000, txCount: 3 }
       ]
-    }
+    },
+    note: 'solrate is in Sol/s (Equihash solutions/second), derived from difficulty × 8192 ÷ block_time.'
+  },
+  {
+    id: 'network-hashrate-history',
+    category: 'Network',
+    method: 'GET',
+    path: '/api/network/hashrate-history',
+    description: 'Daily-bucketed network hashrate (Sol/s) history, for long-range trend charts (weeks to a year+).',
+    params: [
+      { name: 'period', type: 'string', description: "'7d' | '30d' | '90d' | '1y' | 'all' (default: '90d')" }
+    ],
+    example: `curl '${baseUrl}/api/network/hashrate-history?period=1y'`,
+    response: {
+      success: true,
+      period: '1y',
+      points: [
+        { date: '2025-08-18', avgDifficulty: 72259790, blockCount: 1140, hashrate: 7891842375 }
+      ]
+    },
+    note: 'hashrate = avgDifficulty × 8192 × blockCount ÷ 86400 (realized daily average, robust to single-block difficulty noise). Cached 10 minutes.'
   },
   {
     id: 'network-health',

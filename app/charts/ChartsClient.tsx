@@ -38,6 +38,7 @@ const CHART_DEFS: ChartEntry[] = [
   { id: 'hashrate-share', title: 'Hashrate Share', description: 'Per-pool network share over time', category: 'mining', href: '/mining' },
   { id: 'miner-behavior', title: 'Miner Behavior', description: 'Block rewards: earned vs moved vs held', category: 'mining', href: '/mining' },
   { id: 'mining-metrics', title: 'Mining Metrics', description: 'Solrate, difficulty, block time (rolling avg)', category: 'mining', href: '/mining' },
+  { id: 'network-hashrate', title: 'Network Hashrate', description: 'Total Zcash network hashrate (GSol/s) over time', category: 'mining', href: '/mining', isNew: true },
   { id: 'supply-emission', title: 'Supply Emission', description: 'ZEC circulating supply toward 21M cap', category: 'network', href: '/network' },
   { id: 'chain-size', title: 'Chain Size', description: 'Blockchain disk size growth (GB)', category: 'network', href: '/network' },
   { id: 'protocol-stats', title: 'Protocol Stats', description: 'Monthly Sapling/Orchard commitments & nullifiers', category: 'network', href: '/network' },
@@ -236,6 +237,7 @@ function getChartConfig(id: string): { dataKey: string; type: 'line' | 'area' | 
     case 'hashrate-share': return { dataKey: 'share', type: 'area' };
     case 'miner-behavior': return { dataKey: 'earned', type: 'bar' };
     case 'mining-metrics': return { dataKey: 'value', type: 'line' };
+    case 'network-hashrate': return { dataKey: 'hashrate', type: 'area' };
     case 'supply-emission': return { dataKey: 'supply', type: 'area' };
     case 'chain-size': return { dataKey: 'sizeGb', type: 'line' };
     case 'protocol-stats': return { dataKey: 'commitments', type: 'area' };

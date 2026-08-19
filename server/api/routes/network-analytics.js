@@ -280,7 +280,8 @@ function registerNetworkAnalyticsRoutes(router) {
       });
 
       const difficulties = rows.map((r) => parseFloat(r.difficulty) || 0);
-      const solrates = difficulties.map((d, i) => d / intervals[i]);
+      // Same 2^13 Equihash constant as /api/network/stats — see comment there.
+      const solrates = difficulties.map((d, i) => (d * 8192) / intervals[i]);
       const fees = rows.map((r) => (parseInt(r.total_fees, 10) || 0) / 1e8);
       const txCounts = rows.map((r) => parseInt(r.transaction_count, 10) || 0);
 
@@ -316,6 +317,57 @@ function registerNetworkAnalyticsRoutes(router) {
     } catch (error) {
       console.error('❌ [MINING-METRICS] Error:', error);
       res.status(500).json({ success: false, error: error.message || 'Failed to fetch mining metrics' });
+    }
+  });
+
+  // Long-range network hashrate trend (daily buckets, robust to per-block difficulty
+  // noise). Complements /api/network/mining-metrics, which is short-range/per-block.
+  router.get('/api/network/hashrate-history', async (req, res) => {
+    try {
+      const pool = req.app.locals.pool;
+      const redisClient = req.app.locals.redisClient;
+      const period = req.query.period || '90d';
+      const cacheKey = `network:hashrate-history:${period}`;
+
+      const cached = await getFromRedisCache(redisClient, cacheKey);
+      if (cached) return res.json({ ...cached, cached: true });
+
+      const interval = periodToInterval(period);
+      const dateFilter =
+        period === 'all'
+          ? `timestamp >= 0`
+          : `timestamp >= EXTRACT(EPOCH FROM NOW() - INTERVAL '${interval}')`;
+
+      const result = await pool.query(`
+        SELECT
+          date_trunc('day', to_timestamp(timestamp)) as day,
+          AVG(difficulty) as avg_difficulty,
+          COUNT(*) as block_count
+        FROM blocks
+        WHERE ${dateFilter}
+        GROUP BY day
+        ORDER BY day ASC
+      `);
+
+      // Realized rate over the bucket (blockCount / 86400), not the 75s target —
+      // immune to the same per-block retarget noise that plain difficulty has.
+      const points = result.rows.map((r) => {
+        const avgDifficulty = parseFloat(r.avg_difficulty) || 0;
+        const blockCount = parseInt(r.block_count, 10) || 0;
+        return {
+          date: r.day.toISOString().slice(0, 10),
+          avgDifficulty,
+          blockCount,
+          hashrate: (avgDifficulty * 8192 * blockCount) / 86400,
+        };
+      });
+
+      const response = { success: true, period, points };
+      await setRedisCache(redisClient, cacheKey, response, 600); // 10 min
+      res.json(response);
+    } catch (error) {
+      console.error('❌ [HASHRATE-HISTORY] Error:', error);
+      res.status(500).json({ success: false, error: error.message || 'Failed to fetch hashrate history' });
     }
   });
 

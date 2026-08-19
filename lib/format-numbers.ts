@@ -14,13 +14,14 @@ export function formatDifficulty(value: number): string {
   return value.toFixed(1);
 }
 
+/** Zcash's Equihash PoW is measured in solutions/sec (Sol/s), not raw hashes/sec. */
 export function formatHashrate(hashrate: number): string {
   if (!Number.isFinite(hashrate)) return '—';
-  if (hashrate >= 1e12) return `${(hashrate / 1e12).toFixed(2)} TH/s`;
-  if (hashrate >= 1e9) return `${(hashrate / 1e9).toFixed(2)} GH/s`;
-  if (hashrate >= 1e6) return `${(hashrate / 1e6).toFixed(2)} MH/s`;
-  if (hashrate >= 1e3) return `${(hashrate / 1e3).toFixed(2)} KH/s`;
-  return `${hashrate.toFixed(2)} H/s`;
+  if (hashrate >= 1e12) return `${(hashrate / 1e12).toFixed(2)} TSol/s`;
+  if (hashrate >= 1e9) return `${(hashrate / 1e9).toFixed(2)} GSol/s`;
+  if (hashrate >= 1e6) return `${(hashrate / 1e6).toFixed(2)} MSol/s`;
+  if (hashrate >= 1e3) return `${(hashrate / 1e3).toFixed(2)} KSol/s`;
+  return `${hashrate.toFixed(2)} Sol/s`;
 }
 
 export function formatZecCompact(zec: number): string {

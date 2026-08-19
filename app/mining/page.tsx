@@ -15,6 +15,7 @@ import { PageHeader, SectionHeader, DataTable, SkeletonTable } from '@/component
 import { ChartCard } from '@/components/network/ChartCard';
 import { PageSectionNav } from '@/components/PageSectionNav';
 import { MiningMetricsChart } from '@/components/network/MiningMetricsChart';
+import { NetworkHashrateChart } from '@/components/network/NetworkHashrateChart';
 import { zatToZec, formatZecCompact } from '@/lib/format-numbers';
 
 const SECTIONS = [
@@ -728,7 +729,8 @@ export default function MiningPage() {
 
       <PageSectionNav sections={SECTIONS} ariaLabel="Mining pool sections" />
 
-      <section id="metrics" className="scroll-mt-36 mb-12 animate-fade-in-up">
+      <section id="metrics" className="scroll-mt-36 mb-12 animate-fade-in-up space-y-6">
+        <NetworkHashrateChart />
         <MiningMetricsChart />
       </section>
 

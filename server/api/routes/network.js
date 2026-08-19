@@ -175,15 +175,18 @@ async function fetchNetworkStatsOptimized() {
       ? Math.round(Number(rolling_block_time_secs) * 10) / 10
       : (blocks24h > 0 ? Math.round(86400 / blocks24h) : 75);
     const difficultyNum = parseFloat(difficulty || 0);
-    const networkHashrate = difficultyNum / avgBlockTime;
+    // Zcash's Equihash difficulty encodes a solution-rate estimate with a 2^13
+    // constant (see zcashd's GetNetworkHashPS / getnetworksolps), not the plain
+    // Bitcoin-style difficulty/time ratio. Omitting it understates hashrate by 8192x.
+    const networkHashrate = (difficultyNum * 8192) / avgBlockTime;
     const avgBlockFee = avg_block_fee_zat != null ? parseFloat(avg_block_fee_zat) / 100000000 : null;
 
     function formatHashrate(h) {
-      if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TH/s`;
-      if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
-      if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
-      if (h >= 1e3) return `${(h / 1e3).toFixed(2)} KH/s`;
-      return `${h.toFixed(2)} H/s`;
+      if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TSol/s`;
+      if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GSol/s`;
+      if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MSol/s`;
+      if (h >= 1e3) return `${(h / 1e3).toFixed(2)} KSol/s`;
+      return `${h.toFixed(2)} Sol/s`;
     }
 
     // Block subsidy from Zebra RPC (dynamic, adjusts at halvings)

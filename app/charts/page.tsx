@@ -12,6 +12,7 @@ async function fetchChartData() {
     `${API_BASE}/api/network/fee-distribution?period=30d`,
     `${API_BASE}/api/mining/pool-distribution?period=7d`,
     `${API_BASE}/api/mining/miner-behavior?period=30d`,
+    `${API_BASE}/api/network/hashrate-history?period=90d`,
   ];
 
   const results = await Promise.all(
@@ -22,7 +23,7 @@ async function fetchChartData() {
     )
   );
 
-  const [flows, turnstile, hashrate, anonymity, shielding, fees, poolDist, minerBeh] = results;
+  const [flows, turnstile, hashrate, anonymity, shielding, fees, poolDist, minerBeh, hashrateHistory] = results;
   const map: Record<string, any[]> = {};
 
   // /api/pools/flows → { points: [{ date, shield, deshield, net, shieldTx, deshieldTx }] }
@@ -123,6 +124,14 @@ async function fetchChartData() {
     label: `${i + 1}`,
     value: +(15 + Math.sin(i / 3) * 3 + i * 0.2).toFixed(1),
   }));
+
+  // /api/network/hashrate-history → { points: [{ date, avgDifficulty, blockCount, hashrate }] }
+  if (hashrateHistory?.points?.length) {
+    map['network-hashrate'] = hashrateHistory.points.slice(-30).map((d: any) => ({
+      label: d.date ? new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '',
+      hashrate: Math.round((d.hashrate ?? 0) / 1e9), // GSol/s, compact for mini-chart y-axis
+    }));
+  }
 
   map['chain-size'] = Array.from({ length: 20 }, (_, i) => ({
     label: `${2020 + Math.floor(i / 4)}`,
