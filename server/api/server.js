@@ -117,6 +117,13 @@ const pool = new Pool({
   application_name: 'cipherscan-api',
 });
 
+// Catch idle-client errors so a terminated connection (e.g. replica recovery
+// conflict) logs a warning instead of crashing the process via unhandled
+// EventEmitter 'error'.
+pool.on('error', (err) => {
+  console.error('[pool:primary] Idle client error:', err.message);
+});
+
 // Test database connection
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
@@ -133,9 +140,11 @@ poolRouting.configureFromEnv({ primary: pool });
 // Make dependencies available to routes via app.locals
 // Read-heavy routes use the read pool (replica when available, primary fallback).
 // The few write routes (fork-monitor, reorgs) use app.locals.writePool.
+// queryWithReplicaFallback retries on primary when the replica hits a recovery conflict.
 app.locals.pool = poolRouting.getReadPool();
 app.locals.writePool = pool;
 app.locals.poolRouting = poolRouting;
+app.locals.queryWithFallback = poolRouting.queryWithReplicaFallback;
 
 // ============================================================================
 // REDIS CLIENT

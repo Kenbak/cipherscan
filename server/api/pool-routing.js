@@ -5,6 +5,10 @@
  * for eligible queries, gated by replicaLagBlocks(). Otherwise both
  * getReadPool() and getWritePool() return the primary pool.
  *
+ * queryWithReplicaFallback() runs a query on the replica first and
+ * automatically retries on the primary if the replica returns a recovery
+ * conflict error (code 40001 / 40P01) — so the caller always gets data.
+ *
  * Endpoints safe to move to replica (lag-tolerant):
  *   rich-list, mining, analytics, transparent-exposed, privacy linkage
  *
@@ -15,6 +19,12 @@
 const { Pool } = require('pg');
 
 const MAX_ACCEPTABLE_LAG_BLOCKS = 3;
+
+const RECOVERY_CONFLICT_CODES = new Set([
+  '40001', // serialization_failure
+  '40P01', // deadlock_detected
+  '57014', // query_canceled (includes recovery conflict cancels)
+]);
 
 let primaryPool = null;
 let replicaPool = null;
@@ -41,6 +51,9 @@ function configureFromEnv({ primary }) {
       idleTimeoutMillis: 30000,
       application_name: 'cipherscan-api-replica',
     });
+    replicaPool.on('error', (err) => {
+      console.error('[pool:replica] Idle client error:', err.message);
+    });
     console.log('[pool-routing] Replica pool configured from REPLICA_DATABASE_URL');
   }
 }
@@ -64,6 +77,29 @@ async function getSafeReadPool() {
   const lag = await replicaLagBlocks();
   if (lag > MAX_ACCEPTABLE_LAG_BLOCKS) return getWritePool();
   return replicaPool;
+}
+
+/**
+ * Run a read query on the replica, retrying transparently on the primary
+ * if the replica fails with a recovery conflict or cancellation error.
+ * Callers get data even when the replica is applying WAL.
+ */
+async function queryWithReplicaFallback(text, params) {
+  const readPool = getReadPool();
+  if (readPool === primaryPool) {
+    return primaryPool.query(text, params);
+  }
+  try {
+    return await readPool.query(text, params);
+  } catch (err) {
+    const isConflict = RECOVERY_CONFLICT_CODES.has(err.code)
+      || (err.message && err.message.includes('conflict with recovery'));
+    if (isConflict) {
+      console.warn('[pool-routing] Replica conflict, retrying on primary:', err.message);
+      return primaryPool.query(text, params);
+    }
+    throw err;
+  }
 }
 
 async function replicaLagBlocks() {
@@ -97,6 +133,7 @@ module.exports = {
   getWritePool,
   getReadPool,
   getSafeReadPool,
+  queryWithReplicaFallback,
   replicaLagBlocks,
   hasReplica,
   MAX_ACCEPTABLE_LAG_BLOCKS,

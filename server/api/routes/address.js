@@ -40,12 +40,14 @@ function hasConsistentAddressSummary(summary) {
 
 // Dependencies injected via app.locals
 let pool;
+let queryWithFallback;
 let listCache;
 let chainTip;
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
+  queryWithFallback = req.app.locals.queryWithFallback || pool.query.bind(pool);
   listCache = req.app.locals.listCache || disabledListCache;
   chainTip = req.app.locals.chainTip || { height: 0, hash: '' };
   next();
@@ -353,7 +355,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
     // Earliest inbound output — who first funded this address
     let firstFunding = null;
     try {
-      const { rows: fundingRows } = await pool.query(
+      const { rows: fundingRows } = await queryWithFallback(
         `WITH first_receive AS (
           SELECT o.txid, t.block_time, o.value AS amount_zat, t.is_coinbase
           FROM transaction_outputs o
