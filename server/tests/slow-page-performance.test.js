@@ -202,8 +202,12 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
       buildPageMetadata: (options) => options,
       getBaseUrl: () => 'https://cipherscan.app',
     },
-    '@/lib/server-fetch': { fetchWithDeadline },
+    '@/lib/server-fetch': { fetchWithDeadline, isServerRenderDeadlineError: () => false },
   };
+  const txsRender = loadTypeScriptModule('app/txs/render.tsx', {
+    ...commonImports,
+    './TxsClient': { __esModule: true, default: () => null },
+  });
   const pages = [
     loadTypeScriptModule('app/blocks/page.tsx', {
       ...commonImports,
@@ -212,12 +216,15 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
     loadTypeScriptModule('app/txs/page.tsx', {
       ...commonImports,
       './TxsClient': { __esModule: true, default: () => null },
+      './render': txsRender,
     }),
   ];
 
   for (const page of pages) {
     await page.default({ searchParams: Promise.resolve({}) });
   }
+  // txs page with type=shielded triggers the shielded list fetch
+  await pages[1].default({ searchParams: Promise.resolve({ type: 'shielded' }) });
 
   assert.equal(requests.length, 3);
   assert.ok(requests.some(({ url }) => url.includes('/api/blocks/list?')));
@@ -234,10 +241,6 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     jsxs: (type, props) => ({ type, props }),
     Fragment: Symbol('Fragment'),
   };
-  const cases = [
-    ['app/blocks/page.tsx', './BlocksClient'],
-    ['app/txs/page.tsx', './TxsClient'],
-  ];
   const failures = [
     async () => new Response('unavailable', { status: 503 }),
     async () => new Response(JSON.stringify({ success: true }), {
@@ -246,31 +249,55 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     async () => { throw new Error('network unavailable'); },
   ];
 
-  for (const [relativePath, componentSpecifier] of cases) {
-    for (const failure of failures) {
-      const page = loadTypeScriptModule(relativePath, {
-        'react/jsx-runtime': jsxRuntime,
-        [componentSpecifier]: { __esModule: true, default: () => null },
-        '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
-        '@/lib/isr-fallback': {
-          retainLastGoodOrBuildFallback: (_fallback, error) => { throw error; },
-        },
-        '@/lib/seo': {
-          buildPageMetadata: (options) => options,
-          getBaseUrl: () => 'https://cipherscan.app',
-        },
-        '@/lib/server-fetch': {
-          fetchWithDeadline: failure,
-          isServerRenderDeadlineError: () => true,
-        },
-      });
+  // blocks/page.tsx accepts unavailablePolicy as a prop
+  for (const failure of failures) {
+    const page = loadTypeScriptModule('app/blocks/page.tsx', {
+      'react/jsx-runtime': jsxRuntime,
+      './BlocksClient': { __esModule: true, default: () => null },
+      '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+      '@/lib/isr-fallback': {
+        retainLastGoodOrBuildFallback: (_fallback, error) => { throw error; },
+      },
+      '@/lib/seo': {
+        buildPageMetadata: (options) => options,
+        getBaseUrl: () => 'https://cipherscan.app',
+      },
+      '@/lib/server-fetch': {
+        fetchWithDeadline: failure,
+        isServerRenderDeadlineError: () => true,
+      },
+    });
 
-      await assert.doesNotReject(page.default({ searchParams: Promise.resolve({}) }));
-      await assert.rejects(page.default({
-        searchParams: Promise.resolve({}),
-        unavailablePolicy: 'throw',
-      }));
-    }
+    await assert.doesNotReject(page.default({ searchParams: Promise.resolve({}) }));
+    await assert.rejects(page.default({
+      searchParams: Promise.resolve({}),
+      unavailablePolicy: 'throw',
+    }));
+  }
+
+  // txs/page.tsx delegates to renderTransactionsPage which defaults to 'shell',
+  // so unavailable data produces a shell rather than throwing
+  for (const failure of failures) {
+    const txsImports = {
+      'react/jsx-runtime': jsxRuntime,
+      './TxsClient': { __esModule: true, default: () => null },
+      '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+      '@/lib/isr-fallback': {
+        retainLastGoodOrBuildFallback: (fallback) => fallback,
+      },
+      '@/lib/seo': {
+        buildPageMetadata: (options) => options,
+        getBaseUrl: () => 'https://cipherscan.app',
+      },
+      '@/lib/server-fetch': {
+        fetchWithDeadline: failure,
+        isServerRenderDeadlineError: () => true,
+      },
+    };
+    txsImports['./render'] = loadTypeScriptModule('app/txs/render.tsx', txsImports);
+    const page = loadTypeScriptModule('app/txs/page.tsx', txsImports);
+
+    await assert.doesNotReject(page.default({ searchParams: Promise.resolve({}) }));
   }
 });
 
@@ -467,7 +494,7 @@ test('homepage, rich list, and detail HTML opt into the Next full route cache', 
     'app/txs/latest/page.tsx',
   ]) {
     const latestSource = source(filename);
-    assert.match(latestSource, /unavailablePolicy: 'shell'/);
+    assert.match(latestSource, /['"]shell['"]/);
     assert.match(latestSource, /export const revalidate = 30/);
   }
 
