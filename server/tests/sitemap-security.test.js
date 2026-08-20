@@ -697,9 +697,9 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
 
 test('transaction archive metadata indexes only unfiltered first pages', async () => {
   const jsxRuntime = { jsx: () => null, jsxs: () => null, Fragment: Symbol('Fragment') };
-  const loadPage = (relativePath, componentSpecifier) => loadTypeScriptModule(relativePath, {
+  const sharedMocks = {
     'react/jsx-runtime': jsxRuntime,
-    [componentSpecifier]: { __esModule: true, default: () => null },
+    './TxsClient': { __esModule: true, default: () => null },
     '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.mainnet.cipherscan.app' } },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,
@@ -710,7 +710,14 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     },
     '@/lib/server-fetch': {
       fetchWithDeadline: (url, init) => global.fetch(url, init),
+      isServerRenderDeadlineError: () => false,
     },
+  };
+  const renderModule = loadTypeScriptModule('app/txs/render.tsx', sharedMocks);
+  const loadPage = (relativePath, componentSpecifier) => loadTypeScriptModule(relativePath, {
+    ...sharedMocks,
+    [componentSpecifier]: { __esModule: true, default: () => null },
+    './render': renderModule,
   });
   const txs = loadPage('app/txs/page.tsx', './TxsClient');
 

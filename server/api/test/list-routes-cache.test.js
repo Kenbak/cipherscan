@@ -398,7 +398,8 @@ test('malformed list identities are normalized safely and marked uncacheable', a
   });
   const addresses = captureRoutes('routes/address.js');
   const listCache = recordingListCache();
-  const locals = { pool: {}, listCache, redisClient: null, callZebraRPC: null };
+  const mockPool = { query: async () => ({ rows: [] }) };
+  const locals = { pool: mockPool, listCache, redisClient: null, callZebraRPC: null };
 
   await invoke(transactions, '/api/transactions/list', {
     query: { limit: '10items' },
