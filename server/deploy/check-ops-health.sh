@@ -159,13 +159,15 @@ if command -v psql >/dev/null 2>&1; then
   fi
 
   # --- WAL archiving freshness ---
+  # Query returns: archive_mode | failed_count | seconds_since_last_archive | 1_if_last_failure_is_newer_than_last_success
   archiver_stats="$(sudo -u postgres psql -d "${PG_DATABASE}" -Atc \
-    "SELECT (SELECT setting FROM pg_settings WHERE name = 'archive_mode'), failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1) FROM pg_stat_archiver" \
+    "SELECT (SELECT setting FROM pg_settings WHERE name = 'archive_mode'), failed_count, COALESCE(EXTRACT(EPOCH FROM (now() - last_archived_time))::bigint, -1), CASE WHEN last_failed_time > last_archived_time THEN 1 ELSE 0 END FROM pg_stat_archiver" \
     2>&1 || true)"
-  if [[ "${archiver_stats}" =~ ^([a-z]+)\|([0-9]+)\|(-?[0-9]+)$ ]]; then
+  if [[ "${archiver_stats}" =~ ^([a-z]+)\|([0-9]+)\|(-?[0-9]+)\|([01])$ ]]; then
     archive_mode="${BASH_REMATCH[1]}"
     archive_failed_count="${BASH_REMATCH[2]}"
     archive_age_seconds="${BASH_REMATCH[3]}"
+    archive_failing_now="${BASH_REMATCH[4]}"
     if [[ "${archive_mode}" != "on" && "${archive_mode}" != "always" ]]; then
       failures+=("WAL archive_mode '${archive_mode}' (not on)")
       wal_ok=0
@@ -173,7 +175,7 @@ if command -v psql >/dev/null 2>&1; then
       failures+=("Last WAL archive $((archive_age_seconds / 60))m ago (max ${PGBACKREST_MAX_WAL_AGE_MINUTES}m)")
       wal_ok=0
     fi
-    if (( archive_failed_count > 0 )); then
+    if (( archive_failing_now == 1 )) && (( archive_failed_count > 0 )); then
       failures+=("WAL archiver: ${archive_failed_count} failed attempts")
       wal_ok=0
     fi
