@@ -592,7 +592,7 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         vin_count, vout_count, value_balance, value_balance_sapling,
         value_balance_orchard, value_balance_ironwood,
         has_sapling, has_orchard, has_ironwood, has_sprout,
-        ironwood_actions, orchard_actions,
+        ironwood_actions, orchard_actions, sapling_spend_count, sapling_output_count,
         fee, total_input, total_output, is_coinbase,
         tx_index${stakingCols}
       FROM transactions

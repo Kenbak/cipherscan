@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import { Badge, DataTable, HashLink, RedactedAmount, TxTypeBadge, type DataTableColumn, type TxCategory } from '@/components/ui';
-import { ShieldedIcon } from '@/components/icons/shield-flow';
 import { StakingActionBadge } from '@/components/StakingActionBadge';
 import { zatToZec } from '@/lib/format-numbers';
 import { CURRENCY } from '@/lib/config';
@@ -164,14 +163,11 @@ const columns: DataTableColumn<any>[] = [
     skeletonWidth: 'w-4',
     cell: (tx) => {
       const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
-      const inputCount = isCoinbase ? 0 : (tx.vin?.length || 0);
-      const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
-      // Muted, not pool-tinted — the Type badge on this row already carries
-      // the pool color; repeating it here per-cell is what read as "rainbow".
-      if (isShielded && inputCount === 0 && !isCoinbase) {
-        return <ShieldedIcon size={12} className="mx-auto text-muted" />;
-      }
-      return <span className="text-xs font-mono text-secondary tabular-nums">{inputCount}</span>;
+      if (isCoinbase) return <span className="text-xs font-mono text-secondary tabular-nums">0</span>;
+      const transparentIns = tx.vin?.length || 0;
+      const shieldedIns = (tx.sapling_spend_count || 0) + (tx.orchard_actions || 0) + (tx.ironwood_actions || 0);
+      const total = transparentIns + shieldedIns;
+      return <span className="text-xs font-mono text-secondary tabular-nums">{total}</span>;
     },
   },
   {
@@ -180,12 +176,10 @@ const columns: DataTableColumn<any>[] = [
     align: 'center',
     skeletonWidth: 'w-4',
     cell: (tx) => {
-      const outputCount = tx.vout?.length || 0;
-      const isShielded = tx.has_sapling || tx.has_orchard || tx.has_ironwood;
-      if (isShielded && outputCount === 0) {
-        return <ShieldedIcon size={12} className="mx-auto text-muted" />;
-      }
-      return <span className="text-xs font-mono text-secondary tabular-nums">{outputCount}</span>;
+      const transparentOuts = tx.vout?.length || 0;
+      const shieldedOuts = (tx.sapling_output_count || 0) + (tx.orchard_actions || 0) + (tx.ironwood_actions || 0);
+      const total = transparentOuts + shieldedOuts;
+      return <span className="text-xs font-mono text-secondary tabular-nums">{total}</span>;
     },
   },
   {
