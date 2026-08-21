@@ -4,7 +4,7 @@ export const NU7_VOTE = {
   voteStartTime: '2026-08-25T00:00:00Z',
   voteEndTime: '2026-09-14T19:00:00Z',
   legitimacyThreshold: 1_000_000,
-  forumUrl: 'https://forum.zcashcommunity.com/t/nu7-token-holder-vote/56912',
+  forumUrl: 'https://forum.zcashcommunity.com/t/nu7-coinholder-vote/56912',
 } as const;
 
 export const VOTE_CHAIN = {
@@ -47,10 +47,11 @@ export const QUESTIONS: PollQuestion[] = [
     id: 'q2-nsm-reissuance',
     title: 'Q2 — NSM Reissuance Start Date',
     description:
-      'NSM has prior coinholder approval. This question concerns the start of fee reissuance under the mechanism.',
+      'NSM has prior coinholder approval. This question concerns the start of reissuance of funds removed from circulation (which includes at least 60% of total fees).',
     options: [
-      'As soon as possible after NSM activation.',
-      'After the fourth halving (around 2032).',
+      'As soon as possible. If the outcome of Q1 is smoothed issuance, this will be February 2027; otherwise it may be sooner.',
+      'February 2027, regardless of the outcome of Q1.',
+      'February 2031, regardless of the outcome of Q1.',
       'Abstain.',
     ],
     context: 'halving',
@@ -59,11 +60,11 @@ export const QUESTIONS: PollQuestion[] = [
     id: 'q3-sprout-deprecation',
     title: 'Q3 — Sprout Deprecation',
     description:
-      'The Sprout pool was deprecated in 2018. Deposits are disabled, it holds less than 23,000 ZEC, and it accounts for under 0.1% of transaction volume. Deprecation of v4 transactions is now broadly accepted; only timing is open. The disposition of the affected funds is out of scope for this poll.',
+      'The Sprout pool was deprecated in 2018. Deposits are disabled, it holds less than 23,000 ZEC, and it accounts for under 0.1% of transaction volume. Disabling v4 transactions is now broadly accepted; only timing is open. The disposition of the affected funds is out of scope for this poll.',
     options: [
       'Immediately at NU7 activation.',
       'One year after this poll concludes.',
-      'Do not set a v4 transaction deprecation date.',
+      'Do not set a date to disable v4 transactions.',
       'Abstain.',
     ],
     context: 'sprout',
@@ -72,18 +73,18 @@ export const QUESTIONS: PollQuestion[] = [
     id: 'q4-faster-blocks',
     title: 'Q4 — Faster Block Times',
     description:
-      'Should we reduce the target block time from 75s to 25s, and introduce per-pool action limits, per ZIP-218?',
+      'Should we reduce the block target spacing from 75s to 25s, and introduce per-pool action limits, per ZIP-218?',
     options: ['Yes.', 'No.', 'Abstain.'],
     context: 'blocktime',
   },
   {
-    id: 'q5-nu7-schedule',
-    title: 'Q5 — NU7 Schedule',
+    id: 'q5-nu7-scope',
+    title: 'Q5 — NU7 Scope and Readiness',
     description:
-      'NU7 will include NSM fee recycling, and be consistent with the results of this poll, assuming each feature is implemented by September 30th. How should non-ready features be handled?',
+      'NU7 will be consistent with the results of this poll, assuming each applicable feature is implemented by September 30th. NU7 will not include transaction format changes. The applicable features are the issuance approach selected in Q1 and Q2, disabling v4 transactions (Q3), and faster block times (Q4).',
     options: [
       'Ship NU7 as soon as possible, removing any feature that is not implemented by the September 30th deadline.',
-      'Delay NU7 until every feature in this poll is deemed complete.',
+      'Delay NU7 until every applicable feature approved in this poll is deemed complete.',
       'I do not support this NU7 plan.',
       'Abstain.',
     ],
@@ -98,7 +99,7 @@ export interface WalletSupport {
 
 export const WALLETS: WalletSupport[] = [
   { name: 'Vizor', status: 'confirmed', url: 'https://vizor.vote' },
-  { name: 'Zodl', status: 'expected', url: 'https://zodl.com' },
+  { name: 'Zodl', status: 'confirmed', url: 'https://zodl.com' },
   { name: 'Cake Wallet', status: 'unknown', url: 'https://cakewallet.com' },
 ];
 

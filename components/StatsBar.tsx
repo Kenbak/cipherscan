@@ -17,6 +17,8 @@ interface StatsData {
   shieldedPool: number | null;
   shieldedPct: number | null;
   totalTxs: number | null;
+  ironwoodPool: number | null;
+  ironwoodPct: number | null;
 }
 
 type StatId =
@@ -28,6 +30,8 @@ type StatId =
   | 'shieldedPool'
   | 'shieldedPct'
   | 'privacyScore'
+  | 'ironwoodPool'
+  | 'ironwoodPct'
   | 'price';
 
 // Canonical display order — filtering by selection never reorders the bar,
@@ -40,6 +44,8 @@ const STAT_ORDER: StatId[] = [
   'totalTxs',
   'shieldedPool',
   'shieldedPct',
+  'ironwoodPool',
+  'ironwoodPct',
   'privacyScore',
   'price',
 ];
@@ -52,6 +58,8 @@ const STAT_MENU_LABELS: Record<StatId, string> = {
   totalTxs: 'Total TXs',
   shieldedPool: 'Shielded Pool',
   shieldedPct: '% TXs Shielded',
+  ironwoodPool: 'Ironwood Pool',
+  ironwoodPct: '% Migrated',
   privacyScore: 'Privacy Score',
   price: `${CURRENCY} Price`,
 };
@@ -115,6 +123,8 @@ export function StatsBar() {
     shieldedPool: null,
     shieldedPct: null,
     totalTxs: null,
+    ironwoodPool: null,
+    ironwoodPct: null,
   });
 
   const usePostgresApi = usePostgresApiClient();
@@ -273,6 +283,10 @@ export function StatsBar() {
             if (data.mining?.networkHashrate) newStats.hashrate = data.mining.networkHashrate;
             if (data.mining?.avgBlockTime) newStats.avgBlockTime = data.mining.avgBlockTime;
             if (data.network?.height && !newStats.blockHeight) newStats.blockHeight = data.network.height;
+            if (data.supply?.ironwood) newStats.ironwoodPool = data.supply.ironwood;
+            if (data.supply?.ironwood && data.supply?.totalShielded) {
+              newStats.ironwoodPct = (data.supply.ironwood / data.supply.totalShielded) * 100;
+            }
           }
 
           if (privacyRes?.status === 'fulfilled' && privacyRes.value.ok) {
@@ -348,6 +362,14 @@ export function StatsBar() {
               {stats.privacyScore}/100
             </span>
           </StatItem>
+        ) : null;
+      case 'ironwoodPool':
+        return stats.ironwoodPool !== null ? (
+          <StatItem href="/ironwood" label="Ironwood">{formatCompact(stats.ironwoodPool)} {CURRENCY}</StatItem>
+        ) : null;
+      case 'ironwoodPct':
+        return stats.ironwoodPct !== null ? (
+          <StatItem href="/ironwood" label="% Migrated">{stats.ironwoodPct.toFixed(1)}%</StatItem>
         ) : null;
       case 'price':
         return stats.price !== null ? (

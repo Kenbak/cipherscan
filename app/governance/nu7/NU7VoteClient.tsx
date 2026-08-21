@@ -9,6 +9,7 @@ import {
   RESOURCES,
   type PollQuestion,
 } from '@/lib/nu7-vote-config';
+import { PageHeader, Badge, type BadgeColor } from '@/components/ui';
 
 interface InitialData {
   ironwoodZec: number | null;
@@ -211,17 +212,12 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            NU7 <span className="text-cipher-cyan-bright">Coinholder Vote</span>
-          </h1>
-          <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
-            Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon.
-          </p>
-        </div>
-        <PhaseBadge phase={phase} />
-      </div>
+      <PageHeader
+        eyebrow="GOVERNANCE"
+        title="NU7 Coinholder Vote"
+        subtitle="Private coinholder vote on NU7 scope — issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule. Organized by Valar Group and Project Tachyon."
+        actions={<PhaseBadge phase={phase} />}
+      />
 
       {/* Countdown + Context */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
@@ -283,31 +279,46 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
       {/* Key Dates — right after countdown */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface mb-8">
         <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-cipher-border-subtle">
-          <DateCell label="Snapshot" date="Aug 24, 2026" time="19:00 UTC" note="Ironwood funds must be spendable" />
-          <DateCell label="Voting opens" date="Aug 25, 2026" time="" note="~18 days to cast votes" />
-          <DateCell label="Voting closes" date="Sep 12, 2026" time="19:00 UTC" note="Results published shortly after" />
+          <DateCell
+            label="Snapshot"
+            date={formatVoteDate(NU7_VOTE.snapshotTime)}
+            time={formatVoteTime(NU7_VOTE.snapshotTime)}
+            note="Ironwood funds must be spendable"
+          />
+          <DateCell
+            label="Voting opens"
+            date={formatVoteDate(NU7_VOTE.voteStartTime)}
+            time=""
+            note={`~${votingWindowDays} days to cast votes`}
+          />
+          <DateCell
+            label="Voting closes"
+            date={formatVoteDate(NU7_VOTE.voteEndTime)}
+            time={formatVoteTime(NU7_VOTE.voteEndTime)}
+            note="Results published shortly after"
+          />
         </div>
       </div>
 
       {/* Main tabs: Vote / Chain */}
       <div className="mb-8">
-        <div className="flex border-b border-cipher-border mb-6">
+        <div className="flex gap-1 p-1 rounded-lg bg-glass-3 w-fit mb-6">
           <button
             onClick={() => setActiveTab('vote')}
-            className={`px-5 py-3 text-sm font-mono font-semibold transition-colors border-b-2 ${
+            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition-all ${
               activeTab === 'vote'
-                ? 'border-cipher-cyan text-primary'
-                : 'border-transparent text-muted hover:text-secondary'
+                ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
+                : 'text-muted hover:text-secondary'
             }`}
           >
             Vote
           </button>
           <button
             onClick={() => setActiveTab('chain')}
-            className={`px-5 py-3 text-sm font-mono font-semibold transition-colors border-b-2 ${
+            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition-all ${
               activeTab === 'chain'
-                ? 'border-cipher-cyan text-primary'
-                : 'border-transparent text-muted hover:text-secondary'
+                ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
+                : 'text-muted hover:text-secondary'
             }`}
           >
             Chain Explorer
@@ -335,7 +346,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
               href={r.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-cipher-cyan/40 hover:bg-glass-1 transition-colors text-xs font-mono text-secondary hover:text-primary"
+              className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-cipher-border hover:border-glass-12 hover:bg-glass-1 transition-colors text-xs font-mono text-secondary hover:text-primary"
             >
               <ExternalIcon />
               <span className="truncate">{r.label}</span>
@@ -375,15 +386,15 @@ function VoteTab({
       <div className="lg:col-span-2">
         <SectionLabel label="POLL_QUESTIONS" />
         <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
-          <div className="flex border-b border-cipher-border-subtle overflow-x-auto">
+          <div className="flex border-b border-cipher-border-subtle overflow-x-auto p-1 gap-1">
             {QUESTIONS.map((q, i) => (
               <button
                 key={q.id}
                 onClick={() => setActiveQuestion(i)}
-                className={`shrink-0 px-4 py-3 text-xs font-mono transition-colors border-b-2 ${
+                className={`shrink-0 px-3.5 py-2 text-xs font-mono rounded-md transition-all ${
                   i === activeQuestion
-                    ? 'border-cipher-cyan text-primary bg-glass-1'
-                    : 'border-transparent text-muted hover:text-secondary'
+                    ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
+                    : 'text-muted hover:text-secondary'
                 }`}
               >
                 Q{i + 1}
@@ -507,7 +518,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                 <tbody className="divide-y divide-cipher-border-subtle">
                   {chainState.recentBlocks.slice(0, 8).map(b => (
                     <tr key={b.height} className="hover:bg-glass-1 transition-colors">
-                      <td className="px-4 py-2 text-cipher-cyan tabular-nums">{b.height.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-primary tabular-nums">{b.height.toLocaleString()}</td>
                       <td className="px-4 py-2 text-muted tabular-nums">
                         {b.time ? new Date(b.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' }) : '—'}
                       </td>
@@ -674,19 +685,15 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 }
 
 function PhaseBadge({ phase }: { phase: Phase }) {
-  const config: Record<Phase, { label: string; classes: string }> = {
-    'pre-snapshot': { label: 'Snapshot pending', classes: 'border-cipher-cyan/30 text-cipher-cyan bg-cipher-cyan/5' },
-    'pre-vote': { label: 'Vote starting soon', classes: 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5' },
-    active: { label: 'Voting open', classes: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
-    tallying: { label: 'Tallying', classes: 'border-cipher-purple-bright/30 text-cipher-purple-bright bg-cipher-purple-bright/5' },
-    results: { label: 'Results published', classes: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
+  const config: Record<Phase, { label: string; color: BadgeColor }> = {
+    'pre-snapshot': { label: 'Snapshot pending', color: 'muted' },
+    'pre-vote': { label: 'Vote starting soon', color: 'muted' },
+    active: { label: 'Voting open', color: 'green' },
+    tallying: { label: 'Tallying', color: 'muted' },
+    results: { label: 'Results published', color: 'green' },
   };
   const c = config[phase];
-  return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-mono font-semibold border ${c.classes}`}>
-      {c.label}
-    </span>
-  );
+  return <Badge color={c.color}>{c.label}</Badge>;
 }
 
 function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'cyan' }) {
@@ -724,7 +731,7 @@ function QuestionContent({ q }: { q: PollQuestion }) {
       <div className="space-y-2.5">
         {q.options.map((opt, i) => (
           <div key={i} className="flex items-start gap-3 px-3.5 py-2.5 rounded-lg bg-glass-2 border border-cipher-border-subtle">
-            <span className="shrink-0 w-6 h-6 rounded-md bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+            <span className="shrink-0 w-6 h-6 rounded-md bg-glass-6 text-secondary flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
               {String.fromCharCode(65 + i)}
             </span>
             <span className="text-xs text-secondary leading-relaxed">{opt}</span>
@@ -756,6 +763,35 @@ function WalletBadge({ status }: { status: 'confirmed' | 'expected' | 'unknown' 
   return <span className="text-[10px] font-mono font-semibold text-muted border border-cipher-border rounded-full px-2 py-0.5">Unknown</span>;
 }
 
+function formatVoteDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function formatVoteTime(iso: string): string {
+  return `${new Date(iso).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  })} UTC`;
+}
+
+// Derived from config rather than hardcoded so this can't silently drift from
+// NU7_VOTE.voteEndTime again if the voting window is extended (as it was once
+// already, per ebfull: "the end of the vote was extended by two days").
+// Floor (not round) to match the forum's own "~N days" convention, e.g. the
+// original Aug25->Sep12 window was announced as "~18 days" even though the
+// exact interval is 18 days 19h.
+const votingWindowDays = Math.floor(
+  (new Date(NU7_VOTE.voteEndTime).getTime() - new Date(NU7_VOTE.voteStartTime).getTime()) /
+    (1000 * 60 * 60 * 24)
+);
+
 function DateCell({ label, date, time, note }: { label: string; date: string; time: string; note: string }) {
   return (
     <div className="p-5">
@@ -771,7 +807,7 @@ function DateCell({ label, date, time, note }: { label: string; date: string; ti
 
 function ExternalIcon() {
   return (
-    <svg className="w-3 h-3 shrink-0 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-3 h-3 shrink-0 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
   );
@@ -804,7 +840,7 @@ function StatCell({ label, value, sub }: { label: string; value: string; sub?: s
 function Step({ n, text }: { n: number; text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="shrink-0 w-5 h-5 rounded-full bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+      <span className="shrink-0 w-5 h-5 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
         {n}
       </span>
       <span className="text-[11px] text-secondary leading-relaxed">{text}</span>
@@ -818,7 +854,7 @@ function RoleDot({ label, title, active }: { label: string; title: string; activ
       title={title}
       className={`inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-mono font-bold ${
         active
-          ? 'bg-cipher-cyan/15 text-cipher-cyan'
+          ? 'bg-glass-6 text-primary'
           : 'bg-glass-3 text-muted/30'
       }`}
     >
@@ -830,7 +866,7 @@ function RoleDot({ label, title, active }: { label: string; title: string; activ
 function StepInline({ n, text }: { n: number; text: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="w-4 h-4 rounded-full bg-cipher-cyan/10 text-cipher-cyan flex items-center justify-center text-[9px] font-mono font-bold shrink-0">
+      <span className="w-4 h-4 rounded-full bg-glass-6 text-secondary flex items-center justify-center text-[9px] font-mono font-bold shrink-0">
         {n}
       </span>
       <span className="text-[11px] text-secondary">{text}</span>

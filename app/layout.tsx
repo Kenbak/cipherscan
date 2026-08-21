@@ -7,7 +7,7 @@ import { StatsBar } from "@/components/StatsBar";
 import { Footer } from "@/components/Footer";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ChainSyncBanner } from "@/components/ChainSyncBanner";
-import { IronwoodBanner } from "@/components/IronwoodBanner";
+import { NU7VoteBanner } from "@/components/NU7VoteBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { buildPageMetadata, getBaseUrl, getNetwork } from "@/lib/seo";
 import "./globals.css";
@@ -121,7 +121,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <ChainSyncBanner />
       <NavBar />
       <StatsBar />
-      <IronwoodBanner />
+      <NU7VoteBanner />
       <main className="min-h-screen">{children}</main>
       <Footer />
     </>

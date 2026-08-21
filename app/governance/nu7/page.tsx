@@ -1,11 +1,12 @@
 import { NU7VoteClient } from './NU7VoteClient';
 import { getApiUrl, getBaseUrl, getNetwork } from '@/lib/seo';
 import { NU7_VOTE } from '@/lib/nu7-vote-config';
+import { fetchWithDeadline } from '@/lib/server-fetch';
 import { notFound } from 'next/navigation';
 
 async function fetchJson(url: string) {
   try {
-    const res = await fetch(url, { next: { revalidate: 300 } });
+    const res = await fetchWithDeadline(url, { next: { revalidate: 300 } }, 8_000);
     if (!res.ok) return null;
     return await res.json();
   } catch {
