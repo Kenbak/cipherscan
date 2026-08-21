@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import {
   NU7_VOTE,
   VOTE_CHAIN,
@@ -226,6 +227,11 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
           <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">
             {countdownLabel}
           </span>
+          {phase === 'pre-snapshot' && (
+            <Link href={`/block/${NU7_VOTE.snapshotHeight}`} className="text-[10px] font-mono text-muted hover:text-primary transition-colors ml-auto">
+              Block #{NU7_VOTE.snapshotHeight.toLocaleString()}
+            </Link>
+          )}
         </div>
 
         <div className="p-5 sm:p-6">

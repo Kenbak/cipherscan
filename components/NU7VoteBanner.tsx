@@ -129,6 +129,12 @@ export function NU7VoteBanner() {
                 <span>{phaseLabel} in {countdownStr}</span>
               </>
             )}
+            {phase === 'pre-snapshot' && (
+              <>
+                <span className="text-muted/60 mx-1.5">·</span>
+                <span className="text-muted/80">Block #{NU7_VOTE.snapshotHeight.toLocaleString()}</span>
+              </>
+            )}
             {phase === 'active' && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>

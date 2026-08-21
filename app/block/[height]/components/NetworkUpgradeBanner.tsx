@@ -7,6 +7,9 @@ export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
   const upgrade = NETWORK_UPGRADES[data.height];
   if (!upgrade) return null;
 
+  const badgeLabel = upgrade.badge || 'ACTIVATED';
+  const linkLabel = upgrade.linkText || 'View migration tracker →';
+
   return (
     <div className="mb-6 rounded-xl border border-cipher-yellow-bright/30 bg-gradient-to-r from-cipher-yellow-bright/5 to-transparent p-4 sm:p-5">
       <div className="flex items-start gap-3">
@@ -20,8 +23,8 @@ export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <span className="text-sm font-bold text-cipher-yellow-bright">{upgrade.name}</span>
-            <Badge color="amber">{upgrade.zip}</Badge>
-            <Badge color="green">ACTIVATED</Badge>
+            {upgrade.zip && <Badge color="amber">{upgrade.zip}</Badge>}
+            <Badge color="green">{badgeLabel}</Badge>
           </div>
           <p className="text-xs sm:text-sm text-secondary leading-relaxed">
             {upgrade.description}
@@ -31,7 +34,7 @@ export function NetworkUpgradeBanner({ data }: { data: BlockData }) {
               href={upgrade.link}
               className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-cipher-yellow-bright hover:text-cipher-yellow-glow transition-colors"
             >
-              View migration tracker →
+              {linkLabel}
             </Link>
           )}
         </div>

@@ -57,6 +57,8 @@ export interface NetworkUpgrade {
   zip: string;
   description: string;
   link?: string;
+  linkText?: string;
+  badge?: string;
 }
 
 export const NETWORK_UPGRADES: Record<number, NetworkUpgrade> = {
@@ -65,6 +67,14 @@ export const NETWORK_UPGRADES: Record<number, NetworkUpgrade> = {
     zip: 'ZIP-258',
     description: 'Activates the Ironwood shielded pool with enhanced cryptographic foundations. ZEC holders can migrate from Orchard to Ironwood via ZIP-318 turnstile transactions.',
     link: '/ironwood',
+  },
+  3459350: {
+    name: 'NU7 Coinholder Vote — Snapshot',
+    zip: '',
+    description: 'Eligibility snapshot for the NU7 coinholder vote. Spendable Ironwood funds at this height qualify to vote on issuance smoothing, Sprout deprecation, 25-second blocks, and upgrade schedule.',
+    link: '/governance/nu7',
+    linkText: 'View vote details →',
+    badge: 'SNAPSHOT',
   },
   4134000: {
     name: 'Ironwood (NU6.3)',
