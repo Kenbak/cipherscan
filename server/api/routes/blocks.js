@@ -176,7 +176,10 @@ router.get('/health/deep', async (req, res) => {
 router.get('/api/info', async (req, res) => {
   try {
     const result = await pool.query('SELECT MAX(height) as max_height FROM blocks');
-    const currentHeight = result.rows[0]?.max_height || 0;
+    // pg returns BIGINT columns as strings; block height is always well within
+    // Number.MAX_SAFE_INTEGER, so coerce here instead of leaking a string to
+    // every consumer of this "numeric info" endpoint.
+    const currentHeight = Number(result.rows[0]?.max_height ?? 0);
 
     res.json({
       blocks: currentHeight,

@@ -764,7 +764,10 @@ setInterval(async () => {
 
   try {
     const result = await pool.query('SELECT MAX(height) as max_height FROM blocks');
-    const currentHeight = result.rows[0]?.max_height || 0;
+    // pg returns BIGINT as a string; once assigned to lastKnownHeight below,
+    // an uncoerced value would make later comparisons lexicographic instead
+    // of numeric (silently wrong across digit-length boundaries).
+    const currentHeight = Number(result.rows[0]?.max_height ?? 0);
 
     if (currentHeight > lastKnownHeight) {
       console.log(`📦 New block detected (poll fallback): ${currentHeight}`);

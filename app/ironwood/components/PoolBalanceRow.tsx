@@ -27,10 +27,10 @@ export function PoolBalanceRow({
           <span className={`text-xs ${nameClass} truncate`} style={valueStyle}>{row.name}</span>
           {row.name === 'Orchard' && (
             <span
-              title="Unverified (Orchard)"
+              title="Pending turnstile verification"
               className="text-[7px] px-1 py-px rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
             >
-              UV
+              PT
             </span>
           )}
         </div>
@@ -51,8 +51,11 @@ export function PoolBalanceRow({
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
           <span className={`text-sm ${nameClass}`} style={valueStyle}>{row.name}</span>
           {row.name === 'Orchard' && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0">
-              unverified
+            <span
+              title="Pending turnstile verification"
+              className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+            >
+              pending
             </span>
           )}
         </div>

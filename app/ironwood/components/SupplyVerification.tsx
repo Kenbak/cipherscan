@@ -149,7 +149,7 @@ export function SupplyVerification({
               <span className="text-2xl font-bold font-mono text-primary leading-none">
                 {verifiedPct != null ? `${verifiedPct.toFixed(1)}%` : '—'}
               </span>
-              <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">supply verified</span>
+              <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">turnstile-verified</span>
             </div>
           </div>
 
@@ -161,10 +161,7 @@ export function SupplyVerification({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.orchardPool }} />
-              <span className="text-muted">
-                <span className="sm:hidden">Unverified</span>
-                <span className="hidden sm:inline">Unverified (Orchard)</span>
-              </span>
+              <span className="text-muted">Orchard</span>
             </div>
           </div>
         </div>

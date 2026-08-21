@@ -52,8 +52,8 @@ export function FutureBlockView({
         const res = await fetch(apiUrl);
         if (res.ok) {
           const data = await res.json();
-          const h = data.height ?? data.blocks;
-          if (typeof h === 'number' && h > currentHeight) {
+          const h = Number(data.height ?? data.blocks);
+          if (Number.isFinite(h) && h > currentHeight) {
             setCurrentHeight(h);
           }
         }

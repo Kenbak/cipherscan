@@ -95,7 +95,7 @@ export function IronwoodBanner() {
       </span>
       <span className="text-muted/60 mx-1.5 hidden sm:inline">·</span>
       {state.verifiedPct != null && (
-        <span>{state.verifiedPct.toFixed(1)}% supply verified</span>
+        <span>{state.verifiedPct.toFixed(1)}% turnstile-verified</span>
       )}
     </span>
   );
