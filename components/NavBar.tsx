@@ -211,7 +211,7 @@ export function NavBar() {
 
             {/* Desktop: Search (non-home) */}
             {!isHomePage && (
-              <div className="hidden md:block flex-1 max-w-xs">
+              <div className="hidden md:block flex-1 max-w-xs nav-search-compact">
                 <SearchBar compact />
               </div>
             )}
@@ -303,7 +303,7 @@ export function NavBar() {
 
           {/* Mobile Search (only on non-home pages) */}
           {!isHomePage && (
-            <div className="md:hidden pb-3">
+            <div className="md:hidden pb-3 nav-search-compact">
               <SearchBar compact />
             </div>
           )}

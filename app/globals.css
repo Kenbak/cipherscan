@@ -1026,6 +1026,11 @@
     transition-duration: var(--duration-normal);
   }
 
+  /* Hide compact nav search on the homepage (CSS-level defense against hydration flash) */
+  body:has(.home-page) .nav-search-compact {
+    display: none !important;
+  }
+
   /* Navbar elements */
   .navbar-border {
     border-color: var(--color-border);

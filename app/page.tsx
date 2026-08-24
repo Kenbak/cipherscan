@@ -99,7 +99,7 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <div className="home-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       {/* Hero Section - z-index for dropdown to appear above widgets */}
       <div className="text-center mb-10 sm:mb-14 relative z-30">
         {/* Tagline - SEO friendly */}
