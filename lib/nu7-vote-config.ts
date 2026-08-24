@@ -101,6 +101,7 @@ export interface WalletSupport {
 export const WALLETS: WalletSupport[] = [
   { name: 'Vizor', status: 'confirmed', url: 'https://vizor.vote' },
   { name: 'Zodl', status: 'confirmed', url: 'https://zodl.com' },
+  { name: 'Zkool', status: 'confirmed' },
   { name: 'Cake Wallet', status: 'unknown', url: 'https://cakewallet.com' },
 ];
 
