@@ -196,12 +196,17 @@ function useChainState(): ChainState | null {
 export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
   const phase = useMemo(getPhase, []);
   const snapshotCountdown = useCountdown(NU7_VOTE.snapshotTime);
+  const voteStartCountdown = useCountdown(NU7_VOTE.voteStartTime);
   const voteEndCountdown = useCountdown(NU7_VOTE.voteEndTime);
   const chainState = useChainState();
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [activeTab, setActiveTab] = useState<'vote' | 'chain'>('vote');
 
-  const countdown = phase === 'pre-snapshot' ? snapshotCountdown : voteEndCountdown;
+  const countdown = phase === 'pre-snapshot'
+    ? snapshotCountdown
+    : phase === 'pre-vote'
+      ? voteStartCountdown
+      : voteEndCountdown;
   const countdownLabel = phase === 'pre-snapshot'
     ? 'Until snapshot'
     : phase === 'active'
