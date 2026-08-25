@@ -1,0 +1,30 @@
+[Unit]
+Description=Ziggurat Zcash Network Crawler (via Tor)
+After=network-online.target tor@default.service
+Wants=network-online.target
+Requires=tor@default.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/zcash-crawler
+ExecStart=/usr/bin/torsocks /opt/zcash-crawler/target/release/crawler \
+  --seed-addrs mainnet.seeder.zfnd.org dnsseed.str4d.xyz \
+  --node-listening-port 8233 \
+  --rpc-addr 127.0.0.1:54322
+Restart=always
+RestartSec=30
+TimeoutStopSec=30
+
+Environment=TORSOCKS_LOG_LEVEL=1
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/zcash-crawler/data
+
+[Install]
+WantedBy=multi-user.target

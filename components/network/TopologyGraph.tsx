@@ -29,9 +29,9 @@ interface TopologyEdge extends SimulationLinkDatum<TopologyNode> {
 }
 
 const CLIENT_COLORS: Record<string, string> = {
-  Zebra: '#5B9CF6',
-  Zakura: '#34D399',
-  zcashd: '#F59E0B',
+  Zebra: '#56D4C8',
+  Zakura: '#E8C48D',
+  zcashd: '#5B9CF6',
   Unknown: '#6B7280',
   Other: '#8B5CF6',
 };

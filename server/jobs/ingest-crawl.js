@@ -30,6 +30,7 @@ loadEnv(__dirname);
 
 const CRAWLER_RPC_HOST = process.env.CRAWLER_RPC_HOST || '127.0.0.1';
 const CRAWLER_RPC_PORT = parseInt(process.env.CRAWLER_RPC_PORT || '54321');
+const CRAWLER_TOR_RPC_PORT = parseInt(process.env.CRAWLER_TOR_RPC_PORT || '54322');
 const CRUNCHER_BIN = process.env.CRUNCHER_BIN || '/opt/zcash-crawler/target/release/cruncher';
 const MAXMIND_DB_PATH = process.env.MAXMIND_DB_PATH || '/opt/zcash-crawler/data/GeoLite2-City.mmdb';
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
@@ -40,14 +41,14 @@ const ADVISORY_LOCK_ID = 839271;
 const pool = getPool({ max: 3, idleTimeoutMillis: 10000 });
 
 /**
- * Call the crawler's JSON-RPC endpoint.
+ * Call a crawler's JSON-RPC endpoint.
  */
-function callCrawlerRPC(method) {
+function callCrawlerRPC(method, port = CRAWLER_RPC_PORT) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({ jsonrpc: '2.0', method, params: [], id: 1 });
     const req = http.request({
       hostname: CRAWLER_RPC_HOST,
-      port: CRAWLER_RPC_PORT,
+      port,
       path: '/',
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
@@ -144,6 +145,33 @@ async function ingestCrawl() {
   }
 
   log(`Crawler reports: ${metrics.num_good_nodes} good / ${metrics.num_known_nodes} known nodes, ${metrics.num_known_connections} connections`);
+
+  // Poll Tor crawler (best-effort — may not be running)
+  let torMetrics = null;
+  try {
+    torMetrics = await callCrawlerRPC('getmetrics', CRAWLER_TOR_RPC_PORT);
+    if (torMetrics && torMetrics.num_good_nodes > 0) {
+      log(`Tor crawler reports: ${torMetrics.num_good_nodes} good / ${torMetrics.num_known_nodes} known nodes`);
+    }
+  } catch {
+    log('Tor crawler not available (skipping)');
+  }
+
+  // Merge Tor-discovered nodes into the main metrics before crunching
+  if (torMetrics && Array.isArray(torMetrics.node_info) && torMetrics.node_info.length > 0) {
+    const existingAddrs = new Set((metrics.node_info || []).map(n => n.addr));
+    let torAdded = 0;
+    for (const torNode of torMetrics.node_info) {
+      if (torNode.addr && !existingAddrs.has(torNode.addr)) {
+        metrics.node_info.push(torNode);
+        existingAddrs.add(torNode.addr);
+        torAdded++;
+      }
+    }
+    if (torAdded > 0) {
+      log(`Merged ${torAdded} unique nodes from Tor crawler`);
+    }
+  }
 
   const enriched = await runCruncher(metrics);
   if (!enriched || !Array.isArray(enriched.nodes)) {
@@ -247,15 +275,15 @@ async function ingestCrawl() {
           AND observed_via = 'crawl'
       `);
 
-      // Persist topology edges (only if writing to main nodes table or nodes_crawl has IDs)
-      if (targetTable === 'nodes' && enriched.edges && Array.isArray(enriched.edges)) {
+      // Persist topology edges
+      if (enriched.edges && Array.isArray(enriched.edges)) {
         await client.query('DELETE FROM node_edges');
 
         for (const edge of enriched.edges) {
           await client.query(`
             INSERT INTO node_edges (src_addr_id, dst_addr_id)
             SELECT s.id, d.id
-            FROM nodes s, nodes d
+            FROM ${targetTable} s, ${targetTable} d
             WHERE s.ip = $1 AND d.ip = $2
             ON CONFLICT (src_addr_id, dst_addr_id) DO UPDATE SET observed_at = NOW()
           `, [edge.src, edge.dst]);
@@ -264,7 +292,7 @@ async function ingestCrawl() {
       }
 
       // Persist per-node metrics
-      if (targetTable === 'nodes' && enriched.nodes.length > 0) {
+      if (enriched.nodes.length > 0) {
         await client.query('DELETE FROM node_metrics');
 
         for (const node of enriched.nodes) {
@@ -276,7 +304,7 @@ async function ingestCrawl() {
           await client.query(`
             INSERT INTO node_metrics (addr_id, betweenness, closeness, degree, network_type)
             SELECT id, $2, $3, $4, $5
-            FROM nodes WHERE ip = $1
+            FROM ${targetTable} WHERE ip = $1
             ON CONFLICT DO NOTHING
           `, [nodeIp, node.betweenness, node.closeness, node.degree, node.network_type]);
         }

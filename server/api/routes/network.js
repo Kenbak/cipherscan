@@ -1065,9 +1065,9 @@ router.get('/api/network/topology', async (req, res) => {
           nm.betweenness,
           nm.closeness,
           nm.degree
-        FROM nodes n
+        FROM ${NODES_TABLE} n
         LEFT JOIN node_metrics nm ON nm.addr_id = n.id
-        WHERE n.is_active = TRUE AND n.observed_via = 'crawl'
+        WHERE n.is_active = TRUE
         ORDER BY nm.betweenness DESC NULLS LAST
         LIMIT 500
       `),
@@ -1075,7 +1075,7 @@ router.get('/api/network/topology', async (req, res) => {
         SELECT src_addr_id, dst_addr_id
         FROM node_edges
         WHERE src_addr_id IN (
-          SELECT id FROM nodes WHERE is_active = TRUE AND observed_via = 'crawl'
+          SELECT id FROM ${NODES_TABLE} WHERE is_active = TRUE
         )
         LIMIT 2000
       `),
@@ -1115,7 +1115,7 @@ router.get('/api/network/nodes/list', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
     const offset = parseInt(req.query.offset) || 0;
     const sortBy = req.query.sort || 'last_seen';
-    const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version'];
+    const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version', 'ping_ms'];
     const orderCol = allowedSorts.includes(sortBy) ? sortBy : 'last_seen';
     const orderDir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
 

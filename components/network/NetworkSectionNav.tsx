@@ -10,14 +10,17 @@ const SECTIONS = [
 
 export function NetworkSectionNav() {
   return (
-    <div className="flex items-center gap-4">
-      <PageSectionNav sections={SECTIONS} ariaLabel="Network page sections" />
-      <Link
-        href="/network/nodes"
-        className="text-xs font-mono px-3 py-1.5 rounded-md bg-cipher-card border border-cipher-border text-secondary hover:text-primary hover:border-accent/50 transition-colors"
-      >
-        Nodes Explorer
-      </Link>
-    </div>
+    <PageSectionNav
+      sections={SECTIONS}
+      ariaLabel="Network page sections"
+      actions={
+        <Link
+          href="/network/nodes"
+          className="text-xs font-mono px-3 py-1.5 rounded-md bg-cipher-card border border-cipher-border text-secondary hover:text-primary hover:border-accent/50 transition-colors whitespace-nowrap"
+        >
+          Nodes Explorer
+        </Link>
+      }
+    />
   );
 }
