@@ -14,7 +14,7 @@ let callZebraRPC;
 let redisClient;
 
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
-const NODES_TABLE = NODE_SOURCE === 'crawl' ? 'nodes_crawl' : 'nodes';
+const NODES_TABLE = 'nodes';
 
 // Middleware to inject dependencies
 router.use((req, res, next) => {
