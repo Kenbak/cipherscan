@@ -286,6 +286,18 @@ async function ingestCrawl() {
         }
       }
 
+      // Bulk Tor exit cross-reference — flag any active node whose IP is a known exit
+      if (torExitIPs.size > 0) {
+        const torFlagged = await client.query(`
+          UPDATE ${targetTable} SET is_tor = TRUE, tor_type = COALESCE(tor_type, 'exit')
+          WHERE ip = ANY($1::varchar[]) AND is_active = TRUE AND is_tor = FALSE
+          RETURNING id
+        `, [[...torExitIPs]]);
+        if (torFlagged.rowCount > 0) {
+          log(`Flagged ${torFlagged.rowCount} nodes as Tor exit relays`);
+        }
+      }
+
       // Mark nodes not seen in this crawl as inactive
       await client.query(`
         UPDATE ${targetTable} SET is_active = FALSE
