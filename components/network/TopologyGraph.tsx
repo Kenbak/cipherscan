@@ -44,11 +44,13 @@ export function TopologyGraph() {
   const [loading, setLoading] = useState(true);
   const [nodeCount, setNodeCount] = useState(0);
   const [edgeCount, setEdgeCount] = useState(0);
-  const [hovered, setHovered] = useState<TopologyNode | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<TopologyNode | null>(null);
+  const hoveredRef = useRef<TopologyNode | null>(null);
   const nodesRef = useRef<TopologyNode[]>([]);
   const edgesRef = useRef<TopologyEdge[]>([]);
   const simRef = useRef<ReturnType<typeof forceSimulation<TopologyNode>> | null>(null);
   const transformRef = useRef({ x: 0, y: 0, k: 1 });
+  const rafRef = useRef<number>(0);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -58,6 +60,7 @@ export function TopologyGraph() {
 
     const { width, height } = canvas;
     const { x: tx, y: ty, k } = transformRef.current;
+    const hovered = hoveredRef.current;
 
     ctx.clearRect(0, 0, width, height);
     ctx.save();
@@ -65,7 +68,7 @@ export function TopologyGraph() {
     ctx.scale(k, k);
 
     // Draw edges
-    ctx.strokeStyle = 'rgba(91, 156, 246, 0.08)';
+    ctx.strokeStyle = 'rgba(86, 212, 200, 0.06)';
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     for (const edge of edgesRef.current) {
@@ -81,17 +84,18 @@ export function TopologyGraph() {
     // Draw nodes
     for (const node of nodesRef.current) {
       if (node.x == null || node.y == null) continue;
-      const radius = Math.max(2, Math.min(8, (node.degree || 1) * 0.3 + 2));
+      const radius = Math.max(2.5, Math.min(10, (node.degree || 1) * 0.25 + 2));
       const color = node.isTor ? TOR_COLOR : (CLIENT_COLORS[node.client] || CLIENT_COLORS.Unknown);
+      const isHovered = node === hovered;
 
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
       ctx.fillStyle = color;
-      ctx.globalAlpha = node === hovered ? 1 : 0.7;
+      ctx.globalAlpha = isHovered ? 1 : 0.75;
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      if (node === hovered) {
+      if (isHovered) {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
@@ -99,7 +103,7 @@ export function TopologyGraph() {
     }
 
     ctx.restore();
-  }, [hovered]);
+  }, []);
 
   useEffect(() => {
     const apiUrl = getApiUrl();
@@ -107,7 +111,10 @@ export function TopologyGraph() {
     async function fetchTopology() {
       try {
         const res = await fetch(`${apiUrl}/api/network/topology`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
         const data = await res.json();
 
         if (!data.nodes?.length) {
@@ -134,13 +141,13 @@ export function TopologyGraph() {
         const sim = forceSimulation<TopologyNode>(nodes)
           .force('link', forceLink<TopologyNode, TopologyEdge>(edges)
             .id(d => d.id)
-            .distance(50)
-            .strength(0.3)
+            .distance(40)
+            .strength(0.4)
           )
-          .force('charge', forceManyBody().strength(-30))
+          .force('charge', forceManyBody().strength(-25))
           .force('center', forceCenter(0, 0))
-          .force('collide', forceCollide(5))
-          .alphaDecay(0.02)
+          .force('collide', forceCollide(4))
+          .alphaDecay(0.03)
           .on('tick', draw);
 
         simRef.current = sim;
@@ -156,7 +163,8 @@ export function TopologyGraph() {
     return () => {
       simRef.current?.stop();
     };
-  }, [draw]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -166,7 +174,7 @@ export function TopologyGraph() {
     const resize = () => {
       const rect = container.getBoundingClientRect();
       canvas.width = rect.width;
-      canvas.height = rect.height;
+      canvas.height = 400;
       draw();
     };
 
@@ -174,7 +182,8 @@ export function TopologyGraph() {
     const observer = new ResizeObserver(resize);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [draw]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -197,14 +206,20 @@ export function TopologyGraph() {
       }
     }
 
-    setHovered(closestDist < 12 ? closest : null);
-  }, []);
+    const newHovered = closestDist < 12 ? closest : null;
+    if (newHovered !== hoveredRef.current) {
+      hoveredRef.current = newHovered;
+      setHoveredNode(newHovered);
+      draw();
+    }
+  }, [draw]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    transformRef.current.k = Math.max(0.2, Math.min(5, transformRef.current.k * delta));
-    draw();
+    transformRef.current.k = Math.max(0.3, Math.min(4, transformRef.current.k * delta));
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(draw);
   }, [draw]);
 
   return (
@@ -238,11 +253,11 @@ export function TopologyGraph() {
           onWheel={handleWheel}
         />
 
-        {hovered && (
+        {hoveredNode && (
           <div className="absolute bottom-3 left-3 bg-cipher-card/95 border border-cipher-border rounded-md px-3 py-2 backdrop-blur-sm pointer-events-none">
-            <div className="text-xs font-mono text-primary">{hovered.client} {hovered.isTor ? '(Tor)' : ''}</div>
+            <div className="text-xs font-mono text-primary">{hoveredNode.client} {hoveredNode.isTor ? '(Tor)' : ''}</div>
             <div className="text-[10px] text-muted font-mono mt-0.5">
-              Degree: {hovered.degree || '—'} · Betweenness: {hovered.betweenness?.toFixed(4) || '—'}
+              Degree: {hoveredNode.degree || '—'} · Betweenness: {hoveredNode.betweenness?.toFixed(4) || '—'}
             </div>
           </div>
         )}
