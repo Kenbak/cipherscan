@@ -267,6 +267,25 @@ async function ingestCrawl() {
         else upserted++;
       }
 
+      // Cross-reference with Zebra peer data to fill Unknown gaps
+      if (targetTable === 'nodes_crawl') {
+        const crossRef = await client.query(`
+          UPDATE nodes_crawl nc SET
+            client_impl = n.client_impl,
+            client_version = n.client_version,
+            user_agent = n.user_agent,
+            protocol_version = COALESCE(nc.protocol_version, n.protocol_version)
+          FROM nodes n
+          WHERE nc.ip = n.ip
+            AND nc.client_impl = 'Unknown'
+            AND n.client_impl IS NOT NULL
+            AND n.client_impl != 'Unknown'
+        `);
+        if (crossRef.rowCount > 0) {
+          log(`Cross-referenced ${crossRef.rowCount} nodes from Zebra peer data`);
+        }
+      }
+
       // Mark nodes not seen in this crawl as inactive
       await client.query(`
         UPDATE ${targetTable} SET is_active = FALSE

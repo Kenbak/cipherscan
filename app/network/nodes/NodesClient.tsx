@@ -28,6 +28,10 @@ interface NodeEntry {
   firstSeen: string;
   lastSeen: string;
   source: string;
+  isp: string | null;
+  degree: number | null;
+  betweenness: number | null;
+  closeness: number | null;
 }
 
 interface NodeStats {
@@ -330,6 +334,7 @@ export default function NodesClient() {
                     <th className="px-3 py-2.5 text-left">Version</th>
                     <SortHeader label="Country" col="country_code" current={sortBy} dir={sortDir} onClick={handleSort} />
                     <th className="px-3 py-2.5 text-left">Tor</th>
+                    <SortHeader label="Peers" col="degree" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Ping" col="ping_ms" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                     <SortHeader label="Last Seen" col="last_seen" current={sortBy} dir={sortDir} onClick={handleSort} align="right" />
                   </tr>
@@ -359,6 +364,9 @@ export default function NodesClient() {
                             {node.torType === 'exit' ? 'Exit' : node.torType === 'relay' ? 'Hidden' : 'Tor'}
                           </Badge>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-muted">
+                        {node.degree ?? '—'}
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono text-muted">
                         {node.pingMs ? `${node.pingMs.toFixed(0)}ms` : '—'}

@@ -1115,31 +1115,36 @@ router.get('/api/network/nodes/list', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
     const offset = parseInt(req.query.offset) || 0;
     const sortBy = req.query.sort || 'last_seen';
-    const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version', 'ping_ms'];
-    const orderCol = allowedSorts.includes(sortBy) ? sortBy : 'last_seen';
+    const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version', 'ping_ms', 'degree'];
+    const orderCol = allowedSorts.includes(sortBy) ? `n.${sortBy}` : 'n.last_seen';
     const orderDir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
 
     const [nodesResult, countResult] = await Promise.all([
       pool.query(`
         SELECT
-          id,
-          client_impl,
-          client_version,
-          protocol_version,
-          country,
-          country_code,
-          ROUND(lat::numeric, 0) as lat,
-          ROUND(lon::numeric, 0) as lon,
-          is_tor,
-          tor_type,
-          ping_ms,
-          is_active,
-          first_seen,
-          last_seen,
-          observed_via
-        FROM ${NODES_TABLE}
-        WHERE is_active = TRUE
-        ORDER BY ${orderCol} ${orderDir}
+          n.id,
+          COALESCE(n.client_impl, zn.client_impl) AS client_impl,
+          COALESCE(n.client_version, zn.client_version) AS client_version,
+          COALESCE(n.protocol_version, zn.protocol_version) AS protocol_version,
+          n.country,
+          n.country_code,
+          ROUND(n.lat::numeric, 0) as lat,
+          ROUND(n.lon::numeric, 0) as lon,
+          n.is_tor,
+          n.tor_type,
+          n.ping_ms,
+          n.is_active,
+          n.first_seen,
+          n.last_seen,
+          n.observed_via,
+          n.isp,
+          n.degree,
+          n.betweenness,
+          n.closeness
+        FROM ${NODES_TABLE} n
+        LEFT JOIN nodes zn ON zn.ip = n.ip AND n.client_impl = 'Unknown' AND zn.client_impl IS NOT NULL AND zn.client_impl != 'Unknown'
+        WHERE n.is_active = TRUE
+        ORDER BY ${orderCol} ${orderDir} NULLS LAST
         LIMIT $1 OFFSET $2
       `, [limit, offset]),
       pool.query(`SELECT COUNT(*)::int AS total FROM ${NODES_TABLE} WHERE is_active = TRUE`),
@@ -1164,6 +1169,10 @@ router.get('/api/network/nodes/list', async (req, res) => {
         firstSeen: n.first_seen,
         lastSeen: n.last_seen,
         source: n.observed_via,
+        isp: n.isp,
+        degree: n.degree,
+        betweenness: n.betweenness ? parseFloat(n.betweenness) : null,
+        closeness: n.closeness ? parseFloat(n.closeness) : null,
       })),
       timestamp: Date.now(),
     });
