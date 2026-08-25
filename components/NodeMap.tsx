@@ -577,6 +577,16 @@ export function NodeMap() {
                 </button>
               );
             })}
+            {(() => {
+              const top10Sum = topCountries.slice(0, 10).reduce((s, c) => s + c.nodeCount, 0);
+              const othersCount = (stats?.activeNodes || 0) - top10Sum;
+              return othersCount > 0 ? (
+                <span className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 bg-cipher-bg/50 border border-transparent">
+                  <span className="text-[10px] sm:text-xs text-muted">Others</span>
+                  <span className="text-[10px] sm:text-xs font-mono font-bold text-muted">{othersCount}</span>
+                </span>
+              ) : null;
+            })()}
           </div>
         </div>
       )}
