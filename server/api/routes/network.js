@@ -726,7 +726,7 @@ router.get('/api/network/nodes/stats', async (req, res) => {
           MODE() WITHIN GROUP (ORDER BY country) as country,
           COUNT(*) as node_count
         FROM ${NODES_TABLE} 
-        WHERE is_active = TRUE
+        WHERE is_active = TRUE AND country_code IS NOT NULL
         GROUP BY country_code
         ORDER BY node_count DESC
         LIMIT 10
