@@ -51,6 +51,7 @@
     "@visx/xychart": "^4.0.0",
     "@xyflow/react": "^12.10.2",
     "autoprefixer": "^10.4.21",
+    "d3-force": "^3.0.0",
     "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
@@ -69,5 +70,8 @@
     "typescript": "^5.7.2",
     "zcashname-sdk": "^0.12.0",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/d3-force": "^3.0.10"
   }
 }

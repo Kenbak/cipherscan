@@ -1,0 +1,27 @@
+[Unit]
+Description=Ziggurat Zcash Network Crawler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/zcash-crawler
+ExecStart=/opt/zcash-crawler/target/release/crawler \
+  --seed-addrs "mainnet.seeder.zfnd.org" "mainnet.is.yolo.money" "dnsseed.str4d.xyz" \
+  --node-listening-port 8233 \
+  --rpc-addr 127.0.0.1:54321
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/zcash-crawler/data
+
+[Install]
+WantedBy=multi-user.target

@@ -15,5 +15,7 @@ CRON_TZ=UTC
 0 * * * * flock -n /run/cipherscan-signals-compute.lock bash -lc 'cd /root/cipherscan/server/signals && node compute.js' >> /var/log/cipherscan/signals-compute.log 2>&1
 0 6 * * * flock -n /run/cipherscan-signals-notify.lock bash -lc 'cd /root/cipherscan/server/signals && node notify.js' >> /var/log/cipherscan/signals-notify.log 2>&1
 
+*/5 * * * * flock -n /run/cipherscan-ingest-crawl.lock bash -lc 'cd /root/cipherscan/server/jobs && node ingest-crawl.js' >> /var/log/cipherscan/ingest-crawl.log 2>&1
+
 # lightwalletd monitoring is intentionally omitted until its service and
 # monitor-lightwalletd.sh are restored and committed.

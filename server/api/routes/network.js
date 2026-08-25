@@ -13,6 +13,9 @@ let pool;
 let callZebraRPC;
 let redisClient;
 
+const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
+const NODES_TABLE = NODE_SOURCE === 'crawl' ? 'nodes_crawl' : 'nodes';
+
 // Middleware to inject dependencies
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
@@ -671,7 +674,7 @@ router.get('/api/network/nodes', async (req, res) => {
         ROUND(lon::numeric, 0) as lon,
         COUNT(*) as node_count,
         ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms
-      FROM nodes 
+      FROM ${NODES_TABLE} 
       WHERE is_active = TRUE AND lat IS NOT NULL
       GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
       ORDER BY node_count DESC
@@ -704,6 +707,7 @@ router.get('/api/network/nodes', async (req, res) => {
  */
 router.get('/api/network/nodes/stats', async (req, res) => {
   try {
+    const sourceFilter = NODE_SOURCE === 'crawl' ? '' : "AND observed_via = 'peer'";
     const [statsResult, topCountries, trends, clients, versions] = await Promise.all([
       pool.query(`
         SELECT 
@@ -714,14 +718,14 @@ router.get('/api/network/nodes/stats', async (req, res) => {
           ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
           COUNT(*) FILTER (WHERE is_active AND is_tor) as tor_nodes,
           MAX(last_seen) as last_updated
-        FROM nodes
+        FROM ${NODES_TABLE}
       `),
       pool.query(`
         SELECT 
           country_code,
           MODE() WITHIN GROUP (ORDER BY country) as country,
           COUNT(*) as node_count
-        FROM nodes 
+        FROM ${NODES_TABLE} 
         WHERE is_active = TRUE
         GROUP BY country_code
         ORDER BY node_count DESC
@@ -741,16 +745,16 @@ router.get('/api/network/nodes/stats', async (req, res) => {
       `).catch(() => ({ rows: [{}] })),
       pool.query(`
         SELECT client_impl, COUNT(*)::int AS node_count
-        FROM nodes
-        WHERE is_active = TRUE AND observed_via = 'peer'
+        FROM ${NODES_TABLE}
+        WHERE is_active = TRUE ${sourceFilter}
         GROUP BY client_impl
         ORDER BY node_count DESC, client_impl ASC
       `),
       pool.query(`
         SELECT client_impl, client_version, COUNT(*)::int AS node_count
-        FROM nodes
+        FROM ${NODES_TABLE}
         WHERE is_active = TRUE
-          AND observed_via = 'peer'
+          ${sourceFilter}
           AND client_version IS NOT NULL
         GROUP BY client_impl, client_version
         ORDER BY node_count DESC, client_impl ASC, client_version DESC
@@ -1036,6 +1040,136 @@ router.get('/api/network/protocol-stats', async (req, res) => {
   } catch (error) {
     console.error('Error fetching protocol stats:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch protocol stats' });
+  }
+});
+
+// ============================================================================
+// NETWORK TOPOLOGY (Phase 2)
+// ============================================================================
+
+/**
+ * GET /api/network/topology
+ * Returns an anonymized force-directed graph (node IDs + geo cells + centrality).
+ * Never exposes raw IPs or .onion addresses.
+ */
+router.get('/api/network/topology', async (req, res) => {
+  try {
+    const [nodesResult, edgesResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          n.id,
+          ROUND(n.lat::numeric, 0) as lat,
+          ROUND(n.lon::numeric, 0) as lon,
+          n.client_impl,
+          n.is_tor,
+          nm.betweenness,
+          nm.closeness,
+          nm.degree
+        FROM nodes n
+        LEFT JOIN node_metrics nm ON nm.addr_id = n.id
+        WHERE n.is_active = TRUE AND n.observed_via = 'crawl'
+        ORDER BY nm.betweenness DESC NULLS LAST
+        LIMIT 500
+      `),
+      pool.query(`
+        SELECT src_addr_id, dst_addr_id
+        FROM node_edges
+        WHERE src_addr_id IN (
+          SELECT id FROM nodes WHERE is_active = TRUE AND observed_via = 'crawl'
+        )
+        LIMIT 2000
+      `),
+    ]);
+
+    res.json({
+      success: true,
+      nodes: nodesResult.rows.map(n => ({
+        id: n.id,
+        lat: n.lat ? parseFloat(n.lat) : null,
+        lon: n.lon ? parseFloat(n.lon) : null,
+        client: n.client_impl,
+        isTor: n.is_tor,
+        betweenness: n.betweenness,
+        closeness: n.closeness,
+        degree: n.degree,
+      })),
+      edges: edgesResult.rows.map(e => ({
+        source: e.src_addr_id,
+        target: e.dst_addr_id,
+      })),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error fetching topology:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch topology' });
+  }
+});
+
+/**
+ * GET /api/network/nodes/list
+ * Returns pseudonymized node list for the /network/nodes detail page.
+ * Never exposes raw IPs or .onion addresses.
+ */
+router.get('/api/network/nodes/list', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+    const offset = parseInt(req.query.offset) || 0;
+    const sortBy = req.query.sort || 'last_seen';
+    const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version'];
+    const orderCol = allowedSorts.includes(sortBy) ? sortBy : 'last_seen';
+    const orderDir = req.query.dir === 'asc' ? 'ASC' : 'DESC';
+
+    const [nodesResult, countResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          id,
+          client_impl,
+          client_version,
+          protocol_version,
+          country,
+          country_code,
+          ROUND(lat::numeric, 0) as lat,
+          ROUND(lon::numeric, 0) as lon,
+          is_tor,
+          tor_type,
+          ping_ms,
+          is_active,
+          first_seen,
+          last_seen,
+          observed_via
+        FROM ${NODES_TABLE}
+        WHERE is_active = TRUE
+        ORDER BY ${orderCol} ${orderDir}
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]),
+      pool.query(`SELECT COUNT(*)::int AS total FROM ${NODES_TABLE} WHERE is_active = TRUE`),
+    ]);
+
+    res.json({
+      success: true,
+      total: countResult.rows[0].total,
+      nodes: nodesResult.rows.map(n => ({
+        id: n.id,
+        client: n.client_impl,
+        version: n.client_version,
+        protocolVersion: n.protocol_version,
+        country: n.country,
+        countryCode: n.country_code,
+        lat: n.lat ? parseFloat(n.lat) : null,
+        lon: n.lon ? parseFloat(n.lon) : null,
+        isTor: n.is_tor,
+        torType: n.tor_type,
+        pingMs: n.ping_ms ? parseFloat(n.ping_ms) : null,
+        isActive: n.is_active,
+        firstSeen: n.first_seen,
+        lastSeen: n.last_seen,
+        source: n.observed_via,
+      })),
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error fetching node list:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch node list' });
   }
 });
 
