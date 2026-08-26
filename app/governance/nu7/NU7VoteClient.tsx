@@ -543,18 +543,15 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
       <div className="space-y-6">
         {/* Vote activity — blocks with submissions */}
         <div>
-          <SectionLabel label="VOTE_ACTIVITY" live />
+          <SectionLabel label="RECENT_TRANSACTIONS" live />
           <p className="text-[11px] text-muted -mt-2 mb-3">
-            Live feed of voting protocol activity. Each voter generates multiple transactions: a delegation proof, then one encrypted ballot per question, plus share reveals.
+            Blocks with protocol transactions. Each voter generates multiple: a delegation proof, one ballot per question, and share reveals.
           </p>
           {chainState.voteActivity.blocksWithVotes.length > 0 ? (
             <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
               <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
                 <span className="text-[10px] font-mono text-muted">
-                  Delegations, encrypted ballots, and share reveals
-                </span>
-                <span className="text-[10px] font-mono text-muted">
-                  Since page load
+                  Since page load · not a turnout count
                 </span>
               </div>
               <div className="overflow-x-auto">
