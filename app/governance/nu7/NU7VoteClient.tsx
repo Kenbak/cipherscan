@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   NU7_VOTE,
@@ -104,17 +104,18 @@ interface VoteActivity {
 
 function useChainState(): ChainState | null {
   const [state, setState] = useState<ChainState | null>(null);
+  const knownVoteBlocks = useRef<Map<number, RecentBlock>>(new Map());
+  const lastScannedHeight = useRef<number>(0);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [blockRes, validatorsRes, ceremonyRes, configRes, roundRes, managersRes, txSearchRes] = await Promise.all([
+      const [blockRes, validatorsRes, ceremonyRes, configRes, roundRes, managersRes] = await Promise.all([
         fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/latest`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.validators}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.ceremony}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(VOTE_CHAIN.dynamicConfig).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.activeRound}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.voteManagers}`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${VOTE_CHAIN.primaryApi}/cosmos/tx/v1beta1/txs?order_by=ORDER_BY_DESC&pagination.limit=50`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
       const header = blockRes?.block?.header ?? blockRes?.sdk_block?.header;
@@ -138,13 +139,21 @@ function useChainState(): ChainState | null {
 
       const latestHeight = header ? parseInt(header.height, 10) : 0;
 
-      // Fetch recent blocks (compact liveness set)
+      // Determine scan range: on first load scan back further to find votes,
+      // on subsequent polls only check new blocks since last scan
+      const isInitialScan = lastScannedHeight.current === 0;
+      const scanFrom = isInitialScan
+        ? Math.max(1, latestHeight - 60)
+        : lastScannedHeight.current + 1;
+      const scanTo = latestHeight;
+
       let recentBlocks: RecentBlock[] = [];
-      if (latestHeight > 0) {
+
+      if (latestHeight > 0 && scanTo >= scanFrom) {
+        // Cap at 60 blocks per poll to stay friendly to the API
+        const startHeight = Math.max(scanFrom, scanTo - 60);
         const blockPromises = [];
-        for (let i = 0; i < 6; i++) {
-          const h = latestHeight - i;
-          if (h < 1) break;
+        for (let h = scanTo; h >= startHeight; h--) {
           blockPromises.push(
             fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/${h}`)
               .then(r => r.ok ? r.json() : null)
@@ -152,73 +161,42 @@ function useChainState(): ChainState | null {
           );
         }
         const blockResults = await Promise.all(blockPromises);
-        recentBlocks = blockResults
-          .filter(Boolean)
-          .map((b: any) => {
-            const h = b?.block?.header ?? b?.sdk_block?.header;
-            const txCount = b?.block?.data?.txs?.length ?? 0;
-            const sigCount = b?.block?.last_commit?.signatures?.filter(
-              (s: any) => s.block_id_flag === 'BLOCK_ID_FLAG_COMMIT'
-            ).length ?? 0;
-            return {
-              height: parseInt(h?.height ?? '0', 10),
-              time: h?.time ?? '',
-              txCount,
-              sigCount,
-              proposer: h?.proposer_address ?? '',
-            };
-          });
-      }
 
-      // Build vote activity from tx search results
-      let voteActivity: VoteActivity = { totalTxCount: 0, blocksWithVotes: [] };
-      if (txSearchRes) {
-        const totalTxCount = parseInt(txSearchRes.pagination?.total ?? txSearchRes.total_count ?? '0', 10);
-        const txResponses: any[] = txSearchRes.tx_responses ?? txSearchRes.txs ?? [];
+        for (const b of blockResults) {
+          if (!b) continue;
+          const h = b?.block?.header ?? b?.sdk_block?.header;
+          const txCount = b?.block?.data?.txs?.length ?? 0;
+          const sigCount = b?.block?.last_commit?.signatures?.filter(
+            (s: any) => s.block_id_flag === 'BLOCK_ID_FLAG_COMMIT'
+          ).length ?? 0;
+          const block: RecentBlock = {
+            height: parseInt(h?.height ?? '0', 10),
+            time: h?.time ?? '',
+            txCount,
+            sigCount,
+            proposer: h?.proposer_address ?? '',
+          };
 
-        // Group by block height to get unique blocks with votes
-        const blockHeightMap = new Map<number, { height: number; time: string; txCount: number }>();
-        for (const tx of txResponses) {
-          const h = parseInt(tx.height ?? '0', 10);
-          const t = tx.timestamp ?? '';
-          if (h > 0) {
-            const existing = blockHeightMap.get(h);
-            if (existing) {
-              existing.txCount++;
-            } else {
-              blockHeightMap.set(h, { height: h, time: t, txCount: 1 });
-            }
+          if (txCount > 0) {
+            knownVoteBlocks.current.set(block.height, block);
+          }
+          if (recentBlocks.length < 5) {
+            recentBlocks.push(block);
           }
         }
 
-        // Sort by height descending and fetch sig counts for blocks with votes
-        const blocksWithVoteData = Array.from(blockHeightMap.values())
-          .sort((a, b) => b.height - a.height)
-          .slice(0, 12);
-
-        const voteBlockPromises = blocksWithVoteData.map(vb =>
-          fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/${vb.height}`)
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-        );
-        const voteBlockResults = await Promise.all(voteBlockPromises);
-
-        const blocksWithVotes: RecentBlock[] = blocksWithVoteData.map((vb, i) => {
-          const blockData = voteBlockResults[i];
-          const sigCount = blockData?.block?.last_commit?.signatures?.filter(
-            (s: any) => s.block_id_flag === 'BLOCK_ID_FLAG_COMMIT'
-          ).length ?? 0;
-          return {
-            height: vb.height,
-            time: vb.time,
-            txCount: vb.txCount,
-            sigCount,
-            proposer: '',
-          };
-        });
-
-        voteActivity = { totalTxCount, blocksWithVotes };
+        lastScannedHeight.current = latestHeight;
       }
+
+      // Build vote activity from accumulated known vote blocks
+      const allVoteBlocks = Array.from(knownVoteBlocks.current.values())
+        .sort((a, b) => b.height - a.height)
+        .slice(0, 20);
+
+      const voteActivity: VoteActivity = {
+        totalTxCount: allVoteBlocks.reduce((sum, b) => sum + b.txCount, 0),
+        blocksWithVotes: allVoteBlocks,
+      };
 
       setState({
         height: latestHeight,
@@ -573,10 +551,10 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
             <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
               <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
                 <span className="text-[10px] font-mono text-secondary">
-                  {chainState.voteActivity.totalTxCount.toLocaleString()} encrypted submission{chainState.voteActivity.totalTxCount !== 1 ? 's' : ''} total
+                  {chainState.voteActivity.totalTxCount.toLocaleString()} encrypted submission{chainState.voteActivity.totalTxCount !== 1 ? 's' : ''} observed
                 </span>
                 <span className="text-[10px] font-mono text-muted">
-                  Showing latest {chainState.voteActivity.blocksWithVotes.length} blocks with votes
+                  {chainState.voteActivity.blocksWithVotes.length} block{chainState.voteActivity.blocksWithVotes.length !== 1 ? 's' : ''} with votes
                 </span>
               </div>
               <div className="overflow-x-auto">
