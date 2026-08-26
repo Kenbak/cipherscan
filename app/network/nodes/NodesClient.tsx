@@ -81,6 +81,43 @@ function countryFlag(code: string | null): string {
   return String.fromCodePoint(...codePoints);
 }
 
+interface HealthScore {
+  healthScore: number;
+  components: {
+    sync: { score: number; atTip: number; nodesWithHeight: number; tipHeight: number | null; lagging: number };
+    connectivity: { score: number; avgDegree: number; poorlyConnected: number; maxDegree: number };
+    versionDiversity: { score: number; topVersion: number | null; topVersionPct: number };
+    geographic: { score: number; countries: number; uniqueSubnets: number };
+  };
+  totalActive: number;
+}
+
+interface ChainState {
+  networkTip: number;
+  atTip: number;
+  divergent: number;
+  partitionRisk: boolean;
+  partitionPct: number;
+  totalWithHeight: number;
+  heightDistribution: { height: number; nodeCount: number; clients: string[]; blocksFromTip: number }[];
+}
+
+interface UpgradeReadiness {
+  latestProtocol: number;
+  readinessPct: number;
+  latestCount: number;
+  totalActive: number;
+  versions: { protocolVersion: number; nodeCount: number; percentage: number; clients: string[]; isLatest: boolean }[];
+}
+
+interface Concentration {
+  concentrationRisk: string;
+  subnets: { subnet: string; nodeCount: number; clients: string[] }[];
+  isps: { isp: string; nodeCount: number; percentage: number }[];
+  highDegreeNodes: number;
+  maxDegree: number;
+}
+
 export default function NodesClient() {
   const [nodes, setNodes] = useState<NodeEntry[]>([]);
   const [stats, setStats] = useState<NodeStats | null>(null);
@@ -91,15 +128,23 @@ export default function NodesClient() {
   const [sortBy, setSortBy] = useState('last_seen');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
+  const [health, setHealth] = useState<HealthScore | null>(null);
+  const [chainState, setChainState] = useState<ChainState | null>(null);
+  const [upgrade, setUpgrade] = useState<UpgradeReadiness | null>(null);
+  const [concentration, setConcentration] = useState<Concentration | null>(null);
 
   const apiUrl = getApiUrl();
   const PAGE_SIZE = 50;
 
   const fetchData = useCallback(async () => {
     try {
-      const [nodeRes, statsRes] = await Promise.all([
+      const [nodeRes, statsRes, healthRes, chainRes, upgradeRes, concRes] = await Promise.all([
         fetch(`${apiUrl}/api/network/nodes/list?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort=${sortBy}&dir=${sortDir}`),
         fetch(`${apiUrl}/api/network/nodes/stats`),
+        fetch(`${apiUrl}/api/network/nodes/health-score`),
+        fetch(`${apiUrl}/api/network/nodes/chain-state`),
+        fetch(`${apiUrl}/api/network/nodes/upgrade-readiness`),
+        fetch(`${apiUrl}/api/network/nodes/concentration`),
       ]);
 
       if (nodeRes.ok) {
@@ -114,6 +159,11 @@ export default function NodesClient() {
         setClients(statsData.clients?.distribution || []);
         setVersions(statsData.clients?.versions || []);
       }
+
+      if (healthRes.ok) setHealth(await healthRes.json());
+      if (chainRes.ok) setChainState(await chainRes.json());
+      if (upgradeRes.ok) setUpgrade(await upgradeRes.json());
+      if (concRes.ok) setConcentration(await concRes.json());
     } catch (err) {
       console.error('Failed to fetch node data:', err);
     } finally {
@@ -288,6 +338,160 @@ export default function NodesClient() {
         </CardBody>
       </Card>
 
+      {/* Network Intelligence */}
+      {(health || chainState || upgrade || concentration) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-4">
+          {/* Health Score */}
+          {health && (
+            <Card>
+              <CardBody>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary">Network Health</h3>
+                    <p className="text-[11px] text-muted mt-0.5">Composite score from sync, connectivity, diversity</p>
+                  </div>
+                  <div className={`text-2xl font-bold font-mono ${
+                    health.healthScore >= 80 ? 'text-emerald-400' :
+                    health.healthScore >= 60 ? 'text-amber-400' : 'text-red-400'
+                  }`}>
+                    {health.healthScore}
+                  </div>
+                </div>
+                <div className="space-y-2.5">
+                  <HealthBar label="Sync" score={health.components.sync.score} detail={`${health.components.sync.atTip}/${health.components.sync.nodesWithHeight} at tip`} />
+                  <HealthBar label="Connectivity" score={health.components.connectivity.score} detail={`avg ${health.components.connectivity.avgDegree} peers`} />
+                  <HealthBar label="Version Diversity" score={health.components.versionDiversity.score} detail={`top version ${health.components.versionDiversity.topVersionPct}%`} />
+                  <HealthBar label="Geographic" score={health.components.geographic.score} detail={`${health.components.geographic.countries} countries`} />
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Chain State / Fork Detection */}
+          {chainState && (
+            <Card>
+              <CardBody>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary">Chain Consensus</h3>
+                    <p className="text-[11px] text-muted mt-0.5">Fork and partition detection via P2P height comparison</p>
+                  </div>
+                  {chainState.partitionRisk ? (
+                    <Badge className="text-[10px] bg-red-500/15 text-red-300 border-red-500/30">PARTITION RISK</Badge>
+                  ) : (
+                    <Badge className="text-[10px] bg-emerald-500/15 text-emerald-300 border-emerald-500/30">CONSENSUS OK</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="text-center">
+                    <div className="text-lg font-bold font-mono text-primary">{chainState.networkTip?.toLocaleString()}</div>
+                    <div className="text-[10px] text-muted uppercase">Tip Height</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold font-mono text-emerald-400">{chainState.atTip}</div>
+                    <div className="text-[10px] text-muted uppercase">At Tip</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-lg font-bold font-mono ${chainState.divergent > 0 ? 'text-amber-400' : 'text-muted'}`}>{chainState.divergent}</div>
+                    <div className="text-[10px] text-muted uppercase">Lagging</div>
+                  </div>
+                </div>
+                {chainState.heightDistribution.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {chainState.heightDistribution.slice(0, 8).map(h => (
+                      <div key={h.height} className="flex items-center gap-2 text-[11px]">
+                        <span className="font-mono text-muted w-20">{h.height.toLocaleString()}</span>
+                        <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${h.blocksFromTip <= 2 ? 'bg-emerald-400' : h.blocksFromTip <= 10 ? 'bg-amber-400' : 'bg-red-400'}`}
+                            style={{ width: `${Math.max(4, (h.nodeCount / chainState.totalWithHeight) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="font-mono text-primary w-6 text-right">{h.nodeCount}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Upgrade Readiness */}
+          {upgrade && (
+            <Card>
+              <CardBody>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary">Upgrade Readiness</h3>
+                    <p className="text-[11px] text-muted mt-0.5">Protocol version adoption (latest: NU6.3)</p>
+                  </div>
+                  <span className="text-lg font-bold font-mono text-cipher-cyan">{upgrade.readinessPct}%</span>
+                </div>
+                <div className="w-full h-3 bg-cipher-border/40 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-gradient-to-r from-cipher-cyan to-emerald-400 rounded-full transition-all" style={{ width: `${upgrade.readinessPct}%` }} />
+                </div>
+                <div className="space-y-2">
+                  {upgrade.versions.map(v => (
+                    <div key={v.protocolVersion} className="flex items-center gap-2 text-[11px]">
+                      <span className={`h-2 w-2 rounded-full ${v.isLatest ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                      <span className="font-mono text-secondary w-16">{v.protocolVersion}</span>
+                      <span className="text-muted">{v.clients.join(', ')}</span>
+                      <span className="ml-auto font-mono font-semibold text-primary">{v.nodeCount}</span>
+                      <span className="font-mono text-muted w-12 text-right">{v.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Concentration Risk */}
+          {concentration && (
+            <Card>
+              <CardBody>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary">Concentration Risk</h3>
+                    <p className="text-[11px] text-muted mt-0.5">ISP and subnet clustering analysis</p>
+                  </div>
+                  <Badge className={`text-[10px] ${
+                    concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
+                    concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
+                    'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  }`}>
+                    {concentration.concentrationRisk.toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="mb-3">
+                  <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Top ISPs</div>
+                  <div className="space-y-1.5">
+                    {concentration.isps.slice(0, 5).map(isp => (
+                      <div key={isp.isp} className="flex items-center gap-2 text-[11px]">
+                        <span className="text-secondary truncate flex-1">{isp.isp}</span>
+                        <span className="font-mono text-primary">{isp.nodeCount}</span>
+                        <span className="font-mono text-muted w-12 text-right">{isp.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {concentration.subnets.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Clustered Subnets (/24)</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {concentration.subnets.slice(0, 6).map(s => (
+                        <span key={s.subnet} className="px-2 py-0.5 rounded bg-cipher-bg/80 border border-cipher-border/50 text-[10px] font-mono text-muted">
+                          {s.subnet} <span className="text-primary font-semibold">×{s.nodeCount}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Node Table */}
       <Card className="animate-fade-in-up stagger-4">
         <CardBody>
@@ -409,6 +613,23 @@ function SortHeader({
       {label}
       {active && <span className="ml-0.5 text-cipher-cyan">{dir === 'asc' ? '↑' : '↓'}</span>}
     </th>
+  );
+}
+
+function HealthBar({ label, score, detail }: { label: string; score: number; detail: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[11px] text-secondary w-28">{label}</span>
+      <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            score >= 80 ? 'bg-emerald-400' : score >= 60 ? 'bg-amber-400' : 'bg-red-400'
+          }`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <span className="text-[10px] font-mono text-muted w-24 text-right">{detail}</span>
+    </div>
   );
 }
 

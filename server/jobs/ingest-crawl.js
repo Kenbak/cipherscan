@@ -211,11 +211,13 @@ async function ingestCrawl() {
             ip, port, country, country_code, city, lat, lon, isp,
             ping_ms, is_tor, is_active, user_agent, client_impl,
             client_version, protocol_version, observed_via, onion_address,
-            tor_type, betweenness, closeness, degree, network_type
+            tor_type, betweenness, closeness, degree, network_type,
+            start_height, services, crawl_seen_count
           )
           VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE,
-            $11, $12, $13, $14, 'crawl', $15, $16, $17, $18, $19, $20
+            $11, $12, $13, $14, 'crawl', $15, $16, $17, $18, $19, $20,
+            $21, $22, 1
           )
           ON CONFLICT (ip) DO UPDATE SET
             port = EXCLUDED.port,
@@ -239,7 +241,10 @@ async function ingestCrawl() {
             betweenness = EXCLUDED.betweenness,
             closeness = EXCLUDED.closeness,
             degree = EXCLUDED.degree,
-            network_type = EXCLUDED.network_type
+            network_type = EXCLUDED.network_type,
+            start_height = COALESCE(EXCLUDED.start_height, ${targetTable}.start_height),
+            services = COALESCE(EXCLUDED.services, ${targetTable}.services),
+            crawl_seen_count = COALESCE(${targetTable}.crawl_seen_count, 0) + 1
           RETURNING (xmax = 0) AS is_insert
         `, [
           ip, port,
@@ -261,6 +266,8 @@ async function ingestCrawl() {
           node.closeness ?? null,
           node.degree ?? null,
           node.network_type || null,
+          node.start_height || null,
+          node.services || null,
         ]);
 
         if (result.rows[0]?.is_insert) newNodes++;
@@ -298,7 +305,12 @@ async function ingestCrawl() {
         }
       }
 
-      // Mark nodes not seen in this crawl as inactive
+      // Increment miss count for nodes not refreshed this crawl, then deactivate stale ones
+      await client.query(`
+        UPDATE ${targetTable} SET crawl_miss_count = COALESCE(crawl_miss_count, 0) + 1
+        WHERE is_active = TRUE AND observed_via = 'crawl'
+          AND last_seen < NOW() - INTERVAL '6 minutes'
+      `);
       await client.query(`
         UPDATE ${targetTable} SET is_active = FALSE
         WHERE last_seen < NOW() - INTERVAL '${INACTIVE_THRESHOLD_HOURS} hours'

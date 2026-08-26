@@ -1182,6 +1182,280 @@ router.get('/api/network/nodes/list', async (req, res) => {
   }
 });
 
+// ============================================================================
+// NETWORK INTELLIGENCE ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/network/nodes/health-score
+ * Composite network health metric derived from crawler data.
+ */
+router.get('/api/network/nodes/health-score', async (req, res) => {
+  try {
+    const [syncResult, connectivityResult, versionResult, geoResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL) AS nodes_with_height,
+          MAX(start_height) FILTER (WHERE is_active) AS tip_height,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 2 FROM nodes WHERE is_active)) AS at_tip,
+          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 10 FROM nodes WHERE is_active) AND start_height IS NOT NULL) AS lagging,
+          COUNT(*) FILTER (WHERE is_active) AS total_active
+        FROM nodes
+      `),
+      pool.query(`
+        SELECT
+          AVG(degree) FILTER (WHERE is_active AND degree > 0) AS avg_degree,
+          MIN(degree) FILTER (WHERE is_active AND degree > 0) AS min_degree,
+          MAX(degree) FILTER (WHERE is_active) AS max_degree,
+          COUNT(*) FILTER (WHERE is_active AND degree <= 1) AS poorly_connected,
+          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS connected_nodes
+        FROM nodes
+      `),
+      pool.query(`
+        SELECT protocol_version, COUNT(*)::int AS cnt
+        FROM nodes WHERE is_active = TRUE AND protocol_version IS NOT NULL
+        GROUP BY protocol_version ORDER BY cnt DESC
+      `),
+      pool.query(`
+        SELECT
+          COUNT(DISTINCT country_code) FILTER (WHERE is_active AND country_code IS NOT NULL) AS countries,
+          COUNT(DISTINCT SUBSTRING(ip FROM '^[0-9]+\\.[0-9]+\\.[0-9]+')) FILTER (WHERE is_active) AS unique_subnets
+        FROM nodes
+      `),
+    ]);
+
+    const sync = syncResult.rows[0];
+    const conn = connectivityResult.rows[0];
+    const geo = geoResult.rows[0];
+    const versions = versionResult.rows;
+
+    const totalActive = parseInt(sync.total_active) || 1;
+    const atTip = parseInt(sync.at_tip) || 0;
+    const nodesWithHeight = parseInt(sync.nodes_with_height) || 0;
+
+    // Sync score: % of nodes within 2 blocks of tip (0-100)
+    const syncScore = nodesWithHeight > 0 ? Math.round((atTip / nodesWithHeight) * 100) : 50;
+
+    // Connectivity score: based on avg degree (ideal: 8+)
+    const avgDegree = parseFloat(conn.avg_degree) || 0;
+    const connectivityScore = Math.min(100, Math.round((avgDegree / 8) * 100));
+
+    // Version diversity: penalize if >80% on one version (monoculture risk)
+    const topVersionCount = versions[0]?.cnt || 0;
+    const totalVersioned = versions.reduce((s, v) => s + v.cnt, 0) || 1;
+    const topVersionPct = topVersionCount / totalVersioned;
+    const versionScore = topVersionPct > 0.95 ? 40 : topVersionPct > 0.8 ? 70 : 100;
+
+    // Geographic diversity: based on country count (ideal: 30+)
+    const countries = parseInt(geo.countries) || 0;
+    const geoScore = Math.min(100, Math.round((countries / 30) * 100));
+
+    // Composite (weighted)
+    const composite = Math.round(
+      syncScore * 0.35 + connectivityScore * 0.25 + versionScore * 0.2 + geoScore * 0.2
+    );
+
+    res.json({
+      success: true,
+      healthScore: composite,
+      components: {
+        sync: { score: syncScore, atTip, nodesWithHeight, tipHeight: parseInt(sync.tip_height) || null, lagging: parseInt(sync.lagging) || 0 },
+        connectivity: { score: connectivityScore, avgDegree: parseFloat(avgDegree.toFixed(1)), poorlyConnected: parseInt(conn.poorly_connected) || 0, maxDegree: parseInt(conn.max_degree) || 0 },
+        versionDiversity: { score: versionScore, topVersion: versions[0]?.protocol_version || null, topVersionPct: parseFloat((topVersionPct * 100).toFixed(1)), versions },
+        geographic: { score: geoScore, countries, uniqueSubnets: parseInt(geo.unique_subnets) || 0 },
+      },
+      totalActive,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error computing health score:', error);
+    res.status(500).json({ success: false, error: 'Failed to compute health score' });
+  }
+});
+
+/**
+ * GET /api/network/nodes/chain-state
+ * Fork/partition detection: clusters nodes by reported start_height.
+ */
+router.get('/api/network/nodes/chain-state', async (req, res) => {
+  try {
+    const [heightDist, tipResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          start_height,
+          COUNT(*)::int AS node_count,
+          ARRAY_AGG(DISTINCT client_impl) AS clients
+        FROM nodes
+        WHERE is_active = TRUE AND start_height IS NOT NULL
+        GROUP BY start_height
+        ORDER BY start_height DESC
+        LIMIT 20
+      `),
+      pool.query(`
+        SELECT MAX(start_height) AS network_tip FROM nodes WHERE is_active = TRUE
+      `),
+    ]);
+
+    const networkTip = parseInt(tipResult.rows[0]?.network_tip) || 0;
+    const heights = heightDist.rows.map(r => ({
+      height: parseInt(r.start_height),
+      nodeCount: r.node_count,
+      clients: r.clients.filter(Boolean),
+      blocksFromTip: networkTip - parseInt(r.start_height),
+    }));
+
+    // Detect partition: if >5% of nodes are on a different height cluster (>2 blocks away)
+    const totalWithHeight = heights.reduce((s, h) => s + h.nodeCount, 0);
+    const atTip = heights.filter(h => h.blocksFromTip <= 2).reduce((s, h) => s + h.nodeCount, 0);
+    const divergent = heights.filter(h => h.blocksFromTip > 2);
+    const divergentCount = divergent.reduce((s, h) => s + h.nodeCount, 0);
+    const partitionRisk = totalWithHeight > 0 ? (divergentCount / totalWithHeight) > 0.05 : false;
+
+    res.json({
+      success: true,
+      networkTip,
+      totalWithHeight,
+      atTip,
+      divergent: divergentCount,
+      partitionRisk,
+      partitionPct: totalWithHeight > 0 ? parseFloat(((divergentCount / totalWithHeight) * 100).toFixed(1)) : 0,
+      heightDistribution: heights,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error fetching chain state:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch chain state' });
+  }
+});
+
+/**
+ * GET /api/network/nodes/upgrade-readiness
+ * Protocol version adoption tracking.
+ */
+router.get('/api/network/nodes/upgrade-readiness', async (req, res) => {
+  try {
+    const [currentDist, historicalResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          protocol_version,
+          COUNT(*)::int AS node_count,
+          ARRAY_AGG(DISTINCT client_impl) AS clients,
+          ROUND(AVG(degree) FILTER (WHERE degree > 0)::numeric, 1) AS avg_degree
+        FROM nodes
+        WHERE is_active = TRUE AND protocol_version IS NOT NULL
+        GROUP BY protocol_version
+        ORDER BY node_count DESC
+      `),
+      pool.query(`
+        SELECT
+          DATE(snapshot_time) AS day,
+          client_counts
+        FROM node_snapshots
+        WHERE snapshot_time >= NOW() - INTERVAL '30 days'
+        ORDER BY snapshot_time DESC
+        LIMIT 30
+      `).catch(() => ({ rows: [] })),
+    ]);
+
+    const totalActive = currentDist.rows.reduce((s, r) => s + r.node_count, 0) || 1;
+    const LATEST_PROTOCOL = 170160; // NU6.3
+
+    const versions = currentDist.rows.map(r => ({
+      protocolVersion: parseInt(r.protocol_version),
+      nodeCount: r.node_count,
+      percentage: parseFloat(((r.node_count / totalActive) * 100).toFixed(1)),
+      clients: r.clients.filter(Boolean),
+      avgDegree: r.avg_degree ? parseFloat(r.avg_degree) : null,
+      isLatest: parseInt(r.protocol_version) >= LATEST_PROTOCOL,
+    }));
+
+    const latestCount = versions.filter(v => v.isLatest).reduce((s, v) => s + v.nodeCount, 0);
+    const readinessPct = parseFloat(((latestCount / totalActive) * 100).toFixed(1));
+
+    res.json({
+      success: true,
+      latestProtocol: LATEST_PROTOCOL,
+      readinessPct,
+      latestCount,
+      totalActive,
+      versions,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error fetching upgrade readiness:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch upgrade readiness' });
+  }
+});
+
+/**
+ * GET /api/network/nodes/concentration
+ * Sybil/concentration risk analysis — subnet and ASN clustering.
+ */
+router.get('/api/network/nodes/concentration', async (req, res) => {
+  try {
+    const [subnetResult, ispResult, highDegreeResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          SUBSTRING(ip FROM '^([0-9]+\\.[0-9]+\\.[0-9]+)') AS subnet,
+          COUNT(*)::int AS node_count,
+          ARRAY_AGG(DISTINCT client_impl) AS clients
+        FROM nodes
+        WHERE is_active = TRUE AND ip !~ ':' AND ip != '127.0.0.1'
+        GROUP BY subnet
+        HAVING COUNT(*) >= 3
+        ORDER BY node_count DESC
+        LIMIT 15
+      `),
+      pool.query(`
+        SELECT
+          COALESCE(isp, 'Unknown') AS isp,
+          COUNT(*)::int AS node_count,
+          ROUND((COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM nodes WHERE is_active), 0)) * 100, 1) AS pct
+        FROM nodes
+        WHERE is_active = TRUE
+        GROUP BY isp
+        ORDER BY node_count DESC
+        LIMIT 10
+      `),
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE degree > 50 AND is_active) AS high_degree_nodes,
+          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS total_with_degree,
+          MAX(degree) FILTER (WHERE is_active) AS max_degree
+        FROM nodes
+      `),
+    ]);
+
+    const totalActive = parseInt(highDegreeResult.rows[0]?.total_with_degree) || 1;
+    const topSubnetCount = subnetResult.rows[0]?.node_count || 0;
+    const topIspPct = parseFloat(ispResult.rows[0]?.pct) || 0;
+
+    // Concentration risk: high if top ISP has >40% or top subnet has >10% of nodes
+    const concentrationRisk = topIspPct > 40 ? 'high' : topIspPct > 25 ? 'medium' : 'low';
+
+    res.json({
+      success: true,
+      concentrationRisk,
+      subnets: subnetResult.rows.map(r => ({
+        subnet: r.subnet + '.x',
+        nodeCount: r.node_count,
+        clients: r.clients.filter(Boolean),
+      })),
+      isps: ispResult.rows.map(r => ({
+        isp: r.isp,
+        nodeCount: r.node_count,
+        percentage: parseFloat(r.pct) || 0,
+      })),
+      highDegreeNodes: parseInt(highDegreeResult.rows[0]?.high_degree_nodes) || 0,
+      maxDegree: parseInt(highDegreeResult.rows[0]?.max_degree) || 0,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error fetching concentration data:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch concentration data' });
+  }
+});
+
 registerNetworkAnalyticsRoutes(router);
 
 module.exports = router;
