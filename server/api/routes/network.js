@@ -1195,10 +1195,10 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
     const [syncResult, connectivityResult, versionResult, geoResult] = await Promise.all([
       pool.query(`
         SELECT
-          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS nodes_with_height,
+          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS nodes_with_height,
           MAX(start_height) FILTER (WHERE is_active) AS tip_height,
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 15 FROM nodes WHERE is_active)) AS at_tip,
-          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 50 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS lagging,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 15 FROM nodes WHERE is_active) AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS at_tip,
+          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 50 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS lagging,
           COUNT(*) FILTER (WHERE is_active) AS total_active
         FROM nodes
       `),
@@ -1286,7 +1286,8 @@ router.get('/api/network/nodes/chain-state', async (req, res) => {
           COUNT(*)::int AS node_count,
           ARRAY_AGG(DISTINCT client_impl) AS clients
         FROM nodes
-        WHERE is_active = TRUE AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes'
+        WHERE is_active = TRUE AND start_height IS NOT NULL
+          AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes'
         GROUP BY start_height
         ORDER BY start_height DESC
         LIMIT 20
