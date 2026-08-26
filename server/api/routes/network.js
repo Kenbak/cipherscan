@@ -1195,10 +1195,10 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
     const [syncResult, connectivityResult, versionResult, geoResult] = await Promise.all([
       pool.query(`
         SELECT
-          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL) AS nodes_with_height,
+          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS nodes_with_height,
           MAX(start_height) FILTER (WHERE is_active) AS tip_height,
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 2 FROM nodes WHERE is_active)) AS at_tip,
-          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 10 FROM nodes WHERE is_active) AND start_height IS NOT NULL) AS lagging,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 5 FROM nodes WHERE is_active)) AS at_tip,
+          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 20 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS lagging,
           COUNT(*) FILTER (WHERE is_active) AS total_active
         FROM nodes
       `),
@@ -1286,7 +1286,7 @@ router.get('/api/network/nodes/chain-state', async (req, res) => {
           COUNT(*)::int AS node_count,
           ARRAY_AGG(DISTINCT client_impl) AS clients
         FROM nodes
-        WHERE is_active = TRUE AND start_height IS NOT NULL
+        WHERE is_active = TRUE AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes'
         GROUP BY start_height
         ORDER BY start_height DESC
         LIMIT 20
@@ -1304,12 +1304,12 @@ router.get('/api/network/nodes/chain-state', async (req, res) => {
       blocksFromTip: networkTip - parseInt(r.start_height),
     }));
 
-    // Detect partition: if >5% of nodes are on a different height cluster (>2 blocks away)
+    // Detect partition: flag if >10% of nodes are >20 blocks from tip (accounts for crawl timing)
     const totalWithHeight = heights.reduce((s, h) => s + h.nodeCount, 0);
-    const atTip = heights.filter(h => h.blocksFromTip <= 2).reduce((s, h) => s + h.nodeCount, 0);
-    const divergent = heights.filter(h => h.blocksFromTip > 2);
+    const atTip = heights.filter(h => h.blocksFromTip <= 5).reduce((s, h) => s + h.nodeCount, 0);
+    const divergent = heights.filter(h => h.blocksFromTip > 20);
     const divergentCount = divergent.reduce((s, h) => s + h.nodeCount, 0);
-    const partitionRisk = totalWithHeight > 0 ? (divergentCount / totalWithHeight) > 0.05 : false;
+    const partitionRisk = totalWithHeight > 10 ? (divergentCount / totalWithHeight) > 0.10 : false;
 
     res.json({
       success: true,
