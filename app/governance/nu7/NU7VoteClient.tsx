@@ -85,7 +85,6 @@ interface ChainState {
   roundId: string | null;
   voteManagers: number;
   managerThreshold: number;
-  recentBlocks: RecentBlock[];
   voteActivity: VoteActivity;
 }
 
@@ -147,8 +146,6 @@ function useChainState(): ChainState | null {
         : lastScannedHeight.current + 1;
       const scanTo = latestHeight;
 
-      let recentBlocks: RecentBlock[] = [];
-
       if (latestHeight > 0 && scanTo >= scanFrom) {
         // Cap at 60 blocks per poll to stay friendly to the API
         const startHeight = Math.max(scanFrom, scanTo - 60);
@@ -180,9 +177,6 @@ function useChainState(): ChainState | null {
           if (txCount > 0) {
             knownVoteBlocks.current.set(block.height, block);
           }
-          if (recentBlocks.length < 5) {
-            recentBlocks.push(block);
-          }
         }
 
         lastScannedHeight.current = latestHeight;
@@ -210,7 +204,6 @@ function useChainState(): ChainState | null {
         roundId: roundRes?.round?.vote_round_id ?? null,
         voteManagers: managersRes?.vote_manager_addresses?.length ?? 0,
         managerThreshold: managersRes?.threshold ?? 0,
-        recentBlocks,
         voteActivity,
       });
     } catch {
@@ -596,42 +589,6 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
               <p className="text-xs text-muted">No vote submissions found yet. Once voters submit ballots, their blocks will appear here.</p>
             </div>
           )}
-        </div>
-
-        {/* Chain liveness — compact heartbeat */}
-        <div>
-          <SectionLabel label="CHAIN_LIVENESS" live />
-          <p className="text-[11px] text-muted -mt-2 mb-3">
-            Latest blocks confirming the voting chain is operational.
-          </p>
-          <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
-                    <th className="text-left px-4 py-2 font-medium">Height</th>
-                    <th className="text-left px-4 py-2 font-medium">Time</th>
-                    <th className="text-center px-4 py-2 font-medium">Consensus</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-cipher-border-subtle">
-                  {chainState.recentBlocks.slice(0, 5).map(b => (
-                    <tr key={b.height} className="hover:bg-glass-1 transition-colors">
-                      <td className="px-4 py-1.5 text-primary tabular-nums">{b.height.toLocaleString()}</td>
-                      <td className="px-4 py-1.5 text-muted tabular-nums">
-                        {b.time ? formatBlockTime(b.time) : '—'}
-                      </td>
-                      <td className="px-4 py-1.5 text-center">
-                        <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
-                          {b.sigCount}/{chainState.validators.length}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         {/* Key Ceremony — horizontal card */}
