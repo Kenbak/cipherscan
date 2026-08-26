@@ -545,13 +545,13 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         <div>
           <SectionLabel label="VOTE_ACTIVITY" live />
           <p className="text-[11px] text-muted -mt-2 mb-3">
-            Live feed of blocks containing encrypted vote submissions. This shows recent activity only — not total turnout.
+            Live feed of voting protocol activity. Each voter generates multiple transactions: a delegation proof, then one encrypted ballot per question, plus share reveals.
           </p>
           {chainState.voteActivity.blocksWithVotes.length > 0 ? (
             <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
               <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
                 <span className="text-[10px] font-mono text-muted">
-                  Encrypted ballots — contents unreadable until tally
+                  Delegations, encrypted ballots, and share reveals
                 </span>
                 <span className="text-[10px] font-mono text-muted">
                   Since page load
@@ -564,7 +564,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                       <th className="text-left px-4 py-2.5 font-medium">Height</th>
                       <th className="text-left px-4 py-2.5 font-medium">Time</th>
                       <th className="text-center px-4 py-2.5 font-medium">
-                        <Tip text="Encrypted vote submissions in this block. Contents cannot be read until validators cooperate after voting closes.">Votes</Tip>
+                        <Tip text="On-chain protocol steps: delegations (eligibility proofs), cast-votes (encrypted ballot per question), and share reveals. A single voter generates multiple transactions.">Txs</Tip>
                       </th>
                       <th className="text-center px-4 py-2.5 font-medium">
                         <Tip text="How many validators signed this block. Full consensus = all validators agree.">Consensus</Tip>
