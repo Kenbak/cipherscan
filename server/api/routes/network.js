@@ -1197,8 +1197,8 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
         SELECT
           COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS nodes_with_height,
           MAX(start_height) FILTER (WHERE is_active) AS tip_height,
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 5 FROM nodes WHERE is_active)) AS at_tip,
-          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 20 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS lagging,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 15 FROM nodes WHERE is_active)) AS at_tip,
+          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 50 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND last_seen > NOW() - INTERVAL '30 minutes') AS lagging,
           COUNT(*) FILTER (WHERE is_active) AS total_active
         FROM nodes
       `),
@@ -1233,7 +1233,7 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
     const atTip = parseInt(sync.at_tip) || 0;
     const nodesWithHeight = parseInt(sync.nodes_with_height) || 0;
 
-    // Sync score: % of nodes within 2 blocks of tip (0-100)
+    // Sync score: % of nodes within 15 blocks of tip (accounts for crawl handshake timing)
     const syncScore = nodesWithHeight > 0 ? Math.round((atTip / nodesWithHeight) * 100) : 50;
 
     // Connectivity score: based on avg degree (ideal: 8+)
@@ -1304,10 +1304,11 @@ router.get('/api/network/nodes/chain-state', async (req, res) => {
       blocksFromTip: networkTip - parseInt(r.start_height),
     }));
 
-    // Detect partition: flag if >10% of nodes are >20 blocks from tip (accounts for crawl timing)
+    // Detect partition: flag if >10% of nodes are >50 blocks behind tip
+    // (start_height is captured at handshake time, so 15 blocks of drift is normal crawl variance)
     const totalWithHeight = heights.reduce((s, h) => s + h.nodeCount, 0);
-    const atTip = heights.filter(h => h.blocksFromTip <= 5).reduce((s, h) => s + h.nodeCount, 0);
-    const divergent = heights.filter(h => h.blocksFromTip > 20);
+    const atTip = heights.filter(h => h.blocksFromTip <= 15).reduce((s, h) => s + h.nodeCount, 0);
+    const divergent = heights.filter(h => h.blocksFromTip > 50);
     const divergentCount = divergent.reduce((s, h) => s + h.nodeCount, 0);
     const partitionRisk = totalWithHeight > 10 ? (divergentCount / totalWithHeight) > 0.10 : false;
 
