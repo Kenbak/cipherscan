@@ -86,6 +86,7 @@ interface ChainState {
   voteManagers: number;
   managerThreshold: number;
   recentBlocks: RecentBlock[];
+  voteActivity: VoteActivity;
 }
 
 interface RecentBlock {
@@ -96,18 +97,24 @@ interface RecentBlock {
   proposer: string;
 }
 
+interface VoteActivity {
+  totalTxCount: number;
+  blocksWithVotes: RecentBlock[];
+}
+
 function useChainState(): ChainState | null {
   const [state, setState] = useState<ChainState | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [blockRes, validatorsRes, ceremonyRes, configRes, roundRes, managersRes] = await Promise.all([
+      const [blockRes, validatorsRes, ceremonyRes, configRes, roundRes, managersRes, txSearchRes] = await Promise.all([
         fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/latest`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.validators}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.ceremony}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(VOTE_CHAIN.dynamicConfig).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.activeRound}`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`${VOTE_CHAIN.primaryApi}${VOTE_CHAIN.endpoints.voteManagers}`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${VOTE_CHAIN.primaryApi}/cosmos/tx/v1beta1/txs?order_by=ORDER_BY_DESC&pagination.limit=50`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
       const header = blockRes?.block?.header ?? blockRes?.sdk_block?.header;
@@ -131,11 +138,11 @@ function useChainState(): ChainState | null {
 
       const latestHeight = header ? parseInt(header.height, 10) : 0;
 
-      // Fetch recent blocks
+      // Fetch recent blocks (compact liveness set)
       let recentBlocks: RecentBlock[] = [];
       if (latestHeight > 0) {
         const blockPromises = [];
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 6; i++) {
           const h = latestHeight - i;
           if (h < 1) break;
           blockPromises.push(
@@ -163,6 +170,56 @@ function useChainState(): ChainState | null {
           });
       }
 
+      // Build vote activity from tx search results
+      let voteActivity: VoteActivity = { totalTxCount: 0, blocksWithVotes: [] };
+      if (txSearchRes) {
+        const totalTxCount = parseInt(txSearchRes.pagination?.total ?? txSearchRes.total_count ?? '0', 10);
+        const txResponses: any[] = txSearchRes.tx_responses ?? txSearchRes.txs ?? [];
+
+        // Group by block height to get unique blocks with votes
+        const blockHeightMap = new Map<number, { height: number; time: string; txCount: number }>();
+        for (const tx of txResponses) {
+          const h = parseInt(tx.height ?? '0', 10);
+          const t = tx.timestamp ?? '';
+          if (h > 0) {
+            const existing = blockHeightMap.get(h);
+            if (existing) {
+              existing.txCount++;
+            } else {
+              blockHeightMap.set(h, { height: h, time: t, txCount: 1 });
+            }
+          }
+        }
+
+        // Sort by height descending and fetch sig counts for blocks with votes
+        const blocksWithVoteData = Array.from(blockHeightMap.values())
+          .sort((a, b) => b.height - a.height)
+          .slice(0, 12);
+
+        const voteBlockPromises = blocksWithVoteData.map(vb =>
+          fetch(`${VOTE_CHAIN.primaryApi}/cosmos/base/tendermint/v1beta1/blocks/${vb.height}`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        );
+        const voteBlockResults = await Promise.all(voteBlockPromises);
+
+        const blocksWithVotes: RecentBlock[] = blocksWithVoteData.map((vb, i) => {
+          const blockData = voteBlockResults[i];
+          const sigCount = blockData?.block?.last_commit?.signatures?.filter(
+            (s: any) => s.block_id_flag === 'BLOCK_ID_FLAG_COMMIT'
+          ).length ?? 0;
+          return {
+            height: vb.height,
+            time: vb.time,
+            txCount: vb.txCount,
+            sigCount,
+            proposer: '',
+          };
+        });
+
+        voteActivity = { totalTxCount, blocksWithVotes };
+      }
+
       setState({
         height: latestHeight,
         time: header?.time ?? '',
@@ -176,6 +233,7 @@ function useChainState(): ChainState | null {
         voteManagers: managersRes?.vote_manager_addresses?.length ?? 0,
         managerThreshold: managersRes?.threshold ?? 0,
         recentBlocks,
+        voteActivity,
       });
     } catch {
       // leave null
@@ -491,7 +549,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
           <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">zvote-1</span>
           <span className="text-[10px] text-muted ml-1">— the dedicated voting chain</span>
           <span className="ml-auto text-[10px] font-mono text-muted">
-            {chainState.time ? new Date(chainState.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC' : ''}
+            {chainState.time ? formatBlockTime(chainState.time) + ' UTC' : ''}
           </span>
         </div>
 
@@ -505,42 +563,98 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
 
       {/* Two-column layout: Blocks + Key Setup */}
       <div className="space-y-6">
-        {/* Recent blocks — the live heartbeat */}
+        {/* Vote activity — blocks with submissions */}
         <div>
-          <SectionLabel label="RECENT_BLOCKS" live />
+          <SectionLabel label="VOTE_ACTIVITY" live />
           <p className="text-[11px] text-muted -mt-2 mb-3">
-            Latest blocks on the voting chain. During the vote, blocks with transactions contain encrypted submissions.
+            Blocks containing encrypted vote submissions. Each transaction is one voter's encrypted ballot — contents are unreadable until the tally.
+          </p>
+          {chainState.voteActivity.blocksWithVotes.length > 0 ? (
+            <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
+              <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
+                <span className="text-[10px] font-mono text-secondary">
+                  {chainState.voteActivity.totalTxCount.toLocaleString()} encrypted submission{chainState.voteActivity.totalTxCount !== 1 ? 's' : ''} total
+                </span>
+                <span className="text-[10px] font-mono text-muted">
+                  Showing latest {chainState.voteActivity.blocksWithVotes.length} blocks with votes
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
+                      <th className="text-left px-4 py-2.5 font-medium">Height</th>
+                      <th className="text-left px-4 py-2.5 font-medium">Time</th>
+                      <th className="text-center px-4 py-2.5 font-medium">
+                        <Tip text="Encrypted vote submissions in this block. Contents cannot be read until validators cooperate after voting closes.">Votes</Tip>
+                      </th>
+                      <th className="text-center px-4 py-2.5 font-medium">
+                        <Tip text="How many validators signed this block. Full consensus = all validators agree.">Consensus</Tip>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cipher-border-subtle">
+                    {chainState.voteActivity.blocksWithVotes.map(b => (
+                      <tr key={b.height} className="hover:bg-glass-1 transition-colors">
+                        <td className="px-4 py-2 text-primary tabular-nums">{b.height.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-muted tabular-nums">
+                          {b.time ? formatBlockTime(b.time) : '—'}
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-cipher-cyan/10 text-cipher-cyan-bright font-semibold text-[10px]">
+                            {b.txCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
+                            {b.sigCount}/{chainState.validators.length}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 text-center">
+              <p className="text-xs text-muted">No vote submissions found yet. Once voters submit ballots, their blocks will appear here.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Chain liveness — compact heartbeat */}
+        <div>
+          <SectionLabel label="CHAIN_LIVENESS" live />
+          <p className="text-[11px] text-muted -mt-2 mb-3">
+            Latest blocks confirming the voting chain is operational.
           </p>
           <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
             <div className="overflow-x-auto">
               <table className="w-full text-xs font-mono">
                 <thead>
                   <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
-                    <th className="text-left px-4 py-2.5 font-medium">Height</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Time</th>
-                    <th className="text-center px-4 py-2.5 font-medium">
-                      <Tip text="Transactions in this block — vote submissions appear here during active voting">Txs</Tip>
-                    </th>
-                    <th className="text-center px-4 py-2.5 font-medium">
-                      <Tip text="How many validators signed this block. Full consensus = all validators agree.">Consensus</Tip>
-                    </th>
+                    <th className="text-left px-4 py-2 font-medium">Height</th>
+                    <th className="text-left px-4 py-2 font-medium">Time</th>
+                    <th className="text-center px-4 py-2 font-medium">Txs</th>
+                    <th className="text-center px-4 py-2 font-medium">Consensus</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cipher-border-subtle">
-                  {chainState.recentBlocks.slice(0, 8).map(b => (
+                  {chainState.recentBlocks.slice(0, 5).map(b => (
                     <tr key={b.height} className="hover:bg-glass-1 transition-colors">
-                      <td className="px-4 py-2 text-primary tabular-nums">{b.height.toLocaleString()}</td>
-                      <td className="px-4 py-2 text-muted tabular-nums">
-                        {b.time ? new Date(b.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC' }) : '—'}
+                      <td className="px-4 py-1.5 text-primary tabular-nums">{b.height.toLocaleString()}</td>
+                      <td className="px-4 py-1.5 text-muted tabular-nums">
+                        {b.time ? formatBlockTime(b.time) : '—'}
                       </td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-4 py-1.5 text-center">
                         {b.txCount > 0 ? (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cipher-green-bright/10 text-cipher-green-bright font-semibold text-[10px]">{b.txCount}</span>
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cipher-cyan/10 text-cipher-cyan-bright font-semibold text-[10px]">{b.txCount}</span>
                         ) : (
                           <span className="text-muted/30">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-4 py-1.5 text-center">
                         <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
                           {b.sigCount}/{chainState.validators.length}
                         </span>
@@ -790,6 +904,25 @@ function formatVoteTime(iso: string): string {
     hour12: false,
     timeZone: 'UTC',
   })} UTC`;
+}
+
+function formatBlockTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86_400_000);
+
+  const time = d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  });
+
+  if (diffDays === 0) return time;
+  if (diffDays === 1) return `Yesterday ${time}`;
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} ${time}`;
 }
 
 // Derived from config rather than hardcoded so this can't silently drift from
