@@ -545,16 +545,16 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
         <div>
           <SectionLabel label="VOTE_ACTIVITY" live />
           <p className="text-[11px] text-muted -mt-2 mb-3">
-            Blocks containing encrypted vote submissions. Each transaction is one voter's encrypted ballot — contents are unreadable until the tally.
+            Live feed of blocks containing encrypted vote submissions. This shows recent activity only — not total turnout.
           </p>
           {chainState.voteActivity.blocksWithVotes.length > 0 ? (
             <div className="rounded-2xl border border-cipher-border bg-cipher-surface">
               <div className="flex items-center justify-between border-b border-cipher-border-subtle px-4 py-2.5">
-                <span className="text-[10px] font-mono text-secondary">
-                  {chainState.voteActivity.totalTxCount.toLocaleString()} encrypted submission{chainState.voteActivity.totalTxCount !== 1 ? 's' : ''} observed
+                <span className="text-[10px] font-mono text-muted">
+                  Encrypted ballots — contents unreadable until tally
                 </span>
                 <span className="text-[10px] font-mono text-muted">
-                  {chainState.voteActivity.blocksWithVotes.length} block{chainState.voteActivity.blocksWithVotes.length !== 1 ? 's' : ''} with votes
+                  Since page load
                 </span>
               </div>
               <div className="overflow-x-auto">
