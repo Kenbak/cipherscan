@@ -78,12 +78,14 @@ jobs:
           cd /root/cipherscan
           git fetch origin main
           git reset --hard origin/main
+          npm install --omit=dev --no-audit --no-fund
           cd server/api
           npm install --omit=dev --no-audit --no-fund
           systemctl restart zcash-api-mainnet.service
           sleep 3
           curl -sf http://localhost:3001/health || { echo "Health check failed"; exit 1; }
-          echo "Primary API deploy complete"
+          systemctl restart cipherscan-bot.service || true
+          echo "Primary API + bot deploy complete"
           REMOTE
 
       - name: Deploy to standby box

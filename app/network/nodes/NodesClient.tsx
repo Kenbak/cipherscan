@@ -358,7 +358,7 @@ export default function NodesClient() {
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <HealthBar label="Sync" score={health.components.sync.score} detail={`${health.components.sync.atTip}/${health.components.sync.nodesWithHeight} at tip`} />
+                  <HealthBar label="Sync" score={health.components.sync.score} detail={`${health.components.sync.atTip}/${health.components.sync.nodesWithHeight} in consensus`} />
                   <HealthBar label="Connectivity" score={health.components.connectivity.score} detail={`avg ${health.components.connectivity.avgDegree} peers`} />
                   <HealthBar label="Version Diversity" score={health.components.versionDiversity.score} detail={`top version ${health.components.versionDiversity.topVersionPct}%`} />
                   <HealthBar label="Geographic" score={health.components.geographic.score} detail={`${health.components.geographic.countries} countries`} />

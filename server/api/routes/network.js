@@ -1194,11 +1194,12 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
   try {
     const [syncResult, connectivityResult, versionResult, geoResult] = await Promise.all([
       pool.query(`
+        WITH tip AS (SELECT MAX(start_height) AS h FROM nodes WHERE is_active)
         SELECT
-          COUNT(*) FILTER (WHERE is_active AND start_height IS NOT NULL AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS nodes_with_height,
-          MAX(start_height) FILTER (WHERE is_active) AS tip_height,
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT MAX(start_height) - 15 FROM nodes WHERE is_active) AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS at_tip,
-          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT MAX(start_height) - 50 FROM nodes WHERE is_active) AND start_height IS NOT NULL AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes') AS lagging,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT h - 50 FROM tip)) AS nodes_with_height,
+          (SELECT h FROM tip) AS tip_height,
+          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT h - 15 FROM tip)) AS at_tip,
+          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT h - 50 FROM tip) AND start_height >= (SELECT h - 200 FROM tip)) AS lagging,
           COUNT(*) FILTER (WHERE is_active) AS total_active
         FROM nodes
       `),
@@ -1281,13 +1282,14 @@ router.get('/api/network/nodes/chain-state', async (req, res) => {
   try {
     const [heightDist, tipResult] = await Promise.all([
       pool.query(`
+        WITH tip AS (SELECT MAX(start_height) AS h FROM nodes WHERE is_active)
         SELECT
           start_height,
           COUNT(*)::int AS node_count,
           ARRAY_AGG(DISTINCT client_impl) AS clients
-        FROM nodes
-        WHERE is_active = TRUE AND start_height IS NOT NULL
-          AND observed_via = 'crawl' AND last_seen > NOW() - INTERVAL '15 minutes'
+        FROM nodes, tip
+        WHERE is_active = TRUE
+          AND start_height >= tip.h - 50
         GROUP BY start_height
         ORDER BY start_height DESC
         LIMIT 20
