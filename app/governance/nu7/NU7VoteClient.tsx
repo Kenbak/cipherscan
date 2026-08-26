@@ -614,7 +614,6 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   <tr className="border-b border-cipher-border-subtle text-[10px] text-muted uppercase tracking-wider">
                     <th className="text-left px-4 py-2 font-medium">Height</th>
                     <th className="text-left px-4 py-2 font-medium">Time</th>
-                    <th className="text-center px-4 py-2 font-medium">Txs</th>
                     <th className="text-center px-4 py-2 font-medium">Consensus</th>
                   </tr>
                 </thead>
@@ -624,13 +623,6 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                       <td className="px-4 py-1.5 text-primary tabular-nums">{b.height.toLocaleString()}</td>
                       <td className="px-4 py-1.5 text-muted tabular-nums">
                         {b.time ? formatBlockTime(b.time) : '—'}
-                      </td>
-                      <td className="px-4 py-1.5 text-center">
-                        {b.txCount > 0 ? (
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cipher-cyan/10 text-cipher-cyan-bright font-semibold text-[10px]">{b.txCount}</span>
-                        ) : (
-                          <span className="text-muted/30">—</span>
-                        )}
                       </td>
                       <td className="px-4 py-1.5 text-center">
                         <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
