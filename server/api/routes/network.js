@@ -1333,8 +1333,8 @@ router.get('/api/network/nodes/reliability', async (req, res) => {
       `),
       pool.query(`
         SELECT
-          ROUND(AVG(crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0)) * 100
-            FILTER (WHERE (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3), 1) AS avg_reliability_pct,
+          ROUND(AVG(crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0))
+            FILTER (WHERE (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) * 100, 1) AS avg_reliability_pct,
           MAX(crawl_seen_count) AS max_seen,
           COUNT(*) FILTER (WHERE services IS NOT NULL) AS services_known
         FROM nodes WHERE is_active = TRUE
