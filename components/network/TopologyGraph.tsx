@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Instances, Instance, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
@@ -38,6 +38,7 @@ interface SimNode extends SimulationNode {
   isTor: boolean;
   countryCode: string | null;
   betweenness: number | null;
+  closeness: number | null;
   degree: number | null;
 }
 
@@ -64,25 +65,21 @@ function nodeColor(n: { client: string; isTor: boolean }) {
   return CLIENT_COLORS[n.client] || CLIENT_COLORS.Other;
 }
 
-function NodeLabel({ node, primary }: { node: PositionedNode; primary?: boolean }) {
+function clientLabel(client: string) {
+  return client === 'Unknown' ? 'Unidentified' : client;
+}
+
+/** Small, fixed-size label that tracks a 3D point (no distance scaling). */
+function HubLabel({ node }: { node: PositionedNode }) {
   return (
     <Html
-      position={[node.x, node.y + node.radius + 1.2, node.z]}
+      position={[node.x, node.y + node.radius + 0.8, node.z]}
       center
-      distanceFactor={primary ? 110 : 150}
-      zIndexRange={[20, 0]}
-      style={{ pointerEvents: 'none', transform: 'translateY(-50%)' }}
+      zIndexRange={[15, 0]}
+      style={{ pointerEvents: 'none' }}
     >
-      <div
-        className={`whitespace-nowrap rounded px-1.5 py-0.5 font-mono leading-tight ${
-          primary
-            ? 'bg-cipher-card/95 border border-cipher-cyan/40 text-primary text-[11px]'
-            : 'bg-cipher-card/70 border border-cipher-border/60 text-secondary text-[10px]'
-        }`}
-      >
-        {node.client === 'Unknown' ? 'Unidentified' : node.client}
-        {node.countryCode ? ` · ${node.countryCode}` : ''}
-        {node.degree != null ? ` · ${node.degree}p` : ''}
+      <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-[9px] leading-none text-secondary/90">
+        {clientLabel(node.client)}{node.countryCode ? ` · ${node.countryCode}` : ''}
       </div>
     </Html>
   );
@@ -92,16 +89,28 @@ function Scene({
   nodes,
   linePositions,
   edgePairs,
-  hovered,
+  focus,
+  pinned,
+  hubs,
   onHover,
+  onPin,
 }: {
   nodes: PositionedNode[];
   linePositions: Float32Array;
   edgePairs: [number, number][];
-  hovered: PositionedNode | null;
+  focus: PositionedNode | null;
+  pinned: PositionedNode | null;
+  hubs: PositionedNode[];
   onHover: (n: PositionedNode | null) => void;
+  onPin: (n: PositionedNode | null) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const { camera, controls } = useThree() as unknown as {
+    camera: THREE.PerspectiveCamera;
+    controls: { target: THREE.Vector3; update: () => void } | null;
+  };
+
+  const flyRef = useRef<{ pos: THREE.Vector3; dir: THREE.Vector3; active: boolean } | null>(null);
 
   const lineGeom = useMemo(() => {
     const g = new THREE.BufferGeometry();
@@ -111,18 +120,11 @@ function Scene({
 
   const posById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
-  // Top hubs get a persistent label so the graph reads as a map, not just dots.
-  const hubs = useMemo(
-    () => [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
-    [nodes]
-  );
-
-  // On hover, light up only the edges touching the hovered node.
   const highlightGeom = useMemo(() => {
-    if (!hovered) return null;
+    if (!focus) return null;
     const pts: number[] = [];
     for (const [s, t] of edgePairs) {
-      if (s !== hovered.id && t !== hovered.id) continue;
+      if (s !== focus.id && t !== focus.id) continue;
       const a = posById.get(s);
       const b = posById.get(t);
       if (!a || !b) continue;
@@ -131,11 +133,30 @@ function Scene({
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [hovered, edgePairs, posById]);
+  }, [focus, edgePairs, posById]);
 
-  // Gentle auto-rotation for the "galaxy" feel; pauses while inspecting a node.
+  // When a node is pinned, glide the camera to frame it.
+  useEffect(() => {
+    if (!pinned || !groupRef.current) return;
+    const world = new THREE.Vector3(pinned.x, pinned.y, pinned.z);
+    groupRef.current.localToWorld(world);
+    const dir = camera.position.clone().sub(world).normalize();
+    flyRef.current = { pos: world, dir, active: true };
+  }, [pinned, camera]);
+
   useFrame((_, delta) => {
-    if (groupRef.current && !hovered) groupRef.current.rotation.y += delta * 0.04;
+    // Auto-rotate only when nothing is being inspected.
+    if (groupRef.current && !focus) groupRef.current.rotation.y += delta * 0.04;
+
+    // Smooth camera fly-to on pin.
+    const fly = flyRef.current;
+    if (fly?.active && controls) {
+      controls.target.lerp(fly.pos, 0.12);
+      const desired = fly.pos.clone().add(fly.dir.clone().multiplyScalar(42));
+      camera.position.lerp(desired, 0.12);
+      controls.update();
+      if (camera.position.distanceTo(desired) < 1.2) fly.active = false;
+    }
   });
 
   return (
@@ -144,7 +165,7 @@ function Scene({
         <lineBasicMaterial
           color="#56D4C8"
           transparent
-          opacity={hovered ? 0.04 : 0.12}
+          opacity={focus ? 0.04 : 0.12}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -155,7 +176,7 @@ function Scene({
           <lineBasicMaterial
             color="#8CE8DD"
             transparent
-            opacity={0.7}
+            opacity={0.75}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
@@ -164,36 +185,26 @@ function Scene({
 
       <Instances limit={nodes.length} range={nodes.length}>
         <sphereGeometry args={[1, 12, 12]} />
-        <meshStandardMaterial
-          roughness={0.35}
-          metalness={0.1}
-          emissiveIntensity={0.55}
-          toneMapped={false}
-        />
+        <meshStandardMaterial roughness={0.35} metalness={0.1} emissiveIntensity={0.55} toneMapped={false} />
         {nodes.map((n) => {
-          const isHovered = hovered?.id === n.id;
+          const isFocus = focus?.id === n.id;
           const c = new THREE.Color(n.color);
-          if (isHovered) c.multiplyScalar(1.9);
+          if (isFocus) c.multiplyScalar(1.9);
           return (
             <Instance
               key={n.id}
               position={[n.x, n.y, n.z]}
-              scale={isHovered ? n.radius * 1.8 : n.radius}
+              scale={isFocus ? n.radius * 1.9 : n.radius}
               color={c}
-              onPointerOver={(e) => {
-                e.stopPropagation();
-                onHover(n);
-              }}
+              onPointerOver={(e) => { e.stopPropagation(); onHover(n); }}
               onPointerOut={() => onHover(null)}
+              onClick={(e) => { e.stopPropagation(); onPin(n); }}
             />
           );
         })}
       </Instances>
 
-      {hubs.map((n) => (
-        hovered?.id === n.id ? null : <NodeLabel key={`hub-${n.id}`} node={n} />
-      ))}
-      {hovered && <NodeLabel node={hovered} primary />}
+      {hubs.map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
     </group>
   );
 }
@@ -205,6 +216,28 @@ export function TopologyGraph() {
   const [edgePairs, setEdgePairs] = useState<[number, number][]>([]);
   const [edgeCount, setEdgeCount] = useState(0);
   const [hovered, setHovered] = useState<PositionedNode | null>(null);
+  const [pinned, setPinned] = useState<PositionedNode | null>(null);
+  const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const focus = pinned ?? hovered;
+
+  const hubs = useMemo(
+    () => [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
+    [nodes]
+  );
+
+  // Search over the most-connected nodes (pseudonymous — match by client/country).
+  const searchResults = useMemo(() => {
+    const top = [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 60);
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? top.filter((n) =>
+          clientLabel(n.client).toLowerCase().includes(q) ||
+          (n.countryCode || '').toLowerCase().includes(q))
+      : top;
+    return filtered.slice(0, 8);
+  }, [nodes, query]);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +256,7 @@ export function TopologyGraph() {
           isTor: n.isTor,
           countryCode: n.countryCode,
           betweenness: n.betweenness,
+          closeness: n.closeness,
           degree: n.degree,
         }));
 
@@ -231,7 +265,6 @@ export function TopologyGraph() {
           .filter((e) => idSet.has(e.source) && idSet.has(e.target))
           .map((e) => ({ source: e.source, target: e.target }));
 
-        // Run a 3D force layout to a settled state, then render statically.
         const sim: Simulation<SimNode> = forceSimulation<SimNode>(simNodes, 3)
           .force('link', forceLink<SimNode, { source: number; target: number }>(links)
             .id((d: SimNode) => d.id)
@@ -244,8 +277,7 @@ export function TopologyGraph() {
           .force('z', forceZ<SimNode>(0).strength(0.045))
           .stop();
 
-        const iterations = 320;
-        for (let i = 0; i < iterations; i++) sim.tick();
+        for (let i = 0; i < 320; i++) sim.tick();
 
         const maxDegree = Math.max(1, ...simNodes.map((n) => n.degree || 0));
         const positioned: PositionedNode[] = simNodes.map((n) => ({
@@ -290,12 +322,10 @@ export function TopologyGraph() {
   return (
     <div className="relative">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">
-          Network Topology
-        </h3>
+        <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">Network Topology</h3>
         {!loading && nodes.length > 0 && (
           <span className="text-[10px] text-muted font-mono">
-            {nodes.length} nodes · {edgeCount} edges · drag to rotate
+            {nodes.length} nodes · {edgeCount} edges · drag to rotate · click to pin
           </span>
         )}
       </div>
@@ -310,43 +340,93 @@ export function TopologyGraph() {
             <span className="text-sm text-muted">No topology data available yet.</span>
           </div>
         ) : (
-          <Canvas
-            camera={{ position: [0, 0, 190], fov: 55, near: 0.1, far: 2000 }}
-            dpr={[1, 2]}
-            gl={{ antialias: true, alpha: true }}
-          >
-            <ambientLight intensity={0.6} />
-            <pointLight position={[100, 100, 100]} intensity={1.2} />
-            <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
-            <Scene
-              nodes={nodes}
-              linePositions={linePositions}
-              edgePairs={edgePairs}
-              hovered={hovered}
-              onHover={setHovered}
-            />
-            <OrbitControls
-              enablePan={false}
-              enableDamping
-              dampingFactor={0.08}
-              rotateSpeed={0.6}
-              minDistance={70}
-              maxDistance={520}
-            />
-          </Canvas>
-        )}
+          <>
+            <Canvas
+              camera={{ position: [0, 0, 190], fov: 55, near: 0.1, far: 2000 }}
+              dpr={[1, 2]}
+              gl={{ antialias: true, alpha: true }}
+            >
+              <ambientLight intensity={0.6} />
+              <pointLight position={[100, 100, 100]} intensity={1.2} />
+              <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
+              <Scene
+                nodes={nodes}
+                linePositions={linePositions}
+                edgePairs={edgePairs}
+                focus={focus}
+                pinned={pinned}
+                hubs={hubs}
+                onHover={setHovered}
+                onPin={(n) => setPinned((prev) => (prev?.id === n?.id ? null : n))}
+              />
+              <OrbitControls
+                makeDefault
+                enablePan={false}
+                enableDamping
+                dampingFactor={0.08}
+                rotateSpeed={0.6}
+                minDistance={40}
+                maxDistance={520}
+              />
+            </Canvas>
 
-        {hovered && (
-          <div className="absolute bottom-3 left-3 bg-cipher-card/95 border border-cipher-border rounded-md px-3 py-2 backdrop-blur-sm pointer-events-none z-10">
-            <div className="text-xs font-mono text-primary">
-              {hovered.client === 'Unidentified' ? 'Unidentified' : hovered.client}
-              {hovered.isTor ? ' · Tor' : ''}
-              {hovered.countryCode ? ` · ${hovered.countryCode}` : ''}
+            {/* Search */}
+            <div className="absolute top-3 left-3 z-20 w-52">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+                placeholder="Find a hub (client / country)…"
+                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-[11px] font-mono text-primary placeholder:text-muted/70 backdrop-blur-sm focus:outline-none focus:border-cipher-cyan/50"
+              />
+              {searchOpen && searchResults.length > 0 && (
+                <div className="mt-1 rounded-md bg-cipher-card/95 border border-cipher-border backdrop-blur-sm overflow-hidden">
+                  {searchResults.map((n) => (
+                    <button
+                      key={n.id}
+                      onMouseDown={(e) => { e.preventDefault(); setPinned(n); setSearchOpen(false); }}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] font-mono hover:bg-cipher-bg/60 transition-colors"
+                    >
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: nodeColor(n) }} />
+                      <span className="text-secondary">{clientLabel(n.client)}</span>
+                      <span className="text-muted">{n.countryCode || '—'}</span>
+                      <span className="ml-auto text-primary">{n.degree ?? 0}p</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="text-[10px] text-muted font-mono mt-0.5">
-              Peers: {hovered.degree ?? '—'} · Betweenness: {hovered.betweenness != null ? hovered.betweenness.toFixed(4) : '—'}
-            </div>
-          </div>
+
+            {/* Detail panel (fixed size, single source of truth) */}
+            {focus && (
+              <div className="absolute bottom-3 right-3 z-20 w-52 rounded-md bg-cipher-card/95 border border-cipher-border px-3 py-2.5 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: nodeColor(focus) }} />
+                  <span className="text-xs font-mono text-primary">
+                    {clientLabel(focus.client)}{focus.isTor ? ' · Tor' : ''}
+                  </span>
+                  {pinned && (
+                    <button
+                      onClick={() => setPinned(null)}
+                      className="ml-auto text-muted hover:text-primary text-xs leading-none"
+                      aria-label="Unpin node"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <dl className="mt-2 space-y-1 text-[10px] font-mono">
+                  <Row label="Country" value={focus.countryCode || 'Unknown'} />
+                  <Row label="Peers" value={focus.degree != null ? String(focus.degree) : '—'} />
+                  <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
+                  <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
+                </dl>
+                {!pinned && <div className="mt-2 text-[9px] text-muted/70">Click node to pin</div>}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -364,6 +444,15 @@ export function TopologyGraph() {
         </span>
         <span className="ml-auto text-[10px] text-muted/70">Node size ∝ peer count</span>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-primary tabular-nums">{value}</dd>
     </div>
   );
 }
