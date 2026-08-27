@@ -1,263 +1,268 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Instances, Instance } from '@react-three/drei';
+import * as THREE from 'three';
 import {
   forceSimulation,
   forceLink,
   forceManyBody,
   forceCenter,
-  forceCollide,
-  type SimulationNodeDatum,
-  type SimulationLinkDatum,
-} from 'd3-force';
+  forceX,
+  forceY,
+  forceZ,
+  type Simulation,
+  type SimulationNode,
+} from 'd3-force-3d';
 import { getApiUrl } from '@/lib/api-config';
 
-interface TopologyNode extends SimulationNodeDatum {
+interface ApiNode {
   id: number;
-  lat: number | null;
-  lon: number | null;
   client: string;
   isTor: boolean;
+  countryCode: string | null;
   betweenness: number | null;
   closeness: number | null;
   degree: number | null;
 }
 
-interface TopologyEdge extends SimulationLinkDatum<TopologyNode> {
-  source: number | TopologyNode;
-  target: number | TopologyNode;
+interface ApiEdge {
+  source: number;
+  target: number;
+}
+
+interface SimNode extends SimulationNode {
+  id: number;
+  client: string;
+  isTor: boolean;
+  countryCode: string | null;
+  betweenness: number | null;
+  degree: number | null;
+}
+
+interface PositionedNode extends SimNode {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  color: string;
 }
 
 const CLIENT_COLORS: Record<string, string> = {
   Zebra: '#56D4C8',
   Zakura: '#E8C48D',
   zcashd: '#5B9CF6',
-  Unknown: '#6B7280',
+  Seeder: '#9B8AFB',
+  Unidentified: '#6B7280',
   Other: '#8B5CF6',
 };
-
 const TOR_COLOR = '#A855F7';
 
-export function TopologyGraph() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [nodeCount, setNodeCount] = useState(0);
-  const [edgeCount, setEdgeCount] = useState(0);
-  const [hoveredNode, setHoveredNode] = useState<TopologyNode | null>(null);
-  const hoveredRef = useRef<TopologyNode | null>(null);
-  const nodesRef = useRef<TopologyNode[]>([]);
-  const edgesRef = useRef<TopologyEdge[]>([]);
-  const simRef = useRef<ReturnType<typeof forceSimulation<TopologyNode>> | null>(null);
-  const transformRef = useRef({ x: 0, y: 0, k: 1 });
-  const rafRef = useRef<number>(0);
+function nodeColor(n: { client: string; isTor: boolean }) {
+  if (n.isTor) return TOR_COLOR;
+  return CLIENT_COLORS[n.client] || CLIENT_COLORS.Other;
+}
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+function Scene({
+  nodes,
+  linePositions,
+  onHover,
+}: {
+  nodes: PositionedNode[];
+  linePositions: Float32Array;
+  onHover: (n: PositionedNode | null) => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const lineGeom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    return g;
+  }, [linePositions]);
 
-    const { width, height } = canvas;
-    const { x: tx, y: ty, k } = transformRef.current;
-    const hovered = hoveredRef.current;
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.save();
-    ctx.translate(width / 2 + tx, height / 2 + ty);
-    ctx.scale(k, k);
-
-    // Draw edges
-    ctx.strokeStyle = 'rgba(86, 212, 200, 0.06)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    for (const edge of edgesRef.current) {
-      const source = edge.source as TopologyNode;
-      const target = edge.target as TopologyNode;
-      if (source.x != null && source.y != null && target.x != null && target.y != null) {
-        ctx.moveTo(source.x, source.y);
-        ctx.lineTo(target.x, target.y);
-      }
-    }
-    ctx.stroke();
-
-    // Draw nodes
-    for (const node of nodesRef.current) {
-      if (node.x == null || node.y == null) continue;
-      const radius = Math.max(2.5, Math.min(10, (node.degree || 1) * 0.25 + 2));
-      const color = node.isTor ? TOR_COLOR : (CLIENT_COLORS[node.client] || CLIENT_COLORS.Unknown);
-      const isHovered = node === hovered;
-
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.globalAlpha = isHovered ? 1 : 0.75;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      if (isHovered) {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-    }
-
-    ctx.restore();
-  }, []);
-
-  useEffect(() => {
-    const apiUrl = getApiUrl();
-
-    async function fetchTopology() {
-      try {
-        const res = await fetch(`${apiUrl}/api/network/topology`);
-        if (!res.ok) {
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-
-        if (!data.nodes?.length) {
-          setLoading(false);
-          return;
-        }
-
-        const nodeMap = new Map<number, TopologyNode>();
-        const nodes: TopologyNode[] = data.nodes.map((n: TopologyNode) => {
-          const node: TopologyNode = { ...n };
-          nodeMap.set(n.id, node);
-          return node;
-        });
-
-        const edges: TopologyEdge[] = (data.edges || []).filter(
-          (e: { source: number; target: number }) => nodeMap.has(e.source) && nodeMap.has(e.target)
-        );
-
-        nodesRef.current = nodes;
-        edgesRef.current = edges;
-        setNodeCount(nodes.length);
-        setEdgeCount(edges.length);
-
-        const sim = forceSimulation<TopologyNode>(nodes)
-          .force('link', forceLink<TopologyNode, TopologyEdge>(edges)
-            .id(d => d.id)
-            .distance(40)
-            .strength(0.4)
-          )
-          .force('charge', forceManyBody().strength(-25))
-          .force('center', forceCenter(0, 0))
-          .force('collide', forceCollide(4))
-          .alphaDecay(0.03)
-          .on('tick', draw);
-
-        simRef.current = sim;
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch topology:', err);
-        setLoading(false);
-      }
-    }
-
-    fetchTopology();
-
-    return () => {
-      simRef.current?.stop();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return;
-
-    const resize = () => {
-      const rect = container.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = 400;
-      draw();
-    };
-
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(container);
-    return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const { x: tx, y: ty, k } = transformRef.current;
-    const mx = (e.clientX - rect.left - canvas.width / 2 - tx) / k;
-    const my = (e.clientY - rect.top - canvas.height / 2 - ty) / k;
-
-    let closest: TopologyNode | null = null;
-    let closestDist = 100;
-
-    for (const node of nodesRef.current) {
-      if (node.x == null || node.y == null) continue;
-      const dist = Math.hypot(node.x - mx, node.y - my);
-      if (dist < closestDist) {
-        closest = node;
-        closestDist = dist;
-      }
-    }
-
-    const newHovered = closestDist < 12 ? closest : null;
-    if (newHovered !== hoveredRef.current) {
-      hoveredRef.current = newHovered;
-      setHoveredNode(newHovered);
-      draw();
-    }
-  }, [draw]);
-
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    transformRef.current.k = Math.max(0.3, Math.min(4, transformRef.current.k * delta));
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(draw);
-  }, [draw]);
+  // Gentle auto-rotation for the "galaxy" feel; OrbitControls can override.
+  useFrame((_, delta) => {
+    if (groupRef.current) groupRef.current.rotation.y += delta * 0.04;
+  });
 
   return (
-    <div className="relative" ref={containerRef}>
+    <group ref={groupRef}>
+      <lineSegments geometry={lineGeom}>
+        <lineBasicMaterial
+          color="#56D4C8"
+          transparent
+          opacity={0.12}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </lineSegments>
+
+      <Instances limit={nodes.length} range={nodes.length}>
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshStandardMaterial
+          roughness={0.35}
+          metalness={0.1}
+          emissiveIntensity={0.55}
+          toneMapped={false}
+        />
+        {nodes.map((n) => {
+          const c = new THREE.Color(n.color);
+          return (
+            <Instance
+              key={n.id}
+              position={[n.x, n.y, n.z]}
+              scale={n.radius}
+              color={c}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                onHover(n);
+              }}
+              onPointerOut={() => onHover(null)}
+            />
+          );
+        })}
+      </Instances>
+    </group>
+  );
+}
+
+export function TopologyGraph() {
+  const [loading, setLoading] = useState(true);
+  const [nodes, setNodes] = useState<PositionedNode[]>([]);
+  const [linePositions, setLinePositions] = useState<Float32Array>(new Float32Array(0));
+  const [edgeCount, setEdgeCount] = useState(0);
+  const [hovered, setHovered] = useState<PositionedNode | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const apiUrl = getApiUrl();
+
+    async function run() {
+      try {
+        const res = await fetch(`${apiUrl}/api/network/topology`);
+        if (!res.ok) { if (!cancelled) setLoading(false); return; }
+        const data = await res.json();
+        if (!data.nodes?.length) { if (!cancelled) setLoading(false); return; }
+
+        const simNodes: SimNode[] = (data.nodes as ApiNode[]).map((n) => ({
+          id: n.id,
+          client: n.client,
+          isTor: n.isTor,
+          countryCode: n.countryCode,
+          betweenness: n.betweenness,
+          degree: n.degree,
+        }));
+
+        const idSet = new Set(simNodes.map((n) => n.id));
+        const links = (data.edges as ApiEdge[])
+          .filter((e) => idSet.has(e.source) && idSet.has(e.target))
+          .map((e) => ({ source: e.source, target: e.target }));
+
+        // Run a 3D force layout to a settled state, then render statically.
+        const sim: Simulation<SimNode> = forceSimulation<SimNode>(simNodes, 3)
+          .force('link', forceLink<SimNode, { source: number; target: number }>(links)
+            .id((d: SimNode) => d.id)
+            .distance(18)
+            .strength(0.35))
+          .force('charge', forceManyBody<SimNode>().strength(-24).distanceMax(220))
+          .force('center', forceCenter<SimNode>(0, 0, 0))
+          .force('x', forceX<SimNode>(0).strength(0.045))
+          .force('y', forceY<SimNode>(0).strength(0.045))
+          .force('z', forceZ<SimNode>(0).strength(0.045))
+          .stop();
+
+        const iterations = 320;
+        for (let i = 0; i < iterations; i++) sim.tick();
+
+        const maxDegree = Math.max(1, ...simNodes.map((n) => n.degree || 0));
+        const positioned: PositionedNode[] = simNodes.map((n) => ({
+          ...n,
+          x: n.x ?? 0,
+          y: n.y ?? 0,
+          z: n.z ?? 0,
+          radius: 0.7 + Math.sqrt((n.degree || 0) / maxDegree) * 2.6,
+          color: nodeColor(n),
+        }));
+
+        const posById = new Map(positioned.map((n) => [n.id, n]));
+        const linePos = new Float32Array(links.length * 6);
+        let li = 0;
+        for (const link of links) {
+          const s = posById.get(link.source);
+          const t = posById.get(link.target);
+          if (!s || !t) continue;
+          linePos[li++] = s.x; linePos[li++] = s.y; linePos[li++] = s.z;
+          linePos[li++] = t.x; linePos[li++] = t.y; linePos[li++] = t.z;
+        }
+
+        if (!cancelled) {
+          setNodes(positioned);
+          setLinePositions(linePos.subarray(0, li));
+          setEdgeCount(links.length);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch topology:', err);
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    run();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="relative">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">
           Network Topology
         </h3>
-        {!loading && (
+        {!loading && nodes.length > 0 && (
           <span className="text-[10px] text-muted font-mono">
-            {nodeCount} nodes · {edgeCount} edges
+            {nodes.length} nodes · {edgeCount} edges · drag to rotate
           </span>
         )}
       </div>
 
-      <div className="relative w-full h-[400px] bg-cipher-bg rounded-lg border border-cipher-border overflow-hidden">
+      <div className="relative w-full h-[460px] rounded-lg border border-cipher-border overflow-hidden bg-[radial-gradient(ellipse_at_center,#0b1220_0%,#060910_70%,#04060c_100%)]">
         {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm text-muted animate-pulse">Loading topology...</span>
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <span className="text-sm text-muted animate-pulse font-mono">Computing layout…</span>
           </div>
-        ) : nodeCount === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm text-muted">No topology data available yet. Crawl data will appear here once the crawler is active.</span>
+        ) : nodes.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <span className="text-sm text-muted">No topology data available yet.</span>
           </div>
-        ) : null}
+        ) : (
+          <Canvas
+            camera={{ position: [0, 0, 190], fov: 55, near: 0.1, far: 2000 }}
+            dpr={[1, 2]}
+            gl={{ antialias: true, alpha: true }}
+          >
+            <ambientLight intensity={0.6} />
+            <pointLight position={[100, 100, 100]} intensity={1.2} />
+            <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
+            <Scene nodes={nodes} linePositions={linePositions} onHover={setHovered} />
+            <OrbitControls
+              enablePan={false}
+              enableDamping
+              dampingFactor={0.08}
+              rotateSpeed={0.6}
+              minDistance={70}
+              maxDistance={520}
+            />
+          </Canvas>
+        )}
 
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-          onMouseMove={handleMouseMove}
-          onWheel={handleWheel}
-        />
-
-        {hoveredNode && (
-          <div className="absolute bottom-3 left-3 bg-cipher-card/95 border border-cipher-border rounded-md px-3 py-2 backdrop-blur-sm pointer-events-none">
-            <div className="text-xs font-mono text-primary">{hoveredNode.client} {hoveredNode.isTor ? '(Tor)' : ''}</div>
+        {hovered && (
+          <div className="absolute bottom-3 left-3 bg-cipher-card/95 border border-cipher-border rounded-md px-3 py-2 backdrop-blur-sm pointer-events-none z-10">
+            <div className="text-xs font-mono text-primary">
+              {hovered.client === 'Unidentified' ? 'Unidentified' : hovered.client}
+              {hovered.isTor ? ' · Tor' : ''}
+              {hovered.countryCode ? ` · ${hovered.countryCode}` : ''}
+            </div>
             <div className="text-[10px] text-muted font-mono mt-0.5">
-              Degree: {hoveredNode.degree || '—'} · Betweenness: {hoveredNode.betweenness?.toFixed(4) || '—'}
+              Peers: {hovered.degree ?? '—'} · Betweenness: {hovered.betweenness != null ? hovered.betweenness.toFixed(4) : '—'}
             </div>
           </div>
         )}
@@ -275,6 +280,7 @@ export function TopologyGraph() {
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TOR_COLOR }} />
           Tor
         </span>
+        <span className="ml-auto text-[10px] text-muted/70">Node size ∝ peer count</span>
       </div>
     </div>
   );

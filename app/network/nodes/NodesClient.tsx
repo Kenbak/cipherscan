@@ -61,8 +61,15 @@ const CLIENT_COLORS: Record<string, string> = {
   zcashd: '#5B9CF6',
   Seeder: '#9B8AFB',
   Other: '#7D8A9A',
+  Unidentified: '#4B5563',
   Unknown: '#4B5563',
 };
+
+// The crawler stores nodes with no advertised user-agent as "Unknown"; present
+// them honestly as "Unidentified" (reachable, but did not advertise a client).
+function clientLabel(client: string) {
+  return client === 'Unknown' ? 'Unidentified' : client;
+}
 
 function clientColor(client: string) {
   return CLIENT_COLORS[client] || CLIENT_COLORS.Other;
@@ -72,7 +79,10 @@ const CLIENT_BADGE_CLASSES: Record<string, string> = {
   Zebra: 'bg-[#56D4C8]/15 text-[#56D4C8] border-[#56D4C8]/30',
   Zakura: 'bg-[#E8C48D]/15 text-[#E8C48D] border-[#E8C48D]/30',
   zcashd: 'bg-[#5B9CF6]/15 text-[#5B9CF6] border-[#5B9CF6]/30',
+  Seeder: 'bg-[#9B8AFB]/15 text-[#9B8AFB] border-[#9B8AFB]/30',
+  Other: 'bg-[#7D8A9A]/15 text-[#7D8A9A] border-[#7D8A9A]/30',
   Unknown: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+  Unidentified: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
 };
 
 function countryFlag(code: string | null): string {
@@ -84,22 +94,34 @@ function countryFlag(code: string | null): string {
 interface HealthScore {
   healthScore: number;
   components: {
-    sync: { score: number; atTip: number; nodesWithHeight: number; tipHeight: number | null; lagging: number };
     connectivity: { score: number; avgDegree: number; poorlyConnected: number; maxDegree: number };
-    versionDiversity: { score: number; topVersion: number | null; topVersionPct: number };
+    upgrade: { score: number; latestProtocol: number; adoptionPct: number; latestCount: number };
+    clientDiversity: { score: number; topClient: string | null; topClientPct: number; implementations: number };
     geographic: { score: number; countries: number; uniqueSubnets: number };
+    reliability: { score: number; avgReliabilityPct: number | null; scoredNodes: number };
   };
   totalActive: number;
 }
 
-interface ChainState {
-  networkTip: number;
-  atTip: number;
-  divergent: number;
-  partitionRisk: boolean;
-  partitionPct: number;
-  totalWithHeight: number;
-  heightDistribution: { height: number; nodeCount: number; clients: string[]; blocksFromTip: number }[];
+interface Reliability {
+  leaderboard: {
+    id: number;
+    client: string;
+    countryCode: string | null;
+    country: string | null;
+    pingMs: number | null;
+    seen: number;
+    missed: number;
+    reliabilityPct: number | null;
+  }[];
+  latency: {
+    median: number | null;
+    measured: number;
+    buckets: { label: string; count: number }[];
+  };
+  services: { known: number; fullNodes: number; fullNodePct: number };
+  avgReliabilityPct: number | null;
+  maxSeen: number;
 }
 
 interface UpgradeReadiness {
@@ -129,7 +151,7 @@ export default function NodesClient() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
   const [health, setHealth] = useState<HealthScore | null>(null);
-  const [chainState, setChainState] = useState<ChainState | null>(null);
+  const [reliability, setReliability] = useState<Reliability | null>(null);
   const [upgrade, setUpgrade] = useState<UpgradeReadiness | null>(null);
   const [concentration, setConcentration] = useState<Concentration | null>(null);
 
@@ -138,11 +160,11 @@ export default function NodesClient() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [nodeRes, statsRes, healthRes, chainRes, upgradeRes, concRes] = await Promise.all([
+      const [nodeRes, statsRes, healthRes, relRes, upgradeRes, concRes] = await Promise.all([
         fetch(`${apiUrl}/api/network/nodes/list?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&sort=${sortBy}&dir=${sortDir}`),
         fetch(`${apiUrl}/api/network/nodes/stats`),
         fetch(`${apiUrl}/api/network/nodes/health-score`),
-        fetch(`${apiUrl}/api/network/nodes/chain-state`),
+        fetch(`${apiUrl}/api/network/nodes/reliability`),
         fetch(`${apiUrl}/api/network/nodes/upgrade-readiness`),
         fetch(`${apiUrl}/api/network/nodes/concentration`),
       ]);
@@ -161,7 +183,7 @@ export default function NodesClient() {
       }
 
       if (healthRes.ok) setHealth(await healthRes.json());
-      if (chainRes.ok) setChainState(await chainRes.json());
+      if (relRes.ok) setReliability(await relRes.json());
       if (upgradeRes.ok) setUpgrade(await upgradeRes.json());
       if (concRes.ok) setConcentration(await concRes.json());
     } catch (err) {
@@ -284,7 +306,7 @@ export default function NodesClient() {
                           className="h-2.5 w-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: clientColor(item.client) }}
                         />
-                        <span className="min-w-16 text-secondary">{item.client}</span>
+                        <span className="min-w-16 text-secondary">{clientLabel(item.client)}</span>
                         <span className="font-mono font-semibold text-primary">{item.count}</span>
                         <span className="ml-auto font-mono text-muted">{pct}%</span>
                       </div>
@@ -312,7 +334,7 @@ export default function NodesClient() {
                       className="h-2 w-2 rounded-full shrink-0"
                       style={{ backgroundColor: clientColor(v.client) }}
                     />
-                    <span className="text-xs text-secondary">{v.client}</span>
+                    <span className="text-xs text-secondary">{clientLabel(v.client)}</span>
                     <span className="min-w-0 flex-1 truncate font-mono text-xs text-primary">
                       {v.version}
                     </span>
@@ -339,7 +361,7 @@ export default function NodesClient() {
       </Card>
 
       {/* Network Intelligence */}
-      {(health || chainState || upgrade || concentration) && (
+      {(health || reliability || upgrade || concentration) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-4">
           {/* Health Score */}
           {health && (
@@ -348,7 +370,7 @@ export default function NodesClient() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Network Health</h3>
-                    <p className="text-[11px] text-muted mt-0.5">Composite score from sync, connectivity, diversity</p>
+                    <p className="text-[11px] text-muted mt-0.5">Composite of connectivity, upgrade adoption, client &amp; geo diversity, reliability</p>
                   </div>
                   <div className={`text-2xl font-bold font-mono ${
                     health.healthScore >= 80 ? 'text-emerald-400' :
@@ -358,60 +380,58 @@ export default function NodesClient() {
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <HealthBar label="Sync" score={health.components.sync.score} detail={`${health.components.sync.atTip}/${health.components.sync.nodesWithHeight} in consensus`} />
                   <HealthBar label="Connectivity" score={health.components.connectivity.score} detail={`avg ${health.components.connectivity.avgDegree} peers`} />
-                  <HealthBar label="Version Diversity" score={health.components.versionDiversity.score} detail={`top version ${health.components.versionDiversity.topVersionPct}%`} />
+                  <HealthBar label="Upgrade Adoption" score={health.components.upgrade.score} detail={`${health.components.upgrade.adoptionPct}% on latest`} />
+                  <HealthBar label="Client Diversity" score={health.components.clientDiversity.score} detail={health.components.clientDiversity.topClient ? `${health.components.clientDiversity.topClient} ${health.components.clientDiversity.topClientPct}%` : '—'} />
                   <HealthBar label="Geographic" score={health.components.geographic.score} detail={`${health.components.geographic.countries} countries`} />
+                  <HealthBar label="Reliability" score={health.components.reliability.score} detail={health.components.reliability.avgReliabilityPct != null ? `${health.components.reliability.avgReliabilityPct}% uptime` : '—'} />
                 </div>
               </CardBody>
             </Card>
           )}
 
-          {/* Chain State / Fork Detection */}
-          {chainState && (
+          {/* Reliability & Performance */}
+          {reliability && (
             <Card>
               <CardBody>
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-primary">Chain Consensus</h3>
-                    <p className="text-[11px] text-muted mt-0.5">Fork and partition detection via P2P height comparison</p>
+                    <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
+                    <p className="text-[11px] text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
                   </div>
-                  {chainState.partitionRisk ? (
-                    <Badge className="text-[10px] bg-red-500/15 text-red-300 border-red-500/30">PARTITION RISK</Badge>
-                  ) : (
-                    <Badge className="text-[10px] bg-emerald-500/15 text-emerald-300 border-emerald-500/30">CONSENSUS OK</Badge>
-                  )}
+                  <Badge className="text-[10px] bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30">
+                    {reliability.services.fullNodePct}% full nodes
+                  </Badge>
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center">
-                    <div className="text-lg font-bold font-mono text-primary">{chainState.networkTip?.toLocaleString()}</div>
-                    <div className="text-[10px] text-muted uppercase">Tip Height</div>
+                    <div className="text-lg font-bold font-mono text-emerald-400">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
+                    <div className="text-[10px] text-muted uppercase">Avg Uptime</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold font-mono text-emerald-400">{chainState.atTip}</div>
-                    <div className="text-[10px] text-muted uppercase">At Tip</div>
+                    <div className="text-lg font-bold font-mono text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
+                    <div className="text-[10px] text-muted uppercase">Median Ping</div>
                   </div>
                   <div className="text-center">
-                    <div className={`text-lg font-bold font-mono ${chainState.divergent > 0 ? 'text-amber-400' : 'text-muted'}`}>{chainState.divergent}</div>
-                    <div className="text-[10px] text-muted uppercase">Lagging</div>
+                    <div className="text-lg font-bold font-mono text-primary">{reliability.maxSeen}</div>
+                    <div className="text-[10px] text-muted uppercase">Max Crawls</div>
                   </div>
                 </div>
-                {chainState.heightDistribution.length > 0 && (
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {chainState.heightDistribution.slice(0, 8).map(h => (
-                      <div key={h.height} className="flex items-center gap-2 text-[11px]">
-                        <span className="font-mono text-muted w-20">{h.height.toLocaleString()}</span>
+                <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
+                <div className="space-y-1">
+                  {reliability.latency.buckets.map(b => {
+                    const max = Math.max(1, ...reliability.latency.buckets.map(x => x.count));
+                    return (
+                      <div key={b.label} className="flex items-center gap-2 text-[11px]">
+                        <span className="font-mono text-muted w-20">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${h.blocksFromTip <= 2 ? 'bg-emerald-400' : h.blocksFromTip <= 10 ? 'bg-amber-400' : 'bg-red-400'}`}
-                            style={{ width: `${Math.max(4, (h.nodeCount / chainState.totalWithHeight) * 100)}%` }}
-                          />
+                          <div className="h-full rounded-full bg-cipher-cyan/70" style={{ width: `${(b.count / max) * 100}%` }} />
                         </div>
-                        <span className="font-mono text-primary w-6 text-right">{h.nodeCount}</span>
+                        <span className="font-mono text-primary w-8 text-right">{b.count}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </CardBody>
             </Card>
           )}
@@ -548,7 +568,7 @@ export default function NodesClient() {
                     <tr key={node.id} className="hover:bg-cipher-card/50 transition-colors">
                       <td className="px-3 py-2.5">
                         <Badge className={`text-[10px] ${CLIENT_BADGE_CLASSES[node.client] || CLIENT_BADGE_CLASSES.Unknown}`}>
-                          {node.client}
+                          {clientLabel(node.client)}
                         </Badge>
                       </td>
                       <td className="px-3 py-2.5 font-mono text-primary">

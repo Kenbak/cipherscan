@@ -53,6 +53,8 @@
     "autoprefixer": "^10.4.21",
     "canvas": "^3.1.0",
     "d3-force": "^3.0.0",
+    "d3-force-3d": "^3.0.6",
+    "dotenv": "^17.4.2",
     "geist": "^1.7.0",
     "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",

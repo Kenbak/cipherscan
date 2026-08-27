@@ -1054,32 +1054,34 @@ router.get('/api/network/protocol-stats', async (req, res) => {
  */
 router.get('/api/network/topology', async (req, res) => {
   try {
-    const [nodesResult, edgesResult] = await Promise.all([
-      pool.query(`
-        SELECT
-          n.id,
-          ROUND(n.lat::numeric, 0) as lat,
-          ROUND(n.lon::numeric, 0) as lon,
-          n.client_impl,
-          n.is_tor,
-          nm.betweenness,
-          nm.closeness,
-          nm.degree
-        FROM ${NODES_TABLE} n
-        LEFT JOIN node_metrics nm ON nm.addr_id = n.id
-        WHERE n.is_active = TRUE
-        ORDER BY nm.betweenness DESC NULLS LAST
-        LIMIT 500
-      `),
-      pool.query(`
-        SELECT src_addr_id, dst_addr_id
-        FROM node_edges
-        WHERE src_addr_id IN (
-          SELECT id FROM ${NODES_TABLE} WHERE is_active = TRUE
-        )
-        LIMIT 2000
-      `),
-    ]);
+    const nodesResult = await pool.query(`
+      SELECT
+        n.id,
+        ROUND(n.lat::numeric, 0) as lat,
+        ROUND(n.lon::numeric, 0) as lon,
+        COALESCE(n.client_impl, 'Unidentified') AS client_impl,
+        n.is_tor,
+        n.country_code,
+        COALESCE(nm.betweenness, n.betweenness) AS betweenness,
+        COALESCE(nm.closeness, n.closeness) AS closeness,
+        COALESCE(nm.degree, n.degree) AS degree
+      FROM ${NODES_TABLE} n
+      LEFT JOIN node_metrics nm ON nm.addr_id = n.id
+      WHERE n.is_active = TRUE
+      ORDER BY COALESCE(nm.degree, n.degree) DESC NULLS LAST
+      LIMIT 500
+    `);
+
+    const nodeIds = nodesResult.rows.map(n => n.id);
+    // Only edges where BOTH endpoints are in the returned node set — avoids dangling links.
+    const edgesResult = nodeIds.length > 0
+      ? await pool.query(`
+          SELECT src_addr_id, dst_addr_id
+          FROM node_edges
+          WHERE src_addr_id = ANY($1::bigint[]) AND dst_addr_id = ANY($1::bigint[])
+          LIMIT 4000
+        `, [nodeIds])
+      : { rows: [] };
 
     res.json({
       success: true,
@@ -1089,9 +1091,10 @@ router.get('/api/network/topology', async (req, res) => {
         lon: n.lon ? parseFloat(n.lon) : null,
         client: n.client_impl,
         isTor: n.is_tor,
-        betweenness: n.betweenness,
-        closeness: n.closeness,
-        degree: n.degree,
+        countryCode: n.country_code,
+        betweenness: n.betweenness != null ? parseFloat(n.betweenness) : null,
+        closeness: n.closeness != null ? parseFloat(n.closeness) : null,
+        degree: n.degree != null ? parseInt(n.degree) : null,
       })),
       edges: edgesResult.rows.map(e => ({
         source: e.src_addr_id,
@@ -1192,24 +1195,14 @@ router.get('/api/network/nodes/list', async (req, res) => {
  */
 router.get('/api/network/nodes/health-score', async (req, res) => {
   try {
-    const [syncResult, connectivityResult, versionResult, geoResult] = await Promise.all([
-      pool.query(`
-        WITH tip AS (SELECT MAX(start_height) AS h FROM nodes WHERE is_active)
-        SELECT
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT h - 50 FROM tip)) AS nodes_with_height,
-          (SELECT h FROM tip) AS tip_height,
-          COUNT(*) FILTER (WHERE is_active AND start_height >= (SELECT h - 15 FROM tip)) AS at_tip,
-          COUNT(*) FILTER (WHERE is_active AND start_height < (SELECT h - 50 FROM tip) AND start_height >= (SELECT h - 200 FROM tip)) AS lagging,
-          COUNT(*) FILTER (WHERE is_active) AS total_active
-        FROM nodes
-      `),
+    const [connectivityResult, versionResult, clientResult, geoResult, reliabilityResult] = await Promise.all([
       pool.query(`
         SELECT
           AVG(degree) FILTER (WHERE is_active AND degree > 0) AS avg_degree,
-          MIN(degree) FILTER (WHERE is_active AND degree > 0) AS min_degree,
           MAX(degree) FILTER (WHERE is_active) AS max_degree,
           COUNT(*) FILTER (WHERE is_active AND degree <= 1) AS poorly_connected,
-          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS connected_nodes
+          COUNT(*) FILTER (WHERE is_active AND degree > 0) AS connected_nodes,
+          COUNT(*) FILTER (WHERE is_active) AS total_active
         FROM nodes
       `),
       pool.query(`
@@ -1218,52 +1211,77 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
         GROUP BY protocol_version ORDER BY cnt DESC
       `),
       pool.query(`
+        SELECT COALESCE(client_impl, 'Unidentified') AS client_impl, COUNT(*)::int AS cnt
+        FROM nodes WHERE is_active = TRUE
+        GROUP BY client_impl ORDER BY cnt DESC
+      `),
+      pool.query(`
         SELECT
           COUNT(DISTINCT country_code) FILTER (WHERE is_active AND country_code IS NOT NULL) AS countries,
           COUNT(DISTINCT SUBSTRING(ip FROM '^[0-9]+\\.[0-9]+\\.[0-9]+')) FILTER (WHERE is_active) AS unique_subnets
         FROM nodes
       `),
+      pool.query(`
+        SELECT
+          AVG(crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0))
+            FILTER (WHERE is_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS avg_reliability,
+          COUNT(*) FILTER (WHERE is_active AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3) AS scored_nodes
+        FROM nodes
+      `),
     ]);
 
-    const sync = syncResult.rows[0];
     const conn = connectivityResult.rows[0];
     const geo = geoResult.rows[0];
     const versions = versionResult.rows;
+    const clients = clientResult.rows;
+    const rel = reliabilityResult.rows[0];
 
-    const totalActive = parseInt(sync.total_active) || 1;
-    const atTip = parseInt(sync.at_tip) || 0;
-    const nodesWithHeight = parseInt(sync.nodes_with_height) || 0;
+    const totalActive = parseInt(conn.total_active) || 1;
 
-    // Sync score: % of nodes within 15 blocks of tip (accounts for crawl handshake timing)
-    const syncScore = nodesWithHeight > 0 ? Math.round((atTip / nodesWithHeight) * 100) : 50;
-
-    // Connectivity score: based on avg degree (ideal: 8+)
+    // Connectivity: based on avg peer degree (healthy mesh ~8+)
     const avgDegree = parseFloat(conn.avg_degree) || 0;
     const connectivityScore = Math.min(100, Math.round((avgDegree / 8) * 100));
 
-    // Version diversity: penalize if >80% on one version (monoculture risk)
-    const topVersionCount = versions[0]?.cnt || 0;
+    // Upgrade adoption: share of nodes on the latest protocol version
+    const LATEST_PROTOCOL = 170160; // NU6.3
     const totalVersioned = versions.reduce((s, v) => s + v.cnt, 0) || 1;
-    const topVersionPct = topVersionCount / totalVersioned;
-    const versionScore = topVersionPct > 0.95 ? 40 : topVersionPct > 0.8 ? 70 : 100;
+    const latestCount = versions.filter(v => parseInt(v.protocol_version) >= LATEST_PROTOCOL).reduce((s, v) => s + v.cnt, 0);
+    const upgradePct = (latestCount / totalVersioned) * 100;
+    const upgradeScore = Math.round(upgradePct);
 
-    // Geographic diversity: based on country count (ideal: 30+)
+    // Client diversity: penalize implementation monoculture (single-client dominance)
+    const identifiedClients = clients.filter(c => c.client_impl !== 'Unidentified' && c.client_impl !== 'Seeder');
+    const totalIdentified = identifiedClients.reduce((s, c) => s + c.cnt, 0) || 1;
+    const topClient = identifiedClients[0] || { client_impl: null, cnt: 0 };
+    const topClientPct = (topClient.cnt / totalIdentified) * 100;
+    const clientDiversityScore = topClientPct > 90 ? 40 : topClientPct > 75 ? 70 : topClientPct > 60 ? 85 : 100;
+
+    // Geographic diversity: country spread (healthy ~30+)
     const countries = parseInt(geo.countries) || 0;
     const geoScore = Math.min(100, Math.round((countries / 30) * 100));
 
-    // Composite (weighted)
+    // Reliability: how consistently reachable nodes are across crawl cycles
+    const avgReliability = rel.avg_reliability != null ? parseFloat(rel.avg_reliability) : null;
+    const reliabilityScore = avgReliability != null ? Math.round(avgReliability * 100) : 50;
+
+    // Composite (weighted, honest signals only)
     const composite = Math.round(
-      syncScore * 0.35 + connectivityScore * 0.25 + versionScore * 0.2 + geoScore * 0.2
+      connectivityScore * 0.25 +
+      upgradeScore * 0.20 +
+      clientDiversityScore * 0.20 +
+      geoScore * 0.15 +
+      reliabilityScore * 0.20
     );
 
     res.json({
       success: true,
       healthScore: composite,
       components: {
-        sync: { score: syncScore, atTip, nodesWithHeight, tipHeight: parseInt(sync.tip_height) || null, lagging: parseInt(sync.lagging) || 0 },
         connectivity: { score: connectivityScore, avgDegree: parseFloat(avgDegree.toFixed(1)), poorlyConnected: parseInt(conn.poorly_connected) || 0, maxDegree: parseInt(conn.max_degree) || 0 },
-        versionDiversity: { score: versionScore, topVersion: versions[0]?.protocol_version || null, topVersionPct: parseFloat((topVersionPct * 100).toFixed(1)), versions },
+        upgrade: { score: upgradeScore, latestProtocol: LATEST_PROTOCOL, adoptionPct: parseFloat(upgradePct.toFixed(1)), latestCount },
+        clientDiversity: { score: clientDiversityScore, topClient: topClient.client_impl, topClientPct: parseFloat(topClientPct.toFixed(1)), implementations: identifiedClients.length },
         geographic: { score: geoScore, countries, uniqueSubnets: parseInt(geo.unique_subnets) || 0 },
+        reliability: { score: reliabilityScore, avgReliabilityPct: avgReliability != null ? parseFloat((avgReliability * 100).toFixed(1)) : null, scoredNodes: parseInt(rel.scored_nodes) || 0 },
       },
       totalActive,
       timestamp: Date.now(),
@@ -1275,60 +1293,100 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
 });
 
 /**
- * GET /api/network/nodes/chain-state
- * Fork/partition detection: clusters nodes by reported start_height.
+ * GET /api/network/nodes/reliability
+ * Real per-node signals from the crawler: reachability across crawl cycles,
+ * handshake latency distribution, and advertised service flags.
  */
-router.get('/api/network/nodes/chain-state', async (req, res) => {
+router.get('/api/network/nodes/reliability', async (req, res) => {
   try {
-    const [heightDist, tipResult] = await Promise.all([
+    const [leaderboard, latencyDist, servicesDist, summary] = await Promise.all([
       pool.query(`
-        WITH tip AS (SELECT MAX(start_height) AS h FROM nodes WHERE is_active)
         SELECT
-          start_height,
-          COUNT(*)::int AS node_count,
-          ARRAY_AGG(DISTINCT client_impl) AS clients
-        FROM nodes, tip
-        WHERE is_active = TRUE
-          AND start_height >= tip.h - 50
-        GROUP BY start_height
-        ORDER BY start_height DESC
-        LIMIT 20
+          id,
+          COALESCE(client_impl, 'Unidentified') AS client_impl,
+          country_code,
+          country,
+          ping_ms,
+          crawl_seen_count,
+          COALESCE(crawl_miss_count, 0) AS crawl_miss_count,
+          ROUND((crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0)) * 100, 1) AS reliability_pct
+        FROM nodes
+        WHERE is_active = TRUE AND (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3
+        ORDER BY reliability_pct DESC NULLS LAST, crawl_seen_count DESC, ping_ms ASC NULLS LAST
+        LIMIT 12
       `),
       pool.query(`
-        SELECT MAX(start_height) AS network_tip FROM nodes WHERE is_active = TRUE
+        SELECT
+          COUNT(*) FILTER (WHERE ping_ms > 0 AND ping_ms < 50) AS b0,
+          COUNT(*) FILTER (WHERE ping_ms >= 50 AND ping_ms < 100) AS b1,
+          COUNT(*) FILTER (WHERE ping_ms >= 100 AND ping_ms < 200) AS b2,
+          COUNT(*) FILTER (WHERE ping_ms >= 200 AND ping_ms < 500) AS b3,
+          COUNT(*) FILTER (WHERE ping_ms >= 500) AS b4,
+          ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY ping_ms) FILTER (WHERE ping_ms > 0)::numeric, 0) AS median_ms,
+          COUNT(*) FILTER (WHERE ping_ms > 0) AS measured
+        FROM nodes WHERE is_active = TRUE
+      `),
+      pool.query(`
+        SELECT services, COUNT(*)::int AS cnt
+        FROM nodes WHERE is_active = TRUE AND services IS NOT NULL
+        GROUP BY services ORDER BY cnt DESC
+      `),
+      pool.query(`
+        SELECT
+          ROUND(AVG(crawl_seen_count::numeric / NULLIF(crawl_seen_count + COALESCE(crawl_miss_count, 0), 0)) * 100
+            FILTER (WHERE (crawl_seen_count + COALESCE(crawl_miss_count, 0)) >= 3), 1) AS avg_reliability_pct,
+          MAX(crawl_seen_count) AS max_seen,
+          COUNT(*) FILTER (WHERE services IS NOT NULL) AS services_known
+        FROM nodes WHERE is_active = TRUE
       `),
     ]);
 
-    const networkTip = parseInt(tipResult.rows[0]?.network_tip) || 0;
-    const heights = heightDist.rows.map(r => ({
-      height: parseInt(r.start_height),
-      nodeCount: r.node_count,
-      clients: r.clients.filter(Boolean),
-      blocksFromTip: networkTip - parseInt(r.start_height),
-    }));
+    // Decode the NODE_NETWORK bit (0x1) — the flag that matters for full-node service.
+    const NODE_NETWORK = 1;
+    const svcRows = servicesDist.rows;
+    const totalWithServices = svcRows.reduce((s, r) => s + r.cnt, 0);
+    const fullNodeCount = svcRows
+      .filter(r => (BigInt(r.services) & BigInt(NODE_NETWORK)) !== 0n)
+      .reduce((s, r) => s + r.cnt, 0);
 
-    // Detect partition: flag if >10% of nodes are >50 blocks behind tip
-    // (start_height is captured at handshake time, so 15 blocks of drift is normal crawl variance)
-    const totalWithHeight = heights.reduce((s, h) => s + h.nodeCount, 0);
-    const atTip = heights.filter(h => h.blocksFromTip <= 15).reduce((s, h) => s + h.nodeCount, 0);
-    const divergent = heights.filter(h => h.blocksFromTip > 50);
-    const divergentCount = divergent.reduce((s, h) => s + h.nodeCount, 0);
-    const partitionRisk = totalWithHeight > 10 ? (divergentCount / totalWithHeight) > 0.10 : false;
+    const lat = latencyDist.rows[0];
+    const sum = summary.rows[0];
 
     res.json({
       success: true,
-      networkTip,
-      totalWithHeight,
-      atTip,
-      divergent: divergentCount,
-      partitionRisk,
-      partitionPct: totalWithHeight > 0 ? parseFloat(((divergentCount / totalWithHeight) * 100).toFixed(1)) : 0,
-      heightDistribution: heights,
+      leaderboard: leaderboard.rows.map(r => ({
+        id: r.id,
+        client: r.client_impl,
+        countryCode: r.country_code,
+        country: r.country,
+        pingMs: r.ping_ms != null ? parseFloat(r.ping_ms) : null,
+        seen: parseInt(r.crawl_seen_count) || 0,
+        missed: parseInt(r.crawl_miss_count) || 0,
+        reliabilityPct: r.reliability_pct != null ? parseFloat(r.reliability_pct) : null,
+      })),
+      latency: {
+        median: lat.median_ms != null ? parseInt(lat.median_ms) : null,
+        measured: parseInt(lat.measured) || 0,
+        buckets: [
+          { label: '<50ms', count: parseInt(lat.b0) || 0 },
+          { label: '50\u2013100ms', count: parseInt(lat.b1) || 0 },
+          { label: '100\u2013200ms', count: parseInt(lat.b2) || 0 },
+          { label: '200\u2013500ms', count: parseInt(lat.b3) || 0 },
+          { label: '\u2265500ms', count: parseInt(lat.b4) || 0 },
+        ],
+      },
+      services: {
+        known: totalWithServices,
+        fullNodes: fullNodeCount,
+        fullNodePct: totalWithServices > 0 ? parseFloat(((fullNodeCount / totalWithServices) * 100).toFixed(1)) : 0,
+      },
+      avgReliabilityPct: sum.avg_reliability_pct != null ? parseFloat(sum.avg_reliability_pct) : null,
+      maxSeen: parseInt(sum.max_seen) || 0,
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error fetching chain state:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch chain state' });
+    console.error('Error fetching node reliability:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch node reliability' });
   }
 });
 
@@ -1368,7 +1426,7 @@ router.get('/api/network/nodes/upgrade-readiness', async (req, res) => {
       protocolVersion: parseInt(r.protocol_version),
       nodeCount: r.node_count,
       percentage: parseFloat(((r.node_count / totalActive) * 100).toFixed(1)),
-      clients: r.clients.filter(Boolean),
+      clients: r.clients.filter(c => c && c !== 'Unknown' && c !== 'Seeder'),
       avgDegree: r.avg_degree ? parseFloat(r.avg_degree) : null,
       isLatest: parseInt(r.protocol_version) >= LATEST_PROTOCOL,
     }));
@@ -1412,7 +1470,7 @@ router.get('/api/network/nodes/concentration', async (req, res) => {
       `),
       pool.query(`
         SELECT
-          COALESCE(isp, 'Unknown') AS isp,
+          COALESCE(isp, 'Unresolved') AS isp,
           COUNT(*)::int AS node_count,
           ROUND((COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM nodes WHERE is_active), 0)) * 100, 1) AS pct
         FROM nodes
@@ -1431,10 +1489,11 @@ router.get('/api/network/nodes/concentration', async (req, res) => {
     ]);
 
     const totalActive = parseInt(highDegreeResult.rows[0]?.total_with_degree) || 1;
-    const topSubnetCount = subnetResult.rows[0]?.node_count || 0;
-    const topIspPct = parseFloat(ispResult.rows[0]?.pct) || 0;
+    // Ignore the "Unresolved" bucket (missing ASN data) when assessing real concentration.
+    const topRealIsp = ispResult.rows.find(r => r.isp !== 'Unresolved');
+    const topIspPct = parseFloat(topRealIsp?.pct) || 0;
 
-    // Concentration risk: high if top ISP has >40% or top subnet has >10% of nodes
+    // Concentration risk: high if top ISP has >40% or medium above 25%
     const concentrationRisk = topIspPct > 40 ? 'high' : topIspPct > 25 ? 'medium' : 'low';
 
     res.json({

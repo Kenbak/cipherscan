@@ -35,7 +35,7 @@ function parsePeerClient(value) {
     return { clientImpl: 'zcashd', clientVersion: zcashdVersion, userAgent };
   }
 
-  const seederMatch = userAgent.match(/^zeeder\/([^\s/]+)$/i);
+  const seederMatch = userAgent.match(/^zeeder\/([^\s/]+)/i);
   if (seederMatch) {
     return { clientImpl: 'Seeder', clientVersion: seederMatch[1], userAgent };
   }
