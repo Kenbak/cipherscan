@@ -203,7 +203,7 @@ function Scene({
         <lineBasicMaterial
           color="#56D4C8"
           transparent
-          opacity={focus ? 0.06 : 0.24}
+          opacity={focus ? 0.3 : 1.0}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
