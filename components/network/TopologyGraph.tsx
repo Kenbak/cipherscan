@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Instances, Instance } from '@react-three/drei';
+import { OrbitControls, Instances, Instance, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   forceSimulation,
@@ -64,25 +64,78 @@ function nodeColor(n: { client: string; isTor: boolean }) {
   return CLIENT_COLORS[n.client] || CLIENT_COLORS.Other;
 }
 
+function NodeLabel({ node, primary }: { node: PositionedNode; primary?: boolean }) {
+  return (
+    <Html
+      position={[node.x, node.y + node.radius + 1.2, node.z]}
+      center
+      distanceFactor={primary ? 110 : 150}
+      zIndexRange={[20, 0]}
+      style={{ pointerEvents: 'none', transform: 'translateY(-50%)' }}
+    >
+      <div
+        className={`whitespace-nowrap rounded px-1.5 py-0.5 font-mono leading-tight ${
+          primary
+            ? 'bg-cipher-card/95 border border-cipher-cyan/40 text-primary text-[11px]'
+            : 'bg-cipher-card/70 border border-cipher-border/60 text-secondary text-[10px]'
+        }`}
+      >
+        {node.client === 'Unknown' ? 'Unidentified' : node.client}
+        {node.countryCode ? ` · ${node.countryCode}` : ''}
+        {node.degree != null ? ` · ${node.degree}p` : ''}
+      </div>
+    </Html>
+  );
+}
+
 function Scene({
   nodes,
   linePositions,
+  edgePairs,
+  hovered,
   onHover,
 }: {
   nodes: PositionedNode[];
   linePositions: Float32Array;
+  edgePairs: [number, number][];
+  hovered: PositionedNode | null;
   onHover: (n: PositionedNode | null) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+
   const lineGeom = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     return g;
   }, [linePositions]);
 
-  // Gentle auto-rotation for the "galaxy" feel; OrbitControls can override.
+  const posById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  // Top hubs get a persistent label so the graph reads as a map, not just dots.
+  const hubs = useMemo(
+    () => [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
+    [nodes]
+  );
+
+  // On hover, light up only the edges touching the hovered node.
+  const highlightGeom = useMemo(() => {
+    if (!hovered) return null;
+    const pts: number[] = [];
+    for (const [s, t] of edgePairs) {
+      if (s !== hovered.id && t !== hovered.id) continue;
+      const a = posById.get(s);
+      const b = posById.get(t);
+      if (!a || !b) continue;
+      pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    return g;
+  }, [hovered, edgePairs, posById]);
+
+  // Gentle auto-rotation for the "galaxy" feel; pauses while inspecting a node.
   useFrame((_, delta) => {
-    if (groupRef.current) groupRef.current.rotation.y += delta * 0.04;
+    if (groupRef.current && !hovered) groupRef.current.rotation.y += delta * 0.04;
   });
 
   return (
@@ -91,11 +144,23 @@ function Scene({
         <lineBasicMaterial
           color="#56D4C8"
           transparent
-          opacity={0.12}
+          opacity={hovered ? 0.04 : 0.12}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </lineSegments>
+
+      {highlightGeom && (
+        <lineSegments geometry={highlightGeom}>
+          <lineBasicMaterial
+            color="#8CE8DD"
+            transparent
+            opacity={0.7}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </lineSegments>
+      )}
 
       <Instances limit={nodes.length} range={nodes.length}>
         <sphereGeometry args={[1, 12, 12]} />
@@ -106,12 +171,14 @@ function Scene({
           toneMapped={false}
         />
         {nodes.map((n) => {
+          const isHovered = hovered?.id === n.id;
           const c = new THREE.Color(n.color);
+          if (isHovered) c.multiplyScalar(1.9);
           return (
             <Instance
               key={n.id}
               position={[n.x, n.y, n.z]}
-              scale={n.radius}
+              scale={isHovered ? n.radius * 1.8 : n.radius}
               color={c}
               onPointerOver={(e) => {
                 e.stopPropagation();
@@ -122,6 +189,11 @@ function Scene({
           );
         })}
       </Instances>
+
+      {hubs.map((n) => (
+        hovered?.id === n.id ? null : <NodeLabel key={`hub-${n.id}`} node={n} />
+      ))}
+      {hovered && <NodeLabel node={hovered} primary />}
     </group>
   );
 }
@@ -130,6 +202,7 @@ export function TopologyGraph() {
   const [loading, setLoading] = useState(true);
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const [linePositions, setLinePositions] = useState<Float32Array>(new Float32Array(0));
+  const [edgePairs, setEdgePairs] = useState<[number, number][]>([]);
   const [edgeCount, setEdgeCount] = useState(0);
   const [hovered, setHovered] = useState<PositionedNode | null>(null);
 
@@ -186,6 +259,7 @@ export function TopologyGraph() {
 
         const posById = new Map(positioned.map((n) => [n.id, n]));
         const linePos = new Float32Array(links.length * 6);
+        const pairs: [number, number][] = [];
         let li = 0;
         for (const link of links) {
           const s = posById.get(link.source);
@@ -193,11 +267,13 @@ export function TopologyGraph() {
           if (!s || !t) continue;
           linePos[li++] = s.x; linePos[li++] = s.y; linePos[li++] = s.z;
           linePos[li++] = t.x; linePos[li++] = t.y; linePos[li++] = t.z;
+          pairs.push([link.source, link.target]);
         }
 
         if (!cancelled) {
           setNodes(positioned);
           setLinePositions(linePos.subarray(0, li));
+          setEdgePairs(pairs);
           setEdgeCount(links.length);
           setLoading(false);
         }
@@ -242,7 +318,13 @@ export function TopologyGraph() {
             <ambientLight intensity={0.6} />
             <pointLight position={[100, 100, 100]} intensity={1.2} />
             <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
-            <Scene nodes={nodes} linePositions={linePositions} onHover={setHovered} />
+            <Scene
+              nodes={nodes}
+              linePositions={linePositions}
+              edgePairs={edgePairs}
+              hovered={hovered}
+              onHover={setHovered}
+            />
             <OrbitControls
               enablePan={false}
               enableDamping
