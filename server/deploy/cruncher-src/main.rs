@@ -32,6 +32,14 @@ struct CrawlInput {
     num_known_nodes: usize,
     #[serde(default)]
     num_known_connections: usize,
+    // Full known-network graph (reachable core + gossiped/unreachable addresses).
+    // Present only from the extended crawler; defaults keep older payloads parsing.
+    #[serde(default)]
+    all_node_addrs: Vec<String>,
+    #[serde(default)]
+    all_nodes_indices: Vec<Vec<usize>>,
+    #[serde(default)]
+    all_node_reachable: Vec<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,9 +56,25 @@ struct NodeInput {
 struct EnrichedOutput {
     nodes: Vec<EnrichedNode>,
     edges: Vec<Edge>,
+    // Full known-network topology: reachable core + connected unreachable ("off") nodes.
+    topo_nodes: Vec<TopoNode>,
+    topo_edges: Vec<Edge>,
     num_good_nodes: usize,
     num_known_nodes: usize,
     num_known_connections: usize,
+}
+
+/// A node in the full known-network graph. `reachable=false` means the crawler
+/// heard about this address via gossip but never completed a handshake ("off").
+#[derive(Debug, Serialize)]
+struct TopoNode {
+    addr: String,
+    reachable: bool,
+    network_type: String,
+    geo: Option<GeoInfo>,
+    degree: usize,
+    betweenness: f64,
+    closeness: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -167,6 +191,96 @@ fn compute_centrality(
     (betweenness, closeness, degree)
 }
 
+/// Build the full known-network topology from the crawler's extended graph.
+///
+/// Keeps only connected nodes (degree >= 1) so isolated gossiped addresses don't
+/// pollute the view, reindexes them into a compact space, computes centrality on
+/// the resulting subgraph, and emits nodes (with reachability + geo) and edges.
+fn build_topology(
+    reader: &Reader<Vec<u8>>,
+    all_addrs: &[String],
+    all_indices: &[Vec<usize>],
+    all_reachable: &[bool],
+    ua_by_addr: &std::collections::HashMap<&str, Option<String>>,
+) -> (Vec<TopoNode>, Vec<Edge>) {
+    let n = all_addrs.len();
+    if n == 0 || all_indices.len() != n {
+        return (Vec::new(), Vec::new());
+    }
+
+    let keep: Vec<bool> = all_indices.iter().map(|a| !a.is_empty()).collect();
+
+    let mut old_to_new = vec![usize::MAX; n];
+    let mut kept_old: Vec<usize> = Vec::new();
+    for (i, &k) in keep.iter().enumerate() {
+        if k {
+            old_to_new[i] = kept_old.len();
+            kept_old.push(i);
+        }
+    }
+    let m = kept_old.len();
+    if m == 0 {
+        return (Vec::new(), Vec::new());
+    }
+
+    // Undirected, deduped adjacency over the kept subgraph.
+    let mut adjacency: Vec<Vec<usize>> = vec![Vec::new(); m];
+    for (new_i, &old_i) in kept_old.iter().enumerate() {
+        for &old_j in &all_indices[old_i] {
+            if old_j >= n {
+                continue;
+            }
+            let new_j = old_to_new[old_j];
+            if new_j == usize::MAX || new_j == new_i {
+                continue;
+            }
+            if !adjacency[new_i].contains(&new_j) {
+                adjacency[new_i].push(new_j);
+            }
+            if !adjacency[new_j].contains(&new_i) {
+                adjacency[new_j].push(new_i);
+            }
+        }
+    }
+
+    let (betweenness, closeness, degree) = compute_centrality(m, &adjacency);
+
+    let topo_nodes: Vec<TopoNode> = (0..m)
+        .map(|new_i| {
+            let old_i = kept_old[new_i];
+            let addr = &all_addrs[old_i];
+            let reachable = all_reachable.get(old_i).copied().unwrap_or(false);
+            let network_type = match ua_by_addr.get(addr.as_str()) {
+                Some(ua) => classify_network_type(ua),
+                None => "Unknown".to_string(),
+            };
+            TopoNode {
+                addr: addr.clone(),
+                reachable,
+                network_type,
+                geo: geolocate(reader, addr),
+                degree: degree[new_i],
+                betweenness: betweenness[new_i],
+                closeness: closeness[new_i],
+            }
+        })
+        .collect();
+
+    let mut topo_edges = Vec::new();
+    for new_i in 0..m {
+        for &new_j in &adjacency[new_i] {
+            if new_j > new_i {
+                topo_edges.push(Edge {
+                    src: all_addrs[kept_old[new_i]].clone(),
+                    dst: all_addrs[kept_old[new_j]].clone(),
+                });
+            }
+        }
+    }
+
+    (topo_nodes, topo_edges)
+}
+
 fn classify_network_type(user_agent: &Option<String>) -> String {
     match user_agent.as_deref() {
         Some(ua) if ua.contains("Zebra:") => "Zebra".to_string(),
@@ -225,9 +339,25 @@ fn main() {
         }
     }
 
+    // --- Full known-network topology (reachable core + connected "off" nodes) ---
+    // Map each reachable node's addr to its user agent so we can classify grey
+    // (unreachable) nodes as Unknown while still labeling reachable ones.
+    let ua_by_addr: std::collections::HashMap<&str, Option<String>> =
+        crawl.node_info.iter().map(|n| (n.addr.as_str(), n.user_agent.clone())).collect();
+
+    let (topo_nodes, topo_edges) = build_topology(
+        &reader,
+        &crawl.all_node_addrs,
+        &crawl.all_nodes_indices,
+        &crawl.all_node_reachable,
+        &ua_by_addr,
+    );
+
     let output = EnrichedOutput {
         nodes,
         edges,
+        topo_nodes,
+        topo_edges,
         num_good_nodes: crawl.num_good_nodes,
         num_known_nodes: crawl.num_known_nodes,
         num_known_connections: crawl.num_known_connections,

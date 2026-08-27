@@ -19,7 +19,8 @@ import { getApiUrl } from '@/lib/api-config';
 
 interface ApiNode {
   id: number;
-  client: string;
+  client: string | null;
+  reachable: boolean;
   isTor: boolean;
   countryCode: string | null;
   betweenness: number | null;
@@ -34,7 +35,8 @@ interface ApiEdge {
 
 interface SimNode extends SimulationNode {
   id: number;
-  client: string;
+  client: string | null;
+  reachable: boolean;
   isTor: boolean;
   countryCode: string | null;
   betweenness: number | null;
@@ -51,22 +53,28 @@ interface PositionedNode extends SimNode {
 }
 
 const CLIENT_COLORS: Record<string, string> = {
-  Zebra: '#56D4C8',
-  Zakura: '#E8C48D',
+  Zebra: '#FBBF24',
+  Zakura: '#F472B6',
   zcashd: '#5B9CF6',
   Seeder: '#9B8AFB',
   Unidentified: '#6B7280',
   Other: '#8B5CF6',
 };
 const TOR_COLOR = '#A855F7';
+// Known-but-unreachable ("off") nodes: lighter slate so they're visible against
+// the dark background while still clearly secondary to the reachable core.
+const OFF_COLOR = '#6B7FA0';
 
-function nodeColor(n: { client: string; isTor: boolean }) {
+function nodeColor(n: { client: string | null; isTor: boolean; reachable: boolean }) {
+  if (!n.reachable) return OFF_COLOR;
   if (n.isTor) return TOR_COLOR;
-  return CLIENT_COLORS[n.client] || CLIENT_COLORS.Other;
+  return CLIENT_COLORS[n.client || ''] || CLIENT_COLORS.Other;
 }
 
-function clientLabel(client: string) {
-  return client === 'Unknown' ? 'Unidentified' : client;
+function clientLabel(client: string | null, reachable = true) {
+  if (!reachable) return 'Off (unreachable)';
+  if (!client || client === 'Unknown') return 'Unidentified';
+  return client;
 }
 
 function countryFlag(code: string | null): string {
@@ -85,7 +93,7 @@ function HubLabel({ node }: { node: PositionedNode }) {
       style={{ pointerEvents: 'none' }}
     >
       <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-[9px] leading-none text-secondary/90">
-        {clientLabel(node.client)}{node.countryCode ? ` · ${countryFlag(node.countryCode)} ${node.countryCode}` : ''}
+        {clientLabel(node.client, node.reachable)}{node.countryCode ? ` · ${countryFlag(node.countryCode)} ${node.countryCode}` : ''}
       </div>
     </Html>
   );
@@ -93,20 +101,22 @@ function HubLabel({ node }: { node: PositionedNode }) {
 
 function Scene({
   nodes,
-  linePositions,
   edgePairs,
   focus,
   pinned,
   hubs,
+  showReachable,
+  showOff,
   onHover,
   onPin,
 }: {
   nodes: PositionedNode[];
-  linePositions: Float32Array;
   edgePairs: [number, number][];
   focus: PositionedNode | null;
   pinned: PositionedNode | null;
   hubs: PositionedNode[];
+  showReachable: boolean;
+  showOff: boolean;
   onHover: (n: PositionedNode | null) => void;
   onPin: (n: PositionedNode | null) => void;
 }) {
@@ -118,13 +128,29 @@ function Scene({
 
   const flyRef = useRef<{ pos: THREE.Vector3; dir: THREE.Vector3; active: boolean } | null>(null);
 
-  const lineGeom = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-    return g;
-  }, [linePositions]);
-
   const posById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const reachableNodes = useMemo(() => nodes.filter((n) => n.reachable), [nodes]);
+  const offNodes = useMemo(() => nodes.filter((n) => !n.reachable), [nodes]);
+
+  const isVisible = (n: PositionedNode) => (n.reachable ? showReachable : showOff);
+
+  // Base edges: drawn only between currently-visible nodes so toggling
+  // reachable/off also hides the links that touch hidden nodes.
+  const lineGeom = useMemo(() => {
+    const pts: number[] = [];
+    for (const [s, t] of edgePairs) {
+      const a = posById.get(s);
+      const b = posById.get(t);
+      if (!a || !b) continue;
+      const av = a.reachable ? showReachable : showOff;
+      const bv = b.reachable ? showReachable : showOff;
+      if (!av || !bv) continue;
+      pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    return g;
+  }, [edgePairs, posById, showReachable, showOff]);
 
   const highlightGeom = useMemo(() => {
     if (!focus) return null;
@@ -134,12 +160,15 @@ function Scene({
       const a = posById.get(s);
       const b = posById.get(t);
       if (!a || !b) continue;
+      const av = a.reachable ? showReachable : showOff;
+      const bv = b.reachable ? showReachable : showOff;
+      if (!av || !bv) continue;
       pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [focus, edgePairs, posById]);
+  }, [focus, edgePairs, posById, showReachable, showOff]);
 
   // When a node is pinned, glide the camera to frame it.
   useEffect(() => {
@@ -171,7 +200,7 @@ function Scene({
         <lineBasicMaterial
           color="#56D4C8"
           transparent
-          opacity={focus ? 0.04 : 0.12}
+          opacity={focus ? 0.06 : 0.24}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -189,28 +218,55 @@ function Scene({
         </lineSegments>
       )}
 
-      <Instances limit={nodes.length} range={nodes.length}>
-        <sphereGeometry args={[1, 12, 12]} />
-        <meshStandardMaterial roughness={0.35} metalness={0.1} emissiveIntensity={0.55} toneMapped={false} />
-        {nodes.map((n) => {
-          const isFocus = focus?.id === n.id;
-          const c = new THREE.Color(n.color);
-          if (isFocus) c.multiplyScalar(1.9);
-          return (
-            <Instance
-              key={n.id}
-              position={[n.x, n.y, n.z]}
-              scale={isFocus ? n.radius * 1.9 : n.radius}
-              color={c}
-              onPointerOver={(e) => { e.stopPropagation(); onHover(n); }}
-              onPointerOut={() => onHover(null)}
-              onClick={(e) => { e.stopPropagation(); onPin(n); }}
-            />
-          );
-        })}
-      </Instances>
+      {/* Reachable core — bright, emissive spheres. */}
+      {showReachable && reachableNodes.length > 0 && (
+        <Instances limit={reachableNodes.length} range={reachableNodes.length}>
+          <sphereGeometry args={[1, 12, 12]} />
+          <meshStandardMaterial roughness={0.35} metalness={0.1} emissiveIntensity={0.55} toneMapped={false} />
+          {reachableNodes.map((n) => {
+            const isFocus = focus?.id === n.id;
+            const c = new THREE.Color(n.color);
+            if (isFocus) c.multiplyScalar(1.9);
+            return (
+              <Instance
+                key={n.id}
+                position={[n.x, n.y, n.z]}
+                scale={isFocus ? n.radius * 1.9 : n.radius}
+                color={c}
+                onPointerOver={(e) => { e.stopPropagation(); onHover(n); }}
+                onPointerOut={() => onHover(null)}
+                onClick={(e) => { e.stopPropagation(); onPin(n); }}
+              />
+            );
+          })}
+        </Instances>
+      )}
 
-      {hubs.map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
+      {/* Known-but-unreachable ("off") nodes — dim, semi-transparent, matte. */}
+      {showOff && offNodes.length > 0 && (
+        <Instances limit={offNodes.length} range={offNodes.length}>
+          <sphereGeometry args={[1, 8, 8]} />
+          <meshStandardMaterial roughness={0.7} metalness={0} transparent opacity={0.65} toneMapped={false} />
+          {offNodes.map((n) => {
+            const isFocus = focus?.id === n.id;
+            const c = new THREE.Color(n.color);
+            if (isFocus) c.multiplyScalar(2.2);
+            return (
+              <Instance
+                key={n.id}
+                position={[n.x, n.y, n.z]}
+                scale={isFocus ? n.radius * 2.2 : n.radius}
+                color={c}
+                onPointerOver={(e) => { e.stopPropagation(); onHover(n); }}
+                onPointerOut={() => onHover(null)}
+                onClick={(e) => { e.stopPropagation(); onPin(n); }}
+              />
+            );
+          })}
+        </Instances>
+      )}
+
+      {showReachable && hubs.map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
     </group>
   );
 }
@@ -218,24 +274,28 @@ function Scene({
 export function TopologyGraph() {
   const [loading, setLoading] = useState(true);
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
-  const [linePositions, setLinePositions] = useState<Float32Array>(new Float32Array(0));
   const [edgePairs, setEdgePairs] = useState<[number, number][]>([]);
   const [edgeCount, setEdgeCount] = useState(0);
+  const [counts, setCounts] = useState<{ total: number; reachable: number; off: number; edges: number } | null>(null);
   const [hovered, setHovered] = useState<PositionedNode | null>(null);
   const [pinned, setPinned] = useState<PositionedNode | null>(null);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showReachable, setShowReachable] = useState(true);
+  const [showOff, setShowOff] = useState(true);
 
-  const focus = pinned ?? hovered;
+  // Ignore focus on a node that the current filters have hidden.
+  const rawFocus = pinned ?? hovered;
+  const focus = rawFocus && (rawFocus.reachable ? showReachable : showOff) ? rawFocus : null;
 
   const hubs = useMemo(
-    () => [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
+    () => nodes.filter((n) => n.reachable).sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
     [nodes]
   );
 
-  // Search over the most-connected nodes (pseudonymous — match by client/country).
+  // Search over the most-connected reachable nodes (pseudonymous — match by client/country).
   const searchResults = useMemo(() => {
-    const top = [...nodes].sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 60);
+    const top = nodes.filter((n) => n.reachable).sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 60);
     const q = query.trim().toLowerCase();
     const filtered = q
       ? top.filter((n) =>
@@ -259,6 +319,7 @@ export function TopologyGraph() {
         const simNodes: SimNode[] = (data.nodes as ApiNode[]).map((n) => ({
           id: n.id,
           client: n.client,
+          reachable: n.reachable,
           isTor: n.isTor,
           countryCode: n.countryCode,
           betweenness: n.betweenness,
@@ -266,53 +327,55 @@ export function TopologyGraph() {
           degree: n.degree,
         }));
 
+        const maxDegree = Math.max(1, ...simNodes.map((n) => n.degree || 0));
+
         const idSet = new Set(simNodes.map((n) => n.id));
         const links = (data.edges as ApiEdge[])
           .filter((e) => idSet.has(e.source) && idSet.has(e.target))
           .map((e) => ({ source: e.source, target: e.target }));
+
+        // Degree-weighted pull toward the origin: well-connected hubs are drawn to
+        // the center ("core"), while low-degree / off nodes drift to the periphery.
+        // This makes spatial position match the visual size (peer count).
+        const centerPull = (n: SimNode) =>
+          0.015 + 0.16 * Math.pow((n.degree || 0) / maxDegree, 1.4);
 
         const sim: Simulation<SimNode> = forceSimulation<SimNode>(simNodes, 3)
           .force('link', forceLink<SimNode, { source: number; target: number }>(links)
             .id((d: SimNode) => d.id)
             .distance(18)
             .strength(0.35))
-          .force('charge', forceManyBody<SimNode>().strength(-24).distanceMax(220))
+          .force('charge', forceManyBody<SimNode>().strength(-18).distanceMax(220))
           .force('center', forceCenter<SimNode>(0, 0, 0))
-          .force('x', forceX<SimNode>(0).strength(0.045))
-          .force('y', forceY<SimNode>(0).strength(0.045))
-          .force('z', forceZ<SimNode>(0).strength(0.045))
+          .force('x', forceX<SimNode>(0).strength(centerPull))
+          .force('y', forceY<SimNode>(0).strength(centerPull))
+          .force('z', forceZ<SimNode>(0).strength(centerPull))
           .stop();
 
         for (let i = 0; i < 320; i++) sim.tick();
 
-        const maxDegree = Math.max(1, ...simNodes.map((n) => n.degree || 0));
-        const positioned: PositionedNode[] = simNodes.map((n) => ({
-          ...n,
-          x: n.x ?? 0,
-          y: n.y ?? 0,
-          z: n.z ?? 0,
-          radius: 0.7 + Math.sqrt((n.degree || 0) / maxDegree) * 2.6,
-          color: nodeColor(n),
-        }));
+        const positioned: PositionedNode[] = simNodes.map((n) => {
+          // Reachable nodes scale with peer count; off nodes stay small (background).
+          const base = 0.4 + Math.pow((n.degree || 0) / maxDegree, 0.4) * 4.2;
+          return {
+            ...n,
+            x: n.x ?? 0,
+            y: n.y ?? 0,
+            z: n.z ?? 0,
+            radius: n.reachable ? base : Math.min(base * 0.6, 0.7),
+            color: nodeColor(n),
+          };
+        });
 
-        const posById = new Map(positioned.map((n) => [n.id, n]));
-        const linePos = new Float32Array(links.length * 6);
-        const pairs: [number, number][] = [];
-        let li = 0;
-        for (const link of links) {
-          const s = posById.get(link.source);
-          const t = posById.get(link.target);
-          if (!s || !t) continue;
-          linePos[li++] = s.x; linePos[li++] = s.y; linePos[li++] = s.z;
-          linePos[li++] = t.x; linePos[li++] = t.y; linePos[li++] = t.z;
-          pairs.push([link.source, link.target]);
-        }
+        // Edge endpoint id pairs; the Scene builds/filters line geometry from these
+        // (so reachable/off toggles can hide the links touching hidden nodes).
+        const pairs: [number, number][] = links.map((l) => [l.source, l.target]);
 
         if (!cancelled) {
           setNodes(positioned);
-          setLinePositions(linePos.subarray(0, li));
           setEdgePairs(pairs);
           setEdgeCount(links.length);
+          setCounts(data.counts ?? null);
           setLoading(false);
         }
       } catch (err) {
@@ -331,7 +394,7 @@ export function TopologyGraph() {
         <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">Network Topology</h3>
         {!loading && nodes.length > 0 && (
           <span className="text-[10px] text-muted font-mono">
-            {nodes.length} nodes · {edgeCount} edges · drag to rotate · click to pin
+            {counts ? `${counts.reachable} reachable · ${counts.off} off` : `${nodes.length} nodes`} · {edgeCount} links · drag to rotate · click to pin
           </span>
         )}
       </div>
@@ -357,11 +420,12 @@ export function TopologyGraph() {
               <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
               <Scene
                 nodes={nodes}
-                linePositions={linePositions}
                 edgePairs={edgePairs}
                 focus={focus}
                 pinned={pinned}
                 hubs={hubs}
+                showReachable={showReachable}
+                showOff={showOff}
                 onHover={setHovered}
                 onPin={(n) => setPinned((prev) => (prev?.id === n?.id ? null : n))}
               />
@@ -375,6 +439,34 @@ export function TopologyGraph() {
                 maxDistance={520}
               />
             </Canvas>
+
+            {/* Visibility toggles */}
+            <div className="absolute top-3 right-3 z-20 flex gap-1.5">
+              <button
+                onClick={() => setShowReachable((v) => !v)}
+                aria-pressed={showReachable}
+                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono backdrop-blur-sm transition-colors ${
+                  showReachable
+                    ? 'bg-cipher-card/90 border-cipher-border text-primary'
+                    : 'bg-cipher-card/40 border-cipher-border/40 text-muted line-through'
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CLIENT_COLORS.Zebra }} />
+                Reachable{counts ? ` ${counts.reachable}` : ''}
+              </button>
+              <button
+                onClick={() => setShowOff((v) => !v)}
+                aria-pressed={showOff}
+                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono backdrop-blur-sm transition-colors ${
+                  showOff
+                    ? 'bg-cipher-card/90 border-cipher-border text-primary'
+                    : 'bg-cipher-card/40 border-cipher-border/40 text-muted line-through'
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
+                Off{counts ? ` ${counts.off}` : ''}
+              </button>
+            </div>
 
             {/* Search */}
             <div className="absolute top-3 left-3 z-20 w-52">
@@ -411,7 +503,7 @@ export function TopologyGraph() {
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: nodeColor(focus) }} />
                   <span className="text-xs font-mono text-primary">
-                    {clientLabel(focus.client)}{focus.isTor ? ' · Tor' : ''}
+                    {clientLabel(focus.client, focus.reachable)}{focus.reachable && focus.isTor ? ' · Tor' : ''}
                   </span>
                   {pinned && (
                     <button
@@ -424,8 +516,9 @@ export function TopologyGraph() {
                   )}
                 </div>
                 <dl className="mt-2 space-y-1 text-[10px] font-mono">
+                  <Row label="Status" value={focus.reachable ? 'Reachable' : 'Known / unreachable'} />
                   <Row label="Country" value={focus.countryCode ? `${countryFlag(focus.countryCode)} ${focus.countryCode}` : 'Unknown'} />
-                  <Row label="Peers" value={focus.degree != null ? String(focus.degree) : '—'} />
+                  <Row label={focus.reachable ? 'Peers' : 'Gossiped by'} value={focus.degree != null ? String(focus.degree) : '—'} />
                   <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
                   <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
                 </dl>
@@ -448,7 +541,11 @@ export function TopologyGraph() {
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TOR_COLOR }} />
           Tor
         </span>
-        <span className="ml-auto text-[10px] text-muted/70">Node size ∝ peer count</span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
+          Known / unreachable
+        </span>
+        <span className="ml-auto text-[10px] text-muted/70">Reachable size ∝ peer count · links = gossiped addresses</span>
       </div>
     </div>
   );

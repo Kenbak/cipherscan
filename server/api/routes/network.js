@@ -1054,52 +1054,94 @@ router.get('/api/network/protocol-stats', async (req, res) => {
  */
 router.get('/api/network/topology', async (req, res) => {
   try {
+    // Full known-network graph: reachable core + connected "off" (gossiped but
+    // unreachable) nodes. Reachable nodes get the richer client classification
+    // from the nodes table; grey nodes fall back to the crawler-derived label.
+    //
+    // Privacy: topology_nodes.addr / ip are server-side identity/join keys only.
+    // They are NEVER returned — the client receives a synthetic per-response id.
+    // "Reachable" = we have a recent successful handshake. Use the accumulated
+    // nodes table (is_active = last_seen < 1h) OR the crawler's live snapshot flag,
+    // which keeps this consistent with the rest of the page and resilient to crawler
+    // restarts (which reset the live handshake state).
+    //
+    // Nodes are collapsed to ONE per IP: the gossip graph lists the same host under
+    // several ports, so keying by ip:port would double-count reachable nodes vs the
+    // node list. We keep the highest-degree row per IP as its representative.
     const nodesResult = await pool.query(`
       SELECT
-        n.id,
-        ROUND(n.lat::numeric, 0) as lat,
-        ROUND(n.lon::numeric, 0) as lon,
-        COALESCE(n.client_impl, 'Unidentified') AS client_impl,
-        n.is_tor,
-        n.country_code,
-        COALESCE(nm.betweenness, n.betweenness) AS betweenness,
-        COALESCE(nm.closeness, n.closeness) AS closeness,
-        COALESCE(nm.degree, n.degree) AS degree
-      FROM ${NODES_TABLE} n
-      LEFT JOIN node_metrics nm ON nm.addr_id = n.id
-      WHERE n.is_active = TRUE
-      ORDER BY COALESCE(nm.degree, n.degree) DESC NULLS LAST
-      LIMIT 500
+        tn.addr,
+        tn.ip,
+        (tn.reachable OR n.id IS NOT NULL) AS reachable,
+        COALESCE(NULLIF(n.client_impl, 'Unknown'), NULLIF(tn.client_impl, 'Unknown')) AS client_impl,
+        (tn.is_tor OR COALESCE(n.is_tor, FALSE)) AS is_tor,
+        COALESCE(n.country_code, tn.country_code) AS country_code,
+        ROUND(tn.lat::numeric, 0) AS lat,
+        ROUND(tn.lon::numeric, 0) AS lon,
+        tn.degree,
+        tn.betweenness,
+        tn.closeness
+      FROM topology_nodes tn
+      LEFT JOIN ${NODES_TABLE} n ON n.ip = tn.ip AND n.is_active = TRUE
+      ORDER BY tn.degree DESC NULLS LAST
     `);
 
-    const nodeIds = nodesResult.rows.map(n => n.id);
-    // Only edges where BOTH endpoints are in the returned node set — avoids dangling links.
-    const edgesResult = nodeIds.length > 0
-      ? await pool.query(`
-          SELECT src_addr_id, dst_addr_id
-          FROM node_edges
-          WHERE src_addr_id = ANY($1::bigint[]) AND dst_addr_id = ANY($1::bigint[])
-          LIMIT 4000
-        `, [nodeIds])
-      : { rows: [] };
+    // Collapse to one node per IP (keep the highest-degree representative; a node is
+    // reachable if ANY of its addr entries is). Map every addr → its representative id
+    // so edges can be rewritten into ip space. Never leak addr/ip to the client.
+    const idByIp = new Map();
+    const idByAddr = new Map();
+    const nodes = [];
+    for (const r of nodesResult.rows) {
+      let id = idByIp.get(r.ip);
+      if (id === undefined) {
+        id = nodes.length;
+        idByIp.set(r.ip, id);
+        nodes.push({
+          id,
+          reachable: r.reachable === true,
+          client: r.client_impl || null,
+          isTor: r.is_tor === true,
+          countryCode: r.country_code,
+          lat: r.lat != null ? parseFloat(r.lat) : null,
+          lon: r.lon != null ? parseFloat(r.lon) : null,
+          betweenness: r.betweenness != null ? parseFloat(r.betweenness) : null,
+          closeness: r.closeness != null ? parseFloat(r.closeness) : null,
+          degree: r.degree != null ? parseInt(r.degree) : null,
+        });
+      } else if (r.reachable === true) {
+        nodes[id].reachable = true;
+      }
+      idByAddr.set(r.addr, id);
+    }
+
+    const edgesResult = await pool.query('SELECT src, dst FROM topology_edges LIMIT 40000');
+
+    // Rewrite edges into ip space, drop self-loops, and dedupe (undirected).
+    const edges = [];
+    const seenEdge = new Set();
+    for (const e of edgesResult.rows) {
+      const source = idByAddr.get(e.src);
+      const target = idByAddr.get(e.dst);
+      if (source === undefined || target === undefined || source === target) continue;
+      const key = source < target ? `${source}-${target}` : `${target}-${source}`;
+      if (seenEdge.has(key)) continue;
+      seenEdge.add(key);
+      edges.push({ source, target });
+    }
+
+    const reachableCount = nodes.filter(n => n.reachable).length;
 
     res.json({
       success: true,
-      nodes: nodesResult.rows.map(n => ({
-        id: n.id,
-        lat: n.lat ? parseFloat(n.lat) : null,
-        lon: n.lon ? parseFloat(n.lon) : null,
-        client: n.client_impl,
-        isTor: n.is_tor,
-        countryCode: n.country_code,
-        betweenness: n.betweenness != null ? parseFloat(n.betweenness) : null,
-        closeness: n.closeness != null ? parseFloat(n.closeness) : null,
-        degree: n.degree != null ? parseInt(n.degree) : null,
-      })),
-      edges: edgesResult.rows.map(e => ({
-        source: e.src_addr_id,
-        target: e.dst_addr_id,
-      })),
+      nodes,
+      edges,
+      counts: {
+        total: nodes.length,
+        reachable: reachableCount,
+        off: nodes.length - reachableCount,
+        edges: edges.length,
+      },
       timestamp: Date.now(),
     });
   } catch (error) {

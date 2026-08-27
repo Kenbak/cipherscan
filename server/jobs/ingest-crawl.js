@@ -353,6 +353,75 @@ async function ingestCrawl() {
         }
       }
 
+      // Persist the FULL known-network topology (reachable core + connected
+      // "known/unreachable" nodes that reachable peers gossiped). Kept in dedicated
+      // snapshot tables so it never pollutes the reachable-node metrics that read
+      // the `nodes` table. Bulk UNNEST inserts keep this to two queries.
+      if (!DRY_RUN && Array.isArray(enriched.topo_nodes) && enriched.topo_nodes.length > 0) {
+        const addrs = [];
+        const ips = [];
+        const reachables = [];
+        const clients = [];
+        const isTors = [];
+        const countries = [];
+        const lats = [];
+        const lons = [];
+        const degrees = [];
+        const betweennesses = [];
+        const closenesses = [];
+
+        for (const tn of enriched.topo_nodes) {
+          if (!tn.addr) continue;
+          const tip = tn.addr.includes(']:')
+            ? tn.addr.match(/\[(.+)\]/)?.[1]
+            : tn.addr.split(':')[0];
+          if (!tip) continue;
+          const isOnion = tip.endsWith('.onion');
+          addrs.push(tn.addr);
+          ips.push(tip);
+          reachables.push(tn.reachable === true);
+          clients.push(tn.network_type || null);
+          isTors.push(isOnion || torExitIPs.has(tip));
+          countries.push(tn.geo?.country_code || null);
+          lats.push(tn.geo?.lat ?? null);
+          lons.push(tn.geo?.lon ?? null);
+          degrees.push(tn.degree ?? 0);
+          betweennesses.push(tn.betweenness ?? null);
+          closenesses.push(tn.closeness ?? null);
+        }
+
+        // Snapshot semantics: replace the whole graph each crawl. DELETE (not
+        // TRUNCATE) keeps concurrent API readers unblocked until COMMIT.
+        await client.query('DELETE FROM topology_edges');
+        await client.query('DELETE FROM topology_nodes');
+
+        if (addrs.length > 0) {
+          await client.query(`
+            INSERT INTO topology_nodes
+              (addr, ip, reachable, client_impl, is_tor, country_code, lat, lon, degree, betweenness, closeness)
+            SELECT * FROM UNNEST(
+              $1::text[], $2::text[], $3::boolean[], $4::text[], $5::boolean[],
+              $6::text[], $7::double precision[], $8::double precision[],
+              $9::int[], $10::double precision[], $11::double precision[]
+            )
+            ON CONFLICT (addr) DO NOTHING
+          `, [addrs, ips, reachables, clients, isTors, countries, lats, lons, degrees, betweennesses, closenesses]);
+        }
+
+        if (Array.isArray(enriched.topo_edges) && enriched.topo_edges.length > 0) {
+          const srcs = enriched.topo_edges.map(e => e.src);
+          const dsts = enriched.topo_edges.map(e => e.dst);
+          await client.query(`
+            INSERT INTO topology_edges (src, dst)
+            SELECT * FROM UNNEST($1::text[], $2::text[])
+            ON CONFLICT (src, dst) DO NOTHING
+          `, [srcs, dsts]);
+        }
+
+        const reachCount = reachables.filter(Boolean).length;
+        log(`Persisted topology: ${addrs.length} nodes (${reachCount} reachable, ${addrs.length - reachCount} off), ${enriched.topo_edges?.length || 0} edges`);
+      }
+
       // Record snapshot
       const stats = await client.query(`
         SELECT

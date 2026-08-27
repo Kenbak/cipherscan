@@ -56,8 +56,8 @@ interface VersionEntry {
 }
 
 const CLIENT_COLORS: Record<string, string> = {
-  Zebra: '#56D4C8',
-  Zakura: '#E8C48D',
+  Zebra: '#FBBF24',
+  Zakura: '#F472B6',
   zcashd: '#5B9CF6',
   Seeder: '#9B8AFB',
   Other: '#7D8A9A',
@@ -76,8 +76,8 @@ function clientColor(client: string) {
 }
 
 const CLIENT_BADGE_CLASSES: Record<string, string> = {
-  Zebra: 'bg-[#56D4C8]/15 text-[#56D4C8] border-[#56D4C8]/30',
-  Zakura: 'bg-[#E8C48D]/15 text-[#E8C48D] border-[#E8C48D]/30',
+  Zebra: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/30',
+  Zakura: 'bg-[#F472B6]/15 text-[#F472B6] border-[#F472B6]/30',
   zcashd: 'bg-[#5B9CF6]/15 text-[#5B9CF6] border-[#5B9CF6]/30',
   Seeder: 'bg-[#9B8AFB]/15 text-[#9B8AFB] border-[#9B8AFB]/30',
   Other: 'bg-[#7D8A9A]/15 text-[#7D8A9A] border-[#7D8A9A]/30',
