@@ -69,6 +69,12 @@ function clientLabel(client: string) {
   return client === 'Unknown' ? 'Unidentified' : client;
 }
 
+function countryFlag(code: string | null): string {
+  if (!code || code.length !== 2) return '';
+  const codePoints = [...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65);
+  return String.fromCodePoint(...codePoints);
+}
+
 /** Small, fixed-size label that tracks a 3D point (no distance scaling). */
 function HubLabel({ node }: { node: PositionedNode }) {
   return (
@@ -79,7 +85,7 @@ function HubLabel({ node }: { node: PositionedNode }) {
       style={{ pointerEvents: 'none' }}
     >
       <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-[9px] leading-none text-secondary/90">
-        {clientLabel(node.client)}{node.countryCode ? ` · ${node.countryCode}` : ''}
+        {clientLabel(node.client)}{node.countryCode ? ` · ${countryFlag(node.countryCode)} ${node.countryCode}` : ''}
       </div>
     </Html>
   );
@@ -391,7 +397,7 @@ export function TopologyGraph() {
                     >
                       <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: nodeColor(n) }} />
                       <span className="text-secondary">{clientLabel(n.client)}</span>
-                      <span className="text-muted">{n.countryCode || '—'}</span>
+                      <span className="text-muted">{n.countryCode ? `${countryFlag(n.countryCode)} ${n.countryCode}` : '—'}</span>
                       <span className="ml-auto text-primary">{n.degree ?? 0}p</span>
                     </button>
                   ))}
@@ -418,7 +424,7 @@ export function TopologyGraph() {
                   )}
                 </div>
                 <dl className="mt-2 space-y-1 text-[10px] font-mono">
-                  <Row label="Country" value={focus.countryCode || 'Unknown'} />
+                  <Row label="Country" value={focus.countryCode ? `${countryFlag(focus.countryCode)} ${focus.countryCode}` : 'Unknown'} />
                   <Row label="Peers" value={focus.degree != null ? String(focus.degree) : '—'} />
                   <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
                   <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
