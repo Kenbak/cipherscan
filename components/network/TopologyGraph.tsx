@@ -372,9 +372,12 @@ export function TopologyGraph() {
           };
         });
 
-        // Edge endpoint id pairs; the Scene builds/filters line geometry from these
-        // (so reachable/off toggles can hide the links touching hidden nodes).
-        const pairs: [number, number][] = links.map((l) => [l.source, l.target]);
+        // After force simulation, d3 mutates link source/target into node objects.
+        // Extract the numeric IDs back for the Scene's geometry builder.
+        const pairs: [number, number][] = links.map((l) => [
+          typeof l.source === 'object' ? (l.source as SimNode).id : l.source,
+          typeof l.target === 'object' ? (l.target as SimNode).id : l.target,
+        ]);
 
         if (!cancelled) {
           setNodes(positioned);
