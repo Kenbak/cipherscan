@@ -77,6 +77,14 @@ function clientLabel(client: string | null, reachable = true) {
   return client;
 }
 
+function nodeCategory(n: { client: string | null; isTor: boolean; reachable: boolean }): string {
+  if (!n.reachable) return 'off';
+  if (n.isTor) return 'Tor';
+  const c = n.client || '';
+  if (c in CLIENT_COLORS) return c;
+  return 'Unidentified';
+}
+
 function countryFlag(code: string | null): string {
   if (!code || code.length !== 2) return '';
   const codePoints = [...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65);
@@ -105,8 +113,7 @@ function Scene({
   focus,
   pinned,
   hubs,
-  showReachable,
-  showOff,
+  hidden,
   onHover,
   onPin,
 }: {
@@ -115,8 +122,7 @@ function Scene({
   focus: PositionedNode | null;
   pinned: PositionedNode | null;
   hubs: PositionedNode[];
-  showReachable: boolean;
-  showOff: boolean;
+  hidden: Set<string>;
   onHover: (n: PositionedNode | null) => void;
   onPin: (n: PositionedNode | null) => void;
 }) {
@@ -129,28 +135,27 @@ function Scene({
   const flyRef = useRef<{ pos: THREE.Vector3; dir: THREE.Vector3; active: boolean } | null>(null);
 
   const posById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  const reachableNodes = useMemo(() => nodes.filter((n) => n.reachable), [nodes]);
-  const offNodes = useMemo(() => nodes.filter((n) => !n.reachable), [nodes]);
 
-  const isVisible = (n: PositionedNode) => (n.reachable ? showReachable : showOff);
+  const isVisible = (n: PositionedNode) => !hidden.has(nodeCategory(n));
 
-  // Base edges: drawn only between currently-visible nodes so toggling
-  // reachable/off also hides the links that touch hidden nodes.
+  const visibleNodes = useMemo(() => nodes.filter(isVisible), [nodes, hidden]);
+  const reachableVisible = useMemo(() => visibleNodes.filter((n) => n.reachable), [visibleNodes]);
+  const offVisible = useMemo(() => visibleNodes.filter((n) => !n.reachable), [visibleNodes]);
+
+  // Edges: only drawn between currently-visible nodes.
   const lineGeom = useMemo(() => {
     const pts: number[] = [];
     for (const [s, t] of edgePairs) {
       const a = posById.get(s);
       const b = posById.get(t);
       if (!a || !b) continue;
-      const av = a.reachable ? showReachable : showOff;
-      const bv = b.reachable ? showReachable : showOff;
-      if (!av || !bv) continue;
+      if (!isVisible(a) || !isVisible(b)) continue;
       pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [edgePairs, posById, showReachable, showOff]);
+  }, [edgePairs, posById, hidden]);
 
   const highlightGeom = useMemo(() => {
     if (!focus) return null;
@@ -160,15 +165,13 @@ function Scene({
       const a = posById.get(s);
       const b = posById.get(t);
       if (!a || !b) continue;
-      const av = a.reachable ? showReachable : showOff;
-      const bv = b.reachable ? showReachable : showOff;
-      if (!av || !bv) continue;
+      if (!isVisible(a) || !isVisible(b)) continue;
       pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [focus, edgePairs, posById, showReachable, showOff]);
+  }, [focus, edgePairs, posById, hidden]);
 
   // When a node is pinned, glide the camera to frame it.
   useEffect(() => {
@@ -219,11 +222,11 @@ function Scene({
       )}
 
       {/* Reachable core — bright, emissive spheres. */}
-      {showReachable && reachableNodes.length > 0 && (
-        <Instances limit={reachableNodes.length} range={reachableNodes.length}>
+      {reachableVisible.length > 0 && (
+        <Instances limit={reachableVisible.length} range={reachableVisible.length}>
           <sphereGeometry args={[1, 12, 12]} />
           <meshStandardMaterial roughness={0.35} metalness={0.1} emissiveIntensity={0.55} toneMapped={false} />
-          {reachableNodes.map((n) => {
+          {reachableVisible.map((n) => {
             const isFocus = focus?.id === n.id;
             const c = new THREE.Color(n.color);
             if (isFocus) c.multiplyScalar(1.9);
@@ -243,11 +246,11 @@ function Scene({
       )}
 
       {/* Known-but-unreachable ("off") nodes — dim, semi-transparent, matte. */}
-      {showOff && offNodes.length > 0 && (
-        <Instances limit={offNodes.length} range={offNodes.length}>
+      {offVisible.length > 0 && (
+        <Instances limit={offVisible.length} range={offVisible.length}>
           <sphereGeometry args={[1, 8, 8]} />
           <meshStandardMaterial roughness={0.7} metalness={0} transparent opacity={0.65} toneMapped={false} />
-          {offNodes.map((n) => {
+          {offVisible.map((n) => {
             const isFocus = focus?.id === n.id;
             const c = new THREE.Color(n.color);
             if (isFocus) c.multiplyScalar(2.2);
@@ -266,7 +269,7 @@ function Scene({
         </Instances>
       )}
 
-      {showReachable && hubs.map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
+      {hubs.filter((n) => isVisible(n)).map((n) => (pinned?.id === n.id ? null : <HubLabel key={`hub-${n.id}`} node={n} />))}
     </group>
   );
 }
@@ -281,12 +284,14 @@ export function TopologyGraph() {
   const [pinned, setPinned] = useState<PositionedNode | null>(null);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [showReachable, setShowReachable] = useState(true);
-  const [showOff, setShowOff] = useState(true);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (cat: string) =>
+    setHidden((prev) => { const s = new Set(prev); s.has(cat) ? s.delete(cat) : s.add(cat); return s; });
 
   // Ignore focus on a node that the current filters have hidden.
   const rawFocus = pinned ?? hovered;
-  const focus = rawFocus && (rawFocus.reachable ? showReachable : showOff) ? rawFocus : null;
+  const focus = rawFocus && !hidden.has(nodeCategory(rawFocus)) ? rawFocus : null;
 
   const hubs = useMemo(
     () => nodes.filter((n) => n.reachable).sort((a, b) => (b.degree || 0) - (a.degree || 0)).slice(0, 6),
@@ -424,8 +429,7 @@ export function TopologyGraph() {
                 focus={focus}
                 pinned={pinned}
                 hubs={hubs}
-                showReachable={showReachable}
-                showOff={showOff}
+                hidden={hidden}
                 onHover={setHovered}
                 onPin={(n) => setPinned((prev) => (prev?.id === n?.id ? null : n))}
               />
@@ -440,33 +444,12 @@ export function TopologyGraph() {
               />
             </Canvas>
 
-            {/* Visibility toggles */}
-            <div className="absolute top-3 right-3 z-20 flex gap-1.5">
-              <button
-                onClick={() => setShowReachable((v) => !v)}
-                aria-pressed={showReachable}
-                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono backdrop-blur-sm transition-colors ${
-                  showReachable
-                    ? 'bg-cipher-card/90 border-cipher-border text-primary'
-                    : 'bg-cipher-card/40 border-cipher-border/40 text-muted line-through'
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CLIENT_COLORS.Zebra }} />
-                Reachable{counts ? ` ${counts.reachable}` : ''}
-              </button>
-              <button
-                onClick={() => setShowOff((v) => !v)}
-                aria-pressed={showOff}
-                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono backdrop-blur-sm transition-colors ${
-                  showOff
-                    ? 'bg-cipher-card/90 border-cipher-border text-primary'
-                    : 'bg-cipher-card/40 border-cipher-border/40 text-muted line-through'
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
-                Off{counts ? ` ${counts.off}` : ''}
-              </button>
-            </div>
+            {/* Counts badge */}
+            {counts && (
+              <div className="absolute top-3 right-3 z-20 rounded-md bg-cipher-card/80 border border-cipher-border px-2.5 py-1 text-[10px] font-mono text-muted backdrop-blur-sm">
+                {counts.reachable} reachable · {counts.off} off · {counts.edges} links
+              </div>
+            )}
 
             {/* Search */}
             <div className="absolute top-3 left-3 z-20 w-52">
@@ -529,23 +512,33 @@ export function TopologyGraph() {
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 mt-3 text-[10px] font-mono text-muted">
+      {/* Legend (clickable filters) */}
+      <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] font-mono text-muted">
         {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Other').map(([name, color]) => (
-          <span key={name} className="flex items-center gap-1.5">
+          <button
+            key={name}
+            onClick={() => toggleCategory(name)}
+            className={`flex items-center gap-1.5 transition-opacity ${hidden.has(name) ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
+          >
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
             {name}
-          </span>
+          </button>
         ))}
-        <span className="flex items-center gap-1.5">
+        <button
+          onClick={() => toggleCategory('Tor')}
+          className={`flex items-center gap-1.5 transition-opacity ${hidden.has('Tor') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
+        >
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TOR_COLOR }} />
           Tor
-        </span>
-        <span className="flex items-center gap-1.5">
+        </button>
+        <button
+          onClick={() => toggleCategory('off')}
+          className={`flex items-center gap-1.5 transition-opacity ${hidden.has('off') ? 'opacity-30 line-through' : 'opacity-100 hover:opacity-80'}`}
+        >
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
           Known / unreachable
-        </span>
-        <span className="ml-auto text-[10px] text-muted/70">Reachable size ∝ peer count · links = gossiped addresses</span>
+        </button>
+        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ peer count</span>
       </div>
     </div>
   );
