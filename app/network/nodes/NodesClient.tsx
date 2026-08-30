@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/SectionHeader';
-
-const TopologyGraph = lazy(() =>
-  import('@/components/network/TopologyGraph').then(m => ({ default: m.TopologyGraph }))
-);
+import { NodeMapExplorer } from '@/components/network/NodeMapExplorer';
+import { CLIENT_COLORS, clientLabel, clientColor, CLIENT_BADGE_CLASSES } from '@/lib/network-colors';
 
 interface NodeEntry {
   id: number;
@@ -54,36 +52,6 @@ interface VersionEntry {
   version: string;
   count: number;
 }
-
-const CLIENT_COLORS: Record<string, string> = {
-  Zebra: '#FBBF24',
-  Zakura: '#F472B6',
-  zcashd: '#5B9CF6',
-  Seeder: '#9B8AFB',
-  Other: '#7D8A9A',
-  Unidentified: '#4B5563',
-  Unknown: '#4B5563',
-};
-
-// The crawler stores nodes with no advertised user-agent as "Unknown"; present
-// them honestly as "Unidentified" (reachable, but did not advertise a client).
-function clientLabel(client: string) {
-  return client === 'Unknown' ? 'Unidentified' : client;
-}
-
-function clientColor(client: string) {
-  return CLIENT_COLORS[client] || CLIENT_COLORS.Other;
-}
-
-const CLIENT_BADGE_CLASSES: Record<string, string> = {
-  Zebra: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/30',
-  Zakura: 'bg-[#F472B6]/15 text-[#F472B6] border-[#F472B6]/30',
-  zcashd: 'bg-[#5B9CF6]/15 text-[#5B9CF6] border-[#5B9CF6]/30',
-  Seeder: 'bg-[#9B8AFB]/15 text-[#9B8AFB] border-[#9B8AFB]/30',
-  Other: 'bg-[#7D8A9A]/15 text-[#7D8A9A] border-[#7D8A9A]/30',
-  Unknown: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-  Unidentified: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-};
 
 function countryFlag(code: string | null): string {
   if (!code || code.length !== 2) return '';
@@ -251,8 +219,8 @@ export default function NodesClient() {
       {clients.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-fade-in-up stagger-2">
           {/* Pie Chart */}
-          <Card>
-            <CardBody>
+          <Card className="h-full">
+            <CardBody className="h-full flex flex-col">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
@@ -265,7 +233,10 @@ export default function NodesClient() {
                 </span>
               </div>
 
-              <div className="grid items-center gap-4 sm:grid-cols-[160px_1fr]">
+              {/* Version Breakdown is a longer scrollable list, so this card is
+                  naturally shorter — center the chart in the leftover height
+                  instead of leaving it pinned to the top with dead space below. */}
+              <div className="flex-1 grid items-center gap-4 sm:grid-cols-[160px_1fr]">
                 <div className="h-[160px]" role="img" aria-label="Client distribution donut chart">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -318,13 +289,15 @@ export default function NodesClient() {
           </Card>
 
           {/* Version Breakdown */}
-          <Card>
-            <CardBody>
+          <Card className="h-full">
+            <CardBody className="h-full flex flex-col">
               <h3 className="text-sm font-semibold text-primary mb-1">Version Breakdown</h3>
               <p className="text-[11px] text-muted mb-4">
                 Self-reported version strings from connected peers.
               </p>
-              <div className="space-y-2">
+              {/* Capped + scrollable rather than letting 12 rows dictate this
+                  card's (and its sibling's) height. */}
+              <div className="space-y-2 max-h-[248px] overflow-y-auto pr-1 -mr-1">
                 {versions.slice(0, 12).map((v, i) => (
                   <div
                     key={`${v.client}-${v.version}-${i}`}
@@ -347,16 +320,10 @@ export default function NodesClient() {
         </div>
       )}
 
-      {/* Topology Graph */}
+      {/* Node Map — geographic (client/infra) and topology-graph lenses on one surface */}
       <Card className="mb-8 animate-fade-in-up stagger-3">
         <CardBody>
-          <Suspense fallback={
-            <div className="h-[400px] flex items-center justify-center">
-              <div className="animate-pulse text-muted text-sm font-mono">Loading topology...</div>
-            </div>
-          }>
-            <TopologyGraph />
-          </Suspense>
+          <NodeMapExplorer />
         </CardBody>
       </Card>
 

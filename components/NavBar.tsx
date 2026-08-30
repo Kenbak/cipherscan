@@ -80,6 +80,7 @@ export function NavBar() {
     { href: '/blocks', label: 'Blocks', desc: 'Latest blocks' },
     { href: '/txs', label: 'Transactions', desc: 'Recent transactions' },
     { href: '/network', label: 'Network', desc: 'Hashrate, peers & difficulty' },
+    { href: '/network/nodes', label: 'Network Nodes', desc: 'Node map, topology & health' },
     { href: '/charts', label: 'Charts', desc: 'All metrics in one place' },
     ...(isCrosslink
       ? [

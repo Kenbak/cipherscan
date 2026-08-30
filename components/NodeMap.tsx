@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { getApiUrl } from '@/lib/api-config';
 import { ChartWatermark } from '@/components/ChartWatermark';
+import { clientLabel } from '@/lib/network-colors';
 import {
-  NodeClientDistribution,
-  type NodeClientStats,
-} from '@/components/network/NodeClientDistribution';
-import { feature } from 'topojson-client';
+  MAP_WIDTH,
+  MAP_HEIGHT,
+  DOT_RADIUS,
+  project,
+  useWorldLandDots,
+} from '@/lib/world-dot-map';
 
 // ==========================================================================
 // TYPES
@@ -21,6 +25,8 @@ interface NodeLocation {
   lon: number;
   nodeCount: number;
   avgPingMs: number | null;
+  topClient?: string | null;
+  topIsp?: string | null;
 }
 
 interface NodeStats {
@@ -45,20 +51,9 @@ interface TopCountry {
   nodeCount: number;
 }
 
-interface DotPosition {
-  x: number;
-  y: number;
-}
-
 // ==========================================================================
 // CONSTANTS
 // ==========================================================================
-
-const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
-const DOT_SPACING = 2.5;
-const MAP_WIDTH = 960;
-const MAP_HEIGHT = 500;
-const DOT_RADIUS = 2.4;
 
 // Color tiers based on node count (cipher-yellow intensity scale)
 const NODE_TIERS = {
@@ -73,57 +68,6 @@ function getNodeTier(count: number) {
   if (count >= 5) return NODE_TIERS.medium;
   if (count >= 2) return NODE_TIERS.low;
   return NODE_TIERS.single;
-}
-
-// ==========================================================================
-// GEOMETRY HELPERS
-// ==========================================================================
-
-function project(lat: number, lon: number): { x: number; y: number } {
-  const x = ((lon + 180) / 360) * MAP_WIDTH;
-  const y = ((90 - lat) / 180) * MAP_HEIGHT;
-  return { x, y };
-}
-
-function pointInRing(lon: number, lat: number, ring: number[][]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0], yi = ring[i][1];
-    const xj = ring[j][0], yj = ring[j][1];
-    if (
-      (yi > lat) !== (yj > lat) &&
-      lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
-    ) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-function isPointOnLand(lat: number, lon: number, features: any[]): boolean {
-  for (const feat of features) {
-    const geom = feat.geometry || feat;
-    if (geom.type === 'Polygon') {
-      if (pointInRing(lon, lat, geom.coordinates[0])) return true;
-    } else if (geom.type === 'MultiPolygon') {
-      for (const polygon of geom.coordinates) {
-        if (pointInRing(lon, lat, polygon[0])) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function generateWorldDots(landFeatures: any[]): DotPosition[] {
-  const dots: DotPosition[] = [];
-  for (let lat = 84; lat >= -60; lat -= DOT_SPACING) {
-    for (let lon = -180; lon < 180; lon += DOT_SPACING) {
-      if (isPointOnLand(lat, lon, landFeatures)) {
-        dots.push(project(lat, lon));
-      }
-    }
-  }
-  return dots;
 }
 
 // ==========================================================================
@@ -144,31 +88,16 @@ function getFlagEmoji(countryCode: string): string {
 // ==========================================================================
 
 export function NodeMap() {
-  const [worldDots, setWorldDots] = useState<DotPosition[]>([]);
   const [locations, setLocations] = useState<NodeLocation[]>([]);
   const [stats, setStats] = useState<NodeStats | null>(null);
   const [trends, setTrends] = useState<NodeTrends | null>(null);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
-  const [clientStats, setClientStats] = useState<NodeClientStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
-  // Fetch world topology for dot matrix background
-  useEffect(() => {
-    fetch(WORLD_TOPO_URL)
-      .then((res) => res.json())
-      .then((topology: any) => {
-        const land = feature(topology, topology.objects.land) as any;
-        const features = land.features ? land.features : [land];
-        const dots = generateWorldDots(features);
-        setWorldDots(dots);
-      })
-      .catch((err) => {
-        console.error('Failed to load world topology:', err);
-      });
-  }, []);
+  const worldDots = useWorldLandDots();
 
   // Fetch node data from API
   useEffect(() => {
@@ -189,7 +118,6 @@ export function NodeMap() {
         setStats(statsData.stats);
         setTrends(statsData.trends || null);
         setTopCountries(statsData.topCountries || []);
-        setClientStats(statsData.clients || null);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching nodes:', err);
@@ -216,14 +144,17 @@ export function NodeMap() {
       const existing = clusters.get(key);
       if (existing) {
         const total = existing.nodeCount + loc.nodeCount;
+        const existingWins = existing.nodeCount >= loc.nodeCount;
         clusters.set(key, {
           lat: (existing.lat * existing.nodeCount + loc.lat * loc.nodeCount) / total,
           lon: (existing.lon * existing.nodeCount + loc.lon * loc.nodeCount) / total,
           nodeCount: total,
-          country: existing.nodeCount >= loc.nodeCount ? existing.country : loc.country,
-          countryCode: existing.nodeCount >= loc.nodeCount ? existing.countryCode : loc.countryCode,
-          city: existing.nodeCount >= loc.nodeCount ? existing.city : loc.city,
+          country: existingWins ? existing.country : loc.country,
+          countryCode: existingWins ? existing.countryCode : loc.countryCode,
+          city: existingWins ? existing.city : loc.city,
           avgPingMs: loc.avgPingMs,
+          topClient: existingWins ? existing.topClient : loc.topClient,
+          topIsp: existingWins ? existing.topIsp : loc.topIsp,
         });
       } else {
         clusters.set(key, { ...loc });
@@ -488,6 +419,19 @@ export function NodeMap() {
                 <span className="text-muted font-mono">{hoveredNode.avgPingMs.toFixed(0)}ms</span>
               )}
             </div>
+            {(hoveredNode.topClient || hoveredNode.topIsp) && (
+              <div className="flex items-center gap-2 text-[11px] font-mono text-muted mt-1">
+                {hoveredNode.topClient && (
+                  <span>Mostly {clientLabel(hoveredNode.topClient)}</span>
+                )}
+                {hoveredNode.topClient && hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
+                  <span className="text-muted/40">&middot;</span>
+                )}
+                {hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
+                  <span className="truncate max-w-[160px]">{hoveredNode.topIsp}</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -514,11 +458,21 @@ export function NodeMap() {
         </div>
       </div>
 
-      {clientStats && (
-        <div className="border-t border-cipher-border px-4 py-4 sm:px-6">
-          <NodeClientDistribution clients={clientStats} />
-        </div>
-      )}
+      {/* CTA — full client breakdown, topology graph & health scoring live on /network/nodes.
+          One muted sentence, one hover state — this card already has its own color
+          language (tier dots, trend deltas); the link shouldn't add another. */}
+      <Link
+        href="/network/nodes"
+        className="flex items-center justify-between gap-2 border-t border-cipher-border px-4 py-3 sm:px-6 text-xs font-mono text-muted hover:text-primary transition-colors group"
+      >
+        <span>Client breakdown, network topology &amp; health scoring</span>
+        <svg
+          className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 transition-transform"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
 
       {/* Trends */}
       {trends && (

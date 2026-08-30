@@ -16,6 +16,7 @@ import {
   type SimulationNode,
 } from 'd3-force-3d';
 import { getApiUrl } from '@/lib/api-config';
+import { clientColor as sharedClientColor, clientLabel as sharedClientLabel, CLIENT_COLORS } from '@/lib/network-colors';
 
 interface ApiNode {
   id: number;
@@ -52,14 +53,6 @@ interface PositionedNode extends SimNode {
   color: string;
 }
 
-const CLIENT_COLORS: Record<string, string> = {
-  Zebra: '#FBBF24',
-  Zakura: '#F472B6',
-  zcashd: '#5B9CF6',
-  Seeder: '#9B8AFB',
-  Unidentified: '#6B7280',
-  Other: '#8B5CF6',
-};
 const TOR_COLOR = '#A855F7';
 // Known-but-unreachable ("off") nodes: lighter slate so they're visible against
 // the dark background while still clearly secondary to the reachable core.
@@ -68,13 +61,12 @@ const OFF_COLOR = '#6B7FA0';
 function nodeColor(n: { client: string | null; isTor: boolean; reachable: boolean }) {
   if (!n.reachable) return OFF_COLOR;
   if (n.isTor) return TOR_COLOR;
-  return CLIENT_COLORS[n.client || ''] || CLIENT_COLORS.Other;
+  return sharedClientColor(n.client);
 }
 
 function clientLabel(client: string | null, reachable = true) {
   if (!reachable) return 'Off (unreachable)';
-  if (!client || client === 'Unknown') return 'Unidentified';
-  return client;
+  return sharedClientLabel(client);
 }
 
 function nodeCategory(n: { client: string | null; isTor: boolean; reachable: boolean }): string {
@@ -517,7 +509,7 @@ export function TopologyGraph() {
 
       {/* Legend (clickable filters) */}
       <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] font-mono text-muted">
-        {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Other').map(([name, color]) => (
+        {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Other' && k !== 'Unknown').map(([name, color]) => (
           <button
             key={name}
             onClick={() => toggleCategory(name)}

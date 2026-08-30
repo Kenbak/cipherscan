@@ -664,8 +664,11 @@ router.get('/api/circulating-supply', async (req, res) => {
  */
 router.get('/api/network/nodes', async (req, res) => {
   try {
-    // Return coarse geographic cells only: no IP, ISP, exact city, or precise
-    // coordinates leave the server.
+    // Return coarse geographic cells only: no IP, exact city, or precise
+    // coordinates leave the server. `top_client`/`top_isp` are the most
+    // common values *within the cell* (already-aggregate P2P handshake /
+    // ASN data, same disclosure level as the Concentration Risk endpoint) —
+    // never a raw IP.
     const result = await pool.query(`
       SELECT 
         country,
@@ -673,7 +676,9 @@ router.get('/api/network/nodes', async (req, res) => {
         ROUND(lat::numeric, 0) as lat,
         ROUND(lon::numeric, 0) as lon,
         COUNT(*) as node_count,
-        ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms
+        ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms,
+        MODE() WITHIN GROUP (ORDER BY client_impl) as top_client,
+        MODE() WITHIN GROUP (ORDER BY isp) as top_isp
       FROM ${NODES_TABLE} 
       WHERE is_active = TRUE AND lat IS NOT NULL
       GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
@@ -689,6 +694,8 @@ router.get('/api/network/nodes', async (req, res) => {
         lon: parseFloat(row.lon),
         nodeCount: parseInt(row.node_count),
         avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+        topClient: row.top_client || null,
+        topIsp: row.top_isp || null,
       })),
       timestamp: Date.now(),
     });
