@@ -335,21 +335,26 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
           height: block.height,
           hash: block.hash ? Buffer.from(block.hash).toString('hex') : null,
           time: block.time,
-          vtx: block.vtx ? block.vtx.map((tx) => ({
-            index: tx.index,
-            hash: tx.hash ? Buffer.from(tx.hash).toString('hex') : null,
-            outputs: tx.outputs ? tx.outputs.map((output) => ({
-              cmu: output.cmu ? Buffer.from(output.cmu).toString('hex') : null,
-              ephemeralKey: output.epk ? Buffer.from(output.epk).toString('hex') : null,
-              ciphertext: output.ciphertext ? Buffer.from(output.ciphertext).toString('hex') : null,
-            })) : [],
-            actions: tx.actions ? tx.actions.map((action) => ({
+          vtx: block.vtx ? block.vtx.map((tx) => {
+            const convertAction = (action) => ({
               nullifier: action.nullifier ? Buffer.from(action.nullifier).toString('hex') : null,
               cmx: action.cmx ? Buffer.from(action.cmx).toString('hex') : null,
               ephemeralKey: action.ephemeralKey ? Buffer.from(action.ephemeralKey).toString('hex') : null,
               ciphertext: action.ciphertext ? Buffer.from(action.ciphertext).toString('hex') : null,
-            })) : [],
-          })) : [],
+            });
+            const orchardActions = tx.actions ? tx.actions.map(convertAction) : [];
+            const ironwoodActions = tx.ironwoodActions ? tx.ironwoodActions.map(convertAction) : [];
+            return {
+              index: tx.index,
+              hash: tx.hash ? Buffer.from(tx.hash).toString('hex') : null,
+              outputs: tx.outputs ? tx.outputs.map((output) => ({
+                cmu: output.cmu ? Buffer.from(output.cmu).toString('hex') : null,
+                ephemeralKey: output.epk ? Buffer.from(output.epk).toString('hex') : null,
+                ciphertext: output.ciphertext ? Buffer.from(output.ciphertext).toString('hex') : null,
+              })) : [],
+              actions: [...orchardActions, ...ironwoodActions],
+            };
+          }) : [],
         }));
         saveToCathe(cacheableBlocks);
       }
@@ -360,25 +365,31 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
 
     // Convert fetched blocks to response format (if not already converted for cache)
     for (const block of fetchedBlocks) {
+      const toHex = (v) => v ? (typeof v === 'string' ? v : Buffer.from(v).toString('hex')) : null;
       allBlocks.push({
         height: block.height,
-        hash: block.hash ? (typeof block.hash === 'string' ? block.hash : Buffer.from(block.hash).toString('hex')) : null,
+        hash: toHex(block.hash),
         time: block.time,
-        vtx: block.vtx ? block.vtx.map((tx) => ({
-          index: tx.index,
-          hash: tx.hash ? (typeof tx.hash === 'string' ? tx.hash : Buffer.from(tx.hash).toString('hex')) : null,
-          outputs: tx.outputs ? tx.outputs.map((output) => ({
-            cmu: output.cmu ? (typeof output.cmu === 'string' ? output.cmu : Buffer.from(output.cmu).toString('hex')) : null,
-            ephemeralKey: output.epk ? (typeof output.epk === 'string' ? output.epk : Buffer.from(output.epk).toString('hex')) : null,
-            ciphertext: output.ciphertext ? (typeof output.ciphertext === 'string' ? output.ciphertext : Buffer.from(output.ciphertext).toString('hex')) : null,
-          })) : [],
-          actions: tx.actions ? tx.actions.map((action) => ({
-            nullifier: action.nullifier ? (typeof action.nullifier === 'string' ? action.nullifier : Buffer.from(action.nullifier).toString('hex')) : null,
-            cmx: action.cmx ? (typeof action.cmx === 'string' ? action.cmx : Buffer.from(action.cmx).toString('hex')) : null,
-            ephemeralKey: action.ephemeralKey ? (typeof action.ephemeralKey === 'string' ? action.ephemeralKey : Buffer.from(action.ephemeralKey).toString('hex')) : null,
-            ciphertext: action.ciphertext ? (typeof action.ciphertext === 'string' ? action.ciphertext : Buffer.from(action.ciphertext).toString('hex')) : null,
-          })) : [],
-        })) : [],
+        vtx: block.vtx ? block.vtx.map((tx) => {
+          const convertAction = (action) => ({
+            nullifier: toHex(action.nullifier),
+            cmx: toHex(action.cmx),
+            ephemeralKey: toHex(action.ephemeralKey),
+            ciphertext: toHex(action.ciphertext),
+          });
+          const orchardActions = tx.actions ? tx.actions.map(convertAction) : [];
+          const ironwoodActions = tx.ironwoodActions ? tx.ironwoodActions.map(convertAction) : [];
+          return {
+            index: tx.index,
+            hash: toHex(tx.hash),
+            outputs: tx.outputs ? tx.outputs.map((output) => ({
+              cmu: toHex(output.cmu),
+              ephemeralKey: toHex(output.epk),
+              ciphertext: toHex(output.ciphertext),
+            })) : [],
+            actions: [...orchardActions, ...ironwoodActions],
+          };
+        }) : [],
       });
     }
 

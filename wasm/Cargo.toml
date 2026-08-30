@@ -14,20 +14,15 @@ getrandom = { version = "0.2", features = ["js"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# 🎯 TRYING 0.25 TO AVOID secp256k1
-# 0.26 pulls secp256k1 via bip32 (non-optional)
-# 0.25 is recent (2 months old) and should work with orchard 0.11
+# Zakura Common — optimized Zcash cryptography (1.5x faster trial decrypt)
+# Only zakura-orchard is used; zakura-primitives is excluded because it pulls
+# secp256k1 (C code) via zcash_transparent, which cannot compile to wasm32.
+# Transaction parsing is handled by a minimal ZIP-225 v5 parser instead.
+orchard = { package = "zakura-orchard", version = "1.0", default-features = false, features = ["std"] }
 
-# Zcash primitives 0.25 (recent, hopefully avoids secp256k1)
-zcash_primitives = { version = "0.27", default-features = false }
+# Note encryption interface (stays upstream per Zakura guidance)
+zcash_note_encryption = "0.4"
 
-# Zcash note encryption (WASM-compatible)
-zcash_note_encryption = "0.4.1"
-
-# Orchard 0.11 (WASM-compatible, std only)
-orchard = { version = "0.13", default-features = false, features = ["std"] }
-
-# Force newer subtle for orchard 0.11 compatibility
 subtle = "2.6"
 
 # Encoding
@@ -36,8 +31,8 @@ bech32 = "0.11"
 bs58 = { version = "0.5", features = ["check"] }
 
 # Zcash address parsing (for UFVK)
-zcash_address = "0.11"
-zcash_protocol = "0.8"
+zcash_address = "0.13"
+zcash_protocol = "0.10"
 
 [dependencies.web-sys]
 version = "0.3"

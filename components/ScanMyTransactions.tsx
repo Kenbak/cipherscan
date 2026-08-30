@@ -4,8 +4,14 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useWasmWorkerPool } from '@/hooks/useWasmWorkerPool';
 import { getApiUrl } from '@/lib/api-config';
-import { CURRENCY } from '@/lib/config';
+import { CURRENCY, isMainnet } from '@/lib/config';
+import { Card, CardBody } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/Badge';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HashLink } from '@/components/ui/HashLink';
+
+const VIEWING_KEY_PREFIX = isMainnet ? 'uview' : 'uviewtest';
 
 // Animated dots component for loading states (pure CSS for performance)
 function AnimatedDots() {
@@ -125,7 +131,7 @@ export function ScanMyTransactions() {
     const minScanTime = 1500;
 
     try {
-      const { filterCompactOutputs, decryptMemo } = await import('@/lib/wasm-loader');
+      const { decryptMemo } = await import('@/lib/wasm-loader');
       const apiUrl = getApiUrl();
 
       // Check for cancellation
@@ -219,7 +225,7 @@ export function ScanMyTransactions() {
       // Step 3: Fetch raw hex for matching TXs (batch)
       setScanPhase('decrypting');
       const txids = matchingTxs.map(tx => tx.txid);
-      const batchSize = 1000;
+      const batchSize = 100;
       const allRawTxs = new Map<string, string>();
 
       for (let i = 0; i < txids.length; i += batchSize) {
@@ -340,187 +346,34 @@ export function ScanMyTransactions() {
         setScanError('Please enter a valid birthday block number.');
         return;
       }
-      // Use birthday scan method
       return scanFromBirthday(sanitizedKey, birthday);
     }
 
-    setScanning(true);
-    setScanError(null);
-    setScanResults([]);
-    setScanProgress(0);
-    setTotalBlocks(0);
-    setCurrentBlock(0);
-
-    // Minimum loading time for smooth animation
-    const startTime = Date.now();
-    const minScanTime = 1500; // 1.5 seconds minimum
-
+    // Period scan: calculate start height and use the same filter-first
+    // architecture as birthday scan (compact blocks + worker pool + batch
+    // filtering, then full-decrypt only matches).
     try {
-      const { decryptMemo } = await import('@/lib/wasm-loader');
-
       const apiUrl = getApiUrl();
-
-      // Get current block height
       const infoRes = await fetch(`${apiUrl}/api/info`);
       if (!infoRes.ok) {
         throw new Error(`Failed to fetch blockchain info: ${infoRes.status}`);
       }
       const infoData = await infoRes.json();
-      const currentHeight = infoData.blocks || infoData.height || 0;
+      const currentHeight = parseInt(infoData.blocks || infoData.height || 0);
 
-      // Calculate start height based on time period
-      const periodToBlocks = {
+      const periodToBlocks: Record<string, number> = {
         '1h': 48,     // ~1 hour (75s per block)
         '6h': 288,    // ~6 hours
         '24h': 1152,  // ~24 hours
         '7d': 8064,   // ~7 days
       };
 
-      const blocksToScan = periodToBlocks[scanPeriod];
+      const blocksToScan = periodToBlocks[scanPeriod] || 48;
       const startHeight = Math.max(0, currentHeight - blocksToScan);
 
-      setTotalBlocks(blocksToScan);
-
-      // Fetch all Orchard TXs in this range using batch API
-      const scanRes = await fetch(`${apiUrl}/api/scan/orchard`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startHeight,
-          endHeight: currentHeight,
-        }),
-      });
-
-      if (!scanRes.ok) {
-        throw new Error(`Failed to scan Orchard transactions: ${scanRes.status}`);
-      }
-
-      const scanData = await scanRes.json();
-      const orchardTxs = scanData.transactions || [];
-
-      if (orchardTxs.length === 0) {
-        // Simulate progress for smooth animation
-        setScanProgress(50);
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setScanProgress(100);
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        setScanError(`No Orchard transactions found in the last ${scanPeriod}.`);
-
-        // Ensure minimum time
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < minScanTime) {
-          await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
-        }
-
-        setScanning(false);
-        return;
-      }
-
-      // Fetch raw TXs in batches of 1000
-      const txids = orchardTxs.map((tx: any) => tx.txid);
-      const allRawTxs = new Map<string, string>();
-      const batchSize = 1000;
-
-      for (let i = 0; i < txids.length; i += batchSize) {
-        const batch = txids.slice(i, i + batchSize);
-        const batchRes = await fetch(`${apiUrl}/api/tx/raw/batch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ txids: batch }),
-        });
-
-        if (!batchRes.ok) {
-          throw new Error(`Failed to fetch raw transactions: ${batchRes.status}`);
-        }
-
-        const batchData = await batchRes.json();
-        batchData.transactions.forEach((tx: any) => {
-          allRawTxs.set(tx.txid, tx.hex);
-        });
-      }
-
-      // Now decrypt each TX
-      let txsProcessed = 0;
-      const totalTxs = orchardTxs.length;
-      let foundCount = 0; // Track locally
-      const foundMessages: ScanResult[] = []; // Store results locally
-
-      for (const tx of orchardTxs) {
-        try {
-          // Update current block being processed
-          setCurrentBlock(tx.block_height);
-
-          // Get raw hex from our batch
-          const rawHex = allRawTxs.get(tx.txid);
-          if (rawHex) {
-            const decrypted = await decryptMemo(rawHex, sanitizedKey);
-
-            // Success! This tx belongs to user
-            foundCount++; // Increment local counter
-            foundMessages.push({
-              txid: tx.txid,
-              height: tx.block_height,
-              timestamp: tx.timestamp,
-              memo: decrypted.memo,
-              amount: decrypted.amount,
-            });
-          }
-        } catch (err) {
-          // Not our tx, skip silently
-        }
-
-        txsProcessed++;
-        const newProgress = Math.round((txsProcessed / totalTxs) * 100);
-        setScanProgress(newProgress);
-
-        // Force UI update every 5 TXs or at key milestones
-        if (txsProcessed % 5 === 0 || newProgress === 25 || newProgress === 50 || newProgress === 75) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-      }
-
-      // Ensure progress bar reaches 100%
-      setScanProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Now display results after progress is complete
-      if (foundCount === 0) {
-        setScanError(`Scanned ${totalTxs} Orchard transactions in the last ${scanPeriod} but none matched your viewing key.`);
-      } else {
-        setScanResults(foundMessages);
-        // Scroll to results after a short delay to let state update
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-      }
-
-      // Ensure minimum scan time for smooth animation
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < minScanTime) {
-        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
-      }
+      return scanFromBirthday(sanitizedKey, startHeight);
     } catch (err: any) {
-      console.error('❌ [SCAN] Fatal error:', err);
-
-      // Simulate progress for smooth animation even on error
-      const currentProgress = scanProgress;
-      if (currentProgress < 50) {
-        setScanProgress(50);
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-      setScanProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      setScanError(err.message || 'Failed to scan transactions');
-
-      // Ensure minimum time even on error
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < minScanTime) {
-        await new Promise(resolve => setTimeout(resolve, minScanTime - elapsedTime));
-      }
-    } finally {
-      setScanning(false);
+      setScanError(err.message || 'Failed to start scan');
     }
   };
 
@@ -549,202 +402,184 @@ export function ScanMyTransactions() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Input Card */}
-      <div className="card">
-        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-cipher-cyan/10 border border-cipher-cyan/30 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-primary">Encrypted Inbox Scanner</h2>
-            <p className="text-xs sm:text-sm text-muted font-mono">Decrypt your shielded messages</p>
-          </div>
-        </div>
+      <Card>
+        <CardBody>
+          <SectionHeader label="ENCRYPTED_INBOX_SCANNER" className="mb-2" />
+          <p className="text-xs sm:text-sm text-muted font-mono mb-4 sm:mb-6">Decrypt your shielded messages</p>
 
-        <div className="space-y-4 sm:space-y-6">
-          {/* Viewing Key */}
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-              Unified Full Viewing Key
-            </label>
-            <input
-              type="password"
-              placeholder="uviewtest..."
-              value={viewingKey}
-              onChange={(e) => setViewingKey(e.target.value)}
-              disabled={scanning}
-              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
-            />
-            <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-              Your viewing key never leaves your browser
-            </p>
-          </div>
-
-          {/* Scan Period */}
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-              Scan Period <span className="text-danger">*</span>
-            </label>
-            <select
-              value={scanPeriod}
-              onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d' | 'birthday')}
-              disabled={scanning}
-              className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
-            >
-              <option value="1h">Last 1 hour (~48 blocks)</option>
-              <option value="6h">Last 6 hours (~288 blocks)</option>
-              <option value="24h">Last 24 hours (~1,152 blocks)</option>
-              <option value="7d">Last 7 days (~8,064 blocks)</option>
-              <option value="birthday">Since wallet birthday 🎂</option>
-            </select>
-            <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-              {scanPeriod === 'birthday'
-                ? 'Scan from wallet creation (may take 1-2 minutes)'
-                : 'How far back to scan for your transactions'}
-            </p>
-          </div>
-
-          {/* Birthday Block Input (only show if birthday is selected) */}
-          {scanPeriod === 'birthday' && (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Viewing Key */}
             <div>
               <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
-                Wallet Birthday Block <span className="text-danger">*</span>
+                Unified Full Viewing Key
               </label>
               <input
-                type="number"
-                placeholder="e.g., 3121131"
-                value={birthdayBlock}
-                onChange={(e) => setBirthdayBlock(e.target.value)}
+                type="password"
+                placeholder={`${VIEWING_KEY_PREFIX}...`}
+                value={viewingKey}
+                onChange={(e) => setViewingKey(e.target.value)}
                 disabled={scanning}
-                className="w-full decrypt-input border-2 border-cipher-border rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-primary font-mono text-xs sm:text-sm focus:outline-none focus:border-cipher-cyan transition-colors disabled:opacity-50"
+                className="input-field disabled:opacity-50"
               />
               <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-                Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
+                Starts with <code className="text-cipher-cyan">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'}) — never leaves your browser
               </p>
             </div>
-          )}
 
-          {/* Scan Button */}
-          {!scanning && scanResults.length === 0 && (
-            <button
-              onClick={scanMyTransactions}
-              disabled={!viewingKey}
-              className="w-full bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Icons.Search />
+            {/* Scan Period */}
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+                Scan Period <span className="text-danger">*</span>
+              </label>
+              <select
+                value={scanPeriod}
+                onChange={(e) => setScanPeriod(e.target.value as '1h' | '6h' | '24h' | '7d' | 'birthday')}
+                disabled={scanning}
+                className="input-field disabled:opacity-50"
+              >
+                <option value="1h">Last 1 hour (~48 blocks)</option>
+                <option value="6h">Last 6 hours (~288 blocks)</option>
+                <option value="24h">Last 24 hours (~1,152 blocks)</option>
+                <option value="7d">Last 7 days (~8,064 blocks)</option>
+                <option value="birthday">Since wallet birthday 🎂</option>
+              </select>
+              <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+                {scanPeriod === 'birthday'
+                  ? 'Scan from wallet creation (may take 1-2 minutes)'
+                  : 'How far back to scan for your transactions'}
+              </p>
+            </div>
+
+            {/* Birthday Block Input (only show if birthday is selected) */}
+            {scanPeriod === 'birthday' && (
+              <div>
+                <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+                  Wallet Birthday Block <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g., 3121131"
+                  value={birthdayBlock}
+                  onChange={(e) => setBirthdayBlock(e.target.value)}
+                  disabled={scanning}
+                  className="input-field disabled:opacity-50"
+                />
+                <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+                  Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
+                </p>
+              </div>
+            )}
+
+            {/* Scan Button */}
+            {!scanning && scanResults.length === 0 && (
+              <Button onClick={scanMyTransactions} disabled={!viewingKey} icon={<Icons.Search />} variant="secondary" fullWidth>
                 Scan My Transactions
-              </span>
-            </button>
-          )}
+              </Button>
+            )}
 
-          {/* Progress with animated loading messages */}
-          {scanning && (
-            <div className="space-y-4">
-              {/* Phase indicator with animated dots */}
-              <div className="scan-progress-bg border-2 border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {/* Animated spinner */}
-                    <div className="relative w-8 h-8 sm:w-10 sm:h-10">
-                      <div className="absolute inset-0 border-4 border-cipher-cyan/20 rounded-full"></div>
-                      <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                    <div>
-                      <div className="text-sm sm:text-base font-bold text-primary">
-                        {scanPhase === 'fetching' && (
-                          <>Fetching blocks<AnimatedDots /></>
-                        )}
-                        {scanPhase === 'filtering' && (
-                          <>
-                            Scanning {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
-                            {totalBlocks > 0 ? `${totalBlocks.toLocaleString()} blocks` : 'blocks'}
-                            <AnimatedDots />
-                          </>
-                        )}
-                        {scanPhase === 'decrypting' && (
-                          <>Decrypting {matchesFound} {matchesFound === 1 ? 'memo' : 'memos'}<AnimatedDots /></>
-                        )}
-                        {!scanPhase && (
-                          <>Scanning<AnimatedDots /></>
-                        )}
+            {/* Progress with animated loading messages */}
+            {scanning && (
+              <div className="space-y-4">
+                {/* Phase indicator with animated dots */}
+                <div className="scan-progress-bg border border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {/* Animated spinner */}
+                      <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+                        <div className="absolute inset-0 border-4 border-cipher-cyan/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      <div className="text-xs text-muted font-mono mt-1">
-                        {scanProgress}% complete
-                        {matchesFound > 0 && scanPhase === 'filtering' && (
-                          <span className="text-cipher-green ml-2">• {matchesFound} found</span>
-                        )}
+                      <div>
+                        <div className="text-sm sm:text-base font-bold text-primary">
+                          {scanPhase === 'fetching' && (
+                            <>Fetching blocks<AnimatedDots /></>
+                          )}
+                          {scanPhase === 'filtering' && (
+                            <>
+                              Scanning {blocksProcessed > 0 && `${blocksProcessed.toLocaleString()} / `}
+                              {totalBlocks > 0 ? `${totalBlocks.toLocaleString()} blocks` : 'blocks'}
+                              <AnimatedDots />
+                            </>
+                          )}
+                          {scanPhase === 'decrypting' && (
+                            <>Decrypting {matchesFound} {matchesFound === 1 ? 'memo' : 'memos'}<AnimatedDots /></>
+                          )}
+                          {!scanPhase && (
+                            <>Scanning<AnimatedDots /></>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted font-mono mt-1">
+                          {scanProgress}% complete
+                          {matchesFound > 0 && scanPhase === 'filtering' && (
+                            <span className="text-cipher-green ml-2">• {matchesFound} found</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {/* Cancel button */}
+                    <Button
+                      onClick={cancelScan}
+                      disabled={cancelRequested}
+                      variant="danger"
+                      size="sm"
+                      icon={<Icons.X />}
+                    >
+                      <span className="hidden sm:inline">Cancel</span>
+                    </Button>
                   </div>
-                  {/* Cancel button */}
-                  <button
-                    onClick={cancelScan}
-                    disabled={cancelRequested}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg text-danger hover:text-red-300 font-mono text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Cancel scan"
-                  >
-                    <Icons.X />
-                    <span className="hidden sm:inline">Cancel</span>
-                  </button>
-                </div>
 
-                {/* Progress bar */}
-                <div className="h-2 sm:h-3 progress-bar-bg rounded-full overflow-hidden mb-3">
-                  <div
-                    className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
-                    style={{ width: `${scanProgress}%` }}
-                  />
-                </div>
+                  {/* Progress bar */}
+                  <div className="h-2 sm:h-3 progress-bar-bg rounded-full overflow-hidden mb-3">
+                    <div
+                      className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
 
-                {/* Warning message */}
-                <div className="flex items-start gap-2 text-xs warning-box rounded px-3 py-2">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div>
-                    <p className="font-bold mb-1 warning-title">Please don't close this page</p>
-                    <p className="warning-text font-mono">
-                      This may take a moment. Your viewing key never leaves your browser.
-                    </p>
+                  {/* Warning message */}
+                  <div className="flex items-start gap-2 text-xs warning-box rounded px-3 py-2">
+                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="font-bold mb-1 warning-title">Please don't close this page</p>
+                      <p className="warning-text font-mono">
+                        This may take a moment. Your viewing key never leaves your browser.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Error */}
-          {scanError && (
-            <div className="bg-red-900/10 dark:bg-red-900/10 bg-red-50 border border-red-500/30 rounded-lg p-4 sm:p-6">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-danger">
-                  <Icons.X />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-red-600 dark:text-red-300 text-sm sm:text-base mb-2">No Messages Found</h3>
-                  <p className="text-secondary text-xs sm:text-sm leading-relaxed">
+            {/* Error */}
+            {scanError && (
+              <div className="alert alert-error">
+                <Icons.X />
+                <div>
+                  <p className="font-medium">No Messages Found</p>
+                  <p className="text-sm text-secondary mt-1 leading-relaxed">
                     {scanError}
                   </p>
                   <button
                     onClick={resetScan}
-                    className="mt-4 text-xs sm:text-sm text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
+                    className="mt-3 text-xs sm:text-sm text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
                   >
                     <Icons.Refresh />
                     Try again
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Results - Encrypted Mail Client */}
       {scanResults.length > 0 && (
-        <div ref={resultsRef} className="scroll-mt-8 border-2 border-cipher-cyan rounded-lg overflow-hidden shadow-2xl inbox-container">
+        <div ref={resultsRef} className="scroll-mt-8 border border-cipher-cyan/40 rounded-2xl overflow-hidden shadow-lg inbox-container">
           {/* Terminal-Style Header */}
-          <div className="inbox-header border-b-2 border-cipher-cyan px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="inbox-header border-b border-cipher-cyan/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -778,23 +613,16 @@ export function ScanMyTransactions() {
             {scanResults.map((result, idx) => (
               <div
                 key={idx}
-                className="inbox-message border-2 border-cipher-cyan/30 rounded overflow-hidden hover:border-cipher-cyan/60 transition-colors duration-200 animate-fade-in"
+                className="inbox-message border border-cipher-cyan/20 rounded-xl overflow-hidden hover:border-cipher-cyan/50 transition-colors duration-200 animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 {/* Message Header - Old School Email Style (Single Line) */}
-                <div className="inbox-message-header px-4 py-3 border-b-2 border-cipher-border">
+                <div className="inbox-message-header px-4 py-3 border-b border-cipher-border">
                   <div className="flex items-center gap-3 text-xs flex-wrap">
                     {/* From */}
                     <div className="flex items-center gap-2">
                       <span className="text-muted font-bold uppercase tracking-wider">From:</span>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-cipher-purple/20 border border-cipher-purple/40 rounded">
-                        <svg className="w-2.5 h-2.5 text-cipher-purple flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-xs font-semibold text-cipher-purple uppercase">
-                          Shielded
-                        </span>
-                      </div>
+                      <StatusBadge status="shielded" />
                     </div>
 
                     {/* Separator */}
@@ -856,7 +684,7 @@ export function ScanMyTransactions() {
           </div>
 
           {/* Terminal Footer */}
-          <div className="inbox-footer px-4 py-3 border-t-2 border-cipher-cyan">
+          <div className="inbox-footer px-4 py-3 border-t border-cipher-cyan/30">
             <div className="flex items-center justify-between text-xs text-muted font-mono">
               <span>
                 ✓ {scanResults.length} message{scanResults.length > 1 ? 's' : ''} decrypted

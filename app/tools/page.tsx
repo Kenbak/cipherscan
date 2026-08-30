@@ -55,7 +55,7 @@ const tools = [
   {
     href: '/decrypt',
     title: 'Decrypt Shielded Memo',
-    desc: 'Decode encrypted memos from Sapling and Orchard transactions using your viewing key. 100% client-side.',
+    desc: 'Decode encrypted memos from Orchard and Ironwood transactions using your viewing key. 100% client-side.',
     icon: Icons.Lock,
     badge: 'Client-side WASM',
   },

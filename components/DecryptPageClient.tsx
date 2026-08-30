@@ -1,30 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { SingleTxDecrypt } from '@/components/SingleTxDecrypt';
 import { ScanMyTransactions } from '@/components/ScanMyTransactions';
-import { Card, CardBody } from '@/components/ui/Card';
+import { Card, CardBody, Tabs } from '@/components/ui';
 
-// Icons - consistent w-4 h-4 size
 const Icons = {
-  Shield: ({ className = "w-4 h-4" }: { className?: string }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  ),
-  Lock: ({ className = "w-4 h-4" }: { className?: string }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-    </svg>
-  ),
-  Info: ({ className = "w-4 h-4" }: { className?: string }) => (
+  Info: ({ className = 'w-4 h-4' }: { className?: string }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  Mail: ({ className = "w-4 h-4" }: { className?: string }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     </svg>
   ),
 };
@@ -52,50 +37,29 @@ export default function DecryptPageClient() {
 
   return (
     <>
-      {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-cipher-purple/10 flex items-center justify-center">
-            <Icons.Lock className="w-6 h-6 text-cipher-purple" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-              Decrypt Shielded Memo
-            </h1>
-            <p className="text-sm text-secondary">
-              Decode encrypted memos from Zcash shielded transactions
-            </p>
-          </div>
-        </div>
+        <Link
+          href="/tools"
+          className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block"
+        >
+          &larr; All Tools
+        </Link>
+        <h1 className="text-2xl md:text-3xl font-bold text-primary">Decrypt Shielded Memo</h1>
+        <p className="text-sm text-secondary mt-1">
+          Decode encrypted memos from Orchard and Ironwood transactions. 100% client-side — your viewing key never leaves this browser.
+        </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex justify-center mb-8">
-        <div className="filter-group">
-          <button
-            onClick={() => setActiveTab('single')}
-            className={`filter-btn ${activeTab === 'single' ? 'filter-btn-active' : ''}`}
-          >
-            Single Message
-          </button>
-          <button
-            onClick={() => setActiveTab('scan')}
-            className={`filter-btn ${activeTab === 'scan' ? 'filter-btn-active' : ''}`}
-          >
-            Inbox
-          </button>
-        </div>
-      </div>
-
-      {/* Privacy Notice */}
-      <div className="alert alert-success mb-8">
-        <Icons.Shield className="w-5 h-5 text-cipher-green flex-shrink-0" />
-        <div>
-          <p className="font-medium text-cipher-green">100% Client-Side Decryption</p>
-          <p className="text-sm text-secondary mt-1">
-            Your viewing key <strong className="text-primary">never leaves your browser</strong>. All decryption happens locally using WebAssembly.
-          </p>
-        </div>
+      {/* Mode switch */}
+      <div className="mb-6">
+        <Tabs
+          tabs={[
+            { id: 'single', label: 'Single Message' },
+            { id: 'scan', label: 'Inbox' },
+          ]}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       {/* Tab Content */}

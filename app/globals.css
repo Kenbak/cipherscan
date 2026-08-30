@@ -369,13 +369,13 @@
   --warning-box-text: #FBBF24;
   --warning-box-border: rgba(251, 191, 36, 0.25);
 
-  /* Decrypt inbox */
-  --inbox-container-bg: #111827;
-  --inbox-panel: #111827;
-  --inbox-chrome: #1F2937;
-  --inbox-message-bg: rgba(31, 41, 55, 0.5);
-  --inbox-message-header-bg: linear-gradient(90deg, rgba(31, 41, 55, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%);
-  --inbox-message-body-bg: rgba(255, 255, 255, 0.02);
+  /* Decrypt inbox — glass surface matching .card-glass, not a standalone slate palette */
+  --inbox-container-bg: var(--card-glass-bg);
+  --inbox-panel: var(--card-glass-bg);
+  --inbox-chrome: var(--raised-bg);
+  --inbox-message-bg: var(--glass-4);
+  --inbox-message-header-bg: linear-gradient(90deg, var(--glass-4) 0%, var(--glass-2) 100%);
+  --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
   --risk-connector-color: rgba(167, 139, 250, 0.25);
@@ -525,13 +525,13 @@
   --warning-box-text: #B45309;
   --warning-box-border: rgba(180, 83, 9, 0.25);
 
-  /* Decrypt inbox */
-  --inbox-container-bg: var(--color-surface);
-  --inbox-panel: var(--color-elevated);
-  --inbox-chrome: var(--color-elevated);
-  --inbox-message-bg: var(--color-surface);
-  --inbox-message-header-bg: linear-gradient(90deg, var(--color-elevated) 0%, rgba(240, 242, 245, 0.5) 100%);
-  --inbox-message-body-bg: var(--color-elevated);
+  /* Decrypt inbox — same glass tokens as dark theme, values flip automatically */
+  --inbox-container-bg: var(--card-glass-bg);
+  --inbox-panel: var(--card-glass-bg);
+  --inbox-chrome: var(--raised-bg);
+  --inbox-message-bg: var(--glass-4);
+  --inbox-message-header-bg: linear-gradient(90deg, var(--glass-4) 0%, var(--glass-2) 100%);
+  --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
   --risk-connector-color: rgba(124, 58, 237, 0.4);
@@ -1331,7 +1331,9 @@
 
   /* ===== INBOX (Decrypt results) ===== */
   .inbox-container {
-    background-color: var(--inbox-container-bg);
+    background: var(--inbox-container-bg);
+    backdrop-filter: var(--card-glass-blur);
+    -webkit-backdrop-filter: var(--card-glass-blur);
   }
 
   .inbox-header {

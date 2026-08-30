@@ -3,7 +3,7 @@ import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
   title: 'Decrypt Zcash Transaction Memos | CipherScan',
-  description: 'Decrypt Sapling and Orchard transaction memos in your browser using a Zcash viewing key. Your key never leaves your device.',
+  description: 'Decrypt Orchard and Ironwood transaction memos in your browser using a Zcash viewing key. Your key never leaves your device.',
   keywords: [
     'zcash decrypt memo',
     'zcash memo tool',
@@ -12,8 +12,8 @@ export const metadata = buildPageMetadata({
     'zcash encrypted memo',
     'decode zcash memo',
     'zcash memo decoder',
-    'sapling transaction decrypt',
     'orchard transaction decrypt',
+    'ironwood transaction decrypt',
     'zcash shielded message',
     'zcash memo reader',
     'ZEC decrypt',
@@ -31,7 +31,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: 'Zcash Decrypt Memo Tool',
-  description: 'Free online tool to decrypt Zcash shielded transaction memos using a Unified Full Viewing Key (UFVK). Supports Sapling and Orchard transactions. 100% client-side decryption using WebAssembly.',
+  description: 'Free online tool to decrypt Zcash shielded transaction memos using a Unified Full Viewing Key (UFVK). Supports Orchard and Ironwood transactions. 100% client-side decryption using WebAssembly.',
   url: 'https://cipherscan.app/decrypt',
   applicationCategory: 'UtilityApplication',
   operatingSystem: 'Web Browser',
@@ -47,58 +47,51 @@ const jsonLd = {
   },
   featureList: [
     'Decrypt Zcash shielded transaction memos',
-    'Support for Sapling and Orchard transactions',
+    'Support for Orchard and Ironwood transactions',
     'Client-side decryption using WebAssembly',
     'Encrypted inbox scanner',
     'No server-side processing, viewing keys never leave the browser',
   ],
 };
 
+const faqs = [
+  {
+    question: 'How do I decrypt a Zcash memo?',
+    answer: 'Enter the transaction ID and your Unified Full Viewing Key (UFVK) in the tool above. CipherScan decrypts the memo entirely in your browser using WebAssembly — your viewing key is never sent to any server.',
+  },
+  {
+    question: 'Is it safe to use my viewing key here?',
+    answer: 'Yes. A viewing key only allows reading transactions; it cannot spend funds. All decryption happens client-side, so the key itself never leaves your device.',
+  },
+  {
+    question: 'What is a Zcash encrypted memo?',
+    answer: 'A 512-byte message attached to a shielded (Sapling, Orchard, or Ironwood) transaction. Only the recipient, or anyone with the viewing key, can read it. Memos can contain text, payment references, or arbitrary data.',
+  },
+  {
+    question: 'Where do I get a viewing key?',
+    answer: 'Export a Unified Full Viewing Key (UFVK) from a compatible wallet — see the list above (Vizor, Zkool, or Zingo CLI).',
+  },
+  {
+    question: 'Which transaction types are supported?',
+    answer: 'Orchard and Ironwood shielded transactions. Sapling memo decryption isn\u2019t supported yet (Sapling notes carry memos too, but this tool can\u2019t decrypt them). Transparent transactions have no encrypted memo field.',
+  },
+  {
+    question: 'Can I scan all my transactions at once?',
+    answer: 'Yes — switch to the "Inbox" tab. It scans recent Orchard transactions and decrypts any that match your viewing key, all within your browser.',
+  },
+];
+
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'How do I decrypt a Zcash memo?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'To decrypt a Zcash memo, you need a Unified Full Viewing Key (UFVK) from a compatible wallet like Vizor, Zodl, or Zingo. Enter the transaction ID and your viewing key in the CipherScan Decrypt Memo tool. All decryption happens client-side in your browser using WebAssembly, your keys are never sent to any server.',
-      },
+  mainEntity: faqs.map((faq) => ({
+    '@type': 'Question',
+    name: faq.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: faq.answer,
     },
-    {
-      '@type': 'Question',
-      name: 'Is it safe to use my viewing key on CipherScan?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. CipherScan performs all decryption client-side using WebAssembly. Your viewing key never leaves your browser and is never transmitted to any server. A viewing key only allows you to read transactions, it cannot spend your funds.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What is a Zcash encrypted memo?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Zcash encrypted memos are 512-byte messages attached to shielded transactions. They are encrypted so that only the recipient (or anyone with the viewing key) can read them. Memos can contain text messages, payment references, or structured data.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Which Zcash transaction types support encrypted memos?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Encrypted memos are supported in Sapling and Orchard shielded transactions. Transparent transactions do not support encrypted memos. The CipherScan decrypt tool supports both Sapling and Orchard memo decryption.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Where do I get a Unified Full Viewing Key (UFVK)?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'You can export a UFVK from compatible Zcash wallets including Vizor (mobile), Zodl (mobile & web), and Zingo CLI (command-line). The viewing key lets you decrypt and view transactions without the ability to spend funds.',
-      },
-    },
-  ],
+  })),
 };
 
 export default function DecryptPage() {
@@ -119,82 +112,37 @@ export default function DecryptPage() {
           {/* Interactive Tool */}
           <DecryptPageClient />
 
-          {/* SEO Content: FAQ Section (visible, crawlable by Google) */}
+          {/* SEO Content: FAQ Section (visible, crawlable by Google — <details> renders server-side) */}
           <section className="mt-16 border-t border-cipher-border pt-12">
-            <h2 className="text-xl font-bold text-primary mb-8">Frequently Asked Questions</h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">How do I decrypt a Zcash memo?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  Enter the transaction ID and your Unified Full Viewing Key (UFVK) in the tool above.
-                  CipherScan decrypts the memo entirely in your browser using WebAssembly.
-                  Your viewing key is never sent to any server.
-                </p>
-              </div>
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">Is it safe to use my viewing key here?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  Yes. All decryption happens client-side in your browser. Your viewing key never leaves your device.
-                  A viewing key only allows reading transactions, it cannot spend your funds.
-                </p>
-              </div>
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">What is a Zcash encrypted memo?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  Zcash encrypted memos are 512-byte messages attached to shielded (Sapling and Orchard) transactions.
-                  They are encrypted so only the recipient can read them, and can contain text messages,
-                  payment references, or any arbitrary data.
-                </p>
-              </div>
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">Where do I get a viewing key?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  Export a Unified Full Viewing Key (UFVK) from compatible wallets:
-                  Vizor (mobile), Zodl (mobile & web), or Zingo CLI (command-line).
-                  The UFVK allows viewing transactions without spending ability.
-                </p>
-              </div>
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">Which transaction types are supported?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  This tool supports decrypting memos from both Sapling and Orchard shielded transactions.
-                  Transparent transactions do not have encrypted memos.
-                  Use the Inbox Scanner to scan multiple transactions at once.
-                </p>
-              </div>
-              <div className="card p-5">
-                <h3 className="font-semibold text-primary mb-2">Can I scan all my transactions at once?</h3>
-                <p className="text-sm text-secondary leading-relaxed">
-                  Yes. Switch to the &quot;Inbox&quot; tab to use the Encrypted Inbox Scanner.
-                  It scans recent Orchard transactions on the Zcash blockchain and decrypts
-                  any that match your viewing key, all within your browser.
-                </p>
-              </div>
+            <h2 className="text-xl font-bold text-primary mb-6">Frequently Asked Questions</h2>
+            <div className="card divide-y divide-cipher-border">
+              {faqs.map((faq) => (
+                <details key={faq.question} className="group py-4 first:pt-0 last:pb-0">
+                  <summary className="flex items-center justify-between gap-3 cursor-pointer list-none font-semibold text-primary text-sm sm:text-base">
+                    {faq.question}
+                    <svg
+                      className="w-4 h-4 text-muted flex-shrink-0 transition-transform group-open:rotate-180"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </summary>
+                  <p className="text-sm text-secondary leading-relaxed mt-2">{faq.answer}</p>
+                </details>
+              ))}
             </div>
           </section>
 
-          {/* Additional SEO content */}
-          <section className="mt-12 border-t border-cipher-border pt-12 mb-8">
-            <h2 className="text-xl font-bold text-primary mb-4">About Zcash Memo Decryption</h2>
-            <div className="prose prose-sm max-w-none text-secondary leading-relaxed space-y-4">
-              <p>
-                Zcash is unique among cryptocurrencies in offering encrypted memos attached to shielded transactions.
-                These memos allow users to include private messages, payment references, invoice numbers, or any
-                arbitrary data, all protected by the same zero-knowledge cryptography that shields transaction amounts
-                and addresses.
-              </p>
-              <p>
-                The CipherScan Decrypt Memo tool is a free, open-source utility that lets you decode these encrypted
-                messages directly in your web browser. Unlike other tools that require running a full Zcash node or
-                using command-line interfaces, CipherScan provides a simple web interface powered by WebAssembly
-                for instant, private decryption.
-              </p>
-              <p>
-                Whether you need to verify a payment memo, read a private message, or audit your shielded transaction
-                history, CipherScan&apos;s decrypt tool handles Sapling and Orchard transactions with zero-knowledge proof
-                verification, all without your viewing key ever leaving your browser.
-              </p>
-            </div>
+          {/* Additional SEO context — kept short; the facts above already cover the details */}
+          <section className="mt-8 mb-8">
+            <p className="text-xs text-muted leading-relaxed max-w-2xl">
+              Zcash is one of the only cryptocurrencies with encrypted memos on shielded transactions —
+              free-text or structured data protected by the same zero-knowledge cryptography that hides amounts
+              and addresses. CipherScan&apos;s decrypt tool is free and open-source, decoding Orchard and Ironwood
+              memos entirely in WebAssembly with no server round-trip and no node or CLI required.
+            </p>
           </section>
         </div>
       </div>

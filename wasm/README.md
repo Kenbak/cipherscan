@@ -5,9 +5,10 @@ WebAssembly module for decrypting Zcash shielded transaction memos **entirely in
 ## 🎯 Features
 
 - ✅ **100% Client-Side** - Viewing keys never leave your device
-- ✅ **Sapling Support** - Decrypt Sapling shielded memos
-- ⏳ **Orchard Support** - Coming soon
-- ✅ **Unified Viewing Keys** - Support for UFVK and Sapling ExtFVK
+- ✅ **Orchard Support** - Decrypt Orchard shielded memos
+- ✅ **Ironwood Support** - Decrypt Ironwood shielded memos (same domain/keys as Orchard)
+- ❌ **No Sapling Support** - Sapling decryption needs `zcash_primitives`/`sapling-crypto`, which pull in `secp256k1` (C code) via `zcash_transparent` and cannot compile to `wasm32`. This crate deliberately depends on `zakura-orchard` only (see `Cargo.toml`) to keep the wasm32 build lean.
+- ✅ **Unified Viewing Keys** - Support for UFVK (Orchard component)
 - ✅ **Privacy-Preserving** - Zero server-side processing
 
 ## 🚀 Building
