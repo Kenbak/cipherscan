@@ -32,6 +32,8 @@ const NETWORK_STATS_CACHE_KEY = 'zcash:network_stats';
 const NETWORK_STATS_CACHE_DURATION = 120; // 2 minutes — network stats don't change fast
 const NETWORK_HEALTH_CACHE_KEY = 'zcash:network_health';
 const NETWORK_HEALTH_CACHE_DURATION = 60;
+const NETWORK_TOPOLOGY_CACHE_KEY = 'zcash:network_topology';
+const NETWORK_TOPOLOGY_CACHE_DURATION = 300; // 5 minutes — aligned with crawler ingest cycle
 
 // Fallback in-memory cache (if Redis fails)
 let networkStatsCache = null;
@@ -1061,6 +1063,12 @@ router.get('/api/network/protocol-stats', async (req, res) => {
  */
 router.get('/api/network/topology', async (req, res) => {
   try {
+    // Serve from Redis cache when available (topology data changes every ~5 min).
+    const cached = await getFromRedisCache(NETWORK_TOPOLOGY_CACHE_KEY);
+    if (cached) {
+      return res.json(cached);
+    }
+
     // Full known-network graph: reachable core + connected "off" (gossiped but
     // unreachable) nodes. Reachable nodes get the richer client classification
     // from the nodes table; grey nodes fall back to the crawler-derived label.
@@ -1083,8 +1091,6 @@ router.get('/api/network/topology', async (req, res) => {
         COALESCE(NULLIF(n.client_impl, 'Unknown'), NULLIF(tn.client_impl, 'Unknown')) AS client_impl,
         (tn.is_tor OR COALESCE(n.is_tor, FALSE)) AS is_tor,
         COALESCE(n.country_code, tn.country_code) AS country_code,
-        ROUND(tn.lat::numeric, 0) AS lat,
-        ROUND(tn.lon::numeric, 0) AS lon,
         tn.degree,
         tn.betweenness,
         tn.closeness
@@ -1110,8 +1116,6 @@ router.get('/api/network/topology', async (req, res) => {
           client: r.client_impl || null,
           isTor: r.is_tor === true,
           countryCode: r.country_code,
-          lat: r.lat != null ? parseFloat(r.lat) : null,
-          lon: r.lon != null ? parseFloat(r.lon) : null,
           betweenness: r.betweenness != null ? parseFloat(r.betweenness) : null,
           closeness: r.closeness != null ? parseFloat(r.closeness) : null,
           degree: r.degree != null ? parseInt(r.degree) : null,
@@ -1139,7 +1143,7 @@ router.get('/api/network/topology', async (req, res) => {
 
     const reachableCount = nodes.filter(n => n.reachable).length;
 
-    res.json({
+    const response = {
       success: true,
       nodes,
       edges,
@@ -1150,7 +1154,11 @@ router.get('/api/network/topology', async (req, res) => {
         edges: edges.length,
       },
       timestamp: Date.now(),
-    });
+    };
+
+    await setInRedisCache(NETWORK_TOPOLOGY_CACHE_KEY, response, NETWORK_TOPOLOGY_CACHE_DURATION);
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching topology:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch topology' });

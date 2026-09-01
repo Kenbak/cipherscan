@@ -9,7 +9,7 @@ import {
   project,
   useWorldLandDots,
 } from '@/lib/world-dot-map';
-import { clientColor, clientLabel, buildIspColorMap, ISP_UNRESOLVED_COLOR } from '@/lib/network-colors';
+import { clientColor, clientLabel, buildIspColorMap, ISP_UNRESOLVED_COLOR, ISP_OTHER_COLOR, CLIENT_COLORS } from '@/lib/network-colors';
 
 interface RawLocation {
   country: string;
@@ -27,7 +27,17 @@ interface CellPoint extends RawLocation {
   y: number;
   radius: number;
   color: string;
+  /** Unknown/unresolved/catch-all "Other" cell — carries no real signal, so
+   * it should always render behind identified cells, never obscure them. */
+  muted: boolean;
 }
+
+const MUTED_COLORS = new Set<string>([
+  CLIENT_COLORS.Unknown,
+  CLIENT_COLORS.Other,
+  ISP_UNRESOLVED_COLOR,
+  ISP_OTHER_COLOR,
+]);
 
 function getFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return '';
@@ -79,7 +89,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
       const color = mode === 'client'
         ? clientColor(loc.topClient)
         : (ispColorMap[loc.topIsp || 'Unresolved'] || ISP_UNRESOLVED_COLOR);
-      return { ...loc, x: pos.x, y: pos.y, radius, color };
+      return { ...loc, x: pos.x, y: pos.y, radius, color, muted: MUTED_COLORS.has(color) };
     });
   }, [locations, mode, ispColorMap]);
 
@@ -122,7 +132,15 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
           <circle key={`wd-${i}`} cx={dot.x} cy={dot.y} r={DOT_RADIUS} fill="var(--color-map-dot)" />
         ))}
 
-        {[...points].sort((a, b) => b.nodeCount - a.nodeCount).map((p, i) => {
+        {/* Paint order: muted (unknown/other) cells always go in the back, then
+            identified cells layered by size — so overlapping identified data
+            never gets hidden under a same-size-or-larger "Unresolved" blob. */}
+        {[...points]
+          .sort((a, b) => {
+            if (a.muted !== b.muted) return a.muted ? -1 : 1;
+            return b.nodeCount - a.nodeCount;
+          })
+          .map((p, i) => {
           const isHovered = hovered === p;
           return (
             <g
@@ -136,7 +154,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
                 cy={p.y}
                 r={isHovered ? p.radius + 2 : p.radius}
                 fill={p.color}
-                opacity={isHovered ? 1 : 0.85}
+                opacity={isHovered ? 1 : (p.muted ? 0.55 : 0.9)}
                 stroke={isHovered ? '#ffffff' : 'rgba(255,255,255,0.15)'}
                 strokeWidth={isHovered ? 2 : 0.5}
                 style={{ transition: 'all 150ms cubic-bezier(0.16, 1, 0.3, 1)' }}

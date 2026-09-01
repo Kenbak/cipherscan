@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/SectionHeader';
 import { NodeMapExplorer } from '@/components/network/NodeMapExplorer';
 import { CLIENT_COLORS, clientLabel, clientColor, CLIENT_BADGE_CLASSES } from '@/lib/network-colors';
+import { RadialGauge, scoreColor } from '@/components/ui/RadialGauge';
 
 interface NodeEntry {
   id: number;
@@ -334,19 +335,14 @@ export default function NodesClient() {
           {health && (
             <Card>
               <CardBody>
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Network Health</h3>
                     <p className="text-[11px] text-muted mt-0.5">Composite of connectivity, upgrade adoption, client &amp; geo diversity, reliability</p>
                   </div>
-                  <div className={`text-2xl font-bold font-mono ${
-                    health.healthScore >= 80 ? 'text-emerald-400' :
-                    health.healthScore >= 60 ? 'text-amber-400' : 'text-red-400'
-                  }`}>
-                    {health.healthScore}
-                  </div>
+                  <RadialGauge value={health.healthScore} label="SCORE" />
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <HealthBar label="Connectivity" score={health.components.connectivity.score} detail={`avg ${health.components.connectivity.avgDegree} peers`} />
                   <HealthBar label="Upgrade Adoption" score={health.components.upgrade.score} detail={`${health.components.upgrade.adoptionPct}% on latest`} />
                   <HealthBar label="Client Diversity" score={health.components.clientDiversity.score} detail={health.components.clientDiversity.topClient ? `${health.components.clientDiversity.topClient} ${health.components.clientDiversity.topClientPct}%` : '—'} />
@@ -361,31 +357,33 @@ export default function NodesClient() {
           {reliability && (
             <Card>
               <CardBody>
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-1 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
                     <p className="text-[11px] text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
                   </div>
-                  <Badge className="text-[10px] bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30">
+                  <Badge className="text-[10px] bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30 whitespace-nowrap">
                     {reliability.services.fullNodePct}% full nodes
                   </Badge>
                 </div>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center">
-                    <div className="text-lg font-bold font-mono text-emerald-400">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
-                    <div className="text-[10px] text-muted uppercase">Avg Uptime</div>
+                <div className="text-right text-[10px] text-muted mb-4">{reliability.maxSeen.toLocaleString()} crawls tracked</div>
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div>
+                    <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {reliability.avgReliabilityPct != null && (
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: scoreColor(reliability.avgReliabilityPct) }} />
+                      )}
+                      <span className="text-[10px] text-muted uppercase tracking-wider">Avg Uptime</span>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold font-mono text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
-                    <div className="text-[10px] text-muted uppercase">Median Ping</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold font-mono text-primary">{reliability.maxSeen}</div>
-                    <div className="text-[10px] text-muted uppercase">Max Crawls</div>
+                  <div>
+                    <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
+                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
                   </div>
                 </div>
                 <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {reliability.latency.buckets.map(b => {
                     const max = Math.max(1, ...reliability.latency.buckets.map(x => x.count));
                     return (
@@ -394,7 +392,7 @@ export default function NodesClient() {
                         <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-cipher-cyan/70" style={{ width: `${(b.count / max) * 100}%` }} />
                         </div>
-                        <span className="font-mono text-primary w-8 text-right">{b.count}</span>
+                        <span className="font-mono tabular-nums text-primary w-8 text-right">{b.count}</span>
                       </div>
                     );
                   })}
@@ -407,24 +405,24 @@ export default function NodesClient() {
           {upgrade && (
             <Card>
               <CardBody>
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Upgrade Readiness</h3>
                     <p className="text-[11px] text-muted mt-0.5">Protocol version adoption (latest: NU6.3)</p>
                   </div>
-                  <span className="text-lg font-bold font-mono text-cipher-cyan">{upgrade.readinessPct}%</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: scoreColor(upgrade.readinessPct) }}>{upgrade.readinessPct}%</span>
                 </div>
                 <div className="w-full h-3 bg-cipher-border/40 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-gradient-to-r from-cipher-cyan to-emerald-400 rounded-full transition-all" style={{ width: `${upgrade.readinessPct}%` }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${upgrade.readinessPct}%`, backgroundColor: scoreColor(upgrade.readinessPct) }} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
                     <div key={v.protocolVersion} className="flex items-center gap-2 text-[11px]">
-                      <span className={`h-2 w-2 rounded-full ${v.isLatest ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                       <span className="font-mono text-secondary w-16">{v.protocolVersion}</span>
-                      <span className="text-muted">{v.clients.join(', ')}</span>
-                      <span className="ml-auto font-mono font-semibold text-primary">{v.nodeCount}</span>
-                      <span className="font-mono text-muted w-12 text-right">{v.percentage}%</span>
+                      <span className="text-muted truncate">{v.clients.join(', ')}</span>
+                      <span className="ml-auto font-mono tabular-nums font-semibold text-primary">{v.nodeCount}</span>
+                      <span className="font-mono tabular-nums text-muted w-12 text-right">{v.percentage}%</span>
                     </div>
                   ))}
                 </div>
@@ -436,29 +434,42 @@ export default function NodesClient() {
           {concentration && (
             <Card>
               <CardBody>
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Concentration Risk</h3>
                     <p className="text-[11px] text-muted mt-0.5">ISP and subnet clustering analysis</p>
                   </div>
-                  <Badge className={`text-[10px] ${
-                    concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
-                    concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                    'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                  }`}>
-                    {concentration.concentrationRisk.toUpperCase()}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge className={`text-[10px] ${
+                      concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
+                      concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
+                      'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    }`}>
+                      {concentration.concentrationRisk.toUpperCase()}
+                    </Badge>
+                    {concentration.isps[0] && (
+                      <span className="text-[10px] font-mono tabular-nums text-muted">
+                        top: <span className="text-primary font-semibold">{concentration.isps[0].percentage}%</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="mb-3">
+                <div className="mb-4">
                   <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Top ISPs</div>
                   <div className="space-y-1.5">
-                    {concentration.isps.slice(0, 5).map(isp => (
-                      <div key={isp.isp} className="flex items-center gap-2 text-[11px]">
-                        <span className="text-secondary truncate flex-1">{isp.isp}</span>
-                        <span className="font-mono text-primary">{isp.nodeCount}</span>
-                        <span className="font-mono text-muted w-12 text-right">{isp.percentage}%</span>
-                      </div>
-                    ))}
+                    {concentration.isps.slice(0, 5).map(isp => {
+                      const max = Math.max(1, ...concentration.isps.slice(0, 5).map(x => x.percentage));
+                      return (
+                        <div key={isp.isp} className="flex items-center gap-2 text-[11px]">
+                          <span className="text-secondary truncate w-28 shrink-0">{isp.isp}</span>
+                          <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-cipher-cyan/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
+                          </div>
+                          <span className="font-mono tabular-nums text-primary w-8 text-right">{isp.nodeCount}</span>
+                          <span className="font-mono tabular-nums text-muted w-11 text-right">{isp.percentage}%</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {concentration.subnets.length > 0 && (
@@ -604,18 +615,18 @@ function SortHeader({
 }
 
 function HealthBar({ label, score, detail }: { label: string; score: number; detail: string }) {
+  const color = scoreColor(score);
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] text-secondary w-28">{label}</span>
+      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <span className="text-[11px] text-secondary w-[104px] shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${
-            score >= 80 ? 'bg-emerald-400' : score >= 60 ? 'bg-amber-400' : 'bg-red-400'
-          }`}
-          style={{ width: `${score}%` }}
+          className="h-full rounded-full transition-all"
+          style={{ width: `${score}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-[10px] font-mono text-muted w-24 text-right">{detail}</span>
+      <span className="text-[10px] font-mono tabular-nums text-muted w-24 text-right shrink-0">{detail}</span>
     </div>
   );
 }

@@ -52,7 +52,7 @@ const ISP_PALETTE = [
   '#56D4C8', '#E8C48D', '#5B9CF6', '#a78bfa', '#f59e0b',
   '#22c55e', '#ef4444', '#ec4899', '#14b8a6', '#64748b',
 ];
-const ISP_OTHER_COLOR = '#4B5563';
+export const ISP_OTHER_COLOR = '#4B5563';
 export const ISP_UNRESOLVED_COLOR = '#374151';
 
 export function buildIspColorMap(ispsRankedByFrequency: string[]): Record<string, string> {

@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { Tabs } from '@/components/ui/Tabs';
 import { NodeGeoLayerMap } from './NodeGeoLayerMap';
 
@@ -30,6 +30,8 @@ const TAB_DESCRIPTIONS: Record<MapTab, string> = {
  */
 export function NodeMapExplorer() {
   const [tab, setTab] = useState<MapTab>('topology');
+  const topologyMounted = useRef(false);
+  if (tab === 'topology') topologyMounted.current = true;
 
   return (
     <div>
@@ -45,14 +47,19 @@ export function NodeMapExplorer() {
       </div>
       <p className="text-[11px] text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>
 
-      {tab === 'topology' && (
-        <Suspense fallback={
-          <div className="h-[400px] flex items-center justify-center">
-            <div className="animate-pulse text-muted text-sm font-mono">Loading topology...</div>
-          </div>
-        }>
-          <TopologyGraph />
-        </Suspense>
+      {/* Keep topology mounted (hidden) once loaded so the WebGL scene and
+          computed force layout survive tab switches — avoids a full refetch +
+          320-tick re-simulation every time the user switches back. */}
+      {topologyMounted.current && (
+        <div style={{ display: tab === 'topology' ? 'block' : 'none' }}>
+          <Suspense fallback={
+            <div className="h-[400px] flex items-center justify-center">
+              <div className="animate-pulse text-muted text-sm font-mono">Loading topology...</div>
+            </div>
+          }>
+            <TopologyGraph />
+          </Suspense>
+        </div>
       )}
 
       {tab === 'client' && <NodeGeoLayerMap mode="client" />}
