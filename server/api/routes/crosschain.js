@@ -168,7 +168,7 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database pool not available' });
     }
 
-    const [summaryRes, volumeRes, latencyRes, recentRes] = await Promise.all([
+    const [summaryRes, volumeRes, latencyRes, recentRes, walletsRes] = await Promise.all([
       pool.query('SELECT * FROM mv_crosschain_summary LIMIT 1'),
       pool.query('SELECT * FROM mv_crosschain_volume_24h'),
       pool.query('SELECT * FROM mv_crosschain_latency'),
@@ -179,6 +179,13 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
         FROM cross_chain_swaps WHERE status = 'SUCCESS'
         ORDER BY swap_created_at DESC LIMIT 20
       `),
+      pool.query(`
+        SELECT COUNT(DISTINCT sender) as unique_wallets
+        FROM cross_chain_swaps, LATERAL unnest(senders) AS sender
+        WHERE status = 'SUCCESS'
+          AND swap_created_at >= NOW() - INTERVAL '30 days'
+          AND sender IS NOT NULL AND sender != ''
+      `).catch(() => ({ rows: [{ unique_wallets: null }] })),
     ]);
 
     const s = summaryRes.rows[0] || {};
@@ -235,6 +242,8 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       })
       .sort((a, b) => b.swapCount - a.swapCount);
 
+    const uniqueWallets = walletsRes.rows[0]?.unique_wallets;
+
     const result = {
       success: true,
       totalVolume24h: parseFloat(parseFloat(s.volume_24h || 0).toFixed(2)),
@@ -246,6 +255,7 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
       recentSwaps: recentRes.rows.map(formatSwap),
       latencyByChain: mapLatency('inflow'),
       latencyOutflows: mapLatency('outflow'),
+      uniqueWallets30d: uniqueWallets ? parseInt(uniqueWallets) : null,
       chainConfig: CHAIN_CONFIG,
     };
     setCache('db-stats', result);
@@ -526,6 +536,51 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
   } catch (error) {
     console.error('Popular pairs error:', error);
     const stale = getStale('popular-pairs');
+    if (stale) return res.json(stale);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/crosschain/size-distribution
+ * Swap-size buckets from the swap_amount_stats_daily table (30d).
+ * Returns: { buckets: [{ bucket, centroid, swapCount, volumeUsd }] }
+ */
+router.get('/api/crosschain/size-distribution', async (req, res) => {
+  try {
+    const cached = getCached('size-distribution', 300_000);
+    if (cached) return res.json(cached);
+
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, error: 'Database pool not available' });
+    }
+
+    const { rows } = await pool.query(`
+      SELECT
+        amount_bucket as centroid,
+        SUM(swap_count)::int as swap_count,
+        SUM(total_volume_usd)::float as volume_usd
+      FROM swap_amount_stats_daily
+      WHERE date >= (CURRENT_DATE - INTERVAL '30 days')
+      GROUP BY amount_bucket
+      ORDER BY amount_bucket
+    `);
+
+    const result = {
+      success: true,
+      buckets: rows.map(r => ({
+        bucket: `${parseFloat(r.centroid).toFixed(0)}`,
+        centroid: parseFloat(r.centroid),
+        swapCount: parseInt(r.swap_count),
+        volumeUsd: parseFloat(parseFloat(r.volume_usd).toFixed(2)),
+      })),
+    };
+    setCache('size-distribution', result);
+    res.json(result);
+  } catch (error) {
+    console.error('Size distribution error:', error);
+    const stale = getStale('size-distribution');
     if (stale) return res.json(stale);
     res.status(500).json({ success: false, error: error.message });
   }

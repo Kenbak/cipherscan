@@ -7,6 +7,7 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
 import { ChartCard } from '@/components/network/ChartCard';
+import { formatMinutes } from '@/components/crosschain/format';
 
 export interface LatencyStat {
   chain: string;
@@ -28,10 +29,58 @@ interface LatencyRow {
 
 const TOP_N = 10;
 
-function formatMinutes(m: number): string {
-  if (m <= 0) return '—';
-  if (m < 60) return `${m.toFixed(0)}m`;
-  return `${(m / 60).toFixed(1)}h`;
+const CHAIN_ICON_MAP: Record<string, string> = {
+  eth: '/chains/eth.png', sol: '/chains/sol.png', btc: '/chains/btc.png',
+  near: '/chains/near.png', base: '/chains/base.svg', arb: '/chains/arb.png',
+  op: '/chains/op.png', pol: '/chains/pol.png', avax: '/chains/avax.png',
+  bsc: '/chains/bsc.png', bnb: '/chains/bsc.png', trx: '/chains/tron.png',
+  tron: '/chains/tron.png', zec: '/tokens/zec.png', apt: '/chains/aptos.png',
+  aptos: '/chains/aptos.png', sui: '/chains/sui.png', ton: '/chains/ton.png',
+  doge: '/chains/doge.png', xrp: '/chains/xrp.png', ltc: '/chains/ltc.png',
+  bch: '/chains/bch.png', gnosis: '/chains/gnosis.png',
+  stellar: '/chains/stellar.png', cardano: '/chains/cardano.png',
+  dash: '/chains/doge.png', monad: '/chains/eth.png',
+};
+
+const CHAIN_DISPLAY_NAMES: Record<string, string> = {
+  btc: 'Bitcoin', eth: 'Ethereum', sol: 'Solana', near: 'NEAR',
+  doge: 'Dogecoin', xrp: 'Ripple', zec: 'Zcash', base: 'Base',
+  arb: 'Arbitrum', pol: 'Polygon', avax: 'Avalanche', trx: 'Tron',
+  tron: 'Tron', apt: 'Aptos', sui: 'Sui', ton: 'TON',
+  bnb: 'BNB Chain', bsc: 'BNB Chain', op: 'Optimism', ltc: 'Litecoin',
+};
+
+function ChainYAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value?: string } }) {
+  if (!x || !y || !payload?.value) return null;
+  const chain = payload.value;
+  const iconUrl = CHAIN_ICON_MAP[chain];
+  const displayName = CHAIN_DISPLAY_NAMES[chain] || chain;
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {iconUrl && (
+        <image
+          href={iconUrl}
+          x={-38}
+          y={-9}
+          width={18}
+          height={18}
+          clipPath="inset(0% round 50%)"
+        />
+      )}
+      <text
+        x={-44}
+        y={4}
+        textAnchor="end"
+        fill="currentColor"
+        fontSize={10}
+        fontFamily="monospace"
+        className="text-secondary"
+      >
+        {displayName}
+      </text>
+    </g>
+  );
 }
 
 function LatencyTooltip({ active, payload, colors }: {
@@ -51,7 +100,7 @@ function LatencyTooltip({ active, payload, colors }: {
       <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{row.chainName}</p>
       {row.inboundCount > 0 && (
         <p className="tabular-nums text-secondary">
-          <span className="text-cipher-cyan">Buy ZEC</span>: {formatMinutes(row.inboundMedian)} median · {row.inboundCount.toLocaleString()} swaps
+          <span className="text-cipher-green">Buy ZEC</span>: {formatMinutes(row.inboundMedian)} median · {row.inboundCount.toLocaleString()} swaps
         </p>
       )}
       {row.outboundCount > 0 && (
@@ -97,7 +146,7 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
   return (
     <ChartCard title="ZEC_LATENCY_BY_CHAIN" height={chartHeight}>
       <p className="text-xs text-muted mb-3 max-w-2xl">
-        Median time from swap initiation to ZEC confirmation, by chain and direction. Sorted by swap volume — the busiest routes are the most statistically reliable.
+        Median time from swap initiation to ZEC confirmation, by chain and direction. Sorted by swap volume.
       </p>
       <ResponsiveContainer width="100%" height={chartHeight - 20}>
         <BarChart data={displayRows} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -105,17 +154,17 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
           <XAxis type="number" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => formatMinutes(v)} />
           <YAxis
             type="category"
-            dataKey="chainName"
+            dataKey="chain"
             stroke={colors.axis}
-            tick={{ fill: colors.tooltipText, fontSize: 11, fontFamily: 'monospace' }}
-            width={90}
+            tick={ChainYAxisTick as any}
+            width={130}
           />
-          <Tooltip content={<LatencyTooltip colors={colors} />} cursor={{ fill: colors.barCursorCyan }} />
+          <Tooltip content={<LatencyTooltip colors={colors} />} cursor={{ fill: colors.barCursor }} />
           <Legend
             wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
             formatter={(value) => value === 'inboundMedian' ? 'Buy ZEC (inbound)' : 'Sell ZEC (outbound)'}
           />
-          <Bar dataKey="inboundMedian" name="inboundMedian" fill="var(--color-cipher-cyan)" fillOpacity={0.85} radius={[0, 3, 3, 0]} barSize={9} />
+          <Bar dataKey="inboundMedian" name="inboundMedian" fill="var(--color-cipher-green)" fillOpacity={0.85} radius={[0, 3, 3, 0]} barSize={9} />
           <Bar dataKey="outboundMedian" name="outboundMedian" fill="var(--color-cipher-orange)" fillOpacity={0.85} radius={[0, 3, 3, 0]} barSize={9} />
         </BarChart>
       </ResponsiveContainer>
@@ -131,7 +180,7 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
           {!showAll && (
             <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
               {longTail.slice(0, 8).map((r) => r.chainName).join(', ')}
-              {longTail.length > 8 ? `, +${longTail.length - 8} more` : ''} — under {TOP_N === 10 ? topRows[topRows.length - 1]?.totalCount.toLocaleString() : ''} swaps each, latency less statistically reliable.
+              {longTail.length > 8 ? `, +${longTail.length - 8} more` : ''} — under {topRows[topRows.length - 1]?.totalCount.toLocaleString()} swaps each, latency less statistically reliable.
             </p>
           )}
         </div>

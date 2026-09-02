@@ -102,7 +102,7 @@ interface TokenChainIconProps {
 export function TokenChainIcon({ token, chain, size = 32, className = '' }: TokenChainIconProps) {
   const tokenKey = token.toLowerCase();
   const chainKey = chain.toLowerCase();
-  const badgeSize = Math.max(Math.round(size * 0.5), 10);
+  const badgeSize = size <= 18 ? Math.max(Math.round(size * 0.38), 6) : Math.max(Math.round(size * 0.5), 10);
   const isNative = NATIVE_PAIRS[chainKey] === tokenKey;
   const showBadge = !isNative && chainKey !== tokenKey;
 
