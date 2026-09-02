@@ -103,15 +103,21 @@ router.get('/health/deep', async (req, res) => {
     critical = true;
   }
 
-  // PostgreSQL replica
+  // PostgreSQL replica + circuit breaker
   const routing = req.app.locals.poolRouting;
   if (routing && routing.hasReplica()) {
+    const circuit = routing.getCircuitState();
     try {
       const lagBlocks = await routing.replicaLagBlocks();
-      checks.replica = { status: 'up', lag_blocks: lagBlocks };
-      if (lagBlocks > 3) degraded = true;
+      checks.replica = {
+        status: circuit.state === 'OPEN' ? 'circuit_open' : 'up',
+        lag_blocks: lagBlocks,
+        circuit: circuit.state,
+        failures: circuit.consecutiveFailures,
+      };
+      if (lagBlocks > 3 || circuit.state !== 'CLOSED') degraded = true;
     } catch {
-      checks.replica = { status: 'down' };
+      checks.replica = { status: 'down', circuit: circuit.state, failures: circuit.consecutiveFailures };
       degraded = true;
     }
   } else {
