@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Tooltip } from '@/components/Tooltip';
 import { PageHeader } from '@/components/ui/SectionHeader';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge } from '@/components/ui/Badge';
 import { isMainnet } from '@/lib/config';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
+import { WrappedZecTracker, type WrappedZecAsset } from '@/components/crosschain/WrappedZecTracker';
+import { VolumeTrendsChart } from '@/components/crosschain/VolumeTrendsChart';
+import { ChainNetFlowChart } from '@/components/crosschain/ChainNetFlowChart';
 
 interface TokenVolume {
   symbol: string;
@@ -57,14 +61,6 @@ interface CrossChainStats {
   recentSwaps: RecentSwap[];
   latencyByChain: LatencyStat[];
   latencyOutflows: LatencyStat[];
-}
-
-interface TrendDataPoint {
-  date: string;
-  inflowVolume: number;
-  outflowVolume: number;
-  inflowCount: number;
-  outflowCount: number;
 }
 
 interface PopularPair {
@@ -157,7 +153,6 @@ function getSwapExplorerUrl(swap: RecentSwap): string | null {
   return null;
 }
 
-type ActiveTab = 'volume' | 'swaps' | 'performance';
 type SwapFilter = 'all' | 'in' | 'out';
 
 export default function CrosschainPage() {
@@ -165,16 +160,13 @@ export default function CrosschainPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedOnce = useRef(false);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [trendPeriod, setTrendPeriod] = useState<'7d' | '30d'>('30d');
-  const [trendChange, setTrendChange] = useState(0);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('volume');
   const [swapFilter, setSwapFilter] = useState<SwapFilter>('all');
   const [swapPage, setSwapPage] = useState(1);
   const [historySwaps, setHistorySwaps] = useState<RecentSwap[]>([]);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [popularPairs, setPopularPairs] = useState<PopularPair[]>([]);
+  const [wrappedZec, setWrappedZec] = useState<{ assets: WrappedZecAsset[]; totalWrapped: number } | null>(null);
 
   const SWAPS_PER_PAGE = 15;
 
@@ -232,20 +224,6 @@ export default function CrosschainPage() {
   }, []);
 
   useEffect(() => {
-    const fetchTrends = async () => {
-      try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/crosschain/trends?period=${trendPeriod}&granularity=daily`
-          : `/api/crosschain/trends?period=${trendPeriod}&granularity=daily`;
-        const res = await fetch(apiUrl);
-        const json = await res.json();
-        if (json.success && json.data) { setTrendData(json.data); setTrendChange(json.volumeChange || 0); }
-      } catch { /* Not critical */ }
-    };
-    if (isMainnet) fetchTrends();
-  }, [trendPeriod]);
-
-  useEffect(() => {
     const fetchPairs = async () => {
       try {
         const url = usePostgresApiClient()
@@ -257,6 +235,20 @@ export default function CrosschainPage() {
       } catch { /* Not critical */ }
     };
     if (isMainnet) fetchPairs();
+  }, []);
+
+  useEffect(() => {
+    const fetchWrappedZec = async () => {
+      try {
+        const url = usePostgresApiClient()
+          ? `${getApiUrl()}/api/wrapped-zec/supply`
+          : '/api/wrapped-zec/supply';
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.success) setWrappedZec({ assets: json.assets, totalWrapped: json.totalWrapped });
+      } catch { /* Not critical */ }
+    };
+    if (isMainnet) fetchWrappedZec();
   }, []);
 
   const fetchHistory = useCallback(async (page: number, direction: SwapFilter) => {
@@ -299,11 +291,9 @@ export default function CrosschainPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'swaps') {
-      setSwapPage(1);
-      fetchHistory(1, swapFilter);
-    }
-  }, [activeTab, swapFilter, fetchHistory]);
+    setSwapPage(1);
+    fetchHistory(1, swapFilter);
+  }, [swapFilter, fetchHistory]);
 
   const loadMore = () => {
     const next = swapPage + 1;
@@ -358,69 +348,86 @@ export default function CrosschainPage() {
     );
   }
 
-  const totalInflows = stats.inflows.reduce((sum, c) => sum + c.totalVolume24h, 0);
-  const totalOutflows = stats.outflows.reduce((sum, c) => sum + c.totalVolume24h, 0);
-  const displayedSwaps = activeTab === 'swaps' ? historySwaps : stats.recentSwaps;
+  const displayedSwaps = historySwaps;
   const hasMore = historySwaps.length < historyTotal;
 
-  const tabs: { id: ActiveTab; label: string }[] = [
-    { id: 'volume', label: 'Volume' },
-    { id: 'swaps', label: 'Swaps' },
-    { id: 'performance', label: 'Performance' },
-  ];
-
-  const renderSwapRow = (swap: RecentSwap) => {
-    const isInflow = swap.direction === 'in';
-    const explorerUrl = getSwapExplorerUrl(swap);
-    const isInternal = explorerUrl?.startsWith('/');
-
-    const row = (
-      <div className="grid grid-cols-1 sm:grid-cols-[60px_60px_1fr_30px_1fr_80px] gap-2 items-center p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan/30 transition-all bg-glass-2 hover:bg-glass-3">
-        <span className="text-[10px] text-muted font-mono hidden sm:block">{formatRelativeTime(swap.timestamp)}</span>
-        <div className="flex items-center gap-2 sm:block">
-          {isInflow ? (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-cipher-green/15 text-cipher-green text-[10px] font-bold rounded border border-cipher-green/20">IN</span>
-          ) : (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-500/15 text-danger text-[10px] font-bold rounded border border-red-500/20">OUT</span>
-          )}
-          <span className="text-[10px] text-muted font-mono sm:hidden">{formatRelativeTime(swap.timestamp)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <TokenChainIcon token={swap.fromSymbol} chain={isInflow ? swap.fromChain : 'zec'} size={24} />
+  const swapColumns: DataTableColumn<RecentSwap>[] = [
+    {
+      id: 'time',
+      header: 'Time',
+      cell: (swap) => <span className="text-xs text-muted font-mono">{formatRelativeTime(swap.timestamp)}</span>,
+      className: 'hidden sm:table-cell',
+      skeletonWidth: 'w-14',
+    },
+    {
+      id: 'direction',
+      header: 'Dir',
+      cell: (swap) => (
+        <Badge color={swap.direction === 'in' ? 'green' : 'danger'} variant="subtle">
+          {swap.direction === 'in' ? 'IN' : 'OUT'}
+        </Badge>
+      ),
+      skeletonWidth: 'w-10',
+    },
+    {
+      id: 'from',
+      header: 'From',
+      cell: (swap) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <TokenChainIcon token={swap.fromSymbol} chain={swap.direction === 'in' ? swap.fromChain : 'zec'} size={22} />
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-mono text-primary font-semibold truncate">{formatAmount(swap.fromAmount)} {swap.fromSymbol}</span>
-            <span className="text-[10px] text-muted">{isInflow ? (chainNames[swap.fromChain] || swap.fromChain) : 'Zcash'}</span>
+            <span className="text-[10px] text-muted">{swap.direction === 'in' ? (chainNames[swap.fromChain] || swap.fromChain) : 'Zcash'}</span>
           </div>
         </div>
-        <div className="hidden sm:flex justify-center"><span className="text-muted text-sm">→</span></div>
-        <div className="flex items-center gap-2">
-          <TokenChainIcon token={swap.toSymbol} chain={isInflow ? 'zec' : swap.toChain} size={24} />
+      ),
+      skeletonWidth: 'w-28',
+    },
+    {
+      id: 'to',
+      header: 'To',
+      cell: (swap) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <TokenChainIcon token={swap.toSymbol} chain={swap.direction === 'in' ? 'zec' : swap.toChain} size={22} />
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-mono text-primary font-semibold truncate">{formatAmount(swap.toAmount)} {swap.toSymbol}</span>
-            <span className="text-[10px] text-muted">{isInflow ? 'Zcash' : (chainNames[swap.toChain] || swap.toChain)}</span>
+            <span className="text-[10px] text-muted">{swap.direction === 'in' ? 'Zcash' : (chainNames[swap.toChain] || swap.toChain)}</span>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2">
-          {swap.amountUsd ? <span className="text-[10px] font-mono text-muted">{formatUSD(swap.amountUsd)}</span> : null}
-          {explorerUrl && (
-            <svg className="w-3 h-3 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          )}
-        </div>
-      </div>
-    );
-
-    if (explorerUrl) {
-      if (isInternal) return <Link key={swap.id} href={explorerUrl} className="block cursor-pointer">{row}</Link>;
-      return <a key={swap.id} href={explorerUrl} target="_blank" rel="noopener noreferrer" className="block cursor-pointer">{row}</a>;
-    }
-    return <div key={swap.id}>{row}</div>;
-  };
+      ),
+      skeletonWidth: 'w-28',
+    },
+    {
+      id: 'amount',
+      header: 'USD',
+      align: 'right',
+      cell: (swap) => swap.amountUsd ? <span className="text-xs font-mono text-secondary">{formatUSD(swap.amountUsd)}</span> : <span className="text-muted">—</span>,
+      skeletonWidth: 'w-12',
+    },
+    {
+      id: 'link',
+      header: '',
+      align: 'right',
+      cell: (swap) => {
+        const explorerUrl = getSwapExplorerUrl(swap);
+        if (!explorerUrl) return null;
+        const isInternal = explorerUrl.startsWith('/');
+        const icon = (
+          <svg className="w-3.5 h-3.5 text-muted hover:text-cipher-cyan transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        );
+        return isInternal
+          ? <Link href={explorerUrl}>{icon}</Link>
+          : <a href={explorerUrl} target="_blank" rel="noopener noreferrer">{icon}</a>;
+      },
+      skeletonWidth: 'w-4',
+    },
+  ];
 
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         <PageHeader eyebrow="CROSSCHAIN" title="ZEC Cross-Chain Analytics">
           <div className="flex items-start gap-3 mt-3">
@@ -440,291 +447,108 @@ export default function CrosschainPage() {
           </a>
         </PageHeader>
 
-        {/* Stats strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: '24h Volume', value: formatUSD(stats.totalVolume24h), accent: true },
-            { label: '24h Swaps', value: stats.totalSwaps24h.toLocaleString() },
-            { label: 'All-Time Volume', value: formatUSD(stats.totalVolumeAllTime) },
-            { label: 'All-Time Swaps', value: stats.totalSwapsAllTime.toLocaleString() },
-          ].map((stat, i) => (
-            <div key={stat.label} className="card animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{stat.label}</span>
-                {i === 0 && <Tooltip content="Total USD value of ZEC swapped in the last 24 hours" />}
-              </div>
-              <div className={`text-xl sm:text-2xl font-bold font-mono ${stat.accent ? 'text-cipher-cyan' : 'text-primary'}`}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
+        {/* Hero stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard label="24H VOLUME" value={formatUSD(stats.totalVolume24h)} accent="cyan" />
+          <MetricCard label="24H SWAPS" value={stats.totalSwaps24h.toLocaleString()} />
+          <MetricCard label="ALL-TIME VOLUME" value={formatUSD(stats.totalVolumeAllTime)} />
+          <MetricCard label="ALL-TIME SWAPS" value={stats.totalSwapsAllTime.toLocaleString()} />
         </div>
 
-        {/* Tab bar */}
-        <div className="mb-6 animate-fade-in-up stagger-5">
-          <div className="filter-group inline-flex">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`filter-btn flex items-center gap-2 ${activeTab === tab.id ? 'filter-btn-active' : ''}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Wrapped ZEC tracker */}
+        {wrappedZec && wrappedZec.assets.length > 0 && (
+          <WrappedZecTracker assets={wrappedZec.assets} totalWrapped={wrappedZec.totalWrapped} />
+        )}
 
-        {/* ═══════════════ VOLUME TAB ═══════════════ */}
-        {activeTab === 'volume' && (
-          <div className="space-y-6 animate-fade-in">
+        {/* Volume trends */}
+        <VolumeTrendsChart />
 
-            {/* Trends chart */}
-            {trendData.length > 1 && (
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                      <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">VOLUME_TRENDS</h2>
-                    </div>
-                    {trendChange !== 0 && (
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${trendChange > 0 ? 'bg-cipher-green/20 text-cipher-green' : 'bg-red-500/20 text-danger'}`}>
-                        {trendChange > 0 ? '+' : ''}{trendChange.toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="filter-group">
-                    {(['7d', '30d'] as const).map(p => (
-                      <button key={p} onClick={() => setTrendPeriod(p)} className={`filter-btn ${trendPeriod === p ? 'filter-btn-active' : ''}`}>
-                        {p.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #333)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--color-text-muted, #888)' }} tickFormatter={(v: string) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
-                      <YAxis tick={{ fontSize: 10, fill: 'var(--color-text-muted, #888)' }} tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v.toFixed(0)}`} />
-                      <RechartsTooltip
-                        contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px' }}
-                        labelStyle={{ color: 'var(--color-text-secondary, #ccc)' }}
-                        formatter={(value, name) => [formatUSD(Number(value)), name === 'inflowVolume' ? 'Inflows' : 'Outflows']}
-                        labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
-                      />
-                      <Legend formatter={(value: string) => value === 'inflowVolume' ? 'Inflows' : 'Outflows'} />
-                      <Bar dataKey="inflowVolume" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="volume" />
-                      <Bar dataKey="outflowVolume" fill="#ef4444" radius={[2, 2, 0, 0]} stackId="volume" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
+        {/* Net flow by chain — replaces separate inflow/outflow lists */}
+        <ChainNetFlowChart />
 
-            {/* Inflows & Outflows side by side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Inflows */}
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                    <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">INFLOWS</h2>
-                  </div>
-                  <span className="text-xs font-mono text-muted">{formatUSD(totalInflows)} / 24h</span>
-                </div>
-                <div className="space-y-3">
-                  {stats.inflows.length > 0 ? stats.inflows.map((cg) => (
-                    <div key={cg.chain} className="group relative">
-                      <div className="flex items-center gap-3">
-                        <TokenChainIcon token={cg.chain} chain={cg.chain} size={28} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono font-semibold text-primary">{cg.chainName}</span>
-                              {cg.tokens.length > 1 && (
-                                <span className="relative cursor-help">
-                                  <span className="text-[10px] text-muted hover:text-secondary transition-colors">({cg.tokens.length} tokens)</span>
-                                  <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
-                                    {cg.tokens.map(t => (
-                                      <div key={t.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
-                                        <span className="flex items-center gap-1 text-secondary"><TokenChainIcon token={t.symbol} chain={cg.chain} size={12} />{t.symbol}</span>
-                                        <span className="text-primary">{formatUSD(t.volume24h)}</span>
-                                      </div>
-                                    ))}
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-sm font-mono text-primary">{formatUSD(cg.totalVolume24h)}</span>
-                          </div>
-                          <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: totalInflows > 0 ? `${(cg.totalVolume24h / totalInflows) * 100}%` : '0%', backgroundColor: cg.color }} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )) : <p className="text-muted text-sm">No inflows in the last 24h</p>}
-                </div>
-              </div>
-
-              {/* Outflows */}
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                    <h2 className="text-sm font-bold font-mono text-danger uppercase tracking-wider">OUTFLOWS</h2>
-                  </div>
-                  <span className="text-xs font-mono text-muted">{formatUSD(totalOutflows)} / 24h</span>
-                </div>
-                <div className="space-y-3">
-                  {stats.outflows.length > 0 ? stats.outflows.map((cg) => (
-                    <div key={cg.chain} className="group relative">
-                      <div className="flex items-center gap-3">
-                        <TokenChainIcon token={cg.chain} chain={cg.chain} size={28} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono font-semibold text-primary">{cg.chainName}</span>
-                              {cg.tokens.length > 1 && (
-                                <span className="relative cursor-help">
-                                  <span className="text-[10px] text-muted hover:text-secondary transition-colors">({cg.tokens.length} tokens)</span>
-                                  <span className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 bg-cipher-bg border border-cipher-border rounded-lg p-2 shadow-xl min-w-[120px]">
-                                    {cg.tokens.map(t => (
-                                      <div key={t.symbol} className="flex items-center justify-between gap-4 text-xs py-0.5">
-                                        <span className="flex items-center gap-1 text-secondary"><TokenChainIcon token={t.symbol} chain={cg.chain} size={12} />{t.symbol}</span>
-                                        <span className="text-primary">{formatUSD(t.volume24h)}</span>
-                                      </div>
-                                    ))}
-                                  </span>
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-sm font-mono text-primary">{formatUSD(cg.totalVolume24h)}</span>
-                          </div>
-                          <div className="h-1.5 progress-bar-bg rounded-full overflow-hidden mt-1">
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: totalOutflows > 0 ? `${(cg.totalVolume24h / totalOutflows) * 100}%` : '0%', backgroundColor: cg.color }} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )) : <p className="text-muted text-sm">No outflows in the last 24h</p>}
-                </div>
-              </div>
+        {/* Top pairs */}
+        {popularPairs.length > 0 && (
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TOP_PAIRS</h2>
+              <span className="text-[10px] text-muted font-mono ml-auto">30d swap count</span>
             </div>
-
-            {/* Top pairs */}
-            {popularPairs.length > 0 && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">TOP_PAIRS</h2>
-                  <span className="text-[10px] text-muted font-mono ml-auto">30d swap count</span>
+            <div className="flex flex-wrap gap-2">
+              {popularPairs.map((pair, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-glass-6 bg-glass-2">
+                  <TokenChainIcon token={pair.token} chain={pair.chain} size={20} />
+                  <span className="text-xs font-mono font-semibold text-primary">{pair.token}</span>
+                  <span className="text-[10px] font-mono text-muted">{chainNames[pair.chain] || pair.chain}</span>
+                  <span className="text-[10px] font-mono text-cipher-purple ml-1">{pair.swapCount.toLocaleString()}</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {popularPairs.map((pair, i) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-glass-6 bg-glass-2">
-                      <TokenChainIcon token={pair.token} chain={pair.chain} size={20} />
-                      <span className="text-xs font-mono font-semibold text-primary">{pair.token}</span>
-                      <span className="text-[10px] font-mono text-muted">{chainNames[pair.chain] || pair.chain}</span>
-                      <span className="text-[10px] font-mono text-cipher-purple ml-1">{pair.swapCount.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* ═══════════════ SWAPS TAB ═══════════════ */}
-        {activeTab === 'swaps' && (
-          <div className="animate-fade-in">
-            <div className="card">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                    <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SWAP_FEED</h2>
-                  </div>
-                  <span className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                    </span>
-                    <span className="text-[10px] font-mono text-muted">LIVE</span>
-                  </span>
-                </div>
-                <div className="filter-group">
-                  {([
-                    { id: 'all' as SwapFilter, label: 'All' },
-                    { id: 'in' as SwapFilter, label: 'Inflows' },
-                    { id: 'out' as SwapFilter, label: 'Outflows' },
-                  ]).map(f => (
-                    <button
-                      key={f.id}
-                      onClick={() => setSwapFilter(f.id)}
-                      className={`filter-btn ${swapFilter === f.id ? 'filter-btn-active' : ''}`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
+        {/* Swap feed */}
+        <div>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
+                <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SWAP_FEED</h2>
               </div>
+              <span className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                <span className="text-[10px] font-mono text-muted">LIVE</span>
+              </span>
+            </div>
+            <div className="filter-group">
+              {([
+                { id: 'all' as SwapFilter, label: 'All' },
+                { id: 'in' as SwapFilter, label: 'Inflows' },
+                { id: 'out' as SwapFilter, label: 'Outflows' },
+              ]).map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setSwapFilter(f.id)}
+                  className={`filter-btn ${swapFilter === f.id ? 'filter-btn-active' : ''}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <div className="space-y-1.5">
-                {historyLoading && displayedSwaps.length === 0 ? (
-                  <>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="grid grid-cols-1 sm:grid-cols-[60px_60px_1fr_30px_1fr_80px] gap-2 items-center p-3 rounded-lg border border-cipher-border bg-glass-2 animate-pulse">
-                        <div className="h-3 bg-cipher-border rounded w-10 hidden sm:block" />
-                        <div className="h-5 bg-cipher-border rounded w-10" />
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 bg-cipher-border rounded-full" />
-                          <div className="h-3 bg-cipher-border rounded w-20" />
-                        </div>
-                        <div className="hidden sm:block" />
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 bg-cipher-border rounded-full" />
-                          <div className="h-3 bg-cipher-border rounded w-20" />
-                        </div>
-                        <div className="h-3 bg-cipher-border rounded w-12 ml-auto" />
-                      </div>
-                    ))}
-                  </>
-                ) : displayedSwaps.length > 0 ? displayedSwaps.map(renderSwapRow) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted text-sm font-mono">No swaps found</p>
-                  </div>
+          <DataTable
+            columns={swapColumns}
+            rows={displayedSwaps}
+            rowKey={(swap) => swap.id}
+            loading={historyLoading && displayedSwaps.length === 0}
+            skeletonRows={8}
+            empty={<div className="text-center py-8"><p className="text-muted text-sm font-mono">No swaps found</p></div>}
+            footer={
+              <div className="flex items-center justify-between px-4 py-3 border-t border-cipher-border">
+                <p className="text-[10px] text-muted font-mono">
+                  {historyTotal > 0 ? `${historySwaps.length} of ${historyTotal.toLocaleString()} swaps` : `${stats.totalSwapsAllTime.toLocaleString()} swaps indexed`}
+                </p>
+                {hasMore && (
+                  <button
+                    onClick={loadMore}
+                    disabled={historyLoading}
+                    className="px-4 py-1.5 text-[11px] font-mono text-cipher-cyan border border-cipher-cyan/30 rounded-lg hover:bg-cipher-cyan/10 transition-colors disabled:opacity-40"
+                  >
+                    {historyLoading ? 'Loading...' : 'Load more'}
+                  </button>
                 )}
               </div>
+            }
+          />
+        </div>
 
-              {/* Load more / footer */}
-              <div className="mt-4 pt-4 border-t border-cipher-border">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-muted font-mono">
-                    {historyTotal > 0 ? `${historySwaps.length} of ${historyTotal.toLocaleString()} swaps` : `${stats.totalSwapsAllTime.toLocaleString()} swaps indexed`}
-                  </p>
-                  {hasMore && (
-                    <button
-                      onClick={loadMore}
-                      disabled={historyLoading}
-                      className="px-4 py-1.5 text-[11px] font-mono text-cipher-cyan border border-cipher-cyan/30 rounded-lg hover:bg-cipher-cyan/10 transition-colors disabled:opacity-40"
-                    >
-                      {historyLoading ? 'Loading...' : 'Load more'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════ PERFORMANCE TAB ═══════════════ */}
-        {activeTab === 'performance' && (
-          <div className="space-y-6 animate-fade-in">
-
-            {/* Info banner */}
+        {/* Performance / latency */}
+        {(stats.latencyByChain.some(l => l.medianMinutes > 0) || stats.latencyOutflows.some(l => l.medianMinutes > 0)) && (
+          <div className="space-y-6">
             <div className="card">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-cipher-purple/10 border border-cipher-purple/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -741,7 +565,6 @@ export default function CrosschainPage() {
               </div>
             </div>
 
-            {/* Buy ZEC latency */}
             {stats.latencyByChain.filter(l => l.medianMinutes > 0).length > 0 && (
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
@@ -769,7 +592,6 @@ export default function CrosschainPage() {
               </div>
             )}
 
-            {/* Sell ZEC latency */}
             {stats.latencyOutflows.filter(l => l.medianMinutes > 0).length > 0 && (
               <div className="card">
                 <div className="flex items-center gap-2 mb-4">
@@ -796,18 +618,11 @@ export default function CrosschainPage() {
                 </div>
               </div>
             )}
-
-            {stats.latencyByChain.filter(l => l.medianMinutes > 0).length === 0 &&
-             stats.latencyOutflows.filter(l => l.medianMinutes > 0).length === 0 && (
-              <div className="card text-center py-12">
-                <p className="text-muted text-sm font-mono">No latency data available yet.</p>
-              </div>
-            )}
           </div>
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-center animate-fade-in-up stagger-6">
+        <div className="text-center pt-2">
           <p className="text-[10px] text-muted font-mono">
             Powered by{' '}
             <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>

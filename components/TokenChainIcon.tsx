@@ -32,6 +32,8 @@ function getTokenIcon(symbol: string): string | null {
     wbtc: '/tokens/wbtc.png',
     weth: '/tokens/weth.png',
     xmr: '/tokens/xmr.png',
+    cbzec: '/tokens/cbzec.png',
+    cbbtc: '/tokens/cbbtc.png',
   };
   return map[key] || null;
 }
@@ -44,7 +46,7 @@ function getChainIcon(chain: string): string | null {
     sol: '/chains/sol.png',
     btc: '/chains/btc.png',
     near: '/chains/near.png',
-    base: '/chains/base.png',
+    base: '/chains/base.svg',
     arb: '/chains/arb.png',
     op: '/chains/op.png',
     pol: '/chains/pol.png',

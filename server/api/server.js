@@ -64,6 +64,7 @@ const blocksRouter = require('./routes/blocks');
 const transactionsRouter = require('./routes/transactions');
 const networkRouter = require('./routes/network');
 const crosschainRouter = require('./routes/crosschain');
+const wrappedZecRouter = require('./routes/wrapped-zec');
 const statsRouter = require('./routes/stats');
 const privacyRouter = require('./routes/privacy');
 const scanRouter = require('./routes/scan');
@@ -133,15 +134,13 @@ pool.query('SELECT NOW()', (err, res) => {
   console.log('✅ Database connected:', res.rows[0].now);
 });
 
-// Read/write pool routing — auto-creates replica pool if REPLICA_DATABASE_URL is set
+// Read/write pool routing with circuit breaker — auto-creates replica pool
+// if REPLICA_DATABASE_URL is set. The smart read pool transparently falls
+// back to primary on any replica failure (connection, lag, query error).
 const poolRouting = require('./pool-routing');
 poolRouting.configureFromEnv({ primary: pool });
 
-// Make dependencies available to routes via app.locals
-// Read-heavy routes use the read pool (replica when available, primary fallback).
-// The few write routes (fork-monitor, reorgs) use app.locals.writePool.
-// queryWithReplicaFallback retries on primary when the replica hits a recovery conflict.
-app.locals.pool = poolRouting.getReadPool();
+app.locals.pool = poolRouting.createSmartReadPool();
 app.locals.writePool = pool;
 app.locals.poolRouting = poolRouting;
 app.locals.queryWithFallback = poolRouting.queryWithReplicaFallback;
@@ -391,6 +390,9 @@ app.use(networkRouter);
 
 // Cross-chain routes: /api/crosschain/*
 app.use(crosschainRouter);
+
+// Wrapped ZEC routes: /api/wrapped-zec/* (read-only Base/Solana/NEAR RPC, no shared DB access)
+app.use(wrappedZecRouter);
 
 // Stats routes: /api/stats/*, /api/privacy-stats
 app.use(statsRouter);
