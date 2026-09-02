@@ -105,31 +105,35 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
   const fv = (v: number) => viewMode === 'volume' ? formatValue(v, unit, zecPrice) : v.toLocaleString();
 
   return (
-    <ChartCard title="SIZE_DISTRIBUTION" height={280}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-muted max-w-sm">30d swap sizes by USD value range</p>
-        <div className="filter-group">
-          <button onClick={() => setViewMode('count')} className={`filter-btn ${viewMode === 'count' ? 'filter-btn-active' : ''}`}>Count</button>
-          <button onClick={() => setViewMode('volume')} className={`filter-btn ${viewMode === 'volume' ? 'filter-btn-active' : ''}`}>Volume</button>
+    <ChartCard title="SIZE_DISTRIBUTION" fill>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-muted max-w-sm">30d swap sizes by USD value range</p>
+          <div className="filter-group">
+            <button onClick={() => setViewMode('count')} className={`filter-btn ${viewMode === 'count' ? 'filter-btn-active' : ''}`}>Count</button>
+            <button onClick={() => setViewMode('volume')} className={`filter-btn ${viewMode === 'volume' ? 'filter-btn-active' : ''}`}>Volume</button>
+          </div>
         </div>
+        {loading && chartData.length === 0 ? (
+          <div className="flex items-center justify-center flex-1 min-h-[200px]">
+            <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex items-center justify-center flex-1 min-h-[200px] text-xs font-mono text-muted">No size data available</div>
+        ) : (
+          <div className="flex-1 min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
+                <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+                <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={50} />
+                <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => fv(v)} width={50} />
+                <Tooltip content={<SizeTooltip colors={colors} viewMode={viewMode} unit={unit} zecPrice={zecPrice} />} cursor={{ fill: colors.barCursor }} />
+                <Bar dataKey={dataKey} fill="var(--color-cipher-purple)" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
-      {loading && chartData.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px]">
-          <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
-        </div>
-      ) : chartData.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px] text-xs font-mono text-muted">No size data available</div>
-      ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
-            <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-            <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={50} />
-            <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => fv(v)} width={50} />
-            <Tooltip content={<SizeTooltip colors={colors} viewMode={viewMode} unit={unit} zecPrice={zecPrice} />} cursor={{ fill: colors.barCursor }} />
-            <Bar dataKey={dataKey} fill="var(--color-cipher-purple)" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
     </ChartCard>
   );
 }

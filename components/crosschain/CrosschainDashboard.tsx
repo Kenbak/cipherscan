@@ -17,6 +17,66 @@ import { SwapSizeDistribution } from '@/components/crosschain/SwapSizeDistributi
 import { formatValue, formatAmount, formatRelativeTime, type DisplayUnit } from '@/components/crosschain/format';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 
+function Sk({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={`animate-pulse rounded bg-cipher-border/60 ${className}`} style={style} />;
+}
+
+function CrosschainSkeleton() {
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Tab nav skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1">
+          {[80, 56, 72, 80].map((w, i) => (
+            <Sk key={i} className="h-8 rounded-full" style={{ width: w }} />
+          ))}
+        </div>
+        <Sk className="h-8 w-24 rounded-full" />
+      </div>
+
+      {/* KPI band */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="card card-compact card-static">
+            <Sk className="h-2.5 w-20 mb-3" />
+            <Sk className="h-6 w-32 mb-1.5" />
+            <Sk className="h-3 w-24" />
+          </div>
+        ))}
+      </div>
+
+      {/* Volume trends chart placeholder */}
+      <div className="card">
+        <div className="card-body">
+          <Sk className="h-3 w-40 mb-4" />
+          <div className="flex items-end gap-1.5 h-[200px] pt-8">
+            {[40, 65, 50, 80, 70, 55, 90, 75, 60, 85, 45, 70, 55, 80, 65, 50, 75, 60, 85, 45].map((h, i) => (
+              <Sk key={i} className="flex-1 rounded-t" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Flow + feed row */}
+      <div className="card">
+        <div className="card-body">
+          <Sk className="h-3 w-36 mb-4" />
+          <div className="space-y-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Sk className="h-5 w-5 rounded-full shrink-0" />
+                <Sk className="h-4 w-20" />
+                <Sk className="h-3 flex-1 max-w-[200px]" />
+                <Sk className="h-3 flex-1 max-w-[200px]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CHAIN_NAMES: Record<string, string> = {
   btc: 'Bitcoin', eth: 'Ethereum', sol: 'Solana', near: 'NEAR',
   doge: 'Dogecoin', xrp: 'Ripple', zec: 'Zcash', base: 'Base',
@@ -242,12 +302,7 @@ export function CrosschainDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cipher-cyan" />
-        <p className="text-secondary ml-4 font-mono text-lg">Loading cross-chain data...</p>
-      </div>
-    );
+    return <CrosschainSkeleton />;
   }
 
   if (error || !stats) {
