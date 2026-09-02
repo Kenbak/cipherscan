@@ -11,7 +11,8 @@ import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { TokenChainIcon } from '@/components/TokenChainIcon';
 import { WrappedZecTracker, type WrappedZecAsset } from '@/components/crosschain/WrappedZecTracker';
 import { VolumeTrendsChart } from '@/components/crosschain/VolumeTrendsChart';
-import { ChainNetFlowChart } from '@/components/crosschain/ChainNetFlowChart';
+import { ChainFlowTable } from '@/components/crosschain/ChainFlowTable';
+import { LatencyComparisonChart } from '@/components/crosschain/LatencyComparisonChart';
 
 interface TokenVolume {
   symbol: string;
@@ -463,8 +464,8 @@ export default function CrosschainPage() {
         {/* Volume trends */}
         <VolumeTrendsChart />
 
-        {/* Net flow by chain — replaces separate inflow/outflow lists */}
-        <ChainNetFlowChart />
+        {/* Per-chain, per-token flow detail */}
+        <ChainFlowTable inflows={stats.inflows} outflows={stats.outflows} />
 
         {/* Top pairs */}
         {popularPairs.length > 0 && (
@@ -547,79 +548,7 @@ export default function CrosschainPage() {
         </div>
 
         {/* Performance / latency */}
-        {(stats.latencyByChain.some(l => l.medianMinutes > 0) || stats.latencyOutflows.some(l => l.medianMinutes > 0)) && (
-          <div className="space-y-6">
-            <div className="card">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cipher-purple/10 border border-cipher-purple/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-primary font-mono font-semibold mb-1">How we measure latency</p>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Median time between swap initiation and ZEC block confirmation, calculated from matched on-chain transactions. Actual user experience may vary based on network congestion.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {stats.latencyByChain.filter(l => l.medianMinutes > 0).length > 0 && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-cipher-green uppercase tracking-wider">INBOUND_ZEC_LATENCY</h2>
-                  <span className="text-[10px] text-muted ml-2">Time until ZEC arrives</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {stats.latencyByChain.filter(l => l.medianMinutes > 0).map((l) => (
-                    <div key={l.chain} className="rounded-lg bg-glass-2 border border-glass-4 p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
-                        <span className="text-xs font-mono text-secondary">{l.chainName}</span>
-                      </div>
-                      <div className="text-lg font-bold font-mono text-primary">
-                        {l.medianMinutes < 60 ? `${l.medianMinutes.toFixed(0)}m` : `${(l.medianMinutes / 60).toFixed(1)}h`}
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[10px] text-muted">median</span>
-                        <span className="text-[10px] text-muted">{l.swapCount.toLocaleString()} swaps</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {stats.latencyOutflows.filter(l => l.medianMinutes > 0).length > 0 && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-danger uppercase tracking-wider">SELL_ZEC_LATENCY</h2>
-                  <span className="text-[10px] text-muted ml-2">ZEC deposit confirmation time</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {stats.latencyOutflows.filter(l => l.medianMinutes > 0).map((l) => (
-                    <div key={l.chain} className="rounded-lg bg-glass-2 border border-glass-4 p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <TokenChainIcon token={l.chain} chain={l.chain} size={20} />
-                        <span className="text-xs font-mono text-secondary">{l.chainName}</span>
-                      </div>
-                      <div className="text-lg font-bold font-mono text-primary">
-                        {l.medianMinutes < 60 ? `${l.medianMinutes.toFixed(0)}m` : `${(l.medianMinutes / 60).toFixed(1)}h`}
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[10px] text-muted">median</span>
-                        <span className="text-[10px] text-muted">{l.swapCount.toLocaleString()} swaps</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <LatencyComparisonChart inbound={stats.latencyByChain} outbound={stats.latencyOutflows} />
 
         {/* Footer */}
         <div className="text-center pt-2">
