@@ -79,7 +79,7 @@ function loadV1Config(env = process.env) {
     internalServiceKey: env.V1_INTERNAL_SERVICE_KEY || '',
     internalTimeoutMs: parseIntOr(env.V1_INTERNAL_TIMEOUT_MS, 8000),
     maxResponseBytes: parseIntOr(env.V1_INTERNAL_MAX_RESPONSE_BYTES, DEFAULT_MAX_RESPONSE_BYTES),
-    network: env.NEXT_PUBLIC_NETWORK || 'testnet',
+    network: env.NEXT_PUBLIC_NETWORK || env.ZCASH_NETWORK || env.NETWORK || 'testnet',
     scan: {
       orchard: {
         maxRange: parseIntOr(env.V1_SCAN_ORCHARD_MAX_RANGE, 50_000),
