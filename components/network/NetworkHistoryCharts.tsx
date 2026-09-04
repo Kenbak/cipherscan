@@ -17,13 +17,18 @@ function ChartEmptyState({ message }: { message: string }) {
   );
 }
 
-export function NetworkHistoryCharts() {
+export interface ChainSizeHistoryResponse {
+  points: { time: string; sizeGB: number }[];
+}
+
+export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeHistoryResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
 
-  const { data, loading } = useApiQuery<{ points: { time: string; sizeGB: number }[] }>(
+  const { data, loading } = useApiQuery<ChainSizeHistoryResponse>(
     '/api/network/chain-size-history',
     { period: '1y' },
+    { initialData: initialData ?? undefined },
   );
   const sizePoints = useMemo(
     () => (data?.points ?? []).map((p) => ({

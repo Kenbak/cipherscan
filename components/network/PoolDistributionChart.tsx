@@ -202,16 +202,22 @@ function PoolsTooltip({
   );
 }
 
-export function PoolDistributionChart() {
+export interface PoolHistoryResponse {
+  points: PoolPoint[];
+  hasVerifiedPerPoolBreakdown?: boolean;
+}
+
+export function PoolDistributionChart({ initialData }: { initialData?: PoolHistoryResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('all');
   const [view, setView] = useState<View>('pools');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
-  const { data: apiRes, loading } = useApiQuery<{ points: PoolPoint[]; hasVerifiedPerPoolBreakdown?: boolean }>(
+  const { data: apiRes, loading } = useApiQuery<PoolHistoryResponse>(
     '/api/network/pool-history',
     { period },
+    { initialData: period === 'all' ? initialData ?? undefined : undefined },
   );
   const points = apiRes?.points ?? [];
   const hasPerPoolHistory = !!apiRes?.hasVerifiedPerPoolBreakdown;

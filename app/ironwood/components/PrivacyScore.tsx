@@ -7,7 +7,7 @@ import { ShareableCard } from '@/components/ShareableCard';
 import { zatToZec } from '@/lib/format-numbers';
 import { PrivacyScatterChart, type ScatterPoint } from '../PrivacyScatterChart';
 import { VolumeAreaChart } from '../VolumeAreaChart';
-import type { ChartColors, PrivacyRange, PrivacyView, ScatterData } from './types';
+import type { ChartColors, PrivacyRange, PrivacyView, ScatterData, ScatterTx } from './types';
 import {
   ComplianceLegend,
   ComplianceSummary,
@@ -32,6 +32,28 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
   { id: 'families', label: 'Families' },
 ];
 
+const PRIVACY_COLORS = {
+  best: '#4ade80',
+  denomPadded: '#fbbf24',
+  distinctUnpadded: '#f97316',
+  worst: '#dc2626',
+};
+
+type GradeKey = 'green' | 'partial2' | 'partial1' | 'weak';
+
+function gradeForTransaction(tx: {
+  privacy: string;
+  orchardActions?: number;
+  ironwoodActions?: number;
+  anchorCompliant?: boolean;
+}): GradeKey {
+  let checks = 0;
+  if (tx.privacy === 'denominated') checks++;
+  if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
+  if (tx.anchorCompliant) checks++;
+  return checks === 3 ? 'green' : checks === 2 ? 'partial2' : checks === 1 ? 'partial1' : 'weak';
+}
+
 export function PrivacyScore({
   scatter,
   scatterLoading,
@@ -39,6 +61,8 @@ export function PrivacyScore({
   activated,
   colors,
   tipHeight,
+  range,
+  onRangeChange,
 }: {
   scatter: ScatterData | null;
   scatterLoading: boolean;
@@ -46,18 +70,103 @@ export function PrivacyScore({
   activated: boolean;
   colors: ChartColors;
   tipHeight: number;
+  range: PrivacyRange;
+  onRangeChange: (range: PrivacyRange) => void;
 }) {
   const router = useRouter();
-  const [range, setRange] = useState<PrivacyRange>('7d');
   const [view, setView] = useState<PrivacyView>('scatter');
 
-  const filteredTxs = useMemo(() => {
+  const derived = useMemo(() => {
     const txs = scatter?.txs ?? [];
-    if (range === 'all') return txs;
-    const secs = range === '24h' ? 86400 : range === '7d' ? 7 * 86400 : 30 * 86400;
-    const cutoff = Math.floor(Date.now() / 1000) - secs;
-    return txs.filter((tx) => tx.timestamp != null && tx.timestamp >= cutoff);
+    const cutoff = range === 'all'
+      ? null
+      : Math.floor(Date.now() / 1000)
+        - (range === '24h' ? 86400 : range === '7d' ? 7 * 86400 : 30 * 86400);
+    const filteredTxs: ScatterTx[] = [];
+    const allPoints: ScatterPoint[] = [];
+    const volumeAreaData: Array<{
+      height: number;
+      amountZec: number;
+      grade: GradeKey;
+    }> = [];
+    const denominationCounts = new Map<number, { count: number; volume: number }>();
+    const gradeCounts: Record<GradeKey, number> = { green: 0, partial2: 0, partial1: 0, weak: 0 };
+    const gradeVolumes: Record<GradeKey, number> = { green: 0, partial2: 0, partial1: 0, weak: 0 };
+    const familyCounts: Record<string, number> = {};
+    const familyCompliance: Record<string, Record<string, number>> = {};
+
+    for (const tx of txs) {
+      if (cutoff !== null && (tx.timestamp == null || tx.timestamp < cutoff)) continue;
+      filteredTxs.push(tx);
+      const grade = gradeForTransaction(tx);
+      allPoints.push({
+        x: tx.height,
+        y: tx.amountZec,
+        txid: tx.txid,
+        privacy: tx.privacy,
+        matched: tx.matchedDenomination,
+        iwActions: tx.ironwoodActions,
+        orchardActions: tx.orchardActions,
+        anchorCompliant: tx.anchorCompliant,
+        family: tx.family,
+        familyConfidence: tx.familyConfidence,
+        familyShortLabel: tx.familyShortLabel,
+        fee: tx.fee,
+        expiryDelta: tx.expiryDelta,
+      });
+      volumeAreaData.push({ height: tx.height, amountZec: tx.amountZec, grade });
+      gradeCounts[grade]++;
+      gradeVolumes[grade] += tx.amountZec;
+
+      if (tx.privacy === 'denominated' && tx.matchedDenomination != null) {
+        const current = denominationCounts.get(tx.matchedDenomination) ?? { count: 0, volume: 0 };
+        current.count++;
+        current.volume += tx.amountZec;
+        denominationCounts.set(tx.matchedDenomination, current);
+      }
+      if (tx.family) {
+        familyCounts[tx.family] = (familyCounts[tx.family] || 0) + 1;
+        if (!familyCompliance[tx.family]) {
+          familyCompliance[tx.family] = { green: 0, partial2: 0, partial1: 0, weak: 0 };
+        }
+        familyCompliance[tx.family][grade]++;
+      }
+    }
+
+    const totalVolume = Object.values(gradeVolumes).reduce((sum, value) => sum + value, 0);
+    const complianceStats = filteredTxs.length === 0 ? null : {
+      total: filteredTxs.length,
+      green: gradeCounts.green,
+      partial2: gradeCounts.partial2,
+      partial1: gradeCounts.partial1,
+      weak: gradeCounts.weak,
+      greenVol: totalVolume > 0 ? (gradeVolumes.green / totalVolume) * 100 : 0,
+      partial2Vol: totalVolume > 0 ? (gradeVolumes.partial2 / totalVolume) * 100 : 0,
+      partial1Vol: totalVolume > 0 ? (gradeVolumes.partial1 / totalVolume) * 100 : 0,
+      weakVol: totalVolume > 0 ? (gradeVolumes.weak / totalVolume) * 100 : 0,
+    };
+    const denomBuckets = DENOM_BUCKETS.map((denom) => ({
+      denom,
+      ...(denominationCounts.get(denom) ?? { count: 0, volume: 0 }),
+    })).filter((bucket) => bucket.count > 0);
+
+    return {
+      filteredTxs,
+      allPoints,
+      volumeAreaData,
+      denomBuckets,
+      complianceStats,
+      filteredFamilyCounts: { counts: familyCounts, compliance: familyCompliance },
+    };
   }, [scatter?.txs, range]);
+  const {
+    filteredTxs,
+    allPoints,
+    volumeAreaData,
+    denomBuckets,
+    complianceStats,
+    filteredFamilyCounts,
+  } = derived;
 
   const headlineStats = useMemo(() => {
     if (!scatter) {
@@ -74,14 +183,6 @@ export function PrivacyScore({
     };
   }, [scatter]);
 
-  const PRIVACY_COLORS = {
-    best: '#4ade80',
-    denomPadded: '#fbbf24',
-    distinctUnpadded: '#f97316',
-    worst: '#dc2626',
-  };
-
-  type GradeKey = 'green' | 'partial2' | 'partial1' | 'weak';
   const [visibleGrades, setVisibleGrades] = useState<Set<GradeKey>>(
     new Set(['green', 'partial2', 'partial1', 'weak']),
   );
@@ -95,117 +196,20 @@ export function PrivacyScore({
     });
   }, []);
 
-  const allPoints: ScatterPoint[] = useMemo(
-    () =>
-      filteredTxs.map((tx) => ({
-        x: tx.height,
-        y: tx.amountZec,
-        txid: tx.txid,
-        privacy: tx.privacy,
-        matched: tx.matchedDenomination,
-        iwActions: tx.ironwoodActions,
-        orchardActions: tx.orchardActions,
-        anchorCompliant: tx.anchorCompliant,
-        family: tx.family,
-        familyConfidence: tx.familyConfidence,
-        familyShortLabel: tx.familyShortLabel,
-        fee: tx.fee,
-        expiryDelta: tx.expiryDelta,
-      })),
-    [filteredTxs],
-  );
-
   const visiblePoints: ScatterPoint[] = useMemo(() => {
     if (visibleGrades.size === 4) return allPoints;
-    return allPoints.filter((p) => {
-      let checks = 0;
-      if (p.privacy === 'denominated') checks++;
-      if ((p.orchardActions ?? 0) === 2 && (p.iwActions ?? 0) === 1) checks++;
-      if (p.anchorCompliant) checks++;
-      const grade: GradeKey = checks === 3 ? 'green' : checks === 2 ? 'partial2' : checks === 1 ? 'partial1' : 'weak';
-      return visibleGrades.has(grade);
-    });
+    return allPoints.filter((point) => visibleGrades.has(gradeForTransaction({
+      privacy: point.privacy,
+      orchardActions: point.orchardActions,
+      ironwoodActions: point.iwActions,
+      anchorCompliant: point.anchorCompliant,
+    })));
   }, [allPoints, visibleGrades]);
-
-  const volumeAreaData = useMemo(
-    () =>
-      filteredTxs.map((tx) => {
-        let checks = 0;
-        if (tx.privacy === 'denominated') checks++;
-        if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
-        if (tx.anchorCompliant) checks++;
-        const grade = checks === 3 ? 'green' as const
-          : checks === 2 ? 'partial2' as const
-          : checks === 1 ? 'partial1' as const
-          : 'weak' as const;
-        return { height: tx.height, amountZec: tx.amountZec, grade };
-      }),
-    [filteredTxs],
-  );
-
-  const denomBuckets = useMemo(() => {
-    const counts = new Map<number, { count: number; volume: number }>();
-    for (const tx of filteredTxs) {
-      if (tx.privacy === 'denominated' && tx.matchedDenomination != null) {
-        const d = tx.matchedDenomination;
-        const existing = counts.get(d) ?? { count: 0, volume: 0 };
-        existing.count++;
-        existing.volume += tx.amountZec;
-        counts.set(d, existing);
-      }
-    }
-    return DENOM_BUCKETS.map((denom) => {
-      const data = counts.get(denom) ?? { count: 0, volume: 0 };
-      return { denom, count: data.count, volume: data.volume };
-    }).filter((b) => b.count > 0);
-  }, [filteredTxs]);
 
   const maxBucketCount = denomBuckets.reduce((m, b) => Math.max(m, b.count), 0);
   const maxBucketVolume = denomBuckets.reduce((m, b) => Math.max(m, b.volume), 0);
   const totalDenomVolume = denomBuckets.reduce((s, b) => s + b.volume, 0);
 
-  const complianceStats = useMemo(() => {
-    const t = filteredTxs.length;
-    if (t === 0) return null;
-    let g = 0, p2 = 0, p1 = 0, w = 0;
-    let gVol = 0, p2Vol = 0, p1Vol = 0, wVol = 0;
-    for (const tx of filteredTxs) {
-      let checks = 0;
-      if (tx.privacy === 'denominated') checks++;
-      if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
-      if (tx.anchorCompliant) checks++;
-      if (checks === 3) { g++; gVol += tx.amountZec; }
-      else if (checks === 2) { p2++; p2Vol += tx.amountZec; }
-      else if (checks === 1) { p1++; p1Vol += tx.amountZec; }
-      else { w++; wVol += tx.amountZec; }
-    }
-    const totalVol = gVol + p2Vol + p1Vol + wVol;
-    return {
-      total: t, green: g, partial2: p2, partial1: p1, weak: w,
-      greenVol: totalVol > 0 ? (gVol / totalVol) * 100 : 0,
-      partial2Vol: totalVol > 0 ? (p2Vol / totalVol) * 100 : 0,
-      partial1Vol: totalVol > 0 ? (p1Vol / totalVol) * 100 : 0,
-      weakVol: totalVol > 0 ? (wVol / totalVol) * 100 : 0,
-    };
-  }, [filteredTxs]);
-
-  const filteredFamilyCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const compliance: Record<string, Record<string, number>> = {};
-    for (const tx of filteredTxs) {
-      if (tx.family) {
-        counts[tx.family] = (counts[tx.family] || 0) + 1;
-        if (!compliance[tx.family]) compliance[tx.family] = { green: 0, partial2: 0, partial1: 0, weak: 0 };
-        let checks = 0;
-        if (tx.privacy === 'denominated') checks++;
-        if ((tx.orchardActions ?? 0) === 2 && (tx.ironwoodActions ?? 0) === 1) checks++;
-        if (tx.anchorCompliant) checks++;
-        const grade = checks === 3 ? 'green' : checks === 2 ? 'partial2' : checks === 1 ? 'partial1' : 'weak';
-        compliance[tx.family][grade]++;
-      }
-    }
-    return { counts, compliance };
-  }, [filteredTxs]);
 
   const hasData = (scatter?.total ?? 0) > 0;
   const hasFilteredData = filteredTxs.length > 0;
@@ -215,7 +219,12 @@ export function PrivacyScore({
       : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
 
   return (
-    <div id="privacy-score" className="scroll-mt-20">
+    <div
+      id="privacy-score"
+      className="scroll-mt-20"
+      data-scatter-ready={scatter && filteredTxs.length > 0 ? 'true' : 'false'}
+      data-scatter-points={filteredTxs.length}
+    >
       <ShareableCard
         title="Amount privacy"
         sourceHeight={tipHeight}
@@ -241,7 +250,7 @@ export function PrivacyScore({
           <>
             <div className="mb-4 flex flex-col gap-2 sm:mb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3" data-html2canvas-ignore="true">
               <SegmentedControl options={PRIVACY_VIEWS} value={view} onChange={setView} />
-              <SegmentedControl options={PRIVACY_RANGES} value={range} onChange={setRange} className="sm:shrink-0" />
+              <SegmentedControl options={PRIVACY_RANGES} value={range} onChange={onRangeChange} className="sm:shrink-0" />
             </div>
 
             {view === 'families' ? (

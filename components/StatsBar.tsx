@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { API_CONFIG, getApiUrl, usePostgresApiClient } from '@/lib/api-config';
 import { CURRENCY, isCrosslink } from '@/lib/config';
 import { SlidersIcon } from '@/components/icons/common';
+import { useApiQuery } from '@/hooks/useApiQuery';
 
 interface StatsData {
   blockHeight: number | null;
@@ -127,7 +127,43 @@ export function StatsBar() {
     ironwoodPct: null,
   });
 
-  const usePostgresApi = usePostgresApiClient();
+  const blocksQuery = useApiQuery<{ blocks?: Array<{ height: number | string }> }>(
+    '/api/blocks',
+    { limit: 1 },
+    { refreshInterval: 30_000 },
+  );
+  const mempoolQuery = useApiQuery<{
+    success?: boolean;
+    count?: number;
+    transactions?: unknown[];
+  }>('/api/mempool', undefined, { refreshInterval: 30_000 });
+  const priceQuery = useApiQuery<{ price?: number; change24h?: number }>(
+    '/api/price',
+    undefined,
+    { refreshInterval: 30_000 },
+  );
+  const networkQuery = useApiQuery<{
+    mining?: { networkHashrate?: string; avgBlockTime?: number };
+    network?: { height?: number };
+    supply?: { ironwood?: number; totalShielded?: number };
+  }>('/api/network/stats', undefined, {
+    enabled: !isCrosslink,
+    refreshInterval: 30_000,
+  });
+  const privacyQuery = useApiQuery<{
+    success?: boolean;
+    data?: {
+      metrics?: { privacyScore?: number; shieldedPercentage?: number };
+      shieldedPool?: { currentSize?: number };
+      totals?: { totalTx?: number };
+    };
+    metrics?: { privacyScore?: number; shieldedPercentage?: number };
+    shieldedPool?: { currentSize?: number };
+    totals?: { totalTx?: number };
+  }>('/api/privacy-stats', undefined, {
+    enabled: !isCrosslink,
+    refreshInterval: 30_000,
+  });
 
   // Server render + first client paint always show DEFAULT_STATS — no
   // hydration mismatch — then this swaps in the visitor's own saved
@@ -234,84 +270,45 @@ export function StatsBar() {
         : '';
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const apiBase = API_CONFIG.POSTGRES_API_URL;
-
-      try {
-        const results = await Promise.allSettled([
-          fetch(`${apiBase}/api/blocks?limit=1`, { cache: 'no-store' }),
-          fetch(usePostgresApi ? `${getApiUrl()}/api/mempool` : '/api/mempool'),
-          fetch(`${apiBase}/api/price`),
-          ...(!isCrosslink ? [
-            fetch(`${apiBase}/api/network/stats`, { cache: 'no-store' }),
-            fetch(`${apiBase}/api/privacy-stats`, { next: { revalidate: 30 } }),
-          ] : []),
-        ]);
-
-        const newStats: StatsData = { ...stats };
-
-        // Blocks
-        const blocksRes = results[0];
-        if (blocksRes.status === 'fulfilled' && blocksRes.value.ok) {
-          const data = await blocksRes.value.json();
-          const blocks = data.blocks || [];
-          if (blocks.length > 0) newStats.blockHeight = parseInt(blocks[0].height);
-        }
-
-        // Mempool
-        const mempoolRes = results[1];
-        if (mempoolRes.status === 'fulfilled' && mempoolRes.value.ok) {
-          const data = await mempoolRes.value.json();
-          if (data.success) newStats.mempoolCount = data.count ?? data.transactions?.length ?? 0;
-        }
-
-        // Price
-        const priceRes = results[2];
-        if (priceRes.status === 'fulfilled' && priceRes.value.ok) {
-          const data = await priceRes.value.json();
-          newStats.price = data.price;
-          newStats.change24h = data.change24h;
-        }
-
-        // Network stats + Privacy (non-crosslink only)
-        if (!isCrosslink) {
-          const networkRes = results[3];
-          const privacyRes = results[4];
-
-          if (networkRes?.status === 'fulfilled' && networkRes.value.ok) {
-            const data = await networkRes.value.json();
-            if (data.mining?.networkHashrate) newStats.hashrate = data.mining.networkHashrate;
-            if (data.mining?.avgBlockTime) newStats.avgBlockTime = data.mining.avgBlockTime;
-            if (data.network?.height && !newStats.blockHeight) newStats.blockHeight = data.network.height;
-            if (data.supply?.ironwood) newStats.ironwoodPool = data.supply.ironwood;
-            if (data.supply?.ironwood && data.supply?.totalShielded) {
-              newStats.ironwoodPct = (data.supply.ironwood / data.supply.totalShielded) * 100;
-            }
-          }
-
-          if (privacyRes?.status === 'fulfilled' && privacyRes.value.ok) {
-            const data = await privacyRes.value.json();
-            const d = data.success ? data.data : data;
-            if (d?.metrics) {
-              newStats.privacyScore = d.metrics.privacyScore;
-              newStats.shieldedPct = d.metrics.shieldedPercentage;
-            }
-            if (d?.shieldedPool) newStats.shieldedPool = d.shieldedPool.currentSize;
-            if (d?.totals) newStats.totalTxs = d.totals.totalTx;
-          }
-        }
-
-        setStats(newStats);
-      } catch {
-        // Non-critical — silently fail
+    setStats((current) => {
+      const next = { ...current };
+      const latestBlock = blocksQuery.data?.blocks?.[0];
+      if (latestBlock) next.blockHeight = Number(latestBlock.height);
+      if (mempoolQuery.data?.success) {
+        next.mempoolCount = mempoolQuery.data.count
+          ?? mempoolQuery.data.transactions?.length
+          ?? 0;
       }
-    };
+      if (priceQuery.data?.price != null) next.price = priceQuery.data.price;
+      if (priceQuery.data?.change24h != null) next.change24h = priceQuery.data.change24h;
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usePostgresApi]);
+      const network = networkQuery.data;
+      if (network?.mining?.networkHashrate) next.hashrate = network.mining.networkHashrate;
+      if (network?.mining?.avgBlockTime) next.avgBlockTime = network.mining.avgBlockTime;
+      if (network?.network?.height && !next.blockHeight) next.blockHeight = network.network.height;
+      if (network?.supply?.ironwood) next.ironwoodPool = network.supply.ironwood;
+      if (network?.supply?.ironwood && network.supply.totalShielded) {
+        next.ironwoodPct = (network.supply.ironwood / network.supply.totalShielded) * 100;
+      }
+
+      const privacy = privacyQuery.data?.success ? privacyQuery.data.data : privacyQuery.data;
+      if (privacy?.metrics?.privacyScore != null) next.privacyScore = privacy.metrics.privacyScore;
+      if (privacy?.metrics?.shieldedPercentage != null) {
+        next.shieldedPct = privacy.metrics.shieldedPercentage;
+      }
+      if (privacy?.shieldedPool?.currentSize != null) {
+        next.shieldedPool = privacy.shieldedPool.currentSize;
+      }
+      if (privacy?.totals?.totalTx != null) next.totalTxs = privacy.totals.totalTx;
+      return next;
+    });
+  }, [
+    blocksQuery.data,
+    mempoolQuery.data,
+    networkQuery.data,
+    priceQuery.data,
+    privacyQuery.data,
+  ]);
 
   const hasAnyData = stats.blockHeight !== null || stats.price !== null;
 

@@ -18,6 +18,7 @@
 
 const { Pool } = require('pg');
 const { logSafeError, logSafeWarn } = require('./lib/safe-log');
+const { measureRequestTiming } = require('./request-timing-context');
 
 const MAX_ACCEPTABLE_LAG_BLOCKS = 3;
 const FAILURE_THRESHOLD = 3;
@@ -187,18 +188,20 @@ function getReadPool() {
 function createSmartReadPool() {
   return {
     async query(text, params) {
-      if (!_shouldUseReplica()) {
-        return primaryPool.query(text, params);
-      }
-      try {
-        const result = await replicaPool.query(text, params);
-        _recordSuccess();
-        return result;
-      } catch (err) {
-        _recordFailure();
-        logSafeWarn('[pool-routing] Replica query failed, falling back to primary:', err);
-        return primaryPool.query(text, params);
-      }
+      return measureRequestTiming('database', async () => {
+        if (!_shouldUseReplica()) {
+          return primaryPool.query(text, params);
+        }
+        try {
+          const result = await replicaPool.query(text, params);
+          _recordSuccess();
+          return result;
+        } catch (err) {
+          _recordFailure();
+          logSafeWarn('[pool-routing] Replica query failed, falling back to primary:', err);
+          return primaryPool.query(text, params);
+        }
+      });
     },
     async connect() {
       if (!_shouldUseReplica()) {
@@ -222,18 +225,20 @@ function createSmartReadPool() {
 }
 
 async function queryWithReplicaFallback(text, params) {
-  if (!_shouldUseReplica()) {
-    return primaryPool.query(text, params);
-  }
-  try {
-    const result = await replicaPool.query(text, params);
-    _recordSuccess();
-    return result;
-  } catch (err) {
-    _recordFailure();
-    logSafeWarn('[pool-routing] Replica query failed, falling back to primary:', err);
-    return primaryPool.query(text, params);
-  }
+  return measureRequestTiming('database', async () => {
+    if (!_shouldUseReplica()) {
+      return primaryPool.query(text, params);
+    }
+    try {
+      const result = await replicaPool.query(text, params);
+      _recordSuccess();
+      return result;
+    } catch (err) {
+      _recordFailure();
+      logSafeWarn('[pool-routing] Replica query failed, falling back to primary:', err);
+      return primaryPool.query(text, params);
+    }
+  });
 }
 
 async function replicaLagBlocks() {

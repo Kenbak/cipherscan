@@ -279,9 +279,34 @@ test('concurrent first misses share one in-process load and one cache write', as
     ['coalesced_wait', 'coalesced_wait', 'db'],
   );
   const cacheWrites = redis.calls.filter(({ operation, args }) => (
-    operation === 'set' && !String(args[0]).endsWith(':refresh-lock')
+    operation === 'set' && !String(args[0]).endsWith('-lock')
   ));
   assert.equal(cacheWrites.length, 1);
+});
+
+test('a Redis miss lock coalesces first loads across cache instances', async () => {
+  const redis = new FakeRedis();
+  const firstHarness = harness({ redis });
+  const secondHarness = harness({ redis });
+  let releaseLoad;
+  let loads = 0;
+  const options = request({
+    load: async () => {
+      loads += 1;
+      return new Promise((resolve) => { releaseLoad = resolve; });
+    },
+  });
+
+  const first = firstHarness.cache.getOrLoad(options);
+  await waitUntil(() => loads === 1 && typeof releaseLoad === 'function');
+  const second = secondHarness.cache.getOrLoad(options);
+  releaseLoad({ height: 42 });
+  const [left, right] = await Promise.all([first, second]);
+
+  assert.equal(loads, 1);
+  assert.equal(left.value.height, 42);
+  assert.equal(right.value.height, 42);
+  assert.equal(right.loadTimings[0].name, 'distributed_wait');
 });
 
 test('stale values return without waiting and concurrent callers share one local refresh', async () => {

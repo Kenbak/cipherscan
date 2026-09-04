@@ -32,6 +32,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Performance artifacts contain private production measurements.
+/benchmarks/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

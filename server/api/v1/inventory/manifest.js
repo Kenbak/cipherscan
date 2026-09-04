@@ -215,6 +215,11 @@ const MANIFEST = [
     classification: 'public', domain: 'migration', auth: 'none', description: 'Individual migration transactions with privacy classification (measured ~10.4MB response at current chain height).',
     v1: { path: '/v1/migration/scatter', status: 'adapter', shape: 'passthrough' },
   },
+  {
+    method: 'GET', legacyPath: '/api/migration/scatter/compact', file: 'server/api/routes/migration.js',
+    classification: 'public', domain: 'migration', auth: 'none', description: 'Versioned compact migration points with bounded ranges, finalized chunks, ETags, and incremental canonical-tail cursors.',
+    v1: { path: '/v1/migration/scatter/compact', status: 'adapter', shape: 'passthrough' },
+  },
   { method: 'GET', legacyPath: '/api/migration/tiers', file: 'server/api/routes/migration.js', classification: 'public', domain: 'migration', auth: 'none', description: 'Migration progress by holding tier.', v1: { path: '/v1/migration/tiers', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/valuation/snapshot', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'Current valuation snapshot.', v1: { path: '/v1/valuation/snapshot', status: 'adapter', shape: 'passthrough' } },
   { method: 'GET', legacyPath: '/api/valuation/history', file: 'server/api/routes/valuation.js', classification: 'public', domain: 'valuation', auth: 'none', description: 'Historical valuation series.', v1: { path: '/v1/valuation/history', status: 'adapter', shape: 'passthrough' } },
