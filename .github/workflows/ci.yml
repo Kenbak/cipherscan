@@ -55,6 +55,8 @@ jobs:
         run: npm run test:isr-warmup
       - name: Revalidation security tests
         run: npm run test:revalidate-security
+      - name: Client resilience tests
+        run: NODE_PATH=server/api/node_modules node --test server/tests/address-labels-resilience.test.js
       - name: Build
         env:
           # GitHub CI is deliberately offline. Production builds must leave
@@ -114,7 +116,6 @@ jobs:
           NODE_PATH: ${{ github.workspace }}/server/api/node_modules
         run: |
           node --test \
-            server/tests/address-labels-resilience.test.js \
             server/tests/blocks-orphan-batch.test.js \
             server/tests/tx-detail-parallel.test.js \
             server/tests/tx-mempool-cache.test.js \
