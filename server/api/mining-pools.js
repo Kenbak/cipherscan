@@ -193,7 +193,9 @@ const POOL_BY_ADDRESS = {
   // from the deferred-development lockbox, which has no output address.
   // Source: https://zips.z.cash/zip-0214 (Testnet Recipients, Revision 1+2)
   't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu': {
-    name: 'FPF / Zcash Community Grants (Testnet)',
+    // This metadata prevents the recipient being treated as a miner, but must
+    // not produce a miner-pool label in block-list responses.
+    name: null,
     url: null,
     region: null,
     isFundingStream: true,
