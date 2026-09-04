@@ -440,8 +440,8 @@ export function TurnstileHero(props: TurnstileHeroProps) {
               </div>
               <div className="pointer-events-none absolute bottom-14 left-5 right-5 z-[2] hidden items-end justify-between sm:flex sm:bottom-16">
                 <div>
-                  <div className="text-[10px] font-mono text-[#A78BFA]">Remaining in Orchard</div>
-                  <div className="text-sm font-mono font-semibold text-[#A78BFA]/90">{sceneState.orchardLabel}</div>
+                  <div className="text-[10px] font-mono text-cipher-purple-bright">Remaining in Orchard</div>
+                  <div className="text-sm font-mono font-semibold text-cipher-purple-bright/90">{sceneState.orchardLabel}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
@@ -465,9 +465,9 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         {sceneReady && (
           <div className="relative z-[2] grid grid-cols-2 gap-3 border-t border-cipher-border/20 bg-glass-3/60 px-3 py-2 sm:hidden">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-wide text-[#A78BFA]/80">Orchard</div>
-              <div className="text-[10px] font-mono text-[#A78BFA]/70">remaining</div>
-              <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-[#A78BFA]">{sceneState.orchardLabel}</div>
+              <div className="text-[9px] font-mono uppercase tracking-wide text-cipher-purple-bright/80">Orchard</div>
+              <div className="text-[10px] font-mono text-cipher-purple-bright/70">remaining</div>
+              <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-purple-bright">{sceneState.orchardLabel}</div>
             </div>
             <div className="text-right">
               <div className="text-[9px] font-mono uppercase tracking-wide text-cipher-yellow-bright/80">Ironwood</div>

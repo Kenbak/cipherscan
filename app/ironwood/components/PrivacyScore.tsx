@@ -34,11 +34,15 @@ const PRIVACY_VIEWS: { id: PrivacyView; label: string }[] = [
 
 export function PrivacyScore({
   scatter,
+  scatterLoading,
+  scatterUnavailable,
   activated,
   colors,
   tipHeight,
 }: {
   scatter: ScatterData | null;
+  scatterLoading: boolean;
+  scatterUnavailable: boolean;
   activated: boolean;
   colors: ChartColors;
   tipHeight: number;
@@ -328,7 +332,16 @@ export function PrivacyScore({
         ) : hasData ? (
           <p className="py-8 text-center text-xs font-mono text-muted">No migrations in this range.</p>
         ) : (
-          <EmptyPanel activated={activated} />
+          <EmptyPanel
+            activated={activated}
+            message={
+              scatterLoading
+                ? 'Loading transaction-level privacy data…'
+                : scatterUnavailable
+                  ? 'Transaction-level privacy data temporarily unavailable'
+                  : undefined
+            }
+          />
         )}
       </ShareableCard>
     </div>

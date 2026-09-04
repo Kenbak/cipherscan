@@ -54,6 +54,7 @@ function captureSitemapApiRoutes() {
   };
   loadJavaScriptModule('server/api/routes/sitemaps.js', {
     express: { Router: () => router },
+    '../lib/safe-log': require('../api/lib/safe-log'),
   });
 
   return async (route, query, pool) => {
@@ -87,6 +88,8 @@ function captureBlockApiRoute() {
     },
     '../coinbase-data': { decodeCoinbaseText: () => null },
     '../list-cache': require('../api/list-cache'),
+    '../lib/pagination': require('../api/lib/pagination'),
+    '../lib/safe-log': require('../api/lib/safe-log'),
   });
 
   return async (identifier, query, pool) => {

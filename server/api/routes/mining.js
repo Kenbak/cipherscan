@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { POOL_BY_ADDRESS, getPoolName } = require('../mining-pools');
+const { logSafeError } = require('../lib/safe-log');
 
 let pool;
 let redisClient;
@@ -113,7 +114,7 @@ router.get('/api/mining/pool-distribution', async (req, res) => {
     await setCache(cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching pool distribution:', error);
+    logSafeError('Error fetching pool distribution:', error);
     res.status(500).json({ error: 'Failed to fetch pool distribution' });
   }
 });
@@ -208,7 +209,7 @@ router.get('/api/mining/pool-ranking', async (req, res) => {
     await setCache(cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching pool ranking:', error);
+    logSafeError('Error fetching pool ranking:', error);
     res.status(500).json({ error: 'Failed to fetch pool ranking' });
   }
 });
@@ -270,7 +271,7 @@ router.get('/api/mining/hashrate-share', async (req, res) => {
     await setCache(cacheKey, response, 600); // 10 min cache for time series
     res.json(response);
   } catch (error) {
-    console.error('Error fetching hashrate share:', error);
+    logSafeError('Error fetching hashrate share:', error);
     res.status(500).json({ error: 'Failed to fetch hashrate share' });
   }
 });
@@ -317,7 +318,7 @@ router.get('/api/mining/rewards', async (req, res) => {
     await setCache(cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching mining rewards:', error);
+    logSafeError('Error fetching mining rewards:', error);
     res.status(500).json({ error: 'Failed to fetch mining rewards' });
   }
 });
@@ -417,7 +418,7 @@ router.get('/api/mining/miner-behavior', async (req, res) => {
     await setCache(cacheKey, response, 900); // 15 min cache
     res.json(response);
   } catch (error) {
-    console.error('Error fetching miner behavior:', error);
+    logSafeError('Error fetching miner behavior:', error);
     res.status(500).json({ error: 'Failed to fetch miner behavior' });
   }
 });
@@ -538,7 +539,7 @@ router.get('/api/mining/zodl-leaderboard', async (req, res) => {
     await setCache(cacheKey, response, 900); // 15 min cache
     res.json(response);
   } catch (error) {
-    console.error('Error fetching ZODL leaderboard:', error);
+    logSafeError('Error fetching ZODL leaderboard:', error);
     res.status(500).json({ error: 'Failed to fetch ZODL leaderboard' });
   }
 });

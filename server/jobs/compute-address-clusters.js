@@ -21,9 +21,17 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3, idleTimeoutMillis: 30000 });
+// The scan phase (chain-tip lookup + per-batch multi-input tx read) never
+// writes; the write phase (TRUNCATE + bulk INSERT) happens strictly after
+// the whole scan completes and is fully separate in code, so the read half
+// is safe to offload. A full-history rebuild batch can join a large slice
+// of transaction_inputs/transactions, which may legitimately run past the
+// 30s default — given an explicit longer bound here.
+const CLUSTER_SCAN_STATEMENT_TIMEOUT_MS = 180_000;
+const readPool = getReadPool({ max: 3, idleTimeoutMillis: 30000, statement_timeout: CLUSTER_SCAN_STATEMENT_TIMEOUT_MS });
 const LOCK_ID = 839310;
 
 const args = process.argv.slice(2).reduce((acc, arg) => {
@@ -95,7 +103,7 @@ async function main() {
     log('═══════════════════════════════════════════════════════════');
 
     // Get chain height
-    const { rows: [{ max_height }] } = await client.query(
+    const { rows: [{ max_height }] } = await readPool.query(
       `SELECT MAX(block_height) as max_height FROM transactions`
     );
     log(`Chain tip: block ${max_height}`);
@@ -110,7 +118,7 @@ async function main() {
       const endHeight = Math.min(startHeight + BATCH_SIZE - 1, max_height);
 
       // Get all (txid, address) pairs from multi-input transactions in this range
-      const { rows } = await client.query(`
+      const { rows } = await readPool.query(`
         SELECT i.txid, array_agg(DISTINCT i.address) as addresses
         FROM transaction_inputs i
         JOIN transactions t ON t.txid = i.txid
@@ -172,6 +180,7 @@ async function main() {
     if (DRY_RUN) {
       log('\n[DRY RUN] Skipping database write.');
       await pool.end();
+      if (readPool !== pool) await readPool.end();
       return;
     }
 
@@ -226,6 +235,7 @@ async function main() {
   });
 
   await pool.end();
+  if (readPool !== pool) await readPool.end();
 }
 
 main().catch(err => {

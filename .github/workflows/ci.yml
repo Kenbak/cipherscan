@@ -38,11 +38,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Lint
-        # The inherited project has no ESLint config yet, so `next lint`
-        # prompts interactively and fails. Report-only until ESLint is
-        # configured (tracked as a follow-up). Type-check + build still gate.
-        continue-on-error: true
+      - name: Lint (design tokens)
+        # `npm run lint` -> `lint:design` runs scripts/check-design-tokens.mjs,
+        # a deterministic, non-interactive Node script (exit 0/1, no prompts).
+        # There is no ESLint config in this repo and none is invented here.
         run: npm run lint
       - name: Type check
         run: npx tsc --noEmit
@@ -54,6 +53,10 @@ jobs:
         run: npm run test:ttfb-probe
       - name: ISR warm-up safety tests
         run: npm run test:isr-warmup
+      - name: Revalidation security tests
+        run: npm run test:revalidate-security
+      - name: Client resilience tests
+        run: NODE_PATH=server/api/node_modules node --test server/tests/address-labels-resilience.test.js
       - name: Build
         env:
           # GitHub CI is deliberately offline. Production builds must leave
@@ -97,6 +100,35 @@ jobs:
             -print0 | xargs -0 -n1 node --check
       - name: API cache tests
         run: npm test
+      - name: API v1 contract and OpenAPI tests
+        run: npm run test:v1
+      - name: Route/lib regression tests
+        # These live under server/tests/ (not server/api/test/) but exercise
+        # server/api/routes/* and server/lib/* directly with mocked pools —
+        # no DB or network required. They already had npm scripts
+        # (test:ironwood-accounting, test:peer-client) that were never wired
+        # into CI, plus two more (privacy-score, network-halving,
+        # exposure-consumers) with no CI coverage at all. Run from repo root
+        # with NODE_PATH pointing at server/api's already-installed
+        # node_modules so `require('express')` resolves.
+        working-directory: ${{ github.workspace }}
+        env:
+          NODE_PATH: ${{ github.workspace }}/server/api/node_modules
+        run: |
+          node --test \
+            server/tests/blocks-orphan-batch.test.js \
+            server/tests/tx-detail-parallel.test.js \
+            server/tests/tx-mempool-cache.test.js \
+            server/tests/migration-activity-summary.test.js \
+            server/tests/blend-check-batch.test.js \
+            server/tests/db-pool-deadlines.test.js \
+            server/tests/error-message-leakage.test.js \
+            server/tests/safe-log.test.js \
+            server/tests/ironwood-accounting.test.js \
+            server/tests/exposure-consumers.test.js \
+            server/tests/network-halving.test.js \
+            server/tests/peer-client.test.js \
+            server/tests/privacy-score.test.js
 
   # ---------------------------------------------------------------------------
   # Indexer: install + syntax check

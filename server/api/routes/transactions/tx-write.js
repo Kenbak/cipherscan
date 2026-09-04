@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../../validation');
 const { deps } = require('./_helpers');
+const { logSafeError } = require('../../lib/safe-log');
 
 /**
  * POST /api/tx/broadcast
@@ -46,10 +47,10 @@ router.post('/api/tx/broadcast', validate('txBroadcast'), async (req, res) => {
       txid,
     });
   } catch (error) {
-    console.error('❌ [BROADCAST] Error:', error);
+    logSafeError('❌ [BROADCAST] Error:', error);
     res.status(400).json({
       success: false,
-      error: error.message || 'Failed to broadcast transaction',
+      error: 'Failed to broadcast transaction',
     });
   }
 });

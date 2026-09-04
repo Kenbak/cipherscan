@@ -1,13 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { API_CONFIG } from '@/lib/api-config';
 import { isCrosslink, isMainnet } from '@/lib/config';
+import { useApiQuery } from '@/hooks/useApiQuery';
 
 const DISMISS_KEY = 'ironwood-banner-dismissed';
 const BLOCK_TIME_SECONDS = 75;
 const ACTIVATION_HEIGHT = isMainnet ? 3428143 : 4134000;
+// Same endpoint + interval as IronwoodProgressCard on the homepage. Both
+// components sharing this exact (path, params, refreshInterval) tuple is
+// what lets useApiQuery's shared-poll registry collapse them into a single
+// request/timer — see hooks/useApiQuery.ts — instead of two independent
+// 30s pollers hitting /api/migration/overview when both are on screen.
+const OVERVIEW_REFRESH_MS = 30000;
 
 interface BannerState {
   activated: boolean;
@@ -16,10 +22,37 @@ interface BannerState {
   verifiedPct: number | null;
 }
 
+interface MigrationOverviewResponse {
+  success: boolean;
+  tipHeight?: number;
+  poolSizes?: { ironwoodZat?: number };
+  supplyVerification?: { verifiedPct?: number | null } | null;
+}
+
 export function IronwoodBanner() {
-  const [state, setState] = useState<BannerState | null>(null);
   const [dismissed, setDismissed] = useState(true);
   const bannerRef = useRef<HTMLAnchorElement>(null);
+
+  // Only fetch at all once we know the banner isn't dismissed for this
+  // session — preserves the original "don't even poll if dismissed" behavior.
+  const { data } = useApiQuery<MigrationOverviewResponse>(
+    '/api/migration/overview',
+    undefined,
+    { enabled: !isCrosslink && !dismissed, refreshInterval: OVERVIEW_REFRESH_MS },
+  );
+
+  const state: BannerState | null = useMemo(() => {
+    if (!data?.success) return null;
+    const tip = data.tipHeight || 0;
+    const activated = tip >= ACTIVATION_HEIGHT;
+    return {
+      activated,
+      blocksRemaining: activated ? 0 : ACTIVATION_HEIGHT - tip,
+      ironwoodZec: (data.poolSizes?.ironwoodZat ?? 0) / 1e8,
+      verifiedPct: data.supplyVerification?.verifiedPct ?? null,
+    };
+  }, [data]);
+
   const visible = !isCrosslink && !dismissed && !!state;
 
   // Mirrors StatsBar's --app-stats-height tracking: this banner is
@@ -49,27 +82,6 @@ export function IronwoodBanner() {
     const stored = sessionStorage.getItem(DISMISS_KEY);
     if (stored) return;
     setDismissed(false);
-
-    async function fetchState() {
-      try {
-        const res = await fetch(`${API_CONFIG.POSTGRES_API_URL}/api/migration/overview`);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!json.success) return;
-        const tip = json.tipHeight || 0;
-        const activated = tip >= ACTIVATION_HEIGHT;
-
-        setState({
-          activated,
-          blocksRemaining: activated ? 0 : ACTIVATION_HEIGHT - tip,
-          ironwoodZec: (json.poolSizes?.ironwoodZat ?? 0) / 1e8,
-          verifiedPct: json.supplyVerification?.verifiedPct ?? null,
-        });
-      } catch { /* silent */ }
-    }
-    fetchState();
-    const interval = setInterval(fetchState, 30_000);
-    return () => clearInterval(interval);
   }, []);
 
   if (isCrosslink || dismissed || !state) return null;

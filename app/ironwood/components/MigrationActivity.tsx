@@ -14,7 +14,15 @@ import {
 import { ShareableCard } from '@/components/ShareableCard';
 import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import { zatToZec } from '@/lib/format-numbers';
-import type { ActivityView, ChartColors, Cohorts, ScatterData, ScatterTx, VelocityBucket } from './types';
+import type {
+  ActivityView,
+  ChartColors,
+  Cohorts,
+  MigrationActivityData,
+  ScatterData,
+  ScatterTx,
+  VelocityBucket,
+} from './types';
 import { EmptyPanel, SegmentedControl } from './ui';
 
 const zec = zatToZec;
@@ -67,9 +75,29 @@ function bucketTransactions(txs: ScatterTx[], mode: 'hourly' | 'daily'): Velocit
   }));
 }
 
+function mapActivityBuckets(activity: MigrationActivityData): VelocityBucket[] {
+  const hourly = activity.granularity === 'hour';
+  return activity.buckets.map((bucket) => {
+    const date = new Date(bucket.bucketStart * 1000);
+    const label = hourly
+      ? `${date.getUTCMonth() + 1}/${date.getUTCDate()} ${String(date.getUTCHours()).padStart(2, '0')}:00`
+      : `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    return {
+      label,
+      ts: bucket.bucketStart * 1000,
+      volume: Math.round(zec(bucket.volumeZat) * 100) / 100,
+      txCount: bucket.txCount,
+    };
+  });
+}
+
 export function MigrationActivity({
   cohorts,
   scatter,
+  activityHourly,
+  activityDaily,
+  activityLoading,
+  activityUnavailable,
   activated,
   colors,
   tipHeight,
@@ -78,6 +106,10 @@ export function MigrationActivity({
 }: {
   cohorts: Cohorts | null;
   scatter: ScatterData | null;
+  activityHourly: MigrationActivityData | null;
+  activityDaily: MigrationActivityData | null;
+  activityLoading: boolean;
+  activityUnavailable: boolean;
   activated: boolean;
   colors: ChartColors;
   tipHeight: number;
@@ -99,10 +131,12 @@ export function MigrationActivity({
   );
 
   // Time-bucketed data (hourly/daily)
-  const timeBuckets = useMemo(
-    () => (view === 'cohorts' ? [] : bucketTransactions(scatter?.txs ?? [], view)),
-    [scatter?.txs, view],
-  );
+  const timeBuckets = useMemo(() => {
+    if (view === 'cohorts') return [];
+    const aggregate = view === 'hourly' ? activityHourly : activityDaily;
+    if (aggregate?.buckets.length) return mapActivityBuckets(aggregate);
+    return bucketTransactions(scatter?.txs ?? [], view);
+  }, [activityDaily, activityHourly, scatter?.txs, view]);
 
   const avgCohort = cohorts?.avgAnonymitySet ?? 0;
   const totalVolumeZec = cohortData.reduce((sum, c) => sum + c.volume, 0);
@@ -254,7 +288,16 @@ export function MigrationActivity({
             </ResponsiveContainer>
           )
         ) : (
-          <EmptyPanel activated={activated} />
+          <EmptyPanel
+            activated={activated}
+            message={
+              activityLoading
+                ? 'Loading migration activity…'
+                : activityUnavailable
+                  ? 'Migration activity temporarily unavailable'
+                  : undefined
+            }
+          />
         )}
       </ShareableCard>
     </div>

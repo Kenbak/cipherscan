@@ -9,6 +9,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
 
 let pool;
@@ -209,7 +210,7 @@ router.get('/api/blend-check', async (req, res) => {
     res.json(response);
 
   } catch (err) {
-    console.error('Privacy check error:', err.message || err);
+    logSafeError('Privacy check error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -290,10 +291,15 @@ router.get('/api/blend-check/split', async (req, res) => {
       return a.amountZat - b.amountZat;
     });
 
-    const plans = [];
-    const seenSigs = new Set();
-
     const maxPiecesLimit = Math.min(Math.ceil(amountZat / (0.1 * ZATOSHI)), 12);
+
+    // Build every distinct candidate split first, without querying the DB
+    // per-candidate. Remainder pieces get scored in a single batched query
+    // below instead of one sequential round trip per candidate plan (this
+    // loop can generate ~20 candidates, previously up to ~20 sequential
+    // COUNT queries).
+    const candidates = [];
+    const seenSigs = new Set();
 
     for (const denominations of [denomsByAmountDesc, denomsByScoreDesc]) {
       for (let maxPieces = 2; maxPieces <= maxPiecesLimit; maxPieces++) {
@@ -305,38 +311,60 @@ router.get('/api/blend-check/split', async (req, res) => {
         if (seenSigs.has(sig)) continue;
         seenSigs.add(sig);
 
-        // Rescore remainders with same tight tolerance
-        for (const piece of pieces) {
-          if (piece.isRemainder) {
-            const { rows } = await pool.query(`
-              SELECT COUNT(*) AS cnt FROM shielded_flows
-              WHERE amount_zat BETWEEN $1 AND $2 AND block_time >= $3
-            `, [piece.amountZat - 10000, piece.amountZat + 10000, since30d]);
-            piece.count30d = parseInt(rows[0].cnt);
-            piece.blendScore = computeBlendScore(piece.count30d);
-          }
-        }
-
-        const minScore = Math.min(...pieces.map(p => p.blendScore));
-
-        if (minScore <= originalScore) continue;
-
-        const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
-
-        plans.push({
-          pieceCount: pieces.length,
-          pieces: pieces.map(p => ({
-            amount: parseFloat((p.amountZat / ZATOSHI).toFixed(8)),
-            blendScore: p.blendScore,
-            blendLabel: getBlendLabel(p.blendScore),
-            count30d: p.count30d || p.count || 0,
-            isRemainder: !!p.isRemainder,
-          })),
-          minBlendScore: minScore,
-          avgBlendScore: Math.round(weightedAvg),
-          overallLabel: getBlendLabel(minScore),
-        });
+        candidates.push(pieces);
       }
+    }
+
+    // Batch-score every distinct remainder amount across all candidates in
+    // one query (same UNNEST pattern already used for nearbyPopular/rescored
+    // denominations above), instead of a per-candidate COUNT query.
+    const remainderAmounts = [...new Set(
+      candidates.flatMap(pieces => pieces.filter(p => p.isRemainder).map(p => p.amountZat))
+    )];
+
+    const remainderCountByAmount = new Map();
+    if (remainderAmounts.length > 0) {
+      const { rows: remainderRows } = await pool.query(`
+        SELECT d.amt,
+          (SELECT COUNT(*) FROM shielded_flows
+           WHERE amount_zat BETWEEN d.amt - 10000 AND d.amt + 10000
+             AND block_time >= $1) AS cnt
+        FROM UNNEST($2::bigint[]) AS d(amt)
+      `, [since30d, remainderAmounts]);
+      for (const r of remainderRows) {
+        remainderCountByAmount.set(parseInt(r.amt), parseInt(r.cnt));
+      }
+    }
+
+    const plans = [];
+
+    for (const pieces of candidates) {
+      for (const piece of pieces) {
+        if (piece.isRemainder) {
+          piece.count30d = remainderCountByAmount.get(piece.amountZat) || 0;
+          piece.blendScore = computeBlendScore(piece.count30d);
+        }
+      }
+
+      const minScore = Math.min(...pieces.map(p => p.blendScore));
+
+      if (minScore <= originalScore) continue;
+
+      const weightedAvg = pieces.reduce((s, p) => s + p.blendScore * (p.amountZat / amountZat), 0);
+
+      plans.push({
+        pieceCount: pieces.length,
+        pieces: pieces.map(p => ({
+          amount: parseFloat((p.amountZat / ZATOSHI).toFixed(8)),
+          blendScore: p.blendScore,
+          blendLabel: getBlendLabel(p.blendScore),
+          count30d: p.count30d || p.count || 0,
+          isRemainder: !!p.isRemainder,
+        })),
+        minBlendScore: minScore,
+        avgBlendScore: Math.round(weightedAvg),
+        overallLabel: getBlendLabel(minScore),
+      });
     }
 
     plans.sort((a, b) => {
@@ -351,7 +379,7 @@ router.get('/api/blend-check/split', async (req, res) => {
     res.json(response);
 
   } catch (err) {
-    console.error('Split calculation error:', err.message || err);
+    logSafeError('Split calculation error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

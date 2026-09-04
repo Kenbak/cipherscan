@@ -17,9 +17,15 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
+// processMetric() below only ever SELECTs; the INSERT ... ON CONFLICT into
+// metric_anomalies happens separately in run()'s loop on the primary
+// `client`. withAdvisoryLock() here is a session-level pg_advisory_lock
+// (mutual exclusion between job runs), not a SQL transaction, so there's no
+// BEGIN/COMMIT spanning the read and the write — safe to split across pools.
+const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839301;
 const DAYS_FLAG = process.argv.find(a => a.startsWith('--days='));
@@ -179,7 +185,7 @@ function formatValue(metric, value) {
   return value.toFixed(0);
 }
 
-async function processMetric(client, metric, targetDate) {
+async function processMetric(metric, targetDate) {
   const lookbackStart = new Date(targetDate);
   lookbackStart.setDate(lookbackStart.getDate() - LOOKBACK);
   const startStr = lookbackStart.toISOString().slice(0, 10);
@@ -190,7 +196,7 @@ async function processMetric(client, metric, targetDate) {
 
   let rows;
   try {
-    const result = await client.query(query, [startStr, endStr]);
+    const result = await readPool.query(query, [startStr, endStr]);
     rows = result.rows;
   } catch (err) {
     log(`  [WARN] ${metric}: query failed — ${err.message}`);
@@ -237,7 +243,7 @@ async function run() {
 
         let dayInserted = 0;
         for (const metric of metrics) {
-          const anomaly = await processMetric(client, metric, dateStr);
+          const anomaly = await processMetric(metric, dateStr);
           if (!anomaly) continue;
 
           await client.query(`
@@ -270,6 +276,7 @@ async function run() {
   } finally {
     client.release();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

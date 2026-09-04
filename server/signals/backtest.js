@@ -17,11 +17,14 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
-const pgPool = getPool();
+// Backtesting is entirely read-only (report/analysis over already-computed
+// trading_signals) — never writes to the database, so all of it runs
+// against the replica when available.
+const pgPool = getReadPool();
 
 function computeSharpe(returns, annFactor = 252) {
   if (returns.length < 2) return 0;

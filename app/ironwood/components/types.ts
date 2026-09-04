@@ -117,6 +117,20 @@ export interface ScatterData {
   txs: ScatterTx[];
 }
 
+export interface MigrationActivityBucket {
+  bucketStart: number;
+  txCount: number;
+  volumeZat: number;
+}
+
+export interface MigrationActivityData {
+  success?: boolean;
+  network?: string;
+  granularity: 'hour' | 'day';
+  bucketSeconds: number;
+  buckets: MigrationActivityBucket[];
+}
+
 export interface PoolRow {
   name: string;
   zat: number;

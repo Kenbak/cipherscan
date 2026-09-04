@@ -21,20 +21,33 @@ const fs = require('fs');
 const { log, loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const LOCKFILE = path.join(__dirname, '.sync-crosschain.lock');
 
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000, statement_timeout: 30000 });
+// Almost every DB access in this file is a tight read-then-write-on-that-read
+// loop (checkTxExists → upsert, candidate lookup → matched update, etc.) with
+// no explicit transaction wrapping them — each statement auto-commits on its
+// own. Routing those individual reads to the replica risks acting on
+// momentarily stale data (e.g. missing a transaction that was just indexed
+// on the primary a moment ago), which would show up as incorrect/delayed
+// match decisions rather than a hard error, so they intentionally stay on
+// the primary. updateAmountStats() is the one exception: it's a standalone
+// bulk aggregate read (trailing 7d swaps) that runs before its own
+// DELETE+INSERT write phase, so it's safe to offload.
+const readPool = getReadPool({ max: 2, idleTimeoutMillis: 10000, statement_timeout: 30000 });
 
 process.on('SIGINT', async () => {
   log('SIGINT received — draining pool...');
   await pool.end();
+  if (readPool !== pool) await readPool.end();
   process.exit(0);
 });
 process.on('SIGTERM', async () => {
   log('SIGTERM received — draining pool...');
   await pool.end();
+  if (readPool !== pool) await readPool.end();
   process.exit(0);
 });
 
@@ -723,8 +736,10 @@ async function backfillZecAddresses() {
 async function updateAmountStats() {
   const today = new Date().toISOString().slice(0, 10);
 
-  // Get trailing 7d swaps grouped by chain/token
-  const { rows } = await pool.query(`
+  // Get trailing 7d swaps grouped by chain/token — standalone bulk read,
+  // safe to offload since the write phase below is a full DELETE+recompute
+  // for `today` regardless of exactly which replica snapshot fed it.
+  const { rows } = await readPool.query(`
     SELECT source_chain, source_token, source_amount, source_amount_usd
     FROM cross_chain_swaps
     WHERE status = 'SUCCESS'
@@ -1005,10 +1020,12 @@ async function main() {
     if (!lookupQuery) {
       log('Usage: node sync-crosschain-swaps.js --lookup <deposit_address>');
       await pool.end();
+      if (readPool !== pool) await readPool.end();
       return;
     }
     await lookupSwap(lookupQuery);
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
@@ -1016,6 +1033,7 @@ async function main() {
   if (isSeed) {
     await seedTestData();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
@@ -1028,6 +1046,7 @@ async function main() {
     await updateAmountStats();
     await refreshMaterializedViews();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     log('=== Heal complete ===');
     return;
   }
@@ -1086,6 +1105,7 @@ async function main() {
 
     log(`=== Backfill complete: ${totalBackfilled} total swaps ===`);
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
@@ -1159,6 +1179,7 @@ async function main() {
 
   log(`=== Done. ${totalSynced} swaps synced ===`);
   await pool.end();
+  if (readPool !== pool) await readPool.end();
 }
 
 // ---------------------------------------------------------------------------

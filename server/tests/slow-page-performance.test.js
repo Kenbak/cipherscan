@@ -57,6 +57,7 @@ function captureTransactionRoutes() {
     if (specifier === '../../validation') return { validate: () => (_req, _res, next) => next() };
     if (specifier === '../../coinbase-data') return { decodeCoinbaseText: () => null };
     if (specifier === './_helpers') return helpers;
+    if (specifier === '../../lib/safe-log') return require('../api/lib/safe-log');
     return require(specifier);
   };
   const detailEval = new Function('exports', 'require', 'module', '__filename', '__dirname', detailSource);

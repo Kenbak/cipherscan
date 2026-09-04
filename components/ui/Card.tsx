@@ -11,6 +11,10 @@ interface CardProps {
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
+  /** Overrides the `interactive`-derived default (e.g. "alert"/"status" for
+   * error and loading-state cards so assistive tech announces them). */
+  role?: string;
+  ariaLive?: 'polite' | 'assertive' | 'off';
 }
 
 /**
@@ -34,6 +38,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     className = '',
     style,
     onClick,
+    role,
+    ariaLive,
   },
   ref
 ) {
@@ -54,7 +60,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
       className={`${variantClasses[variant]} ${interactiveClass} ${className}`}
       style={style}
       onClick={interactive ? onClick : undefined}
-      role={interactive ? 'button' : undefined}
+      role={role ?? (interactive ? 'button' : undefined)}
+      aria-live={ariaLive}
       tabIndex={interactive ? 0 : undefined}
     >
       {children}

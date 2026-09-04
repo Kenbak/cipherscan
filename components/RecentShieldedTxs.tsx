@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
-import { formatRelativeTime } from '@/lib/utils';
+import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise } from '@/lib/format-numbers';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -213,7 +213,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                     )}
                   </td>
                   <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
-                    <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(tx.blockTime)}</span>
+                    <RelativeTime timestamp={tx.blockTime} className="text-sm text-muted whitespace-nowrap" />
                   </td>
                 </tr>
               );

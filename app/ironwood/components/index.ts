@@ -3,6 +3,8 @@ export type {
   ChartColors,
   Cohort,
   Cohorts,
+  MigrationActivityBucket,
+  MigrationActivityData,
   Overview,
   PoolRow,
   PrivacyRange,

@@ -20,6 +20,7 @@ const router = express.Router();
 const { getErc20Supply } = require('../../lib/base-rpc');
 const { getSplTokenSupply } = require('../../lib/solana-rpc');
 const { getNep141Supply } = require('../../lib/near-rpc');
+const { logSafeError } = require('../lib/safe-log');
 
 const ASSETS = [
   {
@@ -137,7 +138,7 @@ router.get('/api/wrapped-zec/supply', async (req, res) => {
     cache = { data, ts: Date.now() };
     res.json(data);
   } catch (error) {
-    console.error('❌ [WRAPPED-ZEC] supply fetch error:', error.message);
+    logSafeError('❌ [WRAPPED-ZEC] supply fetch error:', error);
     if (cache) {
       return res.json({ ...cache.data, stale: true });
     }

@@ -18,6 +18,7 @@
 const express = require('express');
 const router = express.Router();
 const { classifyMigration } = require('../lib/migration-classifier');
+const { logSafeError, logSafeWarn } = require('../lib/safe-log');
 
 // NU6.3 / Ironwood activation heights.
 // Mainnet: height 3,428,143 (~July 28 2026 8AM EST). Announced by Sean Bowe.
@@ -209,7 +210,7 @@ router.get('/api/migration/overview', async (req, res) => {
             console.warn('[MIGRATION] Zebra returned invalid valuePools');
           }
         } catch (error) {
-          console.warn('[MIGRATION] Live Zebra pool lookup failed:', error.message);
+          logSafeWarn('[MIGRATION] Live Zebra pool lookup failed:', error);
         }
       }
 
@@ -245,7 +246,7 @@ router.get('/api/migration/overview', async (req, res) => {
             };
           }
         } catch (error) {
-          console.error('[MIGRATION] Stored pool snapshot lookup failed:', error.message);
+          logSafeError('[MIGRATION] Stored pool snapshot lookup failed:', error);
         }
       }
 
@@ -416,7 +417,7 @@ router.get('/api/migration/overview', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('migration/overview error:', err.message);
+    logSafeError('migration/overview error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -533,7 +534,7 @@ router.get('/api/migration/cohorts', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('migration/cohorts error:', err.message);
+    logSafeError('migration/cohorts error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -581,7 +582,7 @@ router.get('/api/migration/denominations', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('migration/denominations error:', err.message);
+    logSafeError('migration/denominations error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -591,6 +592,107 @@ function labelForPower(power) {
   if (v >= 1) return `${v} ZEC`;
   return `${Number(v.toPrecision(2))} ZEC`;
 }
+
+// ─── GET /api/migration/activity ────────────────────────────────────────────
+// Compact hourly/daily migration activity buckets for time-series charts.
+// Unlike /scatter and /tiers (one row per migration tx, growing without
+// bound as more migrations occur), this returns a small, fixed-size series
+// of pre-aggregated buckets. Volumes are exact zatoshi integers straight
+// from SQL SUM() — never a lossy ZEC float division — matching project
+// convention (BIGINT zatoshis; 1 ZEC = 100,000,000 zatoshis).
+
+const ACTIVITY_GRANULARITY_SECONDS = { hour: 3600, day: 86400 };
+// Bounds the response/row count per granularity so a chart request can't
+// force an unbounded aggregation/response as migration history grows.
+const ACTIVITY_MAX_BUCKETS = { hour: 24 * 14, day: 180 };
+
+router.get('/api/migration/activity', async (req, res) => {
+  try {
+    const network = resolveNetwork();
+    const granularity = req.query.granularity === 'hour' ? 'hour' : 'day';
+    const bucketSeconds = ACTIVITY_GRANULARITY_SECONDS[granularity];
+    const maxBuckets = ACTIVITY_MAX_BUCKETS[granularity];
+
+    const data = await cached(`zcash:migration:activity:v1:${network}:${granularity}`, 30, async () => {
+      const sinceEpoch = Math.floor(Date.now() / 1000) - maxBuckets * bucketSeconds;
+
+      const result = await pool.query(`
+        SELECT
+          (block_time / $1::bigint) * $1::bigint AS bucket_start,
+          COUNT(*) AS tx_count,
+          COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS volume_zat
+        FROM transactions
+        WHERE ${MIGRATION_PREDICATE}
+          AND block_time >= $2
+        GROUP BY bucket_start
+        ORDER BY bucket_start ASC
+      `, [bucketSeconds, sinceEpoch]);
+
+      const buckets = result.rows.map(r => ({
+        bucketStart: Number(r.bucket_start),
+        txCount: Number(r.tx_count),
+        volumeZat: Number(r.volume_zat),
+      }));
+
+      return { network, granularity, bucketSeconds, buckets };
+    });
+
+    res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+    res.json({ success: true, ...data });
+  } catch (err) {
+    logSafeError('migration/activity error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── GET /api/migration/summary ─────────────────────────────────────────────
+// Small, fixed-size digest of migration activity (headline totals + 24h/7d
+// windows) for dashboard cards that don't need the full per-tx /scatter or
+// /tiers payloads. Exact zatoshi integers throughout.
+
+router.get('/api/migration/summary', async (req, res) => {
+  try {
+    const network = resolveNetwork();
+    const data = await cached(`zcash:migration:summary:v1:${network}`, 30, async () => {
+      const nowEpoch = Math.floor(Date.now() / 1000);
+      const since24h = nowEpoch - 86400;
+      const since7d = nowEpoch - 7 * 86400;
+
+      const result = await pool.query(`
+        SELECT
+          COUNT(*) AS total_tx_count,
+          COALESCE(SUM(ABS(value_balance_ironwood)), 0) AS total_volume_zat,
+          COUNT(*) FILTER (WHERE block_time >= $1) AS tx_count_24h,
+          COALESCE(SUM(ABS(value_balance_ironwood)) FILTER (WHERE block_time >= $1), 0) AS volume_zat_24h,
+          COUNT(*) FILTER (WHERE block_time >= $2) AS tx_count_7d,
+          COALESCE(SUM(ABS(value_balance_ironwood)) FILTER (WHERE block_time >= $2), 0) AS volume_zat_7d,
+          MIN(block_height) AS first_height,
+          MAX(block_height) AS last_height
+        FROM transactions
+        WHERE ${MIGRATION_PREDICATE}
+      `, [since24h, since7d]);
+
+      const r = result.rows[0];
+      return {
+        network,
+        totalTxCount: Number(r.total_tx_count) || 0,
+        totalVolumeZat: Number(r.total_volume_zat) || 0,
+        txCount24h: Number(r.tx_count_24h) || 0,
+        volumeZat24h: Number(r.volume_zat_24h) || 0,
+        txCount7d: Number(r.tx_count_7d) || 0,
+        volumeZat7d: Number(r.volume_zat_7d) || 0,
+        firstHeight: r.first_height != null ? Number(r.first_height) : null,
+        lastHeight: r.last_height != null ? Number(r.last_height) : null,
+      };
+    });
+
+    res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+    res.json({ success: true, ...data });
+  } catch (err) {
+    logSafeError('migration/summary error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // ─── GET /api/migration/scatter ──────────────────────────────────────────────
 // Individual migration transactions with privacy classification.
@@ -734,7 +836,7 @@ router.get('/api/migration/scatter', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('migration/scatter error:', err.message);
+    logSafeError('migration/scatter error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -794,7 +896,7 @@ router.get('/api/migration/tiers', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('migration/tiers error:', err.message);
+    logSafeError('migration/tiers error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

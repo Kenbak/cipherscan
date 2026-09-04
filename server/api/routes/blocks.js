@@ -8,8 +8,17 @@ const router = express.Router();
 const { getPoolName, getPoolInfo } = require('../mining-pools');
 const { decodeCoinbaseText } = require('../coinbase-data');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
 
 const disabledListCache = createListCache({ enabled: false });
+
+// /api/blocks is the legacy offset-paginated endpoint (see below). Blocks is
+// a multi-million-row, ever-growing table ordered by height, so an
+// unbounded OFFSET would force Postgres to walk and discard everything
+// before it. /api/blocks/list (cursor-based, keyed off height) is the
+// intended path for deep pagination and never has this problem.
+const MAX_BLOCKS_OFFSET = 100_000;
 
 function isCanonicalIntegerQuery(value) {
   if (value === undefined) return true;
@@ -107,6 +116,11 @@ router.get('/health/deep', async (req, res) => {
   const routing = req.app.locals.poolRouting;
   if (routing && routing.hasReplica()) {
     const circuit = routing.getCircuitState();
+    // Single source of truth for the acceptable-lag threshold — must match
+    // pool-routing.js's own circuit-breaker check, or this health endpoint
+    // could report "healthy" while reads are already being routed away
+    // from a lagging replica, or vice versa.
+    const maxAcceptableLag = routing.MAX_ACCEPTABLE_LAG_BLOCKS ?? 3;
     try {
       const lagBlocks = await routing.replicaLagBlocks();
       checks.replica = {
@@ -115,7 +129,7 @@ router.get('/health/deep', async (req, res) => {
         circuit: circuit.state,
         failures: circuit.consecutiveFailures,
       };
-      if (lagBlocks > 3 || circuit.state !== 'CLOSED') degraded = true;
+      if (lagBlocks > maxAcceptableLag || circuit.state !== 'CLOSED') degraded = true;
     } catch {
       checks.replica = { status: 'down', circuit: circuit.state, failures: circuit.consecutiveFailures };
       degraded = true;
@@ -192,7 +206,7 @@ router.get('/api/info', async (req, res) => {
       height: currentHeight,
     });
   } catch (error) {
-    console.error('Error fetching blockchain info:', error);
+    logSafeError('Error fetching blockchain info:', error);
     res.status(500).json({ error: 'Failed to fetch blockchain info' });
   }
 });
@@ -297,7 +311,7 @@ router.get('/api/blocks/list', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    console.error('Error fetching blocks list:', error);
+    logSafeError('Error fetching blocks list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch blocks' });
   }
 });
@@ -309,8 +323,19 @@ router.get('/api/blocks/list', async (req, res) => {
 // Get recent blocks
 router.get('/api/blocks', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 100,
+      maxOffset: MAX_BLOCKS_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({
+        requestedOffset,
+        maxOffset: MAX_BLOCKS_OFFSET,
+        cursorHint: 'Use the cursor-based /api/blocks/list endpoint for deep pagination.',
+      }));
+    }
 
     const result = await pool.query(
       `SELECT
@@ -342,6 +367,11 @@ router.get('/api/blocks', async (req, res) => {
       return b;
     });
 
+    // Legacy offset-paginated endpoint. Kept for backwards compatibility with
+    // /api/blocks/list (cursor-based, already list-cached above); a short
+    // cache window still helps repeat/crawler requests without risking stale
+    // data past a block interval.
+    res.set('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=120');
     res.json({
       blocks,
       pagination: {
@@ -352,7 +382,7 @@ router.get('/api/blocks', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching blocks:', error);
+    logSafeError('Error fetching blocks:', error);
     res.status(500).json({ error: 'Failed to fetch blocks' });
   }
 });
@@ -414,68 +444,83 @@ async function buildOrphanedBlockResponse(orphanRow) {
       [blockHash]
     );
 
-    for (const tx of txResult.rows) {
-      const inputsResult = await pool.query(
-        `SELECT vout_index, prev_txid, prev_vout, address, value, coinbase
-         FROM orphaned_transaction_inputs WHERE txid = $1 AND block_hash = $2
-         ORDER BY vout_index ASC`,
-        [tx.txid, blockHash]
-      );
-      const outputsResult = await pool.query(
-        `SELECT vout_index, value, address, script_type
-         FROM orphaned_transaction_outputs WHERE txid = $1 AND block_hash = $2
-         ORDER BY vout_index ASC`,
-        [tx.txid, blockHash]
-      );
+    // Batch inputs/outputs for every tx in this orphaned block into 2 queries
+    // instead of 2 sequential round trips per transaction (was N+1 I/O for an
+    // N-transaction orphaned block).
+    const txids = txResult.rows.map(tx => tx.txid);
+    const [inputsResult, outputsResult] = txids.length > 0
+      ? await Promise.all([
+          pool.query(
+            `SELECT txid, vout_index, prev_txid, prev_vout, address, value, coinbase
+             FROM orphaned_transaction_inputs WHERE block_hash = $1 AND txid = ANY($2::text[])
+             ORDER BY txid, vout_index ASC`,
+            [blockHash, txids]
+          ),
+          pool.query(
+            `SELECT txid, vout_index, value, address, script_type
+             FROM orphaned_transaction_outputs WHERE block_hash = $1 AND txid = ANY($2::text[])
+             ORDER BY txid, vout_index ASC`,
+            [blockHash, txids]
+          ),
+        ])
+      : [{ rows: [] }, { rows: [] }];
 
-      transactions.push({
-        txid: tx.txid,
-        block_height: parseInt(tx.block_height),
-        tx_index: tx.tx_index,
-        version: tx.version,
-        size: tx.size,
-        fee: tx.fee ? parseInt(tx.fee) : 0,
-        is_coinbase: tx.is_coinbase,
-        timestamp: tx.timestamp ? parseInt(tx.timestamp) : null,
-        expiry_height: tx.expiry_height,
-        vin_count: tx.vin_count || 0,
-        vout_count: tx.vout_count || 0,
-        total_input: tx.total_input ? parseInt(tx.total_input) : 0,
-        total_output: tx.total_output ? parseInt(tx.total_output) : 0,
-        has_sapling: tx.has_sapling,
-        has_orchard: tx.has_orchard,
-        has_sprout: tx.has_sprout,
-        has_ironwood: tx.has_ironwood,
-        has_shielded_data: tx.has_shielded_data,
-        sapling_spend_count: tx.sapling_spend_count || 0,
-        sapling_output_count: tx.sapling_output_count || 0,
-        orchard_actions: tx.orchard_actions || 0,
-        ironwood_actions: tx.ironwood_actions || 0,
-        sprout_joinsplit_count: tx.sprout_joinsplit_count || 0,
-        value_balance: tx.value_balance ? parseInt(tx.value_balance) : 0,
-        value_balance_sapling: tx.value_balance_sapling ? parseInt(tx.value_balance_sapling) : 0,
-        value_balance_orchard: tx.value_balance_orchard ? parseInt(tx.value_balance_orchard) : 0,
-        value_balance_ironwood: tx.value_balance_ironwood ? parseInt(tx.value_balance_ironwood) : 0,
-        flow_type: tx.flow_type,
-        privacy_score: tx.privacy_score,
-        vin: inputsResult.rows.map(i => ({
-          vout_index: i.vout_index,
-          prev_txid: i.prev_txid,
-          prev_vout: i.prev_vout,
-          address: i.address,
-          value: i.value ? parseInt(i.value) : 0,
-          coinbase: i.coinbase,
-        })),
-        vout: outputsResult.rows.map(o => ({
-          vout_index: o.vout_index,
-          value: o.value ? parseInt(o.value) : 0,
-          address: o.address,
-          script_type: o.script_type,
-        })),
-      });
+    const inputsByTxid = {};
+    for (const input of inputsResult.rows) {
+      (inputsByTxid[input.txid] || (inputsByTxid[input.txid] = [])).push(input);
     }
+    const outputsByTxid = {};
+    for (const output of outputsResult.rows) {
+      (outputsByTxid[output.txid] || (outputsByTxid[output.txid] = [])).push(output);
+    }
+
+    transactions = txResult.rows.map(tx => ({
+      txid: tx.txid,
+      block_height: parseInt(tx.block_height),
+      tx_index: tx.tx_index,
+      version: tx.version,
+      size: tx.size,
+      fee: tx.fee ? parseInt(tx.fee) : 0,
+      is_coinbase: tx.is_coinbase,
+      timestamp: tx.timestamp ? parseInt(tx.timestamp) : null,
+      expiry_height: tx.expiry_height,
+      vin_count: tx.vin_count || 0,
+      vout_count: tx.vout_count || 0,
+      total_input: tx.total_input ? parseInt(tx.total_input) : 0,
+      total_output: tx.total_output ? parseInt(tx.total_output) : 0,
+      has_sapling: tx.has_sapling,
+      has_orchard: tx.has_orchard,
+      has_sprout: tx.has_sprout,
+      has_ironwood: tx.has_ironwood,
+      has_shielded_data: tx.has_shielded_data,
+      sapling_spend_count: tx.sapling_spend_count || 0,
+      sapling_output_count: tx.sapling_output_count || 0,
+      orchard_actions: tx.orchard_actions || 0,
+      ironwood_actions: tx.ironwood_actions || 0,
+      sprout_joinsplit_count: tx.sprout_joinsplit_count || 0,
+      value_balance: tx.value_balance ? parseInt(tx.value_balance) : 0,
+      value_balance_sapling: tx.value_balance_sapling ? parseInt(tx.value_balance_sapling) : 0,
+      value_balance_orchard: tx.value_balance_orchard ? parseInt(tx.value_balance_orchard) : 0,
+      value_balance_ironwood: tx.value_balance_ironwood ? parseInt(tx.value_balance_ironwood) : 0,
+      flow_type: tx.flow_type,
+      privacy_score: tx.privacy_score,
+      vin: (inputsByTxid[tx.txid] || []).map(i => ({
+        vout_index: i.vout_index,
+        prev_txid: i.prev_txid,
+        prev_vout: i.prev_vout,
+        address: i.address,
+        value: i.value ? parseInt(i.value) : 0,
+        coinbase: i.coinbase,
+      })),
+      vout: (outputsByTxid[tx.txid] || []).map(o => ({
+        vout_index: o.vout_index,
+        value: o.value ? parseInt(o.value) : 0,
+        address: o.address,
+        script_type: o.script_type,
+      })),
+    }));
   } catch (err) {
-    console.error('[BLOCK] Failed to load orphaned transactions:', err.message);
+    logSafeError('[BLOCK] Failed to load orphaned transactions:', err);
   }
 
   return {
@@ -553,6 +598,10 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
         return res.status(404).json({ error: 'Block not found' });
       }
 
+      // Orphaned blocks are a permanent historical record once detected, but
+      // keep the window short-ish: SEO/reorg-monitor pages sometimes attach a
+      // corrected canonicalBlock summary shortly after detection.
+      res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
       return res.json(await buildOrphanedBlockResponse(orphanResult.rows[0]));
     }
 
@@ -692,9 +741,21 @@ router.get('/api/block/:heightOrHash', async (req, res) => {
       response.finality_status = blockHeight <= finalizedHeight ? 'Finalized' : 'NotYetFinalized';
     }
 
+    // Backwards-compatible addition: only a response header, never a body
+    // change. A finalized block (or one with many confirmations, when the
+    // TFL finality RPC is unavailable) cannot be replaced by a reorg, so it
+    // is safe to cache aggressively; a recent/unconfirmed-relative block is
+    // cached briefly to stay correct across a possible reorg.
+    const isEffectivelyFinal = finalizedHeight !== null
+      ? blockHeight <= finalizedHeight
+      : confirmations >= 100;
+    res.set('Cache-Control', isEffectivelyFinal
+      ? 'public, s-maxage=3600, stale-while-revalidate=86400, immutable'
+      : 'public, s-maxage=15, stale-while-revalidate=120');
+
     res.json(response);
   } catch (error) {
-    console.error('Error fetching block:', error);
+    logSafeError('Error fetching block:', error);
     res.status(500).json({ error: 'Failed to fetch block' });
   }
 });
@@ -780,7 +841,7 @@ router.get('/api/search/anchor/:root', async (req, res) => {
           : 'This anchor root was not found. It may be from a very old block not yet backfilled, or an invalid root.',
     });
   } catch (error) {
-    console.error('Error searching anchor root:', error);
+    logSafeError('Error searching anchor root:', error);
     res.status(500).json({ error: 'Failed to search anchor root' });
   }
 });
@@ -803,6 +864,9 @@ router.get('/api/block-archive/:hashOrHeight', async (req, res) => {
       return res.status(404).json({ error: 'No archived block found' });
     }
 
+    // Archived raw block hex is write-once, so it is always safe to cache
+    // aggressively once captured.
+    res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400, immutable');
     res.json({
       success: true,
       blocks: result.rows.map(r => ({
@@ -815,7 +879,7 @@ router.get('/api/block-archive/:hashOrHeight', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error fetching block archive:', error);
+    logSafeError('Error fetching block archive:', error);
     res.status(500).json({ error: 'Failed to fetch archived block' });
   }
 });

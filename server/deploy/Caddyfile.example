@@ -7,6 +7,11 @@
 api.mainnet.cipherscan.app {
 	reverse_proxy 127.0.0.1:3001
 
+	# JSON API responses compress well; prefer zstd (smaller, faster) and
+	# fall back to gzip for older clients. Caddy negotiates against the
+	# request's Accept-Encoding automatically — no per-route config needed.
+	encode zstd gzip
+
 	header {
 		-Server
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

@@ -16,8 +16,17 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
 
 const disabledListCache = createListCache({ enabled: false });
+
+// Deep offset requests on the balance-sorted view walk and discard rows on
+// a table that can grow large. The address-sorted view already supports a
+// cursor (?sort=address&cursor=<lastAddress>) with no such cost, so deep
+// clients on the default (balance) sort are pointed at it instead of being
+// served an expensive scan.
+const MAX_EXPOSED_OFFSET = 100_000;
 
 let pool;
 let listCache;
@@ -44,11 +53,26 @@ function isCanonicalIntegerQuery(value) {
  */
 router.get('/api/transparent/exposed', validate('exposedAddresses'), async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 1000);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
     const cursor = req.query.cursor || null;
     const sort = req.query.sort || 'balance';
     const minBalance = Math.max(parseInt(req.query.min_balance) || 0, 0);
+
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 100,
+      maxLimit: 1000,
+      maxOffset: MAX_EXPOSED_OFFSET,
+    });
+
+    // The address-sorted cursor path never issues an OFFSET, so it has no
+    // depth limit to enforce here — only the balance-sorted (default) path
+    // needs the cap, and it gets a pointer to the cursor alternative.
+    if (offsetExceeded && !(sort === 'address' && cursor)) {
+      return res.status(400).json(offsetExceededError({
+        requestedOffset,
+        maxOffset: MAX_EXPOSED_OFFSET,
+        cursorHint: 'Use sort=address&cursor=<last address from the previous page> for deep pagination.',
+      }));
+    }
 
     const cacheable = isCanonicalIntegerQuery(req.query.limit)
       && isCanonicalIntegerQuery(req.query.offset)
@@ -167,7 +191,7 @@ router.get('/api/transparent/exposed', validate('exposedAddresses'), async (req,
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    console.error('Error fetching exposed addresses:', error);
+    logSafeError('Error fetching exposed addresses:', error);
     res.status(500).json({ error: 'Failed to fetch exposed addresses' });
   }
 });
@@ -272,7 +296,7 @@ router.get('/api/transparent/exposed/summary', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    console.error('Error fetching exposed summary:', error);
+    logSafeError('Error fetching exposed summary:', error);
     res.status(500).json({ error: 'Failed to fetch exposed address summary' });
   }
 });

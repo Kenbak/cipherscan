@@ -24,9 +24,14 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
+// Same pattern as snapshot-mining-behavior.js: read (classify) and write
+// (DELETE + INSERT) per day are separate, already-autocommitted statement
+// groups with no explicit transaction spanning them, so the read half is
+// safe to offload to the replica.
+const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839276;
 const DAYS_FLAG = process.argv.find((a) => a.startsWith('--days='));
@@ -70,7 +75,7 @@ async function computeDay(client, dateStr) {
   const dayStart = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
   const dayEnd = dayStart + 86400;
 
-  const result = await client.query(
+  const result = await readPool.query(
     `
     WITH cb AS MATERIALIZED (
       SELECT b.miner_address, t.txid
@@ -189,6 +194,7 @@ async function run() {
   } finally {
     client.release();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

@@ -18,9 +18,16 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 const pool = getPool({ max: 3 });
+// The per-day work below is read (SELECT aggregate) then write (DELETE +
+// INSERT), as two separate, already-autocommitted statement groups — there
+// is no explicit BEGIN/COMMIT spanning them (withAdvisoryLock only takes a
+// session-level pg_advisory_lock, not a SQL transaction), so the read half
+// can safely move to the replica without ever mixing a single transaction
+// across primary/replica.
+const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839275;
 const BACKFILL_MODE = process.argv.includes('--backfill');
@@ -68,7 +75,7 @@ async function computeDay(client, dateStr) {
   const dayStart = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
   const dayEnd = dayStart + 86400;
 
-  const result = await client.query(`
+  const result = await readPool.query(`
     WITH coinbase_txs AS MATERIALIZED (
       SELECT b.miner_address, t.txid
       FROM blocks b
@@ -96,7 +103,7 @@ async function computeDay(client, dateStr) {
     GROUP BY dc.miner_address
   `, [dayStart, dayEnd]);
 
-  const blockCounts = await client.query(`
+  const blockCounts = await readPool.query(`
     SELECT miner_address, COUNT(*) as blocks
     FROM blocks
     WHERE timestamp >= $1 AND timestamp < $2
@@ -162,7 +169,7 @@ async function run() {
 
       let startDate;
       if (BACKFILL_MODE) {
-        const earliest = await client.query(
+        const earliest = await readPool.query(
           `SELECT MIN(date_trunc('day', to_timestamp(timestamp)))::date as min_date FROM blocks WHERE miner_address IS NOT NULL`
         );
         startDate = earliest.rows[0]?.min_date || new Date('2016-10-28');
@@ -198,6 +205,7 @@ async function run() {
   } finally {
     client.release();
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

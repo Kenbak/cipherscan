@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
+  resolveSloBudget,
   resolveTargets,
   runPairedProbe,
   summarizeTtfb,
@@ -14,7 +15,13 @@ const USAGE = `Usage: npm run perf:probe:ttfb -- \\
   [--targets=scripts/perf/ttfb-targets.json] \\
   [--rounds=2] [--timeout-ms=12000] [--threshold-ms=200] \\
   [--scheduling=serial|parallel] [--label=post-deploy] [--revision=SHA] \\
-  [--min-under-threshold-pct=80] [--require-core-under-threshold] [--force]`;
+  [--slo=scripts/perf/ttfb-slo-override.json] \\
+  [--min-under-threshold-pct=80] [--require-core-under-threshold] [--force]
+
+An SLO budget (thresholdMs, minUnderThresholdPct, requireCoreUnderThreshold)
+resolves in ascending priority: the lib default (no gate), the target
+manifest's own "slo" field, --slo=<file>, then the individual flags above.
+Each explicit flag always wins over the manifest/file budget it runs against.`;
 
 function parseArgs(args) {
   const options = {};
@@ -27,6 +34,7 @@ function parseArgs(args) {
     'revision',
     'rounds',
     'scheduling',
+    'slo',
     'targets',
     'threshold-ms',
     'timeout-ms',
@@ -70,8 +78,18 @@ function positiveNumber(value, fallback, name) {
   return parsed;
 }
 
-function percentage(value, name) {
-  if (value === undefined) return null;
+// Unlike positiveNumber/percentage above (used for rounds/timeout-ms, which
+// always have a fallback), SLO-budget flags must distinguish "not passed"
+// (undefined; defer to the manifest/file budget) from "explicitly set".
+function optionalPositiveNumber(value, name) {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) throw new RangeError(`--${name} must be positive`);
+  return parsed;
+}
+
+function optionalPercentage(value, name) {
+  if (value === undefined) return undefined;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
     throw new RangeError(`--${name} must be between 0 and 100`);
@@ -90,25 +108,44 @@ export async function main(args = process.argv.slice(2)) {
     const rounds = positiveNumber(options.rounds, 2, 'rounds');
     if (!Number.isInteger(rounds)) throw new RangeError('--rounds must be an integer');
     const timeoutMs = positiveNumber(options['timeout-ms'], 12_000, 'timeout-ms');
-    const thresholdMs = positiveNumber(options['threshold-ms'], 200, 'threshold-ms');
-    const minimumUnderThreshold = percentage(
-      options['min-under-threshold-pct'],
-      'min-under-threshold-pct',
-    );
     const scheduling = options.scheduling ?? 'serial';
     if (!['serial', 'parallel'].includes(scheduling)) {
       throw new TypeError('--scheduling must be serial or parallel');
     }
 
+    // Individually-passed flags always win over any checked-in budget; only
+    // the fields actually present on the command line are included so an
+    // omitted flag defers to the manifest/file budget instead of silently
+    // resetting it to a hardcoded fallback.
+    const cliSloOverrides = {};
+    const thresholdMsOverride = optionalPositiveNumber(options['threshold-ms'], 'threshold-ms');
+    if (thresholdMsOverride !== undefined) cliSloOverrides.thresholdMs = thresholdMsOverride;
+    const minUnderThresholdPctOverride = optionalPercentage(
+      options['min-under-threshold-pct'],
+      'min-under-threshold-pct',
+    );
+    if (minUnderThresholdPctOverride !== undefined) {
+      cliSloOverrides.minUnderThresholdPct = minUnderThresholdPctOverride;
+    }
+    if (options['require-core-under-threshold'] === true) cliSloOverrides.requireCoreUnderThreshold = true;
+
     const targetsPath = path.resolve(options.targets ?? 'scripts/perf/ttfb-targets.json');
     const manifest = JSON.parse(await readFile(targetsPath, 'utf8'));
     const targets = resolveTargets(manifest, options['base-url']);
+
+    const sloFilePath = options.slo === undefined ? null : path.resolve(options.slo);
+    const sloFileOverrides = sloFilePath === null
+      ? null
+      : JSON.parse(await readFile(sloFilePath, 'utf8'));
+
+    const sloBudget = resolveSloBudget(manifest.slo ?? null, sloFileOverrides, cliSloOverrides);
+
     const observations = await runPairedProbe(targets, {
       rounds,
       scheduling,
       measureOptions: { timeoutMs },
     });
-    const summary = summarizeTtfb(observations, { thresholdMs });
+    const summary = summarizeTtfb(observations, { thresholdMs: sloBudget.thresholdMs });
     const artifact = {
       schemaVersion: 1,
       metadata: {
@@ -127,9 +164,21 @@ export async function main(args = process.argv.slice(2)) {
         scheduling,
         mode: scheduling === 'serial' ? 'paired-baseline' : 'parallel-stress',
         timeoutMs,
-        thresholdMs,
+        // sloBudget is a policy/target this run was gated against, sourced
+        // from the manifest/--slo file/CLI flags — never backfilled from
+        // this run's own summary. See resolveSloBudget in ttfb-probe-lib.
+        sloBudget: {
+          ...sloBudget,
+          source: {
+            targetManifest: manifest.slo ? targetsPath : null,
+            sloFile: sloFilePath,
+            cliOverrides: Object.keys(cliSloOverrides),
+          },
+        },
         bodyHandling: 'GET response body cancelled immediately after response headers',
-        cacheClassification: 'Explicit cache headers only; pair position never implies cache state',
+        cacheClassification: 'Explicit x-vercel-cache/Cache-Status headers only; '
+          + 'pair position and Age never imply cache state. Netlify Cache-Status '
+          + 'parsing is preserved for backward compatibility with pre-migration artifacts.',
       },
       targets,
       summary,
@@ -140,9 +189,9 @@ export async function main(args = process.argv.slice(2)) {
     });
 
     const transportPassed = summary.overall.failedResponses === 0;
-    const populationPassed = minimumUnderThreshold === null
-      || summary.overall.underThresholdPct >= minimumUnderThreshold;
-    const corePassed = options['require-core-under-threshold'] !== true
+    const populationPassed = sloBudget.minUnderThresholdPct === null
+      || summary.overall.underThresholdPct >= sloBudget.minUnderThresholdPct;
+    const corePassed = !sloBudget.requireCoreUnderThreshold
       || summary.core.underThresholdPct === 100;
 
     console.log(JSON.stringify({
@@ -151,9 +200,8 @@ export async function main(args = process.argv.slice(2)) {
       summary,
       acceptance: {
         transportPassed,
-        minimumUnderThreshold,
+        sloBudget,
         populationPassed,
-        requireCoreUnderThreshold: options['require-core-under-threshold'] === true,
         corePassed,
         passed: transportPassed && populationPassed && corePassed,
       },

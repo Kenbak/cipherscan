@@ -8,6 +8,7 @@
 
 const POLL_INTERVAL_MS = 60_000;
 const GRPC_DEADLINE_MS = 5_000;
+const { logSafeError } = require('./lib/safe-log');
 
 const MAINNET_NODES = [
   { name: 'Cake Wallet', host: 'zec-node.cakewallet.com', port: 443, tls: true },
@@ -110,7 +111,7 @@ class ForkMonitor {
 
         this.clients.set(node.name, client);
       } catch (err) {
-        console.error(`   [ForkMonitor] Failed to create client for ${node.name}: ${err.message}`);
+        logSafeError('[ForkMonitor] Failed to create client:', err, { node: node.name });
       }
     }
   }
@@ -130,7 +131,7 @@ class ForkMonitor {
       const checks = MONITORED_NODES.map(node => this._checkNode(node, ourTip));
       await Promise.allSettled(checks);
     } catch (err) {
-      console.error(`   [ForkMonitor] Poll error: ${err.message}`);
+      logSafeError('[ForkMonitor] Poll error:', err);
     }
   }
 
@@ -361,7 +362,7 @@ class ForkMonitor {
         return { commonHeight, forkHeight: commonHeight + 1 };
       }
     } catch (err) {
-      console.error(`   [ForkMonitor] Common ancestor search failed for ${node.name}: ${err.message}`);
+      logSafeError('[ForkMonitor] Common ancestor search failed:', err, { node: node.name });
     }
     return null;
   }
@@ -411,7 +412,7 @@ class ForkMonitor {
         return { commonHeight, forkHeight: commonHeight + 1 };
       }
     } catch (err) {
-      console.error(`   [ForkMonitor] Common ancestor RPC search failed for ${node.name}: ${err.message}`);
+      logSafeError('[ForkMonitor] Common ancestor RPC search failed:', err, { node: node.name });
     }
     return null;
   }
@@ -435,7 +436,7 @@ class ForkMonitor {
         [height, remoteHash, `monitor:${nodeName}`]
       );
     } catch (err) {
-      console.error(`   [ForkMonitor] DB write error: ${err.message}`);
+      logSafeError('[ForkMonitor] DB write error:', err);
     }
   }
 }

@@ -11,6 +11,7 @@ const express = require('express');
 const router = express.Router();
 const { getShieldedCountSince, getShieldedCountSimple, getShieldedCountDaily } = require('../stats-queries');
 const { calculatePrivacyScore, fetchPrivacyScoreInputs } = require('../../lib/privacy-score');
+const { logSafeError } = require('../lib/safe-log');
 
 // Dependencies will be injected via middleware
 let pool;
@@ -166,7 +167,7 @@ router.get('/api/privacy-stats', async (req, res) => {
       lastBlockScanned: parseInt(stats.last_block_scanned),
     });
   } catch (error) {
-    console.error('Error fetching privacy stats:', error);
+    logSafeError('Error fetching privacy stats:', error);
     res.status(500).json({ error: 'Failed to fetch privacy stats' });
   }
 });
@@ -202,10 +203,10 @@ router.get('/api/stats/shielded-count', async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error('❌ [STATS] Shielded count error:', error);
+    logSafeError('❌ [STATS] Shielded count error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: 'Failed to fetch shielded count',
     });
   }
 });
@@ -236,10 +237,10 @@ router.get('/api/stats/shielded-daily', async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error('❌ [STATS] Shielded daily error:', error);
+    logSafeError('❌ [STATS] Shielded daily error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: 'Failed to fetch shielded daily stats',
     });
   }
 });

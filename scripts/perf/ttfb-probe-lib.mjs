@@ -3,14 +3,50 @@ import { link, mkdir, open, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 
+// STALE_HIT and STALE_MISS are Netlify-specific: Netlify's `Cache-Status`
+// member syntax carries an explicit `hit` boolean alongside `fwd=stale`, so a
+// served-stale-while-revalidating response is distinguishable from a
+// forwarded-because-stale miss. Vercel's `x-vercel-cache` has no equivalent
+// hit/forward split, so its own served-stale-while-revalidating value is the
+// separate STALE member (see classifyCache). PRERENDER and REVALIDATED are
+// Vercel-only states with no Netlify analogue and must not be coerced into
+// HIT/MISS: PRERENDER is a build-time/static response (never contacted the
+// live origin) and REVALIDATED is a foreground regeneration after a purge
+// (pays full origin latency, unlike STALE). Collapsing either into HIT would
+// hide a real latency/origin-load difference from the SLO budget.
 export const CACHE_STATES = Object.freeze({
   HIT: 'HIT',
   STALE_HIT: 'STALE_HIT',
+  STALE: 'STALE',
   MISS: 'MISS',
   STALE_MISS: 'STALE_MISS',
   BYPASS: 'BYPASS',
+  PRERENDER: 'PRERENDER',
+  REVALIDATED: 'REVALIDATED',
   UNKNOWN: 'UNKNOWN',
 });
+
+// Values a well-formed `x-vercel-cache` header may take. See
+// https://vercel.com/docs/caching/cache-status.
+const VERCEL_CACHE_STATES = Object.freeze([
+  CACHE_STATES.HIT,
+  CACHE_STATES.MISS,
+  CACHE_STATES.STALE,
+  CACHE_STATES.BYPASS,
+  CACHE_STATES.PRERENDER,
+  CACHE_STATES.REVALIDATED,
+]);
+
+// Values a well-formed `X-CipherScan-Cache` header may take today (see
+// server/api/list-cache.js). Kept distinct from VERCEL_CACHE_STATES so an
+// unexpected literal on either header is reported as UNKNOWN rather than
+// silently accepted.
+const APPLICATION_CACHE_STATES = Object.freeze([
+  CACHE_STATES.HIT,
+  CACHE_STATES.MISS,
+  CACHE_STATES.STALE,
+  CACHE_STATES.BYPASS,
+]);
 
 export const DIAGNOSTIC_HEADERS = Object.freeze([
   'age',
@@ -31,12 +67,21 @@ export const DIAGNOSTIC_HEADERS = Object.freeze([
   'vary',
   'via',
   'x-cipherscan-cache',
+  'x-matched-path',
   'x-nf-cache',
   'x-nf-request-id',
   'x-nextjs-cache',
   'x-nextjs-prerender',
   'x-vercel-cache',
 ]);
+
+// Any header starting with one of these prefixes is captured even if it is
+// not in the explicit allowlist above, so a future API/freshness diagnostic
+// header (e.g. a staleness age or revalidation marker on `X-CipherScan-*`)
+// is recorded automatically without another lib change. Every header value
+// still passes through sanitizeHeaderValue, so a prefix must never be added
+// for a header that can carry a request-specific identifier.
+const DIAGNOSTIC_HEADER_PREFIXES = Object.freeze(['x-cipherscan-']);
 
 function splitOutsideQuotes(value, delimiter) {
   const parts = [];
@@ -91,11 +136,64 @@ function readHeader(headers, name) {
   return null;
 }
 
+// Vercel appends resolved dynamic route-segment values to `x-matched-path`
+// as a query string, e.g. "/tx/[txid]?txid=<real txid>" or
+// "/address/[address]?address=<real address>". Only the file-system route
+// pattern is diagnostic; the resolved value is a request-specific identifier
+// (a transaction id, address, or block height/hash) and must never be
+// persisted in telemetry. Stripping everything from "?" onward keeps the
+// pattern (e.g. "/tx/[txid]") while dropping the identifier.
+function redactMatchedPath(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.trim()) return null;
+  const [routePattern] = rawValue.split('?');
+  return routePattern || null;
+}
+
+const HEADER_VALUE_SANITIZERS = Object.freeze({
+  'x-matched-path': redactMatchedPath,
+});
+
+function sanitizeHeaderValue(name, value) {
+  const sanitizer = HEADER_VALUE_SANITIZERS[name];
+  return sanitizer ? sanitizer(value) : value;
+}
+
+function* headerEntries(headers) {
+  if (!headers) return;
+  if (typeof headers.entries === 'function') {
+    yield* headers.entries();
+    return;
+  }
+  yield* Object.entries(headers);
+}
+
 export function selectDiagnosticHeaders(headers) {
-  return Object.fromEntries(DIAGNOSTIC_HEADERS.flatMap((name) => {
+  const explicit = Object.fromEntries(DIAGNOSTIC_HEADERS.flatMap((name) => {
     const value = readHeader(headers, name);
-    return value === null ? [] : [[name, value]];
+    if (value === null) return [];
+    const sanitized = sanitizeHeaderValue(name, value);
+    return sanitized === null ? [] : [[name, sanitized]];
   }));
+
+  const prefixed = {};
+  for (const [name, value] of headerEntries(headers)) {
+    if (value === undefined || value === null) continue;
+    const lowerName = name.toLowerCase();
+    if (!DIAGNOSTIC_HEADER_PREFIXES.some((prefix) => lowerName.startsWith(prefix))) continue;
+    const sanitized = sanitizeHeaderValue(lowerName, String(value));
+    if (sanitized !== null) prefixed[lowerName] = sanitized;
+  }
+
+  // Explicit allowlisted values win over the prefix scan so a header present
+  // in both (e.g. x-cipherscan-cache) has one unambiguous source of truth.
+  return { ...prefixed, ...explicit };
+}
+
+function parseAgeSeconds(headers) {
+  const raw = readHeader(headers, 'age');
+  if (raw === null) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 export function parseCacheStatus(rawValue) {
@@ -167,25 +265,39 @@ function findLayer(entries, name) {
   return entries.findLast((entry) => entry.name.toLowerCase() === name);
 }
 
-function simpleCacheState(value) {
+function normalizeCacheStateLiteral(value, allowedStates) {
   const state = typeof value === 'string' ? value.trim().toUpperCase() : '';
-  return ['HIT', 'MISS', 'STALE', 'BYPASS'].includes(state)
-    ? state
-    : CACHE_STATES.UNKNOWN;
+  return allowedStates.includes(state) ? state : CACHE_STATES.UNKNOWN;
 }
 
 export function classifyCache(headers) {
   const raw = readHeader(headers, 'cache-status');
   const entries = parseCacheStatus(raw);
+  const vercelRaw = readHeader(headers, 'x-vercel-cache');
 
   return {
     raw,
+    // Preserved for backward parsing of historical Netlify-era artifacts and
+    // any Netlify fallback deployment; unrelated to the Vercel fields below.
     netlify: {
       edge: classifyCacheStatusMember(findLayer(entries, 'netlify edge')),
       durable: classifyCacheStatusMember(findLayer(entries, 'netlify durable')),
     },
-    application: simpleCacheState(readHeader(headers, 'x-cipherscan-cache')),
-    vercel: simpleCacheState(readHeader(headers, 'x-vercel-cache')),
+    application: normalizeCacheStateLiteral(
+      readHeader(headers, 'x-cipherscan-cache'),
+      APPLICATION_CACHE_STATES,
+    ),
+    // First-class Vercel classification: the production CDN as of the
+    // 2026-08-11 Netlify -> Vercel migration. `age` and `matchedPath` are
+    // diagnostic context only, matching the existing rule that pair
+    // position and cache-policy headers never imply cache state — only the
+    // explicit `x-vercel-cache` literal sets `state`.
+    vercel: {
+      state: normalizeCacheStateLiteral(vercelRaw, VERCEL_CACHE_STATES),
+      raw: vercelRaw,
+      matchedPath: redactMatchedPath(readHeader(headers, 'x-matched-path')),
+      ageSeconds: parseAgeSeconds(headers),
+    },
   };
 }
 
@@ -421,6 +533,16 @@ function isConfirmedNetlifyHit(row) {
     || hitStates.has(row.cache?.netlify?.durable?.state);
 }
 
+// HIT, STALE, and PRERENDER all return an immediate response to the visitor
+// (STALE regenerates in the background; PRERENDER never contacts the origin
+// at request time). REVALIDATED explicitly pays full origin latency in the
+// foreground (see the CACHE_STATES comment above) and must not be counted
+// as a confirmed fast hit.
+function isConfirmedVercelHit(row) {
+  const fastStates = new Set([CACHE_STATES.HIT, CACHE_STATES.STALE, CACHE_STATES.PRERENDER]);
+  return fastStates.has(row.cache?.vercel?.state);
+}
+
 export function summarizeTtfb(observations, { thresholdMs = 200 } = {}) {
   if (!(Number.isFinite(thresholdMs) && thresholdMs > 0)) {
     throw new RangeError('thresholdMs must be a positive number');
@@ -431,6 +553,7 @@ export function summarizeTtfb(observations, { thresholdMs = 200 } = {}) {
     overall: statistics(observations, thresholdMs),
     core: statistics(observations.filter((row) => row.core), thresholdMs),
     confirmedNetlifyCacheHits: statistics(observations.filter(isConfirmedNetlifyHit), thresholdMs),
+    confirmedVercelCacheHits: statistics(observations.filter(isConfirmedVercelHit), thresholdMs),
     byTarget: groupedStatistics(observations, (row) => row.targetId, thresholdMs),
     byRoute: groupedStatistics(observations, (row) => row.routeGroup, thresholdMs),
     byPairPosition: groupedStatistics(observations, (row) => row.pairPosition, thresholdMs),
@@ -449,7 +572,73 @@ export function summarizeTtfb(observations, { thresholdMs = 200 } = {}) {
       (row) => row.cache?.application ?? CACHE_STATES.UNKNOWN,
       thresholdMs,
     ),
+    byVercelCacheState: groupedStatistics(
+      observations,
+      (row) => row.cache?.vercel?.state ?? CACHE_STATES.UNKNOWN,
+      thresholdMs,
+    ),
   };
+}
+
+// --- Machine-readable SLO budgets -----------------------------------------
+//
+// A budget is a *target/policy* (what the probe should be gated against),
+// never a *measured result* (what a specific run observed). Nothing here
+// should ever be filled in from an actual artifact's summary — that would
+// silently turn a one-off measurement into a permanent, decaying pass bar.
+// DEFAULT_TTFB_SLO_BUDGET intentionally matches today's opt-in CLI defaults
+// (no population/core gate) so loading no manifest or file budget is a
+// no-op; a target manifest or --slo file can opt a population into a
+// stricter, versioned, reviewable budget (see ttfb-targets.json).
+
+export const SLO_BUDGET_SCHEMA_VERSION = 1;
+
+export const DEFAULT_TTFB_SLO_BUDGET = Object.freeze({
+  schemaVersion: SLO_BUDGET_SCHEMA_VERSION,
+  thresholdMs: 200,
+  minUnderThresholdPct: null,
+  requireCoreUnderThreshold: false,
+});
+
+export function validateSloBudget(budget) {
+  if (!budget || typeof budget !== 'object') {
+    throw new TypeError('SLO budget must be an object');
+  }
+  if (budget.schemaVersion !== SLO_BUDGET_SCHEMA_VERSION) {
+    throw new TypeError(`SLO budget schemaVersion must be ${SLO_BUDGET_SCHEMA_VERSION}`);
+  }
+  if (!Number.isFinite(budget.thresholdMs) || budget.thresholdMs <= 0) {
+    throw new RangeError('SLO budget thresholdMs must be a positive number');
+  }
+  if (budget.minUnderThresholdPct !== null) {
+    if (!Number.isFinite(budget.minUnderThresholdPct)
+      || budget.minUnderThresholdPct < 0
+      || budget.minUnderThresholdPct > 100) {
+      throw new RangeError('SLO budget minUnderThresholdPct must be null or between 0 and 100');
+    }
+  }
+  if (typeof budget.requireCoreUnderThreshold !== 'boolean') {
+    throw new TypeError('SLO budget requireCoreUnderThreshold must be a boolean');
+  }
+
+  return {
+    schemaVersion: budget.schemaVersion,
+    thresholdMs: budget.thresholdMs,
+    minUnderThresholdPct: budget.minUnderThresholdPct,
+    requireCoreUnderThreshold: budget.requireCoreUnderThreshold,
+  };
+}
+
+// Layers zero or more partial budgets, lowest to highest priority, over
+// DEFAULT_TTFB_SLO_BUDGET, then validates the merged result. Pass, in order:
+// the target manifest's own `slo` field, an optional `--slo=<file>` budget,
+// then explicit CLI flag overrides last so a one-off invocation can always
+// override a checked-in policy.
+export function resolveSloBudget(...partialBudgetsLowToHighPriority) {
+  const merged = partialBudgetsLowToHighPriority.reduce((accumulated, partial) => (
+    partial ? { ...accumulated, ...partial } : accumulated
+  ), { ...DEFAULT_TTFB_SLO_BUDGET });
+  return validateSloBudget(merged);
 }
 
 export async function writeArtifactAtomic(outputPath, artifact, { force = false } = {}) {

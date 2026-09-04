@@ -7,6 +7,14 @@ const express = require('express');
 const router = express.Router();
 const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
 const { parsePeerClient } = require('../../lib/peer-client');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
+
+// The crawled node census is bounded to the live network's peer count
+// (thousands, not millions), but the shared cap still applies for
+// consistency and to guard against future growth (e.g. historical node
+// tracking).
+const MAX_NODES_OFFSET = 50_000;
 
 // Dependencies injected via middleware
 let pool;
@@ -50,7 +58,7 @@ async function getFromRedisCache(key) {
     const data = await redisClient.get(key);
     return data ? JSON.parse(data) : null;
   } catch (err) {
-    console.error('Redis GET error:', err);
+    logSafeError('Redis GET error:', err);
     return null;
   }
 }
@@ -66,7 +74,7 @@ async function setInRedisCache(key, data, ttlSeconds) {
     await redisClient.setEx(key, ttlSeconds, JSON.stringify(data));
     return true;
   } catch (err) {
-    console.error('Redis SET error:', err);
+    logSafeError('Redis SET error:', err);
     return false;
   }
 }
@@ -237,7 +245,7 @@ async function fetchNetworkStatsOptimized() {
       timestamp: Date.now(),
     };
   } catch (error) {
-    console.error('❌ [NETWORK] Error fetching stats:', error);
+    logSafeError('❌ [NETWORK] Error fetching stats:', error);
     throw error;
   }
 }
@@ -285,7 +293,7 @@ router.get('/api/network/stats', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('❌ [NETWORK] Error in API endpoint:', error);
+    logSafeError('❌ [NETWORK] Error in API endpoint:', error);
 
     // Try Redis cache as fallback
     const cachedData = await getFromRedisCache(NETWORK_STATS_CACHE_KEY);
@@ -312,7 +320,7 @@ router.get('/api/network/stats', async (req, res) => {
 
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch network stats',
+      error: 'Failed to fetch network stats',
     });
   }
 });
@@ -351,10 +359,10 @@ router.get('/api/network/fees', async (req, res) => {
 
     console.log(`✅ [FEES] Fee estimates returned`);
   } catch (error) {
-    console.error('❌ [FEES] Error fetching fees:', error);
+    logSafeError('❌ [FEES] Error fetching fees:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch fee estimates',
+      error: 'Failed to fetch fee estimates',
     });
   }
 });
@@ -404,10 +412,10 @@ router.get('/api/network/health', async (req, res) => {
     await setInRedisCache(NETWORK_HEALTH_CACHE_KEY, result, NETWORK_HEALTH_CACHE_DURATION);
     res.json(result);
   } catch (error) {
-    console.error('❌ [HEALTH] Error checking health:', error);
+    logSafeError('❌ [HEALTH] Error checking health:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to check node health',
+      error: 'Failed to check node health',
     });
   }
 });
@@ -461,10 +469,10 @@ router.get('/api/network/peers', async (req, res) => {
 
     console.log(`✅ [PEERS] Returned aggregates for ${peerInfo.length} peers`);
   } catch (error) {
-    console.error('❌ [PEERS] Error fetching peers:', error);
+    logSafeError('❌ [PEERS] Error fetching peers:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch peer information',
+      error: 'Failed to fetch peer information',
     });
   }
 });
@@ -551,7 +559,7 @@ router.get('/api/supply/transparent-breakdown', async (req, res) => {
     await setInRedisCache(BREAKDOWN_CACHE_KEY, result, BREAKDOWN_CACHE_DURATION);
     res.json(result);
   } catch (error) {
-    console.error('Error fetching transparent breakdown:', error);
+    logSafeError('Error fetching transparent breakdown:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch transparent breakdown' });
   }
 });
@@ -583,7 +591,7 @@ router.get('/api/supply', async (req, res) => {
 
     res.json(pools);
   } catch (error) {
-    console.error('❌ [SUPPLY] Error:', error);
+    logSafeError('❌ [SUPPLY] Error:', error);
     res.status(500).json({ error: 'Failed to fetch supply data' });
   }
 });
@@ -619,7 +627,7 @@ router.get('/api/blockchain-info', async (req, res) => {
 
     res.json(blockchainInfo);
   } catch (error) {
-    console.error('❌ [BLOCKCHAIN-INFO] Error:', error);
+    logSafeError('❌ [BLOCKCHAIN-INFO] Error:', error);
     res.status(500).json({ error: 'Failed to fetch blockchain info' });
   }
 });
@@ -651,7 +659,7 @@ router.get('/api/circulating-supply', async (req, res) => {
       res.type('text/plain').send(supply.toString());
     }
   } catch (error) {
-    console.error('❌ [CIRCULATING-SUPPLY] Error:', error);
+    logSafeError('❌ [CIRCULATING-SUPPLY] Error:', error);
     res.status(500).json({ error: 'Failed to fetch circulating supply' });
   }
 });
@@ -702,10 +710,10 @@ router.get('/api/network/nodes', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('❌ [NODES] Error fetching node locations:', error);
+    logSafeError('❌ [NODES] Error fetching node locations:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch node locations',
+      error: 'Failed to fetch node locations',
     });
   }
 });
@@ -825,10 +833,10 @@ router.get('/api/network/nodes/stats', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('❌ [NODES] Error fetching node stats:', error);
+    logSafeError('❌ [NODES] Error fetching node stats:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch node stats',
+      error: 'Failed to fetch node stats',
     });
   }
 });
@@ -876,10 +884,10 @@ router.get('/api/network/node-history', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('❌ [NODE-HISTORY] Error fetching node history:', error);
+    logSafeError('❌ [NODE-HISTORY] Error fetching node history:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch node history',
+      error: 'Failed to fetch node history',
     });
   }
 });
@@ -917,7 +925,7 @@ router.get('/api/price', async (req, res) => {
     priceCache = { data, timestamp: now };
     res.json(data);
   } catch (error) {
-    console.error('❌ [PRICE] Error:', error.message);
+    logSafeError('❌ [PRICE] Error:', error);
     if (priceCache.data) return res.json(priceCache.data);
     res.status(500).json({ error: 'Failed to fetch price' });
   }
@@ -962,7 +970,7 @@ router.get('/api/price/at', async (req, res) => {
       exact: true,
     });
   } catch (error) {
-    console.error('Error fetching historical price:', error);
+    logSafeError('Error fetching historical price:', error);
     res.status(500).json({ error: 'Failed to fetch price' });
   }
 });
@@ -1047,7 +1055,7 @@ router.get('/api/network/protocol-stats', async (req, res) => {
     await setInRedisCache(PROTOCOL_STATS_CACHE_KEY, result, PROTOCOL_STATS_CACHE_DURATION);
     res.json(result);
   } catch (error) {
-    console.error('Error fetching protocol stats:', error);
+    logSafeError('Error fetching protocol stats:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch protocol stats' });
   }
 });
@@ -1160,7 +1168,7 @@ router.get('/api/network/topology', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching topology:', error);
+    logSafeError('Error fetching topology:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch topology' });
   }
 });
@@ -1172,8 +1180,16 @@ router.get('/api/network/topology', async (req, res) => {
  */
 router.get('/api/network/nodes/list', async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-    const offset = parseInt(req.query.offset) || 0;
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 100,
+      maxLimit: 500,
+      maxOffset: MAX_NODES_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({ requestedOffset, maxOffset: MAX_NODES_OFFSET }));
+    }
+
     const sortBy = req.query.sort || 'last_seen';
     const allowedSorts = ['last_seen', 'client_impl', 'country_code', 'protocol_version', 'ping_ms', 'degree'];
     const orderCol = allowedSorts.includes(sortBy) ? `n.${sortBy}` : 'n.last_seen';
@@ -1237,7 +1253,7 @@ router.get('/api/network/nodes/list', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error fetching node list:', error);
+    logSafeError('Error fetching node list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch node list' });
   }
 });
@@ -1344,7 +1360,7 @@ router.get('/api/network/nodes/health-score', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error computing health score:', error);
+    logSafeError('Error computing health score:', error);
     res.status(500).json({ success: false, error: 'Failed to compute health score' });
   }
 });
@@ -1442,7 +1458,7 @@ router.get('/api/network/nodes/reliability', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error fetching node reliability:', error);
+    logSafeError('Error fetching node reliability:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch node reliability' });
   }
 });
@@ -1501,7 +1517,7 @@ router.get('/api/network/nodes/upgrade-readiness', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error fetching upgrade readiness:', error);
+    logSafeError('Error fetching upgrade readiness:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch upgrade readiness' });
   }
 });
@@ -1571,7 +1587,7 @@ router.get('/api/network/nodes/concentration', async (req, res) => {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error fetching concentration data:', error);
+    logSafeError('Error fetching concentration data:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch concentration data' });
   }
 });

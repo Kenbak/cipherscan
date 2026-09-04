@@ -7,7 +7,7 @@
 
 const { parsePeerAddress, parsePeerClient } = require('../lib/peer-client');
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
 const http = require('http');
 const https = require('https');
@@ -17,6 +17,13 @@ loadEnv(__dirname);
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
+// Only the "which IPs already have geo data" lookup below is a standalone
+// read with no correctness dependency on this run's own writes (worst case
+// of a stale answer is one redundant ip-api.com lookup). The rest of this
+// job tightly interleaves per-peer reads with per-peer writes and a final
+// stats read that feeds directly into this run's own node_snapshots write,
+// so those intentionally stay on the primary.
+const readPool = getReadPool({ max: 2, idleTimeoutMillis: 10000 });
 
 const INACTIVE_THRESHOLD_HOURS = 24;
 
@@ -181,7 +188,7 @@ async function syncNodes() {
     // Find which IPs need geo lookups (new or missing lat)
     const allIPs = [...new Set([...peerEntries.map(e => e.ip), ...seederOnlyIPs])];
     const existingRows = allIPs.length > 0
-      ? (await pool.query('SELECT ip, lat FROM nodes WHERE ip = ANY($1::varchar[])', [allIPs])).rows
+      ? (await readPool.query('SELECT ip, lat FROM nodes WHERE ip = ANY($1::varchar[])', [allIPs])).rows
       : [];
     const existingMap = new Map(existingRows.map(r => [r.ip, r]));
 
@@ -377,6 +384,7 @@ async function syncNodes() {
     throw error;
   } finally {
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

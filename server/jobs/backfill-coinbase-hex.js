@@ -15,18 +15,21 @@
 const { log, loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { Pool } = require('pg');
 const http = require('http');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 3,
-  idleTimeoutMillis: 30000,
-});
+// This manual backfill script previously instantiated its own raw `pg.Pool`,
+// bypassing the shared default statement_timeout/query_timeout in
+// lib/db-pool.js entirely (no bound at all) and the read/write pool split.
+// The initial COUNT(*) over `blocks` and the per-batch height scan are pure
+// reads with no write dependency, so they're safe to offload to the
+// replica; the actual coinbase_hex UPDATEs stay on the primary inside their
+// own short explicit transaction. The COUNT(*) full-table aggregate can
+// legitimately run longer than the 30s default on a multi-million-row
+// table, so both pools here get an explicit, longer override.
+const BACKFILL_STATEMENT_TIMEOUT_MS = 120_000;
+const pool = getPool({ max: 3, idleTimeoutMillis: 30000, statement_timeout: BACKFILL_STATEMENT_TIMEOUT_MS });
+const readPool = getReadPool({ max: 3, idleTimeoutMillis: 30000, statement_timeout: BACKFILL_STATEMENT_TIMEOUT_MS });
 
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 
@@ -99,11 +102,12 @@ async function run() {
   if (!lockResult.rows[0].pg_try_advisory_lock) {
     log('Another backfill instance is running, exiting.');
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
   try {
-    const countResult = await pool.query(
+    const countResult = await readPool.query(
       'SELECT COUNT(*) as cnt FROM blocks WHERE coinbase_hex IS NULL'
     );
     const totalNull = parseInt(countResult.rows[0].cnt);
@@ -129,7 +133,7 @@ async function run() {
         params = [batchSize];
       }
 
-      const batch = await pool.query(query, params);
+      const batch = await readPool.query(query, params);
       if (batch.rows.length === 0) break;
 
       const updates = [];
@@ -174,6 +178,7 @@ async function run() {
   } finally {
     await pool.query('SELECT pg_advisory_unlock(8675309)');
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

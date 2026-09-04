@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
 import { RecentMempool } from '@/components/RecentMempool';
 import { CrosslinkStats } from '@/components/CrosslinkStats';
-import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
+import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph.lazy';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { PulseWidget } from '@/components/PulseWidget';
 import { API_CONFIG } from '@/lib/api-config';
@@ -104,7 +105,14 @@ export default async function Home() {
       <div className="text-center mb-10 sm:mb-14 relative z-30">
         {/* Tagline - SEO friendly */}
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-3 sm:mb-4 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight text-balance">
-          <img src="/zec-logo.png" alt="Zcash" className="w-7 h-7 sm:w-8 sm:h-8" />
+          <Image
+            src="/zec-logo.png"
+            alt="Zcash"
+            width={32}
+            height={32}
+            priority
+            className="w-7 h-7 sm:w-8 sm:h-8"
+          />
           {crosslinkMode
             ? 'CipherScan: Zcash Crosslink Explorer'
             : isTestnet

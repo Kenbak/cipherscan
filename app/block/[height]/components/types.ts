@@ -57,6 +57,17 @@ export interface BlockPageSummary {
   height: number;
   hash: string;
   isOrphaned: boolean;
+  /**
+   * Extra fields already available from the server-side block resolution
+   * (`getBlockResolution` in lib/seo.ts) used for SEO metadata. Threading
+   * them into the client's initial render means the loading state shows
+   * real block facts immediately instead of only a shimmering skeleton,
+   * even though the full block detail (transactions, difficulty, etc.)
+   * still requires the client-side `/api/block/:id` fetch.
+   */
+  timestamp?: number | null;
+  transactionCount?: number | null;
+  size?: number | null;
 }
 
 export interface BlockPageClientProps {

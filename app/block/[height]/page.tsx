@@ -74,7 +74,22 @@ export default async function BlockPage({
   const height = Number(block.height);
   const hash = block.hash.toLowerCase();
   const isOrphaned = block.isOrphaned === true;
-  const summary: BlockPageSummary = { height, hash, isOrphaned };
+  const rawTransactionCount = block.transactionCount ?? block.transaction_count ?? null;
+  const transactionCount = rawTransactionCount === null || rawTransactionCount === undefined
+    ? null
+    : Number(rawTransactionCount);
+  const timestamp = block.timestamp === null || block.timestamp === undefined
+    ? null
+    : Number(block.timestamp);
+  const size = block.size === null || block.size === undefined ? null : Number(block.size);
+  const summary: BlockPageSummary = {
+    height,
+    hash,
+    isOrphaned,
+    timestamp: Number.isFinite(timestamp) ? timestamp : null,
+    transactionCount: Number.isFinite(transactionCount) ? transactionCount : null,
+    size: Number.isFinite(size) ? size : null,
+  };
   const baseUrl = getBaseUrl();
   const canonicalIdentifier = isOrphaned ? hash : String(height);
   const canonicalUrl = new URL(

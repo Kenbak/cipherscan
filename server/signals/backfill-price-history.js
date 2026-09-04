@@ -8,11 +8,16 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
 const pool = getPool();
+// Only the pre-write "existing rows" snapshot below is a standalone read
+// with no dependency on this run's own inserts. The "final"/"gaps" report
+// at the end reads back this run's own writes and must stay on the
+// primary to avoid printing a stale summary immediately after backfilling.
+const readPool = getReadPool();
 
 async function fetchCSV(url) {
   const res = await fetch(url);
@@ -33,7 +38,7 @@ async function insertPrice(date, price, volumeUsd, source) {
 }
 
 async function main() {
-  const { rows: existing } = await pool.query(
+  const { rows: existing } = await readPool.query(
     `SELECT MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as count FROM zec_price_daily`
   );
   console.log(`Existing: ${existing[0].count} rows (${existing[0].min_date} to ${existing[0].max_date})`);
@@ -123,6 +128,7 @@ async function main() {
   console.log(`Missing days in range: ${gaps[0].gap_days}`);
 
   await pool.end();
+  if (readPool !== pool) await readPool.end();
 }
 
 main().catch(err => { console.error('Fatal:', err); process.exit(1); });

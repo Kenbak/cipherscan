@@ -7,6 +7,7 @@ const router = express.Router();
 const { validate } = require('../../validation');
 const { decodeCoinbaseText } = require('../../coinbase-data');
 const { deps, checkStakingColumns } = require('./_helpers');
+const { logSafeError } = require('../../lib/safe-log');
 
 // Lightweight transaction metadata for server-rendered titles and JSON-LD.
 // Keep this separate from the detail endpoint, which loads inputs, outputs,
@@ -76,7 +77,7 @@ router.get('/api/seo/tx/:txid', validate('txById'), async (req, res) => {
       fee: tx.fee ? Number(tx.fee) / 100000000 : 0,
     });
   } catch (error) {
-    console.error('Error fetching transaction metadata:', error);
+    logSafeError('Error fetching transaction metadata:', error);
     return res.status(500).json({ error: 'Failed to fetch transaction metadata' });
   }
 });
@@ -90,45 +91,94 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       return res.status(400).json({ error: 'Invalid transaction ID' });
     }
 
-    // Get transaction details (including Rust indexer fields)
-    const txResult = await deps.pool.query(
-      `SELECT
-        t.txid,
-        t.block_height,
-        t.block_hash,
-        t.block_time,
-        t.size,
-        t.version,
-        t.locktime,
-        t.vin_count,
-        t.vout_count,
-        t.value_balance,
-        t.value_balance_sapling,
-        t.value_balance_orchard,
-        t.value_balance_ironwood,
-        t.has_sapling,
-        t.has_orchard,
-        t.has_ironwood,
-        t.has_sprout,
-        t.orchard_actions,
-        t.ironwood_actions,
-        t.sapling_spend_count,
-        t.sapling_output_count,
-        t.tx_index,
-        t.fee,
-        t.total_input,
-        t.total_output,
-        t.is_coinbase,
-        t.expiry_height,
-        t.orchard_anchor,
-        (b.hash IS NOT NULL) AS is_canonical${(await checkStakingColumns(deps.pool))
-          ? ', t.staking_action_type, t.staking_bond_key, t.staking_delegatee, t.staking_amount_zats'
-          : ''}
-      FROM transactions t
-      LEFT JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
-      WHERE t.txid = $1`,
-      [txid]
-    );
+    // checkStakingColumns is memoized after the first call (a single
+    // information_schema lookup for the process lifetime), so resolving it
+    // before the batch below costs nothing in steady state but lets the main
+    // tx query be built with the right column list up front.
+    const hasStaking = await checkStakingColumns(deps.pool);
+    const stakingCols = hasStaking
+      ? ', t.staking_action_type, t.staking_bond_key, t.staking_delegatee, t.staking_amount_zats'
+      : '';
+
+    // The tx row, its inputs, its outputs, the chain tip height, and any
+    // cross-chain bridge match are all independent lookups keyed only on the
+    // request's txid — none of them depend on each other's results. Run them
+    // concurrently instead of five sequential round trips. The bridge lookup
+    // keeps its own error boundary (non-critical, matches prior behavior of
+    // never failing the whole request on a bridge-table error).
+    const [txResult, inputsResult, outputsResult, currentHeightResult, bridgeResult] = await Promise.all([
+      deps.pool.query(
+        `SELECT
+          t.txid,
+          t.block_height,
+          t.block_hash,
+          t.block_time,
+          t.size,
+          t.version,
+          t.locktime,
+          t.vin_count,
+          t.vout_count,
+          t.value_balance,
+          t.value_balance_sapling,
+          t.value_balance_orchard,
+          t.value_balance_ironwood,
+          t.has_sapling,
+          t.has_orchard,
+          t.has_ironwood,
+          t.has_sprout,
+          t.orchard_actions,
+          t.ironwood_actions,
+          t.sapling_spend_count,
+          t.sapling_output_count,
+          t.tx_index,
+          t.fee,
+          t.total_input,
+          t.total_output,
+          t.is_coinbase,
+          t.expiry_height,
+          t.orchard_anchor,
+          (b.hash IS NOT NULL) AS is_canonical${stakingCols}
+        FROM transactions t
+        LEFT JOIN blocks b ON b.height = t.block_height AND b.hash = t.block_hash
+        WHERE t.txid = $1`,
+        [txid]
+      ),
+      deps.pool.query(
+        `SELECT
+          prev_txid,
+          prev_vout,
+          address,
+          value,
+          vout_index
+        FROM transaction_inputs
+        WHERE txid = $1
+        ORDER BY vout_index`,
+        [txid]
+      ),
+      deps.pool.query(
+        `SELECT
+          address,
+          value,
+          vout_index,
+          spent
+        FROM transaction_outputs
+        WHERE txid = $1
+        ORDER BY vout_index`,
+        [txid]
+      ),
+      deps.pool.query('SELECT MAX(height) as max_height FROM blocks'),
+      deps.pool.query(
+        `SELECT id, direction, source_chain, source_token, source_amount, source_amount_usd,
+                source_tx_hashes, dest_chain, dest_token, dest_amount, dest_amount_usd,
+                dest_tx_hashes, swap_created_at, matched, zec_address
+         FROM cross_chain_swaps
+         WHERE zec_txid = $1`,
+        [txid]
+      ).catch((bridgeErr) => {
+        logSafeError('❌ [TX] Bridge lookup error:', bridgeErr);
+        return { rows: [] };
+      }),
+    ]);
 
     if (txResult.rows.length === 0) {
       return res.status(404).json({ error: 'Transaction not found' });
@@ -136,36 +186,8 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
 
     const tx = txResult.rows[0];
 
-    // Get inputs
-    const inputsResult = await deps.pool.query(
-      `SELECT
-        prev_txid,
-        prev_vout,
-        address,
-        value,
-        vout_index
-      FROM transaction_inputs
-      WHERE txid = $1
-      ORDER BY vout_index`,
-      [txid]
-    );
-
-    // Get outputs
-    const outputsResult = await deps.pool.query(
-      `SELECT
-        address,
-        value,
-        vout_index,
-        spent
-      FROM transaction_outputs
-      WHERE txid = $1
-      ORDER BY vout_index`,
-      [txid]
-    );
-
     // Confirmations are meaningful only when both recorded identity fields
     // match the canonical block row. Null/stale hashes stay at zero.
-    const currentHeightResult = await deps.pool.query('SELECT MAX(height) as max_height FROM blocks');
     const currentHeight = parseInt(currentHeightResult.rows[0]?.max_height) || 0;
     const transactionHeight = parseInt(tx.block_height) || 0;
     const confirmations = tx.is_canonical && currentHeight >= transactionHeight
@@ -190,15 +212,6 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     let bridge = null;
     let bridges = [];
     try {
-      const bridgeResult = await deps.pool.query(
-        `SELECT id, direction, source_chain, source_token, source_amount, source_amount_usd,
-                source_tx_hashes, dest_chain, dest_token, dest_amount, dest_amount_usd,
-                dest_tx_hashes, swap_created_at, matched, zec_address
-         FROM cross_chain_swaps
-         WHERE zec_txid = $1`,
-        [txid]
-      );
-
       const explorerUrls = {
         eth: 'https://etherscan.io/tx/',
         sol: 'https://solscan.io/tx/',
@@ -248,7 +261,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       }
       if (bridges.length > 0) bridge = bridges[0];
     } catch (bridgeErr) {
-      console.error('❌ [TX] Bridge lookup error:', bridgeErr.message);
+      logSafeError('❌ [TX] Bridge lookup error:', bridgeErr);
     }
 
     // Coinbase data for coinbase transactions
@@ -314,6 +327,27 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       };
     }
 
+    const status = tx.is_canonical ? 'confirmed' : (tx.block_hash ? 'stale' : 'unknown');
+
+    // Lifecycle-aware caching, additive only (header, not body):
+    //  - 'unknown' (no recorded block at all) must never be cached — nothing
+    //    to key a reorg-safe revalidation on.
+    //  - 'stale' (orphaned) blocks rarely change again but can be corrected
+    //    by a later reorg-monitor pass; cache briefly.
+    //  - 'confirmed' with few confirmations still carries reorg risk; once a
+    //    tx is buried deep it is safe to cache aggressively.
+    let cacheControl;
+    if (status === 'unknown') {
+      cacheControl = 'no-store';
+    } else if (status === 'stale') {
+      cacheControl = 'public, s-maxage=30, stale-while-revalidate=300';
+    } else if (confirmations >= 100) {
+      cacheControl = 'public, s-maxage=3600, stale-while-revalidate=86400, immutable';
+    } else {
+      cacheControl = 'public, s-maxage=15, stale-while-revalidate=120';
+    }
+    res.set('Cache-Control', cacheControl);
+
     res.json({
       txid: tx.txid,
       blockHeight: tx.block_height,
@@ -322,7 +356,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       blockTime: tx.block_time,
       confirmations,
       isCanonical: tx.is_canonical,
-      status: tx.is_canonical ? 'confirmed' : (tx.block_hash ? 'stale' : 'unknown'),
+      status,
       size: tx.size,
       version: tx.version,
       locktime: tx.locktime,
@@ -361,7 +395,7 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       } : null,
     });
   } catch (error) {
-    console.error('Error fetching transaction:', error);
+    logSafeError('Error fetching transaction:', error);
     res.status(500).json({ error: 'Failed to fetch transaction' });
   }
 });

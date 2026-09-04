@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { applyListCacheHeaders } = require('../../list-cache');
+const { logSafeError } = require('../../lib/safe-log');
 const {
   deps,
   isCanonicalIntegerQuery,
@@ -138,7 +139,7 @@ router.get('/api/transactions/list', async (req, res) => {
     applyListCacheHeaders(res, outcome);
     res.json(outcome.value);
   } catch (error) {
-    console.error('Error fetching transactions list:', error);
+    logSafeError('Error fetching transactions list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
   }
 });
@@ -440,7 +441,7 @@ router.get('/api/shielded/list', async (req, res) => {
     applyListCacheHeaders(res, outcome);
     res.json(outcome.value);
   } catch (error) {
-    console.error('Error fetching shielded flows list:', error);
+    logSafeError('Error fetching shielded flows list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch shielded flows' });
   }
 });

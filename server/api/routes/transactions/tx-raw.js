@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../../validation');
 const { deps } = require('./_helpers');
+const { logSafeError } = require('../../lib/safe-log');
 
 // Runs `fn` over `items` with at most `limit` in flight at once, instead of
 // an unbounded Promise.all — caps concurrent gRPC/RPC fan-out per request.
@@ -43,7 +44,7 @@ router.get('/api/tx/:txid/raw', async (req, res) => {
     if (error.message && (error.message.includes('No such mempool') || error.message.includes('not found'))) {
       return res.status(404).json({ error: 'Transaction not found. It may be a testnet transaction or the ID may be incorrect.' });
     }
-    console.error('Error fetching raw transaction:', error);
+    logSafeError('Error fetching raw transaction:', error);
     res.status(500).json({ error: 'Failed to fetch raw transaction' });
   }
 });
@@ -70,7 +71,7 @@ router.get('/api/tx/:txid/verbose', async (req, res) => {
     if (error.message && (error.message.includes('No such mempool') || error.message.includes('not found'))) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
-    console.error('Error fetching verbose transaction:', error);
+    logSafeError('Error fetching verbose transaction:', error);
     res.status(500).json({ error: 'Failed to fetch transaction' });
   }
 });
@@ -130,7 +131,7 @@ router.post('/api/tx/raw/batch', validate('txRawBatch'), async (req, res) => {
           const rawHex = await deps.callZebraRPC('getrawtransaction', [txid, 0]);
           return { txid, hex: rawHex, success: true, source: 'rpc' };
         } catch (error) {
-          return { txid, error: error.message, success: false };
+          return { txid, error: 'Failed to fetch transaction', success: false };
         }
       });
     } finally {
@@ -149,7 +150,7 @@ router.post('/api/tx/raw/batch', validate('txRawBatch'), async (req, res) => {
       successful: successful.length,
     });
   } catch (error) {
-    console.error('Error in batch raw transaction fetch:', error.message);
+    logSafeError('Error in batch raw transaction fetch:', error);
     res.status(500).json({ error: 'Failed to fetch raw transactions' });
   }
 });

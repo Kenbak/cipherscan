@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
@@ -27,6 +27,11 @@ const CONFIG = {
 };
 
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
+// computePrivacyBatchClusters() only ever SELECTs; the write pool is
+// reserved for the upsert*() calls and the cleanup query below. Clearly
+// separable because the compute/write phases already call different
+// exported functions with the pool passed in as a parameter.
+const readPool = getReadPool({ max: 2, idleTimeoutMillis: 10000 });
 
 async function main() {
   const startedAt = Date.now();
@@ -40,7 +45,7 @@ async function main() {
   console.log('═'.repeat(60));
 
   try {
-    const { clusters, derivedEdges } = await computePrivacyBatchClusters(pool, {
+    const { clusters, derivedEdges } = await computePrivacyBatchClusters(readPool, {
       timeWindowDays: CONFIG.period,
       minBatchCount: CONFIG.minBatchCount,
       minAmountZat: Math.round(CONFIG.minAmountZec * 100000000),
@@ -77,6 +82,7 @@ async function main() {
     console.log('═'.repeat(60));
   } finally {
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

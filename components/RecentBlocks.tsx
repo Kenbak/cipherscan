@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
-import { formatRelativeTime } from '@/lib/utils';
 import { formatBytesCompact } from '@/lib/format-numbers';
+import { RelativeTime } from '@/components/RelativeTime';
 import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { SkeletonTable } from '@/components/ui';
@@ -134,7 +134,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
                   <span className="font-mono text-sm text-primary tabular-nums">{block.transactions}</span>
                 </td>
                 <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
-                  <span className="text-sm text-muted whitespace-nowrap">{formatRelativeTime(block.timestamp)}</span>
+                  <RelativeTime timestamp={block.timestamp} className="text-sm text-muted whitespace-nowrap" />
                 </td>
               </tr>
             ))}

@@ -421,5 +421,11 @@ test('malformed list identities are normalized safely and marked uncacheable', a
   assert.equal(listCache.calls.length, 4);
   assert.ok(listCache.calls.every(({ cacheable }) => cacheable === false));
   assert.equal(listCache.calls[2].params.cursor, null);
-  assert.equal(listCache.calls[3].params.offset, null);
+  // The shared safe-offset parser (server/api/lib/pagination.js) always
+  // normalizes offset to a bounded finite number — an overflowing 400-digit
+  // offset parses to a non-finite value internally and falls back to 0,
+  // rather than propagating Infinity/null into the cache key. Malformed
+  // input is still correctly marked uncacheable above regardless of what
+  // this normalizes to.
+  assert.equal(listCache.calls[3].params.offset, 0);
 });

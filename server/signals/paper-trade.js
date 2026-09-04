@@ -25,11 +25,19 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
 const pgPool = getPool();
+// paper_portfolio/paper_trades follow a stateful read-modify-write pattern
+// (getPortfolio() → decide action → updatePortfolio()/logTrade()) with no
+// DB-level locking, so those reads/writes stay on the primary to avoid a
+// replica-lag race (e.g. reading a stale position and double-entering a
+// trade). Only reads of independent, externally-produced reference data
+// (trading_signals_v3, zec_price_daily) — which this job never writes —
+// are safe to offload.
+const readPool = getReadPool();
 
 const RULES = {
   entryConfidenceMin: 60,
@@ -107,12 +115,12 @@ async function logTrade(trade) {
 }
 
 async function processSignal(date) {
-  const { rows: [sig] } = await pgPool.query(
+  const { rows: [sig] } = await readPool.query(
     `SELECT * FROM trading_signals_v3 WHERE date = $1`, [date]
   );
   if (!sig) return null;
 
-  const { rows: [priceRow] } = await pgPool.query(
+  const { rows: [priceRow] } = await readPool.query(
     `SELECT price_usd FROM zec_price_daily WHERE date = $1`, [date]
   );
   if (!priceRow) return null;
@@ -219,7 +227,7 @@ async function backtest() {
     total_trades = 0, winning_trades = 0, total_pnl_usd = 0, max_drawdown_pct = 0,
     peak_capital = ${RULES.initialCapital} WHERE id = 1`);
 
-  const { rows: dates } = await pgPool.query(`
+  const { rows: dates } = await readPool.query(`
     SELECT date FROM trading_signals_v3 ORDER BY date
   `);
 
@@ -249,7 +257,7 @@ async function backtest() {
 
 async function generateReport() {
   const portfolio = await getPortfolio();
-  const { rows: [todaySignal] } = await pgPool.query(
+  const { rows: [todaySignal] } = await readPool.query(
     `SELECT * FROM trading_signals_v3 ORDER BY date DESC LIMIT 1`
   );
   const { rows: recentTrades } = await pgPool.query(
@@ -331,6 +339,7 @@ async function main() {
   }
 
   await pgPool.end();
+  if (readPool !== pgPool) await readPool.end();
 }
 
 module.exports = { processSignal, generateReport };

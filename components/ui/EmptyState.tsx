@@ -39,21 +39,35 @@ export function EmptyState({
  *
  * Renders `rows` pulsing placeholder bars. Matches the row height of the
  * standard data table (44px) so content does not jump when data arrives.
+ *
+ * The pulsing bars themselves stay `aria-hidden` (decorative, no useful
+ * structure for assistive tech), but a paired `sr-only` `role="status"`
+ * region announces the loading state — every existing call site gets this
+ * for free without needing to add its own wrapper.
  */
 export function SkeletonTable({
   rows = 10,
   rowHeight = 'h-[44px]',
   className = '',
+  label = 'Loading…',
 }: {
   rows?: number;
   rowHeight?: string;
   className?: string;
+  /** Screen-reader status text. Pass `null` to suppress the live region
+   * (e.g. when a parent component already announces loading state itself). */
+  label?: string | null;
 }) {
   return (
-    <div className={`space-y-1.5 ${className}`} aria-hidden>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={`${rowHeight} skeleton-bg rounded animate-pulse`} />
-      ))}
+    <div className={className}>
+      {label !== null && (
+        <span role="status" aria-live="polite" className="sr-only">{label}</span>
+      )}
+      <div className="space-y-1.5" aria-hidden="true">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className={`${rowHeight} skeleton-bg rounded animate-pulse`} />
+        ))}
+      </div>
     </div>
   );
 }
