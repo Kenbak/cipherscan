@@ -54,7 +54,6 @@ export class ZcashWASM {
             return;
         try {
             // Dynamically import the WASM module
-            // @ts-ignore - Dynamic import
             const wasmInit = await import('../wasm/zcash_wasm.js');
             // Initialize WASM
             await wasmInit.default();
