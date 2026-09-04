@@ -897,7 +897,12 @@ server.listen(PORT, '127.0.0.1', () => {
 // the datastores those components depend on. A force-exit timer guards
 // against any single step hanging (e.g. a stuck socket) blocking a
 // deploy/restart indefinitely.
+let isShuttingDown = false;
+
 function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   console.log(`${signal} received, closing server...`);
 
   const forceExitTimer = setTimeout(() => {
@@ -911,6 +916,15 @@ function shutdown(signal) {
   zebraGrpc.stop();
   forkMonitor.stop();
   clearInterval(wsAliveCheck);
+
+  // Upgraded WebSocket connections are not closed by http.Server.close(), so
+  // a connected browser could keep every deploy waiting for the force-exit
+  // timer. Terminate them before closing the HTTP listener; clients already
+  // reconnect automatically after an API restart.
+  for (const client of wss.clients) {
+    client.terminate();
+  }
+  wss.close();
 
   server.close(async () => {
     try {
@@ -942,6 +956,7 @@ function shutdown(signal) {
       }
     });
   });
+  server.closeIdleConnections?.();
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
