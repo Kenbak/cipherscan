@@ -121,7 +121,7 @@ const browser = await puppeteer.launch({
   executablePath: options.executable,
   headless: true,
   timeout: 60_000,
-  protocolTimeout: 60_000,
+  protocolTimeout: 180_000,
   args: [
     '--no-first-run',
     '--no-sandbox',

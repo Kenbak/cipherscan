@@ -1039,7 +1039,7 @@ router.get('/api/migration/scatter/compact', async (req, res) => {
       window: sinceEpoch === null ? null : Math.floor(sinceEpoch / 30),
     };
     const result = await cachedScatterLoad(cacheParams, async ({ measure }) => {
-      const compact = await measure('database', () => loadCompactScatter({
+      const compact = await measure('database_read', () => loadCompactScatter({
         sinceEpoch,
         fromHeight,
         toHeight,
