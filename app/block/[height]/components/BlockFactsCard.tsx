@@ -25,12 +25,11 @@ interface RewardRecipient {
 }
 
 /**
- * The coinbase transaction's full output list — miner payout plus any
- * ZIP-207 funding-stream / dev-fund outputs, plus a shielded lockbox deposit
- * (no transparent output at all, revealed via a negative value balance —
- * see the tx-detail coinbase fix) if present. Previously only the first
- * output was ever shown, so a block with more than one recipient silently
- * hid where the rest of the newly-minted ZEC went.
+ * The coinbase transaction's visible outputs — transparent recipients and
+ * shielded coinbase value. This deliberately excludes deferred-lockbox
+ * accrual: that is part of the block subsidy but not a transaction output.
+ * Previously only the first transparent recipient was shown, silently hiding
+ * the rest of the coinbase distribution.
  */
 function getRewardRecipients(data: BlockData): RewardRecipient[] {
   const coinbaseTx = data.transactions?.[0];
@@ -55,14 +54,14 @@ function getRewardRecipients(data: BlockData): RewardRecipient[] {
     ? parseInt(coinbaseTx.value_balance_sapling || 0) + parseInt(coinbaseTx.value_balance_orchard || 0) + parseInt(coinbaseTx.value_balance_ironwood || 0)
     : 0;
   if (balance < 0) {
-    outputs.push({ address: null, label: 'Shielded pool', valueZec: Math.abs(balance) / 1e8 });
+    outputs.push({ address: null, label: 'Shielded coinbase output', valueZec: Math.abs(balance) / 1e8 });
   }
 
   return outputs;
 }
 
 /**
- * Miner payout and any funding-stream/lockbox recipients as a plain,
+ * Visible coinbase recipients as a plain,
  * calm list — no proportion bar or color-coding. The split is nearly
  * identical on almost every block, so a bar/legend stops being informative
  * fast and just becomes visual noise once you've seen it a few times.
@@ -82,7 +81,7 @@ function BlockRewardBreakdown({
   const total = recipients.reduce((sum, r) => sum + r.valueZec, 0);
 
   return (
-    <FactBox label="Block Reward" tooltip="Newly-created ZEC in this block's coinbase transaction, split across every recipient — including any portion deposited directly into a shielded pool">
+    <FactBox label="Coinbase Outputs" tooltip="The visible outputs created by this block's coinbase transaction. Deferred-development-lockbox accrual is part of the subsidy but is not a transaction output.">
       <BoldZec value={total} />
       <div className="mt-2 space-y-1">
         {recipients.map((r, i) => (

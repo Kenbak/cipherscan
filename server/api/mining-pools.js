@@ -172,7 +172,7 @@ const POOL_BY_ADDRESS = {
     region: null,
   },
 
-  // --- Dev Fund (not a pool) ---
+  // --- Funding stream (not a pool) ---
   // ZIP-207 funding-stream payout address, not a miner. blocks.miner_address
   // (written by the indexer) can still end up pointing here on blocks where
   // the actual miner reward is deposited entirely into a shielded pool and
@@ -181,7 +181,19 @@ const POOL_BY_ADDRESS = {
   // NOTE: ~48 blocks/week attributed here are actually NiceHash/Sluicey miners
   // with coinbase "Get Sluicey Yall sluicey.xyz" using fully shielded payouts.
   't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow': {
-    name: 'Dev Fund',
+    name: 'FPF / Zcash Community Grants',
+    url: null,
+    region: null,
+    isFundingStream: true,
+  },
+
+  // --- Testnet Funding Streams ---
+  // ZIP-214 testnet FPF / Zcash Community Grants funding-stream address,
+  // used for all post-NU6 and post-NU6.1 address slots. This is distinct
+  // from the deferred-development lockbox, which has no output address.
+  // Source: https://zips.z.cash/zip-0214 (Testnet Recipients, Revision 1+2)
+  't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu': {
+    name: 'FPF / Zcash Community Grants (Testnet)',
     url: null,
     region: null,
     isFundingStream: true,

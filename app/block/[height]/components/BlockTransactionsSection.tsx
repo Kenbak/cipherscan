@@ -149,10 +149,25 @@ const columns: DataTableColumn<any>[] = [
     header: 'To',
     skeletonWidth: 'w-24',
     cell: (tx) => {
+      const isCoinbase = Boolean(tx.vin?.[0]?.coinbase);
       const toAddress = firstOutputAddress(tx);
+      const poolLabel = destPoolLabel(tx);
+
+      // A coinbase can have both transparent and shielded recipients. Do not
+      // pick the larger one: that makes the row look like the whole displayed
+      // value went to a single recipient. Keep the table compact while making
+      // the additional recipient explicit; the detail card has the amounts.
+      if (isCoinbase && toAddress && poolLabel) {
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <TxTypeBadge category={poolLabelCategory(poolLabel)} label={poolLabel} />
+            <span className="text-[10px] text-muted">+ funding stream</span>
+          </span>
+        );
+      }
+
       if (toAddress) return <HashLink value={toAddress} href={`/address/${toAddress}`} copy={false} lead={8} tail={4} responsive />;
-      const label = destPoolLabel(tx);
-      if (label) return <TxTypeBadge category={poolLabelCategory(label)} label={label} />;
+      if (poolLabel) return <TxTypeBadge category={poolLabelCategory(poolLabel)} label={poolLabel} />;
       return <span className="text-xs text-muted font-mono">—</span>;
     },
   },

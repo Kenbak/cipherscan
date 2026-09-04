@@ -66,34 +66,33 @@ export function generateTxSummary(
 
   if (classification.isCoinbase) {
     const recipient = firstOutputAddress(data.outputs);
-    // A lockbox/funding-stream output sends part of the subsidy straight into
-    // the shielded pool. That amount is consensus-public (not a private
-    // spend), so the summary should account for it rather than implying the
-    // named address received the entire newly-created supply.
+    // Coinbase outputs can go to transparent addresses, the shielded pool,
+    // or both. We can't reliably distinguish whether the shielded portion
+    // is the miner's reward (mining to a shielded address) or a protocol-
+    // level lockbox deposit from the tx alone — describe the facts neutrally.
     const shieldedPortion = valueBalance < 0 ? Math.abs(valueBalance) : 0;
     if (shieldedPortion > 0) {
       const transparentPortion = data.totalOutput;
       if (recipient && transparentPortion > 0) {
         return (
           <>
-            New {CURRENCY} created as a block reward: {transparentPortion.toFixed(4)} {CURRENCY} sent
-            to the address <AddressWithLabel address={recipient} />, plus {shieldedPortion.toFixed(4)}{' '}
-            {CURRENCY} deposited directly into the shielded pool as a protocol-mandated funding
-            stream.
+            This coinbase transaction has multiple visible recipients: {transparentPortion.toFixed(4)} {CURRENCY}{' '}
+            sent to the address <AddressWithLabel address={recipient} />, plus {shieldedPortion.toFixed(4)}{' '}
+            {CURRENCY} paid into the shielded pool.
           </>
         );
       }
-      return `New ${CURRENCY} created as a block reward, entirely deposited into the shielded pool as a protocol-mandated funding stream.`;
+      return `This coinbase transaction pays ${shieldedPortion.toFixed(4)} ${CURRENCY} into the shielded pool.`;
     }
     if (recipient) {
       return (
         <>
-          New {CURRENCY} created as a block reward, sent to the address{' '}
+          This coinbase transaction pays {CURRENCY} to the address{' '}
           <AddressWithLabel address={recipient} />.
         </>
       );
     }
-    return `New ${CURRENCY} created as a block reward.`;
+    return `This coinbase transaction creates a block reward.`;
   }
 
   if (txType === 'MIGRATION') {

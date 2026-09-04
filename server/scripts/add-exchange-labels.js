@@ -74,6 +74,11 @@ const NEW_LABELS = [
   // Other
   { address: 't3ev37Q2uL1sfTsiJQJiWJoFzQpDhmnUwYo', label: 'ZIP-271 Disbursement Multisig', category: 'foundation', description: 'Zcash protocol disbursement multisig (ZIP-271)' },
   { address: 't1KbKkQ7WisJF52sSepMjYokQJbkJCJ1i3C', label: 'Hyperunit Hot Wallet', category: 'exchange', description: 'Hyperunit exchange hot wallet' },
+
+  // Funding streams (ZIP-214). These are not mining-pool addresses. The
+  // separate deferred-development lockbox does not have an output address.
+  { address: 't3cFfPt1Bcvgez9ZbMBFWeZsskxTkPzGCow', label: 'FPF / Zcash Community Grants', category: 'funding-stream', description: 'ZIP-214 FPF/ZCG funding-stream payout address (mainnet)' },
+  { address: 't2HifwjUj9uyxr9bknR8LFuQbc98c3vkXtu', label: 'FPF / Zcash Community Grants (Testnet)', category: 'funding-stream', description: 'ZIP-214 FPF/ZCG funding-stream payout address (testnet)' },
 ];
 
 async function main() {
