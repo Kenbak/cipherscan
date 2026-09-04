@@ -27,9 +27,7 @@
     "perf:analyze": "node scripts/perf/analyze-slow-pages.mjs",
     "perf:probe": "node scripts/perf/probe-slow-pages.mjs",
     "perf:probe:ttfb": "node scripts/perf/probe-ttfb.mjs",
-    "perf:probe:readiness": "node scripts/perf/probe-component-readiness.mjs",
     "perf:probe:queries": "node scripts/perf/probe-query-acceleration.mjs",
-    "perf:compare:queries": "node scripts/perf/compare-query-acceleration.mjs",
     "perf:warm:isr": "node scripts/perf/warm-isr.mjs",
     "privacy:edges": "node server/jobs/build-privacy-linkage-edges.js",
     "privacy:clusters": "node server/jobs/build-privacy-batch-clusters.js",
@@ -86,7 +84,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/d3-force": "^3.0.10",
-    "puppeteer-core": "^24.16.0"
+    "@types/d3-force": "^3.0.10"
   }
 }
