@@ -67,3 +67,23 @@ Treat SEO as part of the definition of done for every new or changed page, route
 ## Communication
 
 Call out any assumption or guess that affects indexation, canonical identity, visible copy, or content accuracy. Do not silently infer editorial claims.
+
+## Wiki synchronization
+
+Treat the private workspace wiki at `/Users/imaginarium/code/wiki` as part of
+the definition of done for every CipherScan change that affects public
+behavior, data meaning, API contracts, database schema, infrastructure,
+deployment, operations, security posture, or product status.
+
+- Update the canonical topic page, not only `log.md`.
+- Update `entities/cipherscan.md` when product status or shipped capability
+  changes, and add a dated `log.md` entry for material releases/incidents.
+- Keep frontmatter `updated` dates and factual deployment state current.
+- Document exact data authority, units, unavailable/stale semantics, migration
+  numbers, and measured performance without inventing or rounding claims.
+- Reconcile cross-repo changes with `architecture/data-pipeline.md`,
+  `architecture/database-schema.md`, and `architecture/server-infrastructure.md`
+  as applicable.
+- Verify the wiki diff before handoff and commit it in the wiki repository. The
+  wiki is currently local-only and has no Git remote; do not claim it was
+  pushed unless a remote is later configured and the push succeeds.
