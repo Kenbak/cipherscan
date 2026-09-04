@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { CURRENCY } from '@/lib/config';
 import { AddressDisplay } from '@/components/AddressWithLabel';
 import { PrivacyLinkGraph } from '@/components/PrivacyLinkGraph';
@@ -107,10 +107,10 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
   useEffect(() => {
     const fetchLinkability = async () => {
       try {
-        const baseUrl = usePostgresApiClient() ? getApiUrl() : '';
+        const baseUrl = getApiUrl();
         const [linkabilityResponse, graphResponse] = await Promise.all([
-          fetch(baseUrl ? `${baseUrl}/api/tx/${txid}/linkability` : `/api/tx/${txid}/linkability`),
-          fetch(baseUrl ? `${baseUrl}/api/privacy/graph/${txid}` : `/api/privacy/graph/${txid}`),
+          fetch(`${baseUrl}/api/tx/${txid}/linkability`),
+          fetch(`${baseUrl}/api/privacy/graph/${txid}`),
         ]);
 
         if (linkabilityResponse.ok) {

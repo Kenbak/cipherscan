@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { NETWORK_UPGRADES } from '@/lib/config';
 
 const ZCASH_BLOCK_INTERVAL = 75; // seconds
@@ -48,7 +48,7 @@ export function FutureBlockView({
   useEffect(() => {
     const poll = async () => {
       try {
-        const apiUrl = usePostgresApiClient() ? `${getApiUrl()}/api/info` : '/api/info';
+        const apiUrl = `${getApiUrl()}/api/info`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           const data = await res.json();

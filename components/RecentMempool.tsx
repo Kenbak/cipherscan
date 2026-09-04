@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, memo, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, formatBytesCompact } from '@/lib/format-numbers';
-import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { HashLink, RedactedAmount, SkeletonTable, TxTypeBadge, resolveTxCategory } from '@/components/ui';
 
@@ -75,7 +75,6 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
   const [txs, setTxs] = useState<MempoolTx[]>([]);
   const [stats, setStats] = useState<MempoolStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const usePostgresApi = usePostgresApiClient();
 
   const handleWsMessage = useCallback((msg: any) => {
     if (msg.type === 'mempool_tx' && msg.data?.txid) {
@@ -103,9 +102,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = usePostgresApi
-        ? `${getApiUrl()}/api/mempool`
-        : '/api/mempool';
+      const apiUrl = `${getApiUrl()}/api/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) return;
@@ -144,7 +141,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
     // Slower fallback polling — WebSocket handles real-time updates
     const interval = setInterval(fetchMempool, 30000);
     return () => clearInterval(interval);
-  }, [usePostgresApi]);
+  }, []);
 
   if (loading) {
     return (

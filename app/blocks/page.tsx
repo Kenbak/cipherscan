@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import BlocksClient from './BlocksClient';
 
-const API_URL = API_CONFIG.POSTGRES_API_URL;
+const API_URL = getApiUrl();
 const PAGE_SIZE = 25;
 
 type SearchParams = Record<string, string | string[] | undefined>;

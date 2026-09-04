@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, memo, type ReactNode } from 'react';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { SkeletonTable } from '@/components/ui';
 
 interface PoolRankingEntry {
@@ -25,9 +25,7 @@ export const TopMiners = memo(function TopMiners({ footer }: { footer?: ReactNod
 
   const fetchRanking = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/mining/pool-ranking?period=24h`
-        : '/api/mining/pool-ranking?period=24h';
+      const apiUrl = `${getApiUrl()}/api/mining/pool-ranking?period=24h`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();

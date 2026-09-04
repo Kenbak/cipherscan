@@ -25,7 +25,7 @@ async function request(router, pool, path) {
   }
 }
 
-const validAddress = `t1${'a'.repeat(32)}`;
+const validAddress = 't1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs';
 
 test('address endpoint rejects negative summaries instead of masking them to zero', async () => {
   const logged = [];

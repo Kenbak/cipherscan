@@ -18,6 +18,8 @@ export function InflowSources({
   currencyMode?: CurrencyMode;
   zecPrice?: number | null;
 }) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const rows = [
     { name: 'Orchard (ZIP-318)', zat: sources.fromOrchardZat, txs: sources.fromOrchardTxs, color: colors.orchardPool, group: 'shielded' as const },
     { name: 'Sapling', zat: sources.fromSaplingZat, txs: sources.fromSaplingTxs, color: colors.sapling, group: 'shielded' as const },
@@ -29,8 +31,6 @@ export function InflowSources({
 
   const totalIn = sources.totalInZat;
   const netZat = sources.totalInZat - sources.totalOutZat;
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
   const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
   const activeName = selected ?? hovered;
 

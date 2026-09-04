@@ -206,10 +206,6 @@ export function PrivacyLinkGraph({
   focusNodeId,
   height = 360,
 }: PrivacyLinkGraphProps) {
-  if (nodes.length === 0 || edges.length === 0) {
-    return null;
-  }
-
   const positions = buildLayout(nodes, edges, focusNodeId);
   const flowNodes = useMemo<Node[]>(() => (
     nodes
@@ -258,6 +254,10 @@ export function PrivacyLinkGraph({
       labelBgBorderRadius: 8,
     }))
   ), [edges]);
+
+  if (nodes.length === 0 || edges.length === 0) {
+    return null;
+  }
 
   return (
     <div className="privacy-link-graph w-full overflow-hidden rounded-2xl border border-white/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>

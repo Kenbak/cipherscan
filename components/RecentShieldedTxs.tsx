@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { RelativeTime } from '@/components/RelativeTime';
 import { formatZecPrecise } from '@/lib/format-numbers';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge, ShieldFlowLegend } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
@@ -103,9 +103,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
 
   const fetchTxs = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/tx/shielded?limit=${limit}`
-        : `/api/tx/shielded?limit=${limit}`;
+      const apiUrl = `${getApiUrl()}/api/tx/shielded?limit=${limit}`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();

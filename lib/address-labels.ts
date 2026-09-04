@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { getApiUrl } from '@/lib/api-config';
 
 // Cache for official labels from API
 let officialLabelsCache: Record<string, { label: string; description?: string; category?: string }> = {};
@@ -29,7 +30,7 @@ export async function fetchOfficialLabels(): Promise<Record<string, { label: str
   if (officialLabelsRequest) return officialLabelsRequest;
 
   officialLabelsRequest = (async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.mainnet.cipherscan.app';
+    const apiUrl = getApiUrl();
     try {
       const response = await fetch(`${apiUrl}/api/labels`, {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT),

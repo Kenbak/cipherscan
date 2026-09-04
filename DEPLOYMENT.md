@@ -56,6 +56,24 @@ See also: [server infrastructure wiki](https://github.com/Kenbak/cipherscan) and
 
 **Cross-repo impact:** Schema changes in cipherscan-rust migrations affect the API. Materialized views and cron jobs in this repo must be compatible with indexer table ownership (`zcash_user`).
 
+### API ownership and route boundaries
+
+Blockchain data has one runtime owner: the Express service on port 3001. The
+frontend calls that service directly; do not add duplicate Next.js handlers
+that query PostgreSQL, proxy an Express route, or reshape the same blockchain
+payload. The stable `/v1` contract is mounted by Express and is the intended
+public API after its preview/cutover period. The legacy `/api/*` Express routes
+remain while clients migrate.
+
+The only Next.js route handlers retained are frontend-runtime concerns:
+
+- `/api/revalidate` performs authenticated Next cache invalidation.
+- `/api/name/*` hosts the Zcash Name Service resolver until that integration is
+  migrated to Express.
+
+These are not a second blockchain API. New public data endpoints belong in the
+Express v1 contract, with source height, freshness, network, and explicit units.
+
 ---
 
 ## Environment Variables
@@ -67,6 +85,8 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `NEXT_PUBLIC_NETWORK` | **Yes for builds** | Deployment identity: `mainnet`, `testnet`, or `crosslink-testnet`. Controls APIs, currency labels, canonical hosts, and indexation. |
+| `NEXT_PUBLIC_API_URL` | No | Browser-visible API origin override. Normally omit it so the network-specific public origin is selected. |
+| `CIPHERSCAN_API_URL` | Recommended for self-hosting | Server-only API origin override used by Server Components/metadata. In Docker this should be the private service URL (for example `http://api:3001`). |
 | `SITEMAP_BLOCK_MIN_HEIGHT` | No | Mainnet-only lower bound for advertised block sitemap shards. Must be divisible by 50,000. |
 | `SITEMAP_BLOCK_MAX_HEIGHT` | No | Mainnet-only inclusive upper bound. Must end a complete 50,000-height bucket. |
 | `NEXT_PUBLIC_LIGHTWALLETD_HOST` / `_PORT` | No | Lightwalletd hostname/port for client-side gRPC (default port 9067) |
@@ -79,6 +99,7 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Yes | PostgreSQL connection |
+| `REPLICA_DATABASE_URL` | No | Read-only PostgreSQL standby URL. Set only on an active API host, point it at a server that is actually in recovery, and keep all writes on the primary connection. |
 | `REDIS_HOST` / `REDIS_PORT` | Recommended | Default `127.0.0.1:6379` |
 | `ZEBRA_RPC_URL` | Yes | JSON-RPC URL (e.g. `http://127.0.0.1:8232`) |
 | `ZEBRA_RPC_COOKIE_FILE` | Yes | Path to node's `.cookie` file for RPC auth (mainnet; testnet Zakura runs without cookie auth) |
@@ -89,6 +110,7 @@ Never commit secrets. Reference `.env.example` (frontend) and `server/api/.env` 
 | `SERVICE_API_KEYS` | Recommended | Comma-separated keys; requests with a matching `X-Service-Key` header bypass rate limiting (used by the Vercel frontend's SSR, CipherPay, Telegram bot) |
 | `CORS_ORIGINS` | No | Comma-separated allowed origins |
 | `NEAR_INTENTS_API_KEY` | For crosschain | NEAR Intents API key for swap sync |
+| `API_V1_ENABLED` / `API_V1_LAUNCHED` | No | v1 rollout gates. Keep disabled by default; preview requires `API_V1_PREVIEW_KEY`. See `server/api/v1/README.md`. |
 
 ### Cron Jobs (`server/jobs/.env`)
 
@@ -182,6 +204,18 @@ Production runs on dedicated/cloud Hetzner servers (migrated from DigitalOcean, 
 **Testnet units:** `zakurad.service` (node), `cipherscan-rust-testnet.service` (indexer), `zcash-api.service`, `nginx.service`, `postgresql@18-main.service`. Definitions for all of these are committed in `server/deploy/*-testnet.service` and `cipherscan-rust/deploy/testnet/` (added 2026-08-15 — previously live-only).
 
 **Start order:** PostgreSQL → node (Zebra/Zakura) → indexer → lightwalletd (mainnet only) → API → Caddy/nginx.
+
+The standby host is not an active application server during normal operation:
+keep the API, indexer, cron jobs, and public reverse proxy disabled there until
+a documented failover promotes it. On the active host,
+`REPLICA_DATABASE_URL` must target the standby—not the primary and not the
+active host itself. Verify `SELECT pg_is_in_recovery()` returns `true` through
+that URL before enabling read offload.
+
+Apply database migrations before deploying API code that reads new columns.
+In particular, deploy cipherscan-rust migrations `018` (rich-list balance
+index) and `019` (fork-monitor ownership hash) before restarting this API
+release. Both are additive; migration `018` builds its index concurrently.
 
 **Deploy the API:**
 

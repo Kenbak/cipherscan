@@ -608,8 +608,8 @@ function MinerBehaviorSection() {
           </Link>
         </div>
         <p className="text-xs text-secondary mt-1 font-sans">
-          How much of their block rewards miners move vs hold. A high sell ratio means miners are liquidating quickly;
-          a low ratio means they&apos;re accumulating. But &ldquo;moved&rdquo; isn&apos;t the same as &ldquo;sold&rdquo; — the{' '}
+          How much of their block rewards miners move vs leave unspent. A high moved ratio means rewards changed address
+          quickly; it does not prove they were sold. The{' '}
           <Link href="/zodl" className="text-cipher-cyan hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), and most of it turns out to be shielding, not selling.
         </p>
       </div>
@@ -753,8 +753,8 @@ export default function MiningPage() {
             </p>
             <p>
               Miner behavior tracks whether coinbase outputs (block rewards) have been spent
-              or remain unspent. A high sell ratio indicates miners are liquidating rewards
-              quickly, while a low ratio suggests accumulation strategies.
+              or remain unspent. This is a moved-versus-unspent measure; destination analysis
+              is required before describing a movement as shielding, exchange transfer, or sale.
             </p>
           </div>
         </div>

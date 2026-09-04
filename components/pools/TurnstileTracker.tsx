@@ -114,6 +114,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
   const [totalShielded, setTotalShielded] = useState<number | null>(null);
   const [timeseries, setTimeseries] = useState<TurnstilePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
   const [viewBuilding, setViewBuilding] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -121,8 +122,12 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
   useEffect(() => {
     setLoading(true);
+    setUnavailable(false);
     setViewBuilding(false);
+    setSummary(null);
     setTotalShielded(null);
+    setTimeseries([]);
+    setLastUpdated(null);
     const since = getSinceDate(period);
     const flowsPeriod = getFlowsApiPeriod(period);
 
@@ -134,6 +139,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
       fetch(`${getApiUrl()}/api/pools/flows?period=${flowsPeriod}&pool=all`).then(r => r.ok ? r.json() : null),
     ])
       .then(([turnstileData, flowsData]) => {
+        if (!turnstileData) setUnavailable(true);
         if (turnstileData?.summary) setSummary(turnstileData.summary);
         if (turnstileData?.lastUpdated) setLastUpdated(turnstileData.lastUpdated);
         if (turnstileData?.timeseries) {
@@ -147,7 +153,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
           setTotalShielded(sumShieldInPeriod(flowsData.points, since));
         }
       })
-      .catch(() => {})
+      .catch(() => setUnavailable(true))
       .finally(() => setLoading(false));
   }, [period]);
 
@@ -193,7 +199,9 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
             </div>
           ) : !summary ? (
             <div className="flex items-center justify-center h-32">
-              <span className="text-xs text-muted font-mono">No turnstile data available</span>
+              <span className="text-xs text-muted font-mono" role="status">
+                {unavailable ? 'Turnstile data is temporarily unavailable' : 'No turnstile data available'}
+              </span>
             </div>
           ) : (
             <>

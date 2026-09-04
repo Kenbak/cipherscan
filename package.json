@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "npm run lint:design",
+    "lint": "eslint . && npm run lint:design",
+    "lint:code": "eslint .",
     "lint:design": "node scripts/check-design-tokens.mjs",
     "visual:audit": "node scripts/visual-audit.mjs",
     "test:ironwood-accounting": "NODE_PATH=server/api/node_modules node --test server/tests/ironwood-accounting.test.js",
@@ -84,6 +85,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/d3-force": "^3.0.10"
+    "@types/d3-force": "^3.0.10",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.4"
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
 export interface BasePaginationState {
@@ -192,7 +192,7 @@ export function usePaginatedList<
 
     setLoading(true);
     try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
+      const base = getApiUrl();
       const params = new URLSearchParams({
         limit: String(pageSize + 1),
         ...(buildParams?.() ?? {}),
@@ -288,7 +288,7 @@ export function usePaginatedList<
     refreshInFlightRef.current = true;
     setIsRefreshing(true);
     try {
-      const base = usePostgresApiClient() ? getApiUrl() : '';
+      const base = getApiUrl();
       const params = new URLSearchParams({
         limit: String(pageSize + 1),
         ...(buildParams?.() ?? {}),

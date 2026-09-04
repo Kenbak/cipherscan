@@ -195,7 +195,7 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
   };
   const commonImports = {
     'react/jsx-runtime': jsxRuntime,
-    '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+    '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,
     },
@@ -255,7 +255,7 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     const page = loadTypeScriptModule('app/blocks/page.tsx', {
       'react/jsx-runtime': jsxRuntime,
       './BlocksClient': { __esModule: true, default: () => null },
-      '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+      '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },
       '@/lib/isr-fallback': {
         retainLastGoodOrBuildFallback: (_fallback, error) => { throw error; },
       },
@@ -282,7 +282,7 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     const txsImports = {
       'react/jsx-runtime': jsxRuntime,
       './TxsClient': { __esModule: true, default: () => null },
-      '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.invalid' } },
+      '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },
       '@/lib/isr-fallback': {
         retainLastGoodOrBuildFallback: (fallback) => fallback,
       },
@@ -344,6 +344,9 @@ test('server metadata uses lightweight endpoints with deadlines', async () => {
     '@/lib/network': {
       getConfiguredNetwork: () => 'mainnet',
       normalizeApiBaseUrl: (url) => url,
+    },
+    '@/lib/api-config': {
+      getApiUrlForNetwork: () => 'https://api.mainnet.cipherscan.app',
     },
     '@/lib/server-fetch': { fetchWithDeadline },
   });

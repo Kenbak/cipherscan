@@ -3,7 +3,9 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const { logSafeError } = require('../../lib/safe-log');
+const { constantTimeEqual, isKnownServiceKey } = require('../../service-auth');
 const router = express.Router();
 const {
   deps,
@@ -316,7 +318,32 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
 
     // Evict oldest if at capacity (DB-based)
     const { rows: countRows } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
-    const existing = await deps.writePool.query('SELECT 1 FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
+    const existing = await deps.writePool.query('SELECT owner_token_hash FROM fork_monitor_nodes WHERE name = $1', [cleanName]);
+    const suppliedToken = req.headers['x-node-token'];
+    const serviceKeys = (process.env.SERVICE_API_KEYS || '').split(',').filter(Boolean);
+    const isService = isKnownServiceKey(req.headers['x-service-key'], serviceKeys);
+    let ownerToken = null;
+    let ownerTokenHash;
+
+    if (existing.rows.length > 0) {
+      ownerTokenHash = existing.rows[0].owner_token_hash;
+      const ownsName = typeof suppliedToken === 'string'
+        && suppliedToken.length <= 200
+        && typeof ownerTokenHash === 'string'
+        && constantTimeEqual(
+          crypto.createHash('sha256').update(suppliedToken).digest('hex'),
+          ownerTokenHash,
+        );
+      if (!isService && !ownsName) {
+        return res.status(409).json({
+          success: false,
+          error: 'Node name is already registered; provide its ownership token or wait for it to expire',
+        });
+      }
+    } else {
+      ownerToken = crypto.randomBytes(32).toString('base64url');
+      ownerTokenHash = crypto.createHash('sha256').update(ownerToken).digest('hex');
+    }
     if (countRows[0].cnt >= MAX_REGISTERED_NODES && existing.rows.length === 0) {
       await deps.writePool.query(
         `DELETE FROM fork_monitor_nodes WHERE name = (
@@ -331,8 +358,8 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
     }));
 
     await deps.writePool.query(
-      `INSERT INTO fork_monitor_nodes (name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO fork_monitor_nodes (name, tip, tip_hash, sample_hashes, peers, mining, ttl, reported_at, owner_token_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (name) DO UPDATE SET
          tip = EXCLUDED.tip,
          tip_hash = EXCLUDED.tip_hash,
@@ -340,7 +367,8 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
          peers = EXCLUDED.peers,
          mining = EXCLUDED.mining,
          ttl = EXCLUDED.ttl,
-         reported_at = EXCLUDED.reported_at`,
+         reported_at = EXCLUDED.reported_at,
+         owner_token_hash = COALESCE(fork_monitor_nodes.owner_token_hash, EXCLUDED.owner_token_hash)`,
       [
         cleanName,
         tip,
@@ -350,6 +378,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
         typeof mining === 'boolean' ? mining : null,
         validTtl,
         Date.now(),
+        ownerTokenHash,
       ]
     );
     reportTimestamps.set(cleanName, Date.now());
@@ -360,7 +389,12 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
     }
 
     const { rows: nodeCount } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
-    res.json({ success: true, registered: cleanName, node_count: nodeCount[0].cnt });
+    res.json({
+      success: true,
+      registered: cleanName,
+      node_count: nodeCount[0].cnt,
+      ownershipToken: ownerToken || undefined,
+    });
   } catch (error) {
     logSafeError('Fork monitor report error:', error);
     res.status(500).json({ success: false, error: 'Failed to register node' });
@@ -378,13 +412,22 @@ router.delete('/api/crosslink/fork-monitor/report/:name', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid node name' });
     }
 
+    const suppliedToken = req.headers['x-node-token'];
+    const serviceKeys = (process.env.SERVICE_API_KEYS || '').split(',').filter(Boolean);
+    const isService = isKnownServiceKey(req.headers['x-service-key'], serviceKeys);
+    const tokenHash = typeof suppliedToken === 'string' && suppliedToken.length <= 200
+      ? crypto.createHash('sha256').update(suppliedToken).digest('hex')
+      : null;
+
     const { rowCount } = await deps.writePool.query(
-      'DELETE FROM fork_monitor_nodes WHERE name = $1',
-      [cleanName]
+      `DELETE FROM fork_monitor_nodes
+       WHERE name = $1
+         AND ($2::boolean OR owner_token_hash = $3)`,
+      [cleanName, isService, tokenHash]
     );
 
     if (rowCount === 0) {
-      return res.status(404).json({ success: false, error: 'Node not found' });
+      return res.status(404).json({ success: false, error: 'Node not found or ownership token invalid' });
     }
 
     if (deps.redisClient && deps.redisClient.isOpen) {

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { HashLink } from '@/components/ui/HashLink';
+import { CopyButton } from '@/components/CopyButton';
 type EventAction = 'CLAIM' | 'RELEASE' | 'TRANSFER' | 'UPDATE' | 'LIST' | 'SETPRICE' | 'BUY' | 'DELIST';
 interface Event { id: string; action: EventAction; name: string; owner?: string; timestamp: number; txid: string; height: number; price?: number; }
 interface Registration {
@@ -43,7 +44,6 @@ export default function NamePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -78,38 +78,6 @@ export default function NamePage() {
 
     fetchData();
   }, [name]);
-
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(label);
-      setTimeout(() => setCopiedText(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  const CopyButton = ({ text, label }: { text: string; label: string }) => (
-    <button
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        copyToClipboard(text, label);
-      }}
-      className="ml-2 p-1 text-muted hover:text-primary transition-colors"
-      title="Copy to clipboard"
-    >
-      {copiedText === label ? (
-        <svg className="w-4 h-4 text-cipher-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      )}
-    </button>
-  );
 
   if (loading) {
     return (
@@ -160,7 +128,7 @@ function RegisteredView({
   const custody = registration.pubkey ? 'Sovereign' : 'Admin-registered';
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -280,7 +248,7 @@ function RegisteredView({
           )}
         </CardBody>
       </Card>
-    </main>
+    </div>
   );
 }
 
@@ -296,7 +264,7 @@ function AvailableView({
   const cost = pricing ? calculateClaimCost(name.length, pricing) : null;
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -355,7 +323,7 @@ function AvailableView({
           </CardBody>
         </Card>
       )}
-    </main>
+    </div>
   );
 }
 

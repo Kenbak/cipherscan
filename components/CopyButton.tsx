@@ -11,13 +11,19 @@ export function CopyButton({
   size = 'sm',
   label,
   className = '',
+  copiedText,
+  onCopy,
 }: {
   text: string;
   size?: 'xs' | 'sm' | 'md';
   label?: string;
   className?: string;
+  copiedText?: string | null;
+  onCopy?: (text: string, label: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const copyLabel = label || 'value';
+  const isCopied = onCopy ? copiedText === copyLabel : copied;
 
   const px = size === 'xs' ? 'p-1' : size === 'md' ? 'p-2' : 'p-1.5';
   const iconCls = size === 'xs' ? 'w-3 h-3' : size === 'md' ? 'w-4 h-4' : 'w-3.5 h-3.5';
@@ -28,15 +34,19 @@ export function CopyButton({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        navigator.clipboard.writeText(text).catch(() => {});
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1500);
+        if (onCopy) {
+          onCopy(text, copyLabel);
+        } else {
+          navigator.clipboard.writeText(text).catch(() => {});
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        }
       }}
-      className={`${px} text-muted hover:text-primary transition-colors shrink-0 rounded ${className}`}
-      title={copied ? 'Copied!' : label || 'Copy'}
-      aria-label={label || 'Copy to clipboard'}
+      className={`${onCopy ? 'ml-2 ' : ''}${px} text-muted hover:text-primary transition-colors shrink-0 rounded ${className}`}
+      title={isCopied ? 'Copied!' : `Copy ${copyLabel}`}
+      aria-label={`Copy ${copyLabel} to clipboard`}
     >
-      {copied ? (
+      {isCopied ? (
         <svg
           className={`${iconCls} text-cipher-green`}
           fill="none"

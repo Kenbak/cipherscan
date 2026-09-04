@@ -39,8 +39,11 @@ export function transformExpressTxData(txData: any): TransactionData {
     inputs: transformedInputs,
     outputs: transformedOutputs,
     totalInput: txData.totalInput != null ? txData.totalInput : transparentInputSum,
+    totalInputZat: txData.totalInputZat ?? null,
     totalOutput: txData.totalOutput != null ? txData.totalOutput : transparentOutputSum,
-    fee: 0,
+    totalOutputZat: txData.totalOutputZat ?? null,
+    fee: txData.fee ?? 0,
+    feeZat: txData.feeZat ?? null,
     size: parseInt(txData.size),
     version: parseInt(txData.version),
     locktime: parseInt(txData.locktime),
@@ -51,10 +54,14 @@ export function transformExpressTxData(txData: any): TransactionData {
     isCoinbase: txData.isCoinbase || false,
     orchardActions: txData.orchardActions || 0,
     ironwoodActions: txData.ironwoodActions || 0,
-    valueBalance: parseFloat(txData.valueBalance || 0),
-    valueBalanceSapling: parseFloat(txData.valueBalanceSapling || 0),
-    valueBalanceOrchard: parseFloat(txData.valueBalanceOrchard || 0),
-    valueBalanceIronwood: parseFloat(txData.valueBalanceIronwood || 0),
+    valueBalance: txData.valueBalance == null ? undefined : Number(txData.valueBalance),
+    valueBalanceZat: txData.valueBalanceZat ?? null,
+    valueBalanceSapling: txData.valueBalanceSapling == null ? undefined : Number(txData.valueBalanceSapling),
+    valueBalanceSaplingZat: txData.valueBalanceSaplingZat ?? null,
+    valueBalanceOrchard: txData.valueBalanceOrchard == null ? undefined : Number(txData.valueBalanceOrchard),
+    valueBalanceOrchardZat: txData.valueBalanceOrchardZat ?? null,
+    valueBalanceIronwood: txData.valueBalanceIronwood == null ? undefined : Number(txData.valueBalanceIronwood),
+    valueBalanceIronwoodZat: txData.valueBalanceIronwoodZat ?? null,
     bindingSig: txData.bindingSig,
     bindingSigSapling: txData.bindingSigSapling,
     finality: txData.finality || null,
@@ -65,18 +72,6 @@ export function transformExpressTxData(txData: any): TransactionData {
     coinbaseText: txData.coinbaseText || null,
     zip318: txData.zip318 || null,
   };
-
-  if (txData.fee && txData.fee > 0) {
-    transformedData.fee = txData.fee;
-  } else {
-    const shieldedValueBalance =
-      (transformedData.valueBalanceSapling || 0) +
-      (transformedData.valueBalanceOrchard || 0) +
-      (transformedData.valueBalanceIronwood || 0);
-    const calculatedFee =
-      transformedData.totalInput - transformedData.totalOutput + shieldedValueBalance;
-    transformedData.fee = calculatedFee > 0 ? calculatedFee : 0;
-  }
 
   return transformedData;
 }

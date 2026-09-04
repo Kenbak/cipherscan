@@ -15,7 +15,7 @@ import { LatencyComparisonChart } from '@/components/crosschain/LatencyCompariso
 import { TopPairsList } from '@/components/crosschain/TopPairsList';
 import { SwapSizeDistribution } from '@/components/crosschain/SwapSizeDistribution';
 import { formatValue, formatAmount, formatRelativeTime, type DisplayUnit } from '@/components/crosschain/format';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 
 function Sk({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return <div className={`animate-pulse rounded bg-cipher-border/60 ${className}`} style={style} />;
@@ -169,9 +169,7 @@ export function CrosschainDashboard() {
       try {
         if (!hasFetchedOnce.current) setLoading(true);
         setError(null);
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/crosschain/db-stats`
-          : '/api/crosschain/db-stats';
+        const apiUrl = `${getApiUrl()}/api/crosschain/db-stats`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (!data.success) { setError(data.error || 'Failed to fetch data'); return; }
@@ -216,9 +214,7 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/price`
-          : '/api/price';
+        const apiUrl = `${getApiUrl()}/api/price`;
         const res = await fetch(apiUrl);
         const data = await res.json();
         if (data.price && data.price > 0) setZecPrice(data.price);
@@ -230,9 +226,7 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchPairs = async () => {
       try {
-        const url = usePostgresApiClient()
-          ? `${getApiUrl()}/api/crosschain/popular-pairs`
-          : '/api/crosschain/popular-pairs';
+        const url = `${getApiUrl()}/api/crosschain/popular-pairs`;
         const res = await fetch(url);
         const json = await res.json();
         if (json.success && json.pairs) setPopularPairs(json.pairs.slice(0, 8));
@@ -244,9 +238,7 @@ export function CrosschainDashboard() {
   useEffect(() => {
     const fetchWrappedZec = async () => {
       try {
-        const url = usePostgresApiClient()
-          ? `${getApiUrl()}/api/wrapped-zec/supply`
-          : '/api/wrapped-zec/supply';
+        const url = `${getApiUrl()}/api/wrapped-zec/supply`;
         const res = await fetch(url);
         const json = await res.json();
         if (json.success) setWrappedZec({ assets: json.assets, totalWrapped: json.totalWrapped });
@@ -260,9 +252,7 @@ export function CrosschainDashboard() {
     try {
       const dirMap: Record<SwapFilter, string> = { all: '', in: 'inflow', out: 'outflow' };
       const dirParam = direction !== 'all' ? `&direction=${dirMap[direction]}` : '';
-      const url = usePostgresApiClient()
-        ? `${getApiUrl()}/api/crosschain/history?limit=${SWAPS_PER_PAGE}&page=${page}${dirParam}`
-        : `/api/crosschain/history?limit=${SWAPS_PER_PAGE}&page=${page}${dirParam}`;
+      const url = `${getApiUrl()}/api/crosschain/history?limit=${SWAPS_PER_PAGE}&page=${page}${dirParam}`;
       const res = await fetch(url);
       const json = await res.json();
       if (json.success && json.swaps) {

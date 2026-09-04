@@ -1,4 +1,4 @@
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import RichListClient, {
@@ -24,7 +24,7 @@ const EMPTY_RICH_LIST: InitialRichList = {
 async function getInitialRichList(): Promise<InitialRichList> {
   try {
     const response = await fetchWithDeadline(
-      `${API_CONFIG.POSTGRES_API_URL}/api/rich-list?limit=100&offset=0`,
+      `${getApiUrl()}/api/rich-list?limit=100&offset=0`,
       { next: { revalidate: 60 } },
     );
     if (!response.ok) {

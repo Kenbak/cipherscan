@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
+import { getApiUrl } from '@/lib/api-config';
 
 interface CrosslinkData {
   tipHeight: number;
@@ -48,7 +49,7 @@ export function CrosslinkStats() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/crosslink');
+      const res = await fetch(`${getApiUrl()}/api/crosslink`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.success) {

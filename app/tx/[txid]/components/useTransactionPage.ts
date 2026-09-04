@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import type { ActiveTab, LookupState, RawTxData, TransactionData } from './types';
 import { transformExpressTxData } from './transform-tx-data';
 
@@ -39,9 +39,7 @@ export function useTransactionPage(txid: string) {
       try {
         setLoading(true);
 
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/tx/${txid}`
-          : `/api/tx/${txid}`;
+        const apiUrl = `${getApiUrl()}/api/tx/${txid}`;
 
         const response = await fetch(apiUrl);
 
@@ -66,11 +64,7 @@ export function useTransactionPage(txid: string) {
         const txData = await response.json();
         setLookupState('available');
 
-        if (usePostgresApiClient()) {
-          setData(transformExpressTxData(txData));
-        } else {
-          setData(txData);
-        }
+        setData(transformExpressTxData(txData));
       } catch (error) {
         console.error('Error fetching transaction:', error);
         if (!(error instanceof Error && error.message === 'Transaction not found')) {
@@ -104,9 +98,7 @@ export function useTransactionPage(txid: string) {
 
     const checkBlock = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/block/${txid}`
-          : `/api/block/${txid}`;
+        const apiUrl = `${getApiUrl()}/api/block/${txid}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           router.replace(`/block/${txid}`);
@@ -121,9 +113,7 @@ export function useTransactionPage(txid: string) {
 
   const checkMempool = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/mempool/tx/${txid}`
-        : `/api/mempool/tx/${txid}`;
+      const apiUrl = `${getApiUrl()}/api/mempool/tx/${txid}`;
       const res = await fetch(apiUrl);
       if (!res.ok) {
         setLookupState('unavailable');
@@ -164,9 +154,7 @@ export function useTransactionPage(txid: string) {
 
     const poll = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/tx/${txid}`
-          : `/api/tx/${txid}`;
+        const apiUrl = `${getApiUrl()}/api/tx/${txid}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
           window.location.reload();

@@ -451,7 +451,7 @@ systemctl start crosslink-frontend
 | Env Var | Effect |
 |---------|--------|
 | `NEXT_PUBLIC_NETWORK=crosslink-testnet` | `detectNetwork()` in `api-config.ts` returns `crosslink-testnet` server-side |
-| `NEXT_PUBLIC_CROSSLINK_API_URL` | Sets the origin-style `POSTGRES_API_URLS['crosslink-testnet']` base for API calls; omit the trailing `/api` because callers append it |
+| `NEXT_PUBLIC_CROSSLINK_API_URL` | Sets the crosslink-testnet default API origin used by `getApiUrl()`; omit the trailing `/api` because callers append it |
 | `CROSSLINK_RPC_URL` | Enables `lib/crosslink.ts` finality enrichment — without this, finality returns `null` gracefully |
 
 Client-side, network detection happens automatically from the `crosslink.cipherscan.app` hostname.

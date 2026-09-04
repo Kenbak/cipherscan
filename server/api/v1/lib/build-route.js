@@ -196,6 +196,10 @@ function buildAdapterHandler(entry, internalClient, config) {
       return;
     }
 
+    const indexedHeight = typeof req.v1?.resolveIndexedHeight === 'function'
+      ? await req.v1.resolveIndexedHeight()
+      : req.v1?.indexedHeight ?? null;
+
     const warnings = [];
     if (entry.v1.knownPrecisionCaveat) warnings.push({ issue: entry.v1.knownPrecisionCaveat });
 
@@ -218,7 +222,7 @@ function buildAdapterHandler(entry, internalClient, config) {
         total: pagination.total ?? null,
       });
 
-      sendSuccess(res, convertedItems, { indexedHeight: req.v1?.indexedHeight ?? null, page, warnings });
+      sendSuccess(res, convertedItems, { indexedHeight, page, warnings });
       return;
     }
 
@@ -231,7 +235,7 @@ function buildAdapterHandler(entry, internalClient, config) {
     const { value: convertedData, warnings: zWarnings } = applyZatoshiFields(data, entry.v1.zatoshiFields || []);
     warnings.push(...zWarnings);
 
-    sendSuccess(res, convertedData, { warnings });
+    sendSuccess(res, convertedData, { indexedHeight, warnings });
   };
 }
 

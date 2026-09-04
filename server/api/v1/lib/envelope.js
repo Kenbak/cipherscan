@@ -12,6 +12,8 @@
  *   indexedHeight - best-known indexer tip height at generation time, or
  *                   null if unavailable (never fabricated)
  *   cache         - { status: 'hit'|'miss'|'stale'|'unknown', ageSeconds }
+ *   freshness     - explicit fresh/stale/unknown/unavailable state
+ *   units         - authoritative monetary unit and JSON encoding
  *
  * Optional, added by adapters when relevant:
  *   page          - cursor pagination block (see lib/cursor.js)
@@ -29,12 +31,29 @@ function newRequestId() {
  * supply cache/indexedHeight/etc without repeating boilerplate.
  */
 function buildMeta({ requestId, network, indexedHeight = null, cache = null, dataAgeSeconds = null, warnings = undefined, page = undefined } = {}) {
+  const generatedAt = new Date().toISOString();
+  const cacheMeta = cache || { status: 'unknown', ageSeconds: null };
+  const freshnessStatus = indexedHeight === null
+    ? 'unavailable'
+    : cacheMeta.status === 'stale'
+      ? 'stale'
+      : dataAgeSeconds === null
+        ? 'unknown'
+        : dataAgeSeconds <= 120 ? 'fresh' : 'stale';
   const meta = {
     requestId,
     network,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     indexedHeight,
-    cache: cache || { status: 'unknown', ageSeconds: null },
+    source: { indexedHeight, observedAt: generatedAt },
+    cache: cacheMeta,
+    freshness: { status: freshnessStatus, ageSeconds: dataAgeSeconds },
+    units: {
+      authoritativeMonetary: 'zatoshi',
+      authoritativeEncoding: 'decimal-string',
+      zatoshiPerZec: '100000000',
+      legacyFormattedFields: 'field-defined',
+    },
   };
   if (dataAgeSeconds !== null) meta.dataAgeSeconds = dataAgeSeconds;
   if (warnings && warnings.length) meta.warnings = warnings;

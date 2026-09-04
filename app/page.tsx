@@ -8,7 +8,7 @@ import { CrosslinkStats } from '@/components/CrosslinkStats';
 import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph.lazy';
 import { StakingDayBanner } from '@/components/StakingDayBanner';
 import { PulseWidget } from '@/components/PulseWidget';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { isCrosslink, isTestnet } from '@/lib/config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
@@ -43,7 +43,7 @@ interface ShieldedTx {
   type: 'fully-shielded' | 'partial';
 }
 
-const API_URL = API_CONFIG.POSTGRES_API_URL;
+const API_URL = getApiUrl();
 
 function upstreamError(context: string, status: number): Error {
   return new Error(`${context} returned HTTP ${status}`);

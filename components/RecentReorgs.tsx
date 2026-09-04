@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { SkeletonTable } from '@/components/ui';
 
@@ -34,9 +34,7 @@ export const RecentReorgs = memo(function RecentReorgs({ footer }: { footer?: Re
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/uncles/forks?limit=5`
-        : '/api/uncles/forks?limit=5';
+      const apiUrl = `${getApiUrl()}/api/uncles/forks?limit=5`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();

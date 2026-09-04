@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -132,11 +132,11 @@ export default function BlendCheckPage() {
     try {
       const [blendRes, splitRes] = await Promise.all([
         fetch(
-          `${API_CONFIG.POSTGRES_API_URL}/api/blend-check?amount=${parsed}`,
+          `${getApiUrl()}/api/blend-check?amount=${parsed}`,
           { signal: controller.signal }
         ),
         fetch(
-          `${API_CONFIG.POSTGRES_API_URL}/api/blend-check/split?amount=${parsed}`,
+          `${getApiUrl()}/api/blend-check/split?amount=${parsed}`,
           { signal: controller.signal }
         ),
       ]);

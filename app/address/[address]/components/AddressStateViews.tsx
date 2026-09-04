@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '@/components/CopyButton';
 import { Icons } from './icons';
 
 interface EmptyAddressViewProps {

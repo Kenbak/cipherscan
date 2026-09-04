@@ -1258,7 +1258,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     params: [
       { name: 'name', type: 'string', description: 'ZNS name to resolve (e.g., "satoshi")', required: true }
     ],
-    example: `curl ${baseUrl}/api/name/satoshi`,
+    example: `curl ${baseUrl.replace('://api.', '://')}/api/name/satoshi`,
     response: {
       name: 'satoshi',
       address: 'u1abc...',
@@ -1274,7 +1274,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         signature: 'eaBfFGlJ...'
       }
     },
-    note: 'Returns 404 if the name is not registered. Listing is null if the name is not for sale. Price is in zatoshis (1 ZEC = 100,000,000 zatoshis).'
+    note: 'This resolver is hosted on the CipherScan frontend origin, not the Express blockchain API. Returns 404 if the name is not registered. Listing is null if the name is not for sale. Price is in zatoshis (1 ZEC = 100,000,000 zatoshis).'
   },
   {
     id: 'name-events',
@@ -1285,7 +1285,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     params: [
       { name: 'name', type: 'string', description: 'ZNS name (e.g., "satoshi")', required: true }
     ],
-    example: `curl ${baseUrl}/api/name/satoshi/events`,
+    example: `curl ${baseUrl.replace('://api.', '://')}/api/name/satoshi/events`,
     response: {
       events: [
         { id: 7, name: 'satoshi', action: 'LIST', txid: '7ac64ad0...', height: 2450010, ua: 'u1abc...', price: 10000000000, nonce: 1, signature: 'eaBfFGlJ...' },
@@ -1293,7 +1293,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       ],
       total: 2
     },
-    note: 'Actions: CLAIM, LIST, DELIST, UPDATE, BUY.'
+    note: 'This resolver is hosted on the CipherScan frontend origin, not the Express blockchain API. Actions: CLAIM, LIST, DELIST, UPDATE, BUY.'
   },
 
   // ============================================================================

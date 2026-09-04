@@ -53,7 +53,7 @@ export default function ValidatorsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/crosslink');
+      const res = await fetch(`${getApiUrl()}/api/crosslink`);
       if (!res.ok) throw new Error('Failed to fetch');
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Unknown error');

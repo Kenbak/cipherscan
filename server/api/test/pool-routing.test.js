@@ -195,10 +195,29 @@ test('configureFromEnv without REPLICA_DATABASE_URL leaves the routing single-pr
       consecutiveFailures: 0,
       openedAt: null,
       replicaConfigured: false,
+      replicaRole: 'not_configured',
       cachedLagBlocks: 0,
     });
   } finally {
     if (originalUrl === undefined) delete process.env.REPLICA_DATABASE_URL;
     else process.env.REPLICA_DATABASE_URL = originalUrl;
   }
+});
+
+test('an environment replica is ineligible for reads until PostgreSQL confirms it is in recovery', async () => {
+  const routing = freshPoolRouting();
+  const primaryCalls = [];
+  const primary = fakePool({ query: async (text) => { primaryCalls.push(text); return { rows: [{ source: 'primary' }] }; } });
+  const replica = fakePool({ query: async (text) => {
+    if (text.includes('pg_is_in_recovery')) return { rows: [{ in_recovery: false }] };
+    return { rows: [{ source: 'replica' }] };
+  } });
+
+  routing.configure({ primary, replica });
+  assert.equal(await routing.verifyReplicaRole(), false);
+  assert.equal(routing.getCircuitState().replicaRole, 'not_in_recovery');
+
+  const result = await routing.queryWithReplicaFallback('SELECT data FROM blocks');
+  assert.deepEqual(result.rows, [{ source: 'primary' }]);
+  assert.deepEqual(primaryCalls, ['SELECT data FROM blocks']);
 });

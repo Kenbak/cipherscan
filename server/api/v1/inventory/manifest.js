@@ -240,8 +240,18 @@ const MANIFEST = [
     classification: 'public', domain: 'address', auth: 'none', description: 'Top addresses by transparent balance.',
     v1: {
       path: '/v1/addresses/rich-list', status: 'adapter', shape: 'passthrough',
-      zatoshiConfidence: 'not-applicable-legacy-preconverted',
-      knownPrecisionCaveat: 'balance/totalReceived/totalSent are pre-divided to ZEC (parseFloat(row.balance)/1e8) by the legacy handler before this proxy sees them; v1 cannot losslessly reconstruct zatoshi precision here. Treat as approximate ZEC decimals, not authoritative zatoshi integers.',
+      zatoshiFields: [
+        'addresses.*.balanceZat',
+        'addresses.*.totalReceivedZat',
+        'addresses.*.totalSentZat',
+        'concentration.top10Zat',
+        'concentration.top100Zat',
+        'concentration.totalTransparentZat',
+        'concentration.totalAddressedZat',
+        'concentration.directAddresslessZat',
+      ],
+      zatoshiConfidence: 'verified',
+      notes: 'Fields ending in Zat are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.',
     },
   },
   {
@@ -275,7 +285,7 @@ const MANIFEST = [
   {
     method: 'DELETE', legacyPath: '/api/crosslink/fork-monitor/report/:name', file: 'server/api/routes/crosslink/fork-monitor.js',
     classification: 'ops', domain: 'crosslink', auth: 'none', description: 'Delete a registered fork-monitor node report by name.',
-    v1: { status: 'excluded', notes: 'AUDIT FINDING: legacy endpoint has no authentication — anyone who knows/guesses a node name can delete its report. Not carried into /v1 pending an ownership token or service-key requirement upstream; do not proxy an unauthenticated destructive mutation under a new versioned surface.' },
+    v1: { status: 'excluded', notes: 'Authenticated upstream with a per-registration ownership token or service key. Kept out of v1 until mutation authentication is represented as a first-class versioned contract.' },
   },
 
   // ---------------------------------------------------------------------
@@ -329,8 +339,18 @@ const MANIFEST = [
     classification: 'public', domain: 'transactions', auth: 'none', description: 'Full transaction detail (inputs, outputs, cross-chain bridge match).',
     v1: {
       path: '/v1/transactions/:txid', status: 'adapter', shape: 'passthrough',
-      zatoshiConfidence: 'not-applicable-legacy-preconverted',
-      knownPrecisionCaveat: 'fee/valueBalance*/totalValueBalance are pre-divided to ZEC ("/ 100000000") by the legacy handler before this proxy sees them. v1 cannot losslessly reconstruct zatoshi precision here without querying the DB directly, which would duplicate business SQL. Treat these fields as approximate ZEC decimals, not authoritative zatoshi integers, until a follow-up adds true zatoshi fields at the source.',
+      zatoshiFields: [
+        'feeZat',
+        'totalInputZat',
+        'totalOutputZat',
+        'valueBalanceZat',
+        'valueBalanceSaplingZat',
+        'valueBalanceOrchardZat',
+        'valueBalanceIronwoodZat',
+        'stakingAction.amountZat',
+      ],
+      zatoshiConfidence: 'verified',
+      notes: 'Fields ending in Zat/Zats are exact decimal strings sourced from PostgreSQL BIGINT values. The older ZEC number fields remain for legacy compatibility and are display-only.',
     },
   },
 

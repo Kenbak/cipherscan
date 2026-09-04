@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageHeader, MetricCard, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
 import { formatRelativeTime, formatBlockInterval } from '@/lib/utils';
 import { zatToZec } from '@/lib/format-numbers';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { getCoinbaseClientInfo } from '@/lib/coinbase-client';
 import { usePaginatedList, type BasePaginationState } from '@/hooks/usePaginatedList';
@@ -272,7 +272,7 @@ export default function BlocksClient({
   const [zecPriceUsd, setZecPriceUsd] = useState<number | null>(null);
 
   useEffect(() => {
-    const base = usePostgresApiClient() ? getApiUrl() : '';
+    const base = getApiUrl();
     fetch(`${base}/api/network/stats`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {

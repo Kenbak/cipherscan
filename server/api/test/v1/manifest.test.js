@@ -104,7 +104,7 @@ test('the two scan endpoints are public adapters with v1-layer cost validation A
   }
 });
 
-test('the unauthenticated destructive DELETE endpoint is excluded, not adapted', () => {
+test('the ownership-protected DELETE endpoint stays excluded until v1 models its auth contract', () => {
   const entry = MANIFEST.find((e) => e.legacyPath === '/api/crosslink/fork-monitor/report/:name' && e.method === 'DELETE');
   assert.ok(entry, 'expected to find the fork-monitor report DELETE entry');
   assert.equal(entry.v1.status, 'excluded');

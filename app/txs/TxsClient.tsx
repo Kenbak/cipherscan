@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Pagination } from '@/components/Pagination';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
@@ -491,7 +491,7 @@ function TrendsChart() {
 
   useEffect(() => {
     setLoading(true);
-    const base = usePostgresApiClient() ? getApiUrl() : '';
+    const base = getApiUrl();
     const days = period === 'all' ? 1000 : Number(period);
     fetch(`${base}/api/privacy-stats?days=${days}`)
       .then(res => res.ok ? res.json() : null)
@@ -734,7 +734,7 @@ export default function TxsClient({
   }>({ shieldedPct: null, avgPerDay: null, poolSize: null });
 
   useEffect(() => {
-    const base = usePostgresApiClient() ? getApiUrl() : '';
+    const base = getApiUrl();
     Promise.allSettled([
       fetch(`${base}/api/network/stats`),
       fetch(`${base}/api/privacy-stats`),

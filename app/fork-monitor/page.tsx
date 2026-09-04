@@ -127,13 +127,21 @@ export default function ForkMonitorPage() {
       if (reportHash) body.tip_hash = reportHash;
       if (reportPeers) body.peers = parseInt(reportPeers, 10);
       if (sample_hashes.length > 0) body.sample_hashes = sample_hashes;
+      const tokenKey = `fork-monitor-owner:${reportName.trim()}`;
+      const existingToken = localStorage.getItem(tokenKey);
       const resp = await fetch(`${getApiUrl()}/api/crosslink/fork-monitor/report`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(existingToken ? { 'X-Node-Token': existingToken } : {}),
+        },
         body: JSON.stringify(body),
       });
       const json = await resp.json();
       if (json.success) {
+        if (typeof json.ownershipToken === 'string') {
+          localStorage.setItem(tokenKey, json.ownershipToken);
+        }
         setReportStatus('Registered — visible in the registry tab.');
         setReportName('');
         setReportTip('');
@@ -153,13 +161,20 @@ export default function ForkMonitorPage() {
   };
 
   const handleDeleteNode = async (name: string) => {
+    const tokenKey = `fork-monitor-owner:${name}`;
+    const ownershipToken = localStorage.getItem(tokenKey);
+    if (!ownershipToken) {
+      setReportStatus('Only the browser that registered this node can remove it. Otherwise it expires automatically.');
+      return;
+    }
     if (!confirm(`Remove "${name}" from the registry?`)) return;
     try {
       const resp = await fetch(
         `${getApiUrl()}/api/crosslink/fork-monitor/report/${encodeURIComponent(name)}`,
-        { method: 'DELETE' },
+        { method: 'DELETE', headers: { 'X-Node-Token': ownershipToken } },
       );
       if (resp.ok) {
+        localStorage.removeItem(tokenKey);
         setData((prev) => (prev ? { ...prev, nodes: prev.nodes.filter((n) => n.name !== name) } : prev));
       }
     } catch {

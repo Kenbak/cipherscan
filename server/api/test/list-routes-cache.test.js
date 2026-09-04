@@ -344,12 +344,20 @@ test('rich list preserves calculations and skips all three queries on a cache hi
   assert.equal(queryCount, 3);
   assert.deepEqual(hit.body, miss.body);
   assert.equal(miss.body.addresses[0].balance, 5);
+  assert.equal(miss.body.addresses[0].balanceZat, '500000000');
+  assert.equal(miss.body.addresses[0].totalReceivedZat, '700000000');
+  assert.equal(miss.body.addresses[0].totalSentZat, '200000000');
   assert.deepEqual(miss.body.concentration, {
     top10: 5,
+    top10Zat: '500000000',
     top100: 5,
+    top100Zat: '500000000',
     totalTransparent: 10,
+    totalTransparentZat: '1000000000',
     totalAddressed: 8,
+    totalAddressedZat: '800000000',
     directAddressless: 2,
+    directAddresslessZat: '200000000',
     top10Pct: 50,
     top100Pct: 50,
   });

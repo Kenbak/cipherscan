@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
-import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -54,13 +54,10 @@ export default function MempoolClient() {
   const [showTable, setShowTable] = useState(true);
   const [blockPulse, setBlockPulse] = useState(0);
   const bubblesRef = useRef<MempoolBubblesHandle>(null);
-  const usePostgresApi = usePostgresApiClient();
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = usePostgresApi
-        ? `${getApiUrl()}/api/mempool`
-        : '/api/mempool';
+      const apiUrl = `${getApiUrl()}/api/mempool`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch mempool');

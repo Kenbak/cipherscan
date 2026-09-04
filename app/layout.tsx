@@ -118,12 +118,18 @@ function AppContent({ children }: { children: React.ReactNode }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
       />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-cipher-surface focus:px-4 focus:py-2 focus:text-primary focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <MaintenanceBanner />
       <ChainSyncBanner />
       <NavBar />
       <StatsBar />
       <NU7VoteBanner />
-      <main className="min-h-screen">{children}</main>
+      <main id="main-content" tabIndex={-1} className="min-h-screen">{children}</main>
       <Footer />
     </>
   );

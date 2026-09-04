@@ -20,7 +20,6 @@ export { AddressTabBar } from './AddressTabBar';
 export { CrossChainTable } from './CrossChainTable';
 export { TransactionTable } from './TransactionTable';
 export { TransactionPagination } from './TransactionPagination';
-export { CopyButton } from './CopyButton';
 export { TimeHover } from './TimeHover';
 export { Icons } from './icons';
 export {

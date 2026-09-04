@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { getCoinbaseClientEmoji, getCoinbaseClientInfo } from '@/lib/coinbase-client';
 import {
   BlockPageSkeleton,
@@ -41,9 +41,7 @@ export default function BlockPageClient({
         setLoading(true);
         setLoadError(null);
 
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/block/${height}`
-          : `/api/block/${height}`;
+        const apiUrl = `${getApiUrl()}/api/block/${height}`;
 
         const response = await fetch(apiUrl, { signal: controller.signal });
 
@@ -59,11 +57,7 @@ export default function BlockPageClient({
 
         const blockData = await response.json();
 
-        if (usePostgresApiClient()) {
-          setData(transformExpressBlockData(blockData));
-        } else {
-          setData(blockData);
-        }
+        setData(transformExpressBlockData(blockData));
       } catch (error) {
         console.error('Error fetching block:', error);
         setData(null);

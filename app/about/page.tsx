@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { NETWORK_LABEL } from '@/lib/config';
 import { buildPageMetadata } from '@/lib/seo';
 
@@ -11,7 +11,7 @@ export const metadata = buildPageMetadata({
   networks: ['mainnet'],
 });
 
-const API_URL = API_CONFIG.POSTGRES_API_URL;
+const API_URL = getApiUrl();
 
 interface LiveStats {
   blocksIndexed: number | null;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { PageHeader, DataTable, HashLink, type DataTableColumn } from '@/components/ui';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/Pagination';
@@ -86,7 +86,7 @@ export default function RichListClient({
   const [zecPrice, setZecPrice] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`)
+    fetch(`${getApiUrl()}/api/price`)
       .then(r => r.json())
       .then(d => setZecPrice(d.price))
       .catch(() => {});
@@ -100,7 +100,7 @@ export default function RichListClient({
     setLoading(true);
     setError(null);
     const offset = (page - 1) * PAGE_SIZE;
-    fetch(`${API_CONFIG.POSTGRES_API_URL}/api/rich-list?limit=${PAGE_SIZE}&offset=${offset}`)
+    fetch(`${getApiUrl()}/api/rich-list?limit=${PAGE_SIZE}&offset=${offset}`)
       .then(r => r.json())
       .then(data => {
         if (!data.success) throw new Error(data.error || 'Failed to fetch');

@@ -1,6 +1,7 @@
 import { UsageClockClient } from './UsageClockClient';
+import { getApiUrl } from '@/lib/api-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.mainnet.cipherscan.app';
+const API_BASE = getApiUrl();
 
 async function fetchClock(period: string) {
   try {

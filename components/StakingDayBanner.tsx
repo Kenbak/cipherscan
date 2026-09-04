@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { STAKING_DAY_PERIOD, STAKING_DAY_WINDOW } from '@/lib/config';
+import { getApiUrl } from '@/lib/api-config';
 import { Tooltip } from '@/components/Tooltip';
 
 interface StakingDayInfo {
@@ -72,7 +73,7 @@ export function StakingDayBanner() {
 
   const fetchTip = useCallback(async () => {
     try {
-      const res = await fetch('/api/crosslink');
+      const res = await fetch(`${getApiUrl()}/api/crosslink`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.tipHeight != null) {

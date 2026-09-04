@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { decodeUnifiedAddress } from '@/lib/wasm-loader';
 import type { AddressMeta } from '@/lib/seo';
 import { zatToZec } from '@/lib/format-numbers';
@@ -90,12 +90,10 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
     try {
       setLoading(true);
 
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`
-        : `/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
+      const apiUrl = `${getApiUrl()}/api/address/${address}?page=${currentPage}&limit=${PAGE_SIZE}`;
 
-      const crossChainUrl = `${API_CONFIG.POSTGRES_API_URL}/api/crosschain/address/${encodeURIComponent(address)}`;
-      const priceUrl = `${API_CONFIG.POSTGRES_API_URL}/api/price`;
+      const crossChainUrl = `${getApiUrl()}/api/crosschain/address/${encodeURIComponent(address)}`;
+      const priceUrl = `${getApiUrl()}/api/price`;
 
       const [response, crossChainRes, priceRes] = await Promise.all([
         fetch(apiUrl),
@@ -108,32 +106,18 @@ export function AddressDetailClient({ address, initialMeta = null }: AddressDeta
 
       setTotalPages(apiData.pagination?.totalPages || 1);
 
-      if (usePostgresApiClient()) {
-        const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
-        setData({
-          address: apiData.address,
-          balance: zatToZec(apiData.balance),
-          type: apiData.type || 'transparent',
-          transactions: transformedTransactions,
-          transactionCount: apiData.txCount || apiData.transactionCount,
-          note: apiData.note,
-          firstSeen: apiData.firstSeen,
-          lastSeen: apiData.lastSeen,
-          firstFunding: apiData.firstFunding ?? null,
-        });
-      } else {
-        setData({
-          address: apiData.address,
-          balance: apiData.balance ?? 0,
-          type: apiData.type,
-          transactions: apiData.transactions || [],
-          transactionCount: apiData.transactionCount,
-          note: apiData.note,
-          firstSeen: apiData.firstSeen,
-          lastSeen: apiData.lastSeen,
-          firstFunding: apiData.firstFunding ?? null,
-        });
-      }
+      const transformedTransactions = transformTransactions(apiData, apiData.transactions || []);
+      setData({
+        address: apiData.address,
+        balance: apiData.balance == null ? 0 : zatToZec(apiData.balance),
+        type: apiData.type || 'transparent',
+        transactions: transformedTransactions,
+        transactionCount: apiData.txCount || apiData.transactionCount,
+        note: apiData.note,
+        firstSeen: apiData.firstSeen,
+        lastSeen: apiData.lastSeen,
+        firstFunding: apiData.firstFunding ?? null,
+      });
 
       if (crossChainRes?.ok) {
         try {

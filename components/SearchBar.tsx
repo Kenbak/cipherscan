@@ -289,6 +289,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             {'>'}
           </div>
           <input
+            aria-label="Search by address, transaction, block, or name"
             ref={inputRef}
             type="text"
             value={query}
@@ -325,6 +326,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
           </div>
 
           <input
+            aria-label="Search by address, transaction, block, or name"
             ref={inputRef}
             type="text"
             value={query}

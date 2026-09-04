@@ -116,23 +116,40 @@ router.get('/health/deep', async (req, res) => {
   const routing = req.app.locals.poolRouting;
   if (routing && routing.hasReplica()) {
     const circuit = routing.getCircuitState();
+    const replicaRole = circuit.replicaRole;
     // Single source of truth for the acceptable-lag threshold — must match
     // pool-routing.js's own circuit-breaker check, or this health endpoint
     // could report "healthy" while reads are already being routed away
     // from a lagging replica, or vice versa.
     const maxAcceptableLag = routing.MAX_ACCEPTABLE_LAG_BLOCKS ?? 3;
-    try {
-      const lagBlocks = await routing.replicaLagBlocks();
+    if (replicaRole !== 'standby') {
       checks.replica = {
-        status: circuit.state === 'OPEN' ? 'circuit_open' : 'up',
-        lag_blocks: lagBlocks,
+        status: replicaRole === 'not_in_recovery' ? 'role_mismatch' : replicaRole,
+        role: replicaRole,
         circuit: circuit.state,
         failures: circuit.consecutiveFailures,
       };
-      if (lagBlocks > maxAcceptableLag || circuit.state !== 'CLOSED') degraded = true;
-    } catch {
-      checks.replica = { status: 'down', circuit: circuit.state, failures: circuit.consecutiveFailures };
       degraded = true;
+    } else {
+      try {
+        const lagBlocks = await routing.replicaLagBlocks();
+        checks.replica = {
+          status: circuit.state === 'OPEN' ? 'circuit_open' : 'up',
+          role: replicaRole,
+          lag_blocks: lagBlocks,
+          circuit: circuit.state,
+          failures: circuit.consecutiveFailures,
+        };
+        if (lagBlocks > maxAcceptableLag || circuit.state !== 'CLOSED') degraded = true;
+      } catch {
+        checks.replica = {
+          status: 'down',
+          role: replicaRole,
+          circuit: circuit.state,
+          failures: circuit.consecutiveFailures,
+        };
+        degraded = true;
+      }
     }
   } else {
     checks.replica = { status: 'not_configured' };

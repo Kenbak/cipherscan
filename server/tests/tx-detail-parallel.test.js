@@ -102,6 +102,10 @@ test('runs the independent tx-detail lookups exactly once each (parallel batch, 
   assert.equal(result.body.txid, TXID);
   assert.equal(result.body.inputs.length, 1);
   assert.equal(result.body.outputs.length, 1);
+  assert.equal(result.body.feeZat, '1000');
+  assert.equal(result.body.totalInputZat, '500000');
+  assert.equal(result.body.totalOutputZat, '490000');
+  assert.equal(result.body.valueBalanceZat, '0');
   assert.equal(pool.calls.tx, 1);
   assert.equal(pool.calls.inputs, 1);
   assert.equal(pool.calls.outputs, 1);
@@ -117,13 +121,48 @@ test('a bridge-table error does not fail the whole tx-detail request (bridge sta
   assert.equal(result.body.bridge, null);
 });
 
-test('deep-confirmed transaction gets an immutable, long-lived Cache-Control header', async () => {
+test('preserves a valid zero fee instead of reporting it as unavailable', async () => {
+  const pool = createFakePool({ txRow: { ...baseTxRow, fee: 0, total_input: 0, total_output: 0 } });
+  const result = await requestTx(pool);
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.fee, 0);
+  assert.equal(result.body.feeZat, '0');
+  assert.equal(result.body.totalInput, 0);
+  assert.equal(result.body.totalInputZat, '0');
+  assert.equal(result.body.totalOutput, 0);
+  assert.equal(result.body.totalOutputZat, '0');
+});
+
+test('does not invent zero-valued exact fields when indexed values are unavailable', async () => {
+  const pool = createFakePool({
+    txRow: {
+      ...baseTxRow,
+      fee: null,
+      total_input: null,
+      total_output: null,
+      value_balance: null,
+      value_balance_sapling: null,
+      value_balance_orchard: null,
+      value_balance_ironwood: null,
+    },
+  });
+  const result = await requestTx(pool);
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.feeZat, null);
+  assert.equal(result.body.totalInputZat, null);
+  assert.equal(result.body.totalOutputZat, null);
+  assert.equal(result.body.valueBalanceZat, null);
+});
+
+test('deep-confirmed transaction gets a long-lived but reorg-safe Cache-Control header', async () => {
   const pool = createFakePool({ txRow: { ...baseTxRow, block_height: 999900 } });
   const result = await requestTx(pool);
 
   assert.equal(result.status, 200);
   assert.equal(result.body.confirmations, 101); // 1000000 - 999900 + 1
-  assert.equal(result.headers.get('cache-control'), 'public, s-maxage=3600, stale-while-revalidate=86400, immutable');
+  assert.equal(result.headers.get('cache-control'), 'public, s-maxage=3600, stale-while-revalidate=86400');
 });
 
 test('recently-confirmed transaction gets a short, revalidating Cache-Control header', async () => {

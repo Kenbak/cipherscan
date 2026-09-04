@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { formatRelativeTime, formatDateUTC } from '@/lib/utils';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Card, CardBody, Badge, DataTable, HashLink, EmptyState, type DataTableColumn } from '@/components/ui';
 
-const API_URL = API_CONFIG.POSTGRES_API_URL;
+const API_URL = getApiUrl();
 
 function isUnknownPool(pool: string | null | undefined) {
   return !pool || /^Unknown/i.test(pool);

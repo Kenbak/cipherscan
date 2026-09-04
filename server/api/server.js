@@ -114,15 +114,6 @@ pool.on('error', (err) => {
   logSafeError('[pool:primary] Idle client error:', err);
 });
 
-// Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    logSafeError('❌ Database connection failed:', err);
-    process.exit(1);
-  }
-  console.log('✅ Database connected:', res.rows[0].now);
-});
-
 // Read/write pool routing with circuit breaker — auto-creates replica pool
 // if REPLICA_DATABASE_URL is set. The smart read pool transparently falls
 // back to primary on any replica failure (connection, lag, query error).
@@ -133,6 +124,18 @@ app.locals.pool = poolRouting.createSmartReadPool();
 app.locals.writePool = pool;
 app.locals.poolRouting = poolRouting;
 app.locals.queryWithFallback = poolRouting.queryWithReplicaFallback;
+
+// Test the authoritative database before accepting traffic. Only after the
+// primary is confirmed do we probe an optional replica's PostgreSQL role;
+// reads stay on the primary until that probe confirms recovery mode.
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    logSafeError('❌ Database connection failed:', err);
+    process.exit(1);
+  }
+  console.log('✅ Database connected:', res.rows[0].now);
+  if (poolRouting.hasReplica()) void poolRouting.verifyReplicaRole();
+});
 
 // ============================================================================
 // REDIS CLIENT

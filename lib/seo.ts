@@ -2,9 +2,9 @@ import { cache } from 'react';
 import type { Metadata } from 'next';
 import {
   getConfiguredNetwork,
-  normalizeApiBaseUrl,
   type AppNetwork,
 } from '@/lib/network';
+import { getApiUrlForNetwork } from '@/lib/api-config';
 import { fetchWithDeadline } from '@/lib/server-fetch';
 
 export type SeoNetwork = AppNetwork;
@@ -35,13 +35,7 @@ export function getBaseUrl(): string {
 }
 
 export function getApiUrl(): string {
-  const network = getNetwork();
-  const urls: Record<SeoNetwork, string> = {
-    mainnet: 'https://api.mainnet.cipherscan.app',
-    testnet: 'https://api.testnet.cipherscan.app',
-    'crosslink-testnet': process.env.NEXT_PUBLIC_CROSSLINK_API_URL || 'https://api.crosslink.cipherscan.app',
-  };
-  return normalizeApiBaseUrl(urls[network]);
+  return getApiUrlForNetwork(getNetwork());
 }
 
 function absoluteUrl(path: string): string {
@@ -96,8 +90,7 @@ export function buildPageMetadata({
     && allowedOnTestnet
     && (index ?? true);
   // noindex pages may still pass discovery and relationship signals through
-  // their normal links. Crosslink is separately blocked in robots.ts while
-  // that deployment remains closed to crawling.
+  // their normal links. Crosslink remains noindex, follow by product policy.
   const shouldFollow = true;
   const openGraphBase = {
     title,

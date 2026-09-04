@@ -18,6 +18,7 @@ function loadAddressLabels() {
   const module = { exports: {} };
   const localRequire = (specifier) => {
     if (specifier === 'react') return { useEffect: () => {}, useState: () => [null, () => {}] };
+    if (specifier === '@/lib/api-config') return { getApiUrl: () => 'https://api.invalid' };
     return require(specifier);
   };
   new Function('exports', 'require', 'module', '__filename', '__dirname', output)(

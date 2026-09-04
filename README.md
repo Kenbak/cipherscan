@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Rust-WASM-orange?logo=rust" alt="Rust WASM" />
   <img src="https://img.shields.io/badge/License-AGPL%20v3%20+%20Commons%20Clause-blue" alt="License AGPL v3 + Commons Clause" />
@@ -140,7 +140,7 @@ npm start
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 15, React 19, TypeScript |
+| **Frontend** | Next.js 16, React 19, TypeScript |
 | **Styling** | Tailwind CSS |
 | **Database** | PostgreSQL |
 | **API Server** | Express.js + WebSocket |
@@ -193,20 +193,18 @@ response = requests.get('https://api.mainnet.cipherscan.app/api/mempool')
 print(f"Pending transactions: {response.json()['count']}")
 ```
 
-**Rate Limit:** 100 requests/minute per IP
+**Rate limits:** Deployment-specific. Successful responses expose standard
+rate-limit headers; clients should honor those headers and `Retry-After` on
+HTTP 429 responses.
 
 ---
 
 ## ⚙️ Configuration
 
-The app works out of the box with public endpoints. For custom Zcash node:
-
-```bash
-# .env.local
-ZCASH_RPC_URL=http://localhost:8232
-ZCASH_RPC_USER=your_username
-ZCASH_RPC_PASSWORD=your_password
-```
+The frontend works out of the box with CipherScan's public API. Running
+against a custom node requires the Express API and indexer; configure those
+services using [DEPLOYMENT.md](DEPLOYMENT.md) rather than placing node RPC
+credentials in the browser-facing frontend environment.
 
 ---
 

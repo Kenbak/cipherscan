@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PageHeader, SectionHeader } from '@/components/ui';
 import { PageSectionNav } from '@/components/PageSectionNav';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { RecentShieldedTxs } from '@/components/RecentShieldedTxs';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -132,9 +132,7 @@ export default function PrivacyClient() {
   });
 
   useEffect(() => {
-    const apiBase = usePostgresApiClient()
-      ? `${getApiUrl()}/api/privacy-stats`
-      : '/api/privacy-stats';
+    const apiBase = `${getApiUrl()}/api/privacy-stats`;
 
     fetch(apiBase)
       .then((res) => res.json())

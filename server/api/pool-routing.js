@@ -66,6 +66,7 @@ const CircuitState = { CLOSED: 'CLOSED', OPEN: 'OPEN', HALF_OPEN: 'HALF_OPEN' };
 
 let primaryPool = null;
 let replicaPool = null;
+let _replicaRole = 'not_configured';
 let _lastLagCheck = 0;
 let _cachedLag = 0;
 
@@ -77,6 +78,9 @@ let _healthCheckTimer = null;
 function configure({ primary, replica = null }) {
   primaryPool = primary;
   replicaPool = replica;
+  // Explicitly injected pools are used by tests and trusted in-process
+  // callers. Environment-created pools are verified separately below.
+  _replicaRole = replica ? 'standby' : 'not_configured';
 }
 
 function configureFromEnv({ primary }) {
@@ -99,8 +103,41 @@ function configureFromEnv({ primary }) {
       logSafeError('[pool:replica] Idle client error:', err);
       _recordFailure();
     });
-    console.log('[pool-routing] Replica pool configured — circuit breaker active');
+    _replicaRole = 'checking';
+    console.log('[pool-routing] Replica pool configured — awaiting standby verification');
     _startHealthCheck();
+  } else {
+    replicaPool = null;
+    _replicaRole = 'not_configured';
+  }
+}
+
+async function verifyReplicaRole() {
+  if (!replicaPool) return false;
+  try {
+    const result = await withTimeout(
+      replicaPool.query('SELECT pg_is_in_recovery() AS in_recovery'),
+      REPLICA_HEALTH_CHECK_TIMEOUT_MS,
+      'replica role check',
+    );
+    if (result.rows[0]?.in_recovery !== true) {
+      _replicaRole = 'not_in_recovery';
+      _consecutiveFailures = Math.max(_consecutiveFailures, FAILURE_THRESHOLD);
+      _circuitState = CircuitState.OPEN;
+      _circuitOpenedAt = Date.now();
+      logSafeWarn(
+        '[pool-routing] Replica role validation failed:',
+        new Error('configured replica is not in recovery; reads remain on primary'),
+      );
+      return false;
+    }
+    _replicaRole = 'standby';
+    return true;
+  } catch (err) {
+    _replicaRole = 'unavailable';
+    _recordFailure();
+    logSafeWarn('[pool-routing] Could not verify replica role; reads remain on primary:', err);
+    return false;
   }
 }
 
@@ -123,6 +160,7 @@ function _recordSuccess() {
 
 function _shouldUseReplica() {
   if (!replicaPool) return false;
+  if (_replicaRole !== 'standby') return false;
   if (_circuitState === CircuitState.CLOSED) return true;
   if (_circuitState === CircuitState.OPEN) {
     if (Date.now() - _circuitOpenedAt >= OPEN_DURATION_MS) {
@@ -141,16 +179,7 @@ function _startHealthCheck() {
   _healthCheckTimer = setInterval(async () => {
     if (!replicaPool) return;
     try {
-      // Hard-bound independent of REPLICA_QUERY_TIMEOUT_MS: a health probe
-      // that itself takes 15s to time out defeats the point of a 15s-
-      // interval-adjacent health check, so this uses a tighter explicit
-      // bound rather than relying solely on the pool-level query_timeout.
-      const result = await withTimeout(
-        replicaPool.query('SELECT 1 AS ok'),
-        REPLICA_HEALTH_CHECK_TIMEOUT_MS,
-        'replica health check',
-      );
-      if (result.rows[0]?.ok === 1) {
+      if (await verifyReplicaRole()) {
         const lag = await replicaLagBlocks();
         if (lag <= MAX_ACCEPTABLE_LAG_BLOCKS) {
           _recordSuccess();
@@ -276,6 +305,7 @@ function getCircuitState() {
     consecutiveFailures: _consecutiveFailures,
     openedAt: _circuitOpenedAt || null,
     replicaConfigured: replicaPool !== null,
+    replicaRole: _replicaRole,
     cachedLagBlocks: Number.isFinite(_cachedLag) ? _cachedLag : null,
   };
 }
@@ -290,6 +320,7 @@ module.exports = {
   replicaLagBlocks,
   hasReplica,
   getCircuitState,
+  verifyReplicaRole,
   MAX_ACCEPTABLE_LAG_BLOCKS,
   REPLICA_QUERY_TIMEOUT_MS,
   REPLICA_HEALTH_CHECK_TIMEOUT_MS,

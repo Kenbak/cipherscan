@@ -11,6 +11,10 @@
 const { newRequestId } = require('../lib/envelope');
 
 function createRequestContext(config, internalClient) {
+  let cachedIndexedHeight = null;
+  let cachedAt = 0;
+  const CACHE_MS = 5_000;
+
   return function requestContext(req, res, next) {
     const requestId = req.headers['x-request-id']?.toString().slice(0, 100) || newRequestId();
     req.v1 = {
@@ -29,10 +33,16 @@ function createRequestContext(config, internalClient) {
     // most /v1 endpoints remain useful without it.
     req.v1.resolveIndexedHeight = async () => {
       if (req.v1.indexedHeight !== null) return req.v1.indexedHeight;
+      if (cachedIndexedHeight !== null && Date.now() - cachedAt < CACHE_MS) {
+        req.v1.indexedHeight = cachedIndexedHeight;
+        return req.v1.indexedHeight;
+      }
       try {
         const { ok, body } = await internalClient.dispatch('GET', '/api/info', { parentSignal: req.v1.abortSignal });
         if (ok && body && Number.isFinite(body.height)) {
           req.v1.indexedHeight = body.height;
+          cachedIndexedHeight = body.height;
+          cachedAt = Date.now();
         }
       } catch {
         // best-effort only

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from 'react';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatZecPrecise, zatToZec } from '@/lib/format-numbers';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ShieldFlowBadge } from '@/components/ShieldFlowBadge';
 import { resolveShieldFlowType } from '@/components/icons/shield-flow';
@@ -125,9 +125,7 @@ export const RecentTransactions = memo(function RecentTransactions({
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/transactions/list?limit=${limit}`
-        : `/api/transactions/list?limit=${limit}`;
+      const apiUrl = `${getApiUrl()}/api/transactions/list?limit=${limit}`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();

@@ -26,7 +26,7 @@ export default function DocsPage() {
         }))}
       />
 
-      <main className="flex-1 py-12 px-4 lg:px-12 max-w-5xl">
+      <div className="flex-1 py-12 px-4 lg:px-12 max-w-5xl">
         {/* Header */}
         <div className="mb-12">
           <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors text-sm font-mono mb-4 inline-block">
@@ -53,8 +53,8 @@ export default function DocsPage() {
           </div>
           <div className="card">
             <div className="text-sm text-secondary mb-1">Rate Limit</div>
-            <div className="text-lg sm:text-xl font-bold text-primary">100 req/min</div>
-            <div className="text-xs text-muted">Per IP address</div>
+            <div className="text-lg sm:text-xl font-bold text-primary">Response headers</div>
+            <div className="text-xs text-muted">Deployment-specific</div>
           </div>
           <div className="card">
             <div className="text-sm text-secondary mb-1">Authentication</div>
@@ -71,8 +71,9 @@ export default function DocsPage() {
           <div className="space-y-3 text-sm text-secondary">
             <p>
               <strong className="text-primary">Shielded Addresses:</strong> Due to Zcash&apos;s privacy features,
-              shielded addresses (z-addresses) and their balances cannot be queried. Only transparent addresses
-              (t-addresses) and unified addresses with transparent receivers are supported.
+              shielded addresses (z-addresses) and their balances cannot be queried. Transparent addresses
+              (t-addresses) are queryable. A Unified Address can be decoded client-side to reveal its receiver
+              types, but activity is queried only through an extracted transparent receiver.
             </p>
             <p>
               <strong className="text-primary">Networks:</strong> This API is available on both{' '}
@@ -83,13 +84,15 @@ export default function DocsPage() {
               The base URL above reflects the network you are currently viewing.
             </p>
             <p>
-              <strong className="text-primary">Rate Limiting:</strong> If you exceed 100 requests per minute,
-              you&apos;ll receive a <code className="text-danger">429 Too Many Requests</code> response.
+              <strong className="text-primary">Rate Limiting:</strong> Limits are deployment-specific.
+              Read the standard rate-limit response headers and honor <code className="text-danger">Retry-After</code>{' '}
+              when the API returns <code className="text-danger">429 Too Many Requests</code>.
             </p>
             <p>
-              <strong className="text-primary">Values:</strong> Monetary amounts in responses are in{' '}
-              <strong className="text-primary">zatoshis</strong> (1 ZEC = 100,000,000 zatoshis) unless otherwise noted.
-              Some endpoints return both ZEC and zatoshi values.
+              <strong className="text-primary">Values:</strong> Units are field-defined in the legacy API; do not
+              infer a unit from a bare number. Exact integer fields ending in <code>Zat</code> or <code>Zats</code>{' '}
+              are decimal-string zatoshis (1 ZEC = 100,000,000 zatoshis). Separately named ZEC fields are
+              display values and should not be used for accounting.
             </p>
           </div>
         </div>
@@ -200,7 +203,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
             </div>
             <div className="flex gap-4 items-start">
               <code className="text-danger font-mono shrink-0 w-12">429</code>
-              <span className="text-secondary">Rate limit exceeded. Wait and retry. Limit: 100 requests per minute per IP.</span>
+              <span className="text-secondary">Rate limit exceeded. Honor the response&apos;s Retry-After and rate-limit headers.</span>
             </div>
             <div className="flex gap-4 items-start">
               <code className="text-danger font-mono shrink-0 w-12">500</code>
@@ -235,7 +238,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

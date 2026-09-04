@@ -28,8 +28,11 @@ export interface TransactionData {
   inputs: any[];
   outputs: any[];
   totalInput: number;
+  totalInputZat?: string | null;
   totalOutput: number;
+  totalOutputZat?: string | null;
   fee: number;
+  feeZat?: string | null;
   size: number;
   version: number;
   locktime: number;
@@ -41,9 +44,13 @@ export interface TransactionData {
   orchardActions?: number;
   ironwoodActions?: number;
   valueBalance?: number;
+  valueBalanceZat?: string | null;
   valueBalanceSapling?: number;
+  valueBalanceSaplingZat?: string | null;
   valueBalanceOrchard?: number;
+  valueBalanceOrchardZat?: string | null;
   valueBalanceIronwood?: number;
+  valueBalanceIronwoodZat?: string | null;
   bindingSig?: string;
   bindingSigSapling?: string;
   finality?: string | null;
@@ -54,6 +61,7 @@ export interface TransactionData {
     bondKey: string | null;
     delegatee: string | null;
     amountZats: number | null;
+    amountZat?: string | null;
     amountZec: number | null;
   } | null;
   coinbaseHex?: string | null;

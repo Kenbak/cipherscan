@@ -39,12 +39,20 @@ const ZATOSHI_STRING_SCHEMA = {
 
 const META_SCHEMA = {
   type: 'object',
-  required: ['requestId', 'network', 'generatedAt', 'cache'],
+  required: ['requestId', 'network', 'generatedAt', 'indexedHeight', 'source', 'cache', 'freshness', 'units'],
   properties: {
     requestId: { type: 'string', format: 'uuid' },
     network: { type: 'string', enum: ['mainnet', 'testnet', 'crosslink-testnet'] },
     generatedAt: { type: 'string', format: 'date-time' },
     indexedHeight: { type: ['integer', 'null'] },
+    source: {
+      type: 'object',
+      required: ['indexedHeight', 'observedAt'],
+      properties: {
+        indexedHeight: { type: ['integer', 'null'] },
+        observedAt: { type: 'string', format: 'date-time' },
+      },
+    },
     cache: {
       type: 'object',
       properties: {
@@ -53,6 +61,24 @@ const META_SCHEMA = {
       },
     },
     dataAgeSeconds: { type: 'number' },
+    freshness: {
+      type: 'object',
+      required: ['status', 'ageSeconds'],
+      properties: {
+        status: { type: 'string', enum: ['fresh', 'stale', 'unknown', 'unavailable'] },
+        ageSeconds: { type: ['number', 'null'] },
+      },
+    },
+    units: {
+      type: 'object',
+      required: ['authoritativeMonetary', 'authoritativeEncoding', 'zatoshiPerZec', 'legacyFormattedFields'],
+      properties: {
+        authoritativeMonetary: { const: 'zatoshi' },
+        authoritativeEncoding: { const: 'decimal-string' },
+        zatoshiPerZec: { const: '100000000' },
+        legacyFormattedFields: { const: 'field-defined' },
+      },
+    },
     warnings: {
       type: 'array',
       items: { type: 'object', properties: { field: { type: 'string' }, issue: { type: 'string' } } },

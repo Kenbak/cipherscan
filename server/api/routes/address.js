@@ -13,6 +13,11 @@ const { validate } = require('../validation');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
 const { parseSafeListPagination, parseSafePagePagination, offsetExceededError } = require('../lib/pagination');
 const { logSafeError } = require('../lib/safe-log');
+const {
+  isValidBase58CheckAddress,
+  isValidSaplingAddress,
+  isValidUnifiedAddress,
+} = require('../lib/zcash-address');
 
 const disabledListCache = createListCache({ enabled: false });
 
@@ -231,8 +236,11 @@ router.get('/api/rich-list', async (req, res) => {
             rank: offset + i + 1,
             address: row.address,
             balance: parseFloat(row.balance) / 1e8,
+            balanceZat: String(row.balance),
             totalReceived: parseFloat(row.total_received) / 1e8,
+            totalReceivedZat: String(row.total_received),
             totalSent: parseFloat(row.total_sent) / 1e8,
+            totalSentZat: String(row.total_sent),
             txCount: parseInt(row.tx_count),
             firstSeen: row.first_seen,
             lastSeen: row.last_seen,
@@ -253,10 +261,15 @@ router.get('/api/rich-list', async (req, res) => {
           },
           concentration: {
             top10: parseFloat(top10) / 1e8,
+            top10Zat: String(top10),
             top100: parseFloat(top100) / 1e8,
+            top100Zat: String(top100),
             totalTransparent: totalTransparent,
+            totalTransparentZat: String(total_transparent),
             totalAddressed: parseFloat(total_addressed) / 1e8,
+            totalAddressedZat: String(total_addressed),
             directAddressless: parseFloat(direct_addressless) / 1e8,
+            directAddresslessZat: String(direct_addressless),
             top10Pct: totalTransparent > 0 ? (parseFloat(top10) / 1e8 / totalTransparent) * 100 : 0,
             top100Pct: totalTransparent > 0 ? (parseFloat(top100) / 1e8 / totalTransparent) * 100 : 0,
           },
@@ -302,19 +315,37 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       }));
     }
 
-    // Check if it's a shielded address
+    // Unified addresses can contain transparent and/or shielded receivers.
+    // Their receiver composition and activity cannot be inferred from the
+    // prefix, so do not claim they are fully shielded.
+    if (address.startsWith('u')) {
+      if (!isValidUnifiedAddress(address)) {
+        return res.status(404).json({ error: 'Invalid unified address' });
+      }
+      return res.status(200).json({
+        address,
+        type: 'unified',
+        balance: null,
+        transactions: [],
+        note: 'Unified address - receiver composition, balance, and transaction history are not publicly inferable from the address alone'
+      });
+    }
+
+    // Check if it's a shielded-only address family.
     const isShielded = address.startsWith('zs') ||
-                       address.startsWith('u') ||
                        address.startsWith('zc') ||
                        address.startsWith('ztestsapling');
 
     if (isShielded) {
-      let addressType = 'shielded';
-      let noteMessage = 'Shielded address - balance and transactions are private';
-
-      if (address.startsWith('u')) {
-        noteMessage = 'Fully shielded unified address - balance and transactions are private';
+      if ((address.startsWith('zs') || address.startsWith('ztestsapling'))
+          && !isValidSaplingAddress(address)) {
+        return res.status(404).json({ error: 'Invalid shielded address' });
       }
+      if (address.startsWith('zc') && !isValidBase58CheckAddress(address)) {
+        return res.status(404).json({ error: 'Invalid shielded address' });
+      }
+      const addressType = 'shielded';
+      const noteMessage = 'Shielded address - balance and transactions are private';
 
       return res.status(200).json({
         address,
@@ -323,6 +354,11 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
         transactions: [],
         note: noteMessage
       });
+    }
+
+    const isTransparent = /^(t1|t3|tm|t2)/.test(address);
+    if (!isTransparent || !isValidBase58CheckAddress(address)) {
+      return res.status(404).json({ error: 'Invalid transparent address' });
     }
 
     // Get address summary

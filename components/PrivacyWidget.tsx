@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Tooltip } from '@/components/Tooltip';
 import { CURRENCY } from '@/lib/config';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { Badge } from '@/components/ui/Badge';
 
 export interface PrivacyStats {
@@ -99,9 +99,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/privacy-stats`
-          : '/api/privacy-stats';
+        const apiUrl = `${getApiUrl()}/api/privacy-stats`;
 
         const response = await fetch(apiUrl);
         const result = await response.json();
@@ -114,9 +112,7 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
 
     const fetchRiskStats = async () => {
       try {
-        const apiUrl = usePostgresApiClient()
-          ? `${getApiUrl()}/api/privacy/risks?limit=1&period=7d`
-          : '/api/privacy/risks?limit=1&period=7d';
+        const apiUrl = `${getApiUrl()}/api/privacy/risks?limit=1&period=7d`;
 
         const response = await fetch(apiUrl);
         if (response.ok) {

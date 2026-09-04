@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, memo, useCallback, type ReactNode } from '
 import Link from 'next/link';
 import { formatBytesCompact } from '@/lib/format-numbers';
 import { RelativeTime } from '@/components/RelativeTime';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { SkeletonTable } from '@/components/ui';
 
@@ -42,9 +42,7 @@ export const RecentBlocks = memo(function RecentBlocks({ initialBlocks = [], foo
 
   const fetchLatest = useCallback(async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/blocks?limit=5`
-        : '/api/blocks?limit=5';
+      const apiUrl = `${getApiUrl()}/api/blocks?limit=5`;
 
       const response = await fetch(apiUrl);
       const data = await response.json();

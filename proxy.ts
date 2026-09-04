@@ -84,7 +84,7 @@ const REDIRECT_HOSTS = [
   'www.zcashblocks.com',
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (process.env.NODE_ENV === 'development') {
     return NextResponse.next();
   }

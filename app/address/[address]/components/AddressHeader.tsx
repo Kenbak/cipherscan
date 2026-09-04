@@ -3,7 +3,7 @@
 import { ExportButton } from '@/components/ExportButton';
 import { AddressLabel } from '@/components/AddressLabel';
 import { Badge } from '@/components/ui/Badge';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '@/components/CopyButton';
 import { Icons } from './icons';
 import type { AddressData, Transaction } from './types';
 

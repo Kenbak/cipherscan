@@ -1,10 +1,10 @@
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { retainLastGoodOrBuildFallback } from '@/lib/isr-fallback';
 import { buildPageMetadata, getBaseUrl } from '@/lib/seo';
 import { fetchWithDeadline, isServerRenderDeadlineError } from '@/lib/server-fetch';
 import TxsClient from './TxsClient';
 
-const API_URL = API_CONFIG.POSTGRES_API_URL;
+const API_URL = getApiUrl();
 const PAGE_SIZE = 25;
 
 export type TxType = 'all' | 'shielded' | 'transparent' | 'coinbase';

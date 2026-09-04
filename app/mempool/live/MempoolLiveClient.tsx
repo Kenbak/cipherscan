@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getApiUrl, usePostgresApiClient } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { MempoolBubbles } from '@/components/MempoolBubbles';
 
@@ -25,7 +25,6 @@ export default function MempoolLiveClient() {
   const [transactions, setTransactions] = useState<MempoolTransaction[]>([]);
   const [stats, setStats] = useState<{ total: number; shieldedPct: number }>({ total: 0, shieldedPct: 0 });
   const [blockPulse, setBlockPulse] = useState(0);
-  const usePostgresApi = usePostgresApiClient();
   const router = useRouter();
 
   // ESC returns to the regular mempool page
@@ -39,9 +38,7 @@ export default function MempoolLiveClient() {
 
   const fetchMempool = async () => {
     try {
-      const apiUrl = usePostgresApi
-        ? `${getApiUrl()}/api/mempool`
-        : '/api/mempool';
+      const apiUrl = `${getApiUrl()}/api/mempool`;
       const response = await fetch(apiUrl);
       if (!response.ok) return;
       const result = await response.json();

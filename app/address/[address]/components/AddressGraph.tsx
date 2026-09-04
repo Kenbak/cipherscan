@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_CONFIG } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { AddressBubbleMap, buildBubbleNodes, type BubbleNode } from './AddressBubbleMap';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export function AddressGraph({ address }: { address: string }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`${API_CONFIG.POSTGRES_API_URL}/api/address/${encodeURIComponent(address)}/graph`)
+    fetch(`${getApiUrl()}/api/address/${encodeURIComponent(address)}/graph`)
       .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(json => {
         if (!cancelled) {

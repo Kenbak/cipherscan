@@ -107,7 +107,7 @@ export function NavBar() {
         { href: '/pulse', label: 'Network Pulse', desc: 'Auto-detected on-chain anomalies' },
         { href: '/privacy-risks', label: 'Risk Scanner', desc: 'Detect risky patterns' },
         { href: '/privacy/wallets', label: 'Wallet Analysis', desc: 'Fingerprints & anonymity sets' },
-        ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'Which pools stack vs sell' }] : []),
+        ...(isMainnet ? [{ href: '/zodl', label: 'Miner ZODL', desc: 'How pools move or hold rewards' }] : []),
         ...(isMainnet ? [{ href: '/usage-clock', label: 'Usage Clock', desc: 'Activity rhythm vs geography' }] : []),
         ...(isMainnet ? [{ href: '/crosschain', label: 'Cross-Chain', desc: 'Cross-chain swap analytics' }] : []),
         ...(isMainnet ? [{ href: '/governance/nu7', label: 'NU7 Vote', desc: 'Coinholder poll tracker' }] : []),

@@ -195,17 +195,17 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       : 0;
 
     // Get value balances (in ZEC)
-    const valueBalanceSapling = (tx.value_balance_sapling || 0) / 100000000;
-    const valueBalanceOrchard = (tx.value_balance_orchard || 0) / 100000000;
-    const valueBalanceIronwood = (tx.value_balance_ironwood || 0) / 100000000;
-    const totalValueBalance = (tx.value_balance || 0) / 100000000;
+    const valueBalanceSapling = tx.value_balance_sapling == null ? null : Number(tx.value_balance_sapling) / 100000000;
+    const valueBalanceOrchard = tx.value_balance_orchard == null ? null : Number(tx.value_balance_orchard) / 100000000;
+    const valueBalanceIronwood = tx.value_balance_ironwood == null ? null : Number(tx.value_balance_ironwood) / 100000000;
+    const totalValueBalance = tx.value_balance == null ? null : Number(tx.value_balance) / 100000000;
 
     // Fee from DB (in zatoshis, convert to ZEC)
-    const fee = (tx.fee && tx.fee > 0) ? tx.fee / 100000000 : null;
+    const fee = tx.fee == null ? null : Number(tx.fee) / 100000000;
 
     // Total input/output from DB (Rust indexer, in zatoshis)
-    const totalInput = tx.total_input ? tx.total_input / 100000000 : null;
-    const totalOutput = tx.total_output ? tx.total_output / 100000000 : null;
+    const totalInput = tx.total_input == null ? null : Number(tx.total_input) / 100000000;
+    const totalOutput = tx.total_output == null ? null : Number(tx.total_output) / 100000000;
 
     // Bridge / cross-chain data (NEAR Intents)
     // Supports multiple swaps batched in one txid
@@ -342,7 +342,9 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
     } else if (status === 'stale') {
       cacheControl = 'public, s-maxage=30, stale-while-revalidate=300';
     } else if (confirmations >= 100) {
-      cacheControl = 'public, s-maxage=3600, stale-while-revalidate=86400, immutable';
+      // Confirmed transactions can still become stale after an exceptional
+      // deep reorg. Cache them for a long time, but never mark them immutable.
+      cacheControl = 'public, s-maxage=3600, stale-while-revalidate=86400';
     } else {
       cacheControl = 'public, s-maxage=15, stale-while-revalidate=120';
     }
@@ -362,12 +364,19 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
       locktime: tx.locktime,
       expiryHeight: tx.expiry_height ? parseInt(tx.expiry_height) : null,
       valueBalance: totalValueBalance,
+      valueBalanceZat: tx.value_balance == null ? null : String(tx.value_balance),
       valueBalanceSapling,
+      valueBalanceSaplingZat: tx.value_balance_sapling == null ? null : String(tx.value_balance_sapling),
       valueBalanceOrchard,
+      valueBalanceOrchardZat: tx.value_balance_orchard == null ? null : String(tx.value_balance_orchard),
       valueBalanceIronwood,
+      valueBalanceIronwoodZat: tx.value_balance_ironwood == null ? null : String(tx.value_balance_ironwood),
       fee,
+      feeZat: tx.fee == null ? null : String(tx.fee),
       totalInput,
+      totalInputZat: tx.total_input == null ? null : String(tx.total_input),
       totalOutput,
+      totalOutputZat: tx.total_output == null ? null : String(tx.total_output),
       isCoinbase: tx.is_coinbase || false,
       hasSapling: tx.has_sapling,
       hasOrchard: tx.has_orchard,
@@ -390,8 +399,11 @@ router.get('/api/tx/:txid', validate('txById'), async (req, res) => {
         type: tx.staking_action_type,
         bondKey: tx.staking_bond_key,
         delegatee: tx.staking_delegatee,
-        amountZats: tx.staking_amount_zats ? parseInt(tx.staking_amount_zats) : null,
-        amountZec: tx.staking_amount_zats ? parseInt(tx.staking_amount_zats) / 1e8 : null,
+        // Keep the legacy numeric field for existing consumers and expose the
+        // exact integer contract under the singular `amountZat` name.
+        amountZats: tx.staking_amount_zats == null ? null : Number(tx.staking_amount_zats),
+        amountZat: tx.staking_amount_zats == null ? null : String(tx.staking_amount_zats),
+        amountZec: tx.staking_amount_zats == null ? null : Number(tx.staking_amount_zats) / 1e8,
       } : null,
     });
   } catch (error) {

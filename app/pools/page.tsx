@@ -61,6 +61,7 @@ function TurnstileLinkCard() {
 
 function RecentLargeFlows() {
   const [flows, setFlows] = useState<RecentFlow[]>([]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/shielded/list?limit=10&min_zec=10`)
@@ -68,11 +69,24 @@ function RecentLargeFlows() {
       .then((data) => {
         if (data?.flows) setFlows(data.flows);
         else if (data?.data) setFlows(data.data);
+        setStatus(data ? 'ready' : 'unavailable');
       })
-      .catch(() => {});
+      .catch(() => setStatus('unavailable'));
   }, []);
 
-  if (flows.length === 0) return null;
+  if (status === 'loading' || (status === 'ready' && flows.length === 0)) return null;
+
+  if (status === 'unavailable') {
+    return (
+      <Card variant="glass">
+        <CardBody>
+          <p className="text-xs text-muted font-mono" role="status">
+            Recent large-flow data is temporarily unavailable.
+          </p>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
     <Card variant="glass">
@@ -132,14 +146,20 @@ function RecentLargeFlows() {
 
 export default function PoolsPage() {
   const [overview, setOverview] = useState<PoolOverviewData | null>(null);
+  const [overviewStatus, setOverviewStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
 
   useEffect(() => {
     fetch(`${getApiUrl()}/api/pools/overview`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.current) setOverview(data);
+        if (data?.current) {
+          setOverview(data);
+          setOverviewStatus('ready');
+        } else {
+          setOverviewStatus('unavailable');
+        }
       })
-      .catch(() => {});
+      .catch(() => setOverviewStatus('unavailable'));
   }, []);
 
   return (
@@ -153,7 +173,19 @@ export default function PoolsPage() {
       <PageSectionNav sections={SECTIONS} ariaLabel="Pool analytics sections" className="mb-10" />
 
       <section id="overview" className="scroll-mt-36 mb-14">
-        {overview ? <PoolOverviewHero data={overview} /> : <PoolOverviewSkeleton />}
+        {overviewStatus === 'loading' ? (
+          <PoolOverviewSkeleton />
+        ) : overviewStatus === 'ready' && overview ? (
+          <PoolOverviewHero data={overview} />
+        ) : (
+          <Card variant="glass">
+            <CardBody>
+              <p className="py-12 text-center text-xs text-muted font-mono" role="status">
+                Shielded-pool overview data is temporarily unavailable.
+              </p>
+            </CardBody>
+          </Card>
+        )}
       </section>
 
       <section id="supply" className="scroll-mt-36 mb-14">

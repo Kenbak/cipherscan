@@ -42,7 +42,7 @@ function detectNetwork(): Network {
 
 export const NETWORK = detectNetwork();
 
-const POSTGRES_API_URLS: Record<Network, string> = {
+const DEFAULT_API_URLS: Record<Network, string> = {
   'mainnet': 'https://api.mainnet.cipherscan.app',
   'testnet': 'https://api.testnet.cipherscan.app',
   'crosslink-testnet': normalizeApiBaseUrl(
@@ -50,9 +50,15 @@ const POSTGRES_API_URLS: Record<Network, string> = {
   ),
 };
 
-export const API_CONFIG = {
-  POSTGRES_API_URL: POSTGRES_API_URLS[NETWORK],
+export function getApiUrlForNetwork(network: Network): string {
+  const configuredUrl = typeof window === 'undefined'
+    ? process.env.CIPHERSCAN_API_URL || process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
 
+  return normalizeApiBaseUrl(configuredUrl || DEFAULT_API_URLS[network]);
+}
+
+export const API_CONFIG = {
   // Direct RPC for fallback - server-side only
   RPC_URL: process.env.ZCASH_RPC_URL || 'http://localhost:18232',
   RPC_COOKIE: process.env.ZCASH_RPC_COOKIE,
@@ -61,30 +67,13 @@ export const API_CONFIG = {
   CROSSLINK_RPC_URL: process.env.CROSSLINK_RPC_URL || null,
   CROSSLINK_RPC_COOKIE: process.env.CROSSLINK_RPC_COOKIE || null,
 
-  USE_POSTGRES_API: true,
 };
 
 /**
  * Get the appropriate API URL based on network (client-side safe)
  */
 export function getApiUrl(): string {
-  return API_CONFIG.USE_POSTGRES_API
-    ? API_CONFIG.POSTGRES_API_URL
-    : API_CONFIG.RPC_URL;
-}
-
-/**
- * Check if we should use PostgreSQL API (server-side for API routes)
- */
-export function usePostgresApi(): boolean {
-  return true;
-}
-
-/**
- * Check if we should use PostgreSQL API (client-side safe)
- */
-export function usePostgresApiClient(): boolean {
-  return true;
+  return getApiUrlForNetwork(NETWORK);
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
 import { BatchPatternCard, BatchPattern } from '@/components/BatchPatternCard';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -141,9 +141,7 @@ function PrivacyRisksContent() {
     setError(null);
 
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/privacy/risks?limit=20&offset=${newOffset}&period=${periodFilter}&riskLevel=${riskFilter}&sort=${sortBy}`
-        : `/api/privacy/risks?limit=20&offset=${newOffset}&period=${periodFilter}&riskLevel=${riskFilter}&sort=${sortBy}`;
+      const apiUrl = `${getApiUrl()}/api/privacy/risks?limit=20&offset=${newOffset}&period=${periodFilter}&riskLevel=${riskFilter}&sort=${sortBy}`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch');
@@ -172,9 +170,7 @@ function PrivacyRisksContent() {
 
   const fetchCommonAmounts = async () => {
     try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=8`
-        : `/api/privacy/common-amounts?period=${periodFilter}&limit=8`;
+      const apiUrl = `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=8`;
 
       const response = await fetch(apiUrl);
         if (response.ok) {
@@ -201,9 +197,7 @@ function PrivacyRisksContent() {
 
     try {
       // Build URL with filters and cursor
-      let url = usePostgresApiClient()
-        ? `${getApiUrl()}/api/privacy/batch-risks`
-        : `/api/privacy/batch-risks`;
+      const url = `${getApiUrl()}/api/privacy/batch-risks`;
 
       const params = new URLSearchParams({
         period: periodFilter,

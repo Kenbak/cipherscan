@@ -282,6 +282,9 @@ test('block resolution is shared, cached, and preserves unavailable states', asy
       getConfiguredNetwork: () => 'mainnet',
       normalizeApiBaseUrl: (url) => url,
     },
+    '@/lib/api-config': {
+      getApiUrlForNetwork: () => 'https://api.mainnet.cipherscan.app',
+    },
     '@/lib/server-fetch': {
       fetchWithDeadline: (url, init) => global.fetch(url, init),
     },
@@ -444,6 +447,9 @@ test('shared metadata policy indexes blocks only on mainnet', () => {
       '@/lib/network': {
         getConfiguredNetwork: () => testCase.network,
         normalizeApiBaseUrl: (url) => url,
+      },
+      '@/lib/api-config': {
+        getApiUrlForNetwork: () => `https://api.${testCase.network}.cipherscan.app`,
       },
       '@/lib/server-fetch': {
         fetchWithDeadline: (url, init) => global.fetch(url, init),
@@ -703,7 +709,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
   const sharedMocks = {
     'react/jsx-runtime': jsxRuntime,
     './TxsClient': { __esModule: true, default: () => null },
-    '@/lib/api-config': { API_CONFIG: { POSTGRES_API_URL: 'https://api.mainnet.cipherscan.app' } },
+    '@/lib/api-config': { getApiUrl: () => 'https://api.mainnet.cipherscan.app' },
     '@/lib/isr-fallback': {
       retainLastGoodOrBuildFallback: (fallback) => fallback,
     },

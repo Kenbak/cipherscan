@@ -136,7 +136,8 @@ function normalizeHash(hash) {
 /** Prune expired rows by TTL, then return all remaining nodes. */
 async function pruneAndFetchNodes() {
   if (!deps.pool) return [];
-  await deps.pool.query(
+  if (!deps.writePool) throw new Error('Crosslink write pool is unavailable');
+  await deps.writePool.query(
     `DELETE FROM fork_monitor_nodes
      WHERE (ttl = '1h'  AND reported_at < $1)
         OR (ttl = '24h' AND reported_at < $2)

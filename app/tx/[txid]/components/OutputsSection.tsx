@@ -6,7 +6,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { TxTypeBadge } from '@/components/ui/TxTypeBadge';
 import { RedactedAmount } from '@/components/ui/RedactedAmount';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '@/components/CopyButton';
 import type { TransactionData, TxClassification } from './types';
 
 interface OutputsSectionProps {

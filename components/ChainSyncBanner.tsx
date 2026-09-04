@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { isCrosslinkNetwork } from '@/lib/api-config';
+import { getApiUrl, isCrosslinkNetwork } from '@/lib/api-config';
 
 const GAP_THRESHOLD = 10;
 const POLL_INTERVAL = 15_000;
@@ -13,7 +13,7 @@ export function ChainSyncBanner() {
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch('/api/crosslink');
+      const res = await fetch(`${getApiUrl()}/api/crosslink`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.finalityGap != null) {

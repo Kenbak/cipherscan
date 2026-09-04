@@ -1,8 +1,8 @@
 # CipherScan API v1 — contract foundation
 
-Status: **preview / not launched**. Nothing in this directory is wired into
-`server/api/server.js` yet — that file was intentionally left untouched (see
-"Mount instructions" below for exactly what the parent change needs to do).
+Status: **mounted, fail-closed preview**. `server/api/server.js` mounts the
+router at `/v1`; `API_V1_ENABLED=false` keeps it indistinguishable from an
+unmounted route until preview rollout is explicitly enabled.
 
 ## Architecture status: transitional dark-launch bridge — NOT the final design
 
@@ -90,16 +90,12 @@ server/api/openapi/v1.yaml   generated OpenAPI 3.1 spec (do not hand-edit)
 server/api/test/v1/          node:test suites (manifest, envelope/zatoshi/cursor, routing, internal-client, OpenAPI drift)
 ```
 
-## Mount instructions (for the parent change)
+## Mounting
 
-`server/api/server.js` is intentionally unmodified. To go live, the parent
-change needs exactly this, added near the other route mounts (after
-`app.locals.pool` / other locals are set up — the v1 router does not read
-`app.locals`, but mounting it after body-parser/CORS/helmet keeps behavior
-consistent with the rest of the app):
+`server/api/server.js` already mounts the router after the shared
+body-parser/CORS/helmet middleware:
 
 ```js
-// server/api/server.js  (illustrative — not applied by this change)
 const createV1Router = require('./v1');
 app.use('/v1', createV1Router());
 ```
@@ -169,8 +165,8 @@ one:
 
 - **Success envelope**: `{ "data": ..., "meta": {...} }`. See
   `lib/envelope.js` / `openapi.js` (`Meta` schema) for the exact fields
-  (`requestId`, `network`, `generatedAt`, `indexedHeight`, `cache`,
-  optional `dataAgeSeconds`/`warnings`/`page`).
+  (`requestId`, `network`, `generatedAt`, `indexedHeight`, `source`, `cache`,
+  `freshness`, `units`, and optional `dataAgeSeconds`/`warnings`/`page`).
 - **Errors**: RFC 9457 `application/problem+json`. See `lib/problem.js`
   for the registry of `type` slugs (`validation-error`, `not-found`,
   `not-migrated`, `upstream-error`, etc.).
@@ -183,14 +179,13 @@ one:
 - **Zatoshi values**: represented as decimal strings (never floats), via
   `lib/zatoshi.js`. **Important caveat**: this can only be done losslessly
   where the legacy handler still returns the raw integer column. Several
-  legacy endpoints (documented per-entry in the manifest via
-  `zatoshiConfidence` / `knownPrecisionCaveat`, e.g. `/api/tx/:txid` and
-  `/api/rich-list`) already convert to a ZEC float (`value / 100000000`)
-  *before* this proxy ever sees the response — that precision loss already
-  happened upstream and cannot be undone here without querying the database
-  directly, which would duplicate business SQL (explicitly out of scope).
-  Those responses are passed through with a `meta.warnings` entry rather
-  than silently mis-labeled as authoritative zatoshi integers.
+  legacy fields still use formatted ZEC numbers for compatibility. Monetary
+  fields explicitly listed in the manifest are sourced from integer database
+  values and serialized as decimal zatoshi strings. Clients must use those
+  exact fields for accounting and treat legacy ZEC numbers as display-only.
+  `meta.units.authoritativeMonetary` and `authoritativeEncoding` describe
+  those explicitly named authoritative fields; they do not relabel every
+  legacy numeric field in a passthrough payload.
 - **Response headers**: only an explicit allowlist of legacy response
   headers is relayed onto the v1 response — `Cache-Control`, `ETag`,
   `Retry-After`, the `RateLimit-*`/`X-RateLimit-*` quota families, and any
@@ -274,14 +269,10 @@ to avoid building the guardrails.
    design (header forwarding, replay considerations) and was deliberately
    left out of this first contract pass — see the manifest entries
    (`classification: 'private'`) for the exact endpoints.
-5. **`indexedHeight` is best-effort.** It's resolved via one extra internal
-   call to legacy `/api/info` per request that asks for it, and is `null`
-   on failure rather than fabricated. Under load this adds one additional
-   proxied request for any adapter that opts in — currently only the
-   request-context helper exists; individual adapters don't yet call
-   `req.v1.resolveIndexedHeight()` (wiring that in per-route, or batching it
-   once per process on a short interval instead of per-request, is a good
-   next step before GA).
+5. **`indexedHeight` is best-effort.** Every successful adapter response
+   resolves it from `/api/info`, using a five-second process cache. It is
+   `null` on failure rather than fabricated; `meta.freshness.status` then
+   reports `unavailable`.
 6. **This inventory only covers files under `server/api/routes/**` and
    `server/signals/api.js`.** `/api/grpc-status`, registered directly in
    `server/api/server.js` rather than a route file, is out of scope per the

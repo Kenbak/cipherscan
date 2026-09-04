@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { CURRENCY } from '@/lib/config';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
-import { CopyButton } from './CopyButton';
+import { CopyButton } from '@/components/CopyButton';
 interface MempoolPendingViewProps {
   txid: string;
   mempoolTx: any;
