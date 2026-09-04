@@ -156,7 +156,7 @@ function buildOperation(entry) {
     operationId: operationId(entry.method, entry.v1.path),
     summary: entry.description,
     tags: [entry.domain],
-    parameters: parameters.length ? parameters : undefined,
+    ...(parameters.length ? { parameters } : {}),
     'x-cipherscan-legacy-path': entry.legacyPath,
     'x-cipherscan-legacy-method': entry.method,
     'x-cipherscan-classification': entry.classification,

@@ -21,11 +21,11 @@ info:
   contact:
     name: CipherScan / Atmosphere Labs
 servers:
-  - url: 'https://api.mainnet.cipherscan.app'
+  - url: https://api.mainnet.cipherscan.app
     description: Mainnet API host.
-  - url: 'https://api.testnet.cipherscan.app'
+  - url: https://api.testnet.cipherscan.app
     description: Testnet API host.
-  - url: 'http://127.0.0.1:3001'
+  - url: http://127.0.0.1:3001
     description: Local development API host.
 tags:
   - name: address
@@ -159,7 +159,7 @@ components:
                 - 'null'
     ZatoshiString:
       type: string
-      pattern: '^-?[0-9]+$'
+      pattern: ^-?[0-9]+$
       description: >-
         Integer amount in zatoshis (1 ZEC = 100,000,000 zatoshis), encoded as a decimal string to
         avoid float precision loss. Never a JSON number.
@@ -170,7 +170,6 @@ paths:
       summary: Shallow liveness check.
       tags:
         - system
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /health
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: ops
@@ -235,7 +234,6 @@ paths:
       summary: Deep health check including DB connectivity.
       tags:
         - system
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /health/deep
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: ops
@@ -300,7 +298,6 @@ paths:
       summary: Current indexed chain height.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/info
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -435,7 +432,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/blocks/{heightOrHash}':
+  /v1/blocks/{heightOrHash}:
     get:
       operationId: get_blocks_HeightOrHash
       summary: Block detail by height or hash.
@@ -447,7 +444,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/block/:heightOrHash'
+      x-cipherscan-legacy-path: /api/block/:heightOrHash
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -505,7 +502,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/search/anchors/{root}':
+  /v1/search/anchors/{root}:
     get:
       operationId: get_search_Anchors_Root
       summary: Look up the block containing a given Orchard/Sapling anchor root.
@@ -517,7 +514,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/search/anchor/:root'
+      x-cipherscan-legacy-path: /api/search/anchor/:root
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -575,7 +572,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/blocks/{hashOrHeight}/archive':
+  /v1/blocks/{hashOrHeight}/archive:
     get:
       operationId: get_blocks_HashOrHeight_Archive
       summary: Orphaned/non-canonical block archive lookup.
@@ -587,7 +584,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/block-archive/:hashOrHeight'
+      x-cipherscan-legacy-path: /api/block-archive/:hashOrHeight
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -651,7 +648,6 @@ paths:
       summary: Aggregate network statistics.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -716,7 +712,6 @@ paths:
       summary: Fee estimates.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/fees
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -781,7 +776,6 @@ paths:
       summary: Zebra node health snapshot.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/health
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -846,7 +840,6 @@ paths:
       summary: Known peer list.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/peers
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -911,7 +904,6 @@ paths:
       summary: Transparent supply breakdown.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/supply/transparent-breakdown
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -976,7 +968,6 @@ paths:
       summary: Total/circulating supply.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/supply
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1041,7 +1032,6 @@ paths:
       summary: Zebra getblockchaininfo passthrough summary.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/blockchain-info
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1103,17 +1093,16 @@ paths:
   /v1/network/circulating-supply:
     get:
       operationId: get_network_Circulating-supply
-      summary: 'Circulating supply, plain-number legacy format.'
+      summary: Circulating supply, plain-number legacy format.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/circulating-supply
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: 'Circulating supply, plain-number legacy format.'
+          description: Circulating supply, plain-number legacy format.
           content:
             application/json:
               schema:
@@ -1171,7 +1160,6 @@ paths:
       summary: Ziggurat crawler node census.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1236,7 +1224,6 @@ paths:
       summary: Node census summary stats.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1301,7 +1288,6 @@ paths:
       summary: Historical node count series.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/node-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1366,7 +1352,6 @@ paths:
       summary: Current ZEC price.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/price
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1431,7 +1416,6 @@ paths:
       summary: Historical ZEC price at a timestamp.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/price/at
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1496,7 +1480,6 @@ paths:
       summary: Protocol version adoption stats.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/protocol-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1561,7 +1544,6 @@ paths:
       summary: Peer topology graph.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/topology
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1626,7 +1608,6 @@ paths:
       summary: Paged node list.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/list
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1691,7 +1672,6 @@ paths:
       summary: Per-node health scoring.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/health-score
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1756,7 +1736,6 @@ paths:
       summary: Node reliability metrics.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/reliability
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1821,7 +1800,6 @@ paths:
       summary: NU upgrade readiness by node.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/upgrade-readiness
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1886,7 +1864,6 @@ paths:
       summary: Node/ASN/geography concentration metrics.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/nodes/concentration
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -1951,7 +1928,6 @@ paths:
       summary: Block subsidy halving schedule.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/halving
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2016,7 +1992,6 @@ paths:
       summary: Mining metrics summary.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/mining-metrics
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2081,7 +2056,6 @@ paths:
       summary: Historical network hashrate.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/hashrate-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2146,7 +2120,6 @@ paths:
       summary: Historical mining pool share.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/pool-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2211,7 +2184,6 @@ paths:
       summary: ZEC emission curve.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/emission
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2276,7 +2248,6 @@ paths:
       summary: Chain size growth over time.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/chain-size-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2341,7 +2312,6 @@ paths:
       summary: Lightweight recent-blocks summary for charts (distinct from /v1/blocks).
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/blocks/recent
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2406,7 +2376,6 @@ paths:
       summary: Cross-chain swap stats.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2471,7 +2440,6 @@ paths:
       summary: Cross-chain inflow volume.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/inflows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2536,7 +2504,6 @@ paths:
       summary: Cross-chain outflow volume.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/outflows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2601,7 +2568,6 @@ paths:
       summary: NEAR Intents integration configuration status.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/status
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2666,7 +2632,6 @@ paths:
       summary: Materialized-view-backed swap dashboard stats.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/db-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2731,7 +2696,6 @@ paths:
       summary: Cross-chain swap trends over time.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/trends
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2796,7 +2760,6 @@ paths:
       summary: Historical swap list.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2861,7 +2824,6 @@ paths:
       summary: Swap volume grouped by source chain.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/volume-by-chain
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -2920,7 +2882,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/crosschain/addresses/{address}':
+  /v1/crosschain/addresses/{address}:
     get:
       operationId: get_crosschain_Addresses_Address
       summary: Cross-chain swap history for one ZEC address.
@@ -2932,7 +2894,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/crosschain/address/:address'
+      x-cipherscan-legacy-path: /api/crosschain/address/:address
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -2996,7 +2958,6 @@ paths:
       summary: Most popular source/dest chain pairs.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/popular-pairs
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3061,7 +3022,6 @@ paths:
       summary: Swap size histogram.
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosschain/size-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3123,17 +3083,16 @@ paths:
   /v1/crosschain/wrapped-zec/supply:
     get:
       operationId: get_crosschain_Wrapped-zec_Supply
-      summary: 'Wrapped ZEC supply across chains (read-only RPC, no shared DB).'
+      summary: Wrapped ZEC supply across chains (read-only RPC, no shared DB).
       tags:
         - crosschain
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/wrapped-zec/supply
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: 'Wrapped ZEC supply across chains (read-only RPC, no shared DB).'
+          description: Wrapped ZEC supply across chains (read-only RPC, no shared DB).
           content:
             application/json:
               schema:
@@ -3191,7 +3150,6 @@ paths:
       summary: Aggregate shielded-vs-transparent stats.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy-stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3256,7 +3214,6 @@ paths:
       summary: Running count of shielded transactions.
       tags:
         - stats
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/stats/shielded-count
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3321,7 +3278,6 @@ paths:
       summary: Daily shielded transaction counts.
       tags:
         - stats
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/stats/shielded-daily
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3386,7 +3342,6 @@ paths:
       summary: Per-transaction privacy risk indicators.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/risks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3451,7 +3406,6 @@ paths:
       summary: Precomputed address linkage edges.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/linkage-edges
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3516,7 +3470,6 @@ paths:
       summary: Batch deshield/for-shield risk detection.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/batch-risks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3581,7 +3534,6 @@ paths:
       summary: Precomputed batch clusters.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/clusters
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3640,7 +3592,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/privacy/graph/{txid}':
+  /v1/privacy/graph/{txid}:
     get:
       operationId: get_privacy_Graph_Txid
       summary: Privacy linkage graph rooted at a transaction.
@@ -3652,7 +3604,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/privacy/graph/:txid'
+      x-cipherscan-legacy-path: /api/privacy/graph/:txid
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -3710,7 +3662,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/privacy/shield/{txid}/batch':
+  /v1/privacy/shield/{txid}/batch:
     get:
       operationId: get_privacy_Shield_Txid_Batch
       summary: Batch-shield linkage for a transaction.
@@ -3722,7 +3674,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/privacy/shield/:txid/batch'
+      x-cipherscan-legacy-path: /api/privacy/shield/:txid/batch
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -3786,7 +3738,6 @@ paths:
       summary: Detected privacy-relevant transaction patterns.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/patterns
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3851,7 +3802,6 @@ paths:
       summary: Common transaction amount buckets (anonymity set aid).
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/common-amounts
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3916,7 +3866,6 @@ paths:
       summary: Recommended round amounts for better anonymity sets.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/recommended-swap-amounts
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -3981,7 +3930,6 @@ paths:
       summary: Fee-lane privacy heuristics.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/fee-lanes
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4046,7 +3994,6 @@ paths:
       summary: Wallet fingerprinting signal aggregates.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/privacy/wallet-fingerprints
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4111,7 +4058,6 @@ paths:
       summary: Anonymity set size estimates.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/analytics/anonymity-set
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4176,7 +4122,6 @@ paths:
       summary: Distribution of shielding behavior.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/analytics/shielding-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4241,7 +4186,6 @@ paths:
       summary: Fee distribution histogram.
       tags:
         - network
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/network/fee-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4306,7 +4250,6 @@ paths:
       summary: Time-of-day/week usage heatmap.
       tags:
         - analytics
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/analytics/usage-clock
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4371,7 +4314,6 @@ paths:
       summary: Transaction "blend" (mixing quality) check.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/blend-check
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4436,7 +4378,6 @@ paths:
       summary: Blend-check split breakdown.
       tags:
         - privacy
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/blend-check/split
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4501,7 +4442,6 @@ paths:
       summary: Mining pool overview.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/pools/overview
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4566,7 +4506,6 @@ paths:
       summary: Coinbase reward flows by pool.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/pools/flows
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4631,7 +4570,6 @@ paths:
       summary: Orchard/Ironwood turnstile pool metrics.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/pools/turnstile
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4696,7 +4634,6 @@ paths:
       summary: Mining pool hashrate distribution.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/pool-distribution
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4761,7 +4698,6 @@ paths:
       summary: Ranked mining pools.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/pool-ranking
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4826,7 +4762,6 @@ paths:
       summary: Hashrate share over time.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/hashrate-share
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4891,7 +4826,6 @@ paths:
       summary: Block reward accounting.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/rewards
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -4956,7 +4890,6 @@ paths:
       summary: Miner behavior heuristics.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/miner-behavior
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5021,7 +4954,6 @@ paths:
       summary: ZODL miner leaderboard.
       tags:
         - mining
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mining/zodl-leaderboard
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5086,7 +5018,6 @@ paths:
       summary: Sapling→Orchard/Ironwood migration overview.
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/overview
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5151,7 +5082,6 @@ paths:
       summary: Migration cohort breakdown.
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/cohorts
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5216,7 +5146,6 @@ paths:
       summary: Migration by amount denomination.
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/denominations
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5281,7 +5210,6 @@ paths:
       summary: Compact hourly/daily migration activity buckets for time-series charts.
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/activity
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5343,17 +5271,16 @@ paths:
   /v1/migration/summary:
     get:
       operationId: get_migration_Summary
-      summary: 'Small, fixed-size digest of migration activity (headline totals + 24h/7d windows).'
+      summary: Small, fixed-size digest of migration activity (headline totals + 24h/7d windows).
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/summary
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: 'Small, fixed-size digest of migration activity (headline totals + 24h/7d windows).'
+          description: Small, fixed-size digest of migration activity (headline totals + 24h/7d windows).
           content:
             application/json:
               schema:
@@ -5413,7 +5340,6 @@ paths:
         current chain height).
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/scatter
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5480,7 +5406,6 @@ paths:
       summary: Migration progress by holding tier.
       tags:
         - migration
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/migration/tiers
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5545,7 +5470,6 @@ paths:
       summary: Current valuation snapshot.
       tags:
         - valuation
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/valuation/snapshot
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5610,7 +5534,6 @@ paths:
       summary: Historical valuation series.
       tags:
         - valuation
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/valuation/history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5675,7 +5598,6 @@ paths:
       summary: HODL wave age-band breakdown.
       tags:
         - valuation
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/valuation/hodl-waves
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5740,7 +5662,6 @@ paths:
       summary: Coin dormancy metrics.
       tags:
         - valuation
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/valuation/dormancy
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5805,7 +5726,6 @@ paths:
       summary: Real-time "pulse" activity feed.
       tags:
         - pulse
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/pulse
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5870,7 +5790,6 @@ paths:
       summary: Pulse summary metrics.
       tags:
         - pulse
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/pulse/summary
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -5935,7 +5854,6 @@ paths:
       summary: Transparent addresses with exposed-linkage risk.
       tags:
         - transparent
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/transparent/exposed
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6000,7 +5918,6 @@ paths:
       summary: Summary of transparent exposure risk.
       tags:
         - transparent
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/transparent/exposed/summary
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6065,7 +5982,6 @@ paths:
       summary: Known-address label directory.
       tags:
         - address
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/labels
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6124,7 +6040,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/labels/{address}':
+  /v1/labels/{address}:
     get:
       operationId: get_labels_Address
       summary: Label for one address.
@@ -6136,7 +6052,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/label/:address'
+      x-cipherscan-legacy-path: /api/label/:address
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -6200,7 +6116,6 @@ paths:
       summary: Top addresses by transparent balance.
       tags:
         - address
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/rich-list
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6259,7 +6174,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/addresses/{address}':
+  /v1/addresses/{address}:
     get:
       operationId: get_addresses_Address
       summary: Address summary + paginated transaction history.
@@ -6271,7 +6186,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/address/:address'
+      x-cipherscan-legacy-path: /api/address/:address
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -6329,7 +6244,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/addresses/{address}/graph':
+  /v1/addresses/{address}/graph:
     get:
       operationId: get_addresses_Address_Graph
       summary: Address cluster/linkage graph.
@@ -6341,7 +6256,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/address/:address/graph'
+      x-cipherscan-legacy-path: /api/address/:address/graph
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -6405,7 +6320,6 @@ paths:
       summary: Crosslink BFT finalizer set.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/finalizers
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6464,7 +6378,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/crosslink/finalizers/{pubkey}/participation':
+  /v1/crosslink/finalizers/{pubkey}/participation:
     get:
       operationId: get_crosslink_Finalizers_Pubkey_Participation
       summary: Finalizer participation history.
@@ -6476,7 +6390,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/finalizer/:pubkey/participation'
+      x-cipherscan-legacy-path: /api/finalizer/:pubkey/participation
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -6540,7 +6454,6 @@ paths:
       summary: Aggregate finalizer participation.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/participation
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6605,7 +6518,6 @@ paths:
       summary: BFT finalized chain segment.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/bft-chain
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6664,7 +6576,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/crosslink/finalizers/{pubkey}':
+  /v1/crosslink/finalizers/{pubkey}:
     get:
       operationId: get_crosslink_Finalizers_Pubkey
       summary: Single finalizer detail.
@@ -6676,7 +6588,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/finalizer/:pubkey'
+      x-cipherscan-legacy-path: /api/finalizer/:pubkey
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -6740,7 +6652,6 @@ paths:
       summary: Crosslink overview stats.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6805,7 +6716,6 @@ paths:
       summary: Current BFT-finalized tip.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/bft-tip
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6870,7 +6780,6 @@ paths:
       summary: Crosslink bootstrap parameters.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/bootstrap-info
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -6935,7 +6844,6 @@ paths:
       summary: PoW/BFT chain divergence history.
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/divergence-history
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7000,7 +6908,6 @@ paths:
       summary: Fork monitor dashboard (reported node tips vs. cTAZ).
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/fork-monitor
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7062,17 +6969,16 @@ paths:
   /v1/crosslink/fork-monitor/checks:
     post:
       operationId: post_crosslink_Fork-monitor_Checks
-      summary: 'Live hash comparison at up to 10 heights (read-only RPC, no writes).'
+      summary: Live hash comparison at up to 10 heights (read-only RPC, no writes).
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/fork-monitor/check
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: 'Live hash comparison at up to 10 heights (read-only RPC, no writes).'
+          description: Live hash comparison at up to 10 heights (read-only RPC, no writes).
           content:
             application/json:
               schema:
@@ -7124,7 +7030,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/crosslink/block-hash/{height}':
+  /v1/crosslink/block-hash/{height}:
     get:
       operationId: get_crosslink_Block-hash_Height
       summary: Block hash at a given height (used by external fork-finder scripts).
@@ -7136,7 +7042,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/crosslink/block-hash/:height'
+      x-cipherscan-legacy-path: /api/crosslink/block-hash/:height
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -7202,7 +7108,6 @@ paths:
         capacity-bounded upstream).
       tags:
         - crosslink
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/crosslink/fork-monitor/report
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
@@ -7269,7 +7174,6 @@ paths:
       summary: Recent orphaned blocks ("uncles").
       tags:
         - reorgs
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/uncles
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7334,7 +7238,6 @@ paths:
       summary: Detected chain forks.
       tags:
         - reorgs
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/uncles/forks
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7393,7 +7296,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/uncles/{hash}':
+  /v1/uncles/{hash}:
     get:
       operationId: get_uncles_Hash
       summary: Single orphaned block detail.
@@ -7405,7 +7308,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/uncle/:hash'
+      x-cipherscan-legacy-path: /api/uncle/:hash
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -7466,10 +7369,9 @@ paths:
   /v1/uncles/reports:
     post:
       operationId: post_uncles_Reports
-      summary: 'Report an observed tip hash for comparison (IP rate limited, PoW-shape validated upstream).'
+      summary: Report an observed tip hash for comparison (IP rate limited, PoW-shape validated upstream).
       tags:
         - reorgs
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/uncle/report
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
@@ -7536,7 +7438,6 @@ paths:
       summary: Reorg/orphan dashboard stats.
       tags:
         - reorgs
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/uncles/stats
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7601,7 +7502,6 @@ paths:
       summary: Reporting node list for the reorg dashboard.
       tags:
         - reorgs
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/uncles/nodes
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7742,7 +7642,6 @@ paths:
       summary: Shielded-only transaction list.
       tags:
         - transactions
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/shielded/list
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7807,7 +7706,6 @@ paths:
       summary: Shielded transaction summary metrics.
       tags:
         - transactions
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/tx/shielded
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -7866,7 +7764,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/transactions/{txid}/linkability':
+  /v1/transactions/{txid}/linkability:
     get:
       operationId: get_transactions_Txid_Linkability
       summary: Linkability analysis for one transaction.
@@ -7878,7 +7776,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/tx/:txid/linkability'
+      x-cipherscan-legacy-path: /api/tx/:txid/linkability
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -7942,7 +7840,6 @@ paths:
       summary: Broadcast a fully-signed raw transaction (no keys involved).
       tags:
         - transactions
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/tx/broadcast
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
@@ -8007,7 +7904,6 @@ paths:
       summary: Current mempool transaction summaries.
       tags:
         - mempool
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/mempool
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
@@ -8066,7 +7962,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/mempool/{txid}':
+  /v1/mempool/{txid}:
     get:
       operationId: get_mempool_Txid
       summary: Single mempool transaction detail.
@@ -8078,7 +7974,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/mempool/tx/:txid'
+      x-cipherscan-legacy-path: /api/mempool/tx/:txid
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -8136,7 +8032,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/transactions/{txid}/raw':
+  /v1/transactions/{txid}/raw:
     get:
       operationId: get_transactions_Txid_Raw
       summary: Raw transaction hex.
@@ -8148,7 +8044,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/tx/:txid/raw'
+      x-cipherscan-legacy-path: /api/tx/:txid/raw
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -8206,7 +8102,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/transactions/{txid}/verbose':
+  /v1/transactions/{txid}/verbose:
     get:
       operationId: get_transactions_Txid_Verbose
       summary: Verbose decoded transaction (zebra getrawtransaction verbose=1).
@@ -8218,7 +8114,7 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/tx/:txid/verbose'
+      x-cipherscan-legacy-path: /api/tx/:txid/verbose
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
@@ -8282,7 +8178,6 @@ paths:
       summary: Batch raw-tx fetch by txid list (read-only despite POST verb; body carries the id list).
       tags:
         - transactions
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/tx/raw/batch
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
@@ -8341,10 +8236,10 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  '/v1/transactions/{txid}':
+  /v1/transactions/{txid}:
     get:
       operationId: get_transactions_Txid
-      summary: 'Full transaction detail (inputs, outputs, cross-chain bridge match).'
+      summary: Full transaction detail (inputs, outputs, cross-chain bridge match).
       tags:
         - transactions
       parameters:
@@ -8353,13 +8248,13 @@ paths:
           required: true
           schema:
             type: string
-      x-cipherscan-legacy-path: '/api/tx/:txid'
+      x-cipherscan-legacy-path: /api/tx/:txid
       x-cipherscan-legacy-method: GET
       x-cipherscan-classification: public
       x-cipherscan-v1-status: adapter
       responses:
         '200':
-          description: 'Full transaction detail (inputs, outputs, cross-chain bridge match).'
+          description: Full transaction detail (inputs, outputs, cross-chain bridge match).
           content:
             application/json:
               schema:
@@ -8417,7 +8312,6 @@ paths:
       summary: Batch-scan a height range for Orchard transactions (wallet scanning aid).
       tags:
         - scan
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/scan/orchard
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public
@@ -8484,7 +8378,6 @@ paths:
       summary: Batch-scan blocks via Lightwalletd gRPC for client-side trial decryption.
       tags:
         - scan
-      parameters: !<tag:yaml.org,2002:js/undefined> ''
       x-cipherscan-legacy-path: /api/lightwalletd/scan
       x-cipherscan-legacy-method: POST
       x-cipherscan-classification: public

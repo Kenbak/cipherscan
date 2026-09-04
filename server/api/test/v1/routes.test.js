@@ -165,6 +165,7 @@ async function withServers(envExtra, fn) {
   const v1 = await startV1App({
     API_V1_ENABLED: 'true',
     API_V1_LAUNCHED: 'true',
+    NEXT_PUBLIC_NETWORK: 'testnet',
     V1_INTERNAL_API_BASE_URL: `http://127.0.0.1:${legacyPort}`,
     V1_INTERNAL_TIMEOUT_MS: '500',
     ...envExtra,
