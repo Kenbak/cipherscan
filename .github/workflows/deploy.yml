@@ -196,36 +196,15 @@ jobs:
             git fetch origin main
             git checkout --detach "$sha"
             (cd server/api && npm install --omit=dev --no-audit --no-fund)
-            # Standby runs API in read-only mode (reads from PG replica).
-            systemctl restart zcash-api-mainnet.service || true
+            # Keep the failover checkout current without turning the database
+            # standby into a second public API host. The primary API already
+            # offloads eligible reads to this PostgreSQL replica directly.
+            systemctl disable --now zcash-api-mainnet.service
           }
 
-          wait_healthy() {
-            local _attempt
-            for _attempt in $(seq 1 10); do
-              if curl -sf http://localhost:3001/health >/dev/null \
-                 && curl -sf http://localhost:3001/health/deep >/dev/null; then
-                return 0
-              fi
-              sleep 3
-            done
-            return 1
-          }
-
-          echo "Deploying $NEW_SHA to standby"
+          echo "Preparing $NEW_SHA on passive standby"
           deploy_sha "$NEW_SHA"
-
-          if wait_healthy; then
-            echo "Standby healthy at $NEW_SHA"
-          else
-            # Standby is not required to be running (e.g. during initial
-            # setup, or while the box isn't currently the failover target),
-            # so this rolls back for consistency but does not fail the job.
-            echo "Standby failed readiness/deep-health at $NEW_SHA — rolling back to $prev_sha (non-blocking)"
-            deploy_sha "$prev_sha" || true
-            wait_healthy || echo "Standby still not healthy after rollback (non-blocking; verify manually)."
-          fi
-          echo "Standby API deploy step complete"
+          echo "Standby checkout ready at $NEW_SHA; API remains disabled and stopped"
           REMOTE
 
       - name: Verify
@@ -238,6 +217,5 @@ jobs:
           ssh primary "curl -sf http://localhost:3001/health && echo && curl -sf http://localhost:3001/health/deep" \
             || echo "Primary health check failed"
           echo ""
-          echo "=== Standby API ==="
-          ssh standby "curl -sf http://localhost:3001/health && echo && curl -sf http://localhost:3001/health/deep" \
-            || echo "Standby not healthy (expected during initial setup or after a non-blocking rollback)"
+          echo "=== Passive standby ==="
+          ssh standby "printf 'api_active='; systemctl is-active zcash-api-mainnet.service || true; printf 'api_enabled='; systemctl is-enabled zcash-api-mainnet.service || true; printf 'pg_in_recovery='; sudo -u postgres psql -qtAX -c 'SELECT pg_is_in_recovery();'"
