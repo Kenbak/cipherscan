@@ -1,36 +1,44 @@
 name: Deploy API
 
+# Deploy only after CI has actually finished and passed on main, and always
+# deploy the exact commit CI validated — never whatever `origin/main` happens
+# to point at by the time this workflow runs. A `push`-triggered "ci-gate"
+# job (the previous approach) cannot see the outcome of another workflow; it
+# just prints a message and always "passes", so a red CI run never blocked a
+# deploy. `workflow_run` ties this workflow to a specific completed CI run
+# and its `head_sha`, which is what we check out and ship.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "server/**"
-      - "lib/**"
-      - "package.json"
-      - "package-lock.json"
 
 concurrency:
-  group: deploy-api-${{ github.ref }}
+  # workflow_run always runs workflow definitions from the default branch,
+  # and we only ever react to CI runs on main (see branches filter above),
+  # so a static group name is correct here (no risk of colliding refs).
+  group: deploy-api-main
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  ci-gate:
-    name: Wait for CI
-    runs-on: ubuntu-latest
-    steps:
-      - name: CI must pass first
-        run: echo "Deploy workflow only runs after CI passes on the same push."
-
   deploy:
     name: Deploy API to servers
-    needs: ci-gate
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Skip entirely (not "fail") when the CI run this workflow was notified
+    # about did not succeed — e.g. it failed, was cancelled, or was skipped.
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout the exact commit CI tested
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          # Full history so the "did anything relevant change" diff below
+          # can compare against whatever commit is currently deployed,
+          # however far back that is.
+          fetch-depth: 0
 
       - name: Set up SSH
         run: |
@@ -57,7 +65,7 @@ jobs:
           echo "SSH config written:"
           cat ~/.ssh/config
 
-      - name: Detect roles
+      - name: Detect roles and current deployed commit
         id: roles
         run: |
           echo "Testing SSH connectivity..."
@@ -71,41 +79,165 @@ jobs:
             echo "pg_primary=standby" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy to primary box
+          # This is also the backup/rollback reference: whatever commit is
+          # currently live on the primary box before we touch anything.
+          prev_sha="$(ssh primary 'cd /root/cipherscan && git rev-parse HEAD')"
+          if [[ ! "$prev_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not read a valid current commit from primary (got: $prev_sha)"
+            exit 1
+          fi
+          echo "Primary currently deployed at $prev_sha"
+          echo "prev_sha=$prev_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether API-relevant files changed
+        id: changes
+        env:
+          NEW_SHA: ${{ github.event.workflow_run.head_sha }}
+          PREV_SHA: ${{ steps.roles.outputs.prev_sha }}
         run: |
-          ssh primary << 'REMOTE'
+          if [[ "$NEW_SHA" == "$PREV_SHA" ]]; then
+            echo "Primary is already at $NEW_SHA; nothing to deploy."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          elif git cat-file -e "${PREV_SHA}^{commit}" 2>/dev/null; then
+            changed="$(git diff --name-only "$PREV_SHA" "$NEW_SHA" -- server lib package.json package-lock.json || true)"
+            if [[ -z "$changed" ]]; then
+              echo "No server/lib/package changes between $PREV_SHA and $NEW_SHA; skipping deploy."
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "Relevant changes since $PREV_SHA:"
+              echo "$changed"
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            # PREV_SHA isn't reachable from this checkout (force-push/rebase
+            # of main, or the very first run). Deploy rather than guess.
+            echo "Cannot diff against $PREV_SHA (not reachable); deploying to be safe."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to primary box
+        if: steps.changes.outputs.deploy == 'true'
+        env:
+          NEW_SHA: ${{ github.event.workflow_run.head_sha }}
+          PREV_SHA: ${{ steps.roles.outputs.prev_sha }}
+        run: |
+          # Defense in depth: these are re-validated on the runner even
+          # though they were already produced by trusted prior steps, before
+          # they're interpolated into a remote SSH command string.
+          [[ "$NEW_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Bad NEW_SHA"; exit 1; }
+          [[ "$PREV_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Bad PREV_SHA"; exit 1; }
+
+          ssh primary "NEW_SHA=$NEW_SHA PREV_SHA=$PREV_SHA bash -s" << 'REMOTE'
           set -euo pipefail
           cd /root/cipherscan
-          git fetch origin main
-          git reset --hard origin/main
-          npm install --omit=dev --no-audit --no-fund
-          cd server/api
-          npm install --omit=dev --no-audit --no-fund
-          systemctl restart zcash-api-mainnet.service
-          sleep 3
-          curl -sf http://localhost:3001/health || { echo "Health check failed"; exit 1; }
-          systemctl restart cipherscan-bot.service || true
-          echo "Primary API + bot deploy complete"
+
+          # Previous-release backup: the git history itself is the backup —
+          # every prior deployed commit stays fully checkoutable — but we
+          # also drop a marker file so a human (or a future workflow step)
+          # can see what the last known-good release was without querying git.
+          echo "$PREV_SHA" > /root/cipherscan/.previous-deploy-sha
+
+          deploy_sha() {
+            local sha="$1"
+            git fetch origin main
+            git checkout --detach "$sha"
+            npm install --omit=dev --no-audit --no-fund
+            (cd server/api && npm install --omit=dev --no-audit --no-fund)
+            systemctl restart zcash-api-mainnet.service
+          }
+
+          wait_healthy() {
+            local _attempt
+            for _attempt in $(seq 1 10); do
+              if curl -sf http://localhost:3001/health >/dev/null \
+                 && curl -sf http://localhost:3001/health/deep >/dev/null; then
+                return 0
+              fi
+              sleep 3
+            done
+            return 1
+          }
+
+          echo "Deploying $NEW_SHA to primary"
+          deploy_sha "$NEW_SHA"
+
+          if wait_healthy; then
+            echo "Primary healthy at $NEW_SHA (liveness + deep health OK)"
+            systemctl restart cipherscan-bot.service || true
+            echo "Primary API + bot deploy complete"
+          else
+            echo "::error::Primary failed readiness/deep-health at $NEW_SHA — automatic rollback to $PREV_SHA"
+            deploy_sha "$PREV_SHA"
+            if wait_healthy; then
+              echo "Rollback to $PREV_SHA succeeded; primary is healthy again."
+            else
+              echo "::error::Rollback to $PREV_SHA ALSO failed health checks on primary — manual intervention required."
+            fi
+            exit 1
+          fi
           REMOTE
 
       - name: Deploy to standby box
+        if: steps.changes.outputs.deploy == 'true'
+        env:
+          NEW_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          ssh standby << 'REMOTE'
+          [[ "$NEW_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Bad NEW_SHA"; exit 1; }
+
+          ssh standby "NEW_SHA=$NEW_SHA bash -s" << 'REMOTE'
           set -euo pipefail
           cd /root/cipherscan
-          git fetch origin main
-          git reset --hard origin/main
-          cd server/api
-          npm install --omit=dev --no-audit --no-fund
-          # Standby runs API in read-only mode (reads from PG replica)
-          systemctl restart zcash-api-mainnet.service || true
-          echo "Standby API deploy complete"
+
+          prev_sha="$(git rev-parse HEAD)"
+          echo "$prev_sha" > /root/cipherscan/.previous-deploy-sha
+
+          deploy_sha() {
+            local sha="$1"
+            git fetch origin main
+            git checkout --detach "$sha"
+            (cd server/api && npm install --omit=dev --no-audit --no-fund)
+            # Standby runs API in read-only mode (reads from PG replica).
+            systemctl restart zcash-api-mainnet.service || true
+          }
+
+          wait_healthy() {
+            local _attempt
+            for _attempt in $(seq 1 10); do
+              if curl -sf http://localhost:3001/health >/dev/null \
+                 && curl -sf http://localhost:3001/health/deep >/dev/null; then
+                return 0
+              fi
+              sleep 3
+            done
+            return 1
+          }
+
+          echo "Deploying $NEW_SHA to standby"
+          deploy_sha "$NEW_SHA"
+
+          if wait_healthy; then
+            echo "Standby healthy at $NEW_SHA"
+          else
+            # Standby is not required to be running (e.g. during initial
+            # setup, or while the box isn't currently the failover target),
+            # so this rolls back for consistency but does not fail the job.
+            echo "Standby failed readiness/deep-health at $NEW_SHA — rolling back to $prev_sha (non-blocking)"
+            deploy_sha "$prev_sha" || true
+            wait_healthy || echo "Standby still not healthy after rollback (non-blocking; verify manually)."
+          fi
+          echo "Standby API deploy step complete"
           REMOTE
 
       - name: Verify
+        # Runs even if the primary/standby deploy step above failed (e.g. it
+        # rolled back and exited non-zero) so the final health state is
+        # always visible — but only once SSH is actually configured.
+        if: always() && steps.roles.outcome == 'success' && steps.changes.outputs.deploy == 'true'
         run: |
           echo "=== Primary API ==="
-          ssh primary "curl -sf http://localhost:3001/health" || echo "Primary health check failed"
+          ssh primary "curl -sf http://localhost:3001/health && echo && curl -sf http://localhost:3001/health/deep" \
+            || echo "Primary health check failed"
           echo ""
           echo "=== Standby API ==="
-          ssh standby "curl -sf http://localhost:3001/health" || echo "Standby not yet running (expected during initial setup)"
+          ssh standby "curl -sf http://localhost:3001/health && echo && curl -sf http://localhost:3001/health/deep" \
+            || echo "Standby not healthy (expected during initial setup or after a non-blocking rollback)"

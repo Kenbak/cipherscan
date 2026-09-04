@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "name": "cipherscan-mainnet-core-and-archive",
   "population": "route-balanced-diagnostic",
+  "slo": {
+    "schemaVersion": 1,
+    "thresholdMs": 200,
+    "minUnderThresholdPct": 80,
+    "requireCoreUnderThreshold": true
+  },
   "targets": [
     {
       "id": "home",
