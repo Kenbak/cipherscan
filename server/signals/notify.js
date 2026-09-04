@@ -7,14 +7,16 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const pool = getPool();
+// This job only reads the latest signals and pushes a Telegram message —
+// it never writes to the database, so it runs entirely against the replica.
+const pool = getReadPool();
 
 const SIGNAL_EMOJI = {
   STRONG_BUY: '🟢🟢',

@@ -11,8 +11,22 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
 const { applyListCacheHeaders, createListCache } = require('../list-cache');
+const { parseSafeListPagination, parseSafePagePagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
 
 const disabledListCache = createListCache({ enabled: false });
+
+// addresses.balance>0 can grow to a large row count; an unbounded OFFSET
+// walks and discards every row before it. There is no cursor alternative
+// for rich-list today, so deep requests are rejected outright rather than
+// silently returning a different page than requested.
+const MAX_RICH_LIST_OFFSET = 100_000;
+
+// Per-address transaction pagination. Bounded lower than rich-list since a
+// single address's transaction count, while occasionally large for
+// whale/exchange addresses, is still bounded far below the address table
+// as a whole.
+const MAX_ADDRESS_TX_OFFSET = 100_000;
 
 function isCanonicalIntegerQuery(value) {
   if (value === undefined) return true;
@@ -77,7 +91,7 @@ router.get('/api/labels', async (req, res) => {
       count: result.rows.length,
     });
   } catch (error) {
-    console.error('Error fetching labels:', error);
+    logSafeError('Error fetching labels:', error);
     res.status(500).json({ error: 'Failed to fetch labels', labels: [] });
   }
 });
@@ -111,7 +125,7 @@ router.get('/api/label/:address', async (req, res) => {
       logoUrl: row.logo_url,
     });
   } catch (error) {
-    console.error('Error fetching label:', error);
+    logSafeError('Error fetching label:', error);
     res.status(500).json({ error: 'Failed to fetch label', label: null });
   }
 });
@@ -126,14 +140,25 @@ router.get('/api/label/:address', async (req, res) => {
  */
 router.get('/api/rich-list', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 100,
+      maxLimit: 500,
+      maxOffset: MAX_RICH_LIST_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({
+        requestedOffset,
+        maxOffset: MAX_RICH_LIST_OFFSET,
+      }));
+    }
+
     const cacheable = isCanonicalIntegerQuery(req.query.limit)
       && isCanonicalIntegerQuery(req.query.offset);
 
     const cached = await listCache.getOrLoad({
       family: 'rich-list',
-      params: { limit, offset: Number.isFinite(offset) ? offset : null, tipHeight: chainTip.height },
+      params: { limit, offset, tipHeight: chainTip.height },
       freshTtlSeconds: 60,
       staleTtlSeconds: 600,
       cacheable,
@@ -242,7 +267,7 @@ router.get('/api/rich-list', async (req, res) => {
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    console.error('Error fetching rich list:', error);
+    logSafeError('Error fetching rich list:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch rich list' });
   }
 });
@@ -260,12 +285,21 @@ router.get('/api/rich-list', async (req, res) => {
 router.get('/api/address/:address', validate('addressById'), async (req, res) => {
   try {
     const { address } = req.params;
-    const limit = Math.min(parseInt(req.query.limit) || 25, 100);
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const offset = (page - 1) * limit;
+    const { limit, page, offset, requestedOffset, offsetExceeded } = parseSafePagePagination(req.query, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      maxOffset: MAX_ADDRESS_TX_OFFSET,
+    });
 
     if (!address) {
       return res.status(400).json({ error: 'Invalid address' });
+    }
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({
+        requestedOffset,
+        maxOffset: MAX_ADDRESS_TX_OFFSET,
+      }));
     }
 
     // Check if it's a shielded address
@@ -394,7 +428,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
         };
       }
     } catch (fundingErr) {
-      console.error('Error fetching first funding for address:', fundingErr);
+      logSafeError('Error fetching first funding for address:', fundingErr);
     }
 
     // Try fast path: denormalized address_transactions table
@@ -546,7 +580,7 @@ router.get('/api/address/:address', validate('addressById'), async (req, res) =>
       },
     });
   } catch (error) {
-    console.error('Error fetching address:', error);
+    logSafeError('Error fetching address:', error);
     res.status(500).json({ error: 'Failed to fetch address' });
   }
 });
@@ -711,7 +745,7 @@ router.get('/api/address/:address/graph', validate('addressGraph'), async (req, 
     applyListCacheHeaders(res, cached);
     res.json(cached.value);
   } catch (error) {
-    console.error('Error fetching address graph:', error);
+    logSafeError('Error fetching address graph:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch address graph' });
   }
 });

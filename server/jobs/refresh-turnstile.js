@@ -17,10 +17,18 @@
 const { log, loadEnv, withAdvisoryLock } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool, getReadPool } = require('../lib/db-pool');
+const { getPool } = require('../lib/db-pool');
 
+// This job intentionally does NOT use getReadPool(). Every query below
+// (the advisory lock, the read scans that build the `ON COMMIT DROP` temp
+// tables, and the final DELETE+INSERT into turnstile_daily) runs on a
+// single checked-out `client` inside one transaction — the read-built temp
+// tables are connection-scoped and only visible to later statements on that
+// same connection. Splitting the read phase onto a second connection (primary
+// or replica) would silently break that dependency chain, and routing any
+// part of a single transaction to the replica would violate the "never mix
+// a transaction across primary/replica" rule. Stays on the primary pool.
 const pool = getPool({ max: 3 });
-const readPool = getReadPool({ max: 3 });
 
 const LOCK_ID = 839271; // arbitrary advisory lock ID for this job
 const STATE_KEY = 'turnstile_last_processed_time';

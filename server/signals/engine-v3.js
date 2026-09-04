@@ -18,12 +18,17 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 const indicators = require('./indicators');
 
 const pgPool = getPool();
+// computeValuationScore/computeFlowTimingScore/computeContextScore/
+// detectRegime are all read-only. Only upsertV3Signal (CREATE TABLE +
+// INSERT), which runs strictly after a signal is fully computed, writes —
+// so every read in the compute path is safe to offload to the replica.
+const readPool = getReadPool();
 
 // --- V3 Configuration ---
 
@@ -80,7 +85,7 @@ const V3_CONFIG = {
 // --- Layer 1: Valuation Score ---
 
 async function computeValuationScore(targetDate) {
-  const { rows: [mvrv] } = await pgPool.query(
+  const { rows: [mvrv] } = await readPool.query(
     `SELECT mvrv, shielded_sopr, nupl, realized_price FROM mvrv_daily WHERE date = $1`,
     [targetDate]
   );
@@ -102,7 +107,7 @@ async function computeValuationScore(targetDate) {
   else mvrvScore = -100;
 
   // MVRV momentum: 7d change (rising = bearish, falling = bullish)
-  const { rows: [prevMvrv] } = await pgPool.query(
+  const { rows: [prevMvrv] } = await readPool.query(
     `SELECT mvrv FROM mvrv_daily WHERE date = ($1::date - '7 days'::interval)`,
     [targetDate]
   );
@@ -156,7 +161,7 @@ async function computeFlowTimingScore(targetDate) {
   const { deshieldSpikeWindow, deshieldSigmaThreshold, whaleDeshieldMinZat, exchangeRoutingLookback } = V3_CONFIG.flowPatterns;
 
   // 1. Deshield volume spike detection (2σ above 30d mean → bullish per research)
-  const { rows: deshieldRows } = await pgPool.query(`
+  const { rows: deshieldRows } = await readPool.query(`
     SELECT to_char(to_timestamp(block_time)::date, 'YYYY-MM-DD') as date,
            SUM(amount_zat)::float / 1e8 as deshield_zec
     FROM shielded_flows
@@ -184,7 +189,7 @@ async function computeFlowTimingScore(targetDate) {
   }
 
   // 2. Whale deshield detection (>1000 ZEC single tx → bullish per research)
-  const { rows: [whaleRow] } = await pgPool.query(`
+  const { rows: [whaleRow] } = await readPool.query(`
     SELECT COUNT(*) as whale_count, COALESCE(SUM(amount_zat), 0)::float / 1e8 as whale_zec
     FROM shielded_flows
     WHERE flow_type = 'deshield'
@@ -201,7 +206,7 @@ async function computeFlowTimingScore(targetDate) {
   }
 
   // 3. Exchange routing ratio (low = very bullish per research: +6.18% 7d, t=3.03)
-  const { rows: [routingRow] } = await pgPool.query(`
+  const { rows: [routingRow] } = await readPool.query(`
     SELECT
       COALESCE(SUM(exchange_zat), 0)::float as exchange,
       COALESCE(SUM(deshielded_zat), 0)::float as total_deshield
@@ -244,11 +249,11 @@ async function computeFlowTimingScore(targetDate) {
 
 async function computeContextScore(targetDate) {
   const [poolMom, crossFlow, meanRev, netMom, svr7] = await Promise.all([
-    indicators.computePoolMomentum(pgPool, targetDate),
-    indicators.computeCrosschainFlow(pgPool, targetDate),
-    indicators.computeMeanReversion(pgPool, targetDate),
-    indicators.computeNetworkMomentum(pgPool, targetDate),
-    indicators.computeSVR(pgPool, targetDate, 7),
+    indicators.computePoolMomentum(readPool, targetDate),
+    indicators.computeCrosschainFlow(readPool, targetDate),
+    indicators.computeMeanReversion(readPool, targetDate),
+    indicators.computeNetworkMomentum(readPool, targetDate),
+    indicators.computeSVR(readPool, targetDate, 7),
   ]);
 
   const scores = { pool_momentum: poolMom, crosschain_flow: crossFlow, mean_reversion: meanRev, network_momentum: netMom, svr_7d: svr7 };
@@ -266,7 +271,7 @@ async function computeContextScore(targetDate) {
 async function detectRegime(targetDate) {
   const { smaDays, slopeThreshold, volHighThreshold } = V3_CONFIG.regime;
 
-  const { rows } = await pgPool.query(`
+  const { rows } = await readPool.query(`
     SELECT price_usd FROM zec_price_daily
     WHERE date >= ($1::date - ($2 || ' days')::interval) AND date <= $1::date
     ORDER BY date ASC
@@ -307,7 +312,7 @@ async function computeV3Signal(targetDate) {
   ]);
 
   // Get price
-  const { rows: [priceRow] } = await pgPool.query(
+  const { rows: [priceRow] } = await readPool.query(
     `SELECT price_usd FROM zec_price_daily WHERE date = $1`, [targetDate]
   );
   const price = priceRow ? parseFloat(priceRow.price_usd) : null;
@@ -430,7 +435,7 @@ async function main() {
   const specificDate = dateIdx >= 0 ? args[dateIdx + 1] : null;
 
   if (isBackfill) {
-    const { rows: dates } = await pgPool.query(`
+    const { rows: dates } = await readPool.query(`
       SELECT DISTINCT date FROM mvrv_daily ORDER BY date
     `);
     console.log(`[V3] Backfilling ${dates.length} dates...`);
@@ -478,6 +483,7 @@ async function main() {
   }
 
   await pgPool.end();
+  if (readPool !== pgPool) await readPool.end();
 }
 
 // Utility

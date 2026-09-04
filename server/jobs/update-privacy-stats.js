@@ -159,7 +159,9 @@ async function updateTransactionCounts() {
 }
 
 async function computeNetworkPrivacyScore(pools) {
-  const rolling = await fetchPrivacyScoreInputs(pool);
+  // Read-only 30d/90d aggregate scan (transactions + turnstile_daily) —
+  // offload to the replica like the rest of this job's reads.
+  const rolling = await fetchPrivacyScoreInputs(readPool);
   const supplyShieldedPercent = pools.chainSupply > 0
     ? (pools.shieldedPoolSize / pools.chainSupply) * 100
     : 0;

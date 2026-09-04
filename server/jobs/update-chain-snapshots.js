@@ -7,7 +7,7 @@
  */
 
 const { log, loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 const { callZebraRPC } = require('../lib/zebra-rpc');
 
 loadEnv(__dirname);
@@ -15,6 +15,10 @@ loadEnv(__dirname);
 const ZEBRA_RPC_URL = process.env.ZEBRA_RPC_URL || 'http://127.0.0.1:8232';
 
 const pool = getPool({ max: 3 });
+// The sanity-check read below (last snapshot's chain size) is a standalone
+// lookup against history that happens before this run's own INSERT — safe
+// to offload. The INSERT and retention DELETE stay on the primary.
+const readPool = getReadPool({ max: 3 });
 
 const RETENTION_DAYS = 400;
 
@@ -45,12 +49,13 @@ async function main() {
   const chainSize = parseInt(info.size_on_disk, 10) || 0;
 
   // Skip recording if chain size dropped (node is resyncing from scratch)
-  const prev = await pool.query(
+  const prev = await readPool.query(
     'SELECT chain_size_bytes FROM chain_snapshots ORDER BY snapshot_time DESC LIMIT 1'
   );
   if (prev.rows.length > 0 && chainSize < parseInt(prev.rows[0].chain_size_bytes, 10) * 0.9) {
     console.log(`⚠️ [CHAIN-SNAPSHOT] Skipping — size ${chainSize} is less than 90% of previous (${prev.rows[0].chain_size_bytes}). Node likely resyncing.`);
     await pool.end();
+    if (readPool !== pool) await readPool.end();
     return;
   }
 
@@ -86,4 +91,4 @@ main()
     console.error(err);
     process.exit(1);
   })
-  .finally(() => pool.end());
+  .finally(() => Promise.all([pool.end(), readPool !== pool ? readPool.end() : null]));

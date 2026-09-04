@@ -9,9 +9,12 @@
 const { loadEnv } = require('../lib/job-utils');
 loadEnv(__dirname);
 
-const { getPool } = require('../lib/db-pool');
+const { getReadPool } = require('../lib/db-pool');
 
-const pool = getPool({ max: 2 });
+// This diagnostic script is entirely read-only (dumps NEAR API vs. DB state
+// for troubleshooting; it never writes to the database), so all of its
+// queries run against the replica.
+const pool = getReadPool({ max: 2 });
 
 const NEAR_API_BASE = 'https://explorer.near-intents.org/api/v0';
 const API_KEY = process.env.NEAR_INTENTS_API_KEY;

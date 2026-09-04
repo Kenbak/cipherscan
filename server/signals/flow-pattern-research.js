@@ -17,11 +17,13 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
-const pool = getPool();
+// Pure research/correlation analysis — never writes to the database, so it
+// runs entirely against the replica.
+const pool = getReadPool();
 
 function stats(arr) {
   if (arr.length === 0) return { mean: 0, std: 0, count: 0 };

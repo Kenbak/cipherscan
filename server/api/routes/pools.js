@@ -7,6 +7,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
 
 let pool, redisClient;
@@ -99,7 +100,7 @@ router.get('/api/pools/overview', async (req, res) => {
     if (!data) return res.status(503).json({ error: 'Pool data not available' });
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('pools/overview error:', err.message);
+    logSafeError('pools/overview error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -195,7 +196,7 @@ router.get('/api/pools/flows', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('pools/flows error:', err.message);
+    logSafeError('pools/flows error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -344,7 +345,7 @@ router.get('/api/pools/turnstile', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('pools/turnstile error:', err.message);
+    logSafeError('pools/turnstile error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

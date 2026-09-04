@@ -12,7 +12,12 @@ const libraryUrl = pathToFileURL(
 ).href;
 const library = import(libraryUrl);
 
-function cacheResult({ edge = 'UNKNOWN', durable = 'UNKNOWN', application = 'UNKNOWN' } = {}) {
+function cacheResult({
+  edge = 'UNKNOWN',
+  durable = 'UNKNOWN',
+  application = 'UNKNOWN',
+  vercel = 'UNKNOWN',
+} = {}) {
   return {
     raw: null,
     netlify: {
@@ -26,7 +31,7 @@ function cacheResult({ edge = 'UNKNOWN', durable = 'UNKNOWN', application = 'UNK
       },
     },
     application,
-    vercel: 'UNKNOWN',
+    vercel: { state: vercel, raw: null, matchedPath: null, ageSeconds: null },
   };
 }
 
@@ -108,6 +113,100 @@ test('does not let application state, Age, or cache policy override edge state',
   assert.equal(layered.application, 'HIT');
   assert.equal(policyOnly.netlify.edge.state, 'UNKNOWN');
   assert.equal(policyOnly.netlify.durable.state, 'UNKNOWN');
+});
+
+test('classifies every Vercel x-vercel-cache literal as first-class state', async () => {
+  const { classifyCache } = await library;
+
+  for (const raw of ['HIT', 'MISS', 'STALE', 'BYPASS', 'PRERENDER', 'REVALIDATED']) {
+    const cache = classifyCache({ 'x-vercel-cache': raw });
+    assert.equal(cache.vercel.state, raw, `expected ${raw} to classify as itself`);
+    assert.equal(cache.vercel.raw, raw);
+  }
+
+  const lowercase = classifyCache({ 'x-vercel-cache': 'hit' });
+  assert.equal(lowercase.vercel.state, 'HIT', 'state literal is case-insensitive');
+
+  const unrecognized = classifyCache({ 'x-vercel-cache': 'WARM' });
+  assert.equal(unrecognized.vercel.state, 'UNKNOWN');
+  assert.equal(unrecognized.vercel.raw, 'WARM', 'raw header value is preserved even when unrecognized');
+
+  const missing = classifyCache({});
+  assert.equal(missing.vercel.state, 'UNKNOWN');
+  assert.equal(missing.vercel.raw, null);
+});
+
+test('never coerces Vercel PRERENDER or REVALIDATED into HIT or MISS', async () => {
+  const { classifyCache, CACHE_STATES } = await library;
+
+  assert.equal(classifyCache({ 'x-vercel-cache': 'PRERENDER' }).vercel.state, CACHE_STATES.PRERENDER);
+  assert.equal(classifyCache({ 'x-vercel-cache': 'REVALIDATED' }).vercel.state, CACHE_STATES.REVALIDATED);
+  assert.notEqual(CACHE_STATES.PRERENDER, CACHE_STATES.HIT);
+  assert.notEqual(CACHE_STATES.REVALIDATED, CACHE_STATES.MISS);
+});
+
+test('records Vercel Age as diagnostic context without letting it imply a state', async () => {
+  const { classifyCache } = await library;
+
+  const fresh = classifyCache({ 'x-vercel-cache': 'MISS', age: '0' });
+  const aged = classifyCache({ 'x-vercel-cache': 'HIT', age: '317' });
+  const malformed = classifyCache({ 'x-vercel-cache': 'HIT', age: 'not-a-number' });
+  const negative = classifyCache({ 'x-vercel-cache': 'HIT', age: '-5' });
+  const absent = classifyCache({ 'x-vercel-cache': 'HIT' });
+
+  assert.equal(fresh.vercel.ageSeconds, 0);
+  assert.equal(fresh.vercel.state, 'MISS', 'Age never overrides the explicit state');
+  assert.equal(aged.vercel.ageSeconds, 317);
+  assert.equal(aged.vercel.state, 'HIT', 'a large Age does not demote a HIT to STALE');
+  assert.equal(malformed.vercel.ageSeconds, null);
+  assert.equal(negative.vercel.ageSeconds, null);
+  assert.equal(absent.vercel.ageSeconds, null);
+});
+
+test('redacts the resolved dynamic value from x-matched-path but keeps the route pattern', async () => {
+  const { classifyCache, selectDiagnosticHeaders } = await library;
+
+  const txPage = classifyCache({
+    'x-vercel-cache': 'HIT',
+    'x-matched-path': '/tx/[txid]?txid=e253383cd0a672b824197f2417652dd28e70406edb4a8c58da3d1a0500c82b8f',
+  });
+  const addressPage = classifyCache({
+    'x-matched-path': '/address/[address]?address=t1NV4euoqYjnutzS9Lr9VvjBD2LLNuXtXXZ',
+  });
+  const staticPage = classifyCache({ 'x-matched-path': '/blocks' });
+  const missing = classifyCache({});
+
+  assert.equal(txPage.vercel.matchedPath, '/tx/[txid]');
+  assert.ok(
+    !JSON.stringify(txPage).includes('e253383cd0a672b824197f2417652dd28e70406edb4a8c58da3d1a0500c82b8f'),
+    'the real txid must never appear anywhere in the classified cache result',
+  );
+  assert.equal(addressPage.vercel.matchedPath, '/address/[address]');
+  assert.ok(
+    !JSON.stringify(addressPage).includes('t1NV4euoqYjnutzS9Lr9VvjBD2LLNuXtXXZ'),
+    'the real address must never appear anywhere in the classified cache result',
+  );
+  assert.equal(staticPage.vercel.matchedPath, '/blocks');
+  assert.equal(missing.vercel.matchedPath, null);
+
+  const headers = selectDiagnosticHeaders({
+    'x-matched-path': '/block/[height]?height=3401465',
+  });
+  assert.equal(headers['x-matched-path'], '/block/[height]');
+});
+
+test('selectDiagnosticHeaders captures future X-CipherScan-* headers by prefix', async () => {
+  const { selectDiagnosticHeaders } = await library;
+
+  const headers = selectDiagnosticHeaders(new Headers({
+    'X-CipherScan-Cache': 'STALE',
+    'X-CipherScan-Freshness-Ms': '4213',
+    'X-Some-Unrelated-Header': 'ignored-by-prefix-scan',
+  }));
+
+  assert.equal(headers['x-cipherscan-cache'], 'STALE');
+  assert.equal(headers['x-cipherscan-freshness-ms'], '4213');
+  assert.equal(Object.hasOwn(headers, 'x-some-unrelated-header'), false);
 });
 
 test('measures header arrival and cancels the body without reading it', async () => {
@@ -270,6 +369,26 @@ test('uses a strict threshold and keeps errors in the percentage denominator', a
   assert.equal(summary.byTarget.home.observations, 4);
 });
 
+test('groups by Vercel cache state and only confirms HIT/STALE/PRERENDER as fast hits', async () => {
+  const { summarizeTtfb } = await library;
+  const rows = [
+    observation({ ttfbMs: 10, cache: cacheResult({ vercel: 'HIT' }) }),
+    observation({ ttfbMs: 20, cache: cacheResult({ vercel: 'STALE' }), pairPosition: 2 }),
+    observation({ ttfbMs: 30, cache: cacheResult({ vercel: 'PRERENDER' }) }),
+    observation({ ttfbMs: 400, cache: cacheResult({ vercel: 'REVALIDATED' }) }),
+    observation({ ttfbMs: 500, cache: cacheResult({ vercel: 'MISS' }) }),
+  ];
+  const summary = summarizeTtfb(rows, { thresholdMs: 200 });
+
+  assert.equal(summary.byVercelCacheState.HIT.observations, 1);
+  assert.equal(summary.byVercelCacheState.STALE.observations, 1);
+  assert.equal(summary.byVercelCacheState.PRERENDER.observations, 1);
+  assert.equal(summary.byVercelCacheState.REVALIDATED.observations, 1);
+  assert.equal(summary.byVercelCacheState.MISS.observations, 1);
+  assert.equal(summary.confirmedVercelCacheHits.observations, 3);
+  assert.equal(summary.confirmedVercelCacheHits.underThresholdPct, 100);
+});
+
 test('validates target manifests without changing query identity', async () => {
   const { resolveTargets } = await library;
   const targets = resolveTargets({
@@ -314,6 +433,85 @@ test('the TTFB core population covers every core sitemap path', () => {
   assert.deepEqual(
     sitemapCorePaths.filter((route) => !probedCorePaths.has(route)),
     [],
+  );
+});
+
+test('the checked-in target manifest declares a valid SLO budget', async () => {
+  const { validateSloBudget } = await library;
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(repositoryRoot, 'scripts/perf/ttfb-targets.json'),
+    'utf8',
+  ));
+
+  assert.ok(manifest.slo, 'ttfb-targets.json must declare an slo budget');
+  const validated = validateSloBudget(manifest.slo);
+  // The checked-in budget is a policy target, not a measured result: assert
+  // its shape and bounds only, never a specific pass/fail outcome.
+  assert.equal(validated.thresholdMs > 0, true);
+  assert.equal(
+    validated.minUnderThresholdPct === null
+      || (validated.minUnderThresholdPct >= 0 && validated.minUnderThresholdPct <= 100),
+    true,
+  );
+  assert.equal(typeof validated.requireCoreUnderThreshold, 'boolean');
+});
+
+test('DEFAULT_TTFB_SLO_BUDGET is a no-op gate matching today\'s opt-in CLI defaults', async () => {
+  const { DEFAULT_TTFB_SLO_BUDGET, resolveSloBudget } = await library;
+
+  assert.equal(DEFAULT_TTFB_SLO_BUDGET.thresholdMs, 200);
+  assert.equal(DEFAULT_TTFB_SLO_BUDGET.minUnderThresholdPct, null);
+  assert.equal(DEFAULT_TTFB_SLO_BUDGET.requireCoreUnderThreshold, false);
+  assert.deepEqual(resolveSloBudget(), DEFAULT_TTFB_SLO_BUDGET);
+  assert.deepEqual(resolveSloBudget(null, null, null), DEFAULT_TTFB_SLO_BUDGET);
+});
+
+test('resolveSloBudget layers manifest, file, and CLI overrides with CLI winning', async () => {
+  const { resolveSloBudget } = await library;
+
+  const manifestBudget = {
+    schemaVersion: 1,
+    thresholdMs: 200,
+    minUnderThresholdPct: 80,
+    requireCoreUnderThreshold: true,
+  };
+  const fileOverride = { minUnderThresholdPct: 90 };
+  const cliOverride = { thresholdMs: 150 };
+
+  const manifestOnly = resolveSloBudget(manifestBudget);
+  assert.equal(manifestOnly.thresholdMs, 200);
+  assert.equal(manifestOnly.minUnderThresholdPct, 80);
+  assert.equal(manifestOnly.requireCoreUnderThreshold, true);
+
+  const withFile = resolveSloBudget(manifestBudget, fileOverride);
+  assert.equal(withFile.minUnderThresholdPct, 90, 'file budget overrides the manifest budget');
+  assert.equal(withFile.thresholdMs, 200, 'unset fields fall through from the manifest budget');
+
+  const withCli = resolveSloBudget(manifestBudget, fileOverride, cliOverride);
+  assert.equal(withCli.thresholdMs, 150, 'CLI override wins over both manifest and file budgets');
+  assert.equal(withCli.minUnderThresholdPct, 90, 'a field the CLI does not touch keeps the file value');
+  assert.equal(withCli.requireCoreUnderThreshold, true, 'a field neither file nor CLI touch keeps the manifest value');
+});
+
+test('validateSloBudget rejects malformed or out-of-range budgets', async () => {
+  const { validateSloBudget, SLO_BUDGET_SCHEMA_VERSION } = await library;
+  const valid = {
+    schemaVersion: SLO_BUDGET_SCHEMA_VERSION,
+    thresholdMs: 200,
+    minUnderThresholdPct: 80,
+    requireCoreUnderThreshold: true,
+  };
+
+  assert.doesNotThrow(() => validateSloBudget(valid));
+  assert.throws(() => validateSloBudget(null), /object/);
+  assert.throws(() => validateSloBudget({ ...valid, schemaVersion: 2 }), /schemaVersion/);
+  assert.throws(() => validateSloBudget({ ...valid, thresholdMs: 0 }), /thresholdMs/);
+  assert.throws(() => validateSloBudget({ ...valid, thresholdMs: -5 }), /thresholdMs/);
+  assert.throws(() => validateSloBudget({ ...valid, minUnderThresholdPct: 101 }), /minUnderThresholdPct/);
+  assert.throws(() => validateSloBudget({ ...valid, minUnderThresholdPct: -1 }), /minUnderThresholdPct/);
+  assert.throws(
+    () => validateSloBudget({ ...valid, requireCoreUnderThreshold: 'yes' }),
+    /requireCoreUnderThreshold/,
   );
 });
 

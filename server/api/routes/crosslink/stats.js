@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { deps, computeStakingDay } = require('./_helpers');
+const { logSafeError } = require('../../lib/safe-log');
 
 const CROSSLINK_CACHE_KEY = 'crosslink:stats';
 const CROSSLINK_CACHE_DURATION = 30; // 30 seconds (includes slow recency RPC)
@@ -145,7 +146,7 @@ router.get('/api/crosslink', async (req, res) => {
     }
   } catch (error) {
     crosslinkInflight = null;
-    console.error('Crosslink stats error:', error);
+    logSafeError('Crosslink stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch crosslink stats',
@@ -202,7 +203,7 @@ router.get('/api/crosslink/bft-tip', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('BFT tip error:', error);
+    logSafeError('BFT tip error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch BFT tip' });
   }
 });
@@ -252,7 +253,7 @@ router.get('/api/crosslink/bootstrap-info', async (req, res) => {
         : 'https://api.crosslink.cipherscan.app/bootstrap/bootstrap.tar.gz.sha256',
     });
   } catch (error) {
-    console.error('bootstrap-info error:', error);
+    logSafeError('bootstrap-info error:', error);
     res.status(500).json({ success: false, error: 'Failed to read bootstrap metadata' });
   }
 });
@@ -313,7 +314,7 @@ router.get('/api/crosslink/divergence-history', async (req, res) => {
       events,
     });
   } catch (error) {
-    console.error('Divergence history error:', error);
+    logSafeError('Divergence history error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch divergence history' });
   }
 });

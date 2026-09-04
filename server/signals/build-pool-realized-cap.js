@@ -14,17 +14,25 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
 const pool = getPool();
+// This job only ever reads from zec_price_daily/shielded_flows/transactions
+// and only ever writes to pool_realized_cap_daily — it never writes back to
+// any table it reads, so every read below is safe to offload to the
+// replica. Streaming the full shielded_flows history in 50k-row batches can
+// legitimately run past the 30s default on a cold cache, so both pools get
+// an explicit longer bound.
+const READ_STATEMENT_TIMEOUT_MS = 120_000;
+const readPool = getReadPool({ statement_timeout: READ_STATEMENT_TIMEOUT_MS });
 
 async function main() {
   console.log('Building pool realized cap from shielded_flows...\n');
 
   // Load price lookup: date -> price_usd
-  const priceRows = await pool.query(`SELECT date, price_usd FROM zec_price_daily ORDER BY date`);
+  const priceRows = await readPool.query(`SELECT date, price_usd FROM zec_price_daily ORDER BY date`);
   const priceMap = new Map();
   for (const r of priceRows.rows) {
     const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date);
@@ -53,7 +61,7 @@ async function main() {
   const startTime = Date.now();
 
   while (true) {
-    const { rows } = await pool.query(`
+    const { rows } = await readPool.query(`
       SELECT f.flow_type, f.pool, f.amount_zat, f.block_time,
              f.is_pool_migration, f.migration_from_pool, f.migration_to_pool,
              t.value_balance_sapling, t.value_balance_orchard, t.value_balance_ironwood
@@ -132,6 +140,7 @@ async function main() {
   }
 
   await pool.end();
+  if (readPool !== pool) await readPool.end();
 
   async function snapshotPools(date) {
     for (const [name, state] of Object.entries(pools)) {

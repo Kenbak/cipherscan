@@ -1,3 +1,4 @@
+const { logSafeError } = require('../lib/safe-log');
 /**
  * Network analytics routes — halving, mining history, pool trends, emission, chain size.
  * Requires chain_snapshots table for size history (see docs/network-analytics-setup.md).
@@ -252,8 +253,8 @@ function registerNetworkAnalyticsRoutes(router) {
       }
       res.json({ success: true, ...payload, cached: false });
     } catch (error) {
-      console.error('❌ [HALVING] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch halving info' });
+      logSafeError('❌ [HALVING] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch halving info' });
     }
   });
 
@@ -315,8 +316,8 @@ function registerNetworkAnalyticsRoutes(router) {
         points,
       });
     } catch (error) {
-      console.error('❌ [MINING-METRICS] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch mining metrics' });
+      logSafeError('❌ [MINING-METRICS] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch mining metrics' });
     }
   });
 
@@ -376,8 +377,8 @@ function registerNetworkAnalyticsRoutes(router) {
       await setRedisCache(redisClient, cacheKey, response, 600); // 10 min
       res.json(response);
     } catch (error) {
-      console.error('❌ [HASHRATE-HISTORY] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch hashrate history' });
+      logSafeError('❌ [HASHRATE-HISTORY] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch hashrate history' });
     }
   });
 
@@ -482,8 +483,8 @@ function registerNetworkAnalyticsRoutes(router) {
         hasVerifiedPerPoolBreakdown: verifiedPerPool,
       });
     } catch (error) {
-      console.error('❌ [POOL-HISTORY] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch pool history' });
+      logSafeError('❌ [POOL-HISTORY] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch pool history' });
     }
   });
 
@@ -567,8 +568,8 @@ function registerNetworkAnalyticsRoutes(router) {
         supplyHistorySource: supplyPoints.length >= 2 ? 'history' : supplyPoints.length === 1 ? 'partial' : 'none',
       });
     } catch (error) {
-      console.error('❌ [EMISSION] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch emission data' });
+      logSafeError('❌ [EMISSION] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch emission data' });
     }
   });
 
@@ -601,8 +602,8 @@ function registerNetworkAnalyticsRoutes(router) {
         })),
       });
     } catch (error) {
-      console.error('❌ [CHAIN-SIZE] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch chain size history' });
+      logSafeError('❌ [CHAIN-SIZE] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch chain size history' });
     }
   });
 
@@ -637,8 +638,8 @@ function registerNetworkAnalyticsRoutes(router) {
         })),
       });
     } catch (error) {
-      console.error('❌ [RECENT-BLOCKS] Error:', error);
-      res.status(500).json({ success: false, error: error.message || 'Failed to fetch recent blocks' });
+      logSafeError('❌ [RECENT-BLOCKS] Error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch recent blocks' });
     }
   });
 }

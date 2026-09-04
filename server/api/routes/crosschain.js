@@ -7,6 +7,13 @@ const express = require('express');
 const router = express.Router();
 const { getNearIntentsClient, CHAIN_CONFIG } = require('../near-intents');
 const { validate } = require('../validation');
+const { parseSafePagePagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
+
+// cross_chain_swaps grows steadily but is far smaller than the on-chain
+// tables; still capped so a scraper incrementing `page` indefinitely can't
+// force an ever-growing OFFSET scan.
+const MAX_CROSSCHAIN_HISTORY_OFFSET = 50_000;
 
 /**
  * GET /api/crosschain/stats
@@ -36,10 +43,10 @@ router.get('/api/crosschain/stats', async (req, res) => {
       chainConfig: CHAIN_CONFIG,
     });
   } catch (error) {
-    console.error('❌ [CROSSCHAIN] Error:', error);
+    logSafeError('❌ [CROSSCHAIN] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch cross-chain stats',
+      error: 'Failed to fetch cross-chain stats',
     });
   }
 });
@@ -69,10 +76,10 @@ router.get('/api/crosschain/inflows', async (req, res) => {
       ...data,
     });
   } catch (error) {
-    console.error('❌ [CROSSCHAIN] Inflows error:', error);
+    logSafeError('❌ [CROSSCHAIN] Inflows error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: 'Failed to fetch cross-chain inflows',
     });
   }
 });
@@ -102,10 +109,10 @@ router.get('/api/crosschain/outflows', async (req, res) => {
       ...data,
     });
   } catch (error) {
-    console.error('❌ [CROSSCHAIN] Outflows error:', error);
+    logSafeError('❌ [CROSSCHAIN] Outflows error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: 'Failed to fetch cross-chain outflows',
     });
   }
 });
@@ -261,10 +268,10 @@ router.get('/api/crosschain/db-stats', async (req, res) => {
     setCache('db-stats', result);
     res.json(result);
   } catch (error) {
-    console.error('❌ [CROSSCHAIN] db-stats error:', error);
+    logSafeError('❌ [CROSSCHAIN] db-stats error:', error);
     const stale = getStale('db-stats');
     if (stale) return res.json(stale);
-    res.status(500).json({ success: false, error: error.message || 'Failed to fetch cross-chain stats' });
+    res.status(500).json({ success: false, error: 'Failed to fetch cross-chain stats' });
   }
 });
 
@@ -332,10 +339,10 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
     setCache(cacheKey, result);
     res.json(result);
   } catch (error) {
-    console.error('Trends error:', error);
+    logSafeError('Trends error:', error);
     const stale = getStale(cacheKey);
     if (stale) return res.json(stale);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch cross-chain trends' });
   }
 });
 
@@ -347,9 +354,19 @@ router.get('/api/crosschain/trends', validate('crosschainTrends'), async (req, r
 router.get('/api/crosschain/history', validate('crosschainHistory'), async (req, res) => {
   try {
     const pool = req.app.locals.pool;
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 100);
-    const offset = (page - 1) * limit;
+    const { limit, page, offset, requestedOffset, offsetExceeded } = parseSafePagePagination(req.query, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      maxOffset: MAX_CROSSCHAIN_HISTORY_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({
+        requestedOffset,
+        maxOffset: MAX_CROSSCHAIN_HISTORY_OFFSET,
+      }));
+    }
+
     const direction = req.query.direction;
     const chain = req.query.chain;
 
@@ -400,8 +417,8 @@ router.get('/api/crosschain/history', validate('crosschainHistory'), async (req,
       })),
     });
   } catch (error) {
-    console.error('History error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    logSafeError('History error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch cross-chain history' });
   }
 });
 
@@ -437,8 +454,8 @@ router.get('/api/crosschain/volume-by-chain', validate('volumeByChain'), async (
       avgSizeUsd: parseFloat(parseFloat(r.avg_size_usd).toFixed(2)),
     }))});
   } catch (error) {
-    console.error('Volume by chain error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    logSafeError('Volume by chain error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch cross-chain volume by chain' });
   }
 });
 
@@ -503,8 +520,8 @@ router.get('/api/crosschain/address/:address', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Address crosschain error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    logSafeError('Address crosschain error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch cross-chain activity for address' });
   }
 });
 
@@ -534,10 +551,10 @@ router.get('/api/crosschain/popular-pairs', async (req, res) => {
     setCache('popular-pairs', result);
     res.json(result);
   } catch (error) {
-    console.error('Popular pairs error:', error);
+    logSafeError('Popular pairs error:', error);
     const stale = getStale('popular-pairs');
     if (stale) return res.json(stale);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch popular pairs' });
   }
 });
 
@@ -579,10 +596,10 @@ router.get('/api/crosschain/size-distribution', async (req, res) => {
     setCache('size-distribution', result);
     res.json(result);
   } catch (error) {
-    console.error('Size distribution error:', error);
+    logSafeError('Size distribution error:', error);
     const stale = getStale('size-distribution');
     if (stale) return res.json(stale);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch size distribution' });
   }
 });
 

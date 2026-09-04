@@ -21,7 +21,7 @@
 
 const crypto = require('crypto');
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 
@@ -41,6 +41,13 @@ const CONFIG = {
 };
 
 const pool = getPool({ max: 2, idleTimeoutMillis: 10000 });
+// detectBatchDeshields() is read-only end to end (it either queries the
+// precomputed privacy_batch_clusters table or falls back to computing
+// clusters live from shielded_flows — both read paths). storePattern() and
+// the expired-pattern cleanup below are the only writes, and they run in a
+// separate step after detection finishes, so the detection phase is safe to
+// offload to the replica.
+const readPool = getReadPool({ max: 2, idleTimeoutMillis: 10000 });
 
 /**
  * Generate a unique hash for a set of txids (for deduplication)
@@ -125,7 +132,7 @@ async function runScanner() {
   try {
     // Detect batch patterns
     console.log('\n📊 Detecting batch deshield patterns...');
-    const patterns = await detectBatchDeshields(pool, {
+    const patterns = await detectBatchDeshields(readPool, {
       minBatchCount: CONFIG.minBatchCount,
       minAmountZat: Math.round(CONFIG.minAmountZec * 100000000),
       timeWindowDays: CONFIG.period,
@@ -200,6 +207,7 @@ async function runScanner() {
     process.exit(1);
   } finally {
     await pool.end();
+    if (readPool !== pool) await readPool.end();
   }
 }
 

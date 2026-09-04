@@ -10,6 +10,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { logSafeError } = require('../lib/safe-log');
 
 // Dependencies injected via app.locals
 let pool;
@@ -70,7 +71,7 @@ function loadCachedBlocks(startHeight, endHeight) {
         });
         cachedBlocks.push(...relevantBlocks);
       } catch (err) {
-        console.error(`⚠️ [CACHE] Failed to read cache file ${cacheFile}:`, err.message);
+        logSafeError(`⚠️ [CACHE] Failed to read cache file ${cacheFile}:`, err);
         // Treat as missing
         if (currentMissingStart === null) {
           currentMissingStart = chunkStart;
@@ -122,7 +123,7 @@ function saveToCathe(blocks) {
         fs.writeFileSync(cacheFile, JSON.stringify({ blocks: chunkBlocks }));
         console.log(`💾 [CACHE] Saved ${chunkBlocks.length} blocks to ${path.basename(cacheFile)}`);
       } catch (err) {
-        console.error(`⚠️ [CACHE] Failed to save cache file ${cacheFile}:`, err.message);
+        logSafeError(`⚠️ [CACHE] Failed to save cache file ${cacheFile}:`, err);
       }
     }
   }
@@ -189,7 +190,7 @@ router.post('/api/scan/orchard', async (req, res) => {
       transactions: result.rows,
     });
   } catch (error) {
-    console.error('Error scanning Orchard transactions:', error);
+    logSafeError('Error scanning Orchard transactions:', error);
     res.status(500).json({ error: 'Failed to scan transactions' });
   }
 });
@@ -412,7 +413,7 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [LIGHTWALLETD] Error:', error);
+    logSafeError('❌ [LIGHTWALLETD] Error:', error);
     res.status(500).json({
       error: 'Failed to scan blocks',
     });

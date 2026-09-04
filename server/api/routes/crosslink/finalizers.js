@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { deps, resolveFinalizerPubkey } = require('./_helpers');
+const { logSafeError } = require('../../lib/safe-log');
 
 /**
  * GET /api/finalizers
@@ -47,7 +48,7 @@ router.get('/api/finalizers', async (req, res) => {
       finalizers,
     });
   } catch (error) {
-    console.error('Finalizers list error:', error);
+    logSafeError('Finalizers list error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch finalizers' });
   }
 });
@@ -121,7 +122,7 @@ router.get('/api/finalizer/:pubkey/participation', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Finalizer participation error:', error);
+    logSafeError('Finalizer participation error:', error);
     res.status(500).json({ success: false, error: 'Failed to compute participation' });
   }
 });
@@ -221,7 +222,7 @@ router.get('/api/crosslink/participation', async (req, res) => {
       }),
     });
   } catch (error) {
-    console.error('Participation overview error:', error);
+    logSafeError('Participation overview error:', error);
     res.status(500).json({ success: false, error: 'Failed to compute participation' });
   }
 });
@@ -287,7 +288,7 @@ router.get('/api/crosslink/bft-chain', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('BFT chain history error:', error);
+    logSafeError('BFT chain history error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch BFT chain' });
   }
 });
@@ -366,7 +367,7 @@ router.get('/api/finalizer/:pubkey', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Finalizer detail error:', error);
+    logSafeError('Finalizer detail error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch finalizer' });
   }
 });

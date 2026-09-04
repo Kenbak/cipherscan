@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
 
 const MAX_BLOCK_RANGE = 50_000;
@@ -62,7 +63,7 @@ router.get('/api/sitemaps/blocks', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error generating block sitemap feed:', error);
+    logSafeError('Error generating block sitemap feed:', error);
     return res.status(500).json({ success: false, error: 'Failed to generate block sitemap feed' });
   }
 });
@@ -87,7 +88,7 @@ router.get('/api/sitemaps/transactions/recent', async (_req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error generating transaction sitemap feed:', error);
+    logSafeError('Error generating transaction sitemap feed:', error);
     return res.status(500).json({ success: false, error: 'Failed to generate transaction sitemap feed' });
   }
 });

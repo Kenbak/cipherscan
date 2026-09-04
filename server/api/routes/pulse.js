@@ -7,6 +7,13 @@
 
 const express = require('express');
 const router = express.Router();
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
+
+// metric_anomalies is bounded by the `days<=365` window already enforced
+// below, so this table can never be as large as blocks/transactions — but
+// the shared cap is applied anyway for defense-in-depth consistency.
+const MAX_PULSE_OFFSET = 50_000;
 
 let pool, redisClient;
 
@@ -42,8 +49,16 @@ function classifySeverity(absZ) {
 
 router.get('/api/pulse', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 50,
+      maxLimit: 200,
+      maxOffset: MAX_PULSE_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({ requestedOffset, maxOffset: MAX_PULSE_OFFSET }));
+    }
+
     const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
     const metric = req.query.metric || null;
 
@@ -115,7 +130,7 @@ router.get('/api/pulse', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('pulse error:', err.message);
+    logSafeError('pulse error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -155,7 +170,7 @@ router.get('/api/pulse/summary', async (req, res) => {
 
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('pulse/summary error:', err.message);
+    logSafeError('pulse/summary error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

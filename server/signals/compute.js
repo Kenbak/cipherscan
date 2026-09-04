@@ -11,13 +11,17 @@
  */
 
 const { loadEnv } = require('../lib/job-utils');
-const { getPool } = require('../lib/db-pool');
+const { getPool, getReadPool } = require('../lib/db-pool');
 
 loadEnv(__dirname);
 const config = require('./config');
 const indicators = require('./indicators');
 
 const pgPool = getPool();
+// Every indicator computation, regime detection, and adaptive-weight lookup
+// below is read-only; only the final per-date upsert into trading_signals
+// (and the one-time CREATE TABLE / snapshot writes) touch the primary.
+const readPool = getReadPool();
 
 function classifySignal(score) {
   const { strongBuy, buy, sell, strongSell } = config.thresholds;
@@ -167,21 +171,21 @@ function applyRegimeWeights(baseWeights, regime) {
 async function computeForDate(targetDate) {
   const dateStr = targetDate.toISOString().split('T')[0];
 
-  // Compute all indicators in parallel
+  // Compute all indicators in parallel (read-only — replica when available)
   const [svr7, svr30, poolMom, minerExch, crossFlow, exchVel,
          whaleAcc, meanRev, txMom, feePres, netMom, volZ] = await Promise.all([
-    indicators.computeSVR(pgPool, dateStr, 7),
-    indicators.computeSVR(pgPool, dateStr, 30),
-    indicators.computePoolMomentum(pgPool, dateStr),
-    indicators.computeMinerExchange(pgPool, dateStr),
-    indicators.computeCrosschainFlow(pgPool, dateStr),
-    indicators.computeExchangeVelocity(pgPool, dateStr),
-    indicators.computeWhaleAccumulation(pgPool, dateStr),
-    indicators.computeMeanReversion(pgPool, dateStr),
-    indicators.computeShieldedTxMomentum(pgPool, dateStr),
-    indicators.computeFeePressure(pgPool, dateStr),
-    indicators.computeNetworkMomentum(pgPool, dateStr),
-    indicators.computeVolumeZscore(pgPool, dateStr),
+    indicators.computeSVR(readPool, dateStr, 7),
+    indicators.computeSVR(readPool, dateStr, 30),
+    indicators.computePoolMomentum(readPool, dateStr),
+    indicators.computeMinerExchange(readPool, dateStr),
+    indicators.computeCrosschainFlow(readPool, dateStr),
+    indicators.computeExchangeVelocity(readPool, dateStr),
+    indicators.computeWhaleAccumulation(readPool, dateStr),
+    indicators.computeMeanReversion(readPool, dateStr),
+    indicators.computeShieldedTxMomentum(readPool, dateStr),
+    indicators.computeFeePressure(readPool, dateStr),
+    indicators.computeNetworkMomentum(readPool, dateStr),
+    indicators.computeVolumeZscore(readPool, dateStr),
   ]);
 
   const scores = {
@@ -200,11 +204,11 @@ async function computeForDate(targetDate) {
   };
 
   // Detect regime
-  const regimeResult = await detectRegime(pgPool, dateStr);
+  const regimeResult = await detectRegime(readPool, dateStr);
   const { regime, confidence: regimeConfidence } = regimeResult;
 
   // Get weights (adaptive or default)
-  let baseWeights = await getAdaptiveWeights(pgPool, dateStr);
+  let baseWeights = await getAdaptiveWeights(readPool, dateStr);
   const weights = applyRegimeWeights(baseWeights, regime);
 
   // Compute weighted composite (skip null indicators and volume_zscore which is a multiplier)
@@ -238,10 +242,10 @@ async function computeForDate(targetDate) {
   const confidence = computeConfidence(scores, volumeMultiplier, regimeConfidence);
 
   // Fetch price context
-  const priceResult = await pgPool.query(
+  const priceResult = await readPool.query(
     `SELECT price_usd FROM zec_price_daily WHERE date = $1`, [dateStr]
   );
-  const poolResult = await pgPool.query(
+  const poolResult = await readPool.query(
     `SELECT shielded_percentage FROM privacy_trends_daily WHERE date = $1`, [dateStr]
   );
 
@@ -297,7 +301,7 @@ async function computeAdaptiveWeights(targetDate) {
   const dateStr = targetDate.toISOString().split('T')[0];
   const { correlationWindow, minCorrelation, minWeight } = config.adaptiveWeights;
 
-  const result = await pgPool.query(`
+  const result = await readPool.query(`
     SELECT
       s.signal_date,
       s.svr_7d, s.svr_30d, s.pool_momentum, s.miner_pressure,
@@ -445,7 +449,7 @@ async function main() {
   `);
 
   if (isBackfill) {
-    const datesResult = await pgPool.query(`
+    const datesResult = await readPool.query(`
       SELECT date FROM zec_price_daily
       WHERE date >= (SELECT MIN(date) + 31 FROM privacy_trends_daily)
       ORDER BY date ASC
@@ -479,7 +483,7 @@ async function main() {
     const target = specificDate ? new Date(specificDate) : new Date();
 
     // Check if adaptive weights need recomputing
-    const lastSnapshot = await pgPool.query(`
+    const lastSnapshot = await readPool.query(`
       SELECT snapshot_date FROM signal_weight_snapshots ORDER BY snapshot_date DESC LIMIT 1
     `);
     const daysSinceSnapshot = lastSnapshot.rows.length > 0
@@ -511,6 +515,7 @@ async function main() {
   }
 
   await pgPool.end();
+  if (readPool !== pgPool) await readPool.end();
 }
 
 module.exports = { computeForDate, computeAdaptiveWeights, detectRegime };

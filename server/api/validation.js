@@ -6,6 +6,7 @@
  */
 
 const { z } = require('zod');
+const { logSafeError } = require('./lib/safe-log');
 
 // ============================================================================
 // Common schemas
@@ -222,8 +223,8 @@ function validate(schemaName) {
 
       next();
     } catch (err) {
-      console.error('Validation error:', err);
-      res.status(400).json({ error: 'Validation failed', message: err.message });
+      logSafeError('Validation error:', err);
+      res.status(400).json({ error: 'Validation failed', message: 'Invalid request parameters' });
     }
   };
 }

@@ -6,7 +6,15 @@
 const express = require('express');
 const crypto = require('crypto');
 const { getPoolName, getPoolInfo } = require('../mining-pools');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
+
+// orphaned_blocks/fork_events are small, bounded tables (one row per reorg
+// event), so a deep offset is cheap in absolute terms — but there's no
+// reason to allow an unbounded one either, so the same shared cap applies
+// here for consistency and defense-in-depth against future table growth.
+const MAX_REORGS_OFFSET = 50_000;
 
 let pool;
 let writePool;
@@ -20,8 +28,15 @@ router.use((req, res, next) => {
 // GET /api/uncles — List orphaned blocks, most recent first
 router.get('/api/uncles', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 50,
+      maxLimit: 200,
+      maxOffset: MAX_REORGS_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({ requestedOffset, maxOffset: MAX_REORGS_OFFSET }));
+    }
 
     const [result, countResult] = await Promise.all([
       pool.query(
@@ -61,7 +76,7 @@ router.get('/api/uncles', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching orphaned blocks:', error);
+    logSafeError('Error fetching orphaned blocks:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch orphaned blocks' });
   }
 });
@@ -69,8 +84,15 @@ router.get('/api/uncles', async (req, res) => {
 // GET /api/uncles/forks — List fork events with timeline
 router.get('/api/uncles/forks', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      maxOffset: MAX_REORGS_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({ requestedOffset, maxOffset: MAX_REORGS_OFFSET }));
+    }
 
     const [result, countResult] = await Promise.all([
       pool.query(
@@ -134,7 +156,7 @@ router.get('/api/uncles/forks', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching fork events:', error);
+    logSafeError('Error fetching fork events:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch fork events' });
   }
 });
@@ -169,7 +191,7 @@ router.get('/api/uncle/:hash', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching orphaned block:', error);
+    logSafeError('Error fetching orphaned block:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch orphaned block' });
   }
 });
@@ -265,7 +287,7 @@ router.post('/api/uncle/report', async (req, res) => {
       canonicalHash: canonical.rows[0].hash
     });
   } catch (error) {
-    console.error('Error processing uncle report:', error);
+    logSafeError('Error processing uncle report:', error);
     res.status(500).json({ success: false, error: 'Failed to process report' });
   }
 });
@@ -293,7 +315,7 @@ router.get('/api/uncles/stats', async (req, res) => {
       deepestReorg: parseInt(deepestFork.rows[0].max_depth) || 0
     });
   } catch (error) {
-    console.error('Error fetching uncle stats:', error);
+    logSafeError('Error fetching uncle stats:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch stats' });
   }
 });

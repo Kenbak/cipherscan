@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
 
 const CACHE_TTL = 3600; // 1 hour
@@ -91,7 +92,7 @@ router.get('/api/analytics/anonymity-set', async (req, res) => {
     await setCache(redisClient, cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching anonymity set:', error);
+    logSafeError('Error fetching anonymity set:', error);
     res.status(500).json({ error: 'Failed to fetch anonymity set data' });
   }
 });
@@ -168,7 +169,7 @@ router.get('/api/analytics/shielding-distribution', async (req, res) => {
     await setCache(redisClient, cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching shielding distribution:', error);
+    logSafeError('Error fetching shielding distribution:', error);
     res.status(500).json({ error: 'Failed to fetch shielding distribution' });
   }
 });
@@ -221,7 +222,7 @@ router.get('/api/network/fee-distribution', async (req, res) => {
     await setCache(redisClient, cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching fee distribution:', error);
+    logSafeError('Error fetching fee distribution:', error);
     res.status(500).json({ error: 'Failed to fetch fee distribution' });
   }
 });
@@ -314,7 +315,7 @@ router.get('/api/analytics/usage-clock', async (req, res) => {
     await setCache(redisClient, cacheKey, response);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching usage clock:', error);
+    logSafeError('Error fetching usage clock:', error);
     res.status(500).json({ error: 'Failed to fetch usage clock data' });
   }
 });

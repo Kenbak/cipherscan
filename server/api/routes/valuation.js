@@ -8,6 +8,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../lib/safe-log');
 const router = express.Router();
 
 let pool, redisClient;
@@ -74,7 +75,7 @@ router.get('/api/valuation/snapshot', async (req, res) => {
     if (!data) return res.status(503).json({ error: 'Valuation data not available' });
     res.json({ success: true, ...data });
   } catch (err) {
-    console.error('valuation/snapshot error:', err.message);
+    logSafeError('valuation/snapshot error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -120,7 +121,7 @@ router.get('/api/valuation/history', async (req, res) => {
 
     res.json({ success: true, period: `${days}d`, points: data });
   } catch (err) {
-    console.error('valuation/history error:', err.message);
+    logSafeError('valuation/history error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -158,7 +159,7 @@ router.get('/api/valuation/hodl-waves', async (req, res) => {
 
     res.json({ success: true, period: `${days}d`, points: data });
   } catch (err) {
-    console.error('valuation/hodl-waves error:', err.message);
+    logSafeError('valuation/hodl-waves error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -188,7 +189,7 @@ router.get('/api/valuation/dormancy', async (req, res) => {
 
     res.json({ success: true, period: `${days}d`, points: data });
   } catch (err) {
-    console.error('valuation/dormancy error:', err.message);
+    logSafeError('valuation/dormancy error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

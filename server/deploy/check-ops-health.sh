@@ -34,6 +34,7 @@ REPLICATION_MAX_LAG_SECONDS="${OPS_HEALTH_REPLICATION_MAX_LAG_SECONDS:-60}"
 NODE_RPC_URL="${NODE_RPC_URL:-http://127.0.0.1:8232}"
 NODE_COOKIE_FILE="${NODE_COOKIE_FILE:-/root/.cache/zebra/.cookie}"
 NODE_MAX_LAG_BLOCKS="${OPS_HEALTH_NODE_MAX_LAG_BLOCKS:-5}"
+API_GRPC_STATUS_URL="${API_GRPC_STATUS_URL:-http://127.0.0.1:3001/api/grpc-status}"
 
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
@@ -291,6 +292,21 @@ if command -v curl >/dev/null 2>&1; then
   fi
 fi
 mark_check "Node sync" "${node_ok}"
+
+# --- API real-time bridge ---
+realtime_ok=1
+if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  realtime_status="$(curl -fsS --max-time 5 "${API_GRPC_STATUS_URL}" 2>/dev/null || true)"
+  realtime_connected="$(printf '%s' "${realtime_status}" | jq -r '.connected // false' 2>/dev/null || echo "false")"
+  if [[ "${realtime_connected}" != "true" ]]; then
+    failures+=("API gRPC real-time bridge disconnected")
+    realtime_ok=0
+  fi
+else
+  failures+=("curl or jq not found for API real-time check")
+  realtime_ok=0
+fi
+mark_check "API realtime" "${realtime_ok}"
 
 timestamp="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 now="$(date +%s)"

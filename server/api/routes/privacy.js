@@ -8,6 +8,14 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../validation');
+const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
+const { logSafeError } = require('../lib/safe-log');
+
+// privacy_linkage_edges/detected_patterns are curated, expiry-bounded
+// tables (90-day TTL on linkage edges), far smaller than raw chain tables,
+// but still capped for consistency and to guard against future retention
+// changes.
+const MAX_PRIVACY_OFFSET = 50_000;
 
 // Dependencies injected via app.locals
 let pool;
@@ -33,9 +41,22 @@ router.use((req, res, next) => {
 
 router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
   try {
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      maxOffset: MAX_PRIVACY_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json({
+        success: false,
+        ...offsetExceededError({ requestedOffset, maxOffset: MAX_PRIVACY_OFFSET }),
+      });
+    }
+
     const { transactions, pagination, riskBreakdown } = await queryPrivacyLinkageEdges(pool, {
-      limit: Number(req.query.limit) || undefined,
-      offset: Number(req.query.offset) || undefined,
+      limit,
+      offset,
       minScore: req.query.minScore != null ? Number(req.query.minScore) : undefined,
       period: req.query.period,
       riskLevel: req.query.riskLevel,
@@ -62,19 +83,32 @@ router.get('/api/privacy/risks', validate('privacyRisks'), async (req, res) => {
       pagination,
     });
   } catch (error) {
-    console.error('❌ [PRIVACY RISKS] Error:', error);
+    logSafeError('❌ [PRIVACY RISKS] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch privacy risks',
+      error: 'Failed to fetch privacy risks',
     });
   }
 });
 
 router.get('/api/privacy/linkage-edges', validate('privacyLinkageEdges'), async (req, res) => {
   try {
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      maxOffset: MAX_PRIVACY_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json({
+        success: false,
+        ...offsetExceededError({ requestedOffset, maxOffset: MAX_PRIVACY_OFFSET }),
+      });
+    }
+
     const result = await queryPrivacyLinkageEdges(pool, {
-      limit: Number(req.query.limit ?? 20),
-      offset: Number(req.query.offset ?? 0),
+      limit,
+      offset,
       minScore: Number(req.query.minScore ?? 40),
       period: req.query.period || '7d',
       riskLevel: req.query.riskLevel || 'ALL',
@@ -88,10 +122,10 @@ router.get('/api/privacy/linkage-edges', validate('privacyLinkageEdges'), async 
       pagination: result.pagination,
     });
   } catch (error) {
-    console.error('❌ [LINKAGE EDGES] Error:', error);
+    logSafeError('❌ [LINKAGE EDGES] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch linkage edges',
+      error: 'Failed to fetch linkage edges',
     });
   }
 });
@@ -129,10 +163,10 @@ router.get('/api/privacy/batch-risks', validate('privacyBatchRisks'), async (req
       },
     });
   } catch (error) {
-    console.error('❌ [BATCH RISKS] Error:', error);
+    logSafeError('❌ [BATCH RISKS] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to detect batch patterns',
+      error: 'Failed to detect batch patterns',
     });
   }
 });
@@ -155,10 +189,10 @@ router.get('/api/privacy/clusters', validate('privacyBatchRisks'), async (req, r
       pagination: result.pagination,
     });
   } catch (error) {
-    console.error('❌ [CLUSTERS] Error:', error);
+    logSafeError('❌ [CLUSTERS] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch clusters',
+      error: 'Failed to fetch clusters',
     });
   }
 });
@@ -168,10 +202,10 @@ router.get('/api/privacy/graph/:txid', validate('privacyGraph'), async (req, res
     const graph = await getPrivacyGraph(pool, req.params.txid);
     res.json({ success: true, ...graph });
   } catch (error) {
-    console.error('❌ [PRIVACY GRAPH] Error:', error);
+    logSafeError('❌ [PRIVACY GRAPH] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch privacy graph',
+      error: 'Failed to fetch privacy graph',
     });
   }
 });
@@ -190,10 +224,10 @@ router.get('/api/privacy/shield/:txid/batch', validate('privacyGraph'), async (r
       ...result,
     });
   } catch (error) {
-    console.error('❌ [BATCH CHECK] Error:', error);
+    logSafeError('❌ [BATCH CHECK] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to analyze shield for batch patterns',
+      error: 'Failed to analyze shield for batch patterns',
     });
   }
 });
@@ -205,8 +239,19 @@ router.get('/api/privacy/shield/:txid/batch', validate('privacyGraph'), async (r
  */
 router.get('/api/privacy/patterns', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      maxOffset: MAX_PRIVACY_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json({
+        success: false,
+        ...offsetExceededError({ requestedOffset, maxOffset: MAX_PRIVACY_OFFSET }),
+      });
+    }
+
     const patternType = req.query.type?.toUpperCase();
     const riskLevel = (req.query.riskLevel || 'ALL').toUpperCase();
 
@@ -292,10 +337,10 @@ router.get('/api/privacy/patterns', async (req, res) => {
       });
     }
 
-    console.error('❌ [PATTERNS] Error:', error);
+    logSafeError('❌ [PATTERNS] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch patterns',
+      error: 'Failed to fetch patterns',
     });
   }
 });
@@ -444,10 +489,10 @@ router.get('/api/privacy/common-amounts', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('❌ [COMMON AMOUNTS] Error:', error);
+    logSafeError('❌ [COMMON AMOUNTS] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch common amounts',
+      error: 'Failed to fetch common amounts',
     });
   }
 });
@@ -577,8 +622,8 @@ router.get('/api/privacy/recommended-swap-amounts', validate('recommendedAmounts
         tip: 'Cross-chain swap data is being collected. Recommendations coming soon.',
       });
     }
-    console.error('Recommended amounts error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    logSafeError('Recommended amounts error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch recommended swap amounts' });
   }
 });
 
@@ -708,7 +753,7 @@ router.get('/api/privacy/fee-lanes', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('❌ [FEE LANES] Error:', error);
+    logSafeError('❌ [FEE LANES] Error:', error);
     res.status(500).json({ success: false, error: 'Failed to compute fee lane distribution' });
   }
 });
@@ -998,7 +1043,7 @@ router.get('/api/privacy/wallet-fingerprints', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('❌ [WALLET FINGERPRINTS] Error:', error);
+    logSafeError('❌ [WALLET FINGERPRINTS] Error:', error);
     res.status(500).json({ success: false, error: 'Failed to compute wallet fingerprints' });
   }
 });

@@ -14,29 +14,17 @@ const WebSocket = require('ws');
 const http = require('http');
 const redis = require('redis');
 const fs = require('fs');
-const crypto = require('crypto');
 const { createListCache } = require('./list-cache');
-
-// Constant-time string comparison via fixed-length SHA-256 digests, so
-// mismatched lengths or values never leak timing information. Used for
-// service-key checks (HTTP + WebSocket) instead of === / Array.includes.
-function constantTimeEqual(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const hashA = crypto.createHash('sha256').update(a).digest();
-  const hashB = crypto.createHash('sha256').update(b).digest();
-  return crypto.timingSafeEqual(hashA, hashB);
-}
-
-// Checks `key` against every entry in `knownKeys` without early-returning,
-// so the number of valid keys configured does not create a timing signal.
-function isKnownServiceKey(key, knownKeys) {
-  if (!key) return false;
-  let matched = false;
-  for (const known of knownKeys) {
-    if (constantTimeEqual(key, known)) matched = true;
-  }
-  return matched;
-}
+const { createRequestObservability } = require('./request-observability');
+const createV1Router = require('./v1');
+const { isKnownServiceKey, createServiceKeyOnlySkip } = require('./service-auth');
+const {
+  createInstanceId,
+  wrapEnvelope,
+  createSeenMessageTracker,
+  receiveEnvelope,
+} = require('./broadcast-relay');
+const { createChainTipBroadcaster } = require('./chain-tip-broadcast');
 
 // Redacts dynamic path segments (addresses, tx/block hashes, heights) before
 // logging so request logs never contain queried identifiers or amounts.
@@ -70,6 +58,7 @@ const privacyRouter = require('./routes/privacy');
 const scanRouter = require('./routes/scan');
 const addressRouter = require('./routes/address');
 const blendCheckRouter = require('./routes/blend-check');
+const { logSafeError } = require('./lib/safe-log');
 const crosslinkRouter = require('./routes/crosslink');
 const reorgsRouter = require('./routes/reorgs');
 const poolsRouter = require('./routes/pools');
@@ -122,13 +111,13 @@ const pool = new Pool({
 // conflict) logs a warning instead of crashing the process via unhandled
 // EventEmitter 'error'.
 pool.on('error', (err) => {
-  console.error('[pool:primary] Idle client error:', err.message);
+  logSafeError('[pool:primary] Idle client error:', err);
 });
 
 // Test database connection
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error('❌ Database connection failed:', err);
+    logSafeError('❌ Database connection failed:', err);
     process.exit(1);
   }
   console.log('✅ Database connected:', res.rows[0].now);
@@ -171,33 +160,52 @@ const redisSub = redisClient.duplicate();
     await redisSub.connect();
     console.log('✅ Redis connected');
   } catch (err) {
-    console.error('❌ Redis connection failed:', err);
+    logSafeError('❌ Redis connection failed:', err);
     console.warn('⚠️  Continuing without Redis (fallback to in-memory cache)');
   }
 })();
 
 // Handle Redis errors
-redisClient.on('error', (err) => console.error('Redis Client Error:', err));
-redisPub.on('error', (err) => console.error('Redis Pub Error:', err));
-redisSub.on('error', (err) => console.error('Redis Sub Error:', err));
+redisClient.on('error', (err) => logSafeError('Redis Client Error:', err));
+redisPub.on('error', (err) => logSafeError('Redis Pub Error:', err));
+redisSub.on('error', (err) => logSafeError('Redis Sub Error:', err));
+
+// Identifies this process's broadcasts on the shared Redis channel so its
+// own publishes are never re-delivered to its own WebSocket clients (see
+// broadcast-relay.js). Every API instance publishes AND subscribes to the
+// same 'zcash:broadcast' channel, so without this check the instance that
+// originates an event would deliver it locally twice: once synchronously,
+// and once again when its own publish echoes back through its subscription.
+const SERVER_INSTANCE_ID = createInstanceId();
+const seenBroadcastMessages = createSeenMessageTracker();
 
 // Subscribe to Redis broadcast channel (for multi-server support)
 (async () => {
   try {
     if (redisSub.isOpen) {
       await redisSub.subscribe('zcash:broadcast', (message) => {
+        // Drops self-echoes (already delivered locally by broadcastToAll)
+        // and already-seen message IDs; forwards everything else — i.e.
+        // events genuinely originating from another instance.
+        const body = receiveEnvelope({
+          raw: message,
+          ownInstanceId: SERVER_INSTANCE_ID,
+          tracker: seenBroadcastMessages,
+        });
+        if (body === null) return;
+
         console.log('📡 [Redis] Received broadcast from another server');
-        // Forward to local WebSocket clients
+        const bodyStr = JSON.stringify(body);
         clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            client.send(bodyStr);
           }
         });
       });
       console.log('✅ Subscribed to Redis broadcast channel');
     }
   } catch (err) {
-    console.error('❌ Redis subscribe error:', err);
+    logSafeError('❌ Redis subscribe error:', err);
   }
 })();
 
@@ -245,7 +253,7 @@ try {
   CompactTxStreamer = protoDescriptor.cash.z.wallet.sdk.rpc.CompactTxStreamer;
   console.log('✅ Lightwalletd gRPC client initialized');
 } catch (error) {
-  console.error('❌ Failed to initialize Lightwalletd gRPC client:', error);
+  logSafeError('❌ Failed to initialize Lightwalletd gRPC client:', error);
   console.error('   Make sure proto files exist in proto/ directory');
 }
 
@@ -294,7 +302,18 @@ app.use(cors({
     }
   },
   credentials: true,
-  exposedHeaders: ['X-CipherScan-Cache', 'Server-Timing'],
+  exposedHeaders: [
+    'X-Request-Id',
+    'X-CipherScan-Cache',
+    'X-CipherScan-Indexed-Height',
+    'X-CipherScan-Data-Age-Blocks',
+    'Server-Timing',
+  ],
+}));
+
+app.use(createRequestObservability({
+  getIndexedHeight: () => app.locals.chainTip?.height,
+  getDataAgeBlocks: () => app.locals.poolRouting?.getCircuitState().cachedLagBlocks,
 }));
 
 // Internal service API keys bypass rate limiting (comma-separated in env)
@@ -310,6 +329,10 @@ const OWN_ORIGINS = [
   'http://localhost:3001',
 ];
 
+// OWN_ORIGINS is used ONLY for the WebSocket upgrade check below — it is
+// NOT a rate-limit bypass signal (see the HTTP rate limiter's `skip`,
+// which is service-key only for exactly that reason).
+//
 // WebSocket upgrades are gated here (no cookies/CORS involved in the
 // handshake): allow a valid service key from any origin (CipherPay, internal
 // services), allow our own frontend origins, and allow requests with no
@@ -330,22 +353,21 @@ const wss = new WebSocket.Server({
   },
 });
 
+// Rate-limit bypass is service-key only. Origin/Referer headers are
+// client-supplied and trivially spoofable by any non-browser HTTP client
+// (there is no CORS/browser enforcement on the server side of a plain
+// HTTP request), so they must never gate a rate-limit bypass — doing so
+// let any caller claim to be "our own frontend" and evade the global
+// limit entirely by sending an Origin/Referer header matching one of our
+// domains. Only a shared secret an outside caller cannot forge is safe
+// here.
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 600,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    // Service key bypass (Vercel ISR, CipherPay, bots)
-    const key = req.headers['x-service-key'];
-    if (isKnownServiceKey(key, SERVICE_API_KEYS)) return true;
-    // Own frontend bypass — browsers visiting our site send Origin or Referer
-    const origin = req.headers['origin'] || '';
-    const referer = req.headers['referer'] || '';
-    if (OWN_ORIGINS.some(o => origin === o || referer.startsWith(o))) return true;
-    return false;
-  },
+  skip: createServiceKeyOnlySkip(SERVICE_API_KEYS),
 });
 
 app.use(limiter);
@@ -430,6 +452,10 @@ app.use(pulseRouter);
 // Private trading signals: /api/signals/* (service-key protected)
 app.use('/api/signals', signalsRouter);
 
+// Stable public API contract. The router is fail-closed by default and returns
+// an indistinguishable 404 until API_V1_ENABLED is explicitly configured.
+app.use('/v1', createV1Router());
+
 // Count registered API routes (available as app.locals.apiRouteCount)
 function countApiRoutes(app) {
   let count = 0;
@@ -502,7 +528,7 @@ async function checkWebSocketRateLimit(ip) {
 
     return count <= 10;
   } catch (err) {
-    console.error('Redis rate limit error:', err);
+    logSafeError('Redis rate limit error:', err);
     return checkWebSocketRateLimitFallback(ip);
   }
 }
@@ -624,13 +650,18 @@ async function broadcastToAll(message, serviceExtra = null) {
     }
   });
 
-  // Publish regular payload to Redis for multi-server support
+  // Publish the regular (non-service) payload to Redis for multi-server
+  // support, wrapped with this instance's ID + a message ID so every
+  // instance's own subscription can recognize and drop its own publishes
+  // (see broadcast-relay.js). Service-only fields (raw_hex) are NEVER
+  // published here — they remain local to whichever instance received the
+  // underlying gRPC event, unchanged from before this fix.
   try {
     if (redisPub.isOpen) {
-      await redisPub.publish('zcash:broadcast', regularStr);
+      await redisPub.publish('zcash:broadcast', wrapEnvelope(SERVER_INSTANCE_ID, message));
     }
   } catch (err) {
-    console.error('Redis publish error:', err);
+    logSafeError('Redis publish error:', err);
   }
 }
 
@@ -678,8 +709,25 @@ async function purgeChainTipCache() {
 // ZEBRA GRPC STREAMING (real-time mempool + blocks)
 // ============================================================================
 
-let grpcConnected = false;
 let lastKnownHeight = 0;
+
+// Bounds the PRIMARY (write pool) commit-polling window for a just-announced
+// chain tip and self-corrects with the full row once the indexer catches up.
+// `pool` here is intentionally the top-level primary Pool (== app.locals.writePool),
+// never the smart read pool — the replica can legitimately lag the primary
+// (see pool-routing.js), which would make this wait on data that already
+// committed.
+const chainTipBroadcaster = createChainTipBroadcaster({
+  queryBlockByHeight: async (height) => {
+    const result = await pool.query('SELECT * FROM blocks WHERE height = $1', [height]);
+    return result.rows[0] || null;
+  },
+  broadcast: broadcastNewBlock,
+  getChainTip: () => chainTip,
+  onError: (context, err) => {
+    logSafeError(`[chain-tip:${context}] primary query failed:`, err);
+  },
+});
 
 const zebraGrpc = new ZebraGrpcClient(
   process.env.ZEBRA_GRPC_URL || null,
@@ -731,24 +779,16 @@ const zebraGrpc = new ZebraGrpcClient(
 
     onChainTipChange: async (tip) => {
       lastKnownHeight = tip.height;
-
-      // Wait briefly for cipherscan-rust indexer to process the block
-      await new Promise(r => setTimeout(r, 500));
-
-      try {
-        const blockResult = await pool.query('SELECT * FROM blocks WHERE height = $1', [tip.height]);
-        if (blockResult.rows.length > 0) {
-          broadcastNewBlock(blockResult.rows[0]);
-        } else {
-          broadcastNewBlock({ height: tip.height, hash: tip.hash });
-        }
-      } catch (err) {
-        broadcastNewBlock({ height: tip.height, hash: tip.hash });
-      }
+      await chainTipBroadcaster.handleChainTipChange(tip);
     },
 
-    onConnectionChange: (connected) => {
-      grpcConnected = connected;
+    onConnectionChange: () => {
+      // No-op: the mempool and chain-tip streams are supervised
+      // independently (see zebra-grpc.js). Callers that need connectivity
+      // should read zebraGrpc.getStatus() directly rather than relying on
+      // a combined flag captured at some point in the past — the poll
+      // fallback below specifically checks the chain-tip stream, since
+      // that's the one that determines block-freshness correctness.
     },
   }
 );
@@ -760,9 +800,15 @@ const forkMonitor = new ForkMonitor({ pool, grpc, CompactTxStreamer });
 forkMonitor.start();
 app.locals.forkMonitor = forkMonitor;
 
-// Fallback: poll for new blocks every 10s when gRPC is not connected
+// Fallback: poll for new blocks every 10s when the chain-tip gRPC stream
+// specifically is not connected. Gating on the chain-tip stream (rather
+// than a combined mempool+chain-tip flag) matters: previously the
+// chain-tip stream had no reconnect logic of its own, so if it died while
+// the mempool stream stayed healthy, `grpcConnected` never flipped to
+// false and this fallback never engaged — new blocks silently stopped
+// being detected until the whole process restarted.
 setInterval(async () => {
-  if (grpcConnected) return;
+  if (zebraGrpc.getStatus().chainTip) return;
 
   try {
     const result = await pool.query('SELECT MAX(height) as max_height FROM blocks');
@@ -786,15 +832,17 @@ setInterval(async () => {
       lastKnownHeight = currentHeight;
     }
   } catch (error) {
-    console.error('Error polling for new blocks:', error);
+    logSafeError('Error polling for new blocks:', error);
   }
 }, 10000);
 
 // Expose gRPC + WebSocket status for health checks
 app.get('/api/grpc-status', (req, res) => {
   const serviceClients = [...clients].filter(c => c.isService && c.readyState === WebSocket.OPEN).length;
+  const streamStatus = zebraGrpc.getStatus();
   res.json({
-    connected: grpcConnected,
+    connected: streamStatus.mempool && streamStatus.chainTip,
+    streams: streamStatus,
     url: process.env.ZEBRA_GRPC_URL ? 'configured' : 'not configured',
     websocket: {
       clients: [...clients].filter(c => c.readyState === WebSocket.OPEN).length,
@@ -815,7 +863,7 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  logSafeError('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -841,14 +889,57 @@ server.listen(PORT, '127.0.0.1', () => {
   `);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server...');
+// Graceful shutdown: stop originating new work first (stream supervisors,
+// pollers, the ping interval), then stop accepting connections, then close
+// the datastores those components depend on. A force-exit timer guards
+// against any single step hanging (e.g. a stuck socket) blocking a
+// deploy/restart indefinitely.
+function shutdown(signal) {
+  console.log(`${signal} received, closing server...`);
+
+  const forceExitTimer = setTimeout(() => {
+    console.error('Graceful shutdown timed out after 10s — forcing exit');
+    process.exit(1);
+  }, 10_000);
+  forceExitTimer.unref?.();
+
+  // Stop producing new broadcasts/streams before tearing down the transport
+  // they'd otherwise try to send through.
+  zebraGrpc.stop();
   forkMonitor.stop();
-  server.close(() => {
+  clearInterval(wsAliveCheck);
+
+  server.close(async () => {
+    try {
+      await Promise.allSettled([
+        redisClient.isOpen ? redisClient.close() : null,
+        redisPub.isOpen ? redisPub.close() : null,
+        redisSub.isOpen ? redisSub.close() : null,
+      ]);
+    } catch (err) {
+      logSafeError('Error closing Redis clients:', err);
+    }
+
+    // The replica pool (if configured) is a separate `pg.Pool` from the
+    // primary and must be closed independently, or its connections leak
+    // past process exit until the OS/Postgres time them out.
+    const replicaPool = poolRouting.hasReplica() ? poolRouting.getReadPool() : null;
+
     pool.end(() => {
-      console.log('Database pool closed');
-      process.exit(0);
+      console.log('Primary database pool closed');
+      if (replicaPool && typeof replicaPool.end === 'function') {
+        replicaPool.end(() => {
+          console.log('Replica database pool closed');
+          clearTimeout(forceExitTimer);
+          process.exit(0);
+        });
+      } else {
+        clearTimeout(forceExitTimer);
+        process.exit(0);
+      }
     });
   });
-});
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

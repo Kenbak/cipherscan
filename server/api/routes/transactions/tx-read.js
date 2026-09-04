@@ -6,13 +6,28 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../../validation');
 const { deps } = require('./_helpers');
+const { parseSafeListPagination, offsetExceededError } = require('../../lib/pagination');
+const { logSafeError } = require('../../lib/safe-log');
+
+// `transactions` is a multi-million-row, ever-growing table; an unbounded
+// OFFSET on it would force Postgres to scan and discard everything before
+// the requested page.
+const MAX_SHIELDED_TX_OFFSET = 100_000;
 
 // Get shielded transactions with filters (MUST be before /api/tx/:txid)
 router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
   try {
     // Query parameters
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const { limit, offset, requestedOffset, offsetExceeded } = parseSafeListPagination(req.query, {
+      defaultLimit: 50,
+      maxLimit: 100,
+      maxOffset: MAX_SHIELDED_TX_OFFSET,
+    });
+
+    if (offsetExceeded) {
+      return res.status(400).json(offsetExceededError({ requestedOffset, maxOffset: MAX_SHIELDED_TX_OFFSET }));
+    }
+
     const poolType = req.query.pool; // 'sapling', 'orchard', or undefined for both
     const txType = req.query.type; // 'fully-shielded', 'partial', or undefined for all
     const minActions = parseInt(req.query.min_actions) || 0;
@@ -133,7 +148,7 @@ router.get('/api/tx/shielded', validate('shieldedTxs'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching shielded transactions:', error);
+    logSafeError('Error fetching shielded transactions:', error);
     res.status(500).json({ error: 'Failed to fetch shielded transactions' });
   }
 });
@@ -174,10 +189,10 @@ router.get('/api/tx/:txid/linkability', validate('txLinkability'), async (req, r
       ...result,
     });
   } catch (error) {
-    console.error('❌ [LINKABILITY] Error:', error);
+    logSafeError('❌ [LINKABILITY] Error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to analyze transaction linkability',
+      error: 'Failed to analyze transaction linkability',
     });
   }
 });

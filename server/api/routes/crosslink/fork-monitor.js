@@ -3,6 +3,7 @@
  */
 
 const express = require('express');
+const { logSafeError } = require('../../lib/safe-log');
 const router = express.Router();
 const {
   deps,
@@ -183,7 +184,7 @@ router.get('/api/crosslink/fork-monitor', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Fork monitor error:', error);
+    logSafeError('Fork monitor error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch fork monitor data' });
   }
 });
@@ -235,7 +236,7 @@ router.post('/api/crosslink/fork-monitor/check', async (req, res) => {
 
     res.json({ success: true, results });
   } catch (error) {
-    console.error('Fork monitor check error:', error);
+    logSafeError('Fork monitor check error:', error);
     res.status(500).json({ success: false, error: 'Failed to check hashes' });
   }
 });
@@ -258,7 +259,7 @@ router.get('/api/crosslink/block-hash/:height', async (req, res) => {
     }
     res.json({ success: true, height, hash });
   } catch (error) {
-    console.error('Block hash lookup error:', error);
+    logSafeError('Block hash lookup error:', error);
     res.status(500).json({ success: false, error: 'Failed to get block hash' });
   }
 });
@@ -361,7 +362,7 @@ router.post('/api/crosslink/fork-monitor/report', async (req, res) => {
     const { rows: nodeCount } = await deps.writePool.query('SELECT COUNT(*)::int AS cnt FROM fork_monitor_nodes');
     res.json({ success: true, registered: cleanName, node_count: nodeCount[0].cnt });
   } catch (error) {
-    console.error('Fork monitor report error:', error);
+    logSafeError('Fork monitor report error:', error);
     res.status(500).json({ success: false, error: 'Failed to register node' });
   }
 });
@@ -392,7 +393,7 @@ router.delete('/api/crosslink/fork-monitor/report/:name', async (req, res) => {
 
     res.json({ success: true, deleted: cleanName });
   } catch (error) {
-    console.error('Fork monitor delete error:', error);
+    logSafeError('Fork monitor delete error:', error);
     res.status(500).json({ success: false, error: 'Failed to delete node' });
   }
 });
