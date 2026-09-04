@@ -1,6 +1,7 @@
 'use client';
 
 import { Tabs } from '@/components/ui/Tabs';
+import type { TxMeta } from '@/lib/seo';
 import { classifyTransaction } from './tx-classification';
 import { useTransactionPage } from './useTransactionPage';
 import { TxLoadingSkeleton } from './TxLoadingSkeleton';
@@ -14,9 +15,11 @@ import { RawDataSection } from './RawDataSection';
 
 interface TxDetailClientProps {
   txid: string;
+  /** Server-resolved summary from `getTxResolution` — seeds the loading state. */
+  initialMeta?: TxMeta | null;
 }
 
-export default function TxDetailClient({ txid }: TxDetailClientProps) {
+export default function TxDetailClient({ txid, initialMeta = null }: TxDetailClientProps) {
   const {
     data,
     loading,
@@ -38,7 +41,7 @@ export default function TxDetailClient({ txid }: TxDetailClientProps) {
   } = useTransactionPage(txid);
 
   if (loading) {
-    return <TxLoadingSkeleton />;
+    return <TxLoadingSkeleton initialMeta={initialMeta} />;
   }
 
   if (!data) {

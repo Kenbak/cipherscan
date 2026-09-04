@@ -235,7 +235,7 @@ export function VolumeAreaChart({ data, width, height: chartHeight, colors, priv
       {tooltip &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-[9999] rounded-md border border-cipher-border/50 bg-[#1a1f2e]/95 px-2.5 py-1.5 text-[10px] font-mono shadow-xl backdrop-blur-md"
+            className="pointer-events-none fixed z-[9999] rounded-md border border-cipher-border/50 bg-cipher-surface-solid/95 px-2.5 py-1.5 text-[10px] font-mono shadow-xl backdrop-blur-md"
             style={{ left: tooltip.x + 12, top: tooltip.y - 60 }}
           >
             <div className="mb-1 text-muted">Block ~{tooltip.bucket.height.toLocaleString()}</div>

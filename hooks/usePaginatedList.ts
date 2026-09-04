@@ -83,6 +83,10 @@ export interface UsePaginatedListResult<
   page: number;
   pagination: P;
   loading: boolean;
+  /** True while a background (silent/poll-driven) refresh is in flight.
+   * Distinct from `loading`, which is reserved for explicit page loads —
+   * `items`/`pagination` are retained on screen during a silent refresh. */
+  isRefreshing: boolean;
   dataAvailable: boolean;
   extra: E | undefined;
   isFirstPage: boolean;
@@ -113,6 +117,21 @@ function defaultShouldWsRefresh(
   _latestKey: string | number,
 ): boolean {
   return msg.type === 'new_block' || msg.type === 'chain_tip';
+}
+
+const DEFAULT_TIMEOUT_MS = 15000;
+const MAX_BACKOFF_MS = 5 * 60 * 1000;
+
+/** fetch() with a request timeout — a hung list/silent-refresh request
+ * should never block the next poll tick indefinitely. */
+async function fetchWithTimeout(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export function usePaginatedList<
@@ -149,7 +168,7 @@ export function usePaginatedList<
   const latestKeyRef = useRef<string | number>(
     initialItems[0] ? getLatestKey(initialItems[0]) : '',
   );
-  const silentRefreshRef = useRef<() => void>(() => {});
+  const silentRefreshRef = useRef<() => Promise<void>>(async () => {});
 
   const [items, setItems] = useState<T[]>(initialItems);
   const [page, setPage] = useState(initialPage);
@@ -186,7 +205,7 @@ export function usePaginatedList<
         }
       }
 
-      const res = await fetch(`${base}${endpoint}?${params}`);
+      const res = await fetchWithTimeout(`${base}${endpoint}?${params}`);
       if (!res.ok) throw new Error(`${endpoint} returned ${res.status}`);
       const json = await res.json();
 
@@ -257,22 +276,37 @@ export function usePaginatedList<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshInFlightRef = useRef(false);
+  const refreshFailureCountRef = useRef(0);
+
   const silentRefresh = useCallback(async () => {
     if (!isFirstPage || page !== 1 || !enabled) return;
+    // Guard against overlap: a slow refresh plus a WS-triggered refresh
+    // (or a poll tick landing mid-request) should never fire concurrently.
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    setIsRefreshing(true);
     try {
       const base = usePostgresApiClient() ? getApiUrl() : '';
       const params = new URLSearchParams({
         limit: String(pageSize + 1),
         ...(buildParams?.() ?? {}),
       });
-      const res = await fetch(`${base}${endpoint}?${params}`);
-      if (!res.ok) return;
+      const res = await fetchWithTimeout(`${base}${endpoint}?${params}`);
+      if (!res.ok) throw new Error(`${endpoint} returned ${res.status}`);
       const json = await res.json();
       const all = getItemsFromResponse(json);
-      if (!json.success || all.length === 0) return;
+      if (!json.success || all.length === 0) {
+        refreshFailureCountRef.current = 0;
+        return;
+      }
 
       const topKey = getLatestKey(all[0]);
-      if (topKey === latestKeyRef.current) return;
+      if (topKey === latestKeyRef.current) {
+        refreshFailureCountRef.current = 0;
+        return;
+      }
       latestKeyRef.current = topKey;
 
       const visibleItems = all.slice(0, pageSize);
@@ -298,7 +332,15 @@ export function usePaginatedList<
         setExtra(processExtra(all, visibleItems));
       }
       setDataAvailable(true);
-    } catch { /* silent */ }
+      refreshFailureCountRef.current = 0;
+    } catch {
+      // Silent by design (background refresh) — but tracked so the poll
+      // loop below can back off instead of hammering a struggling endpoint.
+      refreshFailureCountRef.current += 1;
+    } finally {
+      refreshInFlightRef.current = false;
+      setIsRefreshing(false);
+    }
   }, [
     isFirstPage,
     page,
@@ -325,13 +367,48 @@ export function usePaginatedList<
     isFirstPage ? { onMessage: handleWsMessage } : {},
   );
 
+  // Self-rescheduling timeout chain (rather than setInterval) so the delay
+  // can back off on repeated failures and pause entirely while the tab is
+  // hidden — a backgrounded tab polling a list nobody can see wastes both
+  // battery and API quota. Resumes (with an immediate refresh if stale)
+  // the moment the tab becomes visible again.
   useEffect(() => {
     if (!isFirstPage || page !== 1) return;
-    const interval = setInterval(
-      () => silentRefreshRef.current(),
-      wsConnected ? 60000 : 15000,
-    );
-    return () => clearInterval(interval);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const baseDelay = wsConnected ? 60000 : 15000;
+
+    const scheduleNext = () => {
+      if (cancelled || typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      const delay = refreshFailureCountRef.current > 0
+        ? Math.min(baseDelay * 2 ** refreshFailureCountRef.current, MAX_BACKOFF_MS)
+        : baseDelay;
+      timer = setTimeout(async () => {
+        await silentRefreshRef.current();
+        scheduleNext();
+      }, delay);
+    };
+
+    scheduleNext();
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        return;
+      }
+      if (!timer) {
+        silentRefreshRef.current().finally(scheduleNext);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [isFirstPage, page, wsConnected]);
 
   const pagRecord = pagination as Record<string, unknown>;
@@ -358,6 +435,7 @@ export function usePaginatedList<
     page,
     pagination,
     loading,
+    isRefreshing,
     dataAvailable,
     extra,
     isFirstPage,

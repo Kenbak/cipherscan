@@ -143,11 +143,17 @@ export function KpiCell({
   return <div className={className}>{body}</div>;
 }
 
-export function EmptyPanel({ activated }: { activated: boolean }) {
+export function EmptyPanel({
+  activated,
+  message,
+}: {
+  activated: boolean;
+  message?: string;
+}) {
   return (
     <div className="h-[140px] flex items-center justify-center rounded-lg border border-dashed border-cipher-border/50 bg-glass-3">
       <p className="text-xs text-muted font-mono">
-        {activated ? 'No migrations indexed yet' : 'Populates at activation'}
+        {message ?? (activated ? 'No migrations indexed yet' : 'Populates at activation')}
       </p>
     </div>
   );

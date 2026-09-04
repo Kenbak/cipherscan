@@ -28,12 +28,12 @@ export function TxNotFoundView({
           Transaction Details
         </h2>
       </div>
-      <Card>
+      <Card role={isChecking ? 'status' : 'alert'} ariaLive={isChecking ? 'polite' : 'assertive'}>
         <CardBody>
           <div className="text-center py-12">
             {isChecking ? (
               <>
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent mx-auto mb-5"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent mx-auto mb-5" aria-hidden="true"></div>
                 <p className="text-sm text-secondary font-mono">Looking up transaction...</p>
               </>
             ) : (

@@ -1,5 +1,7 @@
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { formatRelativeTime } from '@/lib/utils';
+import { formatBytesCompact } from '@/lib/format-numbers';
 import type { BlockPageSummary } from './types';
 
 function Skeleton({ className = '' }: { className?: string }) {
@@ -45,8 +47,35 @@ export function BlockPageSkeleton({
             </>
           )}
         </p>
+        {/* Server-seeded facts from the SEO resolution fetch — real content
+            instead of a shimmer while the full block detail loads client-side. */}
+        {initialSummary && (initialSummary.timestamp != null || initialSummary.transactionCount != null || initialSummary.size != null) && (
+          <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-mono text-muted">
+            {initialSummary.timestamp != null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted/60">Mined</dt>
+                <dd className="text-secondary">{formatRelativeTime(initialSummary.timestamp)}</dd>
+              </div>
+            )}
+            {initialSummary.transactionCount != null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted/60">Transactions</dt>
+                <dd className="text-secondary">{initialSummary.transactionCount.toLocaleString()}</dd>
+              </div>
+            )}
+            {initialSummary.size != null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted/60">Size</dt>
+                <dd className="text-secondary">{formatBytesCompact(initialSummary.size)}</dd>
+              </div>
+            )}
+          </dl>
+        )}
       </div>
-      <Card className="mb-6">
+      <div role="status" aria-live="polite" className="sr-only">
+        Loading full block details for block {initialSummary ? `#${initialSummary.height.toLocaleString()}` : identifier}…
+      </div>
+      <Card className="mb-6" aria-hidden="true">
         <CardBody>
           <div className="space-y-4">
             {[0, 1, 2, 3, 4].map((i) => (
@@ -59,7 +88,7 @@ export function BlockPageSkeleton({
           </div>
         </CardBody>
       </Card>
-      <Card>
+      <Card aria-hidden="true">
         <CardHeader><Skeleton className="h-4 w-32" /></CardHeader>
         <CardBody>
           <div className="space-y-3">

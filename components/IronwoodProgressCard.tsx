@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, memo, type ReactNode } from 'react';
-import { usePostgresApiClient, getApiUrl } from '@/lib/api-config';
+import { memo, type ReactNode } from 'react';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { formatZecCompact } from '@/lib/format-numbers';
 
 // Pixel-matched to the table-based Customize options' measured rendered
@@ -30,6 +30,11 @@ interface MigrationOverview {
   } | null;
 }
 
+// Same endpoint + interval as IronwoodBanner (see the comment there) — this
+// exact (path, params, refreshInterval) match is what lets useApiQuery's
+// shared-poll registry serve both from one request/timer instead of two.
+const OVERVIEW_REFRESH_MS = 30000;
+
 /**
  * Homepage-sized "Ironwood migration progress" widget — a stat block, not a
  * table, since this data is a handful of fixed numbers rather than a
@@ -38,46 +43,12 @@ interface MigrationOverview {
  * with what that banner says elsewhere on the page.
  */
 export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer }: { footer?: ReactNode } = {}) {
-  const [data, setData] = useState<MigrationOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(false);
-  const loadedOnce = useRef(false);
-
-  const fetchOverview = useCallback(async () => {
-    try {
-      const apiUrl = usePostgresApiClient()
-        ? `${getApiUrl()}/api/migration/overview`
-        : '/api/migration/overview';
-
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        setUnavailable(true);
-        return;
-      }
-      const json = await response.json();
-      if (json.success) {
-        setData(json);
-        setUnavailable(false);
-      } else {
-        setUnavailable(true);
-      }
-    } catch (error) {
-      console.error('Error fetching migration overview:', error);
-      setUnavailable(true);
-    } finally {
-      if (!loadedOnce.current) {
-        loadedOnce.current = true;
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOverview();
-    // Matches IronwoodBanner's own poll interval — same data, same freshness.
-    const interval = setInterval(fetchOverview, 30000);
-    return () => clearInterval(interval);
-  }, [fetchOverview]);
+  const { data, loading, error } = useApiQuery<MigrationOverview>(
+    '/api/migration/overview',
+    undefined,
+    { refreshInterval: OVERVIEW_REFRESH_MS },
+  );
+  const unavailable = !!error || (!loading && (!data || data.success === false));
 
   if (loading) {
     return (

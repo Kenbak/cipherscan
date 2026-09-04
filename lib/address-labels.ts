@@ -10,44 +10,62 @@ import { useEffect, useState } from 'react';
 // Cache for official labels from API
 let officialLabelsCache: Record<string, { label: string; description?: string; category?: string }> = {};
 let labelsCacheExpiry = 0;
+let labelsRetryAfter = 0;
+let officialLabelsRequest: Promise<Record<string, { label: string; description?: string; category?: string }>> | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const FAILURE_BACKOFF = 30 * 1000;
+const REQUEST_TIMEOUT = 8 * 1000;
 
 /**
  * Fetch official labels from the API
  */
 export async function fetchOfficialLabels(): Promise<Record<string, { label: string; description?: string; category?: string }>> {
+  const now = Date.now();
   // Return cache if still valid
-  if (Date.now() < labelsCacheExpiry && Object.keys(officialLabelsCache).length > 0) {
+  if (now < labelsCacheExpiry) {
     return officialLabelsCache;
   }
+  if (now < labelsRetryAfter) return officialLabelsCache;
+  if (officialLabelsRequest) return officialLabelsRequest;
 
-  try {
+  officialLabelsRequest = (async () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.mainnet.cipherscan.app';
-    const response = await fetch(`${apiUrl}/api/labels`);
+    try {
+      const response = await fetch(`${apiUrl}/api/labels`, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      });
 
-    if (!response.ok) {
-      console.warn('Failed to fetch official labels');
+      if (!response.ok) {
+        labelsRetryAfter = Date.now() + FAILURE_BACKOFF;
+        console.warn(`Official labels temporarily unavailable (HTTP ${response.status})`);
+        return officialLabelsCache;
+      }
+
+      const data = await response.json();
+
+      // Convert array to Record
+      officialLabelsCache = {};
+      for (const item of data.labels || []) {
+        officialLabelsCache[item.address] = {
+          label: item.label,
+          description: item.description,
+          category: item.category,
+        };
+      }
+
+      labelsCacheExpiry = Date.now() + CACHE_DURATION;
+      labelsRetryAfter = 0;
       return officialLabelsCache;
+    } catch {
+      labelsRetryAfter = Date.now() + FAILURE_BACKOFF;
+      console.warn('Official labels temporarily unavailable');
+      return officialLabelsCache;
+    } finally {
+      officialLabelsRequest = null;
     }
+  })();
 
-    const data = await response.json();
-
-    // Convert array to Record
-    officialLabelsCache = {};
-    for (const item of data.labels || []) {
-      officialLabelsCache[item.address] = {
-        label: item.label,
-        description: item.description,
-        category: item.category,
-      };
-    }
-
-    labelsCacheExpiry = Date.now() + CACHE_DURATION;
-    return officialLabelsCache;
-  } catch (error) {
-    console.warn('Error fetching official labels:', error);
-    return officialLabelsCache;
-  }
+  return officialLabelsRequest;
 }
 
 /**
@@ -55,6 +73,13 @@ export async function fetchOfficialLabels(): Promise<Record<string, { label: str
  */
 export function getOfficialLabels(): Record<string, { label: string; description?: string; category?: string }> {
   return officialLabelsCache;
+}
+
+export function __resetOfficialLabelsForTests(): void {
+  officialLabelsCache = {};
+  labelsCacheExpiry = 0;
+  labelsRetryAfter = 0;
+  officialLabelsRequest = null;
 }
 
 // localStorage key for custom labels

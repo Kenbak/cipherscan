@@ -2,8 +2,10 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { usePostgresApiClient, getApiUrl, API_CONFIG } from '@/lib/api-config';
 import { decodeUnifiedAddress } from '@/lib/wasm-loader';
+import type { AddressMeta } from '@/lib/seo';
 import { zatToZec } from '@/lib/format-numbers';
 import { AddressHeader } from './AddressHeader';
 import { AddressHeroCard } from './AddressHeroCard';
@@ -13,8 +15,27 @@ import { EmptyAddressView, IndexingIssueView } from './AddressStateViews';
 import { ShieldedAddressView } from './ShieldedAddressView';
 import { CrossChainTable } from './CrossChainTable';
 import { TransactionTable } from './TransactionTable';
-import { AddressGraph } from './AddressGraph';
 import { AddressSummary } from './AddressSummary';
+
+// AddressGraph pulls in d3-delaunay (via AddressBubbleMap) for its bubble
+// layout. It's below-fold behind the "Graph" tab (not the default active
+// tab), so most address-page visits never need it — dynamic-import it into
+// its own chunk instead of paying for it on every address-page load.
+const AddressGraph = dynamic(
+  () => import('./AddressGraph').then((mod) => mod.AddressGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-64 rounded-xl border border-cipher-border bg-cipher-surface animate-pulse"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="sr-only">Loading address graph…</span>
+      </div>
+    ),
+  },
+);
 import {
   transformTransactions,
   getTypeInfo,
@@ -35,9 +56,11 @@ const PAGE_SIZE = 25;
 
 interface AddressDetailClientProps {
   address: string;
+  /** Server-resolved summary from `getAddressResolution` — seeds the loading state. */
+  initialMeta?: AddressMeta | null;
 }
 
-export function AddressDetailClient({ address }: AddressDetailClientProps) {
+export function AddressDetailClient({ address, initialMeta = null }: AddressDetailClientProps) {
   const searchParams = useSearchParams();
   const [data, setData] = useState<AddressData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +180,7 @@ export function AddressDetailClient({ address }: AddressDetailClientProps) {
   }, [address]);
 
   if (loading) {
-    return <AddressLoadingSkeleton />;
+    return <AddressLoadingSkeleton initialMeta={initialMeta} address={address} />;
   }
 
   const shielded = isShieldedAddress(data);

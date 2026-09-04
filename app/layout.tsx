@@ -9,6 +9,7 @@ import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { ChainSyncBanner } from "@/components/ChainSyncBanner";
 import { NU7VoteBanner } from "@/components/NU7VoteBanner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { buildPageMetadata, getBaseUrl, getNetwork } from "@/lib/seo";
 import "./globals.css";
 
@@ -168,7 +169,9 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
-          <AppContent>{children}</AppContent>
+          <WebSocketProvider>
+            <AppContent>{children}</AppContent>
+          </WebSocketProvider>
         </ThemeProvider>
         <Analytics />
       </body>

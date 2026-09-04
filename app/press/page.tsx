@@ -113,7 +113,7 @@ function WordmarkPreview({ variant }: { variant: 'dark' | 'light' }) {
   return (
     <div
       className={`flex min-w-[200px] flex-1 items-center gap-2.5 rounded-xl border px-5 py-4 ${
-        isDark ? 'border-cipher-border/30 bg-[#08090F]' : 'border-cipher-border/20 bg-white'
+        isDark ? 'border-cipher-border/30 bg-cipher-bg-dark' : 'border-cipher-border/20 bg-white'
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -128,7 +128,7 @@ function LogoPreview({ variant }: { variant: 'dark' | 'light' }) {
   return (
     <div
       className={`flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-xl border p-5 ${
-        isDark ? 'border-cipher-border/30 bg-[#08090F]' : 'border-cipher-border/20 bg-white'
+        isDark ? 'border-cipher-border/30 bg-cipher-bg-dark' : 'border-cipher-border/20 bg-white'
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph';
+import { CrosslinkChainGraph } from '@/components/CrosslinkChainGraph.lazy';
 
 export default function ChainViewPage() {
   return (

@@ -30,6 +30,12 @@ export default function BlockPageClient({
   const txSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new DOMException('Block request timed out', 'TimeoutError')),
+      15_000,
+    );
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -39,7 +45,7 @@ export default function BlockPageClient({
           ? `${getApiUrl()}/api/block/${height}`
           : `/api/block/${height}`;
 
-        const response = await fetch(apiUrl);
+        const response = await fetch(apiUrl, { signal: controller.signal });
 
         if (response.status === 404 || response.status === 410) {
           setData(null);
@@ -63,11 +69,16 @@ export default function BlockPageClient({
         setData(null);
         setLoadError('unavailable');
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     };
 
     fetchData();
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
   }, [height]);
 
   const scrollToTransactions = () => {

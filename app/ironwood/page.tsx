@@ -7,9 +7,14 @@ const PAGE_NAME = 'Zcash Ironwood Upgrade & Migration Tracker';
 const PAGE_DESCRIPTION =
   'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on CipherScan.';
 
-async function fetchJson(apiBase: string, path: string, expectedNetwork: 'mainnet' | 'testnet') {
+async function fetchJson(
+  apiBase: string,
+  path: string,
+  expectedNetwork: 'mainnet' | 'testnet',
+  revalidate = 300,
+) {
   try {
-    const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate: 300 } });
+    const res = await fetchWithDeadline(`${apiBase}${path}`, { next: { revalidate } });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.success === true && data.network === expectedNetwork ? data : null;
@@ -31,9 +36,11 @@ export default async function MigrationPage() {
       ? 4134000
       : 0;
 
-  const [overview, cohorts] = await Promise.all([
+  const [overview, cohorts, activityHourly, activityDaily] = await Promise.all([
     fetchJson(apiBase, '/api/migration/overview', network),
     fetchJson(apiBase, '/api/migration/cohorts', network),
+    fetchJson(apiBase, '/api/migration/activity?granularity=hour', network, 30),
+    fetchJson(apiBase, '/api/migration/activity?granularity=day', network, 60),
   ]);
 
   const dataset = {
@@ -84,6 +91,8 @@ export default async function MigrationPage() {
       <MigrationClient
         initialOverview={overview}
         initialCohorts={cohorts}
+        initialActivityHourly={activityHourly}
+        initialActivityDaily={activityDaily}
         initialDenominations={null}
         deploymentNetwork={network}
         fallbackActivationHeight={fallbackActivationHeight}
