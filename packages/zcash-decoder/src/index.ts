@@ -75,7 +75,6 @@ export class ZcashWASM {
 
     try {
       // Dynamically import the WASM module
-      // @ts-expect-error -- generated WASM module is copied at package build time
       const wasmInit = await import('../wasm/zcash_wasm.js');
 
       // Initialize WASM
