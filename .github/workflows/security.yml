@@ -38,9 +38,31 @@ jobs:
       - name: Audit (${{ matrix.dir }})
         working-directory: ${{ matrix.dir }}
         # high+critical fail the build; lower severities are reported only.
+        # Every package now commits its lockfile. Audit that exact dependency
+        # graph instead of mutating it on the runner before the check.
         run: |
-          npm install --package-lock-only --no-audit --no-fund
-          npm audit --audit-level=high
+          for attempt in 1 2 3 4; do
+            set +e
+            output="$(npm audit --audit-level=high 2>&1)"
+            status=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if (( status == 0 )); then
+              exit 0
+            fi
+
+            if printf '%s' "$output" | grep -Eq \
+              '503 Service Unavailable|502 Bad Gateway|429 Too Many Requests|EAI_AGAIN|ECONNRESET|audit endpoint returned an error'; then
+              if (( attempt < 4 )); then
+                sleep $(( attempt * 15 ))
+                continue
+              fi
+            fi
+
+            # A real advisory failure is not transient and must remain fatal.
+            exit "$status"
+          done
 
   # ---------------------------------------------------------------------------
   # Rust dependency audit (RUSTSEC advisories)

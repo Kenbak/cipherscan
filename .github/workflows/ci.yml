@@ -53,6 +53,8 @@ jobs:
         run: npm run test:ttfb-probe
       - name: ISR warm-up safety tests
         run: npm run test:isr-warmup
+      - name: Revalidation security tests
+        run: npm run test:revalidate-security
       - name: Build
         env:
           # GitHub CI is deliberately offline. Production builds must leave
@@ -109,7 +111,7 @@ jobs:
         # node_modules so `require('express')` resolves.
         working-directory: ${{ github.workspace }}
         env:
-          NODE_PATH: server/api/node_modules
+          NODE_PATH: ${{ github.workspace }}/server/api/node_modules
         run: |
           node --test \
             server/tests/address-labels-resilience.test.js \
@@ -120,7 +122,6 @@ jobs:
             server/tests/blend-check-batch.test.js \
             server/tests/db-pool-deadlines.test.js \
             server/tests/error-message-leakage.test.js \
-            server/tests/revalidate-security.test.js \
             server/tests/safe-log.test.js \
             server/tests/ironwood-accounting.test.js \
             server/tests/exposure-consumers.test.js \
