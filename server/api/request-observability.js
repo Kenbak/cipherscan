@@ -2,6 +2,10 @@
 
 const { randomUUID } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
+const {
+  formatRequestTimings,
+  runWithRequestTimings,
+} = require('./request-timing-context');
 
 function finiteNonNegativeInteger(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -40,14 +44,16 @@ function createRequestObservability({
         }
 
         const elapsedMs = Math.max(0, now() - started).toFixed(1);
-        const existing = res.get('Server-Timing');
+        const existing = [res.get('Server-Timing'), formatRequestTimings()]
+          .filter(Boolean)
+          .join(', ');
         const totalTiming = `app;dur=${elapsedMs}`;
         res.set('Server-Timing', existing ? `${existing}, ${totalTiming}` : totalTiming);
       }
       return originalEnd.apply(this, args);
     };
 
-    next();
+    runWithRequestTimings(next);
   };
 }
 

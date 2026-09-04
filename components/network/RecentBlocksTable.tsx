@@ -5,7 +5,7 @@ import { formatRelativeTime } from '@/lib/format-numbers';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { DataTable, EmptyState, SectionHeader, type DataTableColumn } from '@/components/ui';
 
-interface RecentBlock {
+export interface RecentBlock {
   height: number;
   hash: string;
   timestamp: number;
@@ -13,6 +13,10 @@ interface RecentBlock {
   size: number;
   minerReward: number;
   fees: number;
+}
+
+export interface RecentBlocksResponse {
+  blocks: RecentBlock[];
 }
 
 const columns: DataTableColumn<RecentBlock>[] = [
@@ -62,10 +66,11 @@ const columns: DataTableColumn<RecentBlock>[] = [
   },
 ];
 
-export function RecentBlocksTable() {
-  const { data, loading } = useApiQuery<{ blocks: RecentBlock[] }>(
+export function RecentBlocksTable({ initialData }: { initialData?: RecentBlocksResponse | null }) {
+  const { data, loading } = useApiQuery<RecentBlocksResponse>(
     '/api/network/blocks/recent',
     { limit: 15 },
+    { refreshInterval: 60_000, initialData: initialData ?? undefined },
   );
   const blocks = data?.blocks ?? [];
 

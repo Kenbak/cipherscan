@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { getApiUrl } from '@/lib/api-config';
 import { ChartWatermark } from '@/components/ChartWatermark';
 import { clientLabel } from '@/lib/network-colors';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import {
   MAP_WIDTH,
   MAP_HEIGHT,
@@ -17,7 +17,7 @@ import {
 // TYPES
 // ==========================================================================
 
-interface NodeLocation {
+export interface NodeLocation {
   country: string;
   countryCode: string;
   city?: string | null;
@@ -29,7 +29,7 @@ interface NodeLocation {
   topIsp?: string | null;
 }
 
-interface NodeStats {
+export interface NodeStats {
   activeNodes: number;
   totalNodes: number;
   countries: number;
@@ -49,6 +49,25 @@ interface TopCountry {
   country: string;
   countryCode: string;
   nodeCount: number;
+}
+
+export interface NodeLocationsResponse {
+  success: boolean;
+  locations: NodeLocation[];
+  timestamp: number;
+}
+
+export interface NodeStatsResponse {
+  success: boolean;
+  stats: NodeStats;
+  trends?: NodeTrends;
+  topCountries?: TopCountry[];
+  timestamp: number;
+}
+
+interface NodeMapProps {
+  initialLocations?: NodeLocationsResponse | null;
+  initialStats?: NodeStatsResponse | null;
 }
 
 // ==========================================================================
@@ -87,50 +106,27 @@ function getFlagEmoji(countryCode: string): string {
 // COMPONENT
 // ==========================================================================
 
-export function NodeMap() {
-  const [locations, setLocations] = useState<NodeLocation[]>([]);
-  const [stats, setStats] = useState<NodeStats | null>(null);
-  const [trends, setTrends] = useState<NodeTrends | null>(null);
-  const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
+  const locationsQuery = useApiQuery<NodeLocationsResponse>(
+    '/api/network/nodes',
+    undefined,
+    { refreshInterval: 300_000, initialData: initialLocations ?? undefined },
+  );
+  const statsQuery = useApiQuery<NodeStatsResponse>(
+    '/api/network/nodes/stats',
+    undefined,
+    { refreshInterval: 300_000, initialData: initialStats ?? undefined },
+  );
+  const locations = locationsQuery.data?.locations ?? [];
+  const stats = statsQuery.data?.stats ?? null;
+  const trends = statsQuery.data?.trends ?? null;
+  const topCountries = statsQuery.data?.topCountries ?? [];
+  const loading = locationsQuery.loading || statsQuery.loading;
+  const error = locationsQuery.error || statsQuery.error;
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
   const worldDots = useWorldLandDots();
-
-  // Fetch node data from API
-  useEffect(() => {
-    const fetchNodes = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const [nodesRes, statsRes] = await Promise.all([
-          fetch(`${apiUrl}/api/network/nodes`),
-          fetch(`${apiUrl}/api/network/nodes/stats`),
-        ]);
-
-        if (!nodesRes.ok || !statsRes.ok) throw new Error('Failed to fetch node data');
-
-        const nodesData = await nodesRes.json();
-        const statsData = await statsRes.json();
-
-        setLocations(nodesData.locations || []);
-        setStats(statsData.stats);
-        setTrends(statsData.trends || null);
-        setTopCountries(statsData.topCountries || []);
-        setError(null);
-      } catch (err: any) {
-        console.error('Error fetching nodes:', err);
-        setError(err.message || 'Failed to load node map');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchNodes();
-    const interval = setInterval(fetchNodes, 300000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Cluster nearby nodes
   const clusteredNodes = useMemo(() => {
@@ -198,7 +194,10 @@ export function NodeMap() {
   }
 
   return (
-    <div className="bg-cipher-surface border border-cipher-border rounded-xl overflow-hidden">
+    <div
+      className="bg-cipher-surface border border-cipher-border rounded-xl overflow-hidden"
+      data-node-map-ready={locations.length > 0 ? 'true' : 'false'}
+    >
       {/* Header */}
       <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

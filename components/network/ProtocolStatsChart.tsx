@@ -9,7 +9,7 @@ import { getChartColors } from '@/lib/chart-theme';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { ChartCard } from './ChartCard';
 
-interface RawPoint {
+export interface RawPoint {
   month: string;
   saplingCommitments: number;
   saplingNullifiers: number;
@@ -31,14 +31,22 @@ function formatMillions(v: number): string {
 
 type Period = '2y' | '4y' | 'all';
 
-export function ProtocolStatsChart() {
+export interface ProtocolStatsResponse {
+  success: boolean;
+  current: RawPoint;
+  history: RawPoint[];
+}
+
+export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStatsResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [view, setView] = useState<'commitments' | 'nullifiers'>('commitments');
   const [period, setPeriod] = useState<Period>('4y');
 
-  const { data: apiData, loading } = useApiQuery<{ success: boolean; current: RawPoint; history: RawPoint[] }>(
+  const { data: apiData, loading } = useApiQuery<ProtocolStatsResponse>(
     '/api/network/protocol-stats',
+    undefined,
+    { initialData: initialData ?? undefined },
   );
   const current = apiData?.current ?? null;
   const rawData = useMemo(

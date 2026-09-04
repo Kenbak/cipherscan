@@ -5,6 +5,8 @@ const CACHE_VERSION = 1;
 const DEFAULT_MAX_ENTRIES = 1_000;
 const DEFAULT_REDIS_TIMEOUT_MS = 50;
 const REFRESH_LOCK_SECONDS = 30;
+const MISS_WAIT_ATTEMPTS = 8;
+const MISS_WAIT_MS = 25;
 const DELETE_IF_VALUE_MATCHES_SCRIPT =
   'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end';
 
@@ -193,6 +195,25 @@ function createListCache({
     return { value, timings: timer.timings };
   }
 
+  async function releaseOwnedLock(lockKey, lockToken) {
+    if (typeof redisClient?.eval !== 'function') return;
+    await redisOperation(() => redisClient.eval(
+      DELETE_IF_VALUE_MATCHES_SCRIPT,
+      { keys: [lockKey], arguments: [lockToken] },
+    ));
+  }
+
+  async function waitForDistributedFill(key) {
+    for (let attempt = 0; attempt < MISS_WAIT_ATTEMPTS; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, MISS_WAIT_MS));
+      const read = await redisOperation(() => redisClient.get(key));
+      if (!read.ok) return null;
+      const entry = parseEntry(read.value);
+      if (entry) return entry.value;
+    }
+    return null;
+  }
+
   function scheduleRefresh({
     family,
     key,
@@ -320,17 +341,42 @@ function createListCache({
       if (!pending) {
         isLeader = true;
         pending = (async () => {
-          const result = await runLoader(load);
-          if (cacheReadSucceeded && shouldCache(result.value)) {
-            await storeEntry({
-              family,
-              key,
-              value: result.value,
-              freshTtlSeconds,
-              staleTtlSeconds,
-            });
+          const lockKey = `${key}:miss-lock`;
+          const lockToken = randomUUID();
+          let ownsDistributedLock = false;
+          if (cacheReadSucceeded && usableRedis()) {
+            const locked = await redisOperation(() => redisClient.set(
+              lockKey,
+              lockToken,
+              { NX: true, EX: REFRESH_LOCK_SECONDS },
+            ));
+            ownsDistributedLock = locked.ok && locked.value === 'OK';
+            if (!ownsDistributedLock) {
+              const filled = await waitForDistributedFill(key);
+              if (filled !== null) {
+                return {
+                  value: filled,
+                  timings: [{ name: 'distributed_wait', durationMs: duration(waitStartedAt) }],
+                };
+              }
+            }
           }
-          return result;
+
+          try {
+            const result = await runLoader(load);
+            if (cacheReadSucceeded && shouldCache(result.value)) {
+              await storeEntry({
+                family,
+                key,
+                value: result.value,
+                freshTtlSeconds,
+                staleTtlSeconds,
+              });
+            }
+            return result;
+          } finally {
+            if (ownsDistributedLock) await releaseOwnedLock(lockKey, lockToken);
+          }
         })().finally(() => misses.delete(key));
         misses.set(key, pending);
       }

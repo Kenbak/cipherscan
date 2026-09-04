@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { createRequestObservability, finiteNonNegativeInteger } = require('../request-observability');
+const { addRequestTiming } = require('../request-timing-context');
 
 function responseRecorder() {
   const headers = new Map();
@@ -72,4 +73,27 @@ test('middleware appends total timing and omits unavailable freshness values', (
   assert.equal(res.get('server-timing'), 'cache;dur=1.0, app;dur=5.0');
   assert.equal(res.get('x-cipherscan-indexed-height'), undefined);
   assert.equal(res.get('x-cipherscan-data-age-blocks'), undefined);
+});
+
+test('middleware appends aggregate request timings without query details', () => {
+  const times = [20, 30];
+  const middleware = createRequestObservability({
+    createRequestId: () => 'request-id',
+    now: () => times.shift(),
+  });
+  const req = {};
+  const res = responseRecorder();
+
+  middleware(req, res, () => {
+    addRequestTiming('database', 4.25);
+    addRequestTiming('database', 1.25);
+    addRequestTiming('serialize', 0.75);
+    res.end();
+  });
+
+  assert.equal(
+    res.get('server-timing'),
+    'database;dur=5.5, serialize;dur=0.8, app;dur=10.0',
+  );
+  assert.equal(res.get('server-timing').includes('SELECT'), false);
 });

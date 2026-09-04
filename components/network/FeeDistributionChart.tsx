@@ -13,7 +13,7 @@ import { ChartCard } from './ChartCard';
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
 type Period = typeof PERIODS[number];
 
-interface DayFees {
+export interface DayFees {
   date: string;
   p10: number;
   p25: number;
@@ -24,14 +24,19 @@ interface DayFees {
   txCount: number;
 }
 
-export function FeeDistributionChart() {
+export interface FeeDistributionResponse {
+  daily: DayFees[];
+}
+
+export function FeeDistributionChart({ initialData }: { initialData?: FeeDistributionResponse | null }) {
   const { theme } = useTheme();
   const colors = getChartColors(theme);
   const [period, setPeriod] = useState<Period>('30d');
 
-  const { data: res, loading } = useApiQuery<{ daily: DayFees[] }>(
+  const { data: res, loading } = useApiQuery<FeeDistributionResponse>(
     '/api/network/fee-distribution',
     { period },
+    { initialData: period === '30d' ? initialData ?? undefined : undefined },
   );
   const data = res?.daily ?? [];
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api-config';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -19,7 +19,20 @@ import {
   WalletReadiness,
   Resources,
 } from './components';
-import type { Cohorts, MigrationActivityData, Overview, ScatterData } from './components';
+import type {
+  Cohorts,
+  MigrationActivityData,
+  Overview,
+  PrivacyRange,
+  ScatterData,
+} from './components';
+import {
+  decodeCompactScatter,
+  loadAllScatter,
+  mergeScatter,
+  type CompactScatterResponse,
+  type ScatterCursor,
+} from './compact-scatter';
 
 export type { Cohort, Cohorts, Overview, ScatterData, ScatterTx } from './components';
 
@@ -62,12 +75,14 @@ export function MigrationClient({
   const [overview, setOverview] = useState<Overview | null>(initialOverview);
   const [cohorts, setCohorts] = useState<Cohorts | null>(initialCohorts);
   const [scatter, setScatter] = useState<ScatterData | null>(null);
+  const [scatterRange, setScatterRange] = useState<PrivacyRange>('7d');
   const [activityHourly, setActivityHourly] = useState<MigrationActivityData | null>(initialActivityHourly);
   const [activityDaily, setActivityDaily] = useState<MigrationActivityData | null>(initialActivityDaily);
   const [activityAttempted, setActivityAttempted] = useState(
     Boolean(initialActivityHourly || initialActivityDaily),
   );
   const [scatterAttempted, setScatterAttempted] = useState(false);
+  const scatterCursor = useRef<ScatterCursor | null>(null);
   const [loaded, setLoaded] = useState(!!initialOverview);
   const { theme } = useTheme();
   const colors = getChartColors(theme);
@@ -139,32 +154,89 @@ export function MigrationClient({
     };
   }, [deploymentNetwork]);
 
-  // Scatter fetch — split out from the effect above and gated on viewport
-  // proximity. Still polls every 60s once activated (matches the previous
-  // cadence), it just doesn't start until the user is about to see it.
+  const scatterRequestRange = scatterRange === 'all'
+    ? 'all'
+    : scatterRange === '30d'
+      ? '30d'
+      : '7d';
+
+  // Load only the visible time window. Immutable history is fetched in
+  // finalized chunks only when the user explicitly selects "All"; polling
+  // then asks for rows after the last canonical tip instead of downloading
+  // the complete history again.
   useEffect(() => {
     if (!scatterNearViewport) return;
     let cancelled = false;
     const base = getApiUrl();
+    const controller = new AbortController();
 
-    const loadScatter = () => {
-      fetch(`${base}/api/migration/scatter`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)
-        .then((s) => {
+    const loadInitial = async () => {
+      setScatterAttempted(false);
+      try {
+        if (scatterRequestRange === 'all') {
+          const loaded = await loadAllScatter(base, deploymentNetwork, controller.signal);
           if (cancelled) return;
-          if (s?.success && s.network === deploymentNetwork) setScatter(s);
-          setScatterAttempted(true);
-        });
+          setScatter(loaded.data);
+          scatterCursor.current = loaded.cursor;
+        } else {
+          const response = await fetch(
+            `${base}/api/migration/scatter/compact?range=${scatterRequestRange}`,
+            { signal: controller.signal },
+          );
+          if (!response.ok) throw new Error(`Scatter request failed with HTTP ${response.status}`);
+          const body = await response.json() as CompactScatterResponse;
+          if (!body.success || body.network !== deploymentNetwork) {
+            throw new Error('Scatter response network mismatch');
+          }
+          if (cancelled) return;
+          setScatter(decodeCompactScatter(body));
+          scatterCursor.current = body.cursor;
+        }
+      } catch (error) {
+        if (!cancelled && (error as Error).name !== 'AbortError') setScatter(null);
+      } finally {
+        if (!cancelled) setScatterAttempted(true);
+      }
     };
 
-    loadScatter();
-    const scatterId = setInterval(loadScatter, 60000);
+    const loadTail = async () => {
+      const cursor = scatterCursor.current;
+      if (!cursor || !cursor.hash || document.visibilityState === 'hidden') return;
+      try {
+        const response = await fetch(
+          `${base}/api/migration/scatter/compact?afterHeight=${cursor.height}`
+            + `&afterHash=${encodeURIComponent(cursor.hash)}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) throw new Error(`Scatter tail failed with HTTP ${response.status}`);
+        const body = await response.json() as CompactScatterResponse;
+        if (!body.success || body.network !== deploymentNetwork) return;
+        if (body.resetRequired) {
+          await loadInitial();
+          return;
+        }
+        const delta = decodeCompactScatter(body);
+        if (!cancelled) {
+          setScatter((current) => current ? mergeScatter(current, delta) : delta);
+          scatterCursor.current = body.cursor;
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.warn('[ironwood] Scatter tail refresh failed');
+        }
+      }
+    };
+
+    setScatter(null);
+    scatterCursor.current = null;
+    void loadInitial();
+    const scatterId = setInterval(() => { void loadTail(); }, 60_000);
     return () => {
       cancelled = true;
+      controller.abort();
       clearInterval(scatterId);
     };
-  }, [scatterNearViewport, deploymentNetwork]);
+  }, [scatterNearViewport, deploymentNetwork, scatterRequestRange]);
 
   const activated = overview?.activated ?? false;
   const hasMigrations = (overview?.migration?.txCount ?? 0) > 0;
@@ -292,7 +364,6 @@ export function MigrationClient({
               )}
               <MigrationActivity
                 cohorts={cohorts}
-                scatter={scatter}
                 activityHourly={activityHourly}
                 activityDaily={activityDaily}
                 activityLoading={hasMigrations && !activityAttempted}
@@ -312,6 +383,8 @@ export function MigrationClient({
                 activated={activated}
                 colors={colors}
                 tipHeight={knownTip}
+                range={scatterRange}
+                onRangeChange={setScatterRange}
               />
               <MigrationTiers activated={activated} colors={colors} tipHeight={knownTip} currencyMode={currencyMode} zecPrice={zecPrice} />
               <WalletReadiness />

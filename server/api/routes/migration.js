@@ -16,9 +16,13 @@
  */
 
 const express = require('express');
+const { createHash } = require('node:crypto');
+const { performance } = require('node:perf_hooks');
 const router = express.Router();
 const { classifyMigration } = require('../lib/migration-classifier');
 const { logSafeError, logSafeWarn } = require('../lib/safe-log');
+const { applyListCacheHeaders } = require('../list-cache');
+const { addRequestTiming } = require('../request-timing-context');
 
 // NU6.3 / Ironwood activation heights.
 // Mainnet: height 3,428,143 (~July 28 2026 8AM EST). Announced by Sean Bowe.
@@ -31,12 +35,13 @@ const ACTIVATION_HEIGHT = {
 // (~3h at 75s blocks). Migrations sharing a boundary form an anonymity cohort.
 const BOUNDARY_MODULUS = 144;
 
-let pool, redisClient, callZebraRPC;
+let pool, redisClient, callZebraRPC, listCache;
 
 router.use((req, res, next) => {
   pool = req.app.locals.pool;
   redisClient = req.app.locals.redisClient;
   callZebraRPC = req.app.locals.callZebraRPC;
+  listCache = req.app.locals.listCache;
   next();
 });
 
@@ -712,6 +717,356 @@ function classifyAmount(zec) {
   }
   return { denomination: null, privacy: 'distinctive' };
 }
+
+const SCATTER_CHUNK_BLOCKS = 10_000;
+const SCATTER_REORG_SAFETY_BLOCKS = 100;
+const SCATTER_SCHEMA = [
+  'height',
+  'timestamp',
+  'amountZat',
+  'txid',
+  'denominated',
+  'denominationIndex',
+  'ironwoodActions',
+  'orchardActions',
+  'anchorCompliant',
+  'feeZat',
+  'expiryDelta',
+  'familyIndex',
+  'confidenceIndex',
+  'shortLabelIndex',
+];
+
+function parseNonNegativeInteger(value) {
+  if (value === undefined) return null;
+  if (!/^\d+$/.test(String(value))) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function dictionaryIndex(values, value) {
+  if (value == null) return -1;
+  let index = values.indexOf(value);
+  if (index === -1) {
+    values.push(value);
+    index = values.length - 1;
+  }
+  return index;
+}
+
+async function getCanonicalTip() {
+  const result = await pool.query(
+    'SELECT height, hash FROM blocks ORDER BY height DESC LIMIT 1',
+  );
+  const row = result.rows[0];
+  return row
+    ? { height: Number(row.height), hash: row.hash }
+    : { height: 0, hash: null };
+}
+
+async function getGlobalScatterSummary(network) {
+  return cached(`zcash:migration:scatter-summary:v1:${network}`, 60, async () => {
+    const result = await pool.query(`
+      SELECT ABS(value_balance_ironwood) AS amount_zat
+      FROM transactions
+      WHERE ${MIGRATION_PREDICATE}
+    `);
+    let denominatedCount = 0;
+    let distinctiveCount = 0;
+    let denominatedVolumeZat = 0;
+    let distinctiveVolumeZat = 0;
+    for (const row of result.rows) {
+      const amountZat = Number(row.amount_zat);
+      const classification = classifyAmount(amountZat / 1e8);
+      if (classification.privacy === 'denominated') {
+        denominatedCount++;
+        denominatedVolumeZat += amountZat;
+      } else {
+        distinctiveCount++;
+        distinctiveVolumeZat += amountZat;
+      }
+    }
+    return {
+      total: result.rows.length,
+      denominatedCount,
+      distinctiveCount,
+      denominatedVolumeZat: String(denominatedVolumeZat),
+      distinctiveVolumeZat: String(distinctiveVolumeZat),
+    };
+  });
+}
+
+async function loadCompactScatter({ sinceEpoch, fromHeight, toHeight, afterHeight }) {
+  const params = [];
+  const conditions = [];
+  if (sinceEpoch !== null) {
+    params.push(sinceEpoch);
+    conditions.push(`t.block_time >= $${params.length}`);
+  }
+  if (fromHeight !== null) {
+    params.push(fromHeight);
+    conditions.push(`t.block_height >= $${params.length}`);
+  }
+  if (toHeight !== null) {
+    params.push(toHeight);
+    conditions.push(`t.block_height <= $${params.length}`);
+  }
+  if (afterHeight !== null) {
+    params.push(afterHeight);
+    conditions.push(`t.block_height > $${params.length}`);
+  }
+
+  const result = await pool.query(`
+    SELECT
+      t.txid,
+      t.block_height,
+      t.block_time,
+      ABS(t.value_balance_ironwood) AS amount_zat,
+      COALESCE(t.ironwood_actions, 0) AS ironwood_actions,
+      COALESCE(t.orchard_actions, 0) AS orchard_actions,
+      t.orchard_anchor,
+      t.fee,
+      t.expiry_height,
+      t.locktime,
+      CASE WHEN t.orchard_anchor IS NOT NULL AND EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE b.final_orchard_root = t.orchard_anchor
+          AND b.height % 144 = 0
+      ) THEN true ELSE false END AS anchor_compliant
+    FROM transactions t
+    WHERE t.version = 6
+      AND t.has_ironwood = true
+      AND t.value_balance_orchard > 0
+      AND t.value_balance_ironwood < 0
+      AND t.vin_count = 0
+      AND t.vout_count = 0
+      ${conditions.length ? `AND ${conditions.join(' AND ')}` : ''}
+    ORDER BY t.block_height ASC, t.txid ASC
+  `, params);
+
+  const families = [];
+  const confidences = [];
+  const shortLabels = [];
+  const points = result.rows.map((row) => {
+    const amountZat = Number(row.amount_zat);
+    const amountZec = amountZat / 1e8;
+    const amountClass = classifyAmount(amountZec);
+    const ironwoodActions = Number(row.ironwood_actions) || 0;
+    const orchardActions = Number(row.orchard_actions) || 0;
+    const feeZat = Number(row.fee) || 0;
+    const height = Number(row.block_height);
+    const expiryHeight = Number(row.expiry_height) || 0;
+    const expiryDelta = expiryHeight > 0 ? expiryHeight - height : null;
+    const anchorCompliant = row.anchor_compliant === true;
+    const fingerprint = classifyMigration({
+      ironwoodActions,
+      orchardActions,
+      fee: feeZat,
+      expiryDelta,
+      anchorOnGrid: anchorCompliant,
+      amountZec,
+      locktime: Number(row.locktime) || 0,
+    });
+    return [
+      height,
+      row.block_time == null ? null : Number(row.block_time),
+      String(amountZat),
+      row.txid,
+      amountClass.privacy === 'denominated' ? 1 : 0,
+      dictionaryIndex(COMMON_DENOMINATIONS, amountClass.denomination),
+      ironwoodActions,
+      orchardActions,
+      anchorCompliant ? 1 : 0,
+      String(feeZat),
+      expiryDelta,
+      dictionaryIndex(families, fingerprint.family),
+      dictionaryIndex(confidences, fingerprint.confidence),
+      dictionaryIndex(shortLabels, fingerprint.shortLabel),
+    ];
+  });
+
+  return { points, dictionaries: { denominations: COMMON_DENOMINATIONS, families, confidences, shortLabels } };
+}
+
+function setScatterHttpCache(res, immutable) {
+  res.set(
+    'Cache-Control',
+    immutable
+      ? 'public, max-age=31536000, immutable'
+      : 'public, max-age=15, s-maxage=30, stale-while-revalidate=300',
+  );
+  res.set('Vary', 'Accept-Encoding');
+}
+
+function sendEtagJson(req, res, body) {
+  const serializeStartedAt = performance.now();
+  const json = JSON.stringify(body);
+  addRequestTiming('serialize', performance.now() - serializeStartedAt);
+  const etag = `"${createHash('sha256').update(json).digest('base64url')}"`;
+  res.set('ETag', etag);
+  if (req.get('if-none-match') === etag) return res.status(304).end();
+  return res.type('application/json').send(json);
+}
+
+async function cachedScatterLoad(params, load) {
+  if (!listCache?.getOrLoad) {
+    return {
+      value: await load({ measure: async (_name, operation) => operation() }),
+      state: 'BYPASS',
+      cacheDurationMs: 0,
+      loadTimings: [],
+      totalDurationMs: 0,
+      refreshScheduled: false,
+    };
+  }
+  return listCache.getOrLoad({
+    family: 'migration-scatter-compact',
+    params,
+    freshTtlSeconds: params.immutable ? 86400 : 30,
+    staleTtlSeconds: params.immutable ? 604800 : 300,
+    load,
+  });
+}
+
+router.get('/api/migration/scatter/compact', async (req, res) => {
+  try {
+    const network = resolveNetwork();
+    const tip = await getCanonicalTip();
+    const activationHeight = ACTIVATION_HEIGHT[network] || 0;
+    const finalizedThrough = Math.max(
+      activationHeight - 1,
+      tip.height - SCATTER_REORG_SAFETY_BLOCKS,
+    );
+
+    if (req.query.manifest === '1') {
+      const firstChunk = Math.floor(activationHeight / SCATTER_CHUNK_BLOCKS) * SCATTER_CHUNK_BLOCKS;
+      const chunks = [];
+      for (
+        let start = firstChunk;
+        start + SCATTER_CHUNK_BLOCKS - 1 <= finalizedThrough;
+        start += SCATTER_CHUNK_BLOCKS
+      ) {
+        chunks.push({ start, end: start + SCATTER_CHUNK_BLOCKS - 1 });
+      }
+      const summary = await getGlobalScatterSummary(network);
+      setScatterHttpCache(res, false);
+      return sendEtagJson(req, res, {
+        success: true,
+        version: 1,
+        network,
+        schema: SCATTER_SCHEMA,
+        chunkBlocks: SCATTER_CHUNK_BLOCKS,
+        finalizedThrough,
+        chunks,
+        mutableTailStart: chunks.length
+          ? chunks[chunks.length - 1].end + 1
+          : firstChunk,
+        cursor: tip,
+        summary,
+      });
+    }
+
+    const chunkStart = parseNonNegativeInteger(req.query.chunkStart);
+    const afterHeight = parseNonNegativeInteger(req.query.afterHeight);
+    if (req.query.chunkStart !== undefined && chunkStart === null) {
+      return res.status(400).json({ success: false, error: 'Invalid chunkStart' });
+    }
+    if (req.query.afterHeight !== undefined && afterHeight === null) {
+      return res.status(400).json({ success: false, error: 'Invalid afterHeight' });
+    }
+    if (
+      req.query.range !== undefined
+      && !['7d', '30d', 'all'].includes(req.query.range)
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid range' });
+    }
+    if (
+      req.query.afterHash !== undefined
+      && !/^[0-9a-f]{64}$/i.test(String(req.query.afterHash))
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid afterHash' });
+    }
+
+    if (afterHeight !== null && req.query.afterHash) {
+      const cursorResult = await pool.query(
+        'SELECT hash FROM blocks WHERE height = $1',
+        [afterHeight],
+      );
+      if (cursorResult.rows[0]?.hash !== req.query.afterHash) {
+        setScatterHttpCache(res, false);
+        return sendEtagJson(req, res, {
+          success: true,
+          version: 1,
+          network,
+          resetRequired: true,
+          cursor: tip,
+          points: [],
+        });
+      }
+    }
+
+    let fromHeight = null;
+    let toHeight = null;
+    let sinceEpoch = null;
+    let immutable = false;
+    let range = req.query.range === '30d' || req.query.range === 'all'
+      ? req.query.range
+      : '7d';
+
+    if (chunkStart !== null) {
+      const chunkEnd = chunkStart + SCATTER_CHUNK_BLOCKS - 1;
+      if (chunkStart % SCATTER_CHUNK_BLOCKS !== 0 || chunkEnd > finalizedThrough) {
+        return res.status(400).json({ success: false, error: 'Chunk is not finalized or aligned' });
+      }
+      fromHeight = chunkStart;
+      toHeight = chunkEnd;
+      immutable = true;
+      range = 'chunk';
+    } else if (afterHeight !== null) {
+      range = 'tail';
+    } else if (range !== 'all') {
+      sinceEpoch = Math.floor(Date.now() / 1000) - (range === '30d' ? 30 : 7) * 86400;
+    }
+
+    const cacheParams = {
+      network,
+      range,
+      fromHeight,
+      toHeight,
+      afterHeight,
+      immutable,
+      // Time-window cache keys roll once per cache interval, not every request.
+      window: sinceEpoch === null ? null : Math.floor(sinceEpoch / 30),
+    };
+    const result = await cachedScatterLoad(cacheParams, async ({ measure }) => {
+      const compact = await measure('database', () => loadCompactScatter({
+        sinceEpoch,
+        fromHeight,
+        toHeight,
+        afterHeight,
+      }));
+      const summary = await getGlobalScatterSummary(network);
+      return {
+        success: true,
+        version: 1,
+        network,
+        schema: SCATTER_SCHEMA,
+        range,
+        resetRequired: false,
+        cursor: tip,
+        summary,
+        ...compact,
+      };
+    });
+
+    applyListCacheHeaders(res, result);
+    setScatterHttpCache(res, immutable);
+    return sendEtagJson(req, res, result.value);
+  } catch (error) {
+    logSafeError('migration/scatter/compact error:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 
 router.get('/api/migration/scatter', async (req, res) => {
   try {

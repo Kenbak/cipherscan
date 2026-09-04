@@ -19,8 +19,6 @@ import type {
   ChartColors,
   Cohorts,
   MigrationActivityData,
-  ScatterData,
-  ScatterTx,
   VelocityBucket,
 } from './types';
 import { EmptyPanel, SegmentedControl } from './ui';
@@ -32,48 +30,6 @@ const ACTIVITY_VIEWS: { id: ActivityView; label: string }[] = [
   { id: 'cohorts', label: 'Cohorts' },
   { id: 'daily', label: 'Daily' },
 ];
-
-function bucketTransactions(txs: ScatterTx[], mode: 'hourly' | 'daily'): VelocityBucket[] {
-  if (txs.length === 0) return [];
-
-  const msPerBucket = mode === 'hourly' ? 3600_000 : 86400_000;
-  const map = new Map<number, { volume: number; txCount: number }>();
-
-  for (const tx of txs) {
-    if (tx.timestamp == null) continue;
-    const bucket = Math.floor((tx.timestamp * 1000) / msPerBucket) * msPerBucket;
-    const existing = map.get(bucket);
-    if (existing) {
-      existing.volume += tx.amountZec;
-      existing.txCount += 1;
-    } else {
-      map.set(bucket, { volume: tx.amountZec, txCount: 1 });
-    }
-  }
-
-  const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]);
-
-  if (sorted.length >= 2) {
-    const [first] = sorted[0];
-    const [last] = sorted[sorted.length - 1];
-    for (let t = first; t <= last; t += msPerBucket) {
-      if (!map.has(t)) sorted.push([t, { volume: 0, txCount: 0 }]);
-    }
-    sorted.sort((a, b) => a[0] - b[0]);
-  }
-
-  const fmtHour = (d: Date) =>
-    `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:00`;
-  const fmtDay = (d: Date) =>
-    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-
-  return sorted.map(([ts, data]) => ({
-    label: mode === 'hourly' ? fmtHour(new Date(ts)) : fmtDay(new Date(ts)),
-    ts,
-    volume: Math.round(data.volume * 100) / 100,
-    txCount: data.txCount,
-  }));
-}
 
 function mapActivityBuckets(activity: MigrationActivityData): VelocityBucket[] {
   const hourly = activity.granularity === 'hour';
@@ -93,7 +49,6 @@ function mapActivityBuckets(activity: MigrationActivityData): VelocityBucket[] {
 
 export function MigrationActivity({
   cohorts,
-  scatter,
   activityHourly,
   activityDaily,
   activityLoading,
@@ -105,7 +60,6 @@ export function MigrationActivity({
   zecPrice,
 }: {
   cohorts: Cohorts | null;
-  scatter: ScatterData | null;
   activityHourly: MigrationActivityData | null;
   activityDaily: MigrationActivityData | null;
   activityLoading: boolean;
@@ -135,8 +89,8 @@ export function MigrationActivity({
     if (view === 'cohorts') return [];
     const aggregate = view === 'hourly' ? activityHourly : activityDaily;
     if (aggregate?.buckets.length) return mapActivityBuckets(aggregate);
-    return bucketTransactions(scatter?.txs ?? [], view);
-  }, [activityDaily, activityHourly, scatter?.txs, view]);
+    return [];
+  }, [activityDaily, activityHourly, view]);
 
   const avgCohort = cohorts?.avgAnonymitySet ?? 0;
   const totalVolumeZec = cohortData.reduce((sum, c) => sum + c.volume, 0);

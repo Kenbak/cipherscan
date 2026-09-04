@@ -3,7 +3,7 @@
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getApiUrl, API_CONFIG } from '@/lib/api-config';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/SectionHeader';
@@ -11,6 +11,12 @@ import { isCrosslink } from '@/lib/config';
 
 import { formatHashrate } from '@/lib/format-numbers';
 import { NetworkSectionNav } from '@/components/network/NetworkSectionNav';
+import type { NodeLocationsResponse, NodeStatsResponse } from '@/components/NodeMap';
+import type { PoolHistoryResponse } from '@/components/network/PoolDistributionChart';
+import type { FeeDistributionResponse } from '@/components/network/FeeDistributionChart';
+import type { ProtocolStatsResponse } from '@/components/network/ProtocolStatsChart';
+import type { ChainSizeHistoryResponse } from '@/components/network/NetworkHistoryCharts';
+import type { RecentBlocksResponse } from '@/components/network/RecentBlocksTable';
 const NodeMap = lazy(() => import('@/components/NodeMap'));
 const BlockActivityChart = lazy(() =>
   import('@/components/BlockActivityChart').then((m) => ({ default: m.BlockActivityChart }))
@@ -40,7 +46,7 @@ function getUpgradeUrl(name: string | null): string | undefined {
 
 // Format hashrate with appropriate unit — see lib/format-numbers.ts
 
-interface HalvingInfo {
+export interface HalvingInfo {
   halvingBlock: number | null;
   blocksRemaining: number | null;
   eraProgress?: number;
@@ -52,14 +58,14 @@ interface HalvingInfo {
   estimatedSeconds: number | null;
 }
 
-interface EmissionInfo {
+export interface EmissionInfo {
   circulating: number;
   remaining: number;
   circulatingPct: number;
   dailyEmissionEstimate: number | null;
 }
 
-interface NetworkStats {
+export interface NetworkStats {
   success: boolean;
   mining: {
     networkHashrate: string;
@@ -106,7 +112,7 @@ interface NetworkStats {
   cacheAge?: number;
 }
 
-interface HealthStatus {
+export interface HealthStatus {
   success: boolean;
   zebra: {
     healthy: boolean;
@@ -114,88 +120,90 @@ interface HealthStatus {
   };
 }
 
-export default function NetworkClient() {
-  const [stats, setStats] = useState<NetworkStats | null>(null);
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [previousStats, setPreviousStats] = useState<NetworkStats | null>(null);
-  const [zecPrice, setZecPrice] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<{ categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[]; addressTypes?: { type: string; description: string; addressCount: number; totalBalance: number; percentage: number }[]; transparentTotal: number; labeledTotal: number; labeledPercentage: number } | null>(null);
-  const [halving, setHalving] = useState<HalvingInfo | null>(null);
-  const [emission, setEmission] = useState<EmissionInfo | null>(null);
+export interface TransparentBreakdown {
+  success?: boolean;
+  categories: { category: string; addressCount: number; totalBalance: number; percentage: number }[];
+  addressTypes?: { type: string; description: string; addressCount: number; totalBalance: number; percentage: number }[];
+  transparentTotal: number;
+  labeledTotal: number;
+  labeledPercentage: number;
+}
+
+export interface NetworkPageInitialData {
+  fetchedAt: number;
+  stats: NetworkStats | null;
+  health: HealthStatus | null;
+  price: { price?: number } | null;
+  breakdown: TransparentBreakdown | null;
+  halving: HalvingInfo | null;
+  emission: (EmissionInfo & { success?: boolean }) | null;
+  nodeLocations: NodeLocationsResponse | null;
+  nodeStats: NodeStatsResponse | null;
+  recentBlocks: RecentBlocksResponse | null;
+  poolHistory: PoolHistoryResponse | null;
+  chainSizeHistory: ChainSizeHistoryResponse | null;
+  feeDistribution: FeeDistributionResponse | null;
+  protocolStats: ProtocolStatsResponse | null;
+}
+
+export default function NetworkClient({ initialData }: { initialData: NetworkPageInitialData }) {
+  const statsQuery = useApiQuery<NetworkStats>('/api/network/stats', undefined, {
+    refreshInterval: 60_000,
+    initialData: initialData.stats ?? undefined,
+    initialFetchedAt: initialData.fetchedAt,
+  });
+  const healthQuery = useApiQuery<HealthStatus>('/api/network/health', undefined, {
+    refreshInterval: 60_000,
+    initialData: initialData.health ?? undefined,
+    initialFetchedAt: initialData.fetchedAt,
+  });
+  const priceQuery = useApiQuery<{ price?: number }>('/api/price', undefined, {
+    refreshInterval: 60_000,
+    initialData: initialData.price ?? undefined,
+    initialFetchedAt: initialData.fetchedAt,
+  });
+  const breakdownQuery = useApiQuery<TransparentBreakdown>(
+    '/api/supply/transparent-breakdown',
+    undefined,
+    {
+      refreshInterval: 300_000,
+      initialData: initialData.breakdown ?? undefined,
+      initialFetchedAt: initialData.fetchedAt,
+    },
+  );
+  const halvingQuery = useApiQuery<HalvingInfo>('/api/network/halving', undefined, {
+    refreshInterval: 300_000,
+    initialData: initialData.halving ?? undefined,
+    initialFetchedAt: initialData.fetchedAt,
+  });
+  const emissionQuery = useApiQuery<EmissionInfo>('/api/network/emission', { period: '1y' }, {
+    refreshInterval: 300_000,
+    initialData: initialData.emission ?? undefined,
+    initialFetchedAt: initialData.fetchedAt,
+  });
+  const [webSocketStats, setWebSocketStats] = useState<NetworkStats | null>(null);
+  const stats = webSocketStats ?? statsQuery.data;
+  const health = healthQuery.data;
+  const zecPrice = priceQuery.data?.price ?? null;
+  const breakdown = breakdownQuery.data;
+  const halving = halvingQuery.data;
+  const emission = emissionQuery.data;
+  const loading = statsQuery.loading;
+  const error = statsQuery.error;
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   // WebSocket for real-time updates
-  const { isConnected } = useWebSocket({
+  useWebSocket({
     onMessage: (data) => {
       if (data.type === 'network_stats') {
-        setPreviousStats(stats);
-        setStats(data.data);
-        setLoading(false);
+        setWebSocketStats(data.data);
       }
     },
   });
 
-  const fetchData = async () => {
-    try {
-      const apiUrl = getApiUrl();
-
-      // Load stats first (critical path) — don't wait for health/price
-      const statsRes = await fetch(`${apiUrl}/api/network/stats`);
-      if (!statsRes.ok) throw new Error('Failed to fetch network data');
-      const statsData = await statsRes.json();
-      setPreviousStats(stats);
-      setStats(statsData);
-      setError(null);
-      setLoading(false);
-
-      // Load health + price in background (non-blocking)
-      fetch(`${apiUrl}/api/network/health`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) setHealth(data); })
-        .catch(() => {});
-
-      fetch(`${API_CONFIG.POSTGRES_API_URL}/api/price`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.price) setZecPrice(data.price); })
-        .catch(() => {});
-
-      fetch(`${apiUrl}/api/supply/transparent-breakdown`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.success) setBreakdown(data); })
-        .catch(() => {});
-
-      fetch(`${apiUrl}/api/network/halving`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.success) setHalving(data); })
-        .catch(() => {});
-
-      fetch(`${apiUrl}/api/network/emission?period=1y`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data?.success) {
-            setEmission({
-              circulating: data.circulating,
-              remaining: data.remaining,
-              circulatingPct: data.circulatingPct,
-              dailyEmissionEstimate: data.dailyEmissionEstimate,
-            });
-          }
-        })
-        .catch(() => {});
-    } catch (err: any) {
-      console.error('Error fetching network data:', err);
-      setError(err.message || 'Failed to load network data');
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    if (statsQuery.data) setWebSocketStats(null);
+  }, [statsQuery.data]);
 
   if (loading) {
     // Real heading instead of skeleton bars so the server-rendered loading
@@ -237,7 +245,7 @@ export default function NetworkClient() {
             <h2 className="text-xl font-bold text-primary mb-3">Network Data Unavailable</h2>
             <p className="text-secondary mb-6">{error || 'Failed to load network data'}</p>
             <button
-              onClick={fetchData}
+              onClick={() => window.location.reload()}
               className="btn btn-primary btn-md"
             >
               Retry
@@ -282,7 +290,14 @@ export default function NetworkClient() {
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
             </div>
           }>
-            {isCrosslink ? <BlockActivityChart limit={80} /> : <NodeMap />}
+            {isCrosslink ? (
+              <BlockActivityChart limit={80} />
+            ) : (
+              <NodeMap
+                initialLocations={initialData.nodeLocations}
+                initialStats={initialData.nodeStats}
+              />
+            )}
           </Suspense>
         </div>
 
@@ -308,7 +323,7 @@ export default function NetworkClient() {
 
         <div className="animate-fade-in-up stagger-4">
           <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-            <RecentBlocksTable />
+            <RecentBlocksTable initialData={initialData.recentBlocks} />
           </Suspense>
         </div>
       </section>
@@ -460,16 +475,16 @@ export default function NetworkClient() {
 
             <div className="space-y-6 animate-fade-in-up">
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <PoolDistributionChart />
+                <PoolDistributionChart initialData={initialData.poolHistory} />
               </Suspense>
               <Suspense fallback={<div className="card h-64 animate-pulse" />}>
-                <NetworkHistoryCharts />
+                <NetworkHistoryCharts initialData={initialData.chainSizeHistory} />
               </Suspense>
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <FeeDistributionChart />
+                <FeeDistributionChart initialData={initialData.feeDistribution} />
               </Suspense>
               <Suspense fallback={<div className="card h-80 animate-pulse" />}>
-                <ProtocolStatsChart />
+                <ProtocolStatsChart initialData={initialData.protocolStats} />
               </Suspense>
             </div>
 

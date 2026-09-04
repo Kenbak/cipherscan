@@ -5400,6 +5400,74 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /v1/migration/scatter/compact:
+    get:
+      operationId: get_migration_Scatter_Compact
+      summary: >-
+        Versioned compact migration points with bounded ranges, finalized chunks, ETags, and
+        incremental canonical-tail cursors.
+      tags:
+        - migration
+      x-cipherscan-legacy-path: /api/migration/scatter/compact
+      x-cipherscan-legacy-method: GET
+      x-cipherscan-classification: public
+      x-cipherscan-v1-status: adapter
+      responses:
+        '200':
+          description: >-
+            Versioned compact migration points with bounded ranges, finalized chunks, ETags, and
+            incremental canonical-tail cursors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - meta
+                properties:
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+                        items: {}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Validation error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Resource not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Rate limited (enforced by the legacy endpoint this proxies to).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '502':
+          description: Upstream (legacy API) error.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '504':
+          description: Upstream (legacy API) timeout.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /v1/migration/tiers:
     get:
       operationId: get_migration_Tiers

@@ -83,6 +83,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/d3-force": "^3.0.10"
+    "@types/d3-force": "^3.0.10",
+    "puppeteer-core": "^24.16.0"
   }
 }

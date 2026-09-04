@@ -20,6 +20,10 @@ interface UseApiQueryOptions {
    * there's rarely a reason to keep polling a backgrounded tab.
    */
   pauseWhenHidden?: boolean;
+  /** Server-rendered or otherwise trusted initial value for this URL. */
+  initialData?: unknown;
+  /** Timestamp for initialData freshness checks. Defaults to now. */
+  initialFetchedAt?: number;
 }
 
 interface UseApiQueryResult<T> {
@@ -143,12 +147,33 @@ function scheduleNext(entry: RegistryEntry) {
   entry.timer = setTimeout(() => runFetch(entry), delay);
 }
 
-function getOrCreateEntry(key: string, url: string, refreshInterval: number | undefined, timeoutMs: number): RegistryEntry {
+function getOrCreateEntry(
+  key: string,
+  url: string,
+  refreshInterval: number | undefined,
+  timeoutMs: number,
+  initialData?: unknown,
+  initialFetchedAt = Date.now(),
+): RegistryEntry {
   let entry = registry.get(key);
   if (entry) {
     if (entry.teardownTimer) {
       clearTimeout(entry.teardownTimer);
       entry.teardownTimer = null;
+    }
+    if (!entry.state.settled && initialData !== undefined) {
+      entry.state = {
+        data: initialData,
+        error: null,
+        settled: true,
+        fetching: false,
+        fetchedAt: initialFetchedAt,
+      };
+    }
+    if (refreshInterval !== undefined) {
+      entry.refreshInterval = entry.refreshInterval === undefined
+        ? refreshInterval
+        : Math.min(entry.refreshInterval, refreshInterval);
     }
     return entry;
   }
@@ -158,7 +183,15 @@ function getOrCreateEntry(key: string, url: string, refreshInterval: number | un
     refreshInterval,
     timeoutMs,
     subscribers: new Set(),
-    state: { data: null, error: null, settled: false, fetching: false, fetchedAt: 0 },
+    state: initialData === undefined
+      ? { data: null, error: null, settled: false, fetching: false, fetchedAt: 0 }
+      : {
+          data: initialData,
+          error: null,
+          settled: true,
+          fetching: false,
+          fetchedAt: initialFetchedAt,
+        },
     inFlight: false,
     controller: null,
     timer: null,
@@ -248,32 +281,47 @@ export function useApiQuery<T>(
   const enabled = options?.enabled ?? true;
   const refreshInterval = options?.refreshInterval;
   const timeoutMs = options?.timeoutMs ?? 15000;
+  const initialData = options?.initialData as T | undefined;
+  const initialFetchedAt = options?.initialFetchedAt ?? Date.now();
 
   const paramKey = params ? JSON.stringify(params) : '';
   const url = buildUrl(path, params);
-  const key = `${url}::${refreshInterval ?? 'once'}`;
+  // The URL is the resource identity. Poll cadence is subscriber policy and
+  // must not split otherwise-identical requests into separate registries.
+  const key = url;
 
   // Stale-data retention across query-key changes (e.g. a `period` filter
   // toggle): keep showing the last good payload for *this hook instance*
   // until the new key's fetch resolves, rather than flashing back to null.
-  const lastGoodDataRef = useRef<T | null>(null);
-  const hasEverLoadedRef = useRef(false);
+  const lastGoodDataRef = useRef<T | null>(initialData ?? null);
+  const hasEverLoadedRef = useRef(initialData !== undefined);
 
   const [, forceRender] = useState(0);
   const stateRef = useRef<QueryState>({
-    data: null,
+    data: initialData ?? null,
     error: null,
-    settled: false,
+    settled: initialData !== undefined,
     fetching: false,
-    fetchedAt: 0,
+    fetchedAt: initialData !== undefined ? initialFetchedAt : 0,
   });
 
   useEffect(() => {
     if (!enabled) return;
 
-    const entry = getOrCreateEntry(key, url, refreshInterval, timeoutMs);
+    const entry = getOrCreateEntry(
+      key,
+      url,
+      refreshInterval,
+      timeoutMs,
+      initialData,
+      initialFetchedAt,
+    );
     // Keep entry config current in case a param-driven interval changes.
-    entry.refreshInterval = refreshInterval;
+    if (refreshInterval !== undefined) {
+      entry.refreshInterval = entry.refreshInterval === undefined
+        ? refreshInterval
+        : Math.min(entry.refreshInterval, refreshInterval);
+    }
     entry.timeoutMs = timeoutMs;
 
     const listener: Listener = (state) => {

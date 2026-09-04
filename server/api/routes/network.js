@@ -9,6 +9,7 @@ const { registerNetworkAnalyticsRoutes } = require('./network-analytics');
 const { parsePeerClient } = require('../../lib/peer-client');
 const { parseSafeListPagination, offsetExceededError } = require('../lib/pagination');
 const { logSafeError } = require('../lib/safe-log');
+const { applyListCacheHeaders } = require('../list-cache');
 
 // The crawled node census is bounded to the live network's peer count
 // (thousands, not millions), but the shared cap still applies for
@@ -20,6 +21,7 @@ const MAX_NODES_OFFSET = 50_000;
 let pool;
 let callZebraRPC;
 let redisClient;
+let listCache;
 
 const NODE_SOURCE = process.env.NODE_SOURCE || 'peer';
 const NODES_TABLE = 'nodes';
@@ -29,6 +31,7 @@ router.use((req, res, next) => {
   pool = req.app.locals.pool;
   callZebraRPC = req.app.locals.callZebraRPC;
   redisClient = req.app.locals.redisClient;
+  listCache = req.app.locals.listCache;
   next();
 });
 
@@ -46,6 +49,21 @@ const NETWORK_TOPOLOGY_CACHE_DURATION = 300; // 5 minutes — aligned with crawl
 // Fallback in-memory cache (if Redis fails)
 let networkStatsCache = null;
 let networkStatsCacheTime = 0;
+
+async function getOrLoadRoute(options) {
+  if (listCache?.getOrLoad) return listCache.getOrLoad(options);
+  const value = await options.load({
+    measure: async (_name, operation) => operation(),
+  });
+  return {
+    value,
+    state: 'BYPASS',
+    cacheDurationMs: 0,
+    loadTimings: [],
+    totalDurationMs: 0,
+    refreshScheduled: false,
+  };
+}
 
 /**
  * Get data from Redis cache
@@ -679,36 +697,46 @@ router.get('/api/network/nodes', async (req, res) => {
     // common values *within the cell* (already-aggregate P2P handshake /
     // ASN data, same disclosure level as the Concentration Risk endpoint) —
     // never a raw IP.
-    const result = await pool.query(`
-      SELECT 
-        country,
-        country_code,
-        ROUND(lat::numeric, 0) as lat,
-        ROUND(lon::numeric, 0) as lon,
-        COUNT(*) as node_count,
-        ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms,
-        MODE() WITHIN GROUP (ORDER BY client_impl) as top_client,
-        MODE() WITHIN GROUP (ORDER BY isp) as top_isp
-      FROM ${NODES_TABLE} 
-      WHERE is_active = TRUE AND lat IS NOT NULL
-      GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
-      ORDER BY node_count DESC
-    `);
-
-    res.json({
-      success: true,
-      locations: result.rows.map(row => ({
-        country: row.country,
-        countryCode: row.country_code,
-        lat: parseFloat(row.lat),
-        lon: parseFloat(row.lon),
-        nodeCount: parseInt(row.node_count),
-        avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
-        topClient: row.top_client || null,
-        topIsp: row.top_isp || null,
-      })),
-      timestamp: Date.now(),
+    const cachedResult = await getOrLoadRoute({
+      family: 'network-node-locations',
+      params: { source: NODE_SOURCE },
+      freshTtlSeconds: 300,
+      staleTtlSeconds: 1800,
+      load: async ({ measure }) => {
+        const result = await measure('database_read', () => pool.query(`
+          SELECT
+            country,
+            country_code,
+            ROUND(lat::numeric, 0) as lat,
+            ROUND(lon::numeric, 0) as lon,
+            COUNT(*) as node_count,
+            ROUND(AVG(ping_ms)::numeric, 1) as avg_ping_ms,
+            MODE() WITHIN GROUP (ORDER BY client_impl) as top_client,
+            MODE() WITHIN GROUP (ORDER BY isp) as top_isp
+          FROM ${NODES_TABLE}
+          WHERE is_active = TRUE AND lat IS NOT NULL
+          GROUP BY country, country_code, ROUND(lat::numeric, 0), ROUND(lon::numeric, 0)
+          ORDER BY node_count DESC
+        `));
+        return {
+          success: true,
+          locations: result.rows.map(row => ({
+            country: row.country,
+            countryCode: row.country_code,
+            lat: parseFloat(row.lat),
+            lon: parseFloat(row.lon),
+            nodeCount: parseInt(row.node_count),
+            avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+            topClient: row.top_client || null,
+            topIsp: row.top_isp || null,
+          })),
+          timestamp: Date.now(),
+        };
+      },
     });
+    applyListCacheHeaders(res, cachedResult);
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=1800');
+    res.json(cachedResult.value);
   } catch (error) {
     logSafeError('❌ [NODES] Error fetching node locations:', error);
     res.status(500).json({
@@ -724,114 +752,123 @@ router.get('/api/network/nodes', async (req, res) => {
  */
 router.get('/api/network/nodes/stats', async (req, res) => {
   try {
-    const sourceFilter = NODE_SOURCE === 'crawl' ? '' : "AND observed_via = 'peer'";
-    const [statsResult, topCountries, trends, clients, versions] = await Promise.all([
-      pool.query(`
-        SELECT 
-          COUNT(*) FILTER (WHERE is_active) as active_nodes,
-          COUNT(*) as total_nodes,
-          COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
-          COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
-          ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
-          COUNT(*) FILTER (WHERE is_active AND is_tor) as tor_nodes,
-          MAX(last_seen) as last_updated
-        FROM ${NODES_TABLE}
-      `),
-      pool.query(`
-        SELECT 
-          country_code,
-          MODE() WITHIN GROUP (ORDER BY country) as country,
-          COUNT(*) as node_count
-        FROM ${NODES_TABLE} 
-        WHERE is_active = TRUE AND country_code IS NOT NULL
-        GROUP BY country_code
-        ORDER BY node_count DESC
-        LIMIT 10
-      `),
-      pool.query(`
-        SELECT
-          (SELECT active_nodes FROM node_snapshots
-           WHERE snapshot_time >= NOW() - INTERVAL '24 hours'
-           ORDER BY snapshot_time ASC LIMIT 1) as nodes_24h_ago,
-          (SELECT active_nodes FROM node_snapshots
-           WHERE snapshot_time >= NOW() - INTERVAL '7 days'
-           ORDER BY snapshot_time ASC LIMIT 1) as nodes_7d_ago,
-          (SELECT active_nodes FROM node_snapshots
-           WHERE snapshot_time >= NOW() - INTERVAL '30 days'
-           ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
-      `).catch(() => ({ rows: [{}] })),
-      pool.query(`
-        SELECT client_impl, COUNT(*)::int AS node_count
-        FROM ${NODES_TABLE}
-        WHERE is_active = TRUE ${sourceFilter}
-        GROUP BY client_impl
-        ORDER BY node_count DESC, client_impl ASC
-      `),
-      pool.query(`
-        SELECT client_impl, client_version, COUNT(*)::int AS node_count
-        FROM ${NODES_TABLE}
-        WHERE is_active = TRUE
-          ${sourceFilter}
-          AND client_version IS NOT NULL
-        GROUP BY client_impl, client_version
-        ORDER BY node_count DESC, client_impl ASC, client_version DESC
-        LIMIT 12
-      `),
-    ]);
+    const cachedResult = await getOrLoadRoute({
+      family: 'network-node-stats',
+      params: { source: NODE_SOURCE },
+      freshTtlSeconds: 300,
+      staleTtlSeconds: 1800,
+      load: async ({ measure }) => {
+        const sourceFilter = NODE_SOURCE === 'crawl' ? '' : "AND observed_via = 'peer'";
+        const [statsResult, topCountries, trends, clients, versions] = await measure(
+          'database_read',
+          () => Promise.all([
+            pool.query(`
+              SELECT
+                COUNT(*) FILTER (WHERE is_active) as active_nodes,
+                COUNT(*) as total_nodes,
+                COUNT(DISTINCT country_code) FILTER (WHERE is_active) as countries,
+                COUNT(DISTINCT city) FILTER (WHERE is_active) as cities,
+                ROUND(AVG(ping_ms) FILTER (WHERE is_active AND ping_ms > 0)::numeric, 1) as avg_ping_ms,
+                COUNT(*) FILTER (WHERE is_active AND is_tor) as tor_nodes,
+                MAX(last_seen) as last_updated
+              FROM ${NODES_TABLE}
+            `),
+            pool.query(`
+              SELECT country_code, MODE() WITHIN GROUP (ORDER BY country) as country,
+                     COUNT(*) as node_count
+              FROM ${NODES_TABLE}
+              WHERE is_active = TRUE AND country_code IS NOT NULL
+              GROUP BY country_code
+              ORDER BY node_count DESC
+              LIMIT 10
+            `),
+            pool.query(`
+              SELECT
+                (SELECT active_nodes FROM node_snapshots
+                 WHERE snapshot_time >= NOW() - INTERVAL '24 hours'
+                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_24h_ago,
+                (SELECT active_nodes FROM node_snapshots
+                 WHERE snapshot_time >= NOW() - INTERVAL '7 days'
+                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_7d_ago,
+                (SELECT active_nodes FROM node_snapshots
+                 WHERE snapshot_time >= NOW() - INTERVAL '30 days'
+                 ORDER BY snapshot_time ASC LIMIT 1) as nodes_30d_ago
+            `).catch(() => ({ rows: [{}] })),
+            pool.query(`
+              SELECT client_impl, COUNT(*)::int AS node_count
+              FROM ${NODES_TABLE}
+              WHERE is_active = TRUE ${sourceFilter}
+              GROUP BY client_impl
+              ORDER BY node_count DESC, client_impl ASC
+            `),
+            pool.query(`
+              SELECT client_impl, client_version, COUNT(*)::int AS node_count
+              FROM ${NODES_TABLE}
+              WHERE is_active = TRUE ${sourceFilter} AND client_version IS NOT NULL
+              GROUP BY client_impl, client_version
+              ORDER BY node_count DESC, client_impl ASC, client_version DESC
+              LIMIT 12
+            `),
+          ]),
+        );
 
-    const row = statsResult.rows[0];
-    const activeNodes = parseInt(row.active_nodes) || 0;
-    const trendRow = trends.rows[0] || {};
-    const clientDistribution = clients.rows.map((client) => ({
-      client: client.client_impl || 'Unknown',
-      count: Number(client.node_count) || 0,
-    }));
-    const observedClientNodes = clientDistribution.reduce((sum, client) => sum + client.count, 0);
-    const identifiedClientNodes = clientDistribution
-      .filter((client) => client.client !== 'Unknown')
-      .reduce((sum, client) => sum + client.count, 0);
+        const row = statsResult.rows[0];
+        const activeNodes = parseInt(row.active_nodes) || 0;
+        const trendRow = trends.rows[0] || {};
+        const clientDistribution = clients.rows.map((client) => ({
+          client: client.client_impl || 'Unknown',
+          count: Number(client.node_count) || 0,
+        }));
+        const observedClientNodes = clientDistribution.reduce((sum, client) => sum + client.count, 0);
+        const identifiedClientNodes = clientDistribution
+          .filter((client) => client.client !== 'Unknown')
+          .reduce((sum, client) => sum + client.count, 0);
+        const calcChange = (prev) => {
+          if (!prev || prev === 0) return null;
+          return parseFloat(((activeNodes - prev) / prev * 100).toFixed(1));
+        };
 
-    const calcChange = (prev) => {
-      if (!prev || prev === 0) return null;
-      return parseFloat(((activeNodes - prev) / prev * 100).toFixed(1));
-    };
-
-    res.json({
-      success: true,
-      stats: {
-        activeNodes,
-        totalNodes: parseInt(row.total_nodes) || 0,
-        countries: parseInt(row.countries) || 0,
-        cities: parseInt(row.cities) || 0,
-        avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
-        torNodes: parseInt(row.tor_nodes) || 0,
-        lastUpdated: row.last_updated,
+        return {
+          success: true,
+          stats: {
+            activeNodes,
+            totalNodes: parseInt(row.total_nodes) || 0,
+            countries: parseInt(row.countries) || 0,
+            cities: parseInt(row.cities) || 0,
+            avgPingMs: row.avg_ping_ms ? parseFloat(row.avg_ping_ms) : null,
+            torNodes: parseInt(row.tor_nodes) || 0,
+            lastUpdated: row.last_updated,
+          },
+          trends: {
+            change24h: calcChange(trendRow.nodes_24h_ago),
+            change7d: calcChange(trendRow.nodes_7d_ago),
+            change30d: calcChange(trendRow.nodes_30d_ago),
+          },
+          topCountries: topCountries.rows.map(r => ({
+            country: r.country,
+            countryCode: r.country_code,
+            nodeCount: parseInt(r.node_count),
+          })),
+          clients: {
+            observedNodes: observedClientNodes,
+            identifiedNodes: identifiedClientNodes,
+            coveragePercentage: observedClientNodes > 0
+              ? Number(((identifiedClientNodes / observedClientNodes) * 100).toFixed(1))
+              : 0,
+            distribution: clientDistribution,
+            versions: versions.rows.map((version) => ({
+              client: version.client_impl || 'Unknown',
+              version: version.client_version,
+              count: Number(version.node_count) || 0,
+            })),
+          },
+          timestamp: Date.now(),
+        };
       },
-      trends: {
-        change24h: calcChange(trendRow.nodes_24h_ago),
-        change7d: calcChange(trendRow.nodes_7d_ago),
-        change30d: calcChange(trendRow.nodes_30d_ago),
-      },
-      topCountries: topCountries.rows.map(r => ({
-        country: r.country,
-        countryCode: r.country_code,
-        nodeCount: parseInt(r.node_count),
-      })),
-      clients: {
-        observedNodes: observedClientNodes,
-        identifiedNodes: identifiedClientNodes,
-        coveragePercentage: observedClientNodes > 0
-          ? Number(((identifiedClientNodes / observedClientNodes) * 100).toFixed(1))
-          : 0,
-        distribution: clientDistribution,
-        versions: versions.rows.map((version) => ({
-          client: version.client_impl || 'Unknown',
-          version: version.client_version,
-          count: Number(version.node_count) || 0,
-        })),
-      },
-      timestamp: Date.now(),
     });
+    applyListCacheHeaders(res, cachedResult);
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=1800');
+    res.json(cachedResult.value);
   } catch (error) {
     logSafeError('❌ [NODES] Error fetching node stats:', error);
     res.status(500).json({
