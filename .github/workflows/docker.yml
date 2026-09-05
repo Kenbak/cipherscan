@@ -68,13 +68,37 @@ jobs:
       - name: Smoke-test API image startup and liveness
         if: matrix.name == 'api'
         run: |
-          docker run --detach --rm --name cipherscan-api-smoke -p 3001:3001 cipherscan-api:ci
+          docker network create cipherscan-api-smoke
+          docker run --detach --name cipherscan-postgres-smoke \
+            --network cipherscan-api-smoke \
+            -e POSTGRES_USER=zcash_user \
+            -e POSTGRES_PASSWORD=smoke-test-only \
+            -e POSTGRES_DB=zcash_explorer_testnet \
+            postgres:16-alpine
+          for attempt in $(seq 1 20); do
+            if docker exec cipherscan-postgres-smoke \
+              pg_isready -U zcash_user -d zcash_explorer_testnet >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec cipherscan-postgres-smoke \
+            pg_isready -U zcash_user -d zcash_explorer_testnet
+          docker run --detach --name cipherscan-api-smoke \
+            --network cipherscan-api-smoke \
+            -p 3001:3001 \
+            -e DB_HOST=cipherscan-postgres-smoke \
+            -e DB_NAME=zcash_explorer_testnet \
+            -e DB_USER=zcash_user \
+            -e DB_PASSWORD=smoke-test-only \
+            cipherscan-api:ci
           for attempt in $(seq 1 20); do
             if curl --fail --silent http://127.0.0.1:3001/health >/dev/null; then
               exit 0
             fi
-            if ! docker inspect cipherscan-api-smoke >/dev/null 2>&1; then
+            if [ "$(docker inspect --format '{{.State.Running}}' cipherscan-api-smoke 2>/dev/null)" != "true" ]; then
               echo "API container exited before becoming healthy"
+              docker logs cipherscan-api-smoke
               exit 1
             fi
             sleep 1
@@ -83,4 +107,7 @@ jobs:
           exit 1
       - name: Stop API smoke-test container
         if: always() && matrix.name == 'api'
-        run: docker stop cipherscan-api-smoke >/dev/null 2>&1 || true
+        run: |
+          docker rm --force cipherscan-api-smoke >/dev/null 2>&1 || true
+          docker rm --force cipherscan-postgres-smoke >/dev/null 2>&1 || true
+          docker network rm cipherscan-api-smoke >/dev/null 2>&1 || true

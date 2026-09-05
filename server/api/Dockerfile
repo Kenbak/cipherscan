@@ -12,7 +12,8 @@ RUN npm ci --omit=dev --no-audit --no-fund
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
-    PORT=3001
+    PORT=3001 \
+    HOST=0.0.0.0
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="cipherscan-api" \
       org.opencontainers.image.source="https://github.com/dannywillems/cipherscan" \
