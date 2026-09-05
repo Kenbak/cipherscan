@@ -1752,7 +1752,7 @@
   .home-introduction p { max-width: 620px; margin: 16px 0 0; font-size: 15px; line-height: 1.65; text-wrap: pretty; }
   .home-hero h1 { font-family: var(--font-geist-sans); font-size: clamp(1.875rem, 3vw, 2.5rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1.2; }
   .home-title-mark { display: inline-block; width: 0.22em; height: 0.22em; margin-left: 0.22em; background: var(--color-gold-accent); }
-  .home-command { margin-top: 28px; text-align: left; }
+  .home-command { width: min(100%, 800px); margin-top: 28px; text-align: left; }
   .home-hero form { width: 100%; max-width: none; margin: 0; padding: 0; }
   .home-hero .search-input-hero { min-height: 60px; background: var(--color-surface); font-size: 14px; }
   .home-feeds { margin-top: 28px; }

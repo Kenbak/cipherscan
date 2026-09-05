@@ -121,7 +121,7 @@ export default async function Home() {
 
         </div>
 
-        {/* Search and introduction share the navbar, stats and feed container edges. */}
+        {/* Search and introduction share the page’s left edge; input width stays bounded. */}
         <div className="home-command">
           <SearchBar />
         </div>
