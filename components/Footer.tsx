@@ -1,119 +1,125 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { BrandLogo } from '@/components/BrandLogo';
 import Link from 'next/link';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { useTheme } from '@/contexts/ThemeContext';
 import { isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, NETWORK_LABEL } from '@/lib/config';
 
+const LINK_CLASS = 'footer-link text-caption font-mono';
+
+/**
+ * Column key. Same `> KEY` device as PageHeader's eyebrow and SectionHeader,
+ * so the footer reads as part of the same system rather than a separate
+ * plain-uppercase treatment.
+ */
+function FooterHeading({ children }: { children: ReactNode }) {
+  return (
+    <p className="type-label text-muted uppercase mb-3">
+      <span className="opacity-50">{'>'}</span> {children}
+    </p>
+  );
+}
+
 export function Footer() {
-  const { theme } = useTheme();
+  const otherNetworkUrl = isMainnet ? TESTNET_URL : MAINNET_URL;
+  const otherNetworkLabel = isMainnet ? 'Testnet' : 'Mainnet';
 
   return (
     <footer className="footer-container border-t border-cipher-border mt-12 sm:mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Links grid — centered */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto">
-          {/* Explore */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        {/* Full container width, left-anchored: the previous max-w-3xl centered
+            block sat inboard of the logo, hero and feed tables above it. */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-8">
           <div>
-            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-2">Explore</span>
-            <div className="flex flex-col gap-1">
-              <Link href="/blocks" className="footer-link text-caption font-mono">Blocks</Link>
-              <Link href="/txs" className="footer-link text-caption font-mono">Transactions</Link>
-              <Link href="/network" className="footer-link text-caption font-mono">Network</Link>
-              <Link href="/charts" className="footer-link text-caption font-mono">Charts</Link>
-              <Link href="/mempool" className="footer-link text-caption font-mono">Mempool</Link>
-              {!isCrosslink && <Link href="/rich-list" className="footer-link text-caption font-mono">Rich List</Link>}
-              <Link href="/reorgs" className="footer-link text-caption font-mono">Forks & Reorgs</Link>
+            <FooterHeading>Explore</FooterHeading>
+            <div className="flex flex-col gap-1.5">
+              <Link href="/blocks" className={LINK_CLASS}>Blocks</Link>
+              <Link href="/txs" className={LINK_CLASS}>Transactions</Link>
+              <Link href="/network" className={LINK_CLASS}>Network</Link>
+              <Link href="/charts" className={LINK_CLASS}>Charts</Link>
+              <Link href="/mempool" className={LINK_CLASS}>Mempool</Link>
+              {!isCrosslink && <Link href="/rich-list" className={LINK_CLASS}>Rich List</Link>}
+              <Link href="/reorgs" className={LINK_CLASS}>Forks &amp; Reorgs</Link>
             </div>
           </div>
 
-          {/* Analytics */}
           {!isCrosslink && (
             <div>
-              <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-2">Analytics</span>
-              <div className="flex flex-col gap-1">
-                <Link href="/privacy" className="footer-link text-caption font-mono">Privacy Score</Link>
-                <Link href="/pools" className="footer-link text-caption font-mono">Shielded Pools</Link>
-                <Link href="/turnstile" className="footer-link text-caption font-mono">Turnstile</Link>
-                <Link href="/ironwood" className="footer-link text-caption font-mono">Zcash Ironwood</Link>
-                <Link href="/privacy-risks" className="footer-link text-caption font-mono">Risk Scanner</Link>
-                {isMainnet && <Link href="/zodl" className="footer-link text-caption font-mono">Miner ZODL</Link>}
-                {isMainnet && <Link href="/crosschain" className="footer-link text-caption font-mono">Cross-Chain</Link>}
+              <FooterHeading>Analytics</FooterHeading>
+              <div className="flex flex-col gap-1.5">
+                <Link href="/privacy" className={LINK_CLASS}>Privacy Score</Link>
+                <Link href="/pools" className={LINK_CLASS}>Shielded Pools</Link>
+                <Link href="/turnstile" className={LINK_CLASS}>Turnstile</Link>
+                <Link href="/ironwood" className={LINK_CLASS}>Zcash Ironwood</Link>
+                <Link href="/privacy-risks" className={LINK_CLASS}>Risk Scanner</Link>
+                {isMainnet && <Link href="/zodl" className={LINK_CLASS}>Miner ZODL</Link>}
+                {isMainnet && <Link href="/crosschain" className={LINK_CLASS}>Cross-Chain</Link>}
               </div>
             </div>
           )}
 
-          {/* Tools */}
           <div>
-            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-2">Tools</span>
-            <div className="flex flex-col gap-1">
-              <Link href="/tools" className="footer-link text-caption font-mono">Dev Tools</Link>
-              <Link href="/decrypt" className="footer-link text-caption font-mono">Decrypt Memo</Link>
-              <Link href="/tools/blend-check" className="footer-link text-caption font-mono">Blend Check</Link>
-              <Link href="/docs" className="footer-link text-caption font-mono">API Docs</Link>
-              {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener" className="footer-link text-caption font-mono">CipherSwap</a>}
-              <a href="https://www.cipherpay.app/" target="_blank" rel="noopener noreferrer" className="footer-link text-caption font-mono">CipherPay</a>
+            <FooterHeading>Tools</FooterHeading>
+            <div className="flex flex-col gap-1.5">
+              <Link href="/tools" className={LINK_CLASS}>Dev Tools</Link>
+              <Link href="/decrypt" className={LINK_CLASS}>Decrypt Memo</Link>
+              <Link href="/tools/blend-check" className={LINK_CLASS}>Blend Check</Link>
+              <Link href="/docs" className={LINK_CLASS}>API Docs</Link>
+              {isMainnet && <a href="https://cipherswap.app/" target="_blank" rel="noopener" className={LINK_CLASS}>CipherSwap</a>}
+              <a href="https://www.cipherpay.app/" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>CipherPay</a>
             </div>
           </div>
 
-          {/* Resources + Community merged */}
           <div>
-            <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-2">Resources</span>
-            <div className="flex flex-col gap-1">
-              <Link href="/learn" className="footer-link text-caption font-mono">Learn Zcash</Link>
-              <Link href="/newsletter" className="footer-link text-caption font-mono">Newsletter</Link>
-              <Link href="/about" className="footer-link text-caption font-mono">About</Link>
-              <Link href="/press" className="footer-link text-caption font-mono">Press &amp; Brand</Link>
+            <FooterHeading>Resources</FooterHeading>
+            <div className="flex flex-col gap-1.5">
+              <Link href="/learn" className={LINK_CLASS}>Learn Zcash</Link>
+              <Link href="/newsletter" className={LINK_CLASS}>Newsletter</Link>
+              <Link href="/about" className={LINK_CLASS}>About</Link>
+              <Link href="/press" className={LINK_CLASS}>Press &amp; Brand</Link>
               <DonateButton variant="link" />
-              <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="footer-link text-caption font-mono">X / Twitter</a>
-              <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="footer-link text-caption font-mono">GitHub</a>
-              <a href="https://www.youtube.com/@AtmosphereLabsDev" target="_blank" rel="noopener noreferrer" className="footer-link text-caption font-mono">YouTube</a>
+              <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>X / Twitter</a>
+              <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>GitHub</a>
+              <a href="https://www.youtube.com/@AtmosphereLabsDev" target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>YouTube</a>
             </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-6 pt-4 border-t border-cipher-border/30">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-caption font-mono text-muted text-center">
-              <Link href="/" className="inline-flex items-center gap-1 mr-1">
+        {/* Bottom bar. Rows rather than one dot-separated inline run: at
+            mobile widths that run wrapped mid-list and orphaned a separator
+            on its own line. Links are separated by gap, which cannot orphan
+            a glyph; the one remaining dot sits in the attribution line, which
+            fits on a single line at 390px. */}
+        <div className="mt-10 pt-5 border-t border-cipher-border-subtle">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <Link href="/" className="inline-flex items-center" aria-label="ZecBlock home">
                 <BrandLogo compact />
               </Link>
-              <span className="text-muted">|</span>
-              <span>© {new Date().getFullYear()} ZecBlock</span>
-              <span className="text-muted">|</span>
-              <span>Powered by <span className="text-muted">Zebrad</span></span>
-              <span className="text-muted">|</span>
-              <Link href="/privacy-policy" className="hover:text-muted transition-colors">Privacy</Link>
-              <span className="text-muted">·</span>
-              <Link href="/terms" className="hover:text-muted transition-colors">Terms</Link>
-              <span className="text-muted">·</span>
-              <a href="https://status.cipherscan.app" target="_blank" rel="noopener noreferrer" className="hover:text-muted transition-colors">Status</a>
+              <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-caption font-mono">
+                <Link href="/privacy-policy" className="footer-link">Privacy</Link>
+                <Link href="/terms" className="footer-link">Terms</Link>
+                <a href="https://status.cipherscan.app" target="_blank" rel="noopener noreferrer" className="footer-link">Status</a>
+              </nav>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <a
-                  href={isMainnet ? TESTNET_URL : MAINNET_URL}
-                  className="text-caption font-mono text-muted hover:text-muted transition-colors"
-                >
-                  {isMainnet ? 'TESTNET' : 'MAINNET'}
-                </a>
-                {/* Gold is reserved for the live main network. */}
-                <span className={`text-caption font-mono ${isMainnet ? 'text-cipher-yellow' : 'text-muted'}`}>
-                  [ {NETWORK_LABEL} ]
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <ThemeToggle />
-                <span className="text-caption font-mono text-muted uppercase">
-                  {theme === 'dark' ? 'Dark' : 'Light'}
-                </span>
-              </div>
+            {/* State the current network, and give the cross-link a verb. A
+                bare "Testnet" here reads as a status label — you cannot tell
+                whether it names where you are or where the link goes. */}
+            <div className="flex items-center gap-4 shrink-0">
+              <span className="text-caption font-mono text-secondary">{NETWORK_LABEL}</span>
+              <a href={otherNetworkUrl} className="footer-link text-caption font-mono">
+                Switch to {otherNetworkLabel.toLowerCase()}
+              </a>
+              <ThemeToggle />
             </div>
           </div>
+
+          <p className="mt-5 text-caption font-mono text-muted">
+            © {new Date().getFullYear()} ZecBlock · Powered by Zebrad
+          </p>
         </div>
       </div>
     </footer>
