@@ -14,6 +14,7 @@ WORKDIR /app/server/api
 ENV NODE_ENV=production \
     PORT=3001 \
     HOST=0.0.0.0 \
+    NODE_PATH=/app/server/api/node_modules \
     COMPACT_BLOCK_CACHE_DIR=/var/cache/cipherscan/compact-blocks
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="cipherscan-api" \
