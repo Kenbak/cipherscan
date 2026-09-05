@@ -75,8 +75,9 @@ const BFT_NODE_WIDTH = 260;
 const COLOR_POW_DIM = 'rgba(232, 184, 75, 0.65)';
 const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
 const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
-const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
-const COLOR_VOTING_EDGE = 'rgba(255, 107, 53, 0.85)';
+// Clay, matching the text-cipher-orange labels these nodes carry.
+const COLOR_VOTING = 'rgba(226, 166, 110, 1)';
+const COLOR_VOTING_EDGE = 'rgba(226, 166, 110, 0.85)';
 const COLOR_FINALIZE = 'rgba(94, 230, 212, 0.95)'; // bright teal — finality frontier
 
 // ---------------------------------------------------------------------------
@@ -227,7 +228,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
     : 'border-[rgba(239,108,96,0.7)]';
   const numColor = isVoting ? 'text-cipher-orange' : 'text-cipher-coral';
   const glow = isVoting
-    ? 'shadow-[0_0_22px_rgba(255,107,53,0.45)]'
+    ? 'shadow-[0_0_22px_rgba(226,166,110,0.45)]'
     : 'shadow-[0_0_16px_rgba(239,108,96,0.3)]';
 
   return (

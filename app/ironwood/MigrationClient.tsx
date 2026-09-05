@@ -264,8 +264,12 @@ export function MigrationClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
+          {/* No accent on "Ironwood" here: gold is this page's Ironwood-pool
+              category color in the charts, badges and balance rows, so tinting
+              the word in the title reads as a data label (or a link) instead
+              of a heading. Color belongs to identity labels, not prose. */}
           <h1 className="type-page text-primary">
-            Zcash <span className="text-cipher-yellow-bright">Ironwood</span> Migration Tracker
+            Zcash Ironwood Migration Tracker
           </h1>
           <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
             Live tracking of the NU6.3 Orchard-to-Ironwood migration — pool balances, supply verification, cohort privacy, and migration velocity.

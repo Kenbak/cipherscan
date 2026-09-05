@@ -429,7 +429,7 @@ export default function ValuationPage() {
                     type="monotone"
                     dataKey="nupl"
                     stroke="#B6A0E0"
-                    fill="rgba(167,139,250,0.1)"
+                    fill="rgba(182, 160, 224, 0.1)"
                     strokeWidth={2}
                     dot={false}
                     connectNulls

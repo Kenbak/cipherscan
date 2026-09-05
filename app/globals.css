@@ -189,9 +189,12 @@
   --color-surface-solid: #111316;
   --color-hover: #1B1E23;
   --color-active: #252930;
-  --color-border: #2C3037;
-  --color-border-subtle: #20242A;
-  --color-border-rgb: 44 48 55;
+  /* Hairlines are the edge of a surface, not an outline drawn around it.
+     They stay just visible against both canvas and surface; separation is
+     carried by luminance + --card-shadow, so rules can be this quiet. */
+  --color-border: #24272D;
+  --color-border-subtle: #1A1D22;
+  --color-border-rgb: 36 39 45;
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-gold-rgb: 248 188 33;
@@ -219,6 +222,7 @@
   /* Semantic status colors — use text-danger/text-warning etc. in markup,
      never physical palette colors (text-red-400) for themeable UI */
   --danger: #D58D86;
+  --danger-rgb: 213 141 134;
   --warning: #E2A66E;
 
   /* Ambient page-background gradients (none in light mode) */
@@ -243,9 +247,9 @@
   --glass-12: rgba(255, 255, 255, 0.12);
   --glass-18: rgba(255, 255, 255, 0.18);
 
-  /* Shadows */
-  --shadow-card: none;
-  --shadow-card-hover: none;
+  /* Shadows — ambient occlusion only. No colored glow anywhere. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  --shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.32), 0 16px 36px -16px rgba(0, 0, 0, 0.8);
   --shadow-glow: none;
   --shadow-glow-lg: none;
 
@@ -284,30 +288,35 @@
      Component rules reference these — never hardcode a per-theme value
      in a component rule and never add `.light .component` override blocks. */
 
-  /* Cards */
+  /* Cards — a surface is milled from the canvas, not drawn on it: one quiet
+     hairline, one lit top edge, one ambient shadow. --card-highlight is the
+     lit edge and is always composited after the shadow. */
   --card-border: var(--color-border);
-  --card-border-hover: var(--color-border);
+  --card-border-hover: rgba(255, 255, 255, 0.11);
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --card-blur: none;
-  --card-shadow: none;
-  --card-shadow-hover: none;
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
   --card-glass-bg: var(--color-surface);
   --card-glass-blur: none;
   --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(255, 255, 255, 0.04);
-  --card-featured-border: rgba(248,188,33, 0.12);
-  --card-interactive-shadow: none;
-  --card-interactive-border-hover: var(--card-border);
+  --card-featured-border: rgb(var(--color-gold-rgb) / 0.12);
+  --card-interactive-shadow: var(--shadow-card);
+  --card-interactive-border-hover: var(--card-border-hover);
   --divider: rgba(255, 255, 255, 0.06);
 
-  /* Badges */
-  --badge-gold-bg: rgba(248,188,33, 0.12);
-  --badge-purple-bg: rgba(167, 139, 250, 0.12);
-  --badge-green-bg: rgba(0, 230, 118, 0.12);
-  --badge-orange-bg: rgba(255, 107, 53, 0.12);
-  --badge-amber-bg: rgba(245, 158, 11, 0.15);
-  --badge-danger-bg: rgba(248, 113, 113, 0.14);
-  --badge-amber-text: #F59E0B;
+  /* Badges — every tint is derived from the brand channel it labels, so a
+     badge fill can never drift into a different hue family than its own
+     text and icon (these were still CipherScan's pre-rebrand neon palette). */
+  --badge-gold-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-purple-bg: rgb(var(--color-purple-rgb) / 0.14);
+  --badge-green-bg: rgb(var(--color-green-rgb) / 0.14);
+  --badge-orange-bg: rgb(var(--color-orange-rgb) / 0.14);
+  --badge-amber-bg: rgb(var(--color-gold-rgb) / 0.14);
+  --badge-danger-bg: rgb(var(--danger-rgb) / 0.14);
+  --badge-amber-text: var(--color-gold);
 
   /* Buttons */
   --btn-primary-bg: #F8BC21;
@@ -316,14 +325,14 @@
   --btn-primary-shadow-hover: none;
 
   /* Accent interaction states (ghost buttons, suggestion rows, focus) */
-  --accent-soft: rgba(248,188,33, 0.08);
-  --accent-soft-active: rgba(248,188,33, 0.12);
-  --focus-ring: 0 0 0 3px rgba(248,188,33, 0.1);
+  --accent-soft: rgb(var(--color-gold-rgb) / 0.08);
+  --accent-soft-active: rgb(var(--color-gold-rgb) / 0.12);
+  --focus-ring: 0 0 0 3px rgb(var(--color-gold-rgb) / 0.1);
 
   /* Filter groups */
-  --filter-danger-bg: rgba(248, 113, 113, 0.08);
-  --filter-warning-bg: rgba(251, 191, 36, 0.08);
-  --amber-strong: #FBBF24;
+  --filter-danger-bg: rgb(var(--danger-rgb) / 0.08);
+  --filter-warning-bg: rgb(var(--color-orange-rgb) / 0.08);
+  --amber-strong: var(--color-gold);
 
   /* App chrome (navbar, drawer, footer) — matches page bg for a seamless edge */
   --navbar-bg: var(--color-bg);
@@ -347,19 +356,21 @@
   --modal-backdrop: rgba(0, 0, 0, 0.8);
   --modal-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 25px 50px -12px rgba(0, 0, 0, 0.6);
 
-  /* Misc surfaces */
-  --gradient-purple-start: rgba(167, 139, 250, 0.08);
-  --progress-track: rgba(107, 114, 128, 0.3);
+  /* Misc surfaces. The recessed tints track the real canvas/elevated
+     values; they were still mixing the pre-rebrand #08090F and #14161F. */
+  --gradient-purple-start: rgb(var(--color-purple-rgb) / 0.08);
+  --progress-track: rgba(255, 255, 255, 0.1);
   --tooltip-bg: var(--color-bg);
   --inset-bg: var(--color-bg);           /* recessed panels: hashes, code blocks */
-  --inset-bg-30: rgba(8, 9, 15, 0.3);    /* tx summary box */
-  --inset-bg-50: rgba(8, 9, 15, 0.5);    /* block tx rows */
-  --inset-panel: rgba(20, 22, 31, 0.5);  /* scan progress */
+  --inset-bg-30: rgba(11, 12, 14, 0.3);  /* tx summary box */
+  --inset-bg-50: rgba(11, 12, 14, 0.5);  /* block tx rows */
+  --inset-panel: rgba(25, 27, 31, 0.5);  /* scan progress */
   --raised-bg: var(--color-elevated);    /* docs sidebar, card-bg */
   --decrypt-bg: var(--color-bg);
   --sticky-header-bg: var(--color-bg);
-  --warning-box-text: #FBBF24;
-  --warning-box-border: rgba(251, 191, 36, 0.25);
+  --warning-box-text: var(--warning);
+  --warning-box-bg: rgb(var(--color-orange-rgb) / 0.08);
+  --warning-box-border: rgb(var(--color-orange-rgb) / 0.25);
 
   /* Decrypt inbox — glass surface matching .card-glass, not a standalone slate palette */
   --inbox-container-bg: var(--card-glass-bg);
@@ -370,7 +381,7 @@
   --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
-  --risk-connector-color: rgba(167, 139, 250, 0.25);
+  --risk-connector-color: rgb(var(--color-purple-rgb) / 0.25);
   --reactflow-bg-opacity: 1;
 }
 
@@ -382,9 +393,12 @@
   --color-surface-solid: #FFFFFF;
   --color-hover: #EBEEF2;
   --color-active: #E2E6EC;
-  --color-border: #CED3DB;
-  --color-border-subtle: #E4E7EC;
-  --color-border-rgb: 206 211 219;
+  /* Quieter than the previous #CED3DB, which outlined every container and
+     made light mode read as a grey wireframe. Elevation now comes from
+     --card-shadow plus the white top edge. */
+  --color-border: #DFE3E9;
+  --color-border-subtle: #EDEFF3;
+  --color-border-rgb: 223 227 233;
 
   /* Brand — RGB channels for Tailwind opacity support */
   --color-gold-rgb: 219 158 0;
@@ -402,7 +416,7 @@
   --color-green: #14734B;
   --color-yellow: #DB9E00;
   --color-purple: #7040B5;
-  --color-purple-glow: #8B5CF6;
+  --color-purple-glow: #7040B5;
   --color-orange: #A34A16;
 
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
@@ -412,6 +426,7 @@
 
   /* Semantic status colors — darker for light-surface contrast */
   --danger: #B13D38;
+  --danger-rgb: 177 61 56;
   --warning: #A34A16;
 
   /* Light mode — clean, no ambient gradients */
@@ -434,38 +449,40 @@
   --glass-12: rgba(0, 0, 0, 0.12);
   --glass-18: rgba(0, 0, 0, 0.18);
 
-  /* Shadows - minimal, borders do the work */
-  --shadow-card: none;
-  --shadow-card-hover: none;
+  /* Shadows — soft, neutral-cool ambient occlusion. No colored glow. */
+  --shadow-card: 0 1px 1px rgba(17, 22, 30, 0.04), 0 10px 24px -18px rgba(17, 22, 30, 0.2);
+  --shadow-card-hover: 0 1px 2px rgba(17, 22, 30, 0.06), 0 14px 30px -18px rgba(17, 22, 30, 0.26);
   --shadow-glow: none;
   --shadow-glow-lg: none;
 
   /* ===== COMPONENT TOKENS (light theme) ===== */
 
-  /* Cards — subtle borders, minimal elevation */
+  /* Cards — white surface lifted off the canvas by shadow, with a white
+     top edge so the hairline reads as a rounded edge rather than an outline. */
   --card-border: var(--color-border);
-  --card-border-hover: var(--color-border);
+  --card-border-hover: #CBD2DC;
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   --card-blur: none;
-  --card-shadow: none;
-  --card-shadow-hover: none;
+  --card-shadow: var(--shadow-card);
+  --card-shadow-hover: var(--shadow-card-hover);
   --card-glass-bg: var(--color-surface);
   --card-glass-blur: none;
   --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(0, 0, 0, 0.06);
-  --card-featured-border: rgba(219, 158, 0, 0.2);
-  --card-interactive-shadow: none;
-  --card-interactive-border-hover: var(--color-gold);
+  --card-featured-border: rgb(var(--color-gold-rgb) / 0.2);
+  --card-interactive-shadow: var(--shadow-card);
+  --card-interactive-border-hover: var(--card-border-hover);
   --divider: rgba(0, 0, 0, 0.06);
 
-  /* Badges — deeper tints for light-surface contrast */
-  --badge-gold-bg: rgba(219, 158, 0, 0.12);
-  --badge-purple-bg: rgba(124, 58, 237, 0.12);
-  --badge-green-bg: rgba(4, 120, 87, 0.14);
-  --badge-orange-bg: rgba(194, 65, 12, 0.12);
-  --badge-amber-bg: rgba(217, 119, 6, 0.12);
-  --badge-danger-bg: rgba(220, 38, 38, 0.12);
-  --badge-amber-text: #DB9E00;
+  /* Badges — derived from the same brand channels as their text and icons. */
+  --badge-gold-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-purple-bg: rgb(var(--color-purple-rgb) / 0.12);
+  --badge-green-bg: rgb(var(--color-green-rgb) / 0.12);
+  --badge-orange-bg: rgb(var(--color-orange-rgb) / 0.12);
+  --badge-amber-bg: rgb(var(--color-gold-rgb) / 0.12);
+  --badge-danger-bg: rgb(var(--danger-rgb) / 0.12);
+  --badge-amber-text: var(--color-gold);
 
   /* Buttons */
   --btn-primary-bg: #DB9E00;
@@ -473,29 +490,31 @@
   --btn-primary-text: #171A20;
   --btn-primary-shadow-hover: none;
 
-  /* Accent interaction states */
-  --accent-soft: rgba(134, 96, 8, 0.08);
-  --accent-soft-active: rgba(134, 96, 8, 0.1);
-  --focus-ring: 0 0 0 3px rgba(134, 96, 8, 0.1);
+  /* Accent interaction states — derived from the brand gold so the focus
+     ring matches the border it sits behind (was the retired #866008). */
+  --accent-soft: rgb(var(--color-gold-rgb) / 0.1);
+  --accent-soft-active: rgb(var(--color-gold-rgb) / 0.14);
+  --focus-ring: 0 0 0 3px rgb(var(--color-gold-rgb) / 0.18);
 
   /* Filter groups */
-  --filter-danger-bg: rgba(220, 38, 38, 0.06);
-  --filter-warning-bg: rgba(245, 158, 11, 0.06);
-  --amber-strong: #D97706;
+  --filter-danger-bg: rgb(var(--danger-rgb) / 0.06);
+  --filter-warning-bg: rgb(var(--color-orange-rgb) / 0.06);
+  --amber-strong: var(--color-gold);
 
   /* App chrome — matches page bg for a seamless edge */
   --navbar-bg: var(--color-bg);
   --chrome-bg: var(--color-bg);
   --nav-accent-hover: var(--color-gold);
 
-  /* Search bar accessories */
-  --kbd-bg: #F3F4F6;
-  --kbd-border: #E5E7EB;
-  --kbd-text: #6B7280;
-  --tag-bg: #F9FAFB;
-  --tag-border: #E5E7EB;
-  --tag-text: #4B5563;
-  --tag-bg-hover: #F3F4F6;
+  /* Search bar accessories — the old raw Tailwind greys ran cooler than the
+     light neutrals, so keys and example tags read as a foreign palette. */
+  --kbd-bg: var(--color-hover);
+  --kbd-border: var(--color-border);
+  --kbd-text: var(--color-text-muted);
+  --tag-bg: var(--color-bg);
+  --tag-border: var(--color-border);
+  --tag-text: var(--color-text-secondary);
+  --tag-bg-hover: var(--color-hover);
 
   /* Popovers, dropdowns, modals */
   --popover-bg: var(--color-surface-solid);
@@ -506,7 +525,7 @@
   --modal-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 
   /* Misc surfaces */
-  --gradient-purple-start: rgba(124, 58, 237, 0.06);
+  --gradient-purple-start: rgb(var(--color-purple-rgb) / 0.06);
   --progress-track: rgba(0, 0, 0, 0.1);
   --tooltip-bg: var(--color-surface);
   --inset-bg: var(--color-elevated);
@@ -516,8 +535,9 @@
   --raised-bg: var(--color-elevated);
   --decrypt-bg: var(--color-surface);
   --sticky-header-bg: var(--color-bg);
-  --warning-box-text: #B45309;
-  --warning-box-border: rgba(180, 83, 9, 0.25);
+  --warning-box-text: var(--warning);
+  --warning-box-bg: rgb(var(--color-orange-rgb) / 0.06);
+  --warning-box-border: rgb(var(--color-orange-rgb) / 0.25);
 
   /* Decrypt inbox — same glass tokens as dark theme, values flip automatically */
   --inbox-container-bg: var(--card-glass-bg);
@@ -528,7 +548,7 @@
   --inbox-message-body-bg: var(--glass-2);
 
   /* Privacy visuals */
-  --risk-connector-color: rgba(124, 58, 237, 0.4);
+  --risk-connector-color: rgb(var(--color-purple-rgb) / 0.4);
   --reactflow-bg-opacity: 0.5;
 }
 
@@ -577,7 +597,8 @@
 
 @layer components {
   /* ===== UNIFIED CARD SYSTEM ===== */
-  /* Card System - Apple-inspired with shadow-based elevation */
+  /* Card System — shadow-based elevation plus a lit top edge. The highlight
+     is listed last so it composites over the ambient shadow. */
   .card {
     background: var(--color-surface);
     backdrop-filter: var(--card-blur);
@@ -587,14 +608,14 @@
     padding: var(--space-6);
     overflow: visible;
     min-width: 0;
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--card-shadow), var(--card-highlight);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* Subtle shadow enhancement on hover - no transform (that's for .card-interactive) */
   .card:hover:not(.card-static) {
     border-color: var(--card-border-hover);
-    box-shadow: var(--card-shadow-hover);
+    box-shadow: var(--card-shadow-hover), var(--card-highlight);
   }
 
   /* Card variants - used by legacy code and Card component */
@@ -605,6 +626,7 @@
     border: 1px solid var(--card-glass-border);
     border-radius: var(--radius-xl);
     padding: var(--space-6);
+    box-shadow: var(--card-shadow), var(--card-highlight);
     transition: border-color 250ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1), background-color 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -617,7 +639,7 @@
   }
 
   .card-dark:hover {
-    border-color: rgba(248,188,33, 0.2);
+    border-color: rgb(var(--color-gold-rgb) / 0.2);
   }
 
   /* ===== BADGES ===== */
@@ -819,14 +841,14 @@
   }
 
   .btn-danger {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgb(var(--danger-rgb) / 0.1);
+    color: var(--danger);
+    border: 1px solid rgb(var(--danger-rgb) / 0.25);
   }
 
   .btn-danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.4);
+    background: rgb(var(--danger-rgb) / 0.15);
+    border-color: rgb(var(--danger-rgb) / 0.4);
   }
 
   .btn-icon-only {
@@ -1285,7 +1307,7 @@
   /* ===== WARNINGS ===== */
   .warning-box {
     color: var(--warning-box-text);
-    background-color: rgba(251, 191, 36, 0.08);
+    background-color: var(--warning-box-bg);
     border: 1px solid var(--warning-box-border);
   }
 
@@ -1464,11 +1486,11 @@
   }
 
   .input-field.input-error {
-    border-color: #EF4444;
+    border-color: var(--danger);
   }
 
   .input-field.input-error:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgb(var(--danger-rgb) / 0.1);
   }
 
   .input-with-icon-left {
@@ -1503,7 +1525,7 @@
 
   .input-error-message {
     font-size: 12px;
-    color: #EF4444;
+    color: var(--danger);
   }
 
   .textarea-field {
@@ -1566,7 +1588,7 @@
   .search-input-field:focus {
     outline: none;
     border-color: var(--color-gold);
-    box-shadow: 0 0 0 3px rgba(248,188,33, 0.1);
+    box-shadow: var(--focus-ring);
   }
 
   .search-input-clear {
@@ -1612,27 +1634,27 @@
   }
 
   .alert-info {
-    background: rgba(248,188,33, 0.08);
-    border: 1px solid rgba(248,188,33, 0.2);
+    background: rgb(var(--color-gold-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-gold-rgb) / 0.2);
     color: var(--color-gold);
   }
 
   .alert-success {
-    background: rgba(0, 230, 118, 0.08);
-    border: 1px solid rgba(0, 230, 118, 0.2);
+    background: rgb(var(--color-green-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-green-rgb) / 0.2);
     color: var(--color-green);
   }
 
   .alert-warning {
-    background: rgba(255, 107, 53, 0.08);
-    border: 1px solid rgba(255, 107, 53, 0.2);
+    background: rgb(var(--color-orange-rgb) / 0.08);
+    border: 1px solid rgb(var(--color-orange-rgb) / 0.2);
     color: var(--color-orange);
   }
 
   .alert-error {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #EF4444;
+    background: rgb(var(--danger-rgb) / 0.08);
+    border: 1px solid rgb(var(--danger-rgb) / 0.2);
+    color: var(--danger);
   }
 
 }

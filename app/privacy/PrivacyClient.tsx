@@ -160,7 +160,7 @@ export default function PrivacyClient() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <PageHeader
-          eyebrow="PRIVACY SCORE"
+          eyebrow="PRIVACY_SCORE"
           title="Network privacy health"
           subtitle="How well the chain uses shielded pools and private transaction patterns."
         />
@@ -196,7 +196,7 @@ export default function PrivacyClient() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageHeader
-        eyebrow="PRIVACY SCORE"
+        eyebrow="PRIVACY_SCORE"
         title="Network privacy health"
         subtitle="One score from recent shielded usage, transaction quality, pool depth, and post-deshield behavior."
         actions={
@@ -282,7 +282,7 @@ export default function PrivacyClient() {
 
       {/* ── Activity ── */}
       <section id="activity" className="scroll-mt-36 mb-12">
-        <SectionHeader label="RECENT SHIELDED ACTIVITY" live />
+        <SectionHeader label="RECENT_SHIELDED_ACTIVITY" live />
         <Card>
           <CardBody>
             <p className="mb-4 text-xs leading-relaxed text-secondary">
@@ -305,7 +305,7 @@ export default function PrivacyClient() {
       {/* ── Trends ── */}
       {(trendHistory.length > 0 || stats.trends.daily.length > 0) ? (
         <section id="trends" className="scroll-mt-36 mb-12">
-          <SectionHeader label="HISTORICAL TRENDS" />
+          <SectionHeader label="HISTORICAL_TRENDS" />
           <PrivacyTrendsSection
             trendHistory={trendHistory.length > 0 ? trendHistory : stats.trends.daily}
             privacyScore={stats.metrics.privacyScore}
@@ -321,7 +321,7 @@ export default function PrivacyClient() {
 
       {/* ── Distribution ── */}
       <section id="distribution" className="scroll-mt-36 mb-12">
-        <SectionHeader label="ANONYMITY & AMOUNTS" />
+        <SectionHeader label="ANONYMITY_AND_AMOUNTS" />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <AnonymitySetChart />
           <ShieldingDistributionChart />
@@ -330,7 +330,7 @@ export default function PrivacyClient() {
 
       {/* ── Related ── */}
       <section className="mb-12">
-        <SectionHeader label="RELATED TOOLS" />
+        <SectionHeader label="RELATED_TOOLS" />
         <div className="grid gap-4 sm:grid-cols-3">
           {RELATED.map(({ href, title, description }) => (
             <Link

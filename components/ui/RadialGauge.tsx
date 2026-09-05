@@ -4,7 +4,7 @@
 export function scoreColor(value: number): string {
   if (value >= 80) return '#65C79A';
   if (value >= 60) return '#F8BC21';
-  return '#EF4444';
+  return '#D58D86';
 }
 
 interface RadialGaugeProps {

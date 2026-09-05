@@ -5,7 +5,7 @@
   --xy-edge-label-background-color: var(--color-surface-solid);
   --xy-edge-label-color: var(--color-text-primary);
   --xy-minimap-background-color: var(--color-surface-solid);
-  --xy-minimap-mask-background-color: rgba(8, 9, 15, 0.72);
+  --xy-minimap-mask-background-color: rgba(11, 12, 14, 0.72);
   --xy-minimap-mask-stroke-color: transparent;
   --xy-minimap-node-background-color: rgba(148, 163, 184, 0.55);
   --xy-controls-button-background-color: var(--color-surface-solid);
