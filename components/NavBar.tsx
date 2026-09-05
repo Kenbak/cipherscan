@@ -160,7 +160,7 @@ export function NavBar() {
             </Link>
 
             {/* Desktop: Horizontal category dropdowns */}
-            <div className="hidden md:flex items-center gap-0.5 flex-1 justify-start lg:ml-6">
+            <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
               {categories.map(cat => (
                 <div key={cat.id} className="relative">
                   <button

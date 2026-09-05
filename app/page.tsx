@@ -121,7 +121,7 @@ export default async function Home() {
 
         </div>
 
-        {/* Search and introduction share the page’s left edge; input width stays bounded. */}
+        {/* Search shares the centered hero column; input contents remain left-aligned. */}
         <div className="home-command">
           <SearchBar />
         </div>

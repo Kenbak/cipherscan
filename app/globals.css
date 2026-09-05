@@ -1747,9 +1747,9 @@
   .brand-logo[data-tone="light"] .brand-logo-ink { display: block; }
   .brand-lockup { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
   .brand-network { font: 0.75rem/1.2 var(--font-geist-mono); letter-spacing: 0.02em; color: var(--color-text-muted); }
-  .home-hero { width: 100%; margin: 0; padding: 12px 0 28px; text-align: left; }
+  .home-hero { width: min(100%, 800px); margin: 0 auto; padding: 12px 0 28px; text-align: center; }
   .home-introduction, .home-command { min-width: 0; }
-  .home-introduction p { max-width: 620px; margin: 16px 0 0; font-size: 15px; line-height: 1.65; text-wrap: pretty; }
+  .home-introduction p { max-width: 620px; margin: 16px auto 0; font-size: 15px; line-height: 1.65; text-wrap: balance; }
   .home-hero h1 { font-family: var(--font-geist-sans); font-size: clamp(1.875rem, 3vw, 2.5rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1.2; }
   .home-title-mark { display: inline-block; width: 0.22em; height: 0.22em; margin-left: 0.22em; background: var(--color-gold-accent); }
   .home-command { width: min(100%, 800px); margin-top: 28px; text-align: left; }

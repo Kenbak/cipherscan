@@ -396,7 +396,7 @@ export function StatsBar() {
         <div className="flex h-10 sm:h-11 items-center gap-2">
           <div
             ref={scrollRef}
-            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center justify-start overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
+            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center xl:justify-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
           >
             <div className="flex items-center gap-3 sm:gap-4 pr-4">
               {visibleItems.map(({ id, node }, i) => (
