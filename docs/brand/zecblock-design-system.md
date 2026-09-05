@@ -145,3 +145,5 @@ The owner explicitly requested #DB9E00 on gold text, including Buy ZEC, not only
 ### Hero alignment — 2026-09-05
 
 Owner-approved refinement keeps the centered 800px hero column, with the heading, description, command search and examples aligned to its left edge. Mainnet introduction: “Inspect the Zcash network. Blocks, transactions and shielded pools.” A small static gold square follows the unchanged H1; it is decorative and hidden from assistive technology. Hero bottom padding is 28px on desktop (previously 52px) and 16px on mobile (previously 24px), bringing feeds closer. Network-specific testnet/Crosslink copy, metadata and data architecture are preserved. Local implementation only.
+
+Latest alignment correction (2026-09-05): the owner identified a staircase between logo, centered stats and inset hero. The hero now spans the existing max-w-7xl content container, with its left edge shared by the logo and feed tables. Search spans that full content width. Stats remain left-aligned at every breakpoint; their previous xl centering is removed. This supersedes the inset 800px hero above. Typography, marker and concise copy remain.
