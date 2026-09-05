@@ -81,6 +81,8 @@ const NODE_TIERS = {
   low: { fill: '#A07818', glow: '#A07818', label: '2-4' },       // deep yellow
   single: { fill: '#7A6030', glow: '#7A6030', label: '1' },      // muted yellow
 };
+const EMPTY_LOCATIONS: NodeLocation[] = [];
+const EMPTY_COUNTRIES: TopCountry[] = [];
 
 function getNodeTier(count: number) {
   if (count >= 10) return NODE_TIERS.high;
@@ -117,10 +119,10 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
     undefined,
     { refreshInterval: 300_000, initialData: initialStats ?? undefined },
   );
-  const locations = locationsQuery.data?.locations ?? [];
+  const locations = locationsQuery.data?.locations ?? EMPTY_LOCATIONS;
   const stats = statsQuery.data?.stats ?? null;
   const trends = statsQuery.data?.trends ?? null;
-  const topCountries = statsQuery.data?.topCountries ?? [];
+  const topCountries = statsQuery.data?.topCountries ?? EMPTY_COUNTRIES;
   const loading = locationsQuery.loading || statsQuery.loading;
   const error = locationsQuery.error || statsQuery.error;
   const [hoveredNode, setHoveredNode] = useState<NodeLocation | null>(null);
@@ -250,7 +252,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
         {selectedCountryData && (
           <button
             onClick={() => setSelectedCountry(null)}
-            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition-all hover:border-cipher-cyan/60 bg-cipher-surface-solid"
+            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition hover:border-cipher-cyan/60 bg-cipher-surface-solid"
           >
             <span>{getFlagEmoji(selectedCountryData.countryCode)}</span>
             <span className="text-cipher-cyan font-semibold">{selectedCountryData.country}</span>
@@ -516,7 +518,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
                 <button
                   key={country.countryCode}
                   onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
-                  className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition ${
                     isActive
                       ? 'bg-cipher-cyan/10 border border-cipher-cyan/30 ring-1 ring-cipher-cyan/20'
                       : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'

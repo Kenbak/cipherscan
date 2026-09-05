@@ -258,7 +258,6 @@ export function StatsBar() {
       resizeObserver.disconnect();
     };
     // Re-check once stats finish loading, since that's what changes content width.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateScrollFade, stats, selected]);
 
   const scrollFadeClass = canScrollLeft && canScrollRight

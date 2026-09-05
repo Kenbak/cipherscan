@@ -2,12 +2,15 @@
   "name": "cipherscan",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.14 <23"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint . && npm run lint:design",
-    "lint:code": "eslint .",
+    "lint": "npm run lint:code && npm run lint:design",
+    "lint:code": "eslint . --max-warnings 265",
     "lint:design": "node scripts/check-design-tokens.mjs",
     "visual:audit": "node scripts/visual-audit.mjs",
     "test:ironwood-accounting": "NODE_PATH=server/api/node_modules node --test server/tests/ironwood-accounting.test.js",
@@ -25,6 +28,10 @@
     "test:ttfb-probe": "node --test server/tests/ttfb-probe.test.js",
     "test:isr-warmup": "node --test server/tests/isr-warmup.test.js",
     "test:route-cache-build": "node --test server/tests/next-route-cache-build.test.js",
+    "test:frontend": "npm run test:sitemap-security && npm run test:performance && npm run test:ttfb-probe && npm run test:isr-warmup && npm run test:revalidate-security && NODE_PATH=server/api/node_modules node --test server/tests/address-labels-resilience.test.js",
+    "test:server-regressions": "NODE_PATH=server/api/node_modules node --test server/tests/blocks-orphan-batch.test.js server/tests/tx-detail-parallel.test.js server/tests/tx-mempool-cache.test.js server/tests/migration-activity-summary.test.js server/tests/blend-check-batch.test.js server/tests/db-pool-deadlines.test.js server/tests/error-message-leakage.test.js server/tests/safe-log.test.js server/tests/ironwood-accounting.test.js server/tests/exposure-consumers.test.js server/tests/network-halving.test.js server/tests/peer-client.test.js server/tests/privacy-score.test.js",
+    "verify:fast": "npm run lint && tsc --noEmit",
+    "verify:frontend": "npm run verify:fast && npm run test:frontend && CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK=1 npm run build && npm run test:route-cache-build",
     "perf:analyze": "node scripts/perf/analyze-slow-pages.mjs",
     "perf:probe": "node scripts/perf/probe-slow-pages.mjs",
     "perf:probe:ttfb": "node scripts/perf/probe-ttfb.mjs",
@@ -87,6 +94,7 @@
   "devDependencies": {
     "@types/d3-force": "^3.0.10",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.4"
+    "eslint-config-next": "^16.3.4",
+    "playwright": "1.63.0"
   }
 }

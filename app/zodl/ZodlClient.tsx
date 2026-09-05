@@ -136,7 +136,7 @@ export function ZodlClient({
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition-all ${
+              className={`px-3 py-1 text-[11px] font-mono rounded-md transition ${
                 period === p.key ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-bold' : 'text-muted hover:text-secondary'
               }`}
             >
@@ -149,7 +149,7 @@ export function ZodlClient({
             <button
               key={s.key}
               onClick={() => setSortKey(s.key as any)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition-all whitespace-nowrap ${
+              className={`px-3 py-1 text-[11px] font-mono rounded-md transition whitespace-nowrap ${
                 sortKey === s.key ? 'bg-white/5 text-primary font-bold border border-white/10' : 'text-muted hover:text-secondary border border-transparent'
               }`}
             >

@@ -1,6 +1,7 @@
 'use client';
 
 import '@xyflow/react/dist/style.css';
+import styles from './PrivacyLinkGraph.module.css';
 
 import { memo, useMemo } from 'react';
 import {
@@ -260,7 +261,7 @@ export function PrivacyLinkGraph({
   }
 
   return (
-    <div className="privacy-link-graph w-full overflow-hidden rounded-2xl border border-white/[0.06]" style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>
+    <div className={`${styles.root} w-full overflow-hidden rounded-2xl border border-white/[0.06]`} style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>
       <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-3.5">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted/70">Link Graph</p>

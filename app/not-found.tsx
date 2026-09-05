@@ -71,28 +71,28 @@ export default function NotFound() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
               href="/"
-              className="card-bg hover:border-cipher-cyan border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-cyan border border-transparent rounded-lg p-3 transition group"
             >
               <div className="text-2xl mb-2">🏠</div>
               <div className="text-xs font-mono text-secondary group-hover:text-primary transition-colors">Home</div>
             </Link>
             <Link
               href="/privacy"
-              className="card-bg hover:border-cipher-purple border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-purple border border-transparent rounded-lg p-3 transition group"
             >
               <div className="text-2xl mb-2">🛡️</div>
               <div className="text-xs font-mono text-secondary group-hover:text-primary transition-colors">Privacy Stats</div>
             </Link>
             <Link
               href="/network"
-              className="card-bg hover:border-cipher-green border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-green border border-transparent rounded-lg p-3 transition group"
             >
               <div className="text-2xl mb-2">📊</div>
               <div className="text-xs font-mono text-secondary group-hover:text-cipher-green transition-colors">Network</div>
             </Link>
             <Link
               href="/docs"
-              className="card-bg hover:border-cipher-yellow border border-transparent rounded-lg p-3 transition-all group"
+              className="card-bg hover:border-cipher-yellow border border-transparent rounded-lg p-3 transition group"
             >
               <div className="text-2xl mb-2">📚</div>
               <div className="text-xs font-mono text-secondary group-hover:text-cipher-yellow transition-colors">API Docs</div>

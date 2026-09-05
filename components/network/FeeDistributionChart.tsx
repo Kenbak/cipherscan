@@ -56,7 +56,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
         <button
           key={p}
           onClick={() => setPeriod(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             period === p
               ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
               : 'text-muted hover:text-primary'
@@ -84,7 +84,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
             Daily fee percentiles (in mZEC, 1 mZEC = 100,000 zatoshis). The band shows the
             10th–90th percentile range; the line is the median. Narrow bands mean consensus on fee levels.
           </p>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
             <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="feeBand" x1="0" y1="0" x2="0" y2="1">

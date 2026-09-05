@@ -531,7 +531,7 @@ export function ScanMyTransactions() {
                   {/* Progress bar */}
                   <div className="h-2 sm:h-3 progress-bar-bg rounded-full overflow-hidden mb-3">
                     <div
-                      className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-[width] duration-300"
                       style={{ width: `${scanProgress}%` }}
                     />
                   </div>

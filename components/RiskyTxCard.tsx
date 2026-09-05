@@ -146,7 +146,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       type: 'transparent_output',
       confidence: tx.score,
     }] : []),
-  ]), [tx, shieldAddress, deshieldAddress]);
+  ]), [tx, shieldAddress, deshieldAddress, timeDeltaDisplay]);
 
   const cardId = `risk-${tx.shieldTxid.slice(0, 8)}-${tx.deshieldTxid.slice(0, 8)}`;
 

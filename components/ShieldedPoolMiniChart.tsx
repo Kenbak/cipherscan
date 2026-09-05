@@ -135,7 +135,7 @@ export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ foote
             is left after the stats/legend rows above, so the outer
             CARD_HEIGHT_PX is what's exact, not this chart's own size. */}
         <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
             <AreaChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} vertical={false} />
               <XAxis

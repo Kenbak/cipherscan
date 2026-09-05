@@ -55,7 +55,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
           </div>
           <div className="h-2.5 bg-cipher-bg rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-yellow transition-all duration-700 rounded-full"
+              className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-yellow transition-[width] duration-700 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -198,7 +198,7 @@ export function SupplyEmissionPanel({
         </div>
 
         <div className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
             <AreaChart data={emissionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="emissionGradient" x1="0" y1="0" x2="0" y2="1">

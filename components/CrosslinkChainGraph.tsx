@@ -21,6 +21,7 @@ import { getApiUrl } from '@/lib/api-config';
 import { displayPubkey } from '@/lib/utils';
 import { getFinalizerLabel } from '@/lib/finalizer-labels';
 import { Tooltip } from '@/components/Tooltip';
+import styles from './CrosslinkChainGraph.module.css';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -161,7 +162,7 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
       <Link
         href={`/block/${block.height}`}
-        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 hover:shadow-[0_0_20px_rgba(0,212,255,0.12)] transition-all`}
+        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 hover:shadow-[0_0_20px_rgba(0,212,255,0.12)] transition`}
       >
         <span className={`block w-1 shrink-0 ${accentClass}`} />
 
@@ -731,7 +732,7 @@ export function CrosslinkChainGraph({
 
       {/* Graph canvas */}
       <div
-        className={`crosslink-graph relative w-full card p-0 overflow-hidden ${
+        className={`${styles.root} relative w-full card p-0 overflow-hidden ${
           isEmbedded
             ? ''
             : 'h-[calc(100vh-260px)] min-h-[560px]'

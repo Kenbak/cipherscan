@@ -96,7 +96,7 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             value === p
               ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
               : 'text-muted hover:text-primary'
@@ -153,7 +153,7 @@ function DistributionSection() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={320}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -337,7 +337,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
     <div className="flex items-center gap-1 bg-glass-3 rounded-md p-0.5">
       <button
         onClick={() => onChange('line')}
-        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all ${
+        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition ${
           mode === 'line'
             ? 'bg-accent/20 text-accent font-bold'
             : 'text-muted hover:text-secondary'
@@ -347,7 +347,7 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
       </button>
       <button
         onClick={() => onChange('area')}
-        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all ${
+        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition ${
           mode === 'area'
             ? 'bg-accent/20 text-accent font-bold'
             : 'text-muted hover:text-secondary'
@@ -429,7 +429,7 @@ function HashrateShareSection() {
             <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
           </div>
         ) : chartMode === 'area' ? (
-          <ResponsiveContainer width="100%" height={380}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={380}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis
@@ -478,7 +478,7 @@ function HashrateShareSection() {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <ResponsiveContainer width="100%" height={380}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={380}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis
@@ -601,7 +601,7 @@ function MinerBehaviorSection() {
           </div>
           <Link
             href="/zodl"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cipher-border bg-glass-3 text-[11px] font-mono text-secondary hover:text-primary hover:border-cipher-yellow/40 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cipher-border bg-glass-3 text-[11px] font-mono text-secondary hover:text-primary hover:border-cipher-yellow/40 transition"
           >
             ZODL leaderboard
             <span className="opacity-60">→</span>
@@ -668,7 +668,7 @@ function MinerBehaviorSection() {
             </div>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={320}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
               <XAxis

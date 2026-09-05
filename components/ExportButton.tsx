@@ -97,7 +97,7 @@ export function ExportButton({
     return (
       <button
         onClick={exportAsJson}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition"
         title="Export as JSON"
       >
         {exported === 'JSON' ? (
@@ -123,7 +123,7 @@ export function ExportButton({
     return (
       <button
         onClick={exportAsCsv}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition"
         title="Export as CSV"
       >
         {exported === 'CSV' ? (
@@ -151,7 +151,7 @@ export function ExportButton({
       <button
         ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition-all"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary hover:text-primary border border-cipher-border hover:bg-cipher-hover rounded-md transition"
       >
         {exported ? (
           <>

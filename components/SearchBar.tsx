@@ -245,7 +245,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
               key={suggestion.address}
               type="button"
               onClick={() => selectSuggestion(suggestion)}
-              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-all duration-150 ${
+              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition duration-150 ${
                 index === selectedIndex ? 'suggestion-item-active' : 'suggestion-item'
               }`}
             >
@@ -340,7 +340,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             placeholder="Search address, tx hash, block, or name..."
             className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
               search-input-hero border-2 rounded-xl text-primary
-              placeholder:text-muted transition-all duration-300
+              placeholder:text-muted transition duration-300
               ${isFocused
                 ? 'border-cipher-cyan/60 shadow-[0_0_20px_rgb(var(--color-cyan-rgb)_/_0.06)]'
                 : 'border-cipher-border hover:border-white/[0.12]'
@@ -366,7 +366,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
               w-9 h-9 sm:w-10 sm:h-10 rounded-lg
               text-cipher-cyan border border-cipher-border
               hover:border-white/[0.12] hover:bg-cipher-hover
-              transition-all duration-150"
+              transition duration-150"
           >
             <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />

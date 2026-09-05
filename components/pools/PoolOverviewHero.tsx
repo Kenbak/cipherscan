@@ -32,6 +32,8 @@ export interface PoolOverviewData {
   deltas: Record<string, Record<string, number | null>>;
 }
 
+const EMPTY_HISTORY: HistoryPoint[] = [];
+
 interface HistoryPoint {
   date: string;
   sprout: number;
@@ -100,7 +102,7 @@ function SupplyLegendStat({
 }) {
   return (
     <div
-      className={`rounded-xl border px-3 py-3 transition-all duration-150 sm:px-4 sm:py-3.5 ${
+      className={`rounded-xl border px-3 py-3 transition duration-150 sm:px-4 sm:py-3.5 ${
         active
           ? 'border-cipher-yellow/40 bg-glass-4 ring-1 ring-cipher-yellow/20'
           : dimmed
@@ -149,7 +151,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     '/api/network/pool-history',
     { period: 'all' },
   );
-  const history = historyRes?.points ?? [];
+  const history = historyRes?.points ?? EMPTY_HISTORY;
   const coverageStart = historyRes?.coverageStart ?? null;
 
   useEffect(() => {

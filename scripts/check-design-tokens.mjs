@@ -92,9 +92,11 @@ for (const block of lightBlocks) {
 // resolve to a variable defined in the stylesheets. Catches silent no-ops
 // like the never-defined --color-bg-card / --color-text-tertiary bugs.
 {
-  const cssSources = ['app/globals.css', 'app/newsletter/newsletter.css']
-    .map((p) => readFileSync(join(ROOT, p), 'utf8'))
-    .join('\n');
+  const cssSources = SCAN_DIRS.flatMap((dir) =>
+    [...walk(join(ROOT, dir))]
+      .filter((file) => file.endsWith('.css'))
+      .map((file) => readFileSync(file, 'utf8')),
+  ).join('\n');
   const defined = new Set([...cssSources.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gim)].map((m) => m[1]));
   // Defined outside the stylesheets: next/font injects the geist vars,
   // Tailwind owns --tw-*, React Flow owns --xy-*.

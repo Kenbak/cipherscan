@@ -22,7 +22,7 @@ export function SegmentedControl<T extends string>({
           key={id}
           type="button"
           onClick={() => onChange(id)}
-          className={`flex-1 rounded-md py-1.5 text-[11px] font-mono transition-all sm:flex-none sm:rounded-full sm:border sm:px-2.5 sm:py-0.5 sm:text-[10px] ${
+          className={`flex-1 rounded-md py-1.5 text-[11px] font-mono transition sm:flex-none sm:rounded-full sm:border sm:px-2.5 sm:py-0.5 sm:text-[10px] ${
             value === id
               ? 'bg-cipher-yellow/15 text-cipher-yellow-bright shadow-sm sm:border-cipher-yellow/40 sm:bg-cipher-yellow/10 sm:shadow-none'
               : 'text-muted hover:text-primary sm:border-cipher-border/50 sm:hover:border-cipher-border'

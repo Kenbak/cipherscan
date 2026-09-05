@@ -23,6 +23,7 @@ import { privacyAxisLabel } from '@/components/privacy/privacy-chart-axis';
 
 type Period = '30d' | '90d' | '1y' | 'all';
 type View = 'rate' | 'composition' | 'pools';
+const EMPTY_POINTS: PoolPoint[] = [];
 
 const CHART_HEIGHT = 360;
 const CHART_MARGIN = { top: 12, right: 16, left: 4, bottom: 56 };
@@ -60,7 +61,7 @@ interface PoolPoint {
 }
 
 function segmentedClass(active: boolean) {
-  return `px-2 py-1 text-[10px] font-mono uppercase tracking-wide rounded transition-all whitespace-nowrap ${
+  return `px-2 py-1 text-[10px] font-mono uppercase tracking-wide rounded transition whitespace-nowrap ${
     active ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold' : 'text-muted hover:text-primary'
   }`;
 }
@@ -219,7 +220,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
     { period },
     { initialData: period === 'all' ? initialData ?? undefined : undefined },
   );
-  const points = apiRes?.points ?? [];
+  const points = apiRes?.points ?? EMPTY_POINTS;
   const hasPerPoolHistory = !!apiRes?.hasVerifiedPerPoolBreakdown;
 
   const canShowPools =
@@ -308,7 +309,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
     </div>
   ) : view === 'pools' && canShowPools ? (
     <SupplyChartFrame yLabel="ZEC in pools">
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
         <AreaChart data={chartData} margin={CHART_MARGIN}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
           <XAxis
@@ -350,7 +351,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
     </SupplyChartFrame>
   ) : view === 'composition' ? (
     <SupplyChartFrame yLabel="Chain supply (ZEC)">
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
         <AreaChart data={chartData} margin={CHART_MARGIN}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
           <XAxis
@@ -377,7 +378,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
     </SupplyChartFrame>
   ) : (
     <SupplyChartFrame yLabel="Shielded %">
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
         <LineChart data={chartData} margin={CHART_MARGIN}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
           <XAxis

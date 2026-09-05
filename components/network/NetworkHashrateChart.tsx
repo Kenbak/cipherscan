@@ -32,7 +32,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           key={p}
           type="button"
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             value === p
               ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
               : 'text-muted hover:text-primary'
@@ -81,7 +81,7 @@ export function NetworkHashrateChart() {
           <div className="animate-pulse text-muted font-mono text-xs">Loading...</div>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <AreaChart data={points}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis

@@ -92,7 +92,6 @@ export default function MempoolLiveClient() {
     fetchMempool();
     const interval = setInterval(fetchMempool, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -113,7 +112,7 @@ export default function MempoolLiveClient() {
       {/* Back to mempool — HUD style, visible on mouse movement */}
       <Link
         href="/mempool"
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
+        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
       >
         [ EXIT ]
         <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>

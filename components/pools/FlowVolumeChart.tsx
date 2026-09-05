@@ -147,7 +147,7 @@ export function FlowVolumeChart() {
       No flow data available
     </div>
   ) : (
-    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+    <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
       <ComposedChart data={points} barSize={barSize} barGap={-barSize}>
         <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
         <XAxis

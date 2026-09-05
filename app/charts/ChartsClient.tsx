@@ -137,7 +137,7 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
 
   if (type === 'bar') {
     return (
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
         <BarChart data={data} margin={margin}>
           <CartesianGrid {...gridProps} />
           <XAxis {...xAxisProps} />
@@ -152,7 +152,7 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
   if (type === 'area') {
     const gradId = `grad-${dataKey}-${color.replace('#', '')}`;
     return (
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
         <AreaChart data={data} margin={margin}>
           <CartesianGrid {...gridProps} />
           <XAxis {...xAxisProps} />
@@ -171,7 +171,7 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
       <LineChart data={data} margin={margin}>
         <CartesianGrid {...gridProps} />
         <XAxis {...xAxisProps} />
@@ -189,7 +189,7 @@ function ChartGridCard({ chart, chartData, accent }: { chart: ChartEntry; chartD
   return (
     <Link
       href={chart.href}
-      className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition-all duration-200 hover:border-white/15 hover:shadow-lg hover:shadow-black/10"
+      className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition duration-200 hover:border-white/15 hover:shadow-lg hover:shadow-black/10"
     >
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
@@ -498,7 +498,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
             <button
               key={cat.key}
               onClick={() => setCategory(cat.key)}
-              className={`px-3 py-1.5 text-[11px] font-mono rounded-md transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 text-[11px] font-mono rounded-md transition whitespace-nowrap ${
                 category === cat.key
                   ? 'bg-white/5 text-primary font-bold border border-white/10'
                   : 'text-muted hover:text-secondary border border-transparent'
@@ -582,7 +582,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
               <Link
                 key={v.id}
                 href={v.href}
-                className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition-all duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
+                className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
               >
                 <div className="h-[180px] relative overflow-hidden pointer-events-none">
                   <LiveVizPreview id={v.id} riskData={riskCounts} />

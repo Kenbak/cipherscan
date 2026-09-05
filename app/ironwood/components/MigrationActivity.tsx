@@ -166,7 +166,7 @@ export function MigrationActivity({
         {/* Chart */}
         {hasData ? (
           view === 'cohorts' ? (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={240}>
               <BarChart data={cohortData} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
                 <XAxis
                   dataKey="boundary"
@@ -197,7 +197,7 @@ export function MigrationActivity({
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={240}>
               <AreaChart data={timeBuckets} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
                 <defs>
                   <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">

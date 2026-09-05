@@ -539,7 +539,7 @@ function TrendsChart() {
           <div className="h-[320px] flex items-center justify-center text-muted text-sm">Loading...</div>
         ) : (
         <div className="h-[320px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
               <XAxis

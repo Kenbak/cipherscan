@@ -51,7 +51,7 @@ export default function NewsletterPage() {
               href={`/newsletter/${issue.slug}`}
               className="block group"
             >
-              <div className="card p-6 transition-all hover:border-cipher-cyan/30">
+              <div className="card p-6 transition hover:border-cipher-cyan/30">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-3 mb-2">

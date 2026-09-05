@@ -118,7 +118,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="absolute top-2 right-2 p-1.5 rounded-md bg-cipher-surface/80 hover:bg-cipher-hover text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-cipher-surface/80 hover:bg-cipher-hover text-muted hover:text-primary transition opacity-0 group-hover:opacity-100"
       title="Copy"
     >
       {copied ? <CheckIcon className="w-3.5 h-3.5 text-cipher-green" /> : <CopyIcon className="w-3.5 h-3.5" />}
@@ -526,7 +526,7 @@ export default function LearnPage() {
                     <Link
                       key={ex.name}
                       href={`/name/${ex.name}`}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-cipher-bg/50 border border-cipher-border hover:border-cipher-cyan/30 transition-all group"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-cipher-bg/50 border border-cipher-border hover:border-cipher-cyan/30 transition group"
                     >
                       <div>
                         <code className="text-sm text-cipher-cyan font-mono group-hover:text-cipher-green transition-colors">{ex.name}</code>
@@ -546,7 +546,7 @@ export default function LearnPage() {
                       { href: 'https://github.com/zcashme/ZNS', label: 'ZNS Protocol (GitHub)' },
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition group">
                         <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}</span>
                         <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
@@ -884,7 +884,7 @@ export default function LearnPage() {
                       { href: 'https://github.com/zcash/librustzcash', label: 'Zcash Rust Crates' },
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition group">
                         <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}</span>
                         <Icons.ExternalLink className="w-3 h-3 text-muted group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
                       </a>
@@ -904,7 +904,7 @@ export default function LearnPage() {
                       { href: 'https://github.com/zcash/lightwalletd', label: 'Lightwalletd', desc: 'gRPC server' },
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition group">
                         <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}
                           <span className="text-xs text-muted ml-2">{item.desc}</span>
                         </span>
@@ -926,7 +926,7 @@ export default function LearnPage() {
                       { href: 'https://github.com/ChainSafe/WebZjs', label: 'WebZjs', desc: 'WASM' },
                     ].map(item => (
                       <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition-all group">
+                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-cipher-hover transition group">
                         <span className="text-sm text-primary group-hover:text-primary transition-colors">{item.label}
                           <span className="text-xs text-muted ml-2">{item.desc}</span>
                         </span>
@@ -984,7 +984,7 @@ export default function LearnPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Link
               href="/newsletter"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
             >
               Weekly Newsletter
             </Link>
@@ -1001,7 +1001,7 @@ export default function LearnPage() {
                 href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+                className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
               >
                 {item.label}
               </a>

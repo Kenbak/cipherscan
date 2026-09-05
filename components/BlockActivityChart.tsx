@@ -289,7 +289,7 @@ function BlockBar({
   return (
     <Link
       href={`/block/${block.height}`}
-      className={`relative shrink-0 w-[6px] sm:w-[8px] rounded-t-sm border-t ${color} transition-all ${
+      className={`relative shrink-0 w-[6px] sm:w-[8px] rounded-t-sm border-t ${color} transition-[height,transform,box-shadow] ${
         isHovered ? 'ring-2 ring-white/20 scale-110' : ''
       } ${isVoting ? 'animate-pulse' : ''}`}
       style={{ height: `${heightPct}%` }}

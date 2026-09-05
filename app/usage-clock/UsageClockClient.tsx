@@ -518,7 +518,7 @@ export function UsageClockClient({
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition-all ${
+              className={`px-3 py-1 text-[11px] font-mono rounded-md transition ${
                 period === p.key
                   ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-bold'
                   : 'text-muted hover:text-secondary'
@@ -555,7 +555,7 @@ export function UsageClockClient({
             <button
               onClick={() => setPlaying((p) => !p)}
               aria-label={playing ? 'Pause' : 'Play'}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-cipher-border bg-glass-3 text-secondary hover:text-primary hover:border-cipher-yellow/40 transition-all flex-shrink-0"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-cipher-border bg-glass-3 text-secondary hover:text-primary hover:border-cipher-yellow/40 transition flex-shrink-0"
             >
               {playing ? (
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="1" /><rect x="7" y="1.5" width="3" height="9" rx="1" /></svg>
@@ -676,7 +676,7 @@ export function UsageClockClient({
             We predict each hour&apos;s share of the day assuming people transact in their waking hours, in the timezones where the nodes sit. This shows <span className="text-secondary">actual minus predicted</span>. Orange hours are busier than human routine explains — when exchanges, miners and bots that run on machine time leave their mark. Hover any hour for the breakdown.
           </p>
           <div className="h-[160px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={residualBars} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
                 <ReferenceLine y={0} stroke="var(--color-text-muted)" strokeOpacity={0.5} />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fontFamily: 'monospace' }} stroke="var(--color-text-muted)" interval={2} tickFormatter={(l) => `${l}h`} />

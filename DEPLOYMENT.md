@@ -12,7 +12,7 @@ See also: [server infrastructure wiki](https://github.com/Kenbak/cipherscan) and
 
 | Component | Version / Notes |
 |-----------|----------------|
-| **Node.js** | 20+ LTS |
+| **Node.js** | 22.14.x (pinned in `.node-version`) |
 | **npm** | 9+ |
 | **PostgreSQL** | 16+ with `zcash_explorer_mainnet` or `zcash_explorer_testnet` database |
 | **Redis** | 6+ (pub/sub for multi-worker WebSocket; API response caching) |
@@ -129,7 +129,7 @@ Its own `.env` with `ZEBRA_RPC_URL`, `DATABASE_URL`, gRPC settings, and `ZEBRA_S
 ```bash
 git clone https://github.com/Kenbak/cipherscan.git
 cd cipherscan
-npm install
+npm ci
 npm run dev
 # Open http://localhost:3000
 ```
@@ -143,7 +143,7 @@ npm run dev
 ```bash
 cd server/api
 cp .env.example .env  # set DB_*, ZEBRA_*
-npm install
+npm ci
 node server.js
 # API listens on http://127.0.0.1:3001
 ```
@@ -222,7 +222,7 @@ release. Both are additive; migration `018` builds its index concurrently.
 ```bash
 ssh <mainnet-host>
 cd /root/cipherscan && git pull origin main
-cd server/api && npm install --omit=dev
+cd server/api && npm ci --omit=dev
 systemctl restart zcash-api-mainnet.service
 curl -s http://localhost:3001/health
 ```
@@ -245,7 +245,7 @@ Update the `.cookie` password in `zcash.conf` (mainnet Zebra only — Zakura tes
 
 ### CI
 
-`cipherscan-rust` has GitHub Actions CI (`.github/workflows/ci.yml`, added 2026-08-15): `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` against a real PostgreSQL 16 service container on every push/PR to `main`. There is no equivalent CI for this repo yet.
+Both repositories have GitHub Actions CI. This repository exposes the same frontend verification contract locally as `npm run verify:frontend` (or `make verify-full` for every language/subproject). `cipherscan-rust` runs formatting, clippy, schema migrations, and tests against PostgreSQL 16 on every push/PR to `main`.
 
 ---
 
@@ -308,7 +308,7 @@ node zcg/milestone-3/verify.js https://cipherscan.app
 - Zebra/Zakura RPC `ECONNREFUSED` on localhost
 - Indexer lag: compare `indexer_state.last_seen_rpc_tip` vs `last_indexed_height`
 - `cipherscan-rust` slow-statement warnings in the journal (>1s address-summary writes indicate a query-plan regression)
-- Redis down: WebSocket rate limiting falls back to allow-all
+- Redis down: WebSocket rate limiting falls back to the bounded in-memory fail-closed limiter
 
 ---
 

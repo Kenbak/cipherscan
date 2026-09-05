@@ -50,7 +50,7 @@ export function MiningMetricsChart() {
             key={m.key}
             type="button"
             onClick={() => setActive(m.key)}
-            className={`card p-3 text-left transition-all ${active === m.key ? 'ring-1 ring-cipher-cyan/40' : 'opacity-80 hover:opacity-100'}`}
+            className={`card p-3 text-left transition ${active === m.key ? 'ring-1 ring-cipher-cyan/40' : 'opacity-80 hover:opacity-100'}`}
           >
             <p className="text-[10px] text-muted font-mono uppercase mb-1">{m.label}</p>
             <p className="text-sm font-bold font-mono text-primary whitespace-nowrap truncate">
@@ -62,7 +62,7 @@ export function MiningMetricsChart() {
       </div>
 
       <ChartCard title={`${metric.label.toUpperCase().replace(/\s+/g, '_')}_TREND`} height={280} watermarkSize="lg">
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={280}>
           <LineChart data={points}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis

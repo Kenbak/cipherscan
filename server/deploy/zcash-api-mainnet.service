@@ -8,6 +8,7 @@ Type=simple
 WorkingDirectory=/root/cipherscan/server/api
 Environment=NODE_ENV=production
 Environment=NODE_PATH=/root/cipherscan/server/api/node_modules
+Environment=COMPACT_BLOCK_CACHE_DIR=/var/lib/cipherscan-api-mainnet/compact-blocks
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
@@ -23,6 +24,8 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 ReadOnlyPaths=/root/cipherscan
+StateDirectory=cipherscan-api-mainnet
+ReadWritePaths=/var/lib/cipherscan-api-mainnet
 
 [Install]
 WantedBy=multi-user.target

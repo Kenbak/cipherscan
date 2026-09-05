@@ -148,7 +148,7 @@ export default function ValidatorsPage() {
                 <span className="text-[10px] font-mono text-muted uppercase w-16">Connected</span>
                 <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
                   <div
-                    className="bg-cyan-500 transition-all duration-500"
+                    className="bg-cyan-500 transition-[width] duration-500"
                     style={{ width: `${data.liveness.connectedPercent}%` }}
                     title={`Connected: ${data.liveness.connectedCount} finalizers (${data.liveness.connectedStakeZec?.toFixed(2)} ${CURRENCY})`}
                   />
@@ -164,7 +164,7 @@ export default function ValidatorsPage() {
             <span className="text-[10px] font-mono text-muted uppercase w-16">Voted</span>
             <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
               <div
-                className="bg-emerald-500 transition-all duration-500"
+                className="bg-emerald-500 transition-[width] duration-500"
                 style={{ width: `${data.liveness.onlinePercent}%` }}
                 title={`Voted: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
               />
@@ -438,7 +438,7 @@ export default function ValidatorsPage() {
                 return (
                   <div
                     key={member.identity}
-                    className="bg-cipher-cyan/70 transition-all duration-300 border-r border-cipher-bg last:border-r-0"
+                    className="bg-cipher-cyan/70 transition-[width] duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
                     title={`${name} — ${share.toFixed(1)}%`}
                   />

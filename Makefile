@@ -29,19 +29,19 @@ install: install-frontend install-api install-indexer install-decoder \
 
 .PHONY: install-frontend
 install-frontend: ## Install frontend (Next.js) dependencies
-	npm install
+	npm ci
 
 .PHONY: install-api
 install-api: ## Install Express API backend dependencies
-	cd $(API_DIR) && npm install
+	cd $(API_DIR) && npm ci
 
 .PHONY: install-indexer
 install-indexer: ## Install indexer dependencies
-	cd $(INDEXER_DIR) && npm install
+	cd $(INDEXER_DIR) && npm ci
 
 .PHONY: install-decoder
 install-decoder: ## Install zcash-decoder package dependencies
-	cd $(DECODER_DIR) && npm install
+	cd $(DECODER_DIR) && npm ci
 
 .PHONY: install-jobs
 install-jobs: ## Install Python ML job dependencies
@@ -95,7 +95,23 @@ start-api: ## Run the production Express API backend
 # ---------------------------------------------------------------------------
 
 .PHONY: check
-check: lint typecheck lint-shell ## Run all static checks
+check: verify-fast ## Run the fast pre-push checks
+
+.PHONY: verify-fast
+verify-fast: ## Run the same fast frontend checks used by CI
+	npm run verify:fast
+
+.PHONY: verify-full
+verify-full: ## Run all CI-equivalent checks (requires setup + wasm-pack)
+	npm run verify:frontend
+	cd $(API_DIR) && npm run verify
+	npm run test:server-regressions
+	cd $(INDEXER_DIR) && npm run verify
+	cd $(DECODER_DIR) && npm run build
+	cd $(WASM_DIR) && cargo clippy --target wasm32-unknown-unknown -- -D warnings
+	cd $(WASM_DIR) && wasm-pack build --target web --release
+	cd $(JOBS_DIR) && python3 -c "import pathlib; [compile(path.read_text(), str(path), 'exec') for path in pathlib.Path('.').rglob('*.py')]"
+	$(MAKE) lint-shell
 
 .PHONY: lint
 lint: ## Lint the frontend (next lint)
@@ -107,7 +123,7 @@ typecheck: ## Type-check the frontend (tsc --noEmit)
 
 .PHONY: lint-shell
 lint-shell: ## Lint shell scripts with shellcheck
-	@find . -name '*.sh' -not -path './node_modules/*' \
+	@find . -name '*.sh' -not -path '*/node_modules/*' -not -path './.netlify/*' -not -path './.next/*' \
 		-print0 | xargs -0 -r shellcheck --severity=warning
 
 .PHONY: clippy

@@ -102,7 +102,7 @@ export function MetricsRow({
           <div className="mt-6 max-w-2xl mx-auto">
             <div className="h-2.5 rounded-full bg-glass-6 overflow-hidden border border-cipher-border/30">
               <div
-                className="h-full rounded-full transition-all duration-1000 relative"
+                className="h-full rounded-full transition-[width,background-color] duration-1000 relative"
                 style={{
                   width: `${progressPct.toFixed(2)}%`,
                   background: `linear-gradient(90deg, ${colors.orchardPool}, ${colors.ironwoodPool})`,

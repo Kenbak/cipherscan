@@ -1,4 +1,7 @@
-# CipherScan full stack: zebrad + lightwalletd + Postgres + Redis + API + web.
+# CipherScan local application stack: zebrad + lightwalletd + Postgres + Redis
+# + API + web. The production Rust indexer lives in the adjacent
+# cipherscan-rust repository; its committed schema and migrations are mounted
+# here so local services use the same database contract as CI/production.
 #
 # Image versions are pinned via variables so you can point any service at a
 # specific tag, digest, or commit-tagged image. Copy .env.docker.example to
@@ -55,11 +58,15 @@ services:
     image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-zcash_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-postgres-local-only}
       POSTGRES_DB: ${DB_NAME:-zcash_explorer}
+      APP_DB_USER: ${DB_USER:-zcash_user}
+      APP_DB_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/001-create-app-role.sh:/docker-entrypoint-initdb.d/001-create-app-role.sh:ro
+      - ${CIPHERSCAN_RUST_DIR:-../cipherscan-rust}/schema/postgres.sql:/docker-entrypoint-initdb.d/002-cipherscan-schema.sql:ro
     expose:
       - "5432"
     healthcheck:
@@ -67,6 +74,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks: [cipherscan]
+
+  # Apply migrations after both a fresh snapshot restore and existing-volume
+  # startup. The migration runner is idempotent and records applied versions.
+  migrate:
+    image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${DB_NAME:-zcash_explorer}
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_ADMIN_PASSWORD:-postgres-local-only}
+    volumes:
+      - ${CIPHERSCAN_RUST_DIR:-../cipherscan-rust}:/workspace/cipherscan-rust:ro
+    command:
+      - bash
+      - -ceu
+      - |
+        export DATABASE_URL="postgresql://$${PGUSER}@$${PGHOST}:$${PGPORT}/$${PGDATABASE}"
+        bash /workspace/cipherscan-rust/deploy/apply-migrations.sh
     networks: [cipherscan]
 
   # ----- Redis (API cache + WebSocket pub/sub) -----
@@ -92,6 +122,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       zebrad:
@@ -112,7 +144,10 @@ services:
       API_LIST_CACHE_REDIS_TIMEOUT_MS: ${API_LIST_CACHE_REDIS_TIMEOUT_MS:-50}
       ZEBRA_RPC_URL: http://zebrad:8232
       ZEBRA_GRPC_URL: lightwalletd:9067
+      COMPACT_BLOCK_CACHE_DIR: /var/cache/cipherscan/compact-blocks
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    volumes:
+      - api-cache:/var/cache/cipherscan
     expose:
       - "3001"
     networks: [cipherscan]
@@ -155,3 +190,4 @@ volumes:
   lightwalletd-data:
   postgres-data:
   redis-data:
+  api-cache:

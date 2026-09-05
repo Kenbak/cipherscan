@@ -129,7 +129,7 @@ export function IronwoodBanner() {
     <Link
       ref={bannerRef}
       href="/ironwood"
-      className="ironwood-banner backdrop-blur-xl group sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 block w-full border-b border-cipher-border/50 transition-all duration-300"
+      className="ironwood-banner backdrop-blur-xl group sticky top-[calc(var(--app-nav-height,4rem)+var(--app-stats-height,2.75rem))] z-40 block w-full border-b border-cipher-border/50 transition duration-300"
     >
       <div className="relative mx-auto h-9 sm:h-10 max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Mobile — left-aligned, no separate action label (whole bar is the link) */}

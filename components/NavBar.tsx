@@ -288,7 +288,7 @@ export function NavBar() {
               {/* Mobile: hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-muted hover:text-primary transition-all duration-150"
+                className="md:hidden p-2 rounded-md text-muted hover:text-primary transition duration-150"
                 aria-label="Menu"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +325,7 @@ export function NavBar() {
               <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-md text-muted hover:text-primary transition-all"
+                className="p-2 rounded-md text-muted hover:text-primary transition"
                 aria-label="Close menu"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,7 +380,7 @@ export function NavBar() {
                     target="_blank"
                     rel="noopener"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg font-mono text-sm font-bold text-cipher-yellow border border-cipher-yellow/30 hover:bg-cipher-yellow/10 transition-all"
+                    className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg font-mono text-sm font-bold text-cipher-yellow border border-cipher-yellow/30 hover:bg-cipher-yellow/10 transition"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
@@ -395,7 +395,7 @@ export function NavBar() {
                   <div className="flex items-center gap-2">
                     <a
                       href={MAINNET_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
                         isMainnet ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >
@@ -403,7 +403,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={TESTNET_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
                         !isMainnet && !isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >
@@ -411,7 +411,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={CROSSLINK_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition-all ${
+                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
                         isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >

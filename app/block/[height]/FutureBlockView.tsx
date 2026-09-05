@@ -251,7 +251,7 @@ export function FutureBlockView({
             </div>
             <div className="h-1.5 rounded-full bg-cipher-border overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-cipher-cyan to-cipher-purple transition-all duration-1000"
+                className="h-full rounded-full bg-gradient-to-r from-cipher-cyan to-cipher-purple transition-[width] duration-1000"
                 style={{ width: `${Math.min(progress * 100, 100)}%` }}
               />
             </div>

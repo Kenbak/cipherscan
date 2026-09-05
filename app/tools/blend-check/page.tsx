@@ -223,7 +223,7 @@ export default function BlendCheckPage() {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0.00"
-                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition-all"
+                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition"
                   autoFocus
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted font-mono text-lg">
@@ -235,7 +235,7 @@ export default function BlendCheckPage() {
                   <button
                     key={q}
                     onClick={() => handleSuggestionClick(q)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all ${
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                       amount === formatZec(q)
                         ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
                         : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
@@ -286,7 +286,7 @@ export default function BlendCheckPage() {
                 </div>
                 <div className="mt-4 w-full h-1.5 rounded-full bg-cipher-hover overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${getScoreBg(score)}`}
+                    className={`h-full rounded-full transition-[width,background-color] duration-700 ${getScoreBg(score)}`}
                     style={{ width: `${Math.max(score, 3)}%` }}
                   />
                 </div>
@@ -351,7 +351,7 @@ export default function BlendCheckPage() {
                         <button
                           key={i}
                           onClick={() => setSelectedPlanIdx(i)}
-                          className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all ${
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                             selectedPlanIdx === i
                               ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
                               : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
@@ -390,7 +390,7 @@ export default function BlendCheckPage() {
                                 </div>
 
                                 {/* Piece */}
-                                <div className={`flex-1 mb-2 px-4 py-3 rounded-lg border transition-all ${
+                                <div className={`flex-1 mb-2 px-4 py-3 rounded-lg border transition ${
                                   piece.isRemainder && piece.blendScore < 40
                                     ? 'border-cipher-orange/20 bg-cipher-orange/5'
                                     : 'border-cipher-border bg-cipher-hover'
@@ -547,7 +547,7 @@ export default function BlendCheckPage() {
                           <button
                             key={i}
                             onClick={() => handleSuggestionClick(np.amount)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-all text-left group ${
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition text-left group ${
                               isSelected
                                 ? 'border-cipher-cyan/30 bg-cipher-cyan/5'
                                 : 'border-transparent hover:border-cipher-border hover:bg-cipher-hover'
@@ -558,7 +558,7 @@ export default function BlendCheckPage() {
                             </span>
                             <div className="flex-1 h-1.5 rounded-full bg-cipher-hover overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-500 ${getScoreBg(np.blendScore)}`}
+                                className={`h-full rounded-full transition-[width,background-color] duration-500 ${getScoreBg(np.blendScore)}`}
                                 style={{ width: `${Math.max(np.blendScore, 4)}%` }}
                               />
                             </div>

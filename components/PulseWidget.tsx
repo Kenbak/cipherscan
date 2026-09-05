@@ -61,7 +61,7 @@ export function PulseWidget() {
     <div ref={ref} className="fixed bottom-4 left-4 z-50 hidden sm:block">
       {/* Popover */}
       <div
-        className={`absolute bottom-full left-0 mb-3 w-72 origin-bottom-left transition-all duration-200 ${
+        className={`absolute bottom-full left-0 mb-3 w-72 origin-bottom-left transition duration-200 ${
           open ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
       >
@@ -123,7 +123,7 @@ export function PulseWidget() {
       {/* Pulse heartbeat icon */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition-all hover:border-cipher-cyan/40 ${config.glow}`}
+        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition hover:border-cipher-cyan/40 ${config.glow}`}
         style={{ background: 'var(--card-glass-bg)', backdropFilter: 'var(--card-glass-blur)' }}
         aria-label="Network Pulse"
         title="Network Pulse"

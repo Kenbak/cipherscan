@@ -10,7 +10,7 @@
  * Compare the folder before/after a styling change (e.g. with a diff tool
  * or by eye) to catch regressions.
  *
- * Requires Playwright: npm i -D playwright && npx playwright install chromium
+ * Requires the browser binary once per machine: npx playwright install chromium
  */
 
 import { mkdirSync } from 'node:fs';
@@ -59,12 +59,19 @@ try {
 
     for (const [name, path] of PAGES) {
       for (const theme of THEMES) {
-        await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle', timeout: 30_000 }).catch(() => {});
+        const response = await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        if (!response?.ok()) {
+          throw new Error(`${path} returned ${response?.status() ?? 'no response'}`);
+        }
         await page.evaluate((t) => {
           document.documentElement.classList.remove('dark', 'light');
           document.documentElement.classList.add(t);
         }, theme);
         await page.waitForTimeout(800); // settle animations/theme transition
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (overflow > 1) {
+          throw new Error(`${path} overflows the ${vpName} viewport by ${overflow}px`);
+        }
         const file = join(OUT_DIR, `${name}-${theme}-${vpName}.png`);
         await page.screenshot({ path: file, fullPage: false });
         console.log(`✓ ${name} ${theme} ${vpName}`);

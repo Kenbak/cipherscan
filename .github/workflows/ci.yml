@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION_FILE: ".node-version"
   # CI validates the primary public deployment. Every hosted build must also
   # set its own network identity explicitly.
   NEXT_PUBLIC_NETWORK: "mainnet"
@@ -34,37 +34,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
           cache: npm
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Lint (design tokens)
-        # `npm run lint` -> `lint:design` runs scripts/check-design-tokens.mjs,
-        # a deterministic, non-interactive Node script (exit 0/1, no prompts).
-        # There is no ESLint config in this repo and none is invented here.
-        run: npm run lint
-      - name: Type check
-        run: npx tsc --noEmit
-      - name: SEO route tests
-        run: npm run test:sitemap-security
-      - name: Slow-page performance tests
-        run: npm run test:performance
-      - name: TTFB probe tests
-        run: npm run test:ttfb-probe
-      - name: ISR warm-up safety tests
-        run: npm run test:isr-warmup
-      - name: Revalidation security tests
-        run: npm run test:revalidate-security
-      - name: Client resilience tests
-        run: NODE_PATH=server/api/node_modules node --test server/tests/address-labels-resilience.test.js
-      - name: Build
-        env:
-          # GitHub CI is deliberately offline. Production builds must leave
-          # this unset so an unhealthy upstream cannot publish empty ISR HTML.
-          CIPHERSCAN_ALLOW_BUILD_UPSTREAM_FALLBACK: "1"
-        run: npm run build
-      - name: Verify Next ISR classification
-        run: npm run test:route-cache-build
+        run: npm ci --no-audit --no-fund
+      - name: Run the local/CI frontend verification contract
+        run: npm run verify:frontend
 
   # ---------------------------------------------------------------------------
   # Express API backend: locked install, syntax check, and real-Redis tests
@@ -91,17 +66,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: ${{ github.workspace }}/.node-version
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-      - name: Syntax check all JS sources
-        run: |
-          find . -name '*.js' -not -path './node_modules/*' \
-            -print0 | xargs -0 -n1 node --check
-      - name: API cache tests
-        run: npm test
-      - name: API v1 contract and OpenAPI tests
-        run: npm run test:v1
+      - name: Run the local/CI API verification contract
+        run: npm run verify
       - name: Route/lib regression tests
         # These live under server/tests/ (not server/api/test/) but exercise
         # server/api/routes/* and server/lib/* directly with mocked pools —
@@ -114,21 +83,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           NODE_PATH: ${{ github.workspace }}/server/api/node_modules
-        run: |
-          node --test \
-            server/tests/blocks-orphan-batch.test.js \
-            server/tests/tx-detail-parallel.test.js \
-            server/tests/tx-mempool-cache.test.js \
-            server/tests/migration-activity-summary.test.js \
-            server/tests/blend-check-batch.test.js \
-            server/tests/db-pool-deadlines.test.js \
-            server/tests/error-message-leakage.test.js \
-            server/tests/safe-log.test.js \
-            server/tests/ironwood-accounting.test.js \
-            server/tests/exposure-consumers.test.js \
-            server/tests/network-halving.test.js \
-            server/tests/peer-client.test.js \
-            server/tests/privacy-score.test.js
+        run: npm run test:server-regressions
 
   # ---------------------------------------------------------------------------
   # Indexer: install + syntax check
@@ -143,13 +98,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: ${{ github.workspace }}/.node-version
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Syntax check all JS sources
-        run: |
-          find . -name '*.js' -not -path './node_modules/*' \
-            -print0 | xargs -0 -n1 node --check
+        run: npm run verify
 
   # ---------------------------------------------------------------------------
   # zcash-decoder package: build (tsc)
@@ -164,9 +117,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: ${{ github.workspace }}/.node-version
       - name: Install dependencies (skip postinstall banner)
-        run: npm install --no-audit --no-fund --ignore-scripts
+        run: npm ci --no-audit --no-fund --ignore-scripts
       - name: Build
         run: npm run build
 
@@ -183,14 +136,14 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install stable --profile minimal \
+          rustup toolchain install 1.97.1 --profile minimal \
             --component clippy
-          rustup target add wasm32-unknown-unknown
+          rustup target add wasm32-unknown-unknown --toolchain 1.97.1
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: wasm
       - name: Install wasm-pack
-        run: cargo install wasm-pack --locked
+        run: command -v wasm-pack >/dev/null || cargo install wasm-pack --version 0.13.1 --locked
       - name: Clippy
         run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
       - name: Build (wasm-pack)
@@ -212,8 +165,8 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Byte-compile sources
-        run: python -m compileall -q .
+      - name: Compile sources in memory
+        run: python3 -c "import pathlib; [compile(path.read_text(), str(path), 'exec') for path in pathlib.Path('.').rglob('*.py')]"
 
   # ---------------------------------------------------------------------------
   # Shell scripts: shellcheck
@@ -227,5 +180,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Run shellcheck
         run: |
-          find . -name '*.sh' -not -path './node_modules/*' -not -path './.netlify/*' \
+          find . -name '*.sh' -not -path '*/node_modules/*' -not -path './.netlify/*' -not -path './.next/*' \
             -print0 | xargs -0 -r shellcheck --severity=warning

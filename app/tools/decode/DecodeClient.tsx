@@ -411,14 +411,14 @@ export default function DecodeClient() {
                     <div className="h-3 rounded-full overflow-hidden flex bg-cipher-elevated">
                       {comp.transparentPct > 0 && (
                         <div
-                          className="h-full bg-cipher-cyan/70 transition-all duration-700"
+                          className="h-full bg-cipher-cyan/70 transition-[width] duration-700"
                           style={{ width: `${comp.transparentPct}%` }}
                           title={`Public: ${comp.transparentBytes.toLocaleString()} bytes`}
                         />
                       )}
                       {comp.shieldedPct > 0 && (
                         <div
-                          className="h-full bg-cipher-purple/70 transition-all duration-700"
+                          className="h-full bg-cipher-purple/70 transition-[width] duration-700"
                           style={{ width: `${comp.shieldedPct}%` }}
                           title={`Encrypted: ${comp.shieldedBytes.toLocaleString()} bytes`}
                         />
@@ -502,7 +502,7 @@ export default function DecodeClient() {
                     {result.vin.map((vin, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -629,7 +629,7 @@ export default function DecodeClient() {
                     {result.vout.map((vout, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition-all"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">

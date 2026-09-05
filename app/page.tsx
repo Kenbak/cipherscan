@@ -141,7 +141,7 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/learn/crosslink"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
             >
               Learn Crosslink →
             </Link>
@@ -149,7 +149,7 @@ export default async function Home() {
               href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition-all text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
             >
               Join Season 1 →
             </a>

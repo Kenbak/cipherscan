@@ -56,7 +56,7 @@ function filterTrendsByPeriod(daily: TrendDay[], period: Period): TrendDay[] {
 }
 
 function segmentedClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
     active
       ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
       : 'text-muted hover:text-primary'
@@ -192,7 +192,7 @@ export function PrivacyTrendsSection({
       ) : (
         <div className="h-[320px]">
           {view === 'adoption' && (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
                 <XAxis
@@ -227,7 +227,7 @@ export function PrivacyTrendsSection({
             </ResponsiveContainer>
           )}
           {view === 'activity' && (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
                 <XAxis
@@ -260,7 +260,7 @@ export function PrivacyTrendsSection({
             </ResponsiveContainer>
           )}
           {view === 'score' && (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
                 <defs>
                   <linearGradient id="privacyScoreFill" x1="0" y1="0" x2="0" y2="1">

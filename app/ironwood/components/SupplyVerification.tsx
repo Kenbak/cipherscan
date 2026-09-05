@@ -124,7 +124,7 @@ export function SupplyVerification({
         {/* Left: Ring */}
         <div className="flex flex-col items-center justify-center w-full px-2 sm:px-6 lg:px-10 py-2 sm:py-4">
           <div className="relative w-44 h-44 sm:w-48 sm:h-48">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={ringData}

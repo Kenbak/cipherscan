@@ -461,7 +461,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
         {/* Participation bar */}
         <div className="h-2 rounded-full bg-cipher-border-alpha/50 overflow-hidden mb-3">
           <div
-            className={`h-full rounded-full ${barColor} transition-all`}
+            className={`h-full rounded-full ${barColor} transition-[width]`}
             style={{ width: `${Math.min(participation_pct, 100)}%` }}
           />
         </div>

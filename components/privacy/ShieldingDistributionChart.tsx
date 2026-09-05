@@ -37,7 +37,7 @@ type ViewMode = 'count' | 'volume';
 const CHART_HEIGHT = 340;
 
 function modePillClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition-all whitespace-nowrap ${
+  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
     active
       ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
       : 'text-muted hover:text-primary'
@@ -102,7 +102,7 @@ export function ShieldingDistributionChart() {
               ? `Transaction count by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Larger buckets mean more potential cover traffic.`
               : `ZEC volume by amount range (${period === 'all' ? 'all time' : `last ${period}`}). Shows where value concentrates across shielded flows.`}
           </p>
-          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
             <BarChart data={chartData} margin={PRIVACY_BAR_CHART_MARGIN}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis

@@ -17,15 +17,24 @@ let pool;
 let CompactTxStreamer;
 let grpc;
 
-// Compact block cache configuration
-const CACHE_DIR = path.join(__dirname, '..', '..', 'cache', 'compact-blocks');
+// Compact block cache configuration. Production runtimes must point this at a
+// provisioned writable state directory; keeping mutable data inside the source
+// checkout conflicts with read-only systemd/Docker filesystems.
+const DEFAULT_CACHE_DIR = path.join(__dirname, '..', 'cache', 'compact-blocks');
+const CACHE_DIR = path.resolve(process.env.COMPACT_BLOCK_CACHE_DIR || DEFAULT_CACHE_DIR);
 const CACHE_CHUNK_SIZE = 10000; // Cache blocks in chunks of 10k
-const CACHE_ENABLED = true;
+let cacheEnabled = process.env.COMPACT_BLOCK_CACHE_ENABLED !== '0';
 
 // Ensure cache directory exists
-if (CACHE_ENABLED && !fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-  console.log(`📁 [CACHE] Created compact block cache directory: ${CACHE_DIR}`);
+if (cacheEnabled) {
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.accessSync(CACHE_DIR, fs.constants.R_OK | fs.constants.W_OK);
+    console.log(`📁 [CACHE] Compact block cache ready: ${CACHE_DIR}`);
+  } catch (err) {
+    cacheEnabled = false;
+    logSafeError(`⚠️ [CACHE] Disabling compact block cache; directory is unavailable: ${CACHE_DIR}`, err);
+  }
 }
 
 /**
@@ -42,7 +51,7 @@ function getCacheFilePath(chunkStart) {
  * Returns { cachedBlocks, missingRanges }
  */
 function loadCachedBlocks(startHeight, endHeight) {
-  if (!CACHE_ENABLED) {
+  if (!cacheEnabled) {
     return { cachedBlocks: [], missingRanges: [{ start: startHeight, end: endHeight }] };
   }
 
@@ -96,8 +105,8 @@ function loadCachedBlocks(startHeight, endHeight) {
 /**
  * Save blocks to cache (organized by chunks)
  */
-function saveToCathe(blocks) {
-  if (!CACHE_ENABLED || blocks.length === 0) return;
+function saveToCache(blocks) {
+  if (!cacheEnabled || blocks.length === 0) return;
 
   // Group blocks by cache chunk
   const chunks = new Map();
@@ -357,7 +366,7 @@ router.post('/api/lightwalletd/scan', async (req, res) => {
             };
           }) : [],
         }));
-        saveToCathe(cacheableBlocks);
+        saveToCache(cacheableBlocks);
       }
     }
 

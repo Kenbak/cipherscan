@@ -113,7 +113,7 @@ export const IronwoodProgressCard = memo(function IronwoodProgressCard({ footer 
             </div>
             <div className="h-1.5 w-full rounded-full bg-cipher-hover overflow-hidden">
               <div
-                className="h-full rounded-full bg-cipher-green transition-all duration-500"
+                className="h-full rounded-full bg-cipher-green transition-[width] duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, verifiedPct))}%` }}
               />
             </div>

@@ -19,25 +19,18 @@ jobs:
   # Lint every Dockerfile with hadolint
   # ---------------------------------------------------------------------------
   hadolint:
-    name: Hadolint (${{ matrix.dockerfile }})
+    name: Hadolint
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile:
-          - Dockerfile
-          - server/api/Dockerfile
-          - docker/zebra/Dockerfile
     steps:
       - uses: actions/checkout@v6
-      - name: Install latest hadolint
+      - name: Install hadolint
         run: |
           curl -fsSL -o /usr/local/bin/hadolint \
-            https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+            https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-Linux-x86_64
           chmod +x /usr/local/bin/hadolint
           hadolint --version
-      - name: Lint ${{ matrix.dockerfile }}
-        run: hadolint --config .hadolint.yaml "${{ matrix.dockerfile }}"
+      - name: Lint Dockerfiles
+        run: hadolint --config .hadolint.yaml Dockerfile server/api/Dockerfile docker/zebra/Dockerfile
 
   # ---------------------------------------------------------------------------
   # Build the application images (web + api). No push.
@@ -72,3 +65,22 @@ jobs:
             NEXT_PUBLIC_NETWORK=mainnet
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
+      - name: Smoke-test API image startup and liveness
+        if: matrix.name == 'api'
+        run: |
+          docker run --detach --rm --name cipherscan-api-smoke -p 3001:3001 cipherscan-api:ci
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:3001/health >/dev/null; then
+              exit 0
+            fi
+            if ! docker inspect cipherscan-api-smoke >/dev/null 2>&1; then
+              echo "API container exited before becoming healthy"
+              exit 1
+            fi
+            sleep 1
+          done
+          docker logs cipherscan-api-smoke
+          exit 1
+      - name: Stop API smoke-test container
+        if: always() && matrix.name == 'api'
+        run: docker stop cipherscan-api-smoke >/dev/null 2>&1 || true

@@ -50,7 +50,7 @@ export function PrivacyTimelineChart({
   return (
     <div className="w-full rounded-xl border border-cipher-border bg-cipher-surface/30 p-3">
       <div className="h-full" style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 8, bottom: compact ? 0 : 8, left: compact ? 0 : 8 }}>
             <CartesianGrid stroke="#ffffff12" vertical={false} />
             <XAxis

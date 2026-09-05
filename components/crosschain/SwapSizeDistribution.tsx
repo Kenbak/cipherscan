@@ -122,7 +122,7 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
           <div className="flex items-center justify-center flex-1 min-h-[200px] text-xs font-mono text-muted">No size data available</div>
         ) : (
           <div className="flex-1 min-h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                 <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={50} />

@@ -221,7 +221,7 @@ export default function WalletsClient() {
                 <h3 className="text-sm font-medium text-secondary mb-4">
                   Fee Lane Evolution Over Time
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={300}>
                   <AreaChart data={feeLanes.history}>
                     <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                     <XAxis
@@ -369,7 +369,7 @@ export default function WalletsClient() {
                   <h3 className="text-sm font-medium text-secondary mb-4">
                     Estimated Distribution (last {period})
                   </h3>
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={280}>
                     <PieChart>
                       <Pie
                         data={usageData}
@@ -526,7 +526,7 @@ function BatteryBar({
     <div className="relative w-full h-8 rounded-lg overflow-hidden flex" role="img" aria-label={`Fee distribution: ${buckets.standard.pct}% standard, ${buckets.priority.pct}% priority, ${buckets.non_standard.pct}% non-standard`}>
       {buckets.standard.pct > 0 && (
         <div
-          className="h-full transition-all duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
           style={{ width: `${buckets.standard.pct}%`, background: '#56D4C8' }}
           title={`Standard: ${buckets.standard.pct}%`}
         >
@@ -535,7 +535,7 @@ function BatteryBar({
       )}
       {buckets.priority.pct > 0 && (
         <div
-          className="h-full transition-all duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
           style={{ width: `${Math.max(buckets.priority.pct, 1)}%`, background: '#F4B728' }}
           title={`Priority: ${buckets.priority.pct}%`}
         >
@@ -544,7 +544,7 @@ function BatteryBar({
       )}
       {buckets.non_standard.pct > 0 && (
         <div
-          className="h-full transition-all duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
+          className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
           style={{ width: `${buckets.non_standard.pct}%`, background: '#f59e0b' }}
           title={`Non-Standard: ${buckets.non_standard.pct}%`}
         >

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getApiUrl } from '@/lib/api-config';
 import { RiskyTxCard } from '@/components/RiskyTxCard';
@@ -132,7 +132,7 @@ function PrivacyRisksContent() {
   // Common amounts
   const [commonAmounts, setCommonAmounts] = useState<CommonAmount[]>([]);
 
-  const fetchRisks = async (newOffset: number = 0, append: boolean = false) => {
+  const fetchRisks = useCallback(async (newOffset: number = 0, append: boolean = false) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -166,9 +166,9 @@ function PrivacyRisksContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [periodFilter, riskFilter, sortBy]);
 
-  const fetchCommonAmounts = async () => {
+  const fetchCommonAmounts = useCallback(async () => {
     try {
       const apiUrl = `${getApiUrl()}/api/privacy/common-amounts?period=${periodFilter}&limit=8`;
 
@@ -184,9 +184,12 @@ function PrivacyRisksContent() {
     } catch (err) {
       console.error('Error fetching common amounts:', err);
     }
-  };
+  }, [periodFilter]);
 
-  const fetchBatchPatterns = async (append: boolean = false) => {
+  const fetchBatchPatterns = useCallback(async (
+    append: boolean = false,
+    cursor: { score?: number; amount?: number; time?: number } | null = null,
+  ) => {
     if (append) {
       setBatchLoadingMore(true);
     } else {
@@ -207,12 +210,12 @@ function PrivacyRisksContent() {
       });
 
       // Add cursor for pagination
-      if (append && batchCursor) {
-        if (batchSortBy === 'score' && batchCursor.score !== undefined && batchCursor.amount !== undefined) {
-          params.set('afterScore', batchCursor.score.toString());
-          params.set('afterAmount', batchCursor.amount.toString());
-        } else if (batchSortBy === 'recent' && batchCursor.time !== undefined) {
-          params.set('afterScore', batchCursor.time.toString()); // API uses afterScore for both
+      if (append && cursor) {
+        if (batchSortBy === 'score' && cursor.score !== undefined && cursor.amount !== undefined) {
+          params.set('afterScore', cursor.score.toString());
+          params.set('afterAmount', cursor.amount.toString());
+        } else if (batchSortBy === 'recent' && cursor.time !== undefined) {
+          params.set('afterScore', cursor.time.toString()); // API uses afterScore for both
         }
       }
 
@@ -244,31 +247,27 @@ function PrivacyRisksContent() {
       setBatchLoading(false);
       setBatchLoadingMore(false);
     }
-  };
+  }, [batchRiskFilter, batchSortBy, periodFilter]);
 
   useEffect(() => {
+    if (activeTab !== 'roundtrip') return;
     setOffset(0);
-    if (activeTab === 'roundtrip') {
-      fetchRisks(0, false);
-    } else {
-      fetchBatchPatterns(false);
-    }
+    fetchRisks(0, false);
     fetchCommonAmounts();
-  }, [riskFilter, periodFilter, sortBy, activeTab]);
+  }, [activeTab, fetchCommonAmounts, fetchRisks]);
 
-  // Re-fetch batch patterns when batch filters change
   useEffect(() => {
-    if (activeTab === 'batch') {
-      fetchBatchPatterns(false);
-    }
-  }, [batchRiskFilter, batchSortBy]);
+    if (activeTab !== 'batch') return;
+    fetchBatchPatterns(false);
+    fetchCommonAmounts();
+  }, [activeTab, fetchBatchPatterns, fetchCommonAmounts]);
 
   const loadMore = () => {
     fetchRisks(offset, true);
   };
 
   const loadMoreBatch = () => {
-    fetchBatchPatterns(true);
+    fetchBatchPatterns(true, batchCursor);
   };
 
   const currentStats = activeTab === 'roundtrip' ? stats : batchStats;
@@ -327,7 +326,7 @@ function PrivacyRisksContent() {
                   if (tab.key === 'roundtrip' && periodFilter === '90d') setPeriodFilter('30d');
                   if (tab.key === 'batch' && periodFilter === '24h') setPeriodFilter('7d');
                 }}
-                className={`px-4 py-1.5 text-xs font-mono font-medium rounded-full transition-all flex items-center gap-2 ${
+                className={`px-4 py-1.5 text-xs font-mono font-medium rounded-full transition flex items-center gap-2 ${
                   activeTab === tab.key
                     ? 'bg-white/5 text-primary border border-white/10'
                     : 'text-muted hover:text-secondary border border-transparent'
@@ -356,7 +355,7 @@ function PrivacyRisksContent() {
                 <button
                   key={period}
                   onClick={() => setPeriodFilter(period as PeriodFilter)}
-                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
                     periodFilter === period
                       ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
                       : 'text-muted hover:text-primary'
@@ -379,7 +378,7 @@ function PrivacyRisksContent() {
                   <button
                     key={level}
                     onClick={() => activeTab === 'roundtrip' ? setRiskFilter(level) : setBatchRiskFilter(level)}
-                    className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                    className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
                       isActive ? activeStyle : 'text-muted hover:text-primary'
                     }`}
                   >
@@ -394,7 +393,7 @@ function PrivacyRisksContent() {
                 <button
                   key={option}
                   onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
-                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
                     (activeTab === 'roundtrip' ? sortBy : batchSortBy) === option
                       ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
                       : 'text-muted hover:text-primary'
@@ -513,7 +512,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition disabled:opacity-50"
                       >
                         {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
                       </button>
@@ -575,7 +574,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMoreBatch}
                         disabled={batchLoadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition-all disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition disabled:opacity-50"
                       >
                         {batchLoadingMore ? 'Loading...' : 'Load More'}
                       </button>

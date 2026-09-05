@@ -235,7 +235,7 @@ export default function ValuationPage() {
             {loading ? (
               <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis
@@ -302,7 +302,7 @@ export default function ValuationPage() {
             {loading ? (
               <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis
@@ -352,7 +352,7 @@ export default function ValuationPage() {
             {loading ? (
               <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis
@@ -402,7 +402,7 @@ export default function ValuationPage() {
             {loading ? (
               <div className="h-[380px] flex items-center justify-center text-cipher-text-muted">Loading...</div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={history}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis
@@ -455,7 +455,7 @@ export default function ValuationPage() {
                 {loading ? 'Loading...' : 'HODL wave data not yet available. Run compute-utxo-age.js to populate.'}
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={hodlWaves}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis
@@ -528,7 +528,7 @@ export default function ValuationPage() {
                 {loading ? 'Loading...' : 'Dormancy data not yet available. Run compute-utxo-age.js to populate.'}
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
                 <ComposedChart data={dormancy}>
                   <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                   <XAxis

@@ -230,7 +230,7 @@ export function ChainFlowTable({
       <p className="text-xs text-muted mb-3">
         24h inflows (green, right) vs outflows (orange, left) by chain. Hover for token breakdown.
       </p>
-      <ResponsiveContainer width="100%" height={chartHeight - 40}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={chartHeight - 40}>
         <BarChart
           data={displayRows}
           layout="vertical"

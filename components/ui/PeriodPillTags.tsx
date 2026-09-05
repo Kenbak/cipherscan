@@ -39,7 +39,7 @@ export function PeriodPillTags<T extends string>({
             type="button"
             onClick={() => onChange(key)}
             aria-pressed={active}
-            className={`px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider rounded-md transition-all whitespace-nowrap ${
+            className={`px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider rounded-md transition whitespace-nowrap ${
               active
                 ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
                 : 'text-muted hover:text-secondary'

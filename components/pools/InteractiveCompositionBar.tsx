@@ -61,7 +61,7 @@ export function InteractiveCompositionBar({
               type="button"
               title={segment.title ?? `${segment.label}: ${segment.percent.toFixed(1)}%`}
               aria-label={`${segment.label}, ${segment.percent.toFixed(1)} percent`}
-              className={`h-full transition-all duration-200 cursor-pointer border-0 p-0 min-w-[2px] ${
+              className={`h-full transition-[width,opacity,filter] duration-200 cursor-pointer border-0 p-0 min-w-[2px] ${
                 index === 0 ? 'rounded-l-full' : ''
               } ${index === visible.length - 1 ? 'rounded-r-full' : ''} ${
                 isHovered ? 'ring-1 ring-inset ring-white/25 z-10' : ''
@@ -89,7 +89,7 @@ export function InteractiveCompositionBar({
             <button
               key={segment.key}
               type="button"
-              className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -mx-1.5 transition-all duration-200 cursor-pointer border-0 bg-transparent ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -mx-1.5 transition duration-200 cursor-pointer border-0 bg-transparent ${
                 isHovered
                   ? 'text-primary bg-glass-4 ring-1 ring-glass-12'
                   : isDimmed

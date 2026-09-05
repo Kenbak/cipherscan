@@ -43,7 +43,7 @@ export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeH
       {loading ? (
         <ChartEmptyState message="Loading chain size…" />
       ) : sizePoints.length > 0 ? (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <LineChart data={sizePoints}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis dataKey="time" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} interval="preserveStartEnd" />

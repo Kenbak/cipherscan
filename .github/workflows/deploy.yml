@@ -141,8 +141,8 @@ jobs:
             local sha="$1"
             git fetch origin main
             git checkout --detach "$sha"
-            npm install --omit=dev --no-audit --no-fund
-            (cd server/api && npm install --omit=dev --no-audit --no-fund)
+            npm ci --omit=dev --no-audit --no-fund
+            (cd server/api && npm ci --omit=dev --no-audit --no-fund)
             systemctl restart zcash-api-mainnet.service
           }
 
@@ -195,7 +195,7 @@ jobs:
             local sha="$1"
             git fetch origin main
             git checkout --detach "$sha"
-            (cd server/api && npm install --omit=dev --no-audit --no-fund)
+            (cd server/api && npm ci --omit=dev --no-audit --no-fund)
             # Keep the failover checkout current without turning the database
             # standby into a second public API host. The primary API already
             # offloads eligible reads to this PostgreSQL replica directly.

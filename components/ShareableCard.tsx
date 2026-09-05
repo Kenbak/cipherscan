@@ -101,7 +101,7 @@ export function ShareableCard({
               type="button"
               onClick={handleCopy}
               disabled={copyStatus === 'capturing'}
-              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
             >
               {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
             </button>
@@ -109,7 +109,7 @@ export function ShareableCard({
               type="button"
               onClick={handleShare}
               disabled={copyStatus === 'capturing'}
-              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
             >
               Share to X
             </button>
@@ -118,7 +118,7 @@ export function ShareableCard({
               type="button"
               onClick={handleCopy}
               disabled={copyStatus === 'capturing'}
-              className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition-all hover:border-cipher-border hover:text-primary disabled:opacity-50"
+              className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition hover:border-cipher-border hover:text-primary disabled:opacity-50"
               aria-label={copyStatus === 'copied' ? 'Copied' : 'Copy image'}
               title={copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
             >
@@ -136,7 +136,7 @@ export function ShareableCard({
               type="button"
               onClick={handleShare}
               disabled={copyStatus === 'capturing'}
-              className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition-all hover:border-cipher-border hover:text-primary disabled:opacity-50"
+              className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition hover:border-cipher-border hover:text-primary disabled:opacity-50"
               aria-label="Share"
               title="Share"
             >

@@ -148,7 +148,7 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
       <p className="text-xs text-muted mb-3 max-w-2xl">
         Median time from swap initiation to ZEC confirmation, by chain and direction. Sorted by swap volume.
       </p>
-      <ResponsiveContainer width="100%" height={chartHeight - 20}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={chartHeight - 20}>
         <BarChart data={displayRows} layout="vertical" margin={{ left: 8, right: 24 }}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} horizontal={false} />
           <XAxis type="number" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => formatMinutes(v)} />

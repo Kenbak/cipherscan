@@ -169,7 +169,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           </p>
         </div>
       )}
-      <ResponsiveContainer width="100%" height={240}>
+      <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={240}>
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
           <XAxis

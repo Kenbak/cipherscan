@@ -107,7 +107,7 @@ CipherScan is a blockchain explorer for Zcash that makes privacy technology acce
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.14.x (see `.node-version`)
 - npm or yarn
 - PostgreSQL (optional, for full indexer)
 
@@ -119,7 +119,7 @@ git clone https://github.com/Kenbak/cipherscan.git
 cd cipherscan
 
 # Install dependencies
-npm install
+npm ci
 
 # Run development server
 npm run dev
@@ -132,6 +132,20 @@ npm run dev
 ```bash
 npm run build
 npm start
+```
+
+### Verify Before Push
+
+```bash
+# Fast lint, design-token, and TypeScript checks
+make verify-fast
+
+# The full local contract used by CI (all subprojects/toolchains)
+make verify-full
+
+# Optional responsive/light-dark browser audit
+npx playwright install chromium  # once per machine
+npm run visual:audit             # run while the app is serving on port 3000
 ```
 
 ---

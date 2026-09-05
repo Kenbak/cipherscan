@@ -122,7 +122,7 @@ export function MigrationTiers({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-glass-3">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-[width] duration-500"
                     style={{
                       width: `${Math.max(tier.volumePct, tier.count > 0 ? 1 : 0)}%`,
                       backgroundColor: TIER_COLORS[i],
@@ -147,7 +147,7 @@ export function MigrationTiers({
                 <div className="relative flex h-[140px] w-full justify-center">
                   <div className="relative h-full w-8 overflow-hidden rounded-t-md bg-glass-3">
                     <div
-                      className="absolute bottom-0 left-0 right-0 rounded-t-md transition-all duration-500"
+                      className="absolute bottom-0 left-0 right-0 rounded-t-md transition-[height] duration-500"
                       style={{ height: `${Math.max(barPct, 2)}%`, backgroundColor: TIER_COLORS[i], opacity: 0.85 }}
                     />
                   </div>
@@ -196,7 +196,7 @@ export function MigrationTiers({
             <button
               type="button"
               onClick={() => { setMode('live'); setScrubIdx(maxIdx); }}
-              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition-all"
+              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
             >
               <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
               Live

@@ -140,7 +140,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           {/* Address + copy */}
           <button
             onClick={copyAddress}
-            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-cyan/30 transition-all"
+            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-cyan/30 transition"
           >
             <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
               <span>Shielded · Unified Address</span>
@@ -189,7 +189,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
       ) : (
         <button
           onClick={() => setShowModal(true)}
-          className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition-all rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
+          className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
           title={compact ? 'Support CipherScan' : undefined}
           aria-label={compact ? 'Support CipherScan' : undefined}
         >

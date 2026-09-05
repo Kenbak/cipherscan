@@ -55,7 +55,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
                 const toChain = swap.direction === 'inflow' ? 'zec' : swap.destChain;
 
                 return (
-                  <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition-all group">
+                  <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition group">
                     {/* Direction */}
                     <div className="col-span-1">
                       {swap.direction === 'inflow' ? (

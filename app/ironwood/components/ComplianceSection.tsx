@@ -139,7 +139,7 @@ export function ComplianceSummary({
           <button
             key={s.key}
             type="button"
-            className="relative h-full transition-all focus:outline-none"
+            className="relative h-full transition-[width,opacity,filter] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset"
             style={{
               width: `${mode === 'volume' ? s.volPct : s.pct}%`,
               backgroundColor: s.color,
@@ -200,7 +200,7 @@ export function FamiliesTab({
         {entries.map((e) => (
           <div
             key={e.id}
-            className="h-full transition-all relative group"
+            className="h-full transition-[width,opacity,filter] relative group"
             style={{ width: `${e.pct}%`, backgroundColor: e.color }}
             title={`${e.label}: ${e.count} (${e.pct}%)`}
           />

@@ -37,7 +37,7 @@ export function SegmentedToggle<T extends string>({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(opt.id)}
-            className={`flex-shrink-0 px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-md transition-all whitespace-nowrap ${
+            className={`flex-shrink-0 px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-md transition whitespace-nowrap ${
               isActive ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12' : 'text-muted hover:text-secondary'
             }`}
           >

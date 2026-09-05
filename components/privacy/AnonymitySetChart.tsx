@@ -75,7 +75,7 @@ export function AnonymitySetChart() {
             be <em>your</em> source at each {CURRENCY} threshold? Higher counts mean a larger crowd
             to hide in.
           </p>
-          <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+          <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={CHART_HEIGHT}>
             <BarChart data={chartData} margin={PRIVACY_BAR_CHART_MARGIN}>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis

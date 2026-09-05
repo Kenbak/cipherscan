@@ -70,7 +70,10 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     zecPrice,
   } = props;
 
-  const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
+  const fmt = useCallback(
+    (zat: number) => fmtValue(zat, currencyMode, zecPrice),
+    [currencyMode, zecPrice],
+  );
 
   const [use3D, setUse3D] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
@@ -164,7 +167,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
       orchardLabel: fmt(remainingZat),
       ironwoodLabel: fmt(migratedZat),
     };
-  }, [mode, scrubIndex, maxIndex, cohortPoints, peakVolume, activated, hasCohorts, migratedPct, tipHeight, originalOrchardZat, currencyMode, zecPrice]);
+  }, [mode, scrubIndex, maxIndex, cohortPoints, peakVolume, activated, hasCohorts, migratedPct, tipHeight, originalOrchardZat, fmt]);
 
   // Play mode: smooth RAF-driven advance (~8 boundaries/sec)
   useEffect(() => {
@@ -347,7 +350,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleCopy}
                   disabled={copyStatus === 'capturing'}
-                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
                 >
                   {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
                 </button>
@@ -355,7 +358,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleShare}
                   disabled={copyStatus === 'capturing'}
-                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
                 >
                   Share to X
                 </button>
@@ -363,7 +366,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleCopy}
                   disabled={copyStatus === 'capturing'}
-                  className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition-all hover:border-cipher-border hover:text-primary disabled:opacity-50"
+                  className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition hover:border-cipher-border hover:text-primary disabled:opacity-50"
                   aria-label={copyStatus === 'copied' ? 'Copied' : 'Copy image'}
                   title={copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
                 >
@@ -381,7 +384,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleShare}
                   disabled={copyStatus === 'capturing'}
-                  className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition-all hover:border-cipher-border hover:text-primary disabled:opacity-50"
+                  className="sm:hidden rounded-md border border-cipher-border/50 p-1.5 text-muted transition hover:border-cipher-border hover:text-primary disabled:opacity-50"
                   aria-label="Share"
                   title="Share"
                 >
@@ -394,7 +397,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="rounded-md border border-cipher-border/50 p-1 text-muted transition-all hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary"
+              className="rounded-md border border-cipher-border/50 p-1 text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
               title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
             >
@@ -518,7 +521,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
               <button
                 type="button"
                 onClick={handleLive}
-                className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition-all"
+                className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
               >
                 <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
                 Live

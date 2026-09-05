@@ -963,7 +963,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition-all duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]

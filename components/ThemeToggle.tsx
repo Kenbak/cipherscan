@@ -9,7 +9,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="relative p-1.5 rounded-lg transition-all duration-200"
+        className="relative p-1.5 rounded-lg transition duration-200"
         aria-label="Toggle theme"
       >
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +27,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative p-1.5 rounded-lg theme-toggle-btn hover:opacity-80 transition-all duration-200 group"
+      className="relative p-1.5 rounded-lg theme-toggle-btn hover:opacity-80 transition duration-200 group"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >

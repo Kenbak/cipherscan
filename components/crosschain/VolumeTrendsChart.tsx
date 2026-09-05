@@ -100,7 +100,7 @@ export function VolumeTrendsChart({ unit = 'usd', zecPrice = null }: { unit?: Di
       ) : points.length === 0 ? (
         <div className="flex items-center justify-center h-[260px] text-xs font-mono text-muted">No trend data available</div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <ComposedChart data={points} barSize={barSize} barGap={-barSize}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis

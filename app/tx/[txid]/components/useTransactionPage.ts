@@ -79,16 +79,18 @@ export function useTransactionPage(txid: string) {
     fetchData();
   }, [txid, router]);
 
+  const transactionTimestamp = data?.timestamp;
+
   useEffect(() => {
-    if (!data || !data.timestamp) return;
-    const date = new Date(data.timestamp * 1000).toISOString().split('T')[0];
+    if (!transactionTimestamp) return;
+    const date = new Date(transactionTimestamp * 1000).toISOString().split('T')[0];
     fetch(`${getApiUrl()}/api/price/at?date=${date}`)
       .then((res) => res.json())
       .then((p) => {
         if (p.price_usd) setPriceUsd(p.price_usd);
       })
       .catch(() => {});
-  }, [data?.timestamp]);
+  }, [transactionTimestamp]);
 
   useEffect(() => {
     if (loading || data || blockFallbackChecked || lookupState !== 'missing') return;

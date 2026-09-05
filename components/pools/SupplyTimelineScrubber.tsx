@@ -208,7 +208,7 @@ export function SupplyTimelineScrubber({
         <button
           type="button"
           onClick={onLive}
-          className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-all ${
+          className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition ${
             mode === 'live'
               ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
               : isDark

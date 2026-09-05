@@ -15,6 +15,13 @@ Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
 Environment=NODE_PATH=/root/cipherscan/server/api/node_modules
+Environment=COMPACT_BLOCK_CACHE_DIR=/var/lib/cipherscan-api-testnet/compact-blocks
+StateDirectory=cipherscan-api-testnet
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true
+ReadOnlyPaths=/root/cipherscan
+ReadWritePaths=/var/lib/cipherscan-api-testnet
 
 [Install]
 WantedBy=multi-user.target

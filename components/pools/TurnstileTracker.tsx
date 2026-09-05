@@ -418,7 +418,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                         return (
                           <div
                             key={key}
-                            className={`bg-glass-4 rounded-xl p-4 border-l-2 transition-all duration-200 ${
+                            className={`bg-glass-4 rounded-xl p-4 border-l-2 transition duration-200 ${
                               isHovered ? 'ring-1 ring-glass-12 bg-glass-6' : ''
                             } ${isDimmed ? 'opacity-40' : ''}`}
                             style={{ borderLeftColor: categoryColors[key] }}
@@ -467,7 +467,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
         return (
           <ChartCard title="DAILY_DESHIELDED_ZEC_BREAKDOWN" height={280}>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={280}>
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
                 <XAxis

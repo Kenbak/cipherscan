@@ -345,7 +345,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
         <div className="flex gap-1 p-1 rounded-lg bg-glass-3 w-fit mb-6">
           <button
             onClick={() => setActiveTab('vote')}
-            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition-all ${
+            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition ${
               activeTab === 'vote'
                 ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
                 : 'text-muted hover:text-secondary'
@@ -355,7 +355,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
           </button>
           <button
             onClick={() => setActiveTab('chain')}
-            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition-all ${
+            className={`px-4 py-2 text-xs font-mono font-semibold rounded-md transition ${
               activeTab === 'chain'
                 ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
                 : 'text-muted hover:text-secondary'
@@ -431,7 +431,7 @@ function VoteTab({
               <button
                 key={q.id}
                 onClick={() => setActiveQuestion(i)}
-                className={`shrink-0 px-3.5 py-2 text-xs font-mono rounded-md transition-all ${
+                className={`shrink-0 px-3.5 py-2 text-xs font-mono rounded-md transition ${
                   i === activeQuestion
                     ? 'bg-cipher-bg text-primary shadow-sm ring-1 ring-glass-12'
                     : 'text-muted hover:text-secondary'
@@ -622,7 +622,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                     </div>
                     <div className="h-1.5 rounded-full bg-glass-6 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                        className="h-full rounded-full bg-emerald-400 transition-[width] duration-500"
                         style={{ width: `${(chainState.ceremony.ackCount / Math.max(chainState.ceremony.validatorCount, 1)) * 100}%` }}
                       />
                     </div>

@@ -239,7 +239,7 @@ export default function NodesClient() {
                   instead of leaving it pinned to the top with dead space below. */}
               <div className="flex-1 grid items-center gap-4 sm:grid-cols-[160px_1fr]">
                 <div className="h-[160px]" role="img" aria-label="Client distribution donut chart">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={clients.filter(c => c.count > 0)}
@@ -413,7 +413,7 @@ export default function NodesClient() {
                   <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: scoreColor(upgrade.readinessPct) }}>{upgrade.readinessPct}%</span>
                 </div>
                 <div className="w-full h-3 bg-cipher-border/40 rounded-full overflow-hidden mb-4">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${upgrade.readinessPct}%`, backgroundColor: scoreColor(upgrade.readinessPct) }} />
+                  <div className="h-full rounded-full transition-[width,background-color]" style={{ width: `${upgrade.readinessPct}%`, backgroundColor: scoreColor(upgrade.readinessPct) }} />
                 </div>
                 <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
@@ -622,7 +622,7 @@ function HealthBar({ label, score, detail }: { label: string; score: number; det
       <span className="text-[11px] text-secondary w-[104px] shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full transition-[width,background-color]"
           style={{ width: `${score}%`, backgroundColor: color }}
         />
       </div>

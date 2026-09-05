@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Instances, Instance, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -128,9 +128,9 @@ function Scene({
 
   const posById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
-  const isVisible = (n: PositionedNode) => !hidden.has(nodeCategory(n));
+  const isVisible = useCallback((n: PositionedNode) => !hidden.has(nodeCategory(n)), [hidden]);
 
-  const visibleNodes = useMemo(() => nodes.filter(isVisible), [nodes, hidden]);
+  const visibleNodes = useMemo(() => nodes.filter(isVisible), [nodes, isVisible]);
   const reachableVisible = useMemo(() => visibleNodes.filter((n) => n.reachable), [visibleNodes]);
   const offVisible = useMemo(() => visibleNodes.filter((n) => !n.reachable), [visibleNodes]);
 
@@ -147,7 +147,7 @@ function Scene({
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [edgePairs, posById, hidden]);
+  }, [edgePairs, posById, isVisible]);
 
   const highlightGeom = useMemo(() => {
     if (!focus) return null;
@@ -163,7 +163,7 @@ function Scene({
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     return g;
-  }, [focus, edgePairs, posById, hidden]);
+  }, [focus, edgePairs, posById, isVisible]);
 
   // When a node is pinned, glide the camera to frame it.
   useEffect(() => {
@@ -279,7 +279,12 @@ export function TopologyGraph() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const toggleCategory = (cat: string) =>
-    setHidden((prev) => { const s = new Set(prev); s.has(cat) ? s.delete(cat) : s.add(cat); return s; });
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
 
   // Ignore focus on a node that the current filters have hidden.
   const rawFocus = pinned ?? hovered;
