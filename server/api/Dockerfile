@@ -13,7 +13,8 @@ FROM ${NODE_IMAGE} AS runner
 WORKDIR /app/server/api
 ENV NODE_ENV=production \
     PORT=3001 \
-    HOST=0.0.0.0
+    HOST=0.0.0.0 \
+    COMPACT_BLOCK_CACHE_DIR=/var/cache/cipherscan/compact-blocks
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="cipherscan-api" \
       org.opencontainers.image.source="https://github.com/Kenbak/cipherscan" \
@@ -22,6 +23,7 @@ LABEL org.opencontainers.image.title="cipherscan-api" \
 COPY --from=deps /app/server/api/node_modules ./node_modules
 COPY server/api/ ./
 COPY server/lib/ ../lib/
+COPY server/signals/ ../signals/
 RUN mkdir -p /var/cache/cipherscan/compact-blocks \
     && chown -R 1000:1000 /var/cache/cipherscan
 

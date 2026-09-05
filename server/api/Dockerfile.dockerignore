@@ -3,6 +3,8 @@
 !server/api/**
 !server/lib/
 !server/lib/**
+!server/signals/
+!server/signals/**
 server/api/.env
 server/api/.env.*
 !server/api/.env.example
