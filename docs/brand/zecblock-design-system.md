@@ -4,6 +4,8 @@ Design direction and implementation specification · 5 September 2026
 
 Status: local rebrand branch; not deployed. Mainnet identity: ZecBlock, zecblock.com. Supplied logo assets are authoritative. Screenshot values are historical examples, never live data or evidence of network status.
 
+Current logo update: the owner supplied `zecblockdot.png` and replaced the leading-square lockup with this exact ZecBlock logotype and trailing gold dot. Header width is 112px across breakpoints; footer and chart signatures are 96px. The network line remains below the logotype. Light mode uses the original silhouette as a CSS mask, with #DB9E00 gold and dark lettering; the downloadable original remains unchanged. This supersedes earlier leading-square lockup notes.
+
 ## 01 / Read the existing product
 
 The homepage works because it answers a practical sequence: locate an identifier, inspect current chain activity, inspect what is waiting. Keep the navigation categories, configurable two-column feeds, network strip, announcements and mempool. Keep privacy visible alongside ordinary transaction activity. These are product decisions, not decoration.
@@ -87,7 +89,7 @@ Color is redundant encoding: labels, position, signed values, outlines and patte
 
 Use the existing local Geist files; no remote font dependency. Sans for explanations, mono for data and commands. Tabular, lining numerals; disable discretionary ligatures in hashes. Shared page heading 38px desktop / 30px mobile; homepage medium sans 40px desktop / 28px mobile, tight tracking. Section key 12–14px mono, lowercase, restrained weight and tracking. Body 14–16px / 1.6; data 13–14px / 1.5. Chart labels at least 11px when feasible. Reserve 10–11px for secondary metadata, never primary values.
 
-Right-align comparable numbers and their units consistently. Retain existing zatoshi conversions and exact-amount access. Compact notation belongs in summaries, never raw identifiers. ZEC precision follows actual source precision; do not add false precision. USD values retain currency markers. Rates always include a denominator (ZEC/hr, GSol/s). Distinguish zero, unknown, unavailable, pending and shielded. Redacted values read “Shielded”; they never simulate an amount. Timestamp tooltips should expose absolute time and timezone. A relative age is not the data observation time.
+Right-align comparable numbers and their units consistently. Retain existing zatoshi conversions and exact-amount access. Compact notation belongs in summaries, never raw identifiers. ZEC precision follows actual source precision; do not add false precision. USD values retain currency markers. Rates always include a denominator (ZEC/hr, GSol/s). Distinguish zero, unknown, unavailable, pending and shielded. Redacted values use animated nonnumeric blocks with an accessible hidden-amount label; they never simulate an amount. Timestamp tooltips should expose absolute time and timezone. A relative age is not the data observation time.
 
 ### Layout and navigation
 
@@ -131,3 +133,7 @@ Keep API, RPC, WebSocket, social handles, GitHub repositories, donation destinat
 Local implementation, not deployed. Typecheck, lint with the existing warning budget, frontend regressions and production build are required. Brand regressions cover exact verification proportions, 0/100 boundaries, unavailable values, and network metadata policies. Browser checks cover desktop layout, mobile width, themes and command search.
 
 Raw HTML checks cover homepage, pools, Ironwood, press and tools metadata, one H1, canonical, robots, social tags and JSON-LD, plus sitemap and generated image endpoints. Existing invalid transaction/block pages can stream HTTP 200 with noindex/not-found content; this pre-existing lifecycle limitation is not fixed by the visual rebrand and must be resolved before claiming full SEO lifecycle compliance. Testnet and Crosslink hosts remain unchanged. Production DNS/TLS and host redirect activation have not been deployed.
+
+### Shared table containers, shielded amounts and light gold — 2026-09-05
+
+Recent blocks, shielded activity, and mempool now use the same surface, border, radius and category-badge system as the rest of the app. The homepage-only open-table overrides have been removed, while 20px edge insets, shared section headings and row rhythm remain. Mempool retains its pending summary and explicit transaction-type labels. At the user’s request, shielded amounts display four monospace redaction blocks (█▓▒), changing one texture every 480ms. The fixed footprint never displays digits or an estimated amount. Accessible labels remain stable; reduced-motion preference stops the animation, including preference changes while the page is open. Light-mode brand fills and the logotype use the requested **#DB9E00**. Small gold text and fine data strokes retain **#866008** for contrast. The original downloadable PNG remains unchanged; its silhouette is masked with theme colors for light-mode display. These are local frontend changes, not a deployed release.

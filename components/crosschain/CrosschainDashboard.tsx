@@ -466,7 +466,7 @@ export function CrosschainDashboard() {
                   <button
                     onClick={loadMore}
                     disabled={historyLoading}
-                    className="px-4 py-1.5 text-caption font-mono text-cipher-gold border border-cipher-gold/30 rounded-lg hover:bg-cipher-gold/10 transition-colors disabled:opacity-40"
+                    className="px-4 py-1.5 text-caption font-mono text-cipher-gold border border-cipher-gold/30 rounded-lg hover:bg-brand-gold/10 transition-colors disabled:opacity-40"
                   >
                     {historyLoading ? 'Loading...' : 'Load more'}
                   </button>

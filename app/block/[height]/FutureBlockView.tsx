@@ -97,7 +97,7 @@ export function FutureBlockView({
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={`/block/${targetHeight}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-gold/10 border border-cipher-gold/30 text-cipher-gold font-mono text-sm hover:bg-cipher-gold/20 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-gold/10 border border-cipher-gold/30 text-cipher-gold font-mono text-sm hover:bg-brand-gold/20 transition-colors"
               >
                 View Block →
               </Link>

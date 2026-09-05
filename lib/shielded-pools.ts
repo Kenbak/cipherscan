@@ -11,7 +11,7 @@ export interface PoolConfig {
 export const SHIELDED_POOLS: PoolConfig[] = [
   { key: 'ironwood', label: 'Ironwood', badgeColor: 'amber', textClass: 'text-cipher-yellow', bgClass: 'bg-cipher-yellow' },
   { key: 'orchard', label: 'Orchard', badgeColor: 'green', textClass: 'text-cipher-green', bgClass: 'bg-cipher-green' },
-  { key: 'sapling', label: 'Sapling', badgeColor: 'gold', textClass: 'text-cipher-gold', bgClass: 'bg-cipher-gold' },
+  { key: 'sapling', label: 'Sapling', badgeColor: 'gold', textClass: 'text-cipher-gold', bgClass: 'bg-brand-gold' },
   { key: 'sprout', label: 'Sprout', badgeColor: 'orange', textClass: 'text-cipher-purple', bgClass: 'bg-cipher-purple' },
 ];
 

@@ -218,7 +218,7 @@ export default function ValuationPage() {
             onClick={() => setPeriod(p)}
             className={`px-3 py-1 rounded-full text-xs font-mono transition-colors ${
               period === p
-                ? 'bg-cipher-gold/15 text-cipher-gold border border-cipher-gold/30'
+                ? 'bg-brand-gold/15 text-cipher-gold border border-cipher-gold/30'
                 : 'text-cipher-text-muted hover:text-cipher-text-secondary border border-transparent'
             }`}
           >

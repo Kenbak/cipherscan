@@ -35,6 +35,7 @@
 
   /* Brand (theme-aware via RGB channel vars) */
   --color-cipher-gold: rgb(var(--color-gold-rgb));
+  --color-brand-gold: var(--color-gold-accent);
   --color-cipher-green: rgb(var(--color-green-rgb));
   --color-cipher-purple: rgb(var(--color-purple-rgb));
   --color-cipher-yellow: rgb(var(--color-yellow-rgb));
@@ -200,6 +201,7 @@
   --color-orange-rgb: 226 166 110;
 
   /* Brand — hex shortcuts for use in custom CSS */
+  --color-gold-accent: #F8BC21;
   --color-gold: #F8BC21;
   --color-gold-glow: #F8BC21;
   --color-gold-muted: #B59959;
@@ -392,6 +394,8 @@
   --color-orange-rgb: 136 88 50;
 
   /* Brand — hex shortcuts for use in custom CSS */
+  --color-gold-accent: #DB9E00;
+  /* Small text and fine data strokes retain an accessible gold ink. */
   --color-gold: #866008;
   --color-gold-glow: #866008;
   --color-gold-muted: #866008;
@@ -455,7 +459,7 @@
   --divider: rgba(0, 0, 0, 0.06);
 
   /* Badges — deeper tints for light-surface contrast */
-  --badge-gold-bg: rgba(134, 96, 8, 0.12);
+  --badge-gold-bg: rgba(219, 158, 0, 0.12);
   --badge-purple-bg: rgba(124, 58, 237, 0.12);
   --badge-green-bg: rgba(4, 120, 87, 0.14);
   --badge-orange-bg: rgba(194, 65, 12, 0.12);
@@ -464,8 +468,8 @@
   --badge-amber-text: #D97706;
 
   /* Buttons */
-  --btn-primary-bg: #F8BC21;
-  --btn-primary-bg-hover: #F8BC21;
+  --btn-primary-bg: #DB9E00;
+  --btn-primary-bg-hover: #DB9E00;
   --btn-primary-text: #20221D;
   --btn-primary-shadow-hover: none;
 
@@ -1720,6 +1724,7 @@
 
 /* Assay identity and shared information surfaces. */
 :root {
+  --brand-image-opacity: 1;
   --brand-dark-display: block;
   --brand-light-display: none;
   --color-brand-mark: #F8BC21;
@@ -1729,16 +1734,18 @@
   --brand-light-display: block;
 }
 
-  .brand-logo { display: inline-block; width: 150px; line-height: 0; }
+  .brand-logo { position: relative; display: inline-block; width: 112px; line-height: 0; flex-shrink: 0; }
   .brand-logo img { width: 100%; height: auto; }
-  .brand-logo-dark { display: var(--brand-dark-display); }
-  .brand-logo-light { display: var(--brand-light-display); }
-  .brand-square { display: inline-block; width: 14px; height: 14px; background: var(--color-brand-mark); flex-shrink: 0; }
-  .brand-lockup { display: flex; align-items: center; gap: 11px; }
-  .brand-lockup-square { width: 32px; height: 32px; flex: 0 0 32px; background: var(--color-brand-mark); }
-  .brand-lockup-type { display: flex; flex-direction: column; gap: 5px; }
-  .brand-wordmark { display: block; width: 118px; line-height: 0; }
-  .brand-wordmark img { width: 100%; height: auto; }
+  .brand-logo.brand-logo-compact { width: 96px; }
+  /* The transparent artwork is the mask: color boundaries fall in its blank gaps. */
+  .brand-logo > img { opacity: var(--brand-image-opacity, 1); }
+  .light .brand-logo { --brand-image-opacity: 0; }
+  .brand-logo .brand-logo-ink { position: absolute; inset: 0; display: var(--brand-light-display); background: linear-gradient(to right, #DB9E00 35.3%, #20221D 35.3%, #20221D 92.5%, #DB9E00 92.5%); mask: url('/brand/zecblock-dot.png') center / contain no-repeat; }
+  .brand-logo[data-tone="dark"] { --brand-image-opacity: 1; }
+  .brand-logo[data-tone="light"] { --brand-image-opacity: 0; }
+  .brand-logo[data-tone="dark"] .brand-logo-ink { display: none; }
+  .brand-logo[data-tone="light"] .brand-logo-ink { display: block; }
+  .brand-lockup { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
   .brand-network { font: 0.75rem/1.2 var(--font-geist-mono); letter-spacing: 0.02em; color: var(--color-text-muted); }
   .home-hero { width: min(100%, 800px); margin: 0 auto; padding: 12px 0 52px; text-align: center; }
   .home-introduction, .home-command { min-width: 0; }
@@ -1749,14 +1756,14 @@
   .home-hero .search-input-hero { min-height: 60px; background: var(--color-surface); font-size: 14px; }
   .home-feeds { margin-top: 28px; }
   .home-feeds > div { min-width: 0; }
-  .home-feeds h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
+  .home-page .home-table-section h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
   .home-page table th { font-family: var(--font-geist-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.04em; }
   .home-page table td { border-color: var(--color-border-subtle); }
   .home-page table tbody tr:last-child td { border-bottom: 0; }
-  .home-feeds .card { border-left: 0; border-right: 0; border-radius: 0; background: transparent; }
-  .home-feeds .card thead { background: transparent; }
-  .home-feeds .card th:first-child, .home-feeds .card td:first-child { padding-left: 20px; }
-  .home-feeds .card th:last-child, .home-feeds .card td:last-child { padding-right: 20px; }
+  .home-table-section .card th:first-child, .home-table-section .card td:first-child { padding-left: 20px; }
+  .home-table-section .card th:last-child, .home-table-section .card td:last-child { padding-right: 20px; }
+  .redacted-blocks { display: inline-flex; gap: 2px; font-size: 0.75rem; line-height: 1; }
+  .redacted-blocks > span { display: inline-block; width: 0.65em; text-align: center; }
   .recharts-text { font-family: var(--font-geist-mono); font-variant-numeric: tabular-nums; }
   .recharts-default-tooltip { box-shadow: none; font-family: var(--font-geist-mono); }
   .chart-signature { text-align: right; font: 0.75rem/1.5 var(--font-geist-mono); color: var(--color-text-muted); padding-top: 8px; }
@@ -1764,7 +1771,6 @@
     .home-hero { max-width: 720px; }
   }
   @media (max-width: 640px) {
-    .brand-logo { width: 130px; }
     .home-hero { padding-top: 0; padding-bottom: 24px; }
     .home-hero h1 { font-size: 1.75rem; }
     .home-introduction p { font-size: 14px; }

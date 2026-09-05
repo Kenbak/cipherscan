@@ -98,7 +98,7 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
+              ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >

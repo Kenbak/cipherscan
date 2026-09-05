@@ -76,7 +76,7 @@ export function PulseWidget() {
                 { key: 'mild', label: 'M', opacity: 'opacity-40' },
               ] as const).map(({ key, label, opacity }) => (
                 <div key={key} className="flex items-center gap-1">
-                  <span className={`h-1.5 w-1.5 rounded-full bg-cipher-gold ${opacity}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full bg-brand-gold ${opacity}`} />
                   <span className="font-mono text-caption tabular-nums text-secondary">
                     {summary?.bySeverity[key] ?? 0}
                   </span>

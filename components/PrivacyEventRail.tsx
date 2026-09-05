@@ -48,7 +48,7 @@ function toneClasses(tone: PrivacyEventPoint['tone']) {
     default:
       return {
         ring: 'ring-cipher-gold/40',
-        fill: 'bg-cipher-gold',
+        fill: 'bg-brand-gold',
         text: 'text-cipher-gold',
       };
   }

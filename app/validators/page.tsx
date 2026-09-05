@@ -370,7 +370,7 @@ export default function ValidatorsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full bg-cipher-border-alpha/50 overflow-hidden hidden sm:block">
                             <div
-                              className="h-full rounded-full bg-cipher-gold"
+                              className="h-full rounded-full bg-brand-gold"
                               style={{ width: `${Math.min(share, 100)}%` }}
                             />
                           </div>
@@ -388,7 +388,7 @@ export default function ValidatorsPage() {
                           const color = pct >= 95
                             ? 'bg-cipher-green'
                             : pct >= 70
-                            ? 'bg-cipher-gold'
+                            ? 'bg-brand-gold'
                             : pct >= 30
                             ? 'bg-cipher-orange'
                             : 'bg-red-500';
@@ -438,7 +438,7 @@ export default function ValidatorsPage() {
                 return (
                   <div
                     key={member.identity}
-                    className="bg-cipher-gold/70 transition-[width] duration-300 border-r border-cipher-bg last:border-r-0"
+                    className="bg-brand-gold/70 transition-[width] duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
                     title={`${name} — ${share.toFixed(1)}%`}
                   />

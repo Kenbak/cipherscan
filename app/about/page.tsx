@@ -62,7 +62,7 @@ const timeline = [
     date: 'NOV 2025',
     tag: 'ORIGIN',
     tagColor: 'text-cipher-gold',
-    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
+    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Built at Zypherpunk',
     description:
       "Created at the world's first Zcash privacy hackathon. 300+ projects. Won 4 tracks: Project Tachyon, Gemini, Raybot, and Network State. From zero to a working explorer in days.",
@@ -89,7 +89,7 @@ const timeline = [
     date: 'JAN 2026',
     tag: 'ANALYTICS',
     tagColor: 'text-cipher-gold',
-    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
+    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Privacy Risks & Batch Patterns',
     description:
       'Advanced deshielding pattern detection and linkability analysis. Identifying on-chain behaviors that compromise Zcash privacy — and making that data accessible to everyone.',
@@ -116,7 +116,7 @@ const timeline = [
     date: 'APR 2026',
     tag: 'MONITORING',
     tagColor: 'text-cipher-gold',
-    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
+    dotColor: 'bg-brand-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Fork Watch & Network Health',
     description:
       'Real-time chain reorganization detection and monitoring. Tracking network consensus health, stale blocks, and reorg depth — critical infrastructure visibility.',
@@ -304,7 +304,7 @@ export default async function AboutPage() {
               </a>
               <Link
                 href="/docs"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-cipher-gold/10 border border-cipher-gold/30 rounded-lg font-mono text-xs text-cipher-gold hover:bg-cipher-gold/20 transition-colors duration-150"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-gold/10 border border-cipher-gold/30 rounded-lg font-mono text-xs text-cipher-gold hover:bg-brand-gold/20 transition-colors duration-150"
               >
                 API Docs
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

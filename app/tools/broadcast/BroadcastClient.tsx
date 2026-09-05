@@ -340,7 +340,7 @@ export default function BroadcastClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>

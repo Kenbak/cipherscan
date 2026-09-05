@@ -97,7 +97,7 @@ export default function AnchorSearchClient() {
             result.orphaned.length > 0 && result.canonical.length === 0
               ? 'bg-red-500/5 border-red-500/30'
               : result.found
-                ? 'bg-cipher-gold/5 border-cipher-gold/30'
+                ? 'bg-brand-gold/5 border-cipher-gold/30'
                 : 'bg-cipher-surface border-cipher-border'
           }`}>
             <div className="flex items-start gap-3">

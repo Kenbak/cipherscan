@@ -50,14 +50,14 @@ type GraphNodeData = Record<string, unknown> & PrivacyGraphNode & { isFocus: boo
 const palettes = {
   txFocus: {
     border: 'border-cipher-gold/50',
-    bg: 'bg-cipher-gold/10',
+    bg: 'bg-brand-gold/10',
     title: 'text-cipher-gold',
     label: 'var(--color-gold-glow, #F8BC21)',
     amount: 'var(--color-text-primary)',
   },
   tx: {
     border: 'border-cipher-gold-muted/40',
-    bg: 'bg-cipher-gold/5',
+    bg: 'bg-brand-gold/5',
     title: 'text-cipher-gold-muted',
     label: 'var(--color-gold-muted, #B59959)',
     amount: 'var(--color-text-primary)',

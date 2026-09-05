@@ -268,8 +268,8 @@ function ChainRow({
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40';
-    accentClass = 'bg-cipher-gold';
+    badgeClass = 'text-cipher-gold bg-brand-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-brand-gold';
     borderClass = 'border-cipher-gold/50';
   } else if (isVotingOn) {
     badgeLabel = 'VOTING';
@@ -284,7 +284,7 @@ function ChainRow({
   } else {
     badgeLabel = 'PENDING';
     badgeClass = 'text-muted border-cipher-border';
-    accentClass = 'bg-cipher-gold/50';
+    accentClass = 'bg-brand-gold/50';
     borderClass = 'border-cipher-border';
   }
 
@@ -586,12 +586,12 @@ function DivergencePanel({
           <span className="relative flex h-2.5 w-2.5 mt-1.5 shrink-0">
             <span
               className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-gold'
+                openEvent ? 'bg-cipher-orange' : 'bg-brand-gold'
               }`}
             />
             <span
               className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-gold'
+                openEvent ? 'bg-cipher-orange' : 'bg-brand-gold'
               }`}
             />
           </span>

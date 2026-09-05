@@ -237,7 +237,7 @@ export default function BlendCheckPage() {
                     onClick={() => handleSuggestionClick(q)}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                       amount === formatZec(q)
-                        ? 'border-cipher-gold/40 bg-cipher-gold/10 text-cipher-gold'
+                        ? 'border-cipher-gold/40 bg-brand-gold/10 text-cipher-gold'
                         : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                     }`}
                   >
@@ -353,7 +353,7 @@ export default function BlendCheckPage() {
                           onClick={() => setSelectedPlanIdx(i)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                             selectedPlanIdx === i
-                              ? 'border-cipher-gold/40 bg-cipher-gold/10 text-cipher-gold'
+                              ? 'border-cipher-gold/40 bg-brand-gold/10 text-cipher-gold'
                               : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                           }`}
                         >
@@ -549,7 +549,7 @@ export default function BlendCheckPage() {
                             onClick={() => handleSuggestionClick(np.amount)}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition text-left group ${
                               isSelected
-                                ? 'border-cipher-gold/30 bg-cipher-gold/5'
+                                ? 'border-cipher-gold/30 bg-brand-gold/5'
                                 : 'border-transparent hover:border-cipher-border hover:bg-cipher-hover'
                             }`}
                           >

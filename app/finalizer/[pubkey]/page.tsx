@@ -420,7 +420,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
   const barColor = participation_pct >= 95
     ? 'bg-cipher-green'
     : participation_pct >= 70
-    ? 'bg-cipher-gold'
+    ? 'bg-brand-gold'
     : participation_pct >= 30
     ? 'bg-cipher-orange'
     : 'bg-red-500';

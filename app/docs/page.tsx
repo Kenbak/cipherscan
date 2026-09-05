@@ -232,7 +232,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
             </a>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-gold text-cipher-bg rounded-lg hover:bg-cipher-green transition-colors text-sm font-semibold"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-gold text-cipher-bg-dark rounded-lg hover:bg-brand-gold/90 transition-colors text-sm font-semibold"
             >
               Explore the Blockchain →
             </Link>

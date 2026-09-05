@@ -249,7 +249,7 @@ export function BlockActivityChart({
             <div className="mt-3 flex items-center justify-center gap-4 text-caption font-mono text-muted">
               <LegendSwatch color="bg-cipher-green/80" label="finalized" />
               <LegendSwatch color="bg-cipher-orange/80" label="voting now" />
-              <LegendSwatch color="bg-cipher-gold/70" label="pending" />
+              <LegendSwatch color="bg-brand-gold/70" label="pending" />
             </div>
           </div>
         )}
@@ -277,7 +277,7 @@ function BlockBar({
     ? 'bg-cipher-orange/80 hover:bg-cipher-orange border-cipher-orange'
     : isFinalized
     ? 'bg-cipher-green/70 hover:bg-cipher-green/90 border-cipher-green'
-    : 'bg-cipher-gold/60 hover:bg-cipher-gold/80 border-cipher-gold';
+    : 'bg-brand-gold/60 hover:bg-brand-gold/80 border-cipher-gold';
 
   return (
     <Link

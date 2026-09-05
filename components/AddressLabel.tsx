@@ -86,10 +86,10 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
       ? labelInfo.category === 'foundation'
         ? 'bg-cipher-purple/20 border-cipher-purple/50 text-cipher-purple-glow'
         : labelInfo.category === 'exchange'
-        ? 'bg-cipher-gold/20 border-cipher-gold/50 text-cipher-gold'
+        ? 'bg-brand-gold/20 border-cipher-gold/50 text-cipher-gold'
         : labelInfo.category === 'mining'
         ? 'bg-cipher-orange/20 border-cipher-orange/50 text-cipher-orange'
-        : 'bg-cipher-gold/20 border-cipher-gold/50 text-cipher-gold'
+        : 'bg-brand-gold/20 border-cipher-gold/50 text-cipher-gold'
       : 'bg-gray-500/20 border-gray-500/50 text-secondary';
 
     return (

@@ -70,7 +70,7 @@ export default function DecryptPageClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
               <Icons.Info className="w-5 h-5 text-cipher-gold" />
             </div>
             <div className="flex-1">

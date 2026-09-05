@@ -155,9 +155,6 @@ export function ShareableCard({
             <div className="order-2 flex items-center justify-center gap-2 sm:order-1 sm:min-w-0 sm:justify-start">
               <BrandLogo compact />
               <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-                <span className="text-caption font-semibold font-mono text-cipher-gold-bright tracking-tight">
-                  ZecBlock
-                </span>
                 <span className="text-caption font-mono text-muted">zecblock.com</span>
               </div>
             </div>

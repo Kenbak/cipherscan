@@ -869,7 +869,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           }}
         >
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-gold/40 border border-cipher-gold/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-brand-gold/40 border border-cipher-gold/70" />
             <span>T · Transparent</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -887,7 +887,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-brand-gold/10 transition duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]
@@ -931,7 +931,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {transactions.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
           <div className="w-8 h-8 border border-cipher-gold/20 rounded-full flex items-center justify-center animate-pulse">
-            <div className="w-2 h-2 bg-cipher-gold/40 rounded-full" />
+            <div className="w-2 h-2 bg-brand-gold/40 rounded-full" />
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>

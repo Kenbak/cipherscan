@@ -21,7 +21,7 @@ interface LabelSuggestion {
 
 // Category styling config (lowercase keys for case-insensitive matching)
 const categoryConfig: Record<string, { color: string; bg: string }> = {
-  'exchange': { color: 'text-cipher-gold', bg: 'bg-cipher-gold/10' },
+  'exchange': { color: 'text-cipher-gold', bg: 'bg-brand-gold/10' },
   'mining pool': { color: 'text-cipher-yellow', bg: 'bg-cipher-yellow/10' },
   'mining': { color: 'text-cipher-yellow', bg: 'bg-cipher-yellow/10' },
   'foundation': { color: 'text-cipher-purple', bg: 'bg-cipher-purple/10' },

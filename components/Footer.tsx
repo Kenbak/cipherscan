@@ -79,7 +79,7 @@ export function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-caption font-mono text-muted text-center">
               <Link href="/" className="inline-flex items-center gap-1 mr-1">
-                <BrandLogo />
+                <BrandLogo compact />
               </Link>
               <span className="text-muted">|</span>
               <span>© {new Date().getFullYear()} ZecBlock</span>

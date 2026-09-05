@@ -39,7 +39,7 @@ const CHART_HEIGHT = 340;
 function modePillClass(active: boolean) {
   return `px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
+      ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
       : 'text-muted hover:text-primary'
   }`;
 }

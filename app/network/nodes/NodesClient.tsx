@@ -362,7 +362,7 @@ export default function NodesClient() {
                     <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
                     <p className="text-caption text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
                   </div>
-                  <Badge className="text-caption bg-cipher-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
+                  <Badge className="text-caption bg-brand-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
                     {reliability.services.fullNodePct}% full nodes
                   </Badge>
                 </div>
@@ -390,7 +390,7 @@ export default function NodesClient() {
                       <div key={b.label} className="flex items-center gap-2 text-caption">
                         <span className="font-mono text-muted w-20">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(b.count / max) * 100}%` }} />
+                          <div className="h-full rounded-full bg-brand-gold/70" style={{ width: `${(b.count / max) * 100}%` }} />
                         </div>
                         <span className="font-mono tabular-nums text-primary w-8 text-right">{b.count}</span>
                       </div>
@@ -463,7 +463,7 @@ export default function NodesClient() {
                         <div key={isp.isp} className="flex items-center gap-2 text-caption">
                           <span className="text-secondary truncate w-28 shrink-0">{isp.isp}</span>
                           <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
+                            <div className="h-full rounded-full bg-brand-gold/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
                           </div>
                           <span className="font-mono tabular-nums text-primary w-8 text-right">{isp.nodeCount}</span>
                           <span className="font-mono tabular-nums text-muted w-11 text-right">{isp.percentage}%</span>

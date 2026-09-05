@@ -101,7 +101,7 @@ export function NU7VoteBanner() {
         {/* Mobile */}
         <div className="flex h-full items-center gap-2 pr-8 sm:hidden">
           <span className="relative flex h-2 w-2 shrink-0">
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-gold" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-gold" />
           </span>
           <span className="min-w-0 flex-1 truncate text-xs font-mono text-muted">
             <span className="text-cipher-gold font-medium">NU7 Vote</span>
@@ -117,7 +117,7 @@ export function NU7VoteBanner() {
         {/* Desktop */}
         <div className="hidden h-full items-center justify-center gap-3 sm:flex">
           <span className="relative flex h-2 w-2">
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-gold" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-gold" />
           </span>
           <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
             <span className="text-cipher-gold font-medium">NU7 Coinholder Vote</span>

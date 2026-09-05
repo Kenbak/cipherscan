@@ -174,7 +174,7 @@ export default async function Home() {
           </div>
         </>
       ) : (
-        <div className="home-feeds grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="home-feeds home-table-section grid grid-cols-1 lg:grid-cols-2 gap-8">
           <HomeFeedCard
             storageKey="cipherscan-home-card-left"
             defaultType="blocks"
@@ -194,7 +194,7 @@ export default async function Home() {
       {/* Pending Mempool — fixed, not customizable: always the baseline
           "what's about to confirm" view regardless of what the two cards
           above are set to. */}
-      <div className="mt-10 sm:mt-12 lg:mt-16">
+      <div className="home-mempool home-table-section mt-10 sm:mt-12 lg:mt-16">
         <SectionHeader label="MEMPOOL" live size="lg" />
         <RecentMempool
           footer={

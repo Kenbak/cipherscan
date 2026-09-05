@@ -205,7 +205,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
       return 'w-3 h-3 rounded-full border-2 border-cipher-orange bg-cipher-orange/20';
     }
     if (anchor.match === true) {
-      return 'w-3 h-3 rounded-full bg-cipher-gold/80 ring-2 ring-cipher-gold/25';
+      return 'w-3 h-3 rounded-full bg-brand-gold/80 ring-2 ring-cipher-gold/25';
     }
     return 'w-3 h-3 rounded-full bg-muted/40 ring-2 ring-cipher-border';
   };

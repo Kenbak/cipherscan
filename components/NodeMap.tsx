@@ -204,7 +204,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -520,7 +520,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
                   onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
                   className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition ${
                     isActive
-                      ? 'bg-cipher-gold/10 border border-cipher-gold/30 ring-1 ring-cipher-gold/20'
+                      ? 'bg-brand-gold/10 border border-cipher-gold/30 ring-1 ring-cipher-gold/20'
                       : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'
                   }`}
                 >

@@ -265,7 +265,7 @@ export default function PrivacyClient() {
                     </div>
                     <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-cipher-border/30">
                       <div
-                        className="h-full rounded-full bg-cipher-gold/80"
+                        className="h-full rounded-full bg-brand-gold/80"
                         style={{ width: `${row.max > 0 ? (row.score / row.max) * 100 : 0}%` }}
                       />
                     </div>

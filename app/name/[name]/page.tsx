@@ -194,7 +194,7 @@ function RegisteredView({
               href={ZCASHNAMES_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-3 px-4 py-2 rounded bg-cipher-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-cipher-gold/30 transition-colors"
+              className="inline-block mt-3 px-4 py-2 rounded bg-brand-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-brand-gold/30 transition-colors"
             >
               Buy on zcashnames.com →
             </a>
@@ -282,7 +282,7 @@ function AvailableView({
             href={ZCASHNAMES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-3 px-4 py-2 rounded bg-cipher-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-cipher-gold/30 transition-colors"
+            className="inline-block mt-3 px-4 py-2 rounded bg-brand-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-brand-gold/30 transition-colors"
           >
             Claim on zcashnames.com →
           </a>

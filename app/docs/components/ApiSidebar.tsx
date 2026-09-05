@@ -33,7 +33,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
       {/* Mobile toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-6 right-6 z-50 bg-cipher-gold text-cipher-bg p-4 rounded-full shadow-lg hover:bg-cipher-green transition-colors"
+        className="lg:hidden fixed bottom-6 right-6 z-50 bg-brand-gold text-cipher-bg-dark p-4 rounded-full shadow-lg hover:bg-brand-gold/90 transition-colors"
         aria-label="Toggle API navigation"
         aria-expanded={isOpen}
       >
@@ -111,7 +111,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
                             text-xs font-mono font-semibold px-1.5 py-0.5 rounded shrink-0
                             ${endpoint.method === 'GET'
                               ? 'text-cipher-green bg-cipher-green/10'
-                              : 'text-cipher-gold bg-cipher-gold/10'
+                              : 'text-cipher-gold bg-brand-gold/10'
                             }
                           `}>
                             {endpoint.method}

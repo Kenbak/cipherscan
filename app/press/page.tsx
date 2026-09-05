@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
@@ -15,15 +16,14 @@ const BOILERPLATE =
 
 /** Core ZecBlock brand colors — logo + wordmark */
 const COLORS = [
-  { name: 'ZecBlock Gold', hex: '#F8BC21', role: 'Supplied identity / square mark' },
+  { name: 'ZecBlock Gold', hex: '#F4B728', role: 'Supplied logotype / terminal dot' },
   { name: 'Graphite', hex: '#0B0C0E', role: 'Dark canvas' },
   { name: 'Iris', hex: '#B6A0E0', role: 'Privacy and shielded activity' },
 ] as const;
 
 const DOWNLOADS = [
-  { label: 'Wordmark for dark backgrounds (PNG)', href: '/brand/zecblock-white.png', note: 'Original supplied artwork, transparent background' },
-  { label: 'Wordmark for light backgrounds (PNG)', href: '/brand/zecblock-black.png', note: 'Original supplied artwork, transparent background' },
-  { label: 'Square mark (SVG)', href: '/brand/zecblock-mark.svg', note: 'Gold square, scalable' },
+  { label: 'ZecBlock logotype (PNG)', href: '/brand/zecblock-dot.png', note: 'Original supplied artwork with gold terminal dot; white lettering for dark backgrounds' },
+  { label: 'Square icon (SVG)', href: '/brand/zecblock-mark.svg', note: 'Small-format icon for favicons' },
 ] as const;
 
 const CONTACTS = [
@@ -113,8 +113,7 @@ function WordmarkPreview({ variant }: { variant: 'dark' | 'light' }) {
         isDark ? 'border-cipher-border/30 bg-cipher-bg-dark' : 'border-cipher-border/20 bg-white'
       }`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={isDark ? "/brand/zecblock-white.png" : "/brand/zecblock-black.png"} alt="ZecBlock" className="h-auto w-48" width={424} height={99} />
+      <BrandLogo tone={variant} />
     </div>
   );
 }
@@ -165,7 +164,7 @@ function ContactCard({
 }) {
   const inner = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cipher-gold/10 text-cipher-gold">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-gold/10 text-cipher-gold">
         {icon}
       </span>
       <div className="min-w-0">

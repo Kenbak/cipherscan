@@ -22,7 +22,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       {/* Method & Path */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <span className={`inline-block px-3 py-1 rounded font-mono text-sm font-semibold ${
-          endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-cipher-gold text-cipher-bg'
+          endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-brand-gold text-cipher-bg-dark'
         }`}>
           {endpoint.method}
         </span>

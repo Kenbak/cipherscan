@@ -8,13 +8,13 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 export default async function OpenGraphImage() {
-  const logo = await readFile(join(process.cwd(), 'public/brand/zecblock-white.png'));
+  const logo = await readFile(join(process.cwd(), 'public/brand/zecblock-dot.png'));
   const network = getNetwork();
   const title = network === 'mainnet' ? 'Zcash Block Explorer' : network === 'testnet' ? 'Zcash Testnet Explorer' : 'Zcash Crosslink Explorer';
   return new ImageResponse(
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 72, background: '#0B0C0E', color: '#F1F3F5' }}>
       {/* Supplied identity is embedded unchanged. */}
-      <img src={`data:image/png;base64,${logo.toString('base64')}`} alt="" width={300} height={70} />
+      <img src={`data:image/png;base64,${logo.toString('base64')}`} alt="" width={280} height={43} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div style={{ fontSize: 58, letterSpacing: -2 }}>{title}</div>
         <div style={{ fontSize: 25, color: '#C2C7CF' }}>Blocks. Transactions. Shielded pools.</div>

@@ -38,7 +38,7 @@ export function EmptyAddressView({ address, copiedText, onCopy }: EmptyAddressVi
               Valid transparent address with no transaction history.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cipher-surface rounded-lg text-xs text-muted font-mono border border-glass-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-cipher-gold" />
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-gold" />
               Balance: 0 ZEC
             </div>
           </div>
@@ -105,7 +105,7 @@ export function IndexingIssueView({ address, copiedText, onCopy }: IndexingIssue
             </ul>
           </div>
 
-          <div className="p-3 rounded-lg bg-cipher-gold/5 border border-cipher-gold/10">
+          <div className="p-3 rounded-lg bg-brand-gold/5 border border-cipher-gold/10">
             <p className="text-xs text-cipher-gold font-mono">
               &gt; TIP: Search by transaction hash (txid) to view individual transactions
             </p>

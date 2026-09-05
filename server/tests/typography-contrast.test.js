@@ -25,6 +25,9 @@ for(const [theme,selector] of [['dark',':root {'],['light','/* Light Theme Overr
  });
 }
 test('gold primary action has readable dark text',()=>{
- const a=luminance('#F8BC21'),b=luminance('#20221D');
- assert.ok((a+0.05)/(b+0.05)>=4.5);
+ for (const selector of [':root {', '/* Light Theme Overrides */\n.light {']) {
+  const t=tokens(selector);
+  const a=luminance(t['--btn-primary-bg']),b=luminance('#20221D');
+  assert.ok((a+0.05)/(b+0.05)>=4.5);
+ }
 });

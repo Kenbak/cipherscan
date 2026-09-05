@@ -62,7 +62,7 @@ interface PoolPoint {
 
 function segmentedClass(active: boolean) {
   return `px-2 py-1 text-caption font-mono uppercase tracking-wide rounded transition whitespace-nowrap ${
-    active ? 'bg-cipher-gold/15 text-cipher-gold font-semibold' : 'text-muted hover:text-primary'
+    active ? 'bg-brand-gold/15 text-cipher-gold font-semibold' : 'text-muted hover:text-primary'
   }`;
 }
 

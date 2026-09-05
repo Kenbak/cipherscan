@@ -524,7 +524,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
 function breakdownColor(category: string): string {
   const c = category.toLowerCase();
-  if (c === 'exchange') return 'bg-cipher-gold';
+  if (c === 'exchange') return 'bg-brand-gold';
   if (c === 'mining' || c === 'mining_pool') return 'bg-cipher-yellow';
   if (c === 'defi' || c === 'bridge') return 'bg-cipher-green';
   if (c === 'custodian' || c === 'fund') return 'bg-cipher-purple';
@@ -740,7 +740,7 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
   };
   const dotColor: Record<string, string> = {
     green: 'bg-cipher-green',
-    gold: 'bg-cipher-gold',
+    gold: 'bg-brand-gold',
     amber: 'bg-cipher-yellow',
     purple: 'bg-cipher-purple',
     muted: 'bg-cipher-border',

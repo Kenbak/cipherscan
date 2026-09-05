@@ -257,7 +257,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
       {/* Countdown + Context */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-          <span className="h-2 w-2 rounded-full bg-cipher-gold animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse" />
           <span className="text-caption font-mono uppercase tracking-wider text-secondary">
             {countdownLabel}
           </span>
@@ -569,7 +569,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                           {b.time ? formatBlockTime(b.time) : '—'}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-cipher-gold/10 text-cipher-gold-bright font-semibold text-caption">
+                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-brand-gold/10 text-cipher-gold-bright font-semibold text-caption">
                             {b.txCount}
                           </span>
                         </td>

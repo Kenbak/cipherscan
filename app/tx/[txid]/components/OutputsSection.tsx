@@ -81,7 +81,7 @@ export function OutputsSection({
             return (
               <div
                 key={index}
-                className={`flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden ${matchedBridge ? 'bg-cipher-gold/5 -mx-3 px-3 rounded' : ''}`}
+                className={`flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden ${matchedBridge ? 'bg-brand-gold/5 -mx-3 px-3 rounded' : ''}`}
               >
                 <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}

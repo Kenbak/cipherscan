@@ -166,7 +166,7 @@ export function ShieldedAddressView({
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link
               href="/decrypt"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-cipher-gold/30 text-cipher-gold hover:bg-cipher-gold/10 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-cipher-gold/30 text-cipher-gold hover:bg-brand-gold/10 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

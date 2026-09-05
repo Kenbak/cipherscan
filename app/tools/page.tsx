@@ -92,7 +92,7 @@ export default function ToolsPage() {
             <Link key={tool.href} href={tool.href} className="block">
               <Card interactive>
                 <CardBody className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-brand-gold/10 flex items-center justify-center flex-shrink-0">
                     <span className="text-cipher-gold">
                       <IconComponent />
                     </span>

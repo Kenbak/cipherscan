@@ -118,8 +118,8 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40';
-    accentClass = 'bg-cipher-gold';
+    badgeClass = 'text-cipher-gold bg-brand-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-brand-gold';
     borderClass = 'border-cipher-gold/50';
   } else if (state === 'voting') {
     badgeLabel = 'VOTING';
@@ -134,7 +134,7 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
   } else {
     badgeLabel = 'PENDING';
     badgeClass = 'border-cipher-border';
-    accentClass = 'bg-cipher-gold/50';
+    accentClass = 'bg-brand-gold/50';
     borderClass = 'border-cipher-border';
   }
 
@@ -309,7 +309,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
                     className="flex items-center gap-1.5 text-caption font-mono text-secondary hover:text-primary truncate"
                   >
                     {label && (
-                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-caption uppercase tracking-wider text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40">
+                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-caption uppercase tracking-wider text-cipher-gold bg-brand-gold/10 border-cipher-gold/40">
                         {label.name}
                       </span>
                     )}

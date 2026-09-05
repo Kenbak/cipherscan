@@ -58,7 +58,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
           onClick={() => setPeriod(p)}
           className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             period === p
-              ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
+              ? 'bg-brand-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >

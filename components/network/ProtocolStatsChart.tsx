@@ -80,7 +80,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           key={v}
           onClick={() => setView(v)}
           className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
-            view === v ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
+            view === v ? 'bg-brand-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {v === 'commitments' ? 'Trees' : 'Nullifiers'}
@@ -92,7 +92,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           key={p}
           onClick={() => setPeriod(p)}
           className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
-            period === p ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
+            period === p ? 'bg-brand-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {p === 'all' ? 'All' : p.toUpperCase()}
