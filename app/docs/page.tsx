@@ -32,7 +32,7 @@ export default function DocsPage() {
           <Link href="/" className="text-cipher-gold hover:text-cipher-green transition-colors text-sm font-mono mb-4 inline-block">
             ← Back to Explorer
           </Link>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font-mono text-primary">
+          <h1 className="type-page mb-4 font-mono text-primary">
             API Documentation
           </h1>
           <p className="text-base sm:text-lg text-secondary max-w-3xl">
@@ -48,24 +48,24 @@ export default function DocsPage() {
           </div>
           <div className="card">
             <div className="text-sm text-secondary mb-1">Network</div>
-            <div className="text-lg sm:text-xl font-bold text-primary">{networkLabel}</div>
+            <div className="text-lg sm:text-xl font-semibold text-primary">{networkLabel}</div>
             <div className="text-xs text-muted">Auto-detected from domain</div>
           </div>
           <div className="card">
             <div className="text-sm text-secondary mb-1">Rate Limit</div>
-            <div className="text-lg sm:text-xl font-bold text-primary">Response headers</div>
+            <div className="text-lg sm:text-xl font-semibold text-primary">Response headers</div>
             <div className="text-xs text-muted">Deployment-specific</div>
           </div>
           <div className="card">
             <div className="text-sm text-secondary mb-1">Authentication</div>
-            <div className="text-lg sm:text-xl font-bold text-cipher-green">None Required</div>
+            <div className="text-lg sm:text-xl font-semibold text-cipher-green">None Required</div>
             <div className="text-xs text-muted">Free & open</div>
           </div>
         </div>
 
         {/* Important Notes */}
         <div className="card gradient-card-purple mb-12">
-          <h2 className="text-xl font-bold mb-4 text-primary">
+          <h2 className="text-xl font-semibold mb-4 text-primary">
             Privacy & Limitations
           </h2>
           <div className="space-y-3 text-sm text-secondary">
@@ -102,7 +102,7 @@ export default function DocsPage() {
           {categories.map((category) => (
             <section key={category.name} className="space-y-6">
               <div className="sticky top-[96px] docs-category-header backdrop-blur py-4 z-10 border-b border-cipher-border flex items-center justify-between">
-                <h2 className="text-2xl sm:text-3xl font-bold font-mono text-primary">
+                <h2 className="text-2xl sm:text-3xl font-semibold font-mono text-primary">
                   {category.name}
                 </h2>
                 <span className="text-xs text-muted font-mono">
@@ -118,10 +118,10 @@ export default function DocsPage() {
 
         {/* Code Examples */}
         <div className="mt-12 card">
-          <h2 className="text-2xl font-bold mb-6 text-primary">Code Examples</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-primary">Code Examples</h2>
 
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-cipher-gold mb-3 font-mono">JavaScript / Node.js</h3>
+            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">JavaScript / Node.js</h3>
             <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
               <pre className="text-sm text-secondary font-mono">
 {`const BASE = '${baseUrl}';
@@ -144,7 +144,7 @@ console.log(await blend.json());`}
           </div>
 
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-cipher-gold mb-3 font-mono">Python</h3>
+            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">Python</h3>
             <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
               <pre className="text-sm text-secondary font-mono">
 {`import requests
@@ -169,7 +169,7 @@ print(f"Pending: {mempool['count']} txs ({mempool['stats']['shieldedPercentage']
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-cipher-gold mb-3 font-mono">cURL</h3>
+            <h3 className="text-lg font-semibold text-cipher-gold mb-3 font-mono">cURL</h3>
             <div className="docs-code-block border border-cipher-border rounded-lg p-4 overflow-x-auto">
               <pre className="text-sm text-secondary font-mono">
 {`# Halving countdown
@@ -187,7 +187,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
 
         {/* Error Responses */}
         <div className="mt-12 card">
-          <h2 className="text-2xl font-bold mb-6 text-primary">Error Responses</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-primary">Error Responses</h2>
           <div className="space-y-4 text-sm">
             <div className="flex gap-4 items-start">
               <code className="text-cipher-green font-mono shrink-0 w-12">200</code>
@@ -214,7 +214,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
 
         {/* Support */}
         <div className="mt-12 card">
-          <h2 className="text-xl font-bold mb-4 text-primary">Need Help?</h2>
+          <h2 className="text-xl font-semibold mb-4 text-primary">Need Help?</h2>
           <p className="text-secondary mb-4">
             If you have questions or need support, feel free to reach out:
           </p>
@@ -232,7 +232,7 @@ curl '${baseUrl}/api/stats/shielded-count?since=2025-01-01&detailed=true'`}
             </a>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-gold text-cipher-bg rounded-lg hover:bg-cipher-green transition-colors text-sm font-bold"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cipher-gold text-cipher-bg rounded-lg hover:bg-cipher-green transition-colors text-sm font-semibold"
             >
               Explore the Blockchain →
             </Link>

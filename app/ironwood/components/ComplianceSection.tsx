@@ -108,7 +108,7 @@ export function ComplianceSummary({
           >
             {headlinePct.toFixed(hoveredSegment ? 1 : 0)}%
           </div>
-          <div className="mt-1 min-h-8 text-[10px] font-mono leading-snug text-muted">
+          <div className="mt-1 min-h-8 text-caption font-mono leading-snug text-muted">
             {hoveredSegment ? (
               <>
                 <span className="text-secondary">{hoveredSegment.label} ({hoveredSegment.checks})</span>
@@ -131,7 +131,7 @@ export function ComplianceSummary({
           </div>
         </div>
 
-        <span className="shrink-0 text-[10px] font-mono text-muted pt-0.5">{stats.total.toLocaleString()} txs</span>
+        <span className="shrink-0 text-caption font-mono text-muted pt-0.5">{stats.total.toLocaleString()} txs</span>
       </div>
 
       <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-cipher-border/20">
@@ -216,10 +216,10 @@ export function FamiliesTab({
             <div key={e.id} className="rounded-lg border border-cipher-border/20 bg-cipher-surface/30 px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
-                <span className="text-[11px] font-medium text-primary">{e.label}</span>
+                <span className="text-caption font-medium text-primary">{e.label}</span>
               </div>
               <div className="mt-1 text-lg font-mono font-semibold text-primary">{e.pct}%</div>
-              <div className="text-[10px] font-mono text-muted">{e.count.toLocaleString()} txs</div>
+              <div className="text-caption font-mono text-muted">{e.count.toLocaleString()} txs</div>
               <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full bg-cipher-border/20">
                 {(['green', 'partial2', 'partial1', 'weak'] as const).map((grade) => {
                   const w = cTotal > 0 ? (c[grade] / cTotal) * 100 : 0;
@@ -232,7 +232,7 @@ export function FamiliesTab({
                   ) : null;
                 })}
               </div>
-              <div className="mt-1 text-[9px] font-mono text-muted">
+              <div className="mt-1 text-caption font-mono text-muted">
                 {greenPct}% compliant
               </div>
             </div>
@@ -240,14 +240,14 @@ export function FamiliesTab({
         })}
       </div>
 
-      <div className="mt-4 border-t border-cipher-border/20 pt-3 text-[10px] text-muted leading-relaxed">
+      <div className="mt-4 border-t border-cipher-border/20 pt-3 text-caption text-muted leading-relaxed">
         <p>
           Fingerprints identify <em>compatible construction software</em>, not individual wallet
           owners. Wallets sharing the same SDK are indistinguishable within a family.
         </p>
         <p className="mt-1.5">
           <strong className="text-primary">ZODL / Vizor:</strong> Unpadded Ironwood bundle (I:1), bucketed expiry,
-          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations. Both use the <code className="text-[10px] bg-glass-5 px-1 rounded">zcash_pool_migration</code> crate.
+          grid-aligned anchor, &#123;1,2,5&#125;&times;10<sup>k</sup> denominations. Both use the <code className="text-caption bg-glass-5 px-1 rounded">zcash_pool_migration</code> crate.
         </p>
         <p className="mt-1">
           <strong className="text-primary">Cake/zkool2:</strong> Padded bundle (I:2), legacy +40 expiry, near-tip anchor,
@@ -292,7 +292,7 @@ export function DenomMixChart({
                 key={denom}
                 className="flex w-6 shrink-0 flex-col items-center gap-1 sm:min-w-0 sm:w-auto sm:shrink sm:flex-1 sm:gap-1.5"
               >
-                <span className="text-[9px] font-mono tabular-nums text-primary sm:text-[10px]">{label}</span>
+                <span className="text-caption font-mono tabular-nums text-primary sm:text-caption">{label}</span>
                 <div
                   className="w-full min-w-[4px] rounded-t-md"
                   style={{
@@ -301,7 +301,7 @@ export function DenomMixChart({
                     opacity: 0.9,
                   }}
                 />
-                <span className="max-w-full truncate text-[9px] font-mono text-muted sm:text-[10px]">
+                <span className="max-w-full truncate text-caption font-mono text-muted sm:text-caption">
                   {formatDenomBucketLabel(denom)}
                 </span>
               </div>
@@ -309,7 +309,7 @@ export function DenomMixChart({
           })}
         </div>
       </div>
-      <p className="mt-3 text-center text-[10px] font-mono text-muted max-sm:px-1">
+      <p className="mt-3 text-center text-caption font-mono text-muted max-sm:px-1">
         {isVolume
           ? `${totalDenomVolume.toLocaleString(undefined, { maximumFractionDigits: 1 })} ZEC across ${totalDenomCount.toLocaleString()} txs`
           : `${totalDenomCount.toLocaleString()} txs using standard denominations`}
@@ -339,7 +339,7 @@ export function ComplianceLegend({
   const interactive = !!onToggle;
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono text-muted sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-caption font-mono text-muted sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
       {COMPLIANCE_GRADES.map((g) => {
         const active = !activeGrades || activeGrades.has(g.key);
         return (

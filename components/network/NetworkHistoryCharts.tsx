@@ -46,11 +46,11 @@ export function NetworkHistoryCharts({ initialData }: { initialData?: ChainSizeH
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
           <LineChart data={sizePoints}>
             <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-            <XAxis dataKey="time" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} interval="preserveStartEnd" />
-            <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v) => `${v.toFixed(0)} GB`} domain={['auto', 'auto']} />
+            <XAxis dataKey="time" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} interval="preserveStartEnd" />
+            <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={(v) => `${v.toFixed(0)} GB`} domain={['auto', 'auto']} />
             <Tooltip
               cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
-              contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontFamily: 'monospace', fontSize: 11 }}
+              contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 12 }}
               itemStyle={{ color: colors.tooltipText }}
               labelStyle={{ color: colors.tooltipText }}
               formatter={(v) => [`${Number(v).toFixed(2)} GB`, 'Chain size']}

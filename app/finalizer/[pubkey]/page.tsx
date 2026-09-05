@@ -52,7 +52,7 @@ function FinalizerHero({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+            <h1 className="type-page text-primary ">
               {label?.name ?? `Finalizer ${rank ? `#${rank}` : ''}`}
             </h1>
             {isActive ? (
@@ -101,13 +101,13 @@ function FinalizerHero({
             </code>
             <button
               onClick={() => setShowFullPubkey((v) => !v)}
-              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-gold/40 shrink-0"
+              className="hidden sm:inline-block text-caption font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-gold/40 shrink-0"
             >
               {showFullPubkey ? 'short' : 'full'}
             </button>
             <CopyButton text={pubkey} size="md" label="Copy pubkey" />
           </div>
-          <p className="mt-1.5 text-[10px] text-muted font-mono">
+          <p className="mt-1.5 text-caption text-muted font-mono">
             Shown in GUI byte order — matches your Crosslink desktop app.
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function FinalizerPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="text-center">
           <CardBody className="py-16">
-            <h2 className="text-xl font-bold text-primary mb-3">
+            <h2 className="text-xl font-semibold text-primary mb-3">
               {error === 'Finalizer not found' ? 'Finalizer not found' : 'Error'}
             </h2>
             <p className="text-secondary mb-4">{error}</p>
@@ -344,7 +344,7 @@ export default function FinalizerPage() {
 
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+        <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
           STAKING_ACTIONS
         </h2>
         <span className="text-xs text-muted ml-1">({actions.length})</span>
@@ -366,7 +366,7 @@ export default function FinalizerPage() {
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-cipher-border text-[10px] text-muted font-mono uppercase tracking-wider">
+                  <tr className="border-b border-cipher-border text-caption text-muted font-mono uppercase tracking-wider">
                     <th className="px-3 sm:px-4 py-3 text-left">Action</th>
                     <th className="px-3 sm:px-4 py-3 text-left">Block</th>
                     <th className="px-3 sm:px-4 py-3 text-right">Amount ({CURRENCY})</th>
@@ -438,7 +438,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">
                 {'>'}
               </span>
-              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                 BFT_VOTING_PARTICIPATION
               </h2>
             </div>
@@ -449,10 +449,10 @@ function ParticipationPanel({ participation }: { participation: Participation })
             </p>
           </div>
           <div className="text-right">
-            <div className={`text-2xl font-mono font-bold ${accent}`}>
+            <div className={`text-2xl font-mono font-semibold ${accent}`}>
               {participation_pct.toFixed(1)}%
             </div>
-            <div className="text-[10px] font-mono text-muted">
+            <div className="text-caption font-mono text-muted">
               {signed_blocks} / {window_size} blocks
             </div>
           </div>
@@ -469,7 +469,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
         {/* Sparkline of the last ~50 observed BFT-carrying blocks */}
         {ordered.length > 0 && (
           <>
-            <div className="flex items-center justify-between text-[10px] font-mono text-muted mb-1">
+            <div className="flex items-center justify-between text-caption font-mono text-muted mb-1">
               <span>
                 #{Math.min(...ordered.map((r) => r.height)).toLocaleString()}
               </span>
@@ -494,7 +494,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
           </>
         )}
 
-        <div className="mt-3 flex items-center gap-4 text-[10px] font-mono text-muted">
+        <div className="mt-3 flex items-center gap-4 text-caption font-mono text-muted">
           <span className="flex items-center gap-1.5">
             <span className="block w-2 h-2 rounded-sm bg-cipher-green/60" />
             signed
@@ -503,7 +503,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
             <span className="block w-2 h-2 rounded-sm bg-red-500/50" />
             missed
           </span>
-          <span className="ml-auto text-muted/60">
+          <span className="ml-auto text-muted">
             window: #{window_start.toLocaleString()} → #{window_end.toLocaleString()}
           </span>
         </div>
@@ -515,10 +515,10 @@ function ParticipationPanel({ participation }: { participation: Participation })
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="card p-4">
-      <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">
+      <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">
         {label}
       </span>
-      <span className="text-lg sm:text-2xl font-mono font-bold text-primary">{value}</span>
+      <span className="text-lg sm:text-2xl font-mono font-semibold text-primary">{value}</span>
       {sub && <span className="ml-1 text-xs text-muted">{sub}</span>}
     </div>
   );
@@ -572,7 +572,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
     <>
       <div className="mb-4 flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+        <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
           DELEGATORS
         </h2>
         <span className="text-xs text-muted ml-1">({delegators.length} bonds)</span>
@@ -583,7 +583,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
           <div className="overflow-x-auto no-scrollbar">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="border-b border-cipher-border text-[10px] text-muted font-mono uppercase tracking-wider">
+                <tr className="border-b border-cipher-border text-caption text-muted font-mono uppercase tracking-wider">
                   <th className="px-3 sm:px-4 py-3 text-left">Bond Key</th>
                   <th className="px-3 sm:px-4 py-3 text-right">Amount ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-left">Last Action</th>

@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       {/* Static page description — server-rendered for indexing */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div id="how-it-works" className="scroll-mt-36 border-t border-cipher-border pt-8 max-w-3xl">
-          <h2 className="text-sm font-bold font-sans text-secondary mb-3">
+          <h2 className="text-sm font-semibold font-sans text-secondary mb-3">
             How the Privacy Score works
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">

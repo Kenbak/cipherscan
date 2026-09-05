@@ -28,7 +28,7 @@ export function PoolBalanceRow({
           {row.name === 'Orchard' && (
             <span
               title="Pending turnstile verification"
-              className="text-[7px] px-1 py-px rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+              className="text-caption px-1 py-px rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
             >
               PT
             </span>
@@ -41,7 +41,7 @@ export function PoolBalanceRow({
           >
             {fmtValue(row.zat, currencyMode, zecPrice)}
           </div>
-          <div className="text-[10px] font-mono text-muted">{row.pct.toFixed(1)}%</div>
+          <div className="text-caption font-mono text-muted">{row.pct.toFixed(1)}%</div>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export function PoolBalanceRow({
           {row.name === 'Orchard' && (
             <span
               title="Pending turnstile verification"
-              className="text-[8px] px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
+              className="text-caption px-1.5 py-0.5 rounded-full font-mono border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-200/80 flex-shrink-0"
             >
               pending
             </span>
@@ -66,7 +66,7 @@ export function PoolBalanceRow({
           >
             {fmtValue(row.zat, currencyMode, zecPrice)}
           </span>
-          <span className="text-[10px] font-mono text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
+          <span className="text-caption font-mono text-muted w-12 text-right">{row.pct.toFixed(1)}%</span>
         </div>
       </div>
     </>

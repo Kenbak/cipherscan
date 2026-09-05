@@ -197,10 +197,10 @@ export default function NodesClient() {
           <CardBody>
             <div className="flex flex-col sm:flex-row sm:items-end gap-6">
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-wider text-muted mb-1">
+                <div className="text-caption font-mono uppercase tracking-wider text-muted mb-1">
                   Reachable Nodes
                 </div>
-                <div className="text-4xl font-bold font-mono text-primary tabular-nums">
+                <div className="text-4xl font-semibold font-mono text-primary tabular-nums">
                   {stats.activeNodes.toLocaleString()}
                 </div>
               </div>
@@ -225,7 +225,7 @@ export default function NodesClient() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-primary">Client Distribution</h3>
-                  <p className="mt-1 text-[11px] text-muted">
+                  <p className="mt-1 text-caption text-muted">
                     Verified via protocol handshake during network crawl.
                   </p>
                 </div>
@@ -293,7 +293,7 @@ export default function NodesClient() {
           <Card className="h-full">
             <CardBody className="h-full flex flex-col">
               <h3 className="text-sm font-semibold text-primary mb-1">Version Breakdown</h3>
-              <p className="text-[11px] text-muted mb-4">
+              <p className="text-caption text-muted mb-4">
                 Self-reported version strings from connected peers.
               </p>
               {/* Capped + scrollable rather than letting 12 rows dictate this
@@ -338,7 +338,7 @@ export default function NodesClient() {
                 <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Network Health</h3>
-                    <p className="text-[11px] text-muted mt-0.5">Composite of connectivity, upgrade adoption, client &amp; geo diversity, reliability</p>
+                    <p className="text-caption text-muted mt-0.5">Composite of connectivity, upgrade adoption, client &amp; geo diversity, reliability</p>
                   </div>
                   <RadialGauge value={health.healthScore} label="SCORE" />
                 </div>
@@ -360,34 +360,34 @@ export default function NodesClient() {
                 <div className="flex items-start justify-between mb-1 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
-                    <p className="text-[11px] text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
+                    <p className="text-caption text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
                   </div>
-                  <Badge className="text-[10px] bg-cipher-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
+                  <Badge className="text-caption bg-cipher-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
                     {reliability.services.fullNodePct}% full nodes
                   </Badge>
                 </div>
-                <div className="text-right text-[10px] text-muted mb-4">{reliability.maxSeen.toLocaleString()} crawls tracked</div>
+                <div className="text-right text-caption text-muted mb-4">{reliability.maxSeen.toLocaleString()} crawls tracked</div>
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
-                    <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
+                    <div className="text-2xl font-semibold font-mono tabular-nums text-primary">{reliability.avgReliabilityPct != null ? `${reliability.avgReliabilityPct}%` : '—'}</div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {reliability.avgReliabilityPct != null && (
                         <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: scoreColor(reliability.avgReliabilityPct) }} />
                       )}
-                      <span className="text-[10px] text-muted uppercase tracking-wider">Avg Uptime</span>
+                      <span className="text-caption text-muted uppercase tracking-wider">Avg Uptime</span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
+                    <div className="text-2xl font-semibold font-mono tabular-nums text-primary">{reliability.latency.median != null ? `${reliability.latency.median}ms` : '—'}</div>
+                    <div className="text-caption text-muted uppercase tracking-wider mt-0.5">Median Ping</div>
                   </div>
                 </div>
-                <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
+                <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Handshake Latency</div>
                 <div className="space-y-1.5">
                   {reliability.latency.buckets.map(b => {
                     const max = Math.max(1, ...reliability.latency.buckets.map(x => x.count));
                     return (
-                      <div key={b.label} className="flex items-center gap-2 text-[11px]">
+                      <div key={b.label} className="flex items-center gap-2 text-caption">
                         <span className="font-mono text-muted w-20">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(b.count / max) * 100}%` }} />
@@ -408,16 +408,16 @@ export default function NodesClient() {
                 <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Upgrade Readiness</h3>
-                    <p className="text-[11px] text-muted mt-0.5">Protocol version adoption (latest: NU6.3)</p>
+                    <p className="text-caption text-muted mt-0.5">Protocol version adoption (latest: NU6.3)</p>
                   </div>
-                  <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: scoreColor(upgrade.readinessPct) }}>{upgrade.readinessPct}%</span>
+                  <span className="text-2xl font-semibold font-mono tabular-nums" style={{ color: scoreColor(upgrade.readinessPct) }}>{upgrade.readinessPct}%</span>
                 </div>
                 <div className="w-full h-3 bg-cipher-border/40 rounded-full overflow-hidden mb-4">
                   <div className="h-full rounded-full transition-[width,background-color]" style={{ width: `${upgrade.readinessPct}%`, backgroundColor: scoreColor(upgrade.readinessPct) }} />
                 </div>
                 <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
-                    <div key={v.protocolVersion} className="flex items-center gap-2 text-[11px]">
+                    <div key={v.protocolVersion} className="flex items-center gap-2 text-caption">
                       <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-cipher-green' : 'bg-amber-400'}`} />
                       <span className="font-mono text-secondary w-16">{v.protocolVersion}</span>
                       <span className="text-muted truncate">{v.clients.join(', ')}</span>
@@ -437,10 +437,10 @@ export default function NodesClient() {
                 <div className="flex items-start justify-between mb-5 gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary">Concentration Risk</h3>
-                    <p className="text-[11px] text-muted mt-0.5">ISP and subnet clustering analysis</p>
+                    <p className="text-caption text-muted mt-0.5">ISP and subnet clustering analysis</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <Badge className={`text-[10px] ${
+                    <Badge className={`text-caption ${
                       concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
                       concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
                       'bg-cipher-green/15 text-cipher-green border-cipher-green/30'
@@ -448,19 +448,19 @@ export default function NodesClient() {
                       {concentration.concentrationRisk.toUpperCase()}
                     </Badge>
                     {concentration.isps[0] && (
-                      <span className="text-[10px] font-mono tabular-nums text-muted">
+                      <span className="text-caption font-mono tabular-nums text-muted">
                         top: <span className="text-primary font-semibold">{concentration.isps[0].percentage}%</span>
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="mb-4">
-                  <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Top ISPs</div>
+                  <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Top ISPs</div>
                   <div className="space-y-1.5">
                     {concentration.isps.slice(0, 5).map(isp => {
                       const max = Math.max(1, ...concentration.isps.slice(0, 5).map(x => x.percentage));
                       return (
-                        <div key={isp.isp} className="flex items-center gap-2 text-[11px]">
+                        <div key={isp.isp} className="flex items-center gap-2 text-caption">
                           <span className="text-secondary truncate w-28 shrink-0">{isp.isp}</span>
                           <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
@@ -474,10 +474,10 @@ export default function NodesClient() {
                 </div>
                 {concentration.subnets.length > 0 && (
                   <div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Clustered Subnets (/24)</div>
+                    <div className="text-caption text-muted uppercase tracking-wider mb-1.5">Clustered Subnets (/24)</div>
                     <div className="flex flex-wrap gap-1.5">
                       {concentration.subnets.slice(0, 6).map(s => (
-                        <span key={s.subnet} className="px-2 py-0.5 rounded bg-cipher-bg/80 border border-cipher-border/50 text-[10px] font-mono text-muted">
+                        <span key={s.subnet} className="px-2 py-0.5 rounded bg-cipher-bg/80 border border-cipher-border/50 text-caption font-mono text-muted">
                           {s.subnet} <span className="text-primary font-semibold">×{s.nodeCount}</span>
                         </span>
                       ))}
@@ -496,7 +496,7 @@ export default function NodesClient() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-primary">Node List</h3>
-              <p className="text-[11px] text-muted mt-0.5">
+              <p className="text-caption text-muted mt-0.5">
                 {total.toLocaleString()} nodes discovered across {stats?.countries ?? 0} countries
               </p>
             </div>
@@ -545,7 +545,7 @@ export default function NodesClient() {
                   {nodes.map(node => (
                     <tr key={node.id} className="hover:bg-cipher-card/50 transition-colors">
                       <td className="px-3 py-2.5">
-                        <Badge className={`text-[10px] ${CLIENT_BADGE_CLASSES[node.client] || CLIENT_BADGE_CLASSES.Unknown}`}>
+                        <Badge className={`text-caption ${CLIENT_BADGE_CLASSES[node.client] || CLIENT_BADGE_CLASSES.Unknown}`}>
                           {clientLabel(node.client)}
                         </Badge>
                       </td>
@@ -562,7 +562,7 @@ export default function NodesClient() {
                       </td>
                       <td className="px-3 py-2.5">
                         {node.isTor && (
-                          <Badge className="text-[10px] bg-purple-500/15 text-purple-300 border-purple-500/30">
+                          <Badge className="text-caption bg-purple-500/15 text-purple-300 border-purple-500/30">
                             {node.torType === 'exit' ? 'Exit' : node.torType === 'relay' ? 'Hidden' : 'Tor'}
                           </Badge>
                         )}
@@ -591,7 +591,7 @@ export default function NodesClient() {
 function StatChip({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className="text-muted uppercase tracking-wider text-[10px]">{label}</span>
+      <span className="text-muted uppercase tracking-wider text-caption">{label}</span>
       <span className="font-semibold text-primary">{value}</span>
     </div>
   );
@@ -619,14 +619,14 @@ function HealthBar({ label, score, detail }: { label: string; score: number; det
   return (
     <div className="flex items-center gap-3">
       <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[11px] text-secondary w-[104px] shrink-0">{label}</span>
+      <span className="text-caption text-secondary w-[104px] shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-[width,background-color]"
           style={{ width: `${score}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-[10px] font-mono tabular-nums text-muted w-24 text-right shrink-0">{detail}</span>
+      <span className="text-caption font-mono tabular-nums text-muted w-24 text-right shrink-0">{detail}</span>
     </div>
   );
 }

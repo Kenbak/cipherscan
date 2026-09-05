@@ -2,13 +2,13 @@
 export function getChartColors(theme: 'dark' | 'light') {
   const dark = theme === 'dark';
   const gold = dark ? '#F8BC21' : '#866008';
-  const iris = dark ? '#B6A0E0' : '#75628E';
+  const iris = dark ? '#B6A0E0' : '#6E5885';
   const sage = dark ? '#91AC90' : '#587652';
   const steel = dark ? '#A1A9AD' : '#667278';
   const stone = dark ? '#7F897A' : '#64705F';
   return {
     grid: dark ? '#2C3037' : '#D7DBCF',
-    axis: dark ? '#9CA4B0' : '#666D5D',
+    axis: dark ? '#9CA4B0' : '#606758',
     tooltipBg: dark ? '#111316' : '#FFFFFF',
     tooltipBorder: dark ? '#2C3037' : '#D7DBCF',
     tooltipText: dark ? '#F1F3F5' : '#20221D',
@@ -33,7 +33,7 @@ export function getChartColors(theme: 'dark' | 'light') {
     inflowSapling: sage,
     inflowCoinbase: stone,
     referenceLine: dark ? '#565D68' : '#B0B7A5',
-    cursor: dark ? '#9CA4B0' : '#666D5D',
+    cursor: dark ? '#9CA4B0' : '#606758',
     gridStroke: dark ? '#20242A' : '#E7E9E1',
     barCursor: dark ? 'rgba(248,188,33,0.08)' : 'rgba(134,96,8,0.08)',
     barCursorGold: dark ? 'rgba(248,188,33,0.08)' : 'rgba(134,96,8,0.08)',

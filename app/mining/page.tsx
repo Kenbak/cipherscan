@@ -96,9 +96,9 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -173,8 +173,8 @@ function DistributionSection() {
                     backgroundColor: colors.tooltipBg,
                     border: `1px solid ${colors.tooltipBorder}`,
                     borderRadius: 8,
-                    fontSize: 11,
-                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    fontFamily: 'var(--font-geist-mono), monospace',
                     color: colors.tooltipText,
                   }}
                   itemStyle={{ color: colors.tooltipText }}
@@ -201,7 +201,7 @@ function DistributionSection() {
                   <span className="text-xs font-mono text-muted tabular-nums">
                     {total > 0 ? ((p.value / total) * 100).toFixed(1) : 0}%
                   </span>
-                  <span className="text-[10px] font-mono text-muted tabular-nums">
+                  <span className="text-caption font-mono text-muted tabular-nums">
                     {p.value.toLocaleString()}
                   </span>
                 </div>
@@ -263,7 +263,7 @@ function RankingSection() {
                         />
                         <span className="font-mono text-xs text-primary font-medium">{pool.name}</span>
                         {pool.region && (
-                          <span className="text-[9px] font-mono text-muted px-1 py-0.5 bg-glass-3 rounded">{pool.region}</span>
+                          <span className="text-caption font-mono text-muted px-1 py-0.5 bg-glass-3 rounded">{pool.region}</span>
                         )}
                       </div>
                     ),
@@ -319,7 +319,7 @@ function RankingSection() {
                 rows={ranking}
                 rowKey={(pool) => pool.address}
               />
-              <p className="text-[10px] text-muted font-mono mt-3">
+              <p className="text-caption text-muted font-mono mt-3">
                 {total.toLocaleString()} total blocks in {period}
               </p>
             </>
@@ -337,9 +337,9 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
     <div className="flex items-center gap-1 bg-glass-3 rounded-md p-0.5">
       <button
         onClick={() => onChange('line')}
-        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition ${
+        className={`px-2.5 py-1 rounded text-caption font-mono uppercase tracking-wider transition ${
           mode === 'line'
-            ? 'bg-accent/20 text-accent font-bold'
+            ? 'bg-accent/20 text-accent font-semibold'
             : 'text-muted hover:text-secondary'
         }`}
       >
@@ -347,9 +347,9 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
       </button>
       <button
         onClick={() => onChange('area')}
-        className={`px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition ${
+        className={`px-2.5 py-1 rounded text-caption font-mono uppercase tracking-wider transition ${
           mode === 'area'
-            ? 'bg-accent/20 text-accent font-bold'
+            ? 'bg-accent/20 text-accent font-semibold'
             : 'text-muted hover:text-secondary'
         }`}
       >
@@ -435,7 +435,7 @@ function HashrateShareSection() {
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(d: string) => {
                   const date = new Date(d);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -443,7 +443,7 @@ function HashrateShareSection() {
               />
               <YAxis
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v: number) => `${v.toFixed(0)}%`}
                 domain={[0, 100]}
               />
@@ -453,8 +453,8 @@ function HashrateShareSection() {
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontFamily: 'var(--font-geist-mono), monospace',
                 }}
                 itemStyle={{ color: colors.tooltipText }}
                 labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
@@ -484,7 +484,7 @@ function HashrateShareSection() {
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(d: string) => {
                   const date = new Date(d);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -492,7 +492,7 @@ function HashrateShareSection() {
               />
               <YAxis
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v: number) => `${v.toFixed(0)}%`}
                 domain={[0, 'auto']}
               />
@@ -502,8 +502,8 @@ function HashrateShareSection() {
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontFamily: 'var(--font-geist-mono), monospace',
                 }}
                 itemStyle={{ color: colors.tooltipText }}
                 labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
@@ -536,7 +536,7 @@ function HashrateShareSection() {
               <button
                 key={pool}
                 onClick={() => togglePool(pool)}
-                className={`flex items-center gap-1.5 text-[10px] font-mono transition-opacity ${
+                className={`flex items-center gap-1.5 text-caption font-mono transition-opacity ${
                   isHidden ? 'opacity-30' : 'opacity-100'
                 } hover:opacity-80`}
               >
@@ -597,11 +597,11 @@ function MinerBehaviorSection() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-lg font-bold font-sans text-primary">Miner Behavior</h2>
+            <h2 className="text-lg font-semibold font-sans text-primary">Miner Behavior</h2>
           </div>
           <Link
             href="/zodl"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cipher-border bg-glass-3 text-[11px] font-mono text-secondary hover:text-primary hover:border-cipher-yellow/40 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cipher-border bg-glass-3 text-caption font-mono text-secondary hover:text-primary hover:border-cipher-yellow/40 transition"
           >
             ZODL leaderboard
             <span className="opacity-60">→</span>
@@ -618,32 +618,32 @@ function MinerBehaviorSection() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <Card>
             <CardBody className="py-3">
-              <p className="text-[10px] font-mono text-muted uppercase mb-1">Total Earned</p>
-              <p className="text-lg font-bold font-mono tabular-nums text-primary">
+              <p className="text-caption font-mono text-muted uppercase mb-1">Total Earned</p>
+              <p className="text-lg font-semibold font-mono tabular-nums text-primary">
                 {formatZec(summary.totalEarnedZat)} ZEC
               </p>
             </CardBody>
           </Card>
           <Card>
             <CardBody className="py-3">
-              <p className="text-[10px] font-mono text-muted uppercase mb-1">Total Moved</p>
-              <p className="text-lg font-bold font-mono tabular-nums text-cipher-orange">
+              <p className="text-caption font-mono text-muted uppercase mb-1">Total Moved</p>
+              <p className="text-lg font-semibold font-mono tabular-nums text-cipher-orange">
                 {formatZec(summary.totalSpentZat)} ZEC
               </p>
             </CardBody>
           </Card>
           <Card>
             <CardBody className="py-3">
-              <p className="text-[10px] font-mono text-muted uppercase mb-1">Still Held</p>
-              <p className="text-lg font-bold font-mono tabular-nums text-cipher-green">
+              <p className="text-caption font-mono text-muted uppercase mb-1">Still Held</p>
+              <p className="text-lg font-semibold font-mono tabular-nums text-cipher-green">
                 {formatZec(summary.totalHeldZat)} ZEC
               </p>
             </CardBody>
           </Card>
           <Card>
             <CardBody className="py-3">
-              <p className="text-[10px] font-mono text-muted uppercase mb-1">Sell Ratio</p>
-              <p className="text-lg font-bold font-mono tabular-nums text-primary">
+              <p className="text-caption font-mono text-muted uppercase mb-1">Sell Ratio</p>
+              <p className="text-lg font-semibold font-mono tabular-nums text-primary">
                 {(summary.overallSellRatio * 100).toFixed(1)}%
               </p>
             </CardBody>
@@ -664,7 +664,7 @@ function MinerBehaviorSection() {
           <div className="flex items-center justify-center h-[320px]">
             <div className="text-center">
               <p className="text-sm text-muted font-mono">{message}</p>
-              <p className="text-[10px] text-muted mt-2">Run the snapshot job to populate this data.</p>
+              <p className="text-caption text-muted mt-2">Run the snapshot job to populate this data.</p>
             </div>
           </div>
         ) : (
@@ -674,7 +674,7 @@ function MinerBehaviorSection() {
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(d: string) => {
                   const date = new Date(d);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -682,9 +682,9 @@ function MinerBehaviorSection() {
               />
               <YAxis
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v: number) => `${v.toFixed(0)}`}
-                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', fill: colors.axis, fontSize: 10 }}
+                label={{ value: 'ZEC', angle: -90, position: 'insideLeft', fill: colors.axis, fontSize: 12 }}
               />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.03)' }}
@@ -692,8 +692,8 @@ function MinerBehaviorSection() {
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontFamily: 'var(--font-geist-mono), monospace',
                 }}
                 itemStyle={{ color: colors.tooltipText }}
                 labelStyle={{ color: colors.tooltipText, marginBottom: 4 }}
@@ -704,7 +704,7 @@ function MinerBehaviorSection() {
                 labelFormatter={(label) => String(label)}
               />
               <Legend
-                wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
+                wrapperStyle={{ fontSize: 12, fontFamily: 'var(--font-geist-mono), monospace' }}
                 formatter={(value) => value === 'earned' ? 'Earned' : value === 'spent' ? 'Moved/Sold' : 'Held'}
               />
               <Bar dataKey="earned" fill={colors.gold} fillOpacity={0.3} stroke={colors.gold} />
@@ -741,7 +741,7 @@ export default function MiningPage() {
 
       <section className="max-w-3xl pb-12">
         <div className="border-t border-cipher-border pt-8">
-          <h2 className="text-sm font-bold font-mono text-secondary mb-3 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-mono text-secondary mb-3 lowercase tracking-tight">
             About Mining Pool Data
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">

@@ -186,10 +186,10 @@ function TerminalHero() {
         <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
         <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
         <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-        <span className="text-[10px] font-mono text-muted/40 ml-2">terminal — curl</span>
+        <span className="text-caption font-mono text-muted ml-2">terminal — curl</span>
       </div>
       <div className="p-5 sm:p-6 font-mono text-sm leading-relaxed">
-        <pre className="whitespace-pre-wrap text-muted/80">
+        <pre className="whitespace-pre-wrap text-muted">
           {renderText(terminalText)}
           <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} text-cipher-gold transition-opacity duration-100`}>▋</span>
         </pre>
@@ -309,7 +309,7 @@ export default function LearnPage() {
       {/* KEY CONCEPTS — 3 feature cards */}
       {/* ═══════════════════════════════════════ */}
       <div className="max-w-6xl mx-auto px-4 py-12">
-        <h2 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">{'>'} KEY_CONCEPTS</h2>
+        <h2 className="text-xs font-mono text-muted lowercase tracking-tight mb-6">{'>'} KEY_CONCEPTS</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Zero-Knowledge Proofs */}
           <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
@@ -317,7 +317,7 @@ export default function LearnPage() {
               <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
                 <Icons.Layers className="w-5 h-5 text-cipher-gold" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Zero-Knowledge Proofs</h3>
+              <h3 className="font-semibold text-primary mb-2">Zero-Knowledge Proofs</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Mathematically prove a transaction is valid without revealing the sender, receiver, or amount.
                 The cryptographic breakthrough that makes Zcash possible.
@@ -331,7 +331,7 @@ export default function LearnPage() {
               <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
                 <Icons.Database className="w-5 h-5 text-cipher-purple" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Shielded Pools</h3>
+              <h3 className="font-semibold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 <strong className="text-cipher-gold">Ironwood</strong> is the latest pool — formally verified
                 cryptography with a quantum-recoverable design.
@@ -351,7 +351,7 @@ export default function LearnPage() {
               <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
                 <Icons.Lock className="w-5 h-5 text-cipher-gold" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Encrypted Memos</h3>
+              <h3 className="font-semibold text-primary mb-2">Encrypted Memos</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Every shielded transaction includes a 512-byte encrypted memo visible only
                 to the recipient. Messages, payment references, or structured data — completely private.
@@ -372,7 +372,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Key className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ADDRESS_TYPES</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} ADDRESS_TYPES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Zcash supports three address formats. Unified addresses are the modern standard, they bundle
@@ -386,7 +386,7 @@ export default function LearnPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Icons.Target className="w-4 h-4 text-cipher-gold" />
-                    <h3 className="font-bold text-cipher-gold font-mono text-sm">Unified (u...)</h3>
+                    <h3 className="font-semibold text-cipher-gold font-mono text-sm">Unified (u...)</h3>
                   </div>
                   <Badge color="green">RECOMMENDED</Badge>
                 </div>
@@ -409,7 +409,7 @@ export default function LearnPage() {
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
                   <Icons.Lock className="w-4 h-4 text-cipher-purple" />
-                  <h3 className="font-bold text-cipher-purple font-mono text-sm">Sapling (zs...)</h3>
+                  <h3 className="font-semibold text-cipher-purple font-mono text-sm">Sapling (zs...)</h3>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Legacy shielded address. Fully private with encrypted memos.
@@ -431,7 +431,7 @@ export default function LearnPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Icons.EyeOff className="w-4 h-4 text-muted" />
-                    <h3 className="font-bold text-primary font-mono text-sm">Transparent (t...)</h3>
+                    <h3 className="font-semibold text-primary font-mono text-sm">Transparent (t...)</h3>
                   </div>
                   <Badge color="orange">NOT PRIVATE</Badge>
                 </div>
@@ -459,7 +459,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Globe className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ZCASH_NAMES</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} ZCASH_NAMES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             The <strong className="text-primary">Zcash Name System (ZNS)</strong> maps human-readable names to Zcash Unified Addresses.
@@ -469,24 +469,24 @@ export default function LearnPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">How It Works</h3>
+                <h3 className="font-semibold text-primary mb-4">How It Works</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">1</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-semibold text-cipher-gold">1</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Claim a name</div>
                       <div className="text-xs text-secondary mt-0.5">Register a name at zcashnames.com. Shorter names cost more (1-char = 6 ZEC, 7+ chars = 0.25 ZEC).</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">2</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-semibold text-cipher-gold">2</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Link to your address</div>
                       <div className="text-xs text-secondary mt-0.5">Your name resolves to a Unified Address. Update it anytime without losing the name.</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">3</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-semibold text-cipher-gold">3</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Share it</div>
                       <div className="text-xs text-secondary mt-0.5">Anyone can search your name on ZecBlock or resolve it in a wallet to find your address.</div>
@@ -511,7 +511,7 @@ export default function LearnPage() {
 
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">Try It on ZecBlock</h3>
+                <h3 className="font-semibold text-primary mb-4">Try It on ZecBlock</h3>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Search any ZNS name in the search bar to see its resolved address, registration details,
                   marketplace status, and full event history.
@@ -566,7 +566,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Eye className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} VIEWING_KEYS</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} VIEWING_KEYS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             A <strong className="text-primary">Unified Full Viewing Key (UFVK)</strong> gives read-only
@@ -577,7 +577,7 @@ export default function LearnPage() {
             {/* Use cases */}
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">When to use a Viewing Key</h3>
+                <h3 className="font-semibold text-primary mb-4">When to use a Viewing Key</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -620,7 +620,7 @@ export default function LearnPage() {
             {/* How to get one */}
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">How to Export Your Viewing Key</h3>
+                <h3 className="font-semibold text-primary mb-4">How to Export Your Viewing Key</h3>
                 <div className="space-y-3 text-sm">
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
                     <div className="font-medium text-primary mb-1">Zodl</div>
@@ -660,7 +660,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Shield className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} NETWORK_PRIVACY</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} NETWORK_PRIVACY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Zcash encrypts your transaction data on-chain, but your <strong className="text-primary">IP address</strong> is
@@ -672,7 +672,7 @@ export default function LearnPage() {
             <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Nym Mixnet</h3>
+                  <h3 className="font-semibold text-primary text-lg">Nym Mixnet</h3>
                   <Badge color="green">STRONGEST</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
@@ -693,7 +693,7 @@ export default function LearnPage() {
             <Card variant="glass" className="border-l-2 border-l-cipher-purple/30">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Tor</h3>
+                  <h3 className="font-semibold text-primary text-lg">Tor</h3>
                   <Badge color="gold">WIDELY AVAILABLE</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
@@ -714,7 +714,7 @@ export default function LearnPage() {
             <Card variant="glass" className="border-l-2 border-l-amber-400/30">
               <CardBody>
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="font-bold text-primary text-lg">Why It Matters</h3>
+                  <h3 className="font-semibold text-primary text-lg">Why It Matters</h3>
                 </div>
                 <div className="space-y-3 text-sm text-secondary leading-relaxed">
                   <p>
@@ -752,7 +752,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Wallet className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} WALLETS</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} WALLETS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Choose a wallet that supports shielded transactions. Modern wallets are migrating to the
@@ -764,7 +764,7 @@ export default function LearnPage() {
             <Card variant="compact" className="card-interactive border-cipher-gold/20">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Zodl</h3>
+                  <h3 className="font-semibold text-primary text-lg">Zodl</h3>
                   <Badge color="green">RECOMMENDED</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
@@ -788,7 +788,7 @@ export default function LearnPage() {
             <Card variant="compact" className="card-interactive">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Vizor</h3>
+                  <h3 className="font-semibold text-primary text-lg">Vizor</h3>
                   <Badge color="gold">ADVANCED</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
@@ -805,7 +805,7 @@ export default function LearnPage() {
             <Card variant="compact" className="card-interactive">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-primary text-lg">Zingo</h3>
+                  <h3 className="font-semibold text-primary text-lg">Zingo</h3>
                   <Badge color="purple">DEVELOPER</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
@@ -828,7 +828,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Code className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} DEVELOPER_RESOURCES</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} DEVELOPER_RESOURCES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Build on Zcash using ZecBlock&apos;s infrastructure or the official Zcash developer tools.
@@ -840,7 +840,7 @@ export default function LearnPage() {
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <Icons.Database className="w-4 h-4 text-cipher-gold" />
-                  <h3 className="font-bold text-cipher-gold">ZecBlock Infrastructure</h3>
+                  <h3 className="font-semibold text-cipher-gold">ZecBlock Infrastructure</h3>
                 </div>
 
                 <div className="space-y-3">
@@ -948,7 +948,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Users className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} COMMUNITY</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} COMMUNITY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Join the Zcash community and dive deeper into privacy technology.
@@ -1017,7 +1017,7 @@ export default function LearnPage() {
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Zap className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} EXPLORE_ZECBLOCK</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} EXPLORE_ZECBLOCK</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Use what you&apos;ve learned — ZecBlock gives you live access to Zcash blockchain data.

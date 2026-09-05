@@ -91,13 +91,13 @@ function DownloadRow({ label, href, note }: { label: string; href: string; note:
         >
           {label}
         </a>
-        <p className="mt-0.5 text-[11px] text-muted">{note}</p>
+        <p className="mt-0.5 text-caption text-muted">{note}</p>
       </div>
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 text-[10px] font-mono uppercase tracking-wider text-muted hover:text-primary transition-colors"
+        className="shrink-0 text-caption font-mono uppercase tracking-wider text-muted hover:text-primary transition-colors"
       >
         Preview ↗
       </a>
@@ -169,7 +169,7 @@ function ContactCard({
         {icon}
       </span>
       <div className="min-w-0">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
+        <div className="text-caption font-mono uppercase tracking-wider text-muted">{label}</div>
         <div className="mt-0.5 truncate text-sm font-mono font-medium text-primary group-hover:text-primary transition-colors">
           {value}
         </div>
@@ -199,23 +199,23 @@ export default function PressPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <header className="mb-10">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-muted mb-2">Press &amp; brand</p>
-        <h1 className="text-2xl sm:text-3xl font-bold font-sans text-primary">Media kit</h1>
+        <p className="text-caption font-mono uppercase tracking-widest text-muted mb-2">Press &amp; brand</p>
+        <h1 className="type-page font-sans text-primary">Media kit</h1>
         <p className="mt-3 text-sm leading-relaxed text-secondary">
           Official logos, colors, and boilerplate for articles, listings, and partner pages.
         </p>
       </header>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Logo</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Logo</h2>
 
-        <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-muted">Wordmark</p>
+        <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">Wordmark</p>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <WordmarkPreview variant="dark" />
           <WordmarkPreview variant="light" />
         </div>
 
-        <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-muted">Mark only</p>
+        <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">Mark only</p>
         <div className="mb-5 flex flex-wrap items-center gap-4">
           <LogoPreview variant="dark" />
           <LogoPreview variant="light" />
@@ -229,7 +229,7 @@ export default function PressPage() {
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Colors</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Colors</h2>
         <div className="space-y-3">
           {COLORS.map((c) => (
             <div key={c.hex} className="flex items-center gap-3">
@@ -239,7 +239,7 @@ export default function PressPage() {
                   <span className="text-sm font-mono font-semibold text-primary">{c.name}</span>
                   <span className="text-xs font-mono text-muted">{c.hex}</span>
                 </div>
-                <p className="text-[11px] text-muted">{c.role}</p>
+                <p className="text-caption text-muted">{c.role}</p>
               </div>
             </div>
           ))}
@@ -247,32 +247,32 @@ export default function PressPage() {
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Typography</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Typography</h2>
         <dl className="space-y-3 text-sm">
           <div>
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">UI</dt>
+            <dt className="font-mono text-caption uppercase tracking-wider text-muted">UI</dt>
             <dd className="mt-1 text-primary font-sans">Inter — headings, body, navigation</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-muted">Data &amp; labels</dt>
+            <dt className="font-mono text-caption uppercase tracking-wider text-muted">Data &amp; labels</dt>
             <dd className="mt-1 font-mono text-primary">JetBrains Mono — hashes, stats, chart axes</dd>
           </div>
         </dl>
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-2">About ZecBlock</h2>
+        <h2 className="text-sm font-semibold text-primary mb-2">About ZecBlock</h2>
         <p className="text-xs font-mono text-muted mb-3">Copy-paste for articles, listings, and partner pages.</p>
         <blockquote className="rounded-lg border border-cipher-border/25 bg-glass-3/30 px-4 py-3 text-sm leading-relaxed text-secondary">
           {BOILERPLATE}
         </blockquote>
-        <p className="mt-3 text-[11px] text-muted">
+        <p className="mt-3 text-caption text-muted">
           Short tagline: <span className="text-secondary">Making Zcash accessible. For everyone.</span>
         </p>
       </section>
 
       <section className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-4">Contact</h2>
+        <h2 className="text-sm font-semibold text-primary mb-4">Contact</h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CONTACTS.map((c) => (
             <ContactCard key={c.label} {...c} />

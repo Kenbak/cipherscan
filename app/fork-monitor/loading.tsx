@@ -10,8 +10,8 @@ export default function ForkMonitorLoading() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fade-in">
       <div className="mb-8">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
-        <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
+        <h1 className="type-page font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
         <SkeletonLine className="h-4 w-full max-w-2xl mt-2" />
       </div>
 

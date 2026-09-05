@@ -44,7 +44,7 @@ export default function DecryptPageClient() {
         >
           &larr; All Tools
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Decrypt Shielded Memo</h1>
+        <h1 className="type-page text-primary">Decrypt Shielded Memo</h1>
         <p className="text-sm text-secondary mt-1">
           Decode encrypted memos from Orchard and Ironwood transactions. 100% client-side — your viewing key never leaves this browser.
         </p>
@@ -74,7 +74,7 @@ export default function DecryptPageClient() {
               <Icons.Info className="w-5 h-5 text-cipher-gold" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-primary text-lg mb-3">How to Get a Viewing Key</h3>
+              <h3 className="font-semibold text-primary text-lg mb-3">How to Get a Viewing Key</h3>
               <p className="text-secondary text-sm mb-4 leading-relaxed">
                 To decrypt memos, you need a <strong className="text-primary">Unified Full Viewing Key (UFVK)</strong>.
                 This key allows you to view transaction details without exposing your spending keys.

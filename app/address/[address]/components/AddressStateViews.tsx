@@ -88,7 +88,7 @@ export function IndexingIssueView({ address, copiedText, onCopy }: IndexingIssue
           </div>
 
           <div className="p-4 rounded-lg bg-cipher-surface/50 border border-glass-4 mb-4">
-            <span className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-3">&gt; TECHNICAL_DETAILS</span>
+            <span className="text-caption text-muted font-mono uppercase tracking-wider block mb-3">&gt; TECHNICAL_DETAILS</span>
             <ul className="text-xs text-secondary space-y-2 font-mono">
               <li className="flex items-start gap-2">
                 <span className="text-muted mt-0.5">$</span>

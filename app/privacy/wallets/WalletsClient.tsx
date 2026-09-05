@@ -102,7 +102,7 @@ export default function WalletsClient() {
   if (loading && !feeLanes) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-2">Wallet Anonymity Analysis</h1>
+        <h1 className="type-page mb-2">Wallet Anonymity Analysis</h1>
         <p className="text-secondary mb-8">
           Analyzing on-chain wallet fingerprints...
         </p>
@@ -119,7 +119,7 @@ export default function WalletsClient() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-4">Wallet Anonymity Analysis</h1>
+        <h1 className="type-page mb-4">Wallet Anonymity Analysis</h1>
         <Card variant="standard">
           <CardBody>
             <p className="text-danger">{error}</p>
@@ -228,11 +228,11 @@ export default function WalletsClient() {
                       dataKey="date"
                       stroke={colors.axis}
                       tickFormatter={formatDate}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 12 }}
                     />
                     <YAxis
                       stroke={colors.axis}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 12 }}
                       tickFormatter={(v: number) => v > 999 ? `${(v / 1000).toFixed(1)}k` : String(v)}
                     />
                     <RechartsTooltip
@@ -420,7 +420,7 @@ export default function WalletsClient() {
                         <span className="text-secondary">
                           Total shielded txs ({period})
                         </span>
-                        <span className="text-2xl font-bold font-mono">
+                        <span className="text-2xl font-semibold font-mono">
                           {formatNumber(fingerprints.totalShielded)}
                         </span>
                       </div>
@@ -428,7 +428,7 @@ export default function WalletsClient() {
                         <span className="text-secondary">
                           Fully-shielded Orchard
                         </span>
-                        <span className="text-2xl font-bold font-mono">
+                        <span className="text-2xl font-semibold font-mono">
                           {formatNumber(fingerprints.totalFullyShieldedOrchard)}
                         </span>
                       </div>
@@ -436,7 +436,7 @@ export default function WalletsClient() {
                         <span className="text-secondary">
                           Identified by fingerprint
                         </span>
-                        <span className="text-2xl font-bold font-mono">
+                        <span className="text-2xl font-semibold font-mono">
                           {formatNumber(
                             usageData
                               .filter(d => d.name !== 'Unknown / Other')
@@ -446,13 +446,13 @@ export default function WalletsClient() {
                       </div>
                       <div className="text-xs text-muted pt-3 border-t border-cipher-border space-y-1.5">
                         <p className="font-medium text-secondary">Why is &quot;Unknown&quot; so large?</p>
-                        <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                        <ul className="list-disc list-inside space-y-0.5 text-caption">
                           <li>Sapling-only txs (no Orchard action count to fingerprint)</li>
                           <li>SDK wallets (Edge, Unstoppable, YWallet) identical to ZODL on-chain</li>
                           <li>Transactions with expiry=0 (disabled) or missing data</li>
                           <li>Wallets we haven&apos;t fingerprinted yet</li>
                         </ul>
-                        <p className="text-[10px] italic">We prefer honesty over false precision.</p>
+                        <p className="text-caption italic">We prefer honesty over false precision.</p>
                       </div>
                     </div>
                   )}
@@ -508,7 +508,7 @@ function StatCard({
     <Card variant="compact">
       <CardBody>
         <p className="text-xs text-secondary mb-1">{label}</p>
-        <p className="text-3xl font-bold font-mono" style={{ color: accentColor }}>
+        <p className="text-3xl font-semibold font-mono" style={{ color: accentColor }}>
           {value}
         </p>
         <p className="text-xs text-muted mt-1">{subtext}</p>
@@ -597,9 +597,9 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
             )}
             {wallet.familyMembers && wallet.familyMembers.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                <span className="text-[10px] uppercase tracking-wider text-muted">Includes:</span>
+                <span className="text-caption uppercase tracking-wider text-muted">Includes:</span>
                 {wallet.familyMembers.map(m => (
-                  <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
+                  <span key={m} className="text-caption px-1.5 py-0.5 rounded bg-cipher-teal/10 text-cipher-teal border border-cipher-teal/20">
                     {m}
                   </span>
                 ))}
@@ -607,7 +607,7 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
             )}
             {wallet.nymNote && (
               <div className="flex items-start gap-2 mb-3 px-2 py-1.5 rounded bg-purple-500/5 border border-purple-500/20">
-                <span className="text-[10px] uppercase tracking-wider text-purple-400 font-medium whitespace-nowrap mt-px">Nym</span>
+                <span className="text-caption uppercase tracking-wider text-purple-400 font-medium whitespace-nowrap mt-px">Nym</span>
                 <span className="text-xs text-purple-300/80">{wallet.nymNote}</span>
               </div>
             )}
@@ -617,16 +617,16 @@ function WalletCard({ wallet }: { wallet: WalletFingerprint }) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {signals.map(([key, signal]) => (
                 <div key={key} className="rounded-lg bg-cipher-hover p-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
+                  <p className="text-caption uppercase tracking-wider text-muted mb-1">
                     {signalLabels[key]}
                   </p>
                   <p className="font-mono text-xs font-medium mb-1">{signal.value}</p>
                   {signal.matchCount !== undefined && signal.matchCount > 0 && (
-                    <p className="text-[10px] text-cipher-teal font-medium">
+                    <p className="text-caption text-cipher-teal font-medium">
                       {formatNumber(signal.matchCount)} matches
                     </p>
                   )}
-                  <p className="text-[10px] text-muted mt-1 leading-tight">
+                  <p className="text-caption text-muted mt-1 leading-tight">
                     {signal.source}
                   </p>
                 </div>
@@ -649,7 +649,7 @@ function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
   const label = status === 'supported' ? 'Nym' : 'Nym (partial)';
 
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[9px] font-medium uppercase tracking-wider whitespace-nowrap ${styles}`}>
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-caption font-medium uppercase tracking-wider whitespace-nowrap ${styles}`}>
       <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM4.5 7.5a1 1 0 112 0v3a1 1 0 11-2 0v-3zm5 0a1 1 0 112 0v3a1 1 0 11-2 0v-3zM7 5a1 1 0 112 0 1 1 0 01-2 0z" />
       </svg>
@@ -662,7 +662,7 @@ function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) 
   const styles = {
     high: 'bg-cipher-green/15 border-cipher-green/30 text-cipher-green',
     medium: 'bg-amber-400/15 border-amber-400/30 text-amber-300',
-    low: 'bg-slate-500/15 border-slate-500/30 text-slate-400',
+    low: 'bg-slate-500/15 border-slate-500/30 text-muted',
   }[signal.confidence];
 
   const shortValue = signal.value === 'Unknown' || signal.value === 'Unknown (custom builder)'
@@ -672,11 +672,11 @@ function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) 
       : signal.value;
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-mono ${styles}`}>
-      <span className="text-[9px] opacity-60 uppercase">{label}</span>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-caption font-mono ${styles}`}>
+      <span className="text-caption opacity-60 uppercase">{label}</span>
       {shortValue}
       {signal.matchCount !== undefined && signal.matchCount > 0 && (
-        <span className="text-[9px] opacity-70">({formatNumber(signal.matchCount)})</span>
+        <span className="text-caption opacity-70">({formatNumber(signal.matchCount)})</span>
       )}
     </span>
   );

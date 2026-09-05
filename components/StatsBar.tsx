@@ -94,7 +94,7 @@ function formatCompact(num: number): string {
 
 function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
+    <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-data font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
       <span className="text-muted">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
@@ -434,7 +434,7 @@ export function StatsBar() {
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-60 dropdown-menu rounded-lg shadow-xl border p-1 z-30 animate-scale-in origin-top-right">
-                <div className="px-3 py-2 text-[10px] font-mono text-muted uppercase tracking-widest">
+                <div className="px-3 py-2 text-caption font-mono text-muted uppercase tracking-widest">
                   Show up to {MAX_STATS} · {selected.length}/{MAX_STATS} selected
                 </div>
                 {STAT_ORDER.map((id) => {
@@ -445,7 +445,7 @@ export function StatsBar() {
                       key={id}
                       onClick={() => toggleStat(id)}
                       disabled={isDisabled}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item ${
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-data dropdown-item ${
                         isDisabled ? 'opacity-40 cursor-not-allowed' : ''
                       }`}
                     >

@@ -298,7 +298,7 @@ export function CrosschainDashboard() {
   if (error || !stats) {
     return (
       <div className="card text-center py-12">
-        <h2 className="text-2xl font-bold font-mono text-secondary mb-4">Cross-Chain Data Unavailable</h2>
+        <h2 className="text-2xl font-semibold font-mono text-secondary mb-4">Cross-Chain Data Unavailable</h2>
         <p className="text-muted max-w-lg mx-auto mb-6">{error || 'No cross-chain data available'}</p>
         <Link href="/" className="px-4 py-2 card-bg border border-cipher-border text-secondary rounded-lg hover:border-cipher-gold transition-colors font-mono text-sm">Back to Explorer</Link>
       </div>
@@ -337,7 +337,7 @@ export function CrosschainDashboard() {
           <TokenChainIcon token={swap.fromSymbol} chain={swap.direction === 'in' ? swap.fromChain : 'zec'} size={22} />
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-mono text-primary font-semibold truncate tabular-nums">{formatAmount(swap.fromAmount)} {swap.fromSymbol}</span>
-            <span className="text-[10px] text-muted">{swap.direction === 'in' ? (CHAIN_NAMES[swap.fromChain] || swap.fromChain) : 'Zcash'}</span>
+            <span className="text-caption text-muted">{swap.direction === 'in' ? (CHAIN_NAMES[swap.fromChain] || swap.fromChain) : 'Zcash'}</span>
           </div>
         </div>
       ),
@@ -350,7 +350,7 @@ export function CrosschainDashboard() {
           <TokenChainIcon token={swap.toSymbol} chain={swap.direction === 'in' ? 'zec' : swap.toChain} size={22} />
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-mono text-primary font-semibold truncate tabular-nums">{formatAmount(swap.toAmount)} {swap.toSymbol}</span>
-            <span className="text-[10px] text-muted">{swap.direction === 'in' ? 'Zcash' : (CHAIN_NAMES[swap.toChain] || swap.toChain)}</span>
+            <span className="text-caption text-muted">{swap.direction === 'in' ? 'Zcash' : (CHAIN_NAMES[swap.toChain] || swap.toChain)}</span>
           </div>
         </div>
       ),
@@ -459,14 +459,14 @@ export function CrosschainDashboard() {
             empty={<div className="text-center py-8"><p className="text-muted text-sm font-mono">No swaps found</p></div>}
             footer={
               <div className="flex items-center justify-between px-4 py-3 border-t border-cipher-border">
-                <p className="text-[10px] text-muted font-mono tabular-nums">
+                <p className="text-caption text-muted font-mono tabular-nums">
                   {historyTotal > 0 ? `${historySwaps.length} of ${historyTotal.toLocaleString()} swaps` : `${stats.totalSwapsAllTime.toLocaleString()} swaps indexed`}
                 </p>
                 {hasMore && (
                   <button
                     onClick={loadMore}
                     disabled={historyLoading}
-                    className="px-4 py-1.5 text-[11px] font-mono text-cipher-gold border border-cipher-gold/30 rounded-lg hover:bg-cipher-gold/10 transition-colors disabled:opacity-40"
+                    className="px-4 py-1.5 text-caption font-mono text-cipher-gold border border-cipher-gold/30 rounded-lg hover:bg-cipher-gold/10 transition-colors disabled:opacity-40"
                   >
                     {historyLoading ? 'Loading...' : 'Load more'}
                   </button>
@@ -500,7 +500,7 @@ export function CrosschainDashboard() {
 
       {/* Footer */}
       <div className="text-center pt-4">
-        <p className="text-[10px] text-muted font-mono">
+        <p className="text-caption text-muted font-mono">
           Powered by{' '}
           <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">NEAR Intents</a>
           {' '}· {stats.totalSwapsAllTime.toLocaleString()} swaps indexed

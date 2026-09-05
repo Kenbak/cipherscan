@@ -241,12 +241,12 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={v => `$${v}`}
@@ -308,12 +308,12 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     domain={[0, 'auto']}
@@ -323,7 +323,7 @@ export default function ValuationPage() {
                     labelFormatter={d => new Date(d).toLocaleDateString()}
                     formatter={(v) => [Number(v)?.toFixed(3), 'MVRV']}
                   />
-                  <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Fair Value (1.0)', fill: colors.axis, fontSize: 10 }} />
+                  <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Fair Value (1.0)', fill: colors.axis, fontSize: 12 }} />
                   <Area
                     type="monotone"
                     dataKey="mvrv"
@@ -358,12 +358,12 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     domain={['auto', 'auto']}
@@ -373,7 +373,7 @@ export default function ValuationPage() {
                     labelFormatter={d => new Date(d).toLocaleDateString()}
                     formatter={(v) => [Number(v)?.toFixed(4), 'SOPR']}
                   />
-                  <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even (1.0)', fill: colors.axis, fontSize: 10 }} />
+                  <ReferenceLine y={1} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even (1.0)', fill: colors.axis, fontSize: 12 }} />
                   <Area
                     type="monotone"
                     dataKey="sopr"
@@ -408,12 +408,12 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={v => `${(v * 100).toFixed(0)}%`}
@@ -424,7 +424,7 @@ export default function ValuationPage() {
                     labelFormatter={d => new Date(d).toLocaleDateString()}
                     formatter={(v) => [`${(Number(v) * 100).toFixed(1)}%`, 'NUPL']}
                   />
-                  <ReferenceLine y={0} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even', fill: colors.axis, fontSize: 10 }} />
+                  <ReferenceLine y={0} stroke={colors.referenceLine} strokeDasharray="4 4" label={{ value: 'Break-even', fill: colors.axis, fontSize: 12 }} />
                   <Area
                     type="monotone"
                     dataKey="nupl"
@@ -461,12 +461,12 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={v => `${(v / 1e6).toFixed(1)}M`}
@@ -498,7 +498,7 @@ export default function ValuationPage() {
                       };
                       return labels[v] || v;
                     }}
-                    wrapperStyle={{ fontSize: 11 }}
+                    wrapperStyle={{ fontSize: 12 }}
                   />
                   <Area type="monotone" dataKey="gt2y" stackId="1" stroke="#6366f1" fill="#6366f1" fillOpacity={0.8} />
                   <Area type="monotone" dataKey="b1_2y" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.7} />
@@ -534,13 +534,13 @@ export default function ValuationPage() {
                   <XAxis
                     dataKey="date"
                     tickFormatter={fmtDate}
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     yAxisId="cdd"
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={v => v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}K` : String(v)}
@@ -548,7 +548,7 @@ export default function ValuationPage() {
                   <YAxis
                     yAxisId="dormancy"
                     orientation="right"
-                    tick={{ fill: colors.axis, fontSize: 11 }}
+                    tick={{ fill: colors.axis, fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={v => `${Number(v).toFixed(0)}d`}
@@ -563,7 +563,7 @@ export default function ValuationPage() {
                   />
                   <Legend
                     formatter={v => v === 'cdd' ? 'Coin Days Destroyed' : 'Avg Dormancy'}
-                    wrapperStyle={{ fontSize: 11 }}
+                    wrapperStyle={{ fontSize: 12 }}
                   />
                   <Area
                     yAxisId="cdd"

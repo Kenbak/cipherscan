@@ -75,7 +75,7 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.id}
-                  className={`px-4 py-3 ${ALIGN[col.align ?? 'left']} text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border ${col.className ?? ''}`}
+                  className={`px-4 py-3 ${ALIGN[col.align ?? 'left']} text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border ${col.className ?? ''}`}
                 >
                   {col.header}
                 </th>

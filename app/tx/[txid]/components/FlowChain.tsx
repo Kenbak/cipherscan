@@ -89,7 +89,7 @@ function FlowNodeView({ node }: { node: FlowNode }) {
         </div>
       );
     case 'more':
-      return <span className="text-[11px] text-muted font-mono">+{node.count} more</span>;
+      return <span className="text-caption text-muted font-mono">+{node.count} more</span>;
     case 'unknown':
     default:
       return <span className="text-sm text-muted">—</span>;

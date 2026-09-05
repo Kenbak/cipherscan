@@ -163,7 +163,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
             {tx.score}/100
           </span>
         </div>
-        <span className="text-[11px] text-muted font-mono">
+        <span className="text-caption text-muted font-mono">
           {formatRelativeTime(tx.deshieldTime)}
         </span>
       </div>
@@ -171,12 +171,12 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       <div className="mb-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {evidenceChips.map((chip) => (
-            <span key={chip} className="rounded-full border border-cipher-border bg-cipher-surface/40 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-secondary">
+            <span key={chip} className="rounded-full border border-cipher-border bg-cipher-surface/40 px-2.5 py-1 text-caption font-mono uppercase tracking-[0.16em] text-secondary">
               {chip}
             </span>
           ))}
           {tx.confidenceMargin !== undefined && (
-            <span className="rounded-full border border-cipher-border bg-cipher-surface/30 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-muted">
+            <span className="rounded-full border border-cipher-border bg-cipher-surface/30 px-2.5 py-1 text-caption font-mono uppercase tracking-[0.16em] text-muted">
               margin {tx.confidenceMargin}
             </span>
           )}
@@ -196,11 +196,11 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
       <div className="grid grid-cols-[auto_1fr_auto] gap-y-0.5 items-center">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple/70" />
-          <span className="text-[10px] font-mono font-medium text-cipher-purple uppercase tracking-wider">Shield</span>
+          <span className="text-caption font-mono font-medium text-cipher-purple uppercase tracking-wider">Shield</span>
         </div>
         <div />
         <div className="flex items-center gap-1.5 justify-end">
-          <span className="text-[10px] font-mono font-medium text-cipher-orange uppercase tracking-wider">Unshield</span>
+          <span className="text-caption font-mono font-medium text-cipher-orange uppercase tracking-wider">Unshield</span>
           <div className="w-1.5 h-1.5 rounded-full bg-cipher-orange/70" />
         </div>
 
@@ -209,7 +209,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         </span>
         <div className="flex items-center mx-2 sm:mx-4">
           <div className="risk-connector-line" />
-          <span className="text-[10px] font-mono text-muted px-2 sm:px-3 whitespace-nowrap">
+          <span className="text-caption font-mono text-muted px-2 sm:px-3 whitespace-nowrap">
             {timeDeltaDisplay}
           </span>
           <div className="risk-connector-line" />
@@ -220,9 +220,9 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
 
         <div className="flex items-center gap-1 min-w-0">
           {shieldAddress ? (
-            <AddressDisplay address={shieldAddress} className="text-[11px]" />
+            <AddressDisplay address={shieldAddress} className="text-caption" />
           ) : (
-            <HashLink value={tx.shieldTxid} copy={false} linkClassName="font-mono text-[11px] text-muted truncate" />
+            <HashLink value={tx.shieldTxid} copy={false} linkClassName="font-mono text-caption text-muted truncate" />
           )}
           <TxLink href={`/tx/${tx.shieldTxid}`} />
         </div>
@@ -230,9 +230,9 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
         <div className="flex items-center gap-1 min-w-0 justify-end">
           <TxLink href={`/tx/${tx.deshieldTxid}`} />
           {deshieldAddress ? (
-            <AddressDisplay address={deshieldAddress} className="text-[11px]" />
+            <AddressDisplay address={deshieldAddress} className="text-caption" />
           ) : (
-            <HashLink value={tx.deshieldTxid} copy={false} linkClassName="font-mono text-[11px] text-muted truncate" />
+            <HashLink value={tx.deshieldTxid} copy={false} linkClassName="font-mono text-caption text-muted truncate" />
           )}
         </div>
       </div>
@@ -245,7 +245,7 @@ export function RiskyTxCard({ tx }: RiskyTxCardProps) {
           { label: 'Ambiguity', value: tx.ambiguityScore ?? 0 },
         ].map((metric) => (
           <div key={metric.label} className="rounded-xl border border-cipher-border bg-cipher-surface/20 px-3 py-2">
-            <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">{metric.label}</p>
+            <p className="text-caption font-mono uppercase tracking-[0.16em] text-muted">{metric.label}</p>
             <p className="mt-1 text-lg font-mono tabular-nums text-primary">{metric.value}</p>
           </div>
         ))}

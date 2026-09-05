@@ -544,14 +544,14 @@ function TrendsChart() {
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={{ stroke: colors.grid }}
                 interval="preserveStartEnd"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
@@ -559,7 +559,7 @@ function TrendsChart() {
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 11, fill: colors.axis }}
+                tick={{ fontSize: 12, fill: colors.axis }}
                 tickLine={false}
                 axisLine={false}
                 domain={[0, 100]}
@@ -582,7 +582,7 @@ function TrendsChart() {
                 }}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, cursor: 'pointer' }}
+                wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
                 onClick={(entry) => {
                   const key = (entry as { dataKey?: string }).dataKey;
                   if (key) setHidden(prev => ({ ...prev, [key]: !prev[key] }));

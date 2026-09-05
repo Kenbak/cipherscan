@@ -12,7 +12,7 @@ export function ThemeToggle() {
         className="relative p-1.5 rounded-lg transition duration-200"
         aria-label="Toggle theme"
       >
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

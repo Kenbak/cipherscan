@@ -54,7 +54,7 @@ function TurnstileLinkCard() {
           elsewhere?
         </p>
       </div>
-      <span className="shrink-0 text-[10px] font-mono text-cipher-gold">Open →</span>
+      <span className="shrink-0 text-caption font-mono text-cipher-gold">Open →</span>
     </Link>
   );
 }
@@ -94,7 +94,7 @@ function RecentLargeFlows() {
         <SectionHeader
           label="RECENT_LARGE_FLOWS"
           actions={
-            <Link href="/txs?type=shielded" className="text-[10px] font-mono text-cipher-gold hover:underline">
+            <Link href="/txs?type=shielded" className="text-caption font-mono text-cipher-gold hover:underline">
               View all →
             </Link>
           }

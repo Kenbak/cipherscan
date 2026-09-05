@@ -6,7 +6,7 @@ import { ShieldFlowIcon, SHIELD_FLOW_LABELS } from '@/components/icons/shield-fl
 export function FlowLegend({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono text-muted ${className}`.trim()}
+      className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-caption font-mono text-muted ${className}`.trim()}
     >
       <span className="inline-flex items-center gap-1.5">
         <ShieldFlowIcon type="shielding" size={14} />

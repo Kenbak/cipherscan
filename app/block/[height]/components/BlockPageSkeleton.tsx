@@ -18,9 +18,9 @@ export function BlockPageSkeleton({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
       <div className="mb-6">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
-          <h1 className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${initialSummary?.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
+          <h1 className={`type-page font-mono ${initialSummary?.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}>
             {initialSummary
               ? `${initialSummary.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #${initialSummary.height.toLocaleString()}`
               : 'Zcash Block'}
@@ -53,19 +53,19 @@ export function BlockPageSkeleton({
           <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-mono text-muted">
             {initialSummary.timestamp != null && (
               <div className="flex items-center gap-1.5">
-                <dt className="text-muted/60">Mined</dt>
+                <dt className="text-muted">Mined</dt>
                 <dd className="text-secondary">{formatRelativeTime(initialSummary.timestamp)}</dd>
               </div>
             )}
             {initialSummary.transactionCount != null && (
               <div className="flex items-center gap-1.5">
-                <dt className="text-muted/60">Transactions</dt>
+                <dt className="text-muted">Transactions</dt>
                 <dd className="text-secondary">{initialSummary.transactionCount.toLocaleString()}</dd>
               </div>
             )}
             {initialSummary.size != null && (
               <div className="flex items-center gap-1.5">
-                <dt className="text-muted/60">Size</dt>
+                <dt className="text-muted">Size</dt>
                 <dd className="text-secondary">{formatBytesCompact(initialSummary.size)}</dd>
               </div>
             )}

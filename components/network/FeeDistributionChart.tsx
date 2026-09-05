@@ -56,9 +56,9 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
         <button
           key={p}
           onClick={() => setPeriod(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             period === p
-              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -96,16 +96,16 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 angle={-35}
                 textAnchor="end"
                 height={50}
               />
               <YAxis
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 11 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v) => `${v.toFixed(2)}`}
-                label={{ value: 'mZEC', angle: -90, position: 'insideLeft', fill: colors.axis, style: { fontSize: 10 } }}
+                label={{ value: 'mZEC', angle: -90, position: 'insideLeft', fill: colors.axis, style: { fontSize: 12 } }}
               />
               <Tooltip
                 contentStyle={{
@@ -135,7 +135,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
                     p10: 'P10',
                   };
                   return (
-                    <span style={{ color: colors.tooltipText, fontSize: 11 }}>
+                    <span style={{ color: colors.tooltipText, fontSize: 12 }}>
                       {labels[value] || value}
                     </span>
                   );

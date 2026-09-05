@@ -78,7 +78,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           {/* Header + close */}
           <div className="flex justify-between items-start mb-5">
             <div>
-              <p className="text-[10px] font-mono text-muted tracking-widest uppercase mb-1">
+              <p className="text-caption font-mono text-muted tracking-widest uppercase mb-1">
                 {'>'} SUPPORT_ZECBLOCK
               </p>
               <h2 className="text-lg font-semibold tracking-tight text-primary">
@@ -142,7 +142,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
             onClick={copyAddress}
             className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-gold/30 transition"
           >
-            <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
+            <p className="text-caption font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
               <span>Shielded · Unified Address</span>
               <span className="flex items-center gap-1 text-cipher-gold">
                 {copied ? (
@@ -163,13 +163,13 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                 )}
               </span>
             </p>
-            <code className="text-[10px] font-mono text-secondary break-all leading-relaxed">
+            <code className="text-caption font-mono text-secondary break-all leading-relaxed">
               {DONATION_ADDRESS}
             </code>
           </button>
 
           {/* Footer note */}
-          <p className="text-[11px] text-muted text-center font-mono">
+          <p className="text-caption text-muted text-center font-mono">
             Private &amp; encrypted · Open-source explorer
           </p>
         </div>

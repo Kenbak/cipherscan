@@ -195,7 +195,7 @@ export function SupplyTimelineScrubber({
               return (
                 <span
                   key={`${m.id}-label`}
-                  className="pointer-events-none absolute top-0 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono text-muted"
+                  className="pointer-events-none absolute top-0 -translate-x-1/2 whitespace-nowrap text-caption font-mono text-muted"
                   style={{ left: `${m.pct}%`, color: m.color }}
                 >
                   {m.label}
@@ -208,7 +208,7 @@ export function SupplyTimelineScrubber({
         <button
           type="button"
           onClick={onLive}
-          className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition ${
+          className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-caption font-mono uppercase tracking-wider transition ${
             mode === 'live'
               ? 'border-cipher-green/40 bg-cipher-green/10 text-cipher-green'
               : isDark
@@ -225,13 +225,13 @@ export function SupplyTimelineScrubber({
         </button>
       </div>
 
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted">
+      <div className="flex items-center justify-between text-caption font-mono text-muted">
         <span>2016</span>
         <span>{mode === 'live' ? 'Today' : scrubDateLabel ?? 'Snapshot'}</span>
       </div>
 
       {coverageStart && dataStartPct > 2 ? (
-        <p className="mt-1.5 text-[10px] font-mono text-muted/80">
+        <p className="mt-1.5 text-caption font-mono text-muted">
           Supply data indexed from {coverageStart}
         </p>
       ) : null}

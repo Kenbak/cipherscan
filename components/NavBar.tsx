@@ -212,7 +212,7 @@ export function NavBar() {
                   target="_blank"
                   rel="noopener"
                   title="Buy ZEC on CipherSwap"
-                  className="hidden md:flex items-center gap-1 text-xs font-mono font-bold text-cipher-yellow hover:opacity-80 transition-opacity duration-150 px-2 py-1"
+                  className="hidden md:flex items-center gap-1 text-xs font-mono font-semibold text-cipher-yellow hover:opacity-80 transition-opacity duration-150 px-2 py-1"
                 >
                   <span className="text-cipher-yellow/50">&gt;</span>
                   Buy ZEC
@@ -239,7 +239,7 @@ export function NavBar() {
                   <div className="absolute right-0 mt-1 w-36 dropdown-menu rounded-lg shadow-xl border p-1 z-50 animate-scale-in origin-top-right">
                     <a
                       href={MAINNET_URL}
-                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                      className={`block px-3 py-2 rounded-md text-caption font-mono transition-colors ${
                         isMainnet ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
                       }`}
                     >
@@ -247,7 +247,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={TESTNET_URL}
-                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                      className={`block px-3 py-2 rounded-md text-caption font-mono transition-colors ${
                         !isMainnet && !isCrosslink ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
                       }`}
                     >
@@ -255,7 +255,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={CROSSLINK_URL}
-                      className={`block px-3 py-2 rounded-md text-[12px] font-mono transition-colors ${
+                      className={`block px-3 py-2 rounded-md text-caption font-mono transition-colors ${
                         isCrosslink ? 'text-primary bg-cipher-hover' : 'text-secondary dropdown-item'
                       }`}
                     >
@@ -328,7 +328,7 @@ export function NavBar() {
                     onClick={() => setMobileAccordion(prev => prev === cat.id ? null : cat.id)}
                     className="flex items-center justify-between w-full px-3 py-2.5 rounded-md transition-colors duration-150 text-left mobile-menu-item"
                   >
-                    <span className="text-[10px] font-mono text-muted tracking-widest uppercase">{cat.label}</span>
+                    <span className="text-caption font-mono text-muted tracking-widest uppercase">{cat.label}</span>
                     <svg
                       className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${mobileAccordion === cat.id ? 'rotate-180' : ''}`}
                       fill="none"
@@ -349,7 +349,7 @@ export function NavBar() {
                           className="flex flex-col px-3 py-2 ml-2 mobile-menu-item rounded-md transition-colors duration-150"
                         >
                           <span className="text-sm font-mono">{item.label}</span>
-                          <span className="text-[10px] text-muted mt-0.5">{item.desc}</span>
+                          <span className="text-caption text-muted mt-0.5">{item.desc}</span>
                         </Link>
                       ))}
                     </div>
@@ -366,7 +366,7 @@ export function NavBar() {
                     target="_blank"
                     rel="noopener"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg font-mono text-sm font-bold text-cipher-yellow border border-cipher-yellow/30 hover:bg-cipher-yellow/10 transition"
+                    className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg font-mono text-sm font-semibold text-cipher-yellow border border-cipher-yellow/30 hover:bg-cipher-yellow/10 transition"
                   >
                     <span className="text-cipher-yellow/50">&gt;</span>
                     Buy ZEC
@@ -381,7 +381,7 @@ export function NavBar() {
                   <div className="flex items-center gap-2">
                     <a
                       href={MAINNET_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
+                      className={`text-caption font-mono px-2.5 py-1.5 rounded-md transition ${
                         isMainnet ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >
@@ -389,7 +389,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={TESTNET_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
+                      className={`text-caption font-mono px-2.5 py-1.5 rounded-md transition ${
                         !isMainnet && !isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >
@@ -397,7 +397,7 @@ export function NavBar() {
                     </a>
                     <a
                       href={CROSSLINK_URL}
-                      className={`text-[11px] font-mono px-2.5 py-1.5 rounded-md transition ${
+                      className={`text-caption font-mono px-2.5 py-1.5 rounded-md transition ${
                         isCrosslink ? 'bg-cipher-hover text-primary' : 'text-muted hover:text-primary'
                       }`}
                     >

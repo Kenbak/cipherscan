@@ -278,8 +278,8 @@ export default async function TxLayout({ params, children }: Props) {
         aria-labelledby="transaction-heading"
       >
         <p className="text-xs font-mono text-muted tracking-wider">&gt; TX_LOOKUP</p>
-        <h1 id="transaction-heading" className="mt-2">
-          <span className="block text-lg sm:text-xl font-semibold tracking-tight text-primary">
+        <h1 id="transaction-heading" className="type-page mt-2">
+          <span className="block type-page text-primary">
             Zcash Transaction
           </span>
           <span className="mt-2 flex items-center gap-2 min-w-0">

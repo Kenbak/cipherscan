@@ -48,7 +48,7 @@ export function BlockPageHeader({
 
   return (
     <div className="mb-6 animate-fade-in-up">
-      <span className="text-[10px] font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
+      <span className="text-caption font-mono text-muted tracking-wider">&gt; BLOCK_DETAILS</span>
 
       {/* Identity: just the title, nothing competing with it on the line.
           A 3xl heading next to small pill buttons (whichever ones) always
@@ -56,7 +56,7 @@ export function BlockPageHeader({
           "things to click" onto their own rows fixes that regardless of
           which controls end up on which row. */}
       <h1
-        className={`mt-1 text-xl sm:text-2xl md:text-3xl font-bold font-mono ${data.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}
+        className={`type-page mt-1 font-mono ${data.isOrphaned ? 'text-cipher-orange' : 'text-primary'}`}
       >
         {data.isOrphaned ? 'Orphaned Zcash Block' : 'Zcash Block'} #{data.height.toLocaleString()}
       </h1>

@@ -83,14 +83,14 @@ export function OutputsSection({
                 key={index}
                 className={`flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden ${matchedBridge ? 'bg-cipher-gold/5 -mx-3 px-3 rounded' : ''}`}
               >
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   {outputAddr ? (
                     <div className="flex items-center gap-1 min-w-0">
                       <Link href={`/address/${outputAddr}`} className="min-w-0 block overflow-hidden">
-                        <code className="text-[11px] text-primary hover:underline transition-colors font-mono truncate block">
+                        <code className="text-caption text-primary hover:underline transition-colors font-mono truncate block">
                           {outputAddr}
                         </code>
                       </Link>
@@ -128,7 +128,7 @@ export function OutputsSection({
                     <span className="text-xs text-muted font-mono italic">No address</span>
                   )}
                 </div>
-                <span className="text-[11px] font-mono text-primary shrink-0 tabular-nums">
+                <span className="text-caption font-mono text-primary shrink-0 tabular-nums">
                   {output.value?.toFixed(8)}
                 </span>
               </div>
@@ -137,7 +137,7 @@ export function OutputsSection({
 
           {valueBalance < 0 && (
             <div className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-              <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+              <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                 {data.outputs.length}
               </span>
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -158,7 +158,7 @@ export function OutputsSection({
                   } POOL`}
                 />
               </div>
-              <span className="text-[11px] font-mono text-primary font-semibold shrink-0 tabular-nums">
+              <span className="text-caption font-mono text-primary font-semibold shrink-0 tabular-nums">
                 {Math.abs(valueBalance).toFixed(8)}
               </span>
             </div>
@@ -168,39 +168,39 @@ export function OutputsSection({
             valueBalance >= 0 &&
             Array.from({ length: data.saplingOutputCount }).map((_, index) => (
               <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {data.outputs.length + index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="sapling" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 
           {showOrchardPlaceholder &&
             Array.from({ length: data.orchardActions || 0 }).map((_, index) => (
               <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="orchard" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 
           {showIronwoodPlaceholder &&
             Array.from({ length: data.ironwoodActions || 0 }).map((_, index) => (
               <div key={`iw-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="ironwood" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 

@@ -33,7 +33,7 @@ export function InfoRow({
     >
       <div className="flex items-center min-w-[140px] sm:min-w-[200px] text-secondary">
         {icon && <span className="mr-2 [&>svg]:w-4 [&>svg]:h-4">{icon}</span>}
-        <span className="text-xs sm:text-sm">{label}</span>
+        <span className="text-sm">{label}</span>
         {tooltip && (
           <span className="ml-2">
             <Tooltip content={tooltip} />
@@ -41,7 +41,7 @@ export function InfoRow({
         )}
       </div>
       <div
-        className={`flex-1 font-mono text-xs sm:text-sm ${valueClass} break-all ${
+        className={`flex-1 font-mono text-sm ${valueClass} break-all ${
           onClick ? 'cursor-pointer hover:text-primary transition-colors' : ''
         }`}
         onClick={onClick}

@@ -42,7 +42,7 @@ export default function NotFound() {
       <div className="text-center animate-fade-in">
         {/* Glitchy 404 */}
         <div className="relative mb-6">
-          <h1 className="text-[100px] sm:text-[150px] font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-cipher-gold via-cipher-purple to-cipher-green leading-none select-none">
+          <h1 className="type-page font-mono text-primary select-none">
             {glitchText}
           </h1>
           {/* Scan line effect */}
@@ -53,7 +53,7 @@ export default function NotFound() {
 
         {/* Message */}
         <div className="space-y-3 mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold font-mono text-secondary">
+          <h2 className="text-xl sm:text-2xl font-semibold font-mono text-secondary">
             PAGE_NOT_FOUND
           </h2>
           <p className="text-secondary text-base sm:text-lg max-w-lg mx-auto">

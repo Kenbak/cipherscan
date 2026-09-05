@@ -196,7 +196,7 @@ export default function BlendCheckPage() {
           <span className="text-muted opacity-50 font-mono text-xs">{'>'}</span>
           <span className="text-xs font-mono text-muted uppercase tracking-wider">BLEND_CHECK</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+        <h1 className="type-page text-primary ">
           Blend Check
         </h1>
         <p className="text-sm text-secondary mt-2 max-w-lg">
@@ -211,7 +211,7 @@ export default function BlendCheckPage() {
           {/* Amount input */}
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                 How much are you shielding?
               </h2>
             </CardHeader>
@@ -223,7 +223,7 @@ export default function BlendCheckPage() {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0.00"
-                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-gold/40 focus:shadow-[0_0_0_3px_rgba(248,188,33,0.06)] transition"
+                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/40 focus:shadow-[0_0_0_3px_rgba(248,188,33,0.06)] transition"
                   autoFocus
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted font-mono text-lg">
@@ -265,7 +265,7 @@ export default function BlendCheckPage() {
               <CardBody>
                 <div className="flex items-start gap-4">
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${getScoreBg(score)}/10 border border-cipher-border`}>
-                    <span className={`text-2xl font-bold font-mono ${getScoreColor(score)}`}>
+                    <span className={`text-2xl font-semibold font-mono ${getScoreColor(score)}`}>
                       {score}
                     </span>
                   </div>
@@ -319,7 +319,7 @@ export default function BlendCheckPage() {
           {splitResult && hasResult && (
             <Card className="animate-fade-in-up stagger-5">
               <CardHeader>
-                <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                   Split Plan
                 </h2>
               </CardHeader>
@@ -411,12 +411,12 @@ export default function BlendCheckPage() {
                                           style={{ width: `${Math.max(piece.blendScore, 5)}%` }}
                                         />
                                       </div>
-                                      <span className={`text-[10px] font-mono ${getScoreColor(piece.blendScore)}`}>
+                                      <span className={`text-caption font-mono ${getScoreColor(piece.blendScore)}`}>
                                         {piece.blendScore}
                                       </span>
                                     </div>
                                   </div>
-                                  <p className="text-[10px] text-muted mt-1 font-mono">
+                                  <p className="text-caption text-muted mt-1 font-mono">
                                     {piece.isRemainder && piece.blendScore < 40
                                       ? 'Shield this separately, at a different time'
                                       : piece.blendScore >= 70
@@ -433,7 +433,7 @@ export default function BlendCheckPage() {
                           <div className="mt-4 pt-3 border-t border-cipher-border flex items-center justify-between">
                             <p className="text-xs text-muted font-mono">
                               Weakest piece: <span className={getScoreColor(plan.minBlendScore)}>{plan.minBlendScore}/100</span>
-                              <span className="text-muted/50 ml-2">
+                              <span className="text-muted ml-2">
                                 (was {score})
                               </span>
                             </p>
@@ -483,7 +483,7 @@ export default function BlendCheckPage() {
               {/* Period breakdown */}
               <Card>
                 <CardHeader>
-                  <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                     Shielded Pool Matches
                   </h2>
                 </CardHeader>
@@ -494,22 +494,22 @@ export default function BlendCheckPage() {
                       const labels: Record<string, string> = { '24h': '24 Hours', '7d': '7 Days', '30d': '30 Days', 'all': 'All Time' };
                       return (
                         <div key={p} className="rounded-xl border border-cipher-border bg-cipher-hover p-4">
-                          <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-2">
+                          <div className="text-caption font-mono text-muted uppercase tracking-wider mb-2">
                             {labels[p]}
                           </div>
-                          <div className="text-xl font-bold font-mono text-primary">
+                          <div className="text-xl font-semibold font-mono text-primary">
                             {formatNumber(d.total)}
                           </div>
                           <div className="flex items-center gap-3 mt-2">
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
-                              <span className="text-[10px] font-mono text-muted">
+                              <span className="text-caption font-mono text-muted">
                                 {formatNumber(d.shields)} in
                               </span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60" />
-                              <span className="text-[10px] font-mono text-muted">
+                              <span className="text-caption font-mono text-muted">
                                 {formatNumber(d.deshields)} out
                               </span>
                             </div>
@@ -518,7 +518,7 @@ export default function BlendCheckPage() {
                       );
                     })}
                   </div>
-                  <div className="mt-4 pt-3 border-t border-cipher-border flex items-center gap-4 text-[10px] font-mono text-muted">
+                  <div className="mt-4 pt-3 border-t border-cipher-border flex items-center gap-4 text-caption font-mono text-muted">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-cipher-green/60" />
                       <span>in = shielding (t → z)</span>
@@ -535,7 +535,7 @@ export default function BlendCheckPage() {
               {result.nearbyPopular.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
+                    <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">
                       Popular Nearby
                     </h2>
                   </CardHeader>
@@ -569,7 +569,7 @@ export default function BlendCheckPage() {
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-muted font-mono mt-3">
+                    <p className="text-caption text-muted font-mono mt-3">
                       Ranked by blend score. Click any amount to check it.
                     </p>
                   </CardBody>

@@ -60,16 +60,16 @@ export function PrivacyTimelineChart({
               hide={compact}
               tickFormatter={(value) => new Date(value * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               stroke="#94A3B8"
-              fontSize={10}
+              fontSize={12}
             />
             <YAxis
               dataKey="value"
               hide={compact}
               stroke="#94A3B8"
-              fontSize={10}
+              fontSize={12}
               width={36}
               tickFormatter={(value) => `${value}`}
-              label={compact ? undefined : { value: yLabel, angle: -90, position: 'insideLeft', fill: '#94A3B8', fontSize: 10 }}
+              label={compact ? undefined : { value: yLabel, angle: -90, position: 'insideLeft', fill: '#94A3B8', fontSize: 12 }}
             />
             <Tooltip
               cursor={{ strokeDasharray: '3 3', stroke: '#91AC90' }}

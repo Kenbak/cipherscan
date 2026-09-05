@@ -91,7 +91,7 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
 }) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center text-[10px] text-muted/30 font-mono">
+      <div className="h-full w-full flex items-center justify-center text-caption text-muted font-mono">
         No data
       </div>
     );
@@ -101,14 +101,14 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
 
   const xAxisProps = {
     dataKey: 'label',
-    tick: { fontSize: 9, fill: '#64748b' },
+    tick: { fontSize: 12, fill: '#64748b' },
     tickLine: false,
     axisLine: { stroke: '#1e293b' },
     interval: ('preserveStartEnd' as const),
   };
 
   const yAxisProps = {
-    tick: { fontSize: 9, fill: '#64748b' },
+    tick: { fontSize: 12, fill: '#64748b' },
     tickLine: false,
     axisLine: false,
     tickFormatter: formatCompact,
@@ -120,11 +120,11 @@ function MiniChart({ data, dataKey, color, type = 'line' }: {
       backgroundColor: '#0f1419',
       border: '1px solid #1e293b',
       borderRadius: 6,
-      fontSize: 11,
-      fontFamily: 'monospace',
+      fontSize: 12,
+      fontFamily: 'var(--font-geist-mono), monospace',
       padding: '6px 10px',
     },
-    labelStyle: { color: '#94a3b8', fontSize: 10, marginBottom: 2 },
+    labelStyle: { color: '#94a3b8', fontSize: 12, marginBottom: 2 },
     itemStyle: { color: '#e2e8f0', padding: 0 },
     cursor: { stroke: '#374151', strokeWidth: 1 },
   };
@@ -193,16 +193,16 @@ function ChartGridCard({ chart, chartData, accent }: { chart: ChartEntry; chartD
     >
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-[11px] font-bold font-mono text-secondary group-hover:text-primary transition-colors uppercase tracking-wider truncate">
+          <h3 className="text-caption font-semibold font-mono text-secondary group-hover:text-primary transition-colors uppercase tracking-wider truncate">
             {chart.title}
           </h3>
           {chart.isNew && (
-            <span className="px-1 py-0.5 rounded text-[8px] font-mono font-bold bg-cipher-green/10 text-cipher-green uppercase flex-shrink-0">
+            <span className="px-1 py-0.5 rounded text-caption font-mono font-semibold bg-cipher-green/10 text-cipher-green uppercase flex-shrink-0">
               New
             </span>
           )}
         </div>
-        <span className="text-[9px] text-muted/40 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-caption text-muted font-mono opacity-0 group-hover:opacity-100 transition-opacity">
           open →
         </span>
       </div>
@@ -215,7 +215,7 @@ function ChartGridCard({ chart, chartData, accent }: { chart: ChartEntry; chartD
         />
       </div>
       <div className="px-4 pb-3 border-t border-cipher-border/20 pt-2">
-        <p className="text-[10px] text-muted leading-relaxed line-clamp-1">
+        <p className="text-caption text-muted leading-relaxed line-clamp-1">
           {chart.description}
         </p>
       </div>
@@ -310,7 +310,7 @@ function NodeMapMiniViz() {
         })}
       </svg>
       {nodes.length > 0 && (
-        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-white/40">
+        <div className="absolute bottom-2 left-3 text-caption font-mono text-white/40">
           {nodes.length} locations
         </div>
       )}
@@ -398,11 +398,11 @@ function MempoolMiniViz() {
       })}
       {txs.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[10px] text-white/30 font-mono">awaiting txs...</span>
+          <span className="text-caption text-white/30 font-mono">awaiting txs...</span>
         </div>
       )}
       {txs.length > 0 && (
-        <div className="absolute bottom-2 left-3 text-[9px] font-mono text-white/40">
+        <div className="absolute bottom-2 left-3 text-caption font-mono text-white/40">
           {txs.length} pending
         </div>
       )}
@@ -417,21 +417,21 @@ function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; lo
   return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-cipher-bg-dark p-5 relative">
       <div className="text-center mb-4">
-        <div className="text-3xl font-bold font-mono text-white">{total.toLocaleString()}</div>
-        <div className="text-[9px] font-mono text-white/50 uppercase mt-1">detected (7d)</div>
+        <div className="text-3xl font-semibold font-mono text-white">{total.toLocaleString()}</div>
+        <div className="text-caption font-mono text-white/50 uppercase mt-1">detected (7d)</div>
       </div>
       <div className="grid grid-cols-3 gap-6 w-full max-w-[220px]">
         <div className="text-center">
-          <div className="text-lg font-bold font-mono text-danger">{data.high}</div>
-          <div className="text-[8px] font-mono text-danger/60 uppercase">High</div>
+          <div className="text-lg font-semibold font-mono text-danger">{data.high}</div>
+          <div className="text-caption font-mono text-danger/60 uppercase">High</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold font-mono text-amber-400">{data.medium}</div>
-          <div className="text-[8px] font-mono text-amber-400/60 uppercase">Med</div>
+          <div className="text-lg font-semibold font-mono text-amber-400">{data.medium}</div>
+          <div className="text-caption font-mono text-amber-400/60 uppercase">Med</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold font-mono text-cipher-green">{data.low.toLocaleString()}</div>
-          <div className="text-[8px] font-mono text-cipher-green/60 uppercase">Low</div>
+          <div className="text-lg font-semibold font-mono text-cipher-green">{data.low.toLocaleString()}</div>
+          <div className="text-caption font-mono text-cipher-green/60 uppercase">Low</div>
         </div>
       </div>
     </div>
@@ -490,7 +490,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search charts..."
-            className="w-full pl-10 pr-4 py-2 text-sm font-mono bg-glass-3 border border-cipher-border rounded-lg text-primary placeholder:text-muted/60 focus:outline-none focus:border-white/20 transition-colors"
+            className="w-full pl-10 pr-4 py-2 text-sm font-mono bg-glass-3 border border-cipher-border rounded-lg text-primary placeholder:text-muted focus:outline-none focus:border-white/20 transition-colors"
           />
         </div>
         <div className="inline-flex gap-0 p-0.5 rounded-lg bg-glass-3 overflow-x-auto">
@@ -498,9 +498,9 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
             <button
               key={cat.key}
               onClick={() => setCategory(cat.key)}
-              className={`px-3 py-1.5 text-[11px] font-mono rounded-md transition whitespace-nowrap ${
+              className={`px-3 py-1.5 text-caption font-mono rounded-md transition whitespace-nowrap ${
                 category === cat.key
-                  ? 'bg-white/5 text-primary font-bold border border-white/10'
+                  ? 'bg-white/5 text-primary font-semibold border border-white/10'
                   : 'text-muted hover:text-secondary border border-transparent'
               }`}
             >
@@ -521,11 +521,11 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
               <section key={cat}>
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORY_ACCENT[cat] }} />
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                     {cat}
                   </h2>
                   <div className="flex-1 h-px bg-cipher-border/30" />
-                  <span className="text-[10px] text-muted font-mono">{catCharts.length} charts</span>
+                  <span className="text-caption text-muted font-mono">{catCharts.length} charts</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {catCharts.map(chart => (
@@ -571,11 +571,11 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
         <section className="mt-12">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-2 h-2 rounded-full bg-cipher-green" />
-            <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+            <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
               Live Visualizations
             </h2>
             <div className="flex-1 h-px bg-cipher-border/30" />
-            <span className="text-[10px] text-muted font-mono">interactive</span>
+            <span className="text-caption text-muted font-mono">interactive</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {LIVE_VIZ_DEFS.map(v => (
@@ -589,12 +589,12 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
                 </div>
                 <div className="px-4 pb-3 border-t border-cipher-border/20 pt-2 flex items-center justify-between">
                   <div>
-                    <h3 className="text-[11px] font-bold font-mono text-secondary group-hover:text-primary transition-colors uppercase tracking-wider">
+                    <h3 className="text-caption font-semibold font-mono text-secondary group-hover:text-primary transition-colors uppercase tracking-wider">
                       {v.title}
                     </h3>
-                    <p className="text-[10px] text-muted mt-0.5">{v.description}</p>
+                    <p className="text-caption text-muted mt-0.5">{v.description}</p>
                   </div>
-                  <span className="text-[9px] text-muted/40 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-caption text-muted font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                     open →
                   </span>
                 </div>
@@ -605,7 +605,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
       )}
 
       <div className="mt-14 text-center">
-        <p className="text-[10px] text-muted/50 font-mono">
+        <p className="text-caption text-muted font-mono">
           Data refreshes every 5 minutes. Click any chart for the full interactive version with period selectors and legends.
         </p>
       </div>

@@ -112,23 +112,23 @@ export default function ValidatorsPage() {
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="card p-4 text-center min-w-0">
-            <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalizers</span>
-            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.finalizerCount}</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Finalizers</span>
+            <span className="text-xl sm:text-2xl font-mono font-semibold text-primary tabular-nums whitespace-nowrap">{data.finalizerCount}</span>
           </div>
           <div className="card p-4 text-center min-w-0">
-            <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Total Stake</span>
-            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">
+            <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Total Stake</span>
+            <span className="text-xl sm:text-2xl font-mono font-semibold text-primary tabular-nums whitespace-nowrap">
               {data.totalStakeZec.toFixed(2)}
-              <span className="text-[10px] font-medium text-muted ml-1">{CURRENCY}</span>
+              <span className="text-caption font-medium text-muted ml-1">{CURRENCY}</span>
             </span>
           </div>
           <div className="card p-4 text-center min-w-0">
-            <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">Finalized</span>
-            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.finalizedHeight.toLocaleString()}</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">Finalized</span>
+            <span className="text-xl sm:text-2xl font-mono font-semibold text-primary tabular-nums whitespace-nowrap">{data.finalizedHeight.toLocaleString()}</span>
           </div>
           <div className="card p-4 text-center min-w-0">
-            <span className="text-[10px] font-mono text-muted uppercase tracking-wider block mb-1">PoW Tip</span>
-            <span className="text-xl sm:text-2xl font-mono font-bold text-primary tabular-nums whitespace-nowrap">{data.tipHeight.toLocaleString()}</span>
+            <span className="text-caption font-mono text-muted uppercase tracking-wider block mb-1">PoW Tip</span>
+            <span className="text-xl sm:text-2xl font-mono font-semibold text-primary tabular-nums whitespace-nowrap">{data.tipHeight.toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -137,7 +137,7 @@ export default function ValidatorsPage() {
         <div className="card p-4 mb-8">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-mono text-muted uppercase tracking-wider">Finalizer Liveness</h3>
-            <span className="text-[10px] font-mono text-muted">
+            <span className="text-caption font-mono text-muted">
               BFT height {data.liveness.bftHeight?.toLocaleString()} &middot; round {data.liveness.bftRound}
             </span>
           </div>
@@ -145,7 +145,7 @@ export default function ValidatorsPage() {
           {data.liveness.connectedPercent != null && (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-mono text-muted uppercase w-16">Connected</span>
+                <span className="text-caption font-mono text-muted uppercase w-16">Connected</span>
                 <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
                   <div
                     className="bg-gold-500 transition-[width] duration-500"
@@ -153,7 +153,7 @@ export default function ValidatorsPage() {
                     title={`Connected: ${data.liveness.connectedCount} finalizers (${data.liveness.connectedStakeZec?.toFixed(2)} ${CURRENCY})`}
                   />
                 </div>
-                <span className="text-[10px] font-mono text-gold-400 w-24 text-right">
+                <span className="text-caption font-mono text-gold-400 w-24 text-right">
                   {data.liveness.connectedCount} ({data.liveness.connectedPercent}%)
                 </span>
               </div>
@@ -161,7 +161,7 @@ export default function ValidatorsPage() {
           )}
 
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-mono text-muted uppercase w-16">Voted</span>
+            <span className="text-caption font-mono text-muted uppercase w-16">Voted</span>
             <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
               <div
                 className="bg-cipher-green transition-[width] duration-500"
@@ -169,12 +169,12 @@ export default function ValidatorsPage() {
                 title={`Voted: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
               />
             </div>
-            <span className="text-[10px] font-mono text-cipher-green w-24 text-right">
+            <span className="text-caption font-mono text-cipher-green w-24 text-right">
               {data.liveness.onlineCount} ({data.liveness.onlinePercent}%)
             </span>
           </div>
 
-          <div className="flex justify-between text-[10px] font-mono text-muted/70">
+          <div className="flex justify-between text-caption font-mono text-muted">
             <span>{data.roster.length} total finalizers</span>
             <span>{data.liveness.offlineCount} silent &middot; {data.liveness.offlineStakeZec.toFixed(2)} {CURRENCY} offline</span>
           </div>
@@ -186,10 +186,10 @@ export default function ValidatorsPage() {
           <table className="w-full min-w-[480px]">
             <thead>
               <tr>
-                <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Rank</th>
-                <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
-                <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake</th>
-                <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Share</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Rank</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Public Key</th>
+                <th className="px-3 sm:px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake</th>
+                <th className="px-3 sm:px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Share</th>
               </tr>
             </thead>
             <tbody>
@@ -218,7 +218,7 @@ export default function ValidatorsPage() {
                 value={filter}
                 onChange={(e) => setFilter(e.target.value.toLowerCase().trim())}
                 placeholder="Filter by name or public key"
-                className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted/60 focus:outline-none focus:border-cipher-gold/60 transition-colors"
+                className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted focus:outline-none focus:border-cipher-gold/60 transition-colors"
               />
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -244,12 +244,12 @@ export default function ValidatorsPage() {
             <table className="w-full min-w-[480px]">
               <thead>
                 <tr>
-                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
-                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10" title="Peer discovery status: gold = connected, green = voted, red = silent">Status</th>
-                  <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
-                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
-                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
-                  <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-24 sm:w-28">Voting (500)</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
+                  <th className="px-2 py-3 text-center text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10" title="Peer discovery status: gold = connected, green = voted, red = silent">Status</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-24 sm:w-28">Voting (500)</th>
                 </tr>
               </thead>
               <tbody>
@@ -347,7 +347,7 @@ export default function ValidatorsPage() {
                                 <span className="block text-sm font-semibold text-primary group-hover/link:text-primary transition-colors">
                                   {label.name}
                                 </span>
-                                <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-[11px] font-mono text-muted leading-tight" />
+                                <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-caption font-mono text-muted leading-tight" />
                               </>
                             ) : (
                               <HashLink value={display} lead={10} tail={6} copy={false} linkClassName="text-sm font-mono text-primary group-hover/link:text-primary transition-colors" />
@@ -383,7 +383,7 @@ export default function ValidatorsPage() {
                         {(() => {
                           const pct = participation[member.identity.toLowerCase()];
                           if (pct === undefined) {
-                            return <span className="font-mono text-xs text-muted/60">—</span>;
+                            return <span className="font-mono text-xs text-muted">—</span>;
                           }
                           const color = pct >= 95
                             ? 'bg-cipher-green'
@@ -458,7 +458,7 @@ export default function ValidatorsPage() {
                       className="w-2 h-2 rounded-sm shrink-0"
                       style={finalizerAvatarStyle(display)}
                     />
-                    <span className="text-[10px] font-mono text-muted">
+                    <span className="text-caption font-mono text-muted">
                       {label?.name ?? `${display.slice(0, 8)}...`} ({share.toFixed(1)}%)
                     </span>
                   </div>

@@ -57,6 +57,15 @@ for (const dir of SCAN_DIRS) {
     const lines = src.split('\n');
 
     lines.forEach((line, i) => {
+      for (const m of line.matchAll(/\btext-\[(?:[0-9]|1[01])px\]/g)) {
+        violations.push(`${rel}:${i + 1} sub-12px text "${m[0]}" — use text-caption or a larger role`);
+      }
+      for (const m of line.matchAll(/\btext-(?:muted|secondary|primary)\/\d+/g)) {
+        violations.push(`${rel}:${i + 1} faded information text "${m[0]}" — use the contrast-tested text token without opacity`);
+      }
+      for (const m of line.matchAll(/\bfontSize(?::\s*|=\{)(?:[0-9]|1[01])\b/g)) {
+        violations.push(`${rel}:${i + 1} sub-12px chart text "${m[0]}" — keep chart labels readable`);
+      }
       for (const m of line.matchAll(ARBITRARY_HEX)) {
         violations.push(`${rel}:${i + 1} arbitrary hex color "${m[0]}" — use a token utility`);
       }
@@ -125,4 +134,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log('Design tokens OK — no arbitrary hex colors, no .light style overrides, no static inline var() colors.');
+console.log('Design tokens OK — colors, theme rules, text-size floor and information-text opacity are consistent.');

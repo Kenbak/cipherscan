@@ -80,7 +80,7 @@ export function InteractiveCompositionBar({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-mono">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-caption font-mono">
         {visible.map(segment => {
           const isHovered = hoveredKey === segment.key;
           const isDimmed = hoveredKey != null && !isHovered;
@@ -93,7 +93,7 @@ export function InteractiveCompositionBar({
                 isHovered
                   ? 'text-primary bg-glass-4 ring-1 ring-glass-12'
                   : isDimmed
-                    ? 'text-muted/40'
+                    ? 'text-muted'
                     : 'text-muted hover:text-secondary'
               }`}
               onMouseEnter={() => setHover(segment.key)}

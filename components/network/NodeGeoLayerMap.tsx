@@ -165,8 +165,8 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
                 textAnchor="middle"
                 dominantBaseline="central"
                 fill="#08090F"
-                fontSize={p.radius > 16 ? 11 : 9}
-                fontWeight="700"
+                fontSize={12}
+                fontWeight="600"
                 fontFamily="ui-monospace, 'JetBrains Mono', monospace"
                 className="pointer-events-none select-none"
               >
@@ -184,17 +184,17 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
             <span className="font-semibold text-primary text-sm">{hovered.country}</span>
           </div>
           <div className="flex items-center gap-3 text-xs mt-1.5">
-            <span className="font-mono font-bold" style={{ color: hovered.color }}>
+            <span className="font-mono font-semibold" style={{ color: hovered.color }}>
               {hovered.nodeCount} node{hovered.nodeCount > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="text-[11px] font-mono text-muted mt-1">
+          <div className="text-caption font-mono text-muted mt-1">
             {mode === 'client' ? clientLabel(hovered.topClient) : (hovered.topIsp || 'Unresolved')}
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 max-w-[calc(100%-24px)] backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none bg-cipher-surface-solid">
+      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 max-w-[calc(100%-24px)] backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-caption pointer-events-none bg-cipher-surface-solid">
         {legendEntries.map((entry) => (
           <span key={entry.label} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: entry.color }} />
@@ -203,7 +203,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
         ))}
       </div>
 
-      <p className="absolute top-3 right-3 text-[10px] font-mono text-muted/70 bg-cipher-surface-solid/80 backdrop-blur-sm px-2 py-1 rounded">
+      <p className="absolute top-3 right-3 text-caption font-mono text-muted bg-cipher-surface-solid/80 backdrop-blur-sm px-2 py-1 rounded">
         Dominant {mode === 'client' ? 'client' : 'host'} per ~110km cell
       </p>
     </div>

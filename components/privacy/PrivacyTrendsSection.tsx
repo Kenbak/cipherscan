@@ -56,9 +56,9 @@ function filterTrendsByPeriod(daily: TrendDay[], period: Period): TrendDay[] {
 }
 
 function segmentedClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+  return `px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
+      ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
       : 'text-muted hover:text-primary'
   }`;
 }
@@ -135,7 +135,7 @@ export function PrivacyTrendsSection({
     color: colors.tooltipText,
   };
 
-  const axisLabel = { fill: colors.axis, fontSize: 10 };
+  const axisLabel = { fill: colors.axis, fontSize: 12 };
   const xLabel = { value: 'Date', position: 'insideBottom' as const, offset: -2, ...axisLabel };
   const yAdoptionLabel = {
     value: 'Shielded tx %',
@@ -197,7 +197,7 @@ export function PrivacyTrendsSection({
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   tickFormatter={(value) => formatTrendDate(value)}
                   angle={-35}
                   textAnchor="end"
@@ -205,7 +205,7 @@ export function PrivacyTrendsSection({
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   domain={[0, 100]}
                   width={52}
                   label={yAdoptionLabel}
@@ -232,7 +232,7 @@ export function PrivacyTrendsSection({
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   tickFormatter={(value) => formatTrendDate(value)}
                   angle={-35}
                   textAnchor="end"
@@ -240,7 +240,7 @@ export function PrivacyTrendsSection({
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   width={56}
                   label={yActivityLabel}
                 />
@@ -248,7 +248,7 @@ export function PrivacyTrendsSection({
                   contentStyle={tooltipStyle}
                   labelFormatter={(label) => formatTrendDate(label)}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, color: colors.axis }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: colors.axis }} />
                 <Bar dataKey="shielded" name="Shielded" fill={colors.gold} radius={[3, 3, 0, 0]} />
                 <Bar
                   dataKey="transparent"
@@ -271,7 +271,7 @@ export function PrivacyTrendsSection({
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   tickFormatter={(value) => formatTrendDate(value)}
                   angle={-35}
                   textAnchor="end"
@@ -279,7 +279,7 @@ export function PrivacyTrendsSection({
                   label={xLabel}
                 />
                 <YAxis
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   domain={[0, 100]}
                   width={52}
                   label={yScoreLabel}

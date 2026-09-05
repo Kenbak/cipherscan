@@ -28,7 +28,7 @@ const categoryConfig: Record<string, { color: string; bg: string }> = {
   'donation': { color: 'text-pink-400', bg: 'bg-pink-400/10' },
   'service': { color: 'text-cipher-green', bg: 'bg-cipher-green/10' },
   'faucet': { color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  'custom': { color: 'text-gray-400', bg: 'bg-gray-400/10' },
+  'custom': { color: 'text-muted', bg: 'bg-gray-400/10' },
 };
 
 export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
@@ -260,7 +260,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm truncate suggestion-label">{suggestion.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono uppercase ${style.bg} ${style.color}`}>
+                  <span className={`text-caption px-1.5 py-0.5 rounded font-mono uppercase ${style.bg} ${style.color}`}>
                     {category}
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
         {/* Search Input Container */}
         <div className="relative">
           {/* Terminal prompt */}
-          <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-gold font-mono text-lg sm:text-xl font-bold">
+          <div className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-cipher-gold font-mono text-lg sm:text-xl font-semibold">
             {'>'}
           </div>
 
@@ -330,7 +330,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
             }}
             onBlur={() => setIsFocused(false)}
             placeholder="Search address, tx hash, block, or name..."
-            className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-[13px] sm:text-sm font-mono
+            className={`w-full pl-10 sm:pl-12 pr-14 lg:pr-24 py-3 sm:py-3.5 text-data sm:text-sm font-mono
               search-input-hero border rounded-md text-primary
               placeholder:text-muted transition duration-300
               ${isFocused
@@ -371,7 +371,7 @@ export function SearchBar({ compact = false, subtitle }: SearchBarProps) {
 
       {/* Example Buttons */}
       <div className="mt-2 sm:mt-2.5 flex flex-wrap gap-1.5 sm:gap-2 items-center">
-        <span className="text-[10px] text-muted font-mono uppercase tracking-wider">Try:</span>
+        <span className="text-caption text-muted font-mono uppercase tracking-wider">Try:</span>
         <button
           type="button"
           onClick={() => setQuery('354939')}

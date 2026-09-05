@@ -177,7 +177,7 @@ export default function PrivacyClient() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <Card>
           <CardBody className="py-16 text-center">
-            <h1 className="mb-3 text-xl font-bold text-primary">Privacy stats unavailable</h1>
+            <h1 className="type-page mb-3 text-primary">Privacy stats unavailable</h1>
             <p className="mb-6 text-sm text-secondary">
               {error || 'Statistics are being calculated. Check back soon.'}
             </p>
@@ -200,7 +200,7 @@ export default function PrivacyClient() {
         title="Network privacy health"
         subtitle="One score from recent shielded usage, transaction quality, pool depth, and post-deshield behavior."
         actions={
-          <div className="flex flex-col items-end gap-1 text-[10px] font-mono">
+          <div className="flex flex-col items-end gap-1 text-caption font-mono">
             {usagePercent != null ? (
               <span className="inline-flex items-center gap-1 text-secondary tabular-nums">
                 {usagePercent.toFixed(1)}% shielded tx share · 30d
@@ -223,16 +223,16 @@ export default function PrivacyClient() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted">Privacy Score</p>
+                  <p className="text-caption font-mono uppercase tracking-wider text-muted">Privacy Score</p>
                   <Tooltip content="Composite network privacy health from four rolling inputs: 30-day shielded usage and transaction quality, shielded supply depth, and 90-day turnstile reshield hygiene." />
                 </div>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-5xl font-bold tabular-nums text-primary sm:text-6xl">
+                  <span className="text-5xl font-semibold tabular-nums text-primary sm:text-6xl">
                     {stats.metrics.privacyScore}
                   </span>
                   <span className="text-lg font-mono text-muted">/ 100</span>
                   {stats.metrics.scoreVersion ? (
-                    <span className="rounded-full border border-cipher-border/60 px-2 py-0.5 text-[10px] font-mono text-muted">
+                    <span className="rounded-full border border-cipher-border/60 px-2 py-0.5 text-caption font-mono text-muted">
                       v{stats.metrics.scoreVersion}
                     </span>
                   ) : null}
@@ -240,7 +240,7 @@ export default function PrivacyClient() {
               </div>
               <a
                 href="#how-it-works"
-                className="text-[11px] font-mono text-cipher-gold transition-colors hover:text-primary"
+                className="text-caption font-mono text-cipher-gold transition-colors hover:text-primary"
               >
                 How it works ↓
               </a>
@@ -254,7 +254,7 @@ export default function PrivacyClient() {
                 if (!row) return null;
                 return (
                   <div key={key} className="bg-cipher-surface px-5 py-4">
-                    <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-mono">
+                    <div className="mb-2 flex items-center justify-between gap-2 text-caption font-mono">
                       <div className="flex min-w-0 items-center gap-1">
                         <span className="truncate text-muted">{row.label}</span>
                         <Tooltip content={SCORE_TOOLTIPS[key]} />
@@ -269,7 +269,7 @@ export default function PrivacyClient() {
                         style={{ width: `${row.max > 0 ? (row.score / row.max) * 100 : 0}%` }}
                       />
                     </div>
-                    <p className="text-[10px] font-mono tabular-nums text-secondary">
+                    <p className="text-caption font-mono tabular-nums text-secondary">
                       {scoreInputLabel(key, row.percent)}
                     </p>
                   </div>
@@ -292,7 +292,7 @@ export default function PrivacyClient() {
             <div className="mt-4 flex justify-end border-t border-cipher-border/30 pt-4">
               <Link
                 href="/txs?type=shielded"
-                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-gold/40 hover:text-primary"
+                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-caption font-mono text-primary transition-colors hover:border-cipher-gold/40 hover:text-primary"
               >
                 View all shielded transactions
                 <span aria-hidden>→</span>
@@ -342,7 +342,7 @@ export default function PrivacyClient() {
                 {title}
               </p>
               <p className="mt-2 flex-1 text-xs leading-relaxed text-muted">{description}</p>
-              <span className="mt-4 text-[10px] font-mono text-cipher-gold">Open →</span>
+              <span className="mt-4 text-caption font-mono text-cipher-gold">Open →</span>
             </Link>
           ))}
         </div>

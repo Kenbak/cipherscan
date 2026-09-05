@@ -19,7 +19,7 @@ import * as THREE from 'three';
 
 const ORCHARD_DARK = new THREE.Color('#B6A0E0');
 const IRONWOOD_DARK = new THREE.Color('#F8BC21');
-const ORCHARD_LIGHT = new THREE.Color('#75628E');
+const ORCHARD_LIGHT = new THREE.Color('#6E5885');
 const IRONWOOD_LIGHT = new THREE.Color('#866008');
 
 const ORCHARD_X = -2.7;

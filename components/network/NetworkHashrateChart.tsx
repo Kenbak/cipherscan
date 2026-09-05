@@ -32,9 +32,9 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           key={p}
           type="button"
           onClick={() => onChange(p)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+          className={`px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -71,8 +71,8 @@ export function NetworkHashrateChart() {
     >
       {latest && (
         <p className="text-xs font-mono text-muted mb-3">
-          Latest: <span className="text-cipher-gold font-bold">{formatHashrate(latest.hashrate)}</span>
-          <span className="text-muted/60"> ({latest.date}, {latest.blockCount} blocks)</span>
+          Latest: <span className="text-cipher-gold font-semibold">{formatHashrate(latest.hashrate)}</span>
+          <span className="text-muted"> ({latest.date}, {latest.blockCount} blocks)</span>
         </p>
       )}
       {loading && points.length === 0 ? (
@@ -81,12 +81,13 @@ export function NetworkHashrateChart() {
         </div>
       ) : (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
-          <LineChart data={points}>
+          <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="date"
+              minTickGap={32}
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(d: string) => {
                 const date = new Date(d);
                 return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -94,17 +95,17 @@ export function NetworkHashrateChart() {
             />
             <YAxis
               stroke={colors.axis}
-              tick={{ fill: colors.axis, fontSize: 10 }}
+              tick={{ fill: colors.axis, fontSize: 12 }}
               tickFormatter={(v: number) => formatHashrate(v)}
-              width={68}
+              width={100}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: colors.tooltipBg,
                 border: `1px solid ${colors.tooltipBorder}`,
                 borderRadius: 8,
-                fontSize: 11,
-                fontFamily: 'monospace',
+                fontSize: 12,
+                fontFamily: 'var(--font-geist-mono), monospace',
               }}
               labelFormatter={(d) => String(d)}
               formatter={(value) => [formatHashrate(Number(value)), 'Network hashrate']}

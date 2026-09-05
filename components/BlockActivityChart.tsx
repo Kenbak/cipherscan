@@ -112,14 +112,14 @@ export function BlockActivityChart({
               <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">
                 {'>'}
               </span>
-              <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+              <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                 {title.toUpperCase().replace(/ /g, '_')}
               </h2>
             </div>
             <p className="text-xs text-muted">{subtitle}</p>
           </div>
           {!loading && ordered.length > 0 && (
-            <div className="flex gap-4 text-[11px] font-mono text-muted">
+            <div className="flex gap-4 text-caption font-mono text-muted">
               <Stat label="blocks" value={ordered.length.toString()} />
               <Stat label="avg size" value={fmtBytes(avgSize)} />
               <Stat label="max" value={fmtBytes(maxSize)} />
@@ -140,7 +140,7 @@ export function BlockActivityChart({
         ) : (
           <div className="relative">
             {/* Y axis scale ticks */}
-            <div className="absolute inset-y-0 left-0 w-12 flex flex-col justify-between text-[9px] font-mono text-muted/60 pointer-events-none pr-2 text-right">
+            <div className="absolute inset-y-0 left-0 w-12 flex flex-col justify-between text-caption font-mono text-muted pointer-events-none pr-2 text-right">
               <span>{fmtBytes(maxSize)}</span>
               <span>{fmtBytes(maxSize / 2)}</span>
               <span>0</span>
@@ -168,7 +168,7 @@ export function BlockActivityChart({
             </div>
 
             {/* X axis labels — first/middle/last block heights */}
-            <div className="ml-12 flex justify-between text-[10px] font-mono text-muted mt-1 px-0.5">
+            <div className="ml-12 flex justify-between text-caption font-mono text-muted mt-1 px-0.5">
               <span>#{ordered[0]?.height.toLocaleString()}</span>
               {ordered.length > 2 && (
                 <span className="hidden sm:inline">
@@ -186,15 +186,15 @@ export function BlockActivityChart({
                   className="card px-4 py-2.5 flex items-center gap-4 hover:border-cipher-gold transition-colors"
                 >
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Block
                     </div>
-                    <div className="font-mono font-bold text-primary text-sm">
+                    <div className="font-mono font-semibold text-primary text-sm">
                       #{hoveredBlock.height.toLocaleString()}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Size
                     </div>
                     <div className="font-mono text-primary text-sm">
@@ -202,7 +202,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Txs
                     </div>
                     <div className="font-mono text-primary text-sm">
@@ -210,7 +210,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Age
                     </div>
                     <div className="font-mono text-secondary text-sm">
@@ -218,7 +218,7 @@ export function BlockActivityChart({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
+                    <div className="text-caption text-muted font-mono uppercase tracking-wider">
                       Status
                     </div>
                     <div
@@ -246,7 +246,7 @@ export function BlockActivityChart({
             </div>
 
             {/* Legend */}
-            <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-mono text-muted">
+            <div className="mt-3 flex items-center justify-center gap-4 text-caption font-mono text-muted">
               <LegendSwatch color="bg-cipher-green/80" label="finalized" />
               <LegendSwatch color="bg-cipher-orange/80" label="voting now" />
               <LegendSwatch color="bg-cipher-gold/70" label="pending" />
@@ -298,7 +298,7 @@ function BlockBar({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[9px] uppercase tracking-wider opacity-60">{label}</span>
+      <span className="text-caption uppercase tracking-wider opacity-60">{label}</span>
       <span className="text-primary">{value}</span>
     </div>
   );

@@ -220,7 +220,7 @@ export default function MempoolClient() {
             {/* Screensaver mode */}
             <Link
               href="/mempool/live"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-[10px] font-mono text-muted hover:text-primary transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-glass-3 text-caption font-mono text-muted hover:text-primary transition-colors"
               title="Ambient screensaver mode — great on a second monitor"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -292,13 +292,13 @@ export default function MempoolClient() {
                 <table className="w-full">
                   <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Value</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Inputs</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Outputs</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Seen</th>
+                      <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+                      <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Type</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Value</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Inputs</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Outputs</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Size</th>
+                      <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Seen</th>
                     </tr>
                   </thead>
                   <tbody>

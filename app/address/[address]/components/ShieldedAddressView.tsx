@@ -96,7 +96,7 @@ export function ShieldedAddressView({
             <span className="text-xs font-mono text-muted tracking-wider">&gt; PRIVACY_STATUS</span>
             <div className="flex items-center gap-1.5 ml-auto">
               <div className="w-1.5 h-1.5 rounded-full bg-cipher-purple animate-pulse" />
-              <span className="text-[10px] font-mono text-cipher-purple uppercase tracking-wider">Protected</span>
+              <span className="text-caption font-mono text-cipher-purple uppercase tracking-wider">Protected</span>
             </div>
           </div>
 
@@ -130,10 +130,10 @@ export function ShieldedAddressView({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] text-muted font-mono uppercase tracking-wider block">{field.label}</span>
+                  <span className="text-caption text-muted font-mono uppercase tracking-wider block">{field.label}</span>
                   <span className="text-xs text-cipher-purple/40 font-mono tracking-tight">{field.redacted}</span>
                 </div>
-                <span className="text-[9px] text-cipher-purple/60 font-mono uppercase">encrypted</span>
+                <span className="text-caption text-cipher-purple/60 font-mono uppercase">encrypted</span>
               </div>
             ))}
           </div>
@@ -141,7 +141,7 @@ export function ShieldedAddressView({
           {/* Privacy feature badges */}
           <div className="flex flex-wrap gap-2">
             {['Zero-Knowledge Proofs', 'Encrypted Amounts', 'Hidden Parties', 'Private Memos'].map((feature) => (
-              <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-purple/[0.06] border border-cipher-purple/[0.08] text-[11px] text-cipher-purple-glow font-mono">
+              <span key={feature} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cipher-purple/[0.06] border border-cipher-purple/[0.08] text-caption text-cipher-purple-glow font-mono">
                 <svg className="w-3 h-3 text-cipher-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

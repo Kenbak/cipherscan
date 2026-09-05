@@ -22,16 +22,16 @@ export function getFlowColors(theme: FlowTheme): FlowColors {
   const isDark = theme === 'dark';
   return {
     shielding: isDark ? '#65C79A' : '#506F43',
-    deshielding: isDark ? '#E2A66E' : '#92603D',
-    shielded: isDark ? '#B6A0E0' : '#75628E',
-    netFlow: isDark ? '#B6A0E0' : '#75628E',
+    deshielding: isDark ? '#E2A66E' : '#885832',
+    shielded: isDark ? '#B6A0E0' : '#6E5885',
+    netFlow: isDark ? '#B6A0E0' : '#6E5885',
     // Turnstile outcomes — held uses ZEC yellow to distinguish from transferred slate
     held: isDark ? '#F8BC21' : '#866008',
     reshielded: isDark ? '#65C79A' : '#506F43',
     moved: isDark ? '#94a3b8' : '#64748b',
     transferred: isDark ? '#64748b' : '#475569',
-    bridge: isDark ? '#B6A0E0' : '#75628E',
-    exchange: isDark ? '#E2A66E' : '#92603D',
+    bridge: isDark ? '#B6A0E0' : '#6E5885',
+    exchange: isDark ? '#E2A66E' : '#885832',
   };
 }
 

@@ -77,7 +77,7 @@ export function WrappedZecTracker({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </div>
-                <div className="text-[10px] text-muted truncate">{asset.issuer} · {CHAIN_NAMES[asset.chain] || asset.chain}</div>
+                <div className="text-caption text-muted truncate">{asset.issuer} · {CHAIN_NAMES[asset.chain] || asset.chain}</div>
                 <div className="mt-1.5 h-1 w-full rounded-full bg-glass-4 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-glass-10"

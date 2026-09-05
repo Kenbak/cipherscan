@@ -26,7 +26,7 @@ export default function BlockError({
       <Card className="text-center" role="alert" ariaLive="assertive">
         <CardBody className="py-16">
           <div className="text-5xl mb-6" aria-hidden="true">⚠️</div>
-          <h1 className="text-2xl font-bold font-mono text-primary mb-3">Something Went Wrong</h1>
+          <h1 className="type-page font-mono text-primary mb-3">Something Went Wrong</h1>
           <p className="text-secondary mb-6">
             ZecBlock hit an unexpected error rendering this block. This has been logged.
           </p>

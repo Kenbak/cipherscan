@@ -89,18 +89,18 @@ export function RawDataSection({
       <Card>
         <CardBody>
           {!showDecoded ? (
-            <pre className="text-[11px] font-mono text-secondary whitespace-pre-wrap break-all max-h-[600px] overflow-y-auto leading-relaxed">
+            <pre className="text-caption font-mono text-secondary whitespace-pre-wrap break-all max-h-[600px] overflow-y-auto leading-relaxed">
               {rawData.hex}
             </pre>
           ) : (
-            <pre className="text-[11px] font-mono text-secondary whitespace-pre-wrap max-h-[600px] overflow-y-auto leading-relaxed">
+            <pre className="text-caption font-mono text-secondary whitespace-pre-wrap max-h-[600px] overflow-y-auto leading-relaxed">
               {JSON.stringify(rawData.decoded, null, 2)}
             </pre>
           )}
         </CardBody>
       </Card>
 
-      <p className="text-[10px] text-muted font-mono text-center">
+      <p className="text-caption text-muted font-mono text-center">
         {rawData.hex.length / 2} bytes • {rawData.hex.length} hex characters
       </p>
     </div>

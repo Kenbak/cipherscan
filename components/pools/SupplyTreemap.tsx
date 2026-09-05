@@ -42,18 +42,18 @@ function BandLabel({
   if (mode === 'none') return null;
 
   const titleClass = onDarkFill ? 'text-white/90' : 'text-slate-800';
-  const valueClass = onDarkFill ? 'text-white/75' : 'text-slate-700';
-  const pctClass = onDarkFill ? 'text-white/80' : 'text-slate-700';
+  const valueClass = onDarkFill ? 'text-white/75' : 'text-secondary';
+  const pctClass = onDarkFill ? 'text-white/80' : 'text-secondary';
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
-      <span className={`truncate text-[11px] font-sans font-semibold sm:text-xs ${titleClass}`}>{label}</span>
+      <span className={`truncate text-caption font-sans font-semibold sm:text-xs ${titleClass}`}>{label}</span>
       {mode === 'full' ? (
         <>
-          <span className={`mt-0.5 text-[10px] font-mono tabular-nums sm:text-[11px] ${valueClass}`}>
+          <span className={`mt-0.5 text-caption font-mono tabular-nums sm:text-caption ${valueClass}`}>
             {zat === 0 ? '0 ZEC' : `${formatZecCompact(zat / 1e8)} ZEC`}
           </span>
-          <span className={`mt-0.5 text-[10px] font-mono tabular-nums ${pctClass}`}>{capPct.toFixed(1)}%</span>
+          <span className={`mt-0.5 text-caption font-mono tabular-nums ${pctClass}`}>{capPct.toFixed(1)}%</span>
         </>
       ) : null}
     </div>

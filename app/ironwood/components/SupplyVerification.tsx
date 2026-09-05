@@ -22,7 +22,7 @@ export function IronwoodLedgerStat({
   return (
     <div className="rounded-lg border border-cipher-border/25 bg-glass-3/20 px-3 py-2 sm:py-2.5">
       <div className="flex items-baseline justify-between gap-2 sm:flex-col sm:items-stretch sm:gap-0">
-        <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wide text-muted">
+        <div className="flex items-center gap-1.5 text-caption font-mono uppercase tracking-wide text-muted">
           {icon}
           {label}
         </div>
@@ -33,7 +33,7 @@ export function IronwoodLedgerStat({
           {value}
         </div>
       </div>
-      <div className="mt-1 text-[9px] leading-snug text-muted/55 sm:mt-0.5">{hint}</div>
+      <div className="mt-1 text-caption leading-snug text-muted sm:mt-0.5">{hint}</div>
     </div>
   );
 }
@@ -136,11 +136,11 @@ export function SupplyVerification({
         {/* Right: Pool breakdown */}
         <div className="w-full min-w-0 sm:space-y-1 sm:pl-2 lg:pl-4">
           <div className="flex items-center justify-between mb-1.5 sm:mb-3 px-0.5">
-            <span className="text-xs font-bold text-primary">Pool balances</span>
+            <span className="text-xs font-semibold text-primary">Pool balances</span>
             {supplyMatch != null && (
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-cipher-green animate-pulse' : 'bg-red-400'}`} />
-                <span className={`text-[10px] font-mono ${supplyMatch ? 'text-cipher-green' : 'text-red-400'}`}>
+                <span className={`text-caption font-mono ${supplyMatch ? 'text-cipher-green' : 'text-red-400'}`}>
                   {supplyMatch ? 'No inflation' : 'Mismatch'}
                 </span>
               </div>
@@ -158,19 +158,19 @@ export function SupplyVerification({
             ))}
           </div>
           <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-cipher-border/30 px-2 sm:px-3">
-            <span className="text-[11px] sm:text-xs text-secondary">Mined</span>
-            <span className="text-[11px] sm:text-sm font-mono text-primary">{fmtValue(displayTotal, currencyMode, zecPrice)}</span>
+            <span className="text-caption sm:text-xs text-secondary">Mined</span>
+            <span className="text-caption sm:text-sm font-mono text-primary">{fmtValue(displayTotal, currencyMode, zecPrice)}</span>
           </div>
           <div className="flex items-center justify-between px-2 sm:px-3 py-0.5 sm:py-1">
-            <span className="text-[11px] sm:text-xs text-secondary">Unmined</span>
-            <span className="text-[11px] sm:text-sm font-mono text-primary">{fmtValue(unminedZat, currencyMode, zecPrice)}</span>
+            <span className="text-caption sm:text-xs text-secondary">Unmined</span>
+            <span className="text-caption sm:text-sm font-mono text-primary">{fmtValue(unminedZat, currencyMode, zecPrice)}</span>
           </div>
           <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-cipher-border/30 px-2 sm:px-3">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] sm:text-xs font-bold text-primary">Max supply</span>
+              <span className="text-caption sm:text-xs font-semibold text-primary">Max supply</span>
               {supplyBalanced && <span className="w-1.5 h-1.5 rounded-full bg-cipher-green" />}
             </div>
-            <span className="text-[11px] sm:text-sm font-mono font-bold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
+            <span className="text-caption sm:text-sm font-mono font-semibold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
           </div>
         </div>
       </div>

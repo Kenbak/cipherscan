@@ -168,10 +168,10 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
           <Badge color="green" icon={<ClearIcon />} variant="subtle">
             No round-trip detected
           </Badge>
-          <span className="text-[10px] font-mono text-muted">0/100</span>
+          <span className="text-caption font-mono text-muted">0/100</span>
         </div>
 
-        <p className="text-[11px] text-muted leading-relaxed">
+        <p className="text-caption text-muted leading-relaxed">
           This transaction {flowVerb}{' '}
           <span className="text-primary font-medium">
             {amountZec} {CURRENCY}
@@ -179,7 +179,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
           {address && (
             <>
               {data.flowType === 'shield' ? ' from ' : ' to '}
-              <AddressDisplay address={address} className="text-[11px]" />
+              <AddressDisplay address={address} className="text-caption" />
             </>
           )}
           . No matching {data.flowType === 'shield' ? 'unshield' : 'shield'} with a similar amount and timing turned up
@@ -203,7 +203,7 @@ export function PrivacyRiskInline({ txid, variant = 'full', embedded = false }: 
         <Badge color={isHigh ? 'danger' : 'orange'} icon={<WarningIcon />} variant="subtle">
           {isHigh ? 'High' : 'Medium'} privacy risk — {data.highestScore}/100
         </Badge>
-        <span className="text-[10px] font-mono text-muted uppercase tracking-wider">round-trip pattern</span>
+        <span className="text-caption font-mono text-muted uppercase tracking-wider">round-trip pattern</span>
       </div>
 
       <p className="text-sm text-secondary leading-relaxed">

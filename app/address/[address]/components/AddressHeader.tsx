@@ -29,7 +29,7 @@ export function AddressHeader({
   return (
     <div className="mb-6 animate-fade-in-up">
       <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; ADDRESS_DETAILS</span>
         <ExportButton
           data={{
             address: data.address,

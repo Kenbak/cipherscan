@@ -19,19 +19,19 @@ export default function TurnstilePage() {
         <div className="flex flex-wrap gap-2 shrink-0">
           <Link
             href="/pools#flows"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
+            className="text-caption font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
             Shield / Deshield Flows
           </Link>
           <Link
             href="/privacy-risks"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
+            className="text-caption font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
             Privacy Risks
           </Link>
           <Link
             href="/pools"
-            className="text-[10px] font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
+            className="text-caption font-mono px-3 py-1.5 rounded-md border border-glass-6 text-muted hover:text-secondary hover:border-glass-12 hover:bg-glass-4 transition-colors"
           >
             Full Pool Analytics →
           </Link>
@@ -45,10 +45,10 @@ export default function TurnstilePage() {
       <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-glass-4 pt-6">
         <Link
           href="/"
-          className="text-[10px] font-mono text-muted hover:text-primary transition-colors"
+          className="text-caption font-mono text-muted hover:text-primary transition-colors"
         >
-          <span className="text-cipher-gold font-bold">ZecBlock</span>
-          <span className="text-muted/60"> — Zcash Block Explorer</span>
+          <span className="text-cipher-gold font-semibold">ZecBlock</span>
+          <span className="text-muted"> — Zcash Block Explorer</span>
         </Link>
       </div>
     </div>

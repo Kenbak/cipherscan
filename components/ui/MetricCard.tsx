@@ -43,16 +43,16 @@ export function MetricCard({
     orange: 'text-cipher-orange',
   }[accent];
 
-  const valueSize = size === 'compact' ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl';
+  const valueSize = size === 'compact' ? 'type-metric type-metric-compact' : 'type-metric';
 
   return (
     <div className={`card card-compact card-static ${className}`}>
       <div className="flex items-center gap-1.5 mb-2">
         {icon && <span className="text-muted [&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>}
-        <span className="text-[10px] font-mono text-muted uppercase tracking-widest">{label}</span>
+        <span className="type-label text-muted uppercase">{label}</span>
       </div>
       <div className="flex items-baseline gap-2 flex-wrap min-w-0">
-        <span className={`${valueSize} font-bold font-mono tabular-nums whitespace-nowrap ${valueColor}`}>
+        <span className={`${valueSize} tabular-nums whitespace-nowrap ${valueColor}`}>
           {value}
         </span>
         {typeof delta === 'number' && Number.isFinite(delta) && (
@@ -63,7 +63,7 @@ export function MetricCard({
           </span>
         )}
       </div>
-      {hint && <div className="text-[11px] text-muted mt-1">{hint}</div>}
+      {hint && <div className="text-caption text-muted mt-1">{hint}</div>}
       {sparkline && <div className="mt-2">{sparkline}</div>}
     </div>
   );

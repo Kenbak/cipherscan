@@ -78,8 +78,8 @@ function ChainYAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: {
         y={4}
         textAnchor="end"
         fill="currentColor"
-        fontSize={11}
-        fontFamily="monospace"
+        fontSize={12}
+        fontFamily="var(--font-geist-mono), monospace"
         className="text-secondary"
       >
         {name}
@@ -121,19 +121,19 @@ function FlowTooltip({ active, payload, colors, unit, zecPrice }: {
 
   return (
     <div
-      className="rounded-lg border px-3 py-3 text-[11px] font-mono shadow-xl min-w-[200px] max-w-[260px]"
+      className="rounded-lg border px-3 py-3 text-caption font-mono shadow-xl min-w-[200px] max-w-[260px]"
       style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
     >
       <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-glass-6">
         <TokenChainIcon token={row.chain} chain={row.chain} size={18} />
-        <span className="text-primary font-bold text-xs">{row.chainName}</span>
+        <span className="text-primary font-semibold text-xs">{row.chainName}</span>
       </div>
 
       {row.inflow > 0 && (
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-cipher-green font-bold text-[10px] uppercase tracking-wider">Inflow</span>
-            <span className="text-cipher-green tabular-nums font-bold">{fv(row.inflow)}</span>
+            <span className="text-cipher-green font-semibold text-caption uppercase tracking-wider">Inflow</span>
+            <span className="text-cipher-green tabular-nums font-semibold">{fv(row.inflow)}</span>
           </div>
           {inflowTokensSorted.map((t) => (
             <TokenRow key={t.symbol} token={t.symbol} chain={row.chain} value={t.volume24h} unit={unit} zecPrice={zecPrice} />
@@ -144,8 +144,8 @@ function FlowTooltip({ active, payload, colors, unit, zecPrice }: {
       {outflow > 0 && (
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-cipher-orange font-bold text-[10px] uppercase tracking-wider">Outflow</span>
-            <span className="text-cipher-orange tabular-nums font-bold">{fv(outflow)}</span>
+            <span className="text-cipher-orange font-semibold text-caption uppercase tracking-wider">Outflow</span>
+            <span className="text-cipher-orange tabular-nums font-semibold">{fv(outflow)}</span>
           </div>
           {outflowTokensSorted.map((t) => (
             <TokenRow key={t.symbol} token={t.symbol} chain={row.chain} value={t.volume24h} unit={unit} zecPrice={zecPrice} />
@@ -153,7 +153,7 @@ function FlowTooltip({ active, payload, colors, unit, zecPrice }: {
         </div>
       )}
 
-      <div className={`flex items-center justify-between pt-2 border-t border-glass-6 font-bold ${row.net >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}`}>
+      <div className={`flex items-center justify-between pt-2 border-t border-glass-6 font-semibold ${row.net >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}`}>
         <span>Net</span>
         <span className="tabular-nums">{sign}{fv(row.net)}</span>
       </div>
@@ -242,7 +242,7 @@ export function ChainFlowTable({
           <XAxis
             type="number"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v: number) => fv(v)}
           />
           <YAxis
@@ -254,7 +254,7 @@ export function ChainFlowTable({
           />
           <Tooltip content={<FlowTooltip colors={colors} unit={unit} zecPrice={zecPrice} />} cursor={{ fill: colors.barCursor }} />
           <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+            wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
             formatter={(value) => value === 'inflow' ? 'Inflows (24h)' : 'Outflows (24h)'}
           />
           <ReferenceLine x={0} stroke={colors.grid} strokeWidth={1.5} />
@@ -267,12 +267,12 @@ export function ChainFlowTable({
         <div className="mt-3 pt-3 border-t border-cipher-border">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-[11px] font-mono text-cipher-gold hover:underline"
+            className="text-caption font-mono text-cipher-gold hover:underline"
           >
             {showAll ? '← Show top 8 only' : `Show ${tailRows.length} more chain${tailRows.length !== 1 ? 's' : ''} →`}
           </button>
           {!showAll && (
-            <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+            <p className="text-caption text-muted mt-1.5 leading-relaxed">
               {tailRows.slice(0, 6).map((r) => r.chainName).join(', ')}
               {tailRows.length > 6 ? `, +${tailRows.length - 6} more` : ''}
             </p>

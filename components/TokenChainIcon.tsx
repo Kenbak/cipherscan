@@ -124,7 +124,7 @@ export function TokenChainIcon({ token, chain, size = 32, className = '' }: Toke
         />
       ) : (
         <div
-          className="rounded-full flex items-center justify-center text-white font-bold bg-gray-500"
+          className="rounded-full flex items-center justify-center text-white font-semibold bg-gray-500"
           style={{ width: size, height: size, fontSize: size * 0.4 }}
         >
           {token.charAt(0).toUpperCase()}

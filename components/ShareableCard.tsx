@@ -83,14 +83,14 @@ export function ShareableCard({
       >
       <div className="relative min-w-0">
         <div className="mb-4 sm:mb-5 flex items-start justify-between gap-2 sm:gap-3">
-          <h2 className="text-sm font-bold text-primary">{title}</h2>
+          <h2 className="text-sm font-semibold text-primary">{title}</h2>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2" data-html2canvas-ignore="true">
             {/* Full buttons on desktop */}
             <button
               type="button"
               onClick={handleCopy}
               disabled={copyStatus === 'capturing'}
-              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-caption font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
             >
               {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
             </button>
@@ -98,7 +98,7 @@ export function ShareableCard({
               type="button"
               onClick={handleShare}
               disabled={copyStatus === 'capturing'}
-              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+              className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-caption font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
             >
               Share to X
             </button>
@@ -138,7 +138,7 @@ export function ShareableCard({
         {children}
         <div className="mt-4 border-t border-cipher-border/20 pt-3">
           <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-2.5 sm:text-left">
-            <div className="order-1 flex items-center justify-center gap-2 text-[10px] font-mono text-muted/80 sm:order-2 sm:shrink-0 sm:justify-end">
+            <div className="order-1 flex items-center justify-center gap-2 text-caption font-mono text-muted sm:order-2 sm:shrink-0 sm:justify-end">
               {footerNote ? (
                 <span>{footerNote}</span>
               ) : (
@@ -147,7 +147,7 @@ export function ShareableCard({
                     <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-cipher-green animate-pulse' : 'bg-muted/50'}`} />
                     <span>{isLive ? 'LIVE' : 'SNAPSHOT'}</span>
                   </span>
-                  <span className="text-muted/60">·</span>
+                  <span className="text-muted">·</span>
                   <span className="tabular-nums">block {sourceHeight.toLocaleString()}</span>
                 </>
               )}
@@ -155,10 +155,10 @@ export function ShareableCard({
             <div className="order-2 flex items-center justify-center gap-2 sm:order-1 sm:min-w-0 sm:justify-start">
               <BrandLogo compact />
               <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-                <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">
+                <span className="text-caption font-semibold font-mono text-cipher-gold-bright tracking-tight">
                   ZecBlock
                 </span>
-                <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
+                <span className="text-caption font-mono text-muted">zecblock.com</span>
               </div>
             </div>
           </div>

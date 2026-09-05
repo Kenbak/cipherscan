@@ -165,7 +165,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="w-5 h-5 border-2 border-cipher-gold border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-muted font-mono">Turnstile view is rebuilding — data will appear shortly</p>
-              <p className="text-[10px] text-muted/60 font-mono">Auto-retries in 60s</p>
+              <p className="text-caption text-muted font-mono">Auto-retries in 60s</p>
             </div>
           </CardBody>
         </Card>
@@ -231,7 +231,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           >
                             <path d="M8 4v8M8 12l3-3M8 12L5 9" />
                           </svg>
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                          <span className="text-caption font-mono uppercase tracking-wider text-muted">
                             Out of privacy
                           </span>
                         </div>
@@ -240,7 +240,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           tooltip="ZEC that left a shielded pool to a transparent address in this period"
                         >
                           <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                            <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-primary">
                               {formatZecCompact(summary.totalDeshielded)}
                             </span>
                             <span className="text-sm font-mono text-muted">ZEC</span>
@@ -266,7 +266,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                             >
                               <path d="M8 12V4M8 4L5 7M8 4l3 3" />
                             </svg>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                            <span className="text-caption font-mono uppercase tracking-wider text-muted">
                               Into privacy
                             </span>
                           </div>
@@ -275,7 +275,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                             tooltip="Total ZEC moved into shielded pools during this period — from transparent addresses, exchanges, bridges, and other sources. Not limited to deshielded outputs below."
                           >
                             <div className="flex items-baseline gap-2 flex-wrap">
-                              <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-primary">
+                              <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-primary">
                                 {formatZecCompact(totalShielded)}
                               </span>
                               <span className="text-sm font-mono text-muted">ZEC</span>
@@ -378,7 +378,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
 
                 return (
                   <>
-                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted mb-3">
+                    <p className="text-caption font-mono uppercase tracking-wider text-muted mb-3">
                       Where deshielded ZEC went
                     </p>
                     <InteractiveCompositionBar
@@ -404,7 +404,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           onChange={e => setShowDetail(e.target.checked)}
                           className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-gold"
                         />
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                        <span className="text-caption font-mono text-muted uppercase tracking-wider">
                           Show full breakdown
                         </span>
                       </label>
@@ -427,7 +427,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           >
                             <MetricWithTooltip label={categoryLabels[key]} tooltip={tooltips[key]}>
                               <p
-                                className="text-xl font-bold font-mono tabular-nums"
+                                className="text-xl font-semibold font-mono tabular-nums"
                                 style={{ color: categoryColors[key] }}
                               >
                                 {formatZecCompact(value)}
@@ -452,7 +452,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
             {!lastUpdated && ' Updated daily.'}
           </p>
           {(period === 'all' || period === '1y') && (
-            <p className="text-[10px] text-muted/60 font-mono mt-2 leading-relaxed italic">
+            <p className="text-caption text-muted font-mono mt-2 leading-relaxed italic">
               Note: cumulative volume — the same ZEC can be deshielded and reshielded multiple times, so totals may exceed circulating supply.
             </p>
           )}
@@ -473,12 +473,12 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                 <XAxis
                   dataKey="dateLabel"
                   stroke={colors.axis}
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   interval="preserveStartEnd"
                 />
                 <YAxis
                   stroke={colors.axis}
-                  tick={{ fill: colors.axis, fontSize: 10 }}
+                  tick={{ fill: colors.axis, fontSize: 12 }}
                   tickFormatter={v => formatZecCompact(v)}
                   width={48}
                 />
@@ -501,7 +501,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                     return [`${Number(value).toFixed(2)} ZEC`, labels[String(name)] || String(name)];
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                 <Area type="monotone" dataKey="held" stackId="1" stroke={flowColors.held} fill={flowColors.held} fillOpacity={0.35} name="Still Held" />
                 <Area type="monotone" dataKey="reshielded" stackId="1" stroke={flowColors.reshielded} fill={flowColors.reshielded} fillOpacity={0.3} name="Reshielded" />
                 <Area type="monotone" dataKey="moved" stackId="1" stroke={flowColors.moved} fill={flowColors.moved} fillOpacity={0.25} name="Moved" hide={showDetail} />

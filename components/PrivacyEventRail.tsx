@@ -87,7 +87,7 @@ export function PrivacyEventRail({
 
                 <div className={`pb-4 ${index === ordered.length - 1 ? 'pb-0' : ''}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                    <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                       {point.title}
                     </p>
                     <p className="text-xs font-medium text-primary">
@@ -97,7 +97,7 @@ export function PrivacyEventRail({
                     </p>
                   </div>
                   {point.subtitle && (
-                    <p className="mt-1 text-[11px] leading-relaxed text-secondary break-words">
+                    <p className="mt-1 text-caption leading-relaxed text-secondary break-words">
                       {point.subtitle}
                     </p>
                   )}
@@ -128,7 +128,7 @@ export function PrivacyEventRail({
                   <div className={`mb-3 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
                     <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
                   </div>
-                  <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                  <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                     {point.title}
                   </p>
                   <p className="mt-1 text-xs font-medium text-primary">
@@ -137,7 +137,7 @@ export function PrivacyEventRail({
                       : formatAbsolute(point.timestamp)}
                   </p>
                   {point.subtitle && (
-                    <p className={`mt-1 text-[11px] leading-relaxed text-secondary break-words ${isStart ? 'max-w-[10rem]' : 'ml-auto max-w-[10rem]'}`}>
+                    <p className={`mt-1 text-caption leading-relaxed text-secondary break-words ${isStart ? 'max-w-[10rem]' : 'ml-auto max-w-[10rem]'}`}>
                       {point.subtitle}
                     </p>
                   )}
@@ -170,7 +170,7 @@ export function PrivacyEventRail({
                 <div className={`mb-3 inline-flex h-4 w-4 items-center justify-center rounded-full ring-4 ${classes.ring}`}>
                   <div className={`h-2.5 w-2.5 rounded-full ${classes.fill}`} />
                 </div>
-                <p className={`text-[10px] font-mono uppercase tracking-[0.18em] ${classes.text}`}>
+                <p className={`text-caption font-mono uppercase tracking-[0.18em] ${classes.text}`}>
                   {point.title}
                 </p>
                 <p className="mt-1 text-xs font-medium text-primary">
@@ -179,7 +179,7 @@ export function PrivacyEventRail({
                     : formatAbsolute(point.timestamp)}
                 </p>
                 {point.subtitle && (
-                  <p className="mt-1 max-w-[9rem] text-[11px] leading-relaxed text-secondary break-words">
+                  <p className="mt-1 max-w-[9rem] text-caption leading-relaxed text-secondary break-words">
                     {point.subtitle}
                   </p>
                 )}

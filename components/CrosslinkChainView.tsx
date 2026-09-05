@@ -224,7 +224,7 @@ export function CrosslinkChainView({
       </div>
 
       {variant === 'compact' && (
-        <div className="mt-3 flex items-center justify-between text-[11px] font-mono">
+        <div className="mt-3 flex items-center justify-between text-caption font-mono">
           <span className="text-muted">
             {stats &&
               `Finalized through #${stats.finalizedHeight.toLocaleString()} · gap ${stats.finalityGap}`}
@@ -283,7 +283,7 @@ function ChainRow({
     borderClass = 'border-cipher-border';
   } else {
     badgeLabel = 'PENDING';
-    badgeClass = 'text-neutral-500 dark:text-neutral-400 border-cipher-border';
+    badgeClass = 'text-muted border-cipher-border';
     accentClass = 'bg-cipher-gold/50';
     borderClass = 'border-cipher-border';
   }
@@ -298,19 +298,19 @@ function ChainRow({
       <div className="flex-1 min-w-0 px-3 py-2 flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono text-[13px] font-semibold tabular-nums text-black dark:text-white group-hover:text-primary transition-colors shrink-0">
+            <span className="font-mono text-data font-semibold tabular-nums text-black dark:text-white group-hover:text-primary transition-colors shrink-0">
               #{block.height.toLocaleString()}
             </span>
             <span
-              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wider ${badgeClass}`}
+              className={`shrink-0 inline-flex items-center px-1.5 py-[1px] rounded border text-caption font-mono uppercase tracking-wider ${badgeClass}`}
             >
               {badgeLabel}
             </span>
-            <code className="hidden sm:inline text-[10px] font-mono text-neutral-600 dark:text-neutral-300 truncate">
+            <code className="hidden sm:inline text-caption font-mono text-secondary truncate">
               {block.hash.slice(0, 8)}…{block.hash.slice(-6)}
             </code>
           </div>
-          <div className="mt-0.5 font-mono text-[10px] flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+          <div className="mt-0.5 font-mono text-caption flex items-center gap-1.5 text-muted">
             <span className="tabular-nums text-black dark:text-white">
               {fmtAge(block.timestamp)}
             </span>
@@ -365,9 +365,9 @@ function BftChip({
 }) {
   if (state === 'pending') {
     return (
-      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+      <div className="flex items-center gap-1.5 text-caption font-mono">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-orange/60 animate-pulse" />
-        <span className="text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+        <span className="text-muted uppercase tracking-wider">
           pending
         </span>
       </div>
@@ -376,7 +376,7 @@ function BftChip({
 
   if (state === 'final') {
     return (
-      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+      <div className="flex items-center gap-1.5 text-caption font-mono">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-gold-muted" />
         <span className="text-cipher-gold-muted uppercase tracking-wider">
           bft ✓
@@ -400,15 +400,15 @@ function BftChip({
         {isVoting && (
           <span className="absolute inset-0 rounded-full bg-cipher-orange/30 animate-ping opacity-60" />
         )}
-        <span className="relative font-mono text-[10px] font-semibold tabular-nums">
+        <span className="relative font-mono text-caption font-semibold tabular-nums">
           {count}
         </span>
       </span>
-      <div className="text-[10px] font-mono leading-tight">
+      <div className="text-caption font-mono leading-tight">
         <div className="text-black dark:text-white tabular-nums">
           {isVoting ? 'voting' : `of ${total}`}
         </div>
-        <div className="text-neutral-500 dark:text-neutral-400 tabular-nums">
+        <div className="text-muted tabular-nums">
           {isVoting
             ? `${count}/${total}`
             : blocksInDecision && blocksInDecision > 1
@@ -470,12 +470,12 @@ function TipStat({
 }) {
   return (
     <div className="card p-4">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+      <div className="text-caption font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         <span>{label}</span>
         {tooltip && <Tooltip content={tooltip} />}
       </div>
       <div
-        className={`text-lg sm:text-xl font-mono font-bold ${
+        className={`text-lg sm:text-xl font-mono font-semibold ${
           accent === 'orange' ? 'text-cipher-orange' : 'text-primary'
         }`}
       >
@@ -502,11 +502,11 @@ function FrontierMarker({
         <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-green" />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold text-cipher-green whitespace-nowrap">
+        <div className="text-caption font-semibold text-cipher-green whitespace-nowrap">
           Finality Frontier
         </div>
         {!compact && (
-          <div className="text-[9px] text-muted font-mono whitespace-nowrap">
+          <div className="text-caption text-muted font-mono whitespace-nowrap">
             {finalizerCount} finalizers · {totalStakeZec.toFixed(1)} cTAZ
           </div>
         )}
@@ -532,9 +532,9 @@ function BftVoteMarker({
         <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-orange" />
       </span>
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold text-cipher-orange whitespace-nowrap">Voting now</div>
+        <div className="text-caption font-semibold text-cipher-orange whitespace-nowrap">Voting now</div>
         {!compact && (
-          <div className="text-[9px] text-muted font-mono whitespace-nowrap">
+          <div className="text-caption text-muted font-mono whitespace-nowrap">
             {signatureCount}/{finalizerCount} sigs · {pct}%
           </div>
         )}
@@ -648,7 +648,7 @@ function DivergencePanel({
         <div className="mt-4 pt-4 border-t border-cipher-border overflow-x-auto">
           <table className="w-full text-xs font-mono min-w-[560px]">
             <thead>
-              <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
+              <tr className="text-left text-muted text-caption uppercase tracking-wider">
                 <th className="py-2 pr-4">Started</th>
                 <th className="py-2 pr-4">Diverged at</th>
                 <th className="py-2 pr-4 text-right">Peak gap</th>

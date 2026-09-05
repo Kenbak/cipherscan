@@ -114,7 +114,7 @@ export default function DecryptPage() {
 
           {/* SEO Content: FAQ Section (visible, crawlable by Google — <details> renders server-side) */}
           <section className="mt-16 border-t border-cipher-border pt-12">
-            <h2 className="text-xl font-bold text-primary mb-6">Frequently Asked Questions</h2>
+            <h2 className="text-xl font-semibold text-primary mb-6">Frequently Asked Questions</h2>
             <div className="card divide-y divide-cipher-border">
               {faqs.map((faq) => (
                 <details key={faq.question} className="group py-4 first:pt-0 last:pb-0">

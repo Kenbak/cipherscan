@@ -57,7 +57,7 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
               key={index}
               className="flex items-center py-2 first:pt-0 last:pb-0 gap-2 overflow-hidden"
             >
-              <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+              <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                 {index}
               </span>
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -66,7 +66,7 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
                     <span className="text-xs text-muted font-mono">Block Reward</span>
                     {data.coinbaseText && (
                       <div className="block-hash-bg px-2 py-1 rounded border border-cipher-border">
-                        <code className="text-[10px] text-cipher-gold break-all">
+                        <code className="text-caption text-cipher-gold break-all">
                           {data.coinbaseText}
                         </code>
                       </div>
@@ -75,7 +75,7 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
                 ) : input.address ? (
                   <div className="flex items-center gap-1 min-w-0">
                     <Link href={`/address/${input.address}`} className="min-w-0 block overflow-hidden">
-                      <code className="text-[11px] text-primary hover:underline transition-colors font-mono truncate block">
+                      <code className="text-caption text-primary hover:underline transition-colors font-mono truncate block">
                         {input.address}
                       </code>
                     </Link>
@@ -91,7 +91,7 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
                 )}
               </div>
               {!input.coinbase && (
-                <span className="text-[11px] font-mono text-primary shrink-0 tabular-nums">
+                <span className="text-caption font-mono text-primary shrink-0 tabular-nums">
                   {input.value?.toFixed(8)}
                 </span>
               )}
@@ -101,39 +101,39 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
           {saplingSpends > 0 &&
             Array.from({ length: saplingSpends }).map((_, index) => (
               <div key={`s-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {data.inputs.length + index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="sapling" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 
           {showOrchard &&
             Array.from({ length: orchardActions }).map((_, index) => (
               <div key={`o-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="orchard" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 
           {showIronwood &&
             Array.from({ length: ironwoodActions }).map((_, index) => (
               <div key={`iw-${index}`} className="flex items-center py-2 first:pt-0 last:pb-0 gap-2">
-                <span className="text-[10px] text-muted font-mono w-4 shrink-0 text-right">
+                <span className="text-caption text-muted font-mono w-4 shrink-0 text-right">
                   {index}
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <TxTypeBadge category="ironwood" />
                 </div>
-                <RedactedAmount className="shrink-0 !text-[10px]" />
+                <RedactedAmount className="shrink-0 !text-caption" />
               </div>
             ))}
 

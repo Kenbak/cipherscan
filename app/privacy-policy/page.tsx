@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
 
       <div className="prose-legal space-y-8 text-sm text-secondary leading-relaxed">
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">1. Who We Are</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">1. Who We Are</h2>
           <p>
             ZecBlock (<Link href="/" className="text-cipher-gold hover:underline">zecblock.com</Link>) is
             an open-source Zcash blockchain explorer operated by Atmosphere Labs (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;).
@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">2. Information We Collect</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">2. Information We Collect</h2>
           <p className="mb-3"><strong className="text-primary">We do not collect personal data.</strong> No accounts, no registration, no IP logging, no analytics.</p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-primary">No server logs:</strong> We do not log IP addresses, user-agents, or browsing activity.</li>
@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">3. Third-Party Services</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">3. Third-Party Services</h2>
           <p className="mb-3">We integrate with third-party services that have their own privacy policies:</p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-primary">NEAR Intents (1-Click Swap):</strong> Cross-chain swap quotes and execution. When you initiate a swap, your transaction data is shared with NEAR Intents to facilitate the exchange.</li>
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">4. Cookies &amp; Tracking</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">4. Cookies &amp; Tracking</h2>
           <p>
             We do not use analytics cookies, advertising trackers, or fingerprinting. We store a theme preference
             (light/dark) in your browser&rsquo;s local storage. That&rsquo;s it.
@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">5. Data Sharing</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">5. Data Sharing</h2>
           <p>
             We do not sell, rent, or share your personal information with third parties for marketing purposes.
             We may disclose information if required by law or to protect the security of our service.
@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">6. Data Security</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">6. Data Security</h2>
           <p>
             We use HTTPS encryption for all connections. Our servers are secured with standard industry practices.
             However, no method of transmission over the internet is 100% secure.
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">7. Your Rights</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">7. Your Rights</h2>
           <p>
             Since we collect minimal data and do not maintain user accounts, there is generally no personal data to
             access, modify, or delete. If you have questions about data we may hold, contact us.
@@ -82,7 +82,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">8. Changes</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">8. Changes</h2>
           <p>
             We may update this policy from time to time. Changes will be posted on this page with a revised
             &ldquo;last updated&rdquo; date.
@@ -90,7 +90,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">9. Contact</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">9. Contact</h2>
           <p>
             Questions? Reach us on{' '}
             <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">

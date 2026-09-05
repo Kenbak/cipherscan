@@ -80,7 +80,7 @@ export function AnonymitySetChart() {
               <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 angle={-35}
                 textAnchor="end"
                 height={64}
@@ -88,7 +88,7 @@ export function AnonymitySetChart() {
                 label={privacyXAxisTitle(`${CURRENCY} threshold`, colors.axis)}
               />
               <YAxis
-                tick={{ fill: colors.axis, fontSize: 11 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={formatCount}
                 width={52}
                 label={privacyYAxisLabel('Transactions', colors.axis)}
@@ -96,7 +96,7 @@ export function AnonymitySetChart() {
               <Tooltip
                 cursor={{ fill: colors.barCursorGold }}
                 contentStyle={tooltipStyle}
-                labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
+                labelStyle={{ color: colors.tooltipText, fontWeight: 600, marginBottom: '8px' }}
                 formatter={(value, name) => [
                   `${Number(value).toLocaleString()} txs`,
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',

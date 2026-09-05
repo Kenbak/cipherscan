@@ -335,14 +335,14 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           className="pointer-events-none absolute inset-0 flex items-center justify-center z-[1] overflow-visible"
           aria-hidden="true"
         >
-          <span className="-rotate-12 scale-[0.82] select-none whitespace-nowrap text-[2rem] font-bold font-mono tracking-[0.14em] text-white/[0.03] sm:scale-100 sm:text-5xl sm:tracking-[0.2em] lg:text-6xl">
+          <span className="-rotate-12 scale-[0.82] select-none whitespace-nowrap text-[2rem] font-semibold font-mono tracking-[0.14em] text-white/[0.03] sm:scale-100 sm:text-5xl sm:tracking-[0.2em] lg:text-6xl">
             ZecBlock
           </span>
         </div>
 
         {/* Header with title + share buttons */}
         <div className="relative z-[2] flex items-start justify-between gap-2 px-4 pt-4 sm:gap-3 sm:px-6">
-          <h2 className="text-sm font-bold text-primary whitespace-nowrap">Orchard to Ironwood Migration</h2>
+          <h2 className="text-sm font-semibold text-primary whitespace-nowrap">Orchard to Ironwood Migration</h2>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2" data-html2canvas-ignore="true">
             {!isFullscreen && (
               <>
@@ -350,7 +350,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleCopy}
                   disabled={copyStatus === 'capturing'}
-                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-caption font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
                 >
                   {copyStatus === 'copied' ? 'Copied!' : 'Copy image'}
                 </button>
@@ -358,7 +358,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                   type="button"
                   onClick={handleShare}
                   disabled={copyStatus === 'capturing'}
-                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-[10px] font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
+                  className="hidden sm:inline-flex rounded-md border border-cipher-border/50 px-2 py-1 text-caption font-mono text-muted transition hover:border-cipher-border hover:bg-foreground/[0.04] hover:text-primary disabled:opacity-50"
                 >
                   Share to X
                 </button>
@@ -434,20 +434,20 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           {sceneReady && (
             <>
               <div className="pointer-events-none absolute top-3 left-0 right-0 z-[2] text-center sm:top-4">
-                <div className="text-base font-bold font-mono text-cipher-yellow-bright sm:text-xl">
+                <div className="text-base font-semibold font-mono text-cipher-yellow-bright sm:text-xl">
                   {mode === 'live' ? (activated ? 'LIVE' : 'PENDING') : sceneState.date || `Block ${sceneState.blockHeight.toLocaleString()}`}
                 </div>
-                <div className="mt-0.5 text-[11px] font-mono text-cipher-yellow-bright/60 sm:text-xs">
+                <div className="mt-0.5 text-caption font-mono text-cipher-yellow-bright/60 sm:text-xs">
                   {sceneState.migratedPct.toFixed(1)}% migrated
                 </div>
               </div>
               <div className="pointer-events-none absolute bottom-14 left-5 right-5 z-[2] hidden items-end justify-between sm:flex sm:bottom-16">
                 <div>
-                  <div className="text-[10px] font-mono text-cipher-purple-bright">Remaining in Orchard</div>
+                  <div className="text-caption font-mono text-cipher-purple-bright">Remaining in Orchard</div>
                   <div className="text-sm font-mono font-semibold text-cipher-purple-bright/90">{sceneState.orchardLabel}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
+                  <div className="text-caption font-mono text-cipher-yellow-bright">Migrated to Ironwood</div>
                   <div className="text-sm font-mono font-semibold text-cipher-yellow-bright/90">{sceneState.ironwoodLabel}</div>
                 </div>
               </div>
@@ -468,13 +468,13 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         {sceneReady && (
           <div className="relative z-[2] grid grid-cols-2 gap-3 border-t border-cipher-border/20 bg-glass-3/60 px-3 py-2 sm:hidden">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-wide text-cipher-purple-bright/80">Orchard</div>
-              <div className="text-[10px] font-mono text-cipher-purple-bright/70">remaining</div>
+              <div className="text-caption font-mono uppercase tracking-wide text-cipher-purple-bright/80">Orchard</div>
+              <div className="text-caption font-mono text-cipher-purple-bright/70">remaining</div>
               <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-purple-bright">{sceneState.orchardLabel}</div>
             </div>
             <div className="text-right">
-              <div className="text-[9px] font-mono uppercase tracking-wide text-cipher-yellow-bright/80">Ironwood</div>
-              <div className="text-[10px] font-mono text-cipher-yellow-bright/70">migrated</div>
+              <div className="text-caption font-mono uppercase tracking-wide text-cipher-yellow-bright/80">Ironwood</div>
+              <div className="text-caption font-mono text-cipher-yellow-bright/70">migrated</div>
               <div className="mt-0.5 text-xs font-mono font-semibold tabular-nums text-cipher-yellow-bright">{sceneState.ironwoodLabel}</div>
             </div>
           </div>
@@ -521,14 +521,14 @@ export function TurnstileHero(props: TurnstileHeroProps) {
               <button
                 type="button"
                 onClick={handleLive}
-                className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
+                className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-caption font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
               >
                 <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-current opacity-30'}`} />
                 Live
               </button>
             </div>
 
-            <div className="mt-1 flex items-center justify-between text-[10px] font-mono text-white/40">
+            <div className="mt-1 flex items-center justify-between text-caption font-mono text-white/40">
               <span>Block {activationHeight.toLocaleString()}</span>
               <span>
                 {mode === 'live'
@@ -544,22 +544,22 @@ export function TurnstileHero(props: TurnstileHeroProps) {
         {/* Footer — status first on mobile, brand last; desktop unchanged */}
         <div className="relative z-[2] border-t border-cipher-border/20 px-4 py-3 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-2.5 sm:text-left">
-            <div className="order-1 flex items-center justify-center gap-2 text-[10px] font-mono text-muted/80 sm:order-2 sm:shrink-0 sm:justify-end">
+            <div className="order-1 flex items-center justify-center gap-2 text-caption font-mono text-muted sm:order-2 sm:shrink-0 sm:justify-end">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-cipher-border/40 bg-glass-3/50 px-2 py-0.5">
                 <span className={`h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-muted/50'}`} />
                 <span>{mode === 'live' ? 'LIVE' : 'SNAPSHOT'}</span>
               </span>
-              <span className="text-muted/60">·</span>
+              <span className="text-muted">·</span>
               <span className="tabular-nums">block {(mode === 'live' ? tipHeight : sceneState.blockHeight).toLocaleString()}</span>
             </div>
             <div className="order-2 flex items-center justify-center gap-2 sm:order-1 sm:min-w-0 sm:justify-start">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/brand/zecblock-mark.svg" alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" />
               <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-                <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">
+                <span className="text-caption font-semibold font-mono text-cipher-gold-bright tracking-tight">
                   ZecBlock
                 </span>
-                <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
+                <span className="text-caption font-mono text-muted">zecblock.com</span>
               </div>
             </div>
           </div>

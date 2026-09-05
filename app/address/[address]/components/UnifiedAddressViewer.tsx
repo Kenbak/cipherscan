@@ -72,7 +72,7 @@ export function UnifiedAddressViewer({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge color="purple">UNIFIED</Badge>
-                      <span className="text-[10px] text-muted font-mono">contains all receivers</span>
+                      <span className="text-caption text-muted font-mono">contains all receivers</span>
                     </div>
                     <div className="flex items-start gap-2">
                       <code className="text-xs text-secondary break-all font-mono flex-1 leading-relaxed">{address}</code>
@@ -85,7 +85,7 @@ export function UnifiedAddressViewer({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge color="muted">TRANSPARENT</Badge>
-                      <span className="text-[10px] text-muted font-mono">public on-chain</span>
+                      <span className="text-caption text-muted font-mono">public on-chain</span>
                     </div>
                     <div className="flex items-start gap-2 mb-4">
                       <code className="text-xs text-cipher-gold break-all font-mono flex-1 leading-relaxed">{uaComponents.transparent_address}</code>
@@ -107,7 +107,7 @@ export function UnifiedAddressViewer({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge color="purple">SAPLING</Badge>
-                      <span className="text-[10px] text-muted font-mono">shielded receiver</span>
+                      <span className="text-caption text-muted font-mono">shielded receiver</span>
                     </div>
                     {uaComponents.sapling_address ? (
                       <div className="flex items-start gap-2">

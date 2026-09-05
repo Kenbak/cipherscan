@@ -49,7 +49,7 @@ function PoolActivityBox({
             {valueBalance < 0 ? '+' : '-'}
             {Math.abs(valueBalance).toFixed(8)} {CURRENCY}
           </span>
-          <span className="text-[10px] text-muted font-mono whitespace-nowrap">
+          <span className="text-caption text-muted font-mono whitespace-nowrap">
             {valueBalance < 0 ? '→ entering pool' : '← leaving pool'}
           </span>
         </div>
@@ -159,7 +159,7 @@ export function TxOverview({ data }: TxOverviewProps) {
               >
                 <span className="text-sm font-mono text-primary tabular-nums whitespace-nowrap">
                   {data.expiryHeight.toLocaleString()}
-                  <span className="text-[10px] text-muted ml-1.5">+{data.expiryHeight - (data.blockHeight || 0)} blocks</span>
+                  <span className="text-caption text-muted ml-1.5">+{data.expiryHeight - (data.blockHeight || 0)} blocks</span>
                 </span>
               </FactBox>
             )}
@@ -181,7 +181,7 @@ export function TxOverview({ data }: TxOverviewProps) {
               regardless of which pools this transaction actually touched. */}
           {hasAnyPoolActivity && (
             <div className="mt-5 pt-4 border-t border-cipher-border/50">
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">Shielded Pool Activity</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-widest">Shielded Pool Activity</span>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {hasSaplingActivity && (
                   <PoolActivityBox

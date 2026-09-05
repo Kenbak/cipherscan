@@ -103,7 +103,7 @@ export default async function Home() {
       {/* Hero Section - z-index for dropdown to appear above widgets */}
       <div className="home-hero relative z-30">
         <div className="home-introduction">
-          <h1 className="text-primary">
+          <h1 className="type-page text-primary">
             {crosslinkMode
               ? 'Zcash Crosslink Explorer'
               : isTestnet
@@ -155,7 +155,7 @@ export default async function Home() {
           {/* Hero — embedded dual-chain graph (covers PoW blocks + BFT links) */}
           <div className="mt-8 sm:mt-12 lg:mt-14">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm sm:text-base font-bold font-mono text-secondary flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-semibold font-mono text-secondary flex items-center gap-2">
                 <span className="text-muted opacity-50">{'>'}</span>
                 CHAIN_VIEW
               </h2>

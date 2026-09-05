@@ -66,6 +66,8 @@ Ranking: third. Most distinctive in a screenshot, but gives up too much everyday
 
 ## 03 / Assay system
 
+Typography follow-up: the current size/weight roles, 12px floor and contrast-tested light colors are specified in [zecblock-typography.md](zecblock-typography.md). That implementation supersedes smaller caption/network sizes in earlier revision notes.
+
 ### Color and roles
 
 Dark / light pairs:

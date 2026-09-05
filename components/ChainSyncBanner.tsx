@@ -42,7 +42,7 @@ export function ChainSyncBanner() {
         </span>
         <span>
           Chain sync degraded — finality gap is{' '}
-          <span className="font-mono font-bold">{gap}</span> blocks
+          <span className="font-mono font-semibold">{gap}</span> blocks
           {tipHeight != null && finalizedHeight != null && (
             <span className="opacity-75">
               {' '}(tip #{tipHeight.toLocaleString()}, finalized #{finalizedHeight.toLocaleString()})

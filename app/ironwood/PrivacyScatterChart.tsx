@@ -320,8 +320,8 @@ export function PrivacyScatterChart({
                   x={innerWidth + 4}
                   y={yPos}
                   dy="0.32em"
-                  fontSize={9}
-                  fontFamily="var(--font-mono)"
+                  fontSize={12}
+                  fontFamily="var(--font-geist-mono)"
                   fill={colors.denominated}
                   opacity={0.75}
                 >
@@ -338,8 +338,8 @@ export function PrivacyScatterChart({
             tickStroke={colors.axis}
             tickLabelProps={() => ({
               fill: colors.axis,
-              fontSize: 10,
-              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono)',
               textAnchor: 'middle' as const,
               dy: '0.25em',
             })}
@@ -348,8 +348,8 @@ export function PrivacyScatterChart({
             label="Block height"
             labelProps={{
               fill: colors.axis,
-              fontSize: 10,
-              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono)',
               textAnchor: 'middle' as const,
               dy: 8,
             }}
@@ -363,8 +363,8 @@ export function PrivacyScatterChart({
             tickFormat={(v) => yTickFormat(v as number)}
             tickLabelProps={() => ({
               fill: colors.axis,
-              fontSize: 10,
-              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono)',
               textAnchor: 'end' as const,
               dx: '-0.3em',
               dy: '0.32em',
@@ -372,8 +372,8 @@ export function PrivacyScatterChart({
             label="Amount (ZEC)"
             labelProps={{
               fill: colors.axis,
-              fontSize: 10,
-              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono)',
               textAnchor: 'middle' as const,
             }}
           />
@@ -446,7 +446,7 @@ function ScatterTooltip({
   return (
     <div className="rounded-lg border border-glass-8 bg-cipher-surface-solid px-3 py-2 text-xs font-mono pointer-events-none">
       <div className="mb-1 text-muted">Block #{point.x.toLocaleString()}</div>
-      <div className="font-bold text-primary">{point.y.toFixed(8)} ZEC</div>
+      <div className="font-semibold text-primary">{point.y.toFixed(8)} ZEC</div>
       {isDenom && point.matched != null && (
         <div className="mt-1 text-muted">Matches {point.matched} ZEC denomination</div>
       )}
@@ -464,26 +464,26 @@ function ScatterTooltip({
             <span className="text-muted">Impl:</span>
             <span className="text-primary font-medium">{point.familyShortLabel}</span>
             {point.familyConfidence && (
-              <span className={`text-[9px] px-1 py-px rounded ${
+              <span className={`text-caption px-1 py-px rounded ${
                 point.familyConfidence === 'high'
                   ? 'bg-cipher-green/20 text-cipher-green'
                   : point.familyConfidence === 'medium'
                     ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-zinc-500/20 text-zinc-400'
+                    : 'bg-zinc-500/20 text-muted'
               }`}>
                 {point.familyConfidence}
               </span>
             )}
           </div>
           {point.fee != null && (
-            <div className="mt-0.5 text-muted text-[10px]">
+            <div className="mt-0.5 text-muted text-caption">
               Fee {(point.fee / 1000).toFixed(0)}k zat
               {point.expiryDelta != null && <> · Expiry +{point.expiryDelta.toLocaleString()}</>}
             </div>
           )}
         </div>
       )}
-      <div className="mt-2 text-[10px] text-cipher-gold-bright">
+      <div className="mt-2 text-caption text-cipher-gold-bright">
         Click to view transaction &rarr;
       </div>
     </div>

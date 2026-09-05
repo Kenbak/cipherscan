@@ -50,7 +50,7 @@ export function InflowSources({
         ironwoodZat={netZat}
       />
 
-      <p className="mb-4 min-h-[1.125rem] text-[11px] font-mono text-secondary">
+      <p className="mb-4 min-h-[1.125rem] text-caption font-mono text-secondary">
         {activeName ? (() => {
           const r = rows.find((x) => x.name === activeName);
           if (!r) return null;
@@ -62,12 +62,12 @@ export function InflowSources({
               {' · '}{path}
               {' · '}{fmt(r.zat)} · {r.txs.toLocaleString()} txs · {pct.toFixed(1)}%
               {selected === r.name ? (
-                <span className="ml-2 text-[10px] text-muted/50">(pinned)</span>
+                <span className="ml-2 text-caption text-muted">(pinned)</span>
               ) : null}
             </>
           );
         })() : (
-          <span className="text-muted/45">Click a source to pin details · hover to preview</span>
+          <span className="text-muted">Click a source to pin details · hover to preview</span>
         )}
       </p>
 
@@ -86,7 +86,7 @@ export function InflowSources({
           <>
             <IronwoodLedgerStat
               icon={
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-muted/70">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-muted">
                   <path d="M9 5H3M7 2 4 5l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               }

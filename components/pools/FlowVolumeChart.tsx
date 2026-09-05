@@ -72,7 +72,7 @@ function FlowTooltip({
         color: colors.tooltipText,
       }}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{formatChartDate(dateStr)}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{formatChartDate(dateStr)}</p>
       {payload.map((entry) => {
         const key = String(entry.name ?? '');
         const abs = Math.abs(Number(entry.value ?? 0));
@@ -153,19 +153,19 @@ export function FlowVolumeChart() {
         <XAxis
           dataKey="date"
           stroke={colors.axis}
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 12 }}
           tickFormatter={(v) => formatChartDate(String(v))}
           interval="preserveStartEnd"
         />
         <YAxis
           stroke={colors.axis}
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 12 }}
           tickFormatter={(v) => formatZecCompact(Math.abs(v))}
           width={54}
         />
         <Tooltip content={<FlowTooltip colors={colors} />} />
         <Legend
-          wrapperStyle={{ fontSize: 11, paddingTop: 8, cursor: 'pointer' }}
+          wrapperStyle={{ fontSize: 12, paddingTop: 8, cursor: 'pointer' }}
           onClick={(data) => {
             const key = String(data.dataKey ?? '');
             if (!key) return;

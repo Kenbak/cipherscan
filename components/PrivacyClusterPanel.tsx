@@ -49,7 +49,7 @@ export function PrivacyClusterPanel({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {metrics.map((metric) => (
           <div key={metric.label} className="rounded-lg border border-cipher-border bg-cipher-surface/30 px-3 py-2">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-muted">{metric.label}</p>
+            <p className="text-caption font-mono uppercase tracking-wider text-muted">{metric.label}</p>
             <p className="mt-1 text-sm font-mono text-primary">{metric.value}</p>
           </div>
         ))}

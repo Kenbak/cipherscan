@@ -92,7 +92,7 @@ function HubLabel({ node }: { node: PositionedNode }) {
       zIndexRange={[15, 0]}
       style={{ pointerEvents: 'none' }}
     >
-      <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-[9px] leading-none text-secondary/90">
+      <div className="whitespace-nowrap rounded bg-cipher-card/70 border border-cipher-border/50 px-1 py-0.5 font-mono text-caption leading-none text-secondary">
         {clientLabel(node.client, node.reachable)}{node.countryCode ? ` · ${countryFlag(node.countryCode)} ${node.countryCode}` : ''}
       </div>
     </Html>
@@ -398,7 +398,7 @@ export function TopologyGraph() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-mono text-secondary uppercase tracking-wider">Network Topology</h3>
         {!loading && nodes.length > 0 && (
-          <span className="text-[10px] text-muted font-mono">
+          <span className="text-caption text-muted font-mono">
             {counts ? `${counts.reachable} reachable · ${counts.off} off` : `${nodes.length} nodes`} · {edgeCount} links · drag to rotate · click to pin
           </span>
         )}
@@ -446,7 +446,7 @@ export function TopologyGraph() {
 
             {/* Counts badge */}
             {counts && (
-              <div className="absolute top-3 right-3 z-20 rounded-md bg-cipher-card/80 border border-cipher-border px-2.5 py-1 text-[10px] font-mono text-muted backdrop-blur-sm">
+              <div className="absolute top-3 right-3 z-20 rounded-md bg-cipher-card/80 border border-cipher-border px-2.5 py-1 text-caption font-mono text-muted backdrop-blur-sm">
                 {counts.reachable} reachable · {counts.off} off · {counts.edges} links
               </div>
             )}
@@ -460,7 +460,7 @@ export function TopologyGraph() {
                 onFocus={() => setSearchOpen(true)}
                 onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
                 placeholder="Find a hub (client / country)…"
-                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-[11px] font-mono text-primary placeholder:text-muted/70 backdrop-blur-sm focus:outline-none focus:border-cipher-gold/50"
+                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-caption font-mono text-primary placeholder:text-muted backdrop-blur-sm focus:outline-none focus:border-cipher-gold/50"
               />
               {searchOpen && searchResults.length > 0 && (
                 <div className="mt-1 rounded-md bg-cipher-card/95 border border-cipher-border backdrop-blur-sm overflow-hidden">
@@ -468,7 +468,7 @@ export function TopologyGraph() {
                     <button
                       key={n.id}
                       onMouseDown={(e) => { e.preventDefault(); setPinned(n); setSearchOpen(false); }}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] font-mono hover:bg-cipher-bg/60 transition-colors"
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-caption font-mono hover:bg-cipher-bg/60 transition-colors"
                     >
                       <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: nodeColor(n) }} />
                       <span className="text-secondary">{clientLabel(n.client)}</span>
@@ -498,14 +498,14 @@ export function TopologyGraph() {
                     </button>
                   )}
                 </div>
-                <dl className="mt-2 space-y-1 text-[10px] font-mono">
+                <dl className="mt-2 space-y-1 text-caption font-mono">
                   <Row label="Status" value={focus.reachable ? 'Reachable' : 'Known / unreachable'} />
                   <Row label="Country" value={focus.countryCode ? `${countryFlag(focus.countryCode)} ${focus.countryCode}` : 'Unknown'} />
                   <Row label={focus.reachable ? 'Peers' : 'Gossiped by'} value={focus.degree != null ? String(focus.degree) : '—'} />
                   <Row label="Betweenness" value={focus.betweenness != null ? focus.betweenness.toFixed(4) : '—'} />
                   <Row label="Closeness" value={focus.closeness != null ? focus.closeness.toFixed(4) : '—'} />
                 </dl>
-                {!pinned && <div className="mt-2 text-[9px] text-muted/70">Click node to pin</div>}
+                {!pinned && <div className="mt-2 text-caption text-muted">Click node to pin</div>}
               </div>
             )}
           </>
@@ -513,7 +513,7 @@ export function TopologyGraph() {
       </div>
 
       {/* Legend (clickable filters) */}
-      <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] font-mono text-muted">
+      <div className="flex flex-wrap items-center gap-3 mt-3 text-caption font-mono text-muted">
         {Object.entries(CLIENT_COLORS).filter(([k]) => k !== 'Other' && k !== 'Unknown').map(([name, color]) => (
           <button
             key={name}
@@ -538,7 +538,7 @@ export function TopologyGraph() {
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OFF_COLOR }} />
           Known / unreachable
         </button>
-        <span className="ml-auto text-[10px] text-muted/70">click to filter · size ∝ peer count</span>
+        <span className="ml-auto text-caption text-muted">click to filter · size ∝ peer count</span>
       </div>
     </div>
   );

@@ -110,6 +110,22 @@
   --text-5xl: 3.75rem;
   --text-5xl--line-height: 1.05;
 
+  /* Information typography. Rem sizes follow user font preferences. */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-data: 0.8125rem;
+  --text-data--line-height: 1.5;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-page: 2rem;
+  --text-page--line-height: 1.2;
+  --text-section: 1rem;
+  --text-section--line-height: 1.4;
+  --text-metric: 1.75rem;
+  --text-metric--line-height: 1.2;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.15;
+
   /* Letter spacing */
   --tracking-tighter: -0.02em;
   --tracking-tight: -0.01em;
@@ -372,8 +388,8 @@
   --color-gold-rgb: 134 96 8;
   --color-green-rgb: 80 111 67;
   --color-yellow-rgb: 134 96 8;
-  --color-purple-rgb: 117 98 142;
-  --color-orange-rgb: 146 96 61;
+  --color-purple-rgb: 110 88 133;
+  --color-orange-rgb: 136 88 50;
 
   /* Brand — hex shortcuts for use in custom CSS */
   --color-gold: #866008;
@@ -381,9 +397,9 @@
   --color-gold-muted: #866008;
   --color-green: #506F43;
   --color-yellow: #866008;
-  --color-purple: #75628E;
+  --color-purple: #6E5885;
   --color-purple-glow: #8B5CF6;
-  --color-orange: #92603D;
+  --color-orange: #885832;
 
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
@@ -392,7 +408,7 @@
 
   /* Semantic status colors — darker for light-surface contrast */
   --danger: #A74640;
-  --warning: #92603D;
+  --warning: #885832;
 
   /* Light mode — clean, no ambient gradients */
   --body-ambient: none;
@@ -400,7 +416,7 @@
   /* Text - high contrast for readability */
   --color-text-primary: #20221D;
   --color-text-secondary: #4F5448;
-  --color-text-muted: #666D5D;
+  --color-text-muted: #606758;
 
   /* Node map */
   --color-map-dot: rgba(148, 163, 184, 0.5);
@@ -607,7 +623,7 @@
     align-items: center;
     gap: var(--space-1);
     padding: var(--space-1) var(--space-2);
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.02em;
     border-radius: var(--radius-sm);
@@ -853,7 +869,7 @@
 
   .filter-btn {
     padding: 4px 10px;
-    font-size: 11px;
+    font-size: 0.75rem;
     font-family: var(--font-geist-mono), monospace;
     font-weight: 500;
     letter-spacing: 0.03em;
@@ -874,7 +890,7 @@
   .filter-btn-active {
     background: var(--color-cipher-bg);
     color: var(--color-text-primary);
-    font-weight: 700;
+    font-weight: 600;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
     outline: 1px solid var(--glass-12);
   }
@@ -882,13 +898,13 @@
   .filter-btn-danger {
     background: var(--filter-danger-bg);
     color: var(--danger);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .filter-btn-warning {
     background: var(--filter-warning-bg);
     color: var(--amber-strong);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   @media (min-width: 640px) {
@@ -1108,7 +1124,7 @@
   /* Keyboard shortcut hints */
   .kbd-hint {
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: 0.75rem;
     font-family: var(--font-geist-mono), monospace;
     border-radius: 4px;
     background-color: var(--kbd-bg);
@@ -1119,7 +1135,7 @@
   /* Example tags under search */
   .example-tag {
     padding: 3px 10px;
-    font-size: 10px;
+    font-size: 0.75rem;
     font-family: var(--font-geist-mono), monospace;
     border-radius: 5px;
     transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
@@ -1723,7 +1739,7 @@
   .brand-lockup-type { display: flex; flex-direction: column; gap: 5px; }
   .brand-wordmark { display: block; width: 118px; line-height: 0; }
   .brand-wordmark img { width: 100%; height: auto; }
-  .brand-network { font: 11px/1.2 var(--font-geist-mono); letter-spacing: 0.02em; color: var(--color-text-muted); }
+  .brand-network { font: 0.75rem/1.2 var(--font-geist-mono); letter-spacing: 0.02em; color: var(--color-text-muted); }
   .home-hero { width: min(100%, 800px); margin: 0 auto; padding: 12px 0 52px; text-align: center; }
   .home-introduction, .home-command { min-width: 0; }
   .home-introduction p { max-width: 620px; margin: 16px auto 0; font-size: 15px; line-height: 1.65; text-wrap: balance; }
@@ -1733,8 +1749,8 @@
   .home-hero .search-input-hero { min-height: 60px; background: var(--color-surface); font-size: 14px; }
   .home-feeds { margin-top: 28px; }
   .home-feeds > div { min-width: 0; }
-  .home-feeds h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 14px; font-weight: 400; color: var(--color-text-primary); }
-  .home-page table th { font-family: var(--font-geist-mono); font-weight: 400; font-size: 10px; letter-spacing: 0.04em; }
+  .home-feeds h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
+  .home-page table th { font-family: var(--font-geist-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.04em; }
   .home-page table td { border-color: var(--color-border-subtle); }
   .home-page table tbody tr:last-child td { border-bottom: 0; }
   .home-feeds .card { border-left: 0; border-right: 0; border-radius: 0; background: transparent; }
@@ -1743,16 +1759,34 @@
   .home-feeds .card th:last-child, .home-feeds .card td:last-child { padding-right: 20px; }
   .recharts-text { font-family: var(--font-geist-mono); font-variant-numeric: tabular-nums; }
   .recharts-default-tooltip { box-shadow: none; font-family: var(--font-geist-mono); }
-  .chart-signature { text-align: right; font: 10px var(--font-geist-mono); color: var(--color-text-muted); padding-top: 8px; }
+  .chart-signature { text-align: right; font: 0.75rem/1.5 var(--font-geist-mono); color: var(--color-text-muted); padding-top: 8px; }
   @media (max-width: 1023px) {
     .home-hero { max-width: 720px; }
   }
   @media (max-width: 640px) {
     .brand-logo { width: 130px; }
     .home-hero { padding-top: 0; padding-bottom: 24px; }
-    .home-hero h1 { font-size: 28px; }
+    .home-hero h1 { font-size: 1.75rem; }
     .home-introduction p { font-size: 14px; }
     .home-command { margin-top: 24px; }
     .home-hero .search-input-hero { font-size: 12px; }
     .home-hero .search-input-hero { min-height: 56px; }
   }
+
+/* Explicit roles override page-specific utility combinations. Layout stays local. */
+.type-page { font-size: var(--text-page); line-height: var(--text-page--line-height); font-weight: 500; letter-spacing: -0.035em; text-wrap: balance; }
+.type-section { font-size: var(--text-section); line-height: var(--text-section--line-height); font-weight: 500; letter-spacing: -0.015em; }
+.type-label { font: 500 var(--text-caption)/1.5 var(--font-geist-mono); letter-spacing: 0.035em; }
+.type-metric { font: 500 var(--text-metric)/1.2 var(--font-geist-mono); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.035em; }
+.type-metric-compact { font-size: 1.5rem; }
+.type-data { font: 400 var(--text-data)/1.5 var(--font-geist-mono); font-variant-numeric: tabular-nums lining-nums; }
+.type-prose { font-size: var(--text-body); line-height: 1.65; }
+main table th { font: 500 var(--text-caption)/1.5 var(--font-geist-mono); letter-spacing: 0.035em; }
+main table td { font-variant-numeric: tabular-nums lining-nums; }
+@media (max-width: 639px) {
+  .type-page { font-size: 1.75rem; }
+  .type-metric { font-size: 1.5rem; }
+  .type-metric-compact { font-size: 1.25rem; }
+  /* Prevent automatic iOS zoom when entering a command or identifier. */
+  main input:not([type=checkbox]):not([type=radio]):not([type=range]), main select, main textarea { font-size: 1rem; }
+}

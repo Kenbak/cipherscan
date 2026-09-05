@@ -11,7 +11,7 @@ export default function ChainViewPage() {
         </p>
         <div className="flex items-end gap-4 flex-wrap justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-primary tracking-tight">
+            <h1 className="type-page text-primary ">
               Crosslink dual chain
             </h1>
             <p className="text-sm text-secondary mt-1.5 max-w-2xl leading-relaxed">
@@ -19,7 +19,7 @@ export default function ChainViewPage() {
               Finalizers (BFT, right) vote to lock them in as final.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted">
+          <div className="flex items-center gap-2 text-caption font-mono uppercase tracking-wider text-muted">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-green opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-cipher-green" />

@@ -28,7 +28,7 @@ export function AddressTabBar({
               : 'text-muted hover:text-secondary'
           }`}
         >
-          Transactions <span className="ml-1 text-[10px] opacity-70">{totalTxCount}</span>
+          Transactions <span className="ml-1 text-caption opacity-70">{totalTxCount}</span>
         </button>
         {crossChain && crossChain.totalSwaps > 0 && (
           <button
@@ -39,7 +39,7 @@ export function AddressTabBar({
                 : 'text-muted hover:text-secondary'
             }`}
           >
-            Bridges <span className="ml-1 text-[10px] opacity-70">{crossChain.totalSwaps}</span>
+            Bridges <span className="ml-1 text-caption opacity-70">{crossChain.totalSwaps}</span>
           </button>
         )}
         {showGraph && (

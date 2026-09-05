@@ -123,8 +123,8 @@ export default async function NameLayout({
   return (
     <>
       <header className="container mx-auto px-4 pt-8 max-w-4xl">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; ZCASH_NAME</span>
-        <h1 className="mt-2 text-primary break-all">
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; ZCASH_NAME</span>
+        <h1 className="type-page mt-2 text-primary break-all">
           <span className="block text-3xl font-mono">{name}</span>
           <span className="block mt-1 text-sm font-normal">Zcash Name</span>
         </h1>

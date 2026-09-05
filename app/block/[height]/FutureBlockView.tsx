@@ -82,7 +82,7 @@ export function FutureBlockView({
         <Card>
           <CardBody className="text-center py-16">
             <div className="text-5xl mb-6">⛏️</div>
-            <h1 className="text-2xl font-bold font-mono text-primary mb-3">
+            <h1 className="type-page font-mono text-primary mb-3">
               Block #{targetHeight.toLocaleString()} Has Been Mined!
             </h1>
             {upgrade ? (
@@ -120,9 +120,9 @@ export function FutureBlockView({
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-6">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; FUTURE_BLOCK</span>
         <div className="flex flex-wrap items-center gap-3 mt-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono text-primary">
+          <h1 className="type-page font-mono text-primary">
             Zcash Block #{targetHeight.toLocaleString()}
           </h1>
           {upgrade ? (
@@ -150,7 +150,7 @@ export function FutureBlockView({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-sm font-bold text-cipher-yellow-bright">{upgrade.name}</span>
+                <span className="text-sm font-semibold text-cipher-yellow-bright">{upgrade.name}</span>
                 {upgrade.zip && <Badge color="amber">{upgrade.zip}</Badge>}
               </div>
               <p className="text-xs sm:text-sm text-secondary leading-relaxed">
@@ -174,7 +174,7 @@ export function FutureBlockView({
         <CardBody>
           <div className="text-center py-6">
             {/* Big countdown */}
-            <div className="font-mono text-4xl sm:text-5xl font-bold text-primary mb-2 tabular-nums">
+            <div className="font-mono text-4xl sm:text-5xl font-semibold text-primary mb-2 tabular-nums">
               {formatDuration(secondsRemaining)}
             </div>
             <div className="text-sm text-muted font-mono">estimated time remaining</div>
@@ -246,8 +246,8 @@ export function FutureBlockView({
           {/* Progress bar */}
           <div className="pt-4 mt-4 border-t border-cipher-border">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Chain progress</span>
-              <span className="text-[10px] font-mono text-secondary">{(progress * 100).toFixed(4)}%</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-wider">Chain progress</span>
+              <span className="text-caption font-mono text-secondary">{(progress * 100).toFixed(4)}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-cipher-border overflow-hidden">
               <div

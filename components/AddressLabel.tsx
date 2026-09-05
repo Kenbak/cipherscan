@@ -69,7 +69,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
             setEditValue(labelInfo?.label || '');
             setIsEditing(false);
           }}
-          className="text-gray-400 hover:text-gray-300 transition-colors"
+          className="text-muted hover:text-secondary transition-colors"
           title="Cancel"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
         : labelInfo.category === 'mining'
         ? 'bg-cipher-orange/20 border-cipher-orange/50 text-cipher-orange'
         : 'bg-cipher-gold/20 border-cipher-gold/50 text-cipher-gold'
-      : 'bg-gray-500/20 border-gray-500/50 text-gray-300';
+      : 'bg-gray-500/20 border-gray-500/50 text-secondary';
 
     return (
       <div className={`flex items-center gap-2 ${className}`}>
@@ -108,7 +108,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
         {showEditButton && !labelInfo.isOfficial && (
           <button
             onClick={handleRemove}
-            className="text-gray-500 hover:text-danger transition-colors"
+            className="text-muted hover:text-danger transition-colors"
             title="Remove label"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@ export function AddressLabel({ address, showEditButton = true, className = '' }:
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className={`text-gray-500 hover:text-primary transition-colors text-xs font-mono flex items-center gap-1 ${className}`}
+        className={`text-muted hover:text-primary transition-colors text-xs font-mono flex items-center gap-1 ${className}`}
         title="Add a label for this address"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

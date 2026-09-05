@@ -39,7 +39,7 @@ export function WalletStatusBadge({ status }: { status: WalletStatus }) {
   };
   const labels = { zip318: 'ZIP-318 Compliant', ready: 'Migration Ready', in_progress: 'Waiting on Release', unknown: 'Unknown' };
   return (
-    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-mono ${styles[status]}`}>
+    <span className={`rounded-md border px-2 py-0.5 text-caption font-mono ${styles[status]}`}>
       {labels[status]}
     </span>
   );
@@ -61,18 +61,18 @@ export function WalletReadiness() {
 
   return (
     <div className="mt-4 rounded-xl border border-cipher-border bg-cipher-surface p-4 sm:p-5">
-      <h2 className="text-sm font-bold text-primary">Wallet readiness</h2>
+      <h2 className="text-sm font-semibold text-primary">Wallet readiness</h2>
       <p className="mt-1 text-xs text-muted sm:mb-4">
         Wallet support for Orchard → Ironwood migration and ZIP-318 compliance.
       </p>
 
-      <p className="mb-3 text-[10px] font-mono text-muted sm:hidden">{summaryLine}</p>
+      <p className="mb-3 text-caption font-mono text-muted sm:hidden">{summaryLine}</p>
 
       {/* Desktop table */}
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-cipher-border/50 text-left text-[10px] font-mono uppercase tracking-wider text-muted">
+            <tr className="border-b border-cipher-border/50 text-left text-caption font-mono uppercase tracking-wider text-muted">
               <th className="pb-2 pr-4">Wallet / SDK</th>
               <th className="pb-2 pr-4">Status</th>
               <th className="pb-2">Detail</th>
@@ -103,7 +103,7 @@ export function WalletReadiness() {
           if (items.length === 0) return null;
           return (
             <div key={status}>
-              <div className="border-b border-cipher-border/20 bg-glass-3/40 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted">
+              <div className="border-b border-cipher-border/20 bg-glass-3/40 px-3 py-1.5 text-caption font-mono uppercase tracking-wider text-muted">
                 {WALLET_STATUS_META[status].group}
               </div>
               <div className="divide-y divide-cipher-border/20">
@@ -120,9 +120,9 @@ export function WalletReadiness() {
                       >
                         <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden="true" />
                         <span className="min-w-0 flex-1 truncate text-xs font-mono text-primary">{w.name}</span>
-                        <span className="shrink-0 text-[10px] font-mono text-muted">{meta.short}</span>
+                        <span className="shrink-0 text-caption font-mono text-muted">{meta.short}</span>
                         <svg
-                          className={`h-3.5 w-3.5 shrink-0 text-muted/50 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                          className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -134,13 +134,13 @@ export function WalletReadiness() {
                       </button>
                       {isOpen ? (
                         <div className="border-t border-cipher-border/15 bg-glass-3/20 px-3 pb-3 pt-2">
-                          <p className="text-[11px] leading-relaxed text-muted">{w.detail}</p>
+                          <p className="text-caption leading-relaxed text-muted">{w.detail}</p>
                           {w.link ? (
                             <a
                               href={w.link}
                               target="_blank"
                               rel="noopener"
-                              className="mt-2 inline-flex text-[11px] font-mono text-cipher-gold hover:underline"
+                              className="mt-2 inline-flex text-caption font-mono text-cipher-gold hover:underline"
                             >
                               Open link →
                             </a>

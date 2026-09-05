@@ -79,7 +79,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
         <button
           key={v}
           onClick={() => setView(v)}
-          className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
+          className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
             view === v ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
@@ -91,7 +91,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
         <button
           key={p}
           onClick={() => setPeriod(p)}
-          className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
+          className={`px-2 py-0.5 text-caption font-mono rounded transition-colors ${
             period === p ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
@@ -128,16 +128,16 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           <div className="flex gap-4 flex-wrap">
             {view === 'commitments' ? (
               <>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Sapling tree: </span>
                   <span className="text-blue-400 font-semibold">{formatMillions(current.saplingCommitments)}</span>
                 </div>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Orchard tree: </span>
                   <span className="text-cipher-green font-semibold">{formatMillions(current.orchardCommitments)}</span>
                 </div>
                 {(current.ironwoodCommitments || 0) > 0 && (
-                  <div className="text-[10px] font-mono">
+                  <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood tree: </span>
                     <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodCommitments)}</span>
                   </div>
@@ -145,16 +145,16 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
               </>
             ) : (
               <>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Sapling nullifiers: </span>
                   <span className="text-blue-400 font-semibold">{formatMillions(current.saplingNullifiers)}</span>
                 </div>
-                <div className="text-[10px] font-mono">
+                <div className="text-caption font-mono">
                   <span className="text-muted">Orchard nullifiers: </span>
                   <span className="text-cipher-green font-semibold">{formatMillions(current.orchardNullifiers)}</span>
                 </div>
                 {(current.ironwoodNullifiers || 0) > 0 && (
-                  <div className="text-[10px] font-mono">
+                  <div className="text-caption font-mono">
                     <span className="text-muted">Ironwood nullifiers: </span>
                     <span className="text-amber-400 font-semibold">{formatMillions(current.ironwoodNullifiers)}</span>
                   </div>
@@ -162,7 +162,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
               </>
             )}
           </div>
-          <p className="text-[9px] font-mono text-muted/60 mt-1.5">
+          <p className="text-caption font-mono text-muted mt-1.5">
             {view === 'commitments'
               ? 'Note commitments added to each pool\u2019s Merkle tree. Each shielded output creates one commitment. Larger tree = more private transactions processed.'
               : 'Nullifiers revealed when notes are spent. Sapling counts real spends only. Orchard includes padding (each Action = 1 spend + 1 output for uniform privacy).'}
@@ -175,23 +175,23 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           <XAxis
             dataKey="label"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 9 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             interval="preserveStartEnd"
           />
           <YAxis
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 9 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={formatMillions}
-            width={42}
+            width={56}
             domain={period === 'all' || period === '4y' ? [0, 'auto'] : ['dataMin', 'auto']}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 11 }}
-            labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+            contentStyle={{ backgroundColor: 'var(--color-surface-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: 8, fontSize: 12 }}
+            labelStyle={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-geist-mono)', fontSize: 12 }}
             formatter={(value) => formatMillions(Number(value))}
           />
           <Legend
-            wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}
+            wrapperStyle={{ fontSize: 12, fontFamily: 'var(--font-geist-mono)' }}
           />
           {view === 'commitments' ? (
             <>

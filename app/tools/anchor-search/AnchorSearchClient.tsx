@@ -62,7 +62,7 @@ export default function AnchorSearchClient() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Anchor Root Search</h1>
+        <h1 className="type-page text-primary mb-2">Anchor Root Search</h1>
         <p className="text-secondary text-sm sm:text-base max-w-2xl">
           Search for Sapling or Orchard commitment tree roots across canonical and orphaned (reorg'd) blocks.
           Useful for debugging wallet sync issues — if a wallet references a root that only exists on an orphaned fork,

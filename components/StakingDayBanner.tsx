@@ -166,7 +166,7 @@ export function StakingDayBanner() {
             notifyOn={notifyOn}
             onToggle={handleNotifyToggle}
           />
-          <span className="text-[10px] font-mono text-muted">
+          <span className="text-caption font-mono text-muted">
             Period #{staking.periodNumber}
           </span>
         </div>
@@ -182,7 +182,7 @@ export function StakingDayBanner() {
         />
       </div>
 
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted">
+      <div className="flex items-center justify-between text-caption font-mono text-muted">
         <span>
           Block {staking.positionInPeriod}/{staking.isStakingOpen ? STAKING_DAY_WINDOW : STAKING_DAY_PERIOD}
         </span>
@@ -213,7 +213,7 @@ function NotifyButton({
 
   if (perm === 'denied') {
     return (
-      <span className="text-[10px] font-mono text-muted/50 flex items-center gap-1 cursor-not-allowed" title="Notifications blocked in browser settings">
+      <span className="text-caption font-mono text-muted flex items-center gap-1 cursor-not-allowed" title="Notifications blocked in browser settings">
         <BellSlashIcon />
         <span className="hidden sm:inline">Blocked</span>
       </span>
@@ -224,7 +224,7 @@ function NotifyButton({
     return (
       <button
         onClick={onToggle}
-        className="text-[10px] font-mono text-cipher-green flex items-center gap-1 hover:opacity-80 transition-opacity"
+        className="text-caption font-mono text-cipher-green flex items-center gap-1 hover:opacity-80 transition-opacity"
         title="Click to disable staking notifications"
       >
         <BellActiveIcon />
@@ -236,7 +236,7 @@ function NotifyButton({
   return (
     <button
       onClick={onToggle}
-      className="text-[10px] font-mono text-secondary flex items-center gap-1 hover:text-primary transition-colors"
+      className="text-caption font-mono text-secondary flex items-center gap-1 hover:text-primary transition-colors"
       title="Get a browser notification when the staking window opens"
     >
       <BellIcon />

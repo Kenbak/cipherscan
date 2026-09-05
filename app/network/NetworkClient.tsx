@@ -242,7 +242,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         <Card className="text-center">
           <CardBody className="py-16">
             <div className="text-5xl mb-6">&#x26A0;&#xFE0F;</div>
-            <h2 className="text-xl font-bold text-primary mb-3">Network Data Unavailable</h2>
+            <h2 className="text-xl font-semibold text-primary mb-3">Network Data Unavailable</h2>
             <p className="text-secondary mb-6">{error || 'Failed to load network data'}</p>
             <button
               onClick={() => window.location.reload()}
@@ -338,12 +338,12 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SUPPLY_DISTRIBUTION</h2>
+                  <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">SUPPLY_DISTRIBUTION</h2>
                 </div>
 
                 <div className="flex justify-between text-sm mb-3">
                   <span className="text-secondary">Shielded</span>
-                  <span className="text-primary font-mono font-bold">{stats.supply!.shieldedPercentage.toFixed(1)}%</span>
+                  <span className="text-primary font-mono font-semibold">{stats.supply!.shieldedPercentage.toFixed(1)}%</span>
                 </div>
 
                 <div className="h-4 bg-cipher-bg rounded-full overflow-hidden flex mb-4">
@@ -404,17 +404,17 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                             {labeled.filter(c => c.percentage >= 0.1).map(c => (
                               <div key={c.category} className="flex items-center gap-2">
                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${breakdownColor(c.category)}`} />
-                                <span className="text-[11px] font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
+                                <span className="text-caption font-mono text-secondary capitalize w-20 truncate">{c.category}</span>
                                 <div className="flex-1 h-1.5 bg-gray-700/30 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${breakdownColor(c.category)}`}
                                     style={{ width: `${(c.totalBalance / maxLabeled) * 100}%` }}
                                   />
                                 </div>
-                                <span className="text-[11px] font-mono text-primary text-right w-24 tabular-nums">
+                                <span className="text-caption font-mono text-primary text-right w-24 tabular-nums">
                                   {c.totalBalance >= 1000 ? `${(c.totalBalance / 1000).toFixed(1)}K` : c.totalBalance.toFixed(0)} ZEC
                                 </span>
-                                <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
                                   {c.percentage.toFixed(1)}%
                                 </span>
                               </div>
@@ -422,12 +422,12 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                             {unlabeled && (
                               <div className="flex items-center gap-2 pt-1 border-t border-cipher-border-alpha/50">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0 bg-gray-600" />
-                                <span className="text-[11px] font-mono text-muted w-20">Unlabeled</span>
+                                <span className="text-caption font-mono text-muted w-20">Unlabeled</span>
                                 <div className="flex-1" />
-                                <span className="text-[11px] font-mono text-muted text-right w-24 tabular-nums">
+                                <span className="text-caption font-mono text-muted text-right w-24 tabular-nums">
                                   {unlabeled.totalBalance >= 1000 ? `${(unlabeled.totalBalance / 1000).toFixed(1)}K` : unlabeled.totalBalance.toFixed(0)} ZEC
                                 </span>
-                                <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
                                   {unlabeled.percentage.toFixed(1)}%
                                 </span>
                               </div>
@@ -436,7 +436,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
                           {breakdown.addressTypes && breakdown.addressTypes.length > 0 && (
                             <div className="mt-5 pt-4 border-t border-cipher-border-alpha/50">
-                              <p className="text-[11px] font-mono text-muted uppercase tracking-wider mb-3">Script Types</p>
+                              <p className="text-caption font-mono text-muted uppercase tracking-wider mb-3">Script Types</p>
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="flex-1 h-2.5 bg-gray-700/50 rounded-full overflow-hidden flex">
                                   {breakdown.addressTypes.map(t => (
@@ -452,12 +452,12 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                                 {breakdown.addressTypes.map(t => (
                                   <div key={t.type} className="flex items-center gap-2">
                                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.type === 'P2PKH' ? 'bg-blue-500' : t.type === 'P2SH' ? 'bg-amber-500' : 'bg-gray-500'}`} />
-                                    <span className="text-[11px] font-mono text-secondary w-12">{t.type}</span>
-                                    <span className="text-[10px] font-mono text-muted flex-1 truncate">{t.description}</span>
-                                    <span className="text-[11px] font-mono text-primary text-right w-20 tabular-nums">
+                                    <span className="text-caption font-mono text-secondary w-12">{t.type}</span>
+                                    <span className="text-caption font-mono text-muted flex-1 truncate">{t.description}</span>
+                                    <span className="text-caption font-mono text-primary text-right w-20 tabular-nums">
                                       {t.addressCount.toLocaleString()}
                                     </span>
-                                    <span className="text-[10px] font-mono text-muted text-right w-12 tabular-nums">
+                                    <span className="text-caption font-mono text-muted text-right w-12 tabular-nums">
                                       {t.percentage.toFixed(1)}%
                                     </span>
                                   </div>
@@ -494,8 +494,8 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                 <CardBody className="py-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider mb-1">Mining</h3>
-                      <div className="flex items-center gap-4 text-[11px] font-mono text-muted">
+                      <h3 className="text-sm font-semibold font-mono text-secondary uppercase tracking-wider mb-1">Mining</h3>
+                      <div className="flex items-center gap-4 text-caption font-mono text-muted">
                         <span>Hashrate: <span className="text-primary">{formatHashrate(stats.mining.networkHashrateRaw)}</span></span>
                         <span>Difficulty: <span className="text-primary">{(stats.mining.difficulty / 1e6).toFixed(1)}M</span></span>
                         <span>Block time: <span className="text-primary">~{stats.mining.avgBlockTime}s</span></span>
@@ -538,7 +538,7 @@ function breakdownColor(category: string): string {
 function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-8 pt-6 border-t border-cipher-border-subtle">
-      <h2 className="text-lg sm:text-xl font-bold font-mono text-primary uppercase tracking-wider">{title}</h2>
+      <h2 className="text-lg sm:text-xl font-semibold font-mono text-primary lowercase tracking-tight">{title}</h2>
       {subtitle && <p className="text-xs text-muted font-mono mt-1.5 normal-case tracking-normal">{subtitle}</p>}
     </div>
   );
@@ -551,7 +551,7 @@ function HoverTip({ tip, children, className = '' }: { tip?: string; children: R
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-[10px] leading-snug text-secondary rounded-md border bg-cipher-surface-solid border-cipher-border-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-20 w-52 px-2.5 py-2 text-caption leading-snug text-secondary rounded-md border bg-cipher-surface-solid border-cipher-border-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:block"
       >
         {tip}
       </div>
@@ -595,23 +595,23 @@ function OverviewHeroStrip({
       <CardBody className="py-4 sm:py-5">
         <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-4">
           <div>
-            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-primary tabular-nums">
+            <p className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Block height</p>
+            <p className="text-2xl sm:text-3xl font-semibold font-mono text-primary tabular-nums">
               {height.toLocaleString()}
             </p>
           </div>
 
           <div className="text-right">
-            <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
+            <p className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Shielded supply</p>
             {shieldedSupplyPct != null ? (
               <>
-                <p className="text-2xl sm:text-3xl font-bold font-mono text-cipher-yellow tabular-nums">
+                <p className="text-2xl sm:text-3xl font-semibold font-mono text-cipher-yellow tabular-nums">
                   {shieldedSupplyPct.toFixed(1)}%
                 </p>
-                <p className="text-[10px] text-muted font-mono mt-0.5">of chain supply</p>
+                <p className="text-caption text-muted font-mono mt-0.5">of chain supply</p>
               </>
             ) : (
-              <p className="text-2xl font-bold font-mono text-muted">—</p>
+              <p className="text-2xl font-semibold font-mono text-muted">—</p>
             )}
           </div>
         </div>
@@ -627,14 +627,14 @@ function OverviewHeroStrip({
             <span className="text-secondary truncate">
               {healthy == null ? 'Checking node…' : isHealthy ? 'Synced' : 'Degraded'}
             </span>
-            <span className="text-muted/40" aria-hidden>·</span>
+            <span className="text-muted" aria-hidden>·</span>
             <span className="text-muted truncate">Zebra {version}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {secondary.map((item, i) => (
               <span key={item.label} className="inline-flex items-center gap-4">
-                {i > 0 && <span className="hidden sm:inline text-muted/30" aria-hidden>·</span>}
+                {i > 0 && <span className="hidden sm:inline text-muted" aria-hidden>·</span>}
                 <HoverTip tip={item.tip} className="cursor-help">
                   <span className="text-muted">{item.label}</span>
                   <span className="text-primary font-semibold ml-1">{item.value}</span>
@@ -682,7 +682,7 @@ function ChainInfoStrip({
       />
       <HoverTip tip="The currently active Zcash network upgrade.">
         <div className="card p-3 h-full cursor-help">
-          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">Network upgrade</div>
+          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-1">Network upgrade</div>
           {upgradeUrl ? (
             <a href={upgradeUrl} target="_blank" rel="noopener noreferrer" className="inline-block hover:opacity-80 transition-opacity">
               <Badge color="green">{supply.activeUpgrade || 'Unknown'}</Badge>
@@ -703,9 +703,9 @@ function ChainInfoChip({ label, value, subtitle, tooltip }: {
     <HoverTip tip={tooltip}>
       <Card variant="compact" className="h-full cursor-help">
         <CardBody>
-          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-1">{label}</div>
-          <div className="text-sm font-bold font-mono text-primary">{value}</div>
-          {subtitle && <p className="text-[10px] mt-0.5 text-muted font-mono">{subtitle}</p>}
+          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-1">{label}</div>
+          <div className="text-sm font-semibold font-mono text-primary">{value}</div>
+          {subtitle && <p className="text-caption mt-0.5 text-muted font-mono">{subtitle}</p>}
         </CardBody>
       </Card>
     </HoverTip>
@@ -720,9 +720,9 @@ function StatCard({ label, value, subtitle, tooltip }: {
     <HoverTip tip={tooltip}>
       <Card variant="compact" className="h-full cursor-help">
         <CardBody>
-          <div className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2">{label}</div>
-          <div className="text-sm sm:text-lg font-bold font-mono text-primary whitespace-nowrap truncate">{value}</div>
-          {subtitle && <p className="text-[10px] mt-1 text-muted">{subtitle}</p>}
+          <div className="text-caption text-muted font-mono uppercase tracking-wider mb-2">{label}</div>
+          <div className="text-sm sm:text-lg font-semibold font-mono text-primary whitespace-nowrap truncate">{value}</div>
+          {subtitle && <p className="text-caption mt-1 text-muted">{subtitle}</p>}
         </CardBody>
       </Card>
     </HoverTip>
@@ -750,15 +750,15 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
 
   return (
     <div className="bg-cipher-bg/50 rounded-lg p-3 text-center">
-      <div className={`${colorMap[color]} text-base sm:text-lg font-bold font-mono`}>{display}</div>
+      <div className={`${colorMap[color]} text-base sm:text-lg font-semibold font-mono`}>{display}</div>
       {zecPrice && (
-        <div className="text-[10px] text-muted font-mono">
+        <div className="text-caption text-muted font-mono">
           ${isSmall
             ? ((amount / 1000) * zecPrice).toFixed(0) + 'K'
             : ((amount / 1e6) * zecPrice).toFixed(1) + 'M'}
         </div>
       )}
-      <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-secondary mt-1">
+      <div className="flex items-center justify-center gap-1.5 text-caption sm:text-xs text-secondary mt-1">
         <span className={`w-1.5 h-1.5 rounded-full ${dotColor[color]}`}></span>
         {name === 'Ironwood' ? (
           <Link href="/ironwood" className="hover:text-cipher-yellow hover:underline">

@@ -112,10 +112,10 @@ export default function MempoolLiveClient() {
       {/* Back to mempool — HUD style, visible on mouse movement */}
       <Link
         href="/mempool"
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
+        className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300 opacity-0 group-hover/live:opacity-100 focus-visible:opacity-100"
       >
         [ EXIT ]
-        <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
+        <kbd className="px-1 py-px rounded border border-white/15 text-caption text-white/40 tracking-normal">ESC</kbd>
       </Link>
     </div>
   );

@@ -9,11 +9,11 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="w-16 sm:w-20 h-16 sm:h-20 rounded-xl border border-cipher-border/50 bg-glass-3 flex items-center justify-center">
-        <span className="text-2xl sm:text-3xl font-bold font-mono text-primary">
+        <span className="text-2xl sm:text-3xl font-semibold font-mono text-primary">
           {String(value).padStart(2, '0')}
         </span>
       </div>
-      <span className="text-[10px] font-mono text-muted mt-1.5 uppercase tracking-wider">{label}</span>
+      <span className="text-caption font-mono text-muted mt-1.5 uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -75,7 +75,7 @@ export function MetricsRow({
           <div className="flex items-center justify-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-cipher-border/50 bg-glass-3 px-4 py-1.5">
               <span className="w-2 h-2 rounded-full animate-pulse bg-cipher-yellow-bright" />
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
+              <span className="text-caption font-mono text-muted uppercase tracking-widest">
                 NU6.3 Ironwood {networkLabel}
               </span>
             </div>
@@ -84,15 +84,15 @@ export function MetricsRow({
           {/* Countdown */}
           <div className="flex items-center justify-center gap-3 sm:gap-5">
             <CountdownUnit value={days} label="days" />
-            <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+            <span className="text-2xl sm:text-3xl font-semibold text-muted -mt-6">:</span>
             <CountdownUnit value={hours} label="hours" />
-            <span className="text-2xl sm:text-3xl font-bold text-muted/30 -mt-6">:</span>
+            <span className="text-2xl sm:text-3xl font-semibold text-muted -mt-6">:</span>
             <CountdownUnit value={minutes} label="min" />
           </div>
 
           {/* Blocks remaining */}
           <div className="text-center mt-6">
-            <div className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-cipher-yellow-bright">
+            <div className="text-3xl sm:text-4xl font-semibold font-mono tracking-tight text-cipher-yellow-bright">
               {blocksLeft.toLocaleString()}
             </div>
             <div className="text-xs font-mono text-muted mt-1">blocks remaining</div>
@@ -111,7 +111,7 @@ export function MetricsRow({
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-pulse" />
               </div>
             </div>
-            <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted">
+            <div className="flex justify-between mt-1.5 text-caption font-mono text-muted">
               <span>block {tipHeight.toLocaleString()}</span>
               <span className="text-cipher-yellow-bright">{activationHeight.toLocaleString()}</span>
             </div>
@@ -120,7 +120,7 @@ export function MetricsRow({
           {/* ETA */}
           <div className="text-center mt-4 text-sm font-mono text-secondary">
             est. {targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            <span className="text-muted/60 mx-1.5">·</span>
+            <span className="text-muted mx-1.5">·</span>
             {targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false })} UTC
           </div>
 
@@ -128,8 +128,8 @@ export function MetricsRow({
           <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-cipher-border/20 pt-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/zecblock-mark.svg" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
-            <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">ZecBlock</span>
-            <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
+            <span className="text-caption font-semibold font-mono text-cipher-gold-bright tracking-tight">ZecBlock</span>
+            <span className="text-caption font-mono text-muted">zecblock.com</span>
           </div>
 
         </div>
@@ -153,20 +153,20 @@ export function MetricsRow({
     <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
       <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
         <span className="h-2 w-2 rounded-full bg-cipher-green animate-pulse" />
-        <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
+        <span className="text-caption font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
       </div>
 
       {/* Mobile — hero + full-width rows */}
       <div className="sm:hidden">
         <a href="#supply" className="block border-b border-cipher-border-subtle px-4 py-4 transition-colors active:bg-cipher-hover">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-muted">Migrated today</div>
+          <div className="font-mono text-caption uppercase tracking-wider text-muted">Migrated today</div>
           <div
-            className="mt-1 text-2xl font-bold font-mono tabular-nums tracking-tight"
+            className="mt-1 text-2xl font-semibold font-mono tabular-nums tracking-tight"
             style={{ color: colors.ironwoodPool }}
           >
             {todayValue}
           </div>
-          <div className="mt-0.5 font-mono text-[10px] text-muted/60">Into Ironwood pool</div>
+          <div className="mt-0.5 font-mono text-caption text-muted">Into Ironwood pool</div>
         </a>
         <div className="divide-y divide-cipher-border-subtle">
           <KpiRow

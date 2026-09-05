@@ -163,11 +163,11 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
         <table className="w-full min-w-[420px]">
           <thead>
             <tr>
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TxID</th>
               {/* Shield/deshield/mixed/migration direction — "Flow" to match /txs's own naming for the exact same ShieldFlowBadge, not "Type" (that word means pool category everywhere else in the app). */}
-              <th className="px-4 sm:px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Flow</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
-              <th className="px-4 sm:px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
+              <th className="px-4 sm:px-5 py-3.5 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12">Flow</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Amount</th>
+              <th className="px-4 sm:px-5 py-3.5 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Age</th>
             </tr>
           </thead>
           <tbody>
@@ -205,7 +205,7 @@ export const RecentShieldedTxs = memo(function RecentShieldedTxs({
                   </td>
                   <td className="px-4 sm:px-5 h-12 border-b border-cipher-border text-right">
                     {knownAmount !== null ? (
-                      <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted/50">ZEC</span></span>
+                      <span className="font-mono text-sm text-secondary whitespace-nowrap tabular-nums">{formatZecPrecise(knownAmount)} <span className="text-muted">ZEC</span></span>
                     ) : (
                       <RedactedAmount />
                     )}

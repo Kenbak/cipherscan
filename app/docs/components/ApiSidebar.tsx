@@ -65,7 +65,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
         `}
       >
         <div className="p-6">
-          <h2 className="text-lg font-bold text-primary mb-4 font-mono">API Endpoints</h2>
+          <h2 className="text-lg font-semibold text-primary mb-4 font-mono">API Endpoints</h2>
 
           {/* Search */}
           <div className="relative mb-5">
@@ -86,7 +86,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
               className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded border border-cipher-border bg-transparent text-primary placeholder:text-muted focus:border-cipher-gold focus:outline-none transition-colors"
             />
             {search && (
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-caption text-muted">
                 {totalResults}
               </span>
             )}
@@ -95,7 +95,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
           <nav className="space-y-6">
             {filtered.map((category) => (
               <div key={category.name}>
-                <h3 className="text-sm font-bold text-muted uppercase mb-2 tracking-wide">
+                <h3 className="text-sm font-semibold text-muted uppercase mb-2 tracking-wide">
                   {category.name}
                 </h3>
                 <ul className="space-y-1">
@@ -108,7 +108,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
                       >
                         <div className="flex items-center gap-2">
                           <span className={`
-                            text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0
+                            text-xs font-mono font-semibold px-1.5 py-0.5 rounded shrink-0
                             ${endpoint.method === 'GET'
                               ? 'text-cipher-green bg-cipher-green/10'
                               : 'text-cipher-gold bg-cipher-gold/10'

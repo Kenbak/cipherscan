@@ -102,11 +102,11 @@ function GraphCardNode({ data }: NodeProps) {
           <svg className="w-3.5 h-3.5 text-cipher-purple/50 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className={`text-[10px] font-mono uppercase tracking-[0.12em] ${palette.title} opacity-80`}>
+          <p className={`text-caption font-mono uppercase tracking-[0.12em] ${palette.title} opacity-80`}>
             Shielded Pool
           </p>
         </div>
-        <p className="mt-1 text-[10px] text-muted/60">Privacy boundary</p>
+        <p className="mt-1 text-caption text-muted">Privacy boundary</p>
         <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
       </div>
     );
@@ -115,22 +115,22 @@ function GraphCardNode({ data }: NodeProps) {
   return (
     <div className={`max-w-[180px] rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm ${palette.border} ${palette.bg}`}>
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
-      <p className={`text-[9px] font-mono uppercase tracking-[0.12em] opacity-70 ${palette.title}`}>
+      <p className={`text-caption font-mono uppercase tracking-[0.12em] opacity-70 ${palette.title}`}>
         {node.type}
       </p>
       <p
-        className="mt-1 text-[12px] font-medium leading-tight font-mono"
+        className="mt-1 text-caption font-medium leading-tight font-mono"
         style={{ color: palette.label, opacity: 0.9 }}
       >
         {truncateLabel(node.label)}
       </p>
       {node.amountZec !== undefined && (
-        <p className="mt-1 text-[11px] font-mono text-primary/70">
+        <p className="mt-1 text-caption font-mono text-primary">
           {node.amountZec.toFixed(4)} ZEC
         </p>
       )}
       {node.subtitle && (
-        <p className="mt-0.5 text-[10px] leading-snug text-muted/60">{node.subtitle}</p>
+        <p className="mt-0.5 text-caption leading-snug text-muted">{node.subtitle}</p>
       )}
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-0 !bg-white/20 !rounded-full" />
     </div>
@@ -244,7 +244,7 @@ export function PrivacyLinkGraph({
       },
       labelStyle: {
         fill: 'var(--color-text-muted, #64748b)',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 500,
       },
       labelBgStyle: {
@@ -264,8 +264,8 @@ export function PrivacyLinkGraph({
     <div className={`${styles.root} w-full overflow-hidden rounded-2xl border border-white/[0.06]`} style={{ background: 'linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(10,15,22,0.98) 100%)' }}>
       <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-3.5">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted/70">Link Graph</p>
-          <p className="mt-0.5 text-[11px] text-secondary/60">Drag, pan, and zoom to inspect the relationship.</p>
+          <p className="text-caption font-mono uppercase tracking-[0.18em] text-muted">Link Graph</p>
+          <p className="mt-0.5 text-caption text-secondary">Drag, pan, and zoom to inspect the relationship.</p>
         </div>
       </div>
       <div style={{ height }} className="w-full">

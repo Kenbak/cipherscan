@@ -76,12 +76,12 @@ function MetricCell({
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-[10px] text-muted font-mono uppercase tracking-wide">{label}</span>
+        <span className="text-caption text-muted font-mono uppercase tracking-wide">{label}</span>
         <Tooltip content={tooltip} />
       </div>
       <div className="flex items-baseline gap-1">
         <span className={`text-lg sm:text-xl font-semibold font-mono ${colorClass}`}>{value}</span>
-        {suffix && <span className="text-[10px] text-muted font-mono">{suffix}</span>}
+        {suffix && <span className="text-caption text-muted font-mono">{suffix}</span>}
       </div>
     </div>
   );
@@ -225,14 +225,14 @@ export function PrivacyWidget({ initialStats = null, initialRiskStats = null }: 
               className="lg:pl-5 group/risk"
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] text-muted font-mono uppercase tracking-wide">Privacy Risks</span>
+                <span className="text-caption text-muted font-mono uppercase tracking-wide">Privacy Risks</span>
                 <Tooltip content="Transactions where shielding patterns may reveal address links" />
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={`text-lg sm:text-xl font-semibold font-mono ${hasHighRisk ? 'text-danger' : 'text-cipher-orange'}`}>
                   {riskStats!.total}
                 </span>
-                <span className="text-[10px] text-muted font-mono">7d</span>
+                <span className="text-caption text-muted font-mono">7d</span>
               </div>
             </Link>
           </>

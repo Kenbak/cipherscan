@@ -85,11 +85,11 @@ function BlockRewardBreakdown({
       <BoldZec value={total} />
       <div className="mt-2 space-y-1">
         {recipients.map((r, i) => (
-          <div key={i} className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+          <div key={i} className="flex flex-wrap items-center justify-between gap-2 text-caption">
             <div className="flex items-center gap-1.5 min-w-0 text-muted">
               <span className="shrink-0">{r.label}</span>
               {r.address ? (
-                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-[11px]" colorClass="text-primary" />
+                <CopyableHash value={r.address} href={`/address/${r.address}`} textSize="text-caption" colorClass="text-primary" />
               ) : (
                 <span className="font-mono text-cipher-yellow">Shielded Pool</span>
               )}
@@ -126,7 +126,7 @@ function CoinbaseTagValue({
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {clientEmoji && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-[11px] font-mono text-secondary border border-cipher-border">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cipher-surface text-caption font-mono text-secondary border border-cipher-border">
             <span role="img" aria-label={clientInfo.name ? `Mined with ${clientInfo.name}` : 'Block-template client marker'}>{clientEmoji}</span>
             {clientInfo.name && <span>{clientInfo.name}{clientInfo.version ? ` ${clientInfo.version}` : ''}</span>}
           </span>
@@ -134,7 +134,7 @@ function CoinbaseTagValue({
         {decoded && <code className="text-xs text-secondary break-all">{decoded}</code>}
         <button
           onClick={() => setShowHex((v) => !v)}
-          className="inline-flex items-center gap-1 text-[10px] font-mono text-muted hover:text-secondary transition-colors"
+          className="inline-flex items-center gap-1 text-caption font-mono text-muted hover:text-secondary transition-colors"
         >
           <svg className={`w-2.5 h-2.5 transition-transform ${showHex ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -144,7 +144,7 @@ function CoinbaseTagValue({
       </div>
       {showHex && (
         <div className="mt-2 block-hash-bg p-2 rounded border border-cipher-border">
-          <code className="text-[10px] text-muted break-all">{hex}</code>
+          <code className="text-caption text-muted break-all">{hex}</code>
         </div>
       )}
     </div>

@@ -237,7 +237,7 @@ export default function DecodeClient() {
         <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
           &larr; All Tools
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Decode Raw Transaction</h1>
+        <h1 className="type-page text-primary">Decode Raw Transaction</h1>
         <p className="text-sm text-secondary mt-1">Parse a raw transaction hex into human-readable fields</p>
       </div>
 
@@ -404,7 +404,7 @@ export default function DecodeClient() {
                         Data Breakdown
                       </span>
                     </div>
-                    <div className="text-2xl font-bold font-mono text-primary mb-1">
+                    <div className="text-2xl font-semibold font-mono text-primary mb-1">
                       {result.size.toLocaleString()}
                     </div>
                     <div className="text-xs text-muted mb-4">bytes total</div>
@@ -481,7 +481,7 @@ export default function DecodeClient() {
                       </div>
                     ) : result.vin.length > 0 ? (
                       <div>
-                        <div className="text-2xl font-bold font-mono text-primary">
+                        <div className="text-2xl font-semibold font-mono text-primary">
                           {result.vin.some((v) => !!v.coinbase) ? 'COINBASE' : `${result.vin.length} transparent`}
                         </div>
                         {(result.nSpendsSapling > 0 || result.orchardActions > 0) && (
@@ -607,7 +607,7 @@ export default function DecodeClient() {
                       </div>
                     ) : result.vout.length > 0 ? (
                       <div>
-                        <div className="text-2xl font-bold font-mono text-primary">
+                        <div className="text-2xl font-semibold font-mono text-primary">
                           {totalTransparentOutput.toFixed(8)}
                         </div>
                         <div className="text-sm text-muted font-mono">ZEC</div>
@@ -699,7 +699,7 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING SPENDS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.nSpendsSapling}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.nSpendsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -714,7 +714,7 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING OUTPUTS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.nOutputsSapling}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.nOutputsSapling}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -729,7 +729,7 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Currency />} label="SAPLING VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-primary">
+                          <span className="text-lg font-semibold font-mono text-primary">
                             {result.valueBalanceSapling.toFixed(8)} ZEC
                           </span>
                         </div>
@@ -743,7 +743,7 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Shield />} label="ORCHARD ACTIONS" />
                           </div>
-                          <span className="text-xl font-bold font-mono text-primary">{result.orchardActions}</span>
+                          <span className="text-xl font-semibold font-mono text-primary">{result.orchardActions}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge color="muted">(amount hidden)</Badge>
@@ -761,7 +761,7 @@ export default function DecodeClient() {
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="orchard" icon={<Icons.Currency />} label="ORCHARD VALUE BALANCE" />
                           </div>
-                          <span className="text-lg font-bold font-mono text-primary">
+                          <span className="text-lg font-semibold font-mono text-primary">
                             {result.valueBalanceOrchard.toFixed(8)} ZEC
                           </span>
                         </div>

@@ -141,12 +141,12 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             {pattern.score}/100
           </span>
           {pattern.ambiguityScore !== undefined && (
-            <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+            <span className="text-caption font-mono text-muted uppercase tracking-wider">
               ambiguity {pattern.ambiguityScore}
             </span>
           )}
         </div>
-        <span className="text-[11px] text-muted font-mono">
+        <span className="text-caption text-muted font-mono">
           {pattern.timeSpanHours < 24
             ? `${Math.round(pattern.timeSpanHours)}h span`
             : `${Math.round(pattern.timeSpanHours / 24)}d span`}
@@ -155,7 +155,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
 
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-lg font-bold font-mono text-primary shrink-0">{pattern.batchCount}×</span>
+          <span className="text-lg font-semibold font-mono text-primary shrink-0">{pattern.batchCount}×</span>
           <div className="min-w-0">
             <span className="font-mono text-sm font-semibold text-primary">
               {pattern.perTxAmountZec.toFixed(4)} ZEC
@@ -167,13 +167,13 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
           <span className="font-mono text-sm font-semibold text-primary tabular-nums">
             {pattern.totalAmountZec.toLocaleString()} ZEC
           </span>
-          <span className="text-[10px] text-muted block">total</span>
+          <span className="text-caption text-muted block">total</span>
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {evidenceChips.map((chip) => (
-          <span key={chip} className="rounded-full border border-cipher-border bg-cipher-surface/40 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-secondary">
+          <span key={chip} className="rounded-full border border-cipher-border bg-cipher-surface/40 px-2.5 py-1 text-caption font-mono uppercase tracking-[0.16em] text-secondary">
             {chip}
           </span>
         ))}
@@ -191,7 +191,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
       {pattern.matchingShield && (
         <div className="grid gap-3 mb-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-cipher-green">Anchor Shield</p>
+            <p className="text-caption font-mono uppercase tracking-[0.18em] text-cipher-green">Anchor Shield</p>
             <p className="mt-1 text-sm text-primary">
               {pattern.matchingShield.amountZec.toLocaleString()} ZEC entered the pool before this burst.
             </p>
@@ -212,7 +212,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
         <div className="rounded-2xl border border-cipher-border bg-cipher-surface/20 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted">Burst Window</p>
+              <p className="text-caption font-mono uppercase tracking-[0.18em] text-muted">Burst Window</p>
               <p className="mt-1 text-sm text-primary">
                 {pattern.batchCount} withdrawals over {pattern.timeSpanHours < 24 ? `${pattern.timeSpanHours.toFixed(1)} hours` : `${(pattern.timeSpanHours / 24).toFixed(1)} days`}
               </p>
@@ -225,7 +225,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
                 { label: 'Recipients', value: `${pattern.addressCount ?? 0}` },
               ].map((metric) => (
                 <div key={metric.label} className="rounded-xl border border-cipher-border bg-cipher-surface/20 px-3 py-2">
-                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted">{metric.label}</p>
+                  <p className="text-caption font-mono uppercase tracking-[0.16em] text-muted">{metric.label}</p>
                   <p className="mt-1 text-lg font-mono tabular-nums text-primary">{metric.value}</p>
                 </div>
               ))}
@@ -251,7 +251,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
             </svg>
           </button>
 
-          <div className="flex flex-wrap gap-3 text-[10px] font-mono text-muted/60">
+          <div className="flex flex-wrap gap-3 text-caption font-mono text-muted">
             <span>batch +{pattern.breakdown.batchCount.points}</span>
             <span>round +{pattern.breakdown.roundNumber.points}</span>
             <span>shield +{pattern.breakdown.matchingShield.points}</span>
@@ -295,9 +295,9 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
                 href={`/tx/${txid}`}
                 className="font-mono text-xs text-muted hover:text-primary flex items-center gap-2 py-0.5 transition-colors"
               >
-                <span className="text-muted/50 w-5 text-right tabular-nums">{index + 1}.</span>
+                <span className="text-muted w-5 text-right tabular-nums">{index + 1}.</span>
                 <span className="truncate">{txid.slice(0, 16)}…</span>
-                <span className="text-[10px] text-muted/50 shrink-0">{formatTime(pattern.times[index])}</span>
+                <span className="text-caption text-muted shrink-0">{formatTime(pattern.times[index])}</span>
               </Link>
             ))}
           </div>

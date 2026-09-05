@@ -410,7 +410,7 @@ export function ScanMyTransactions() {
           <div className="space-y-4 sm:space-y-6">
             {/* Viewing Key */}
             <div>
-              <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+              <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                 Unified Full Viewing Key
               </label>
               <input
@@ -421,14 +421,14 @@ export function ScanMyTransactions() {
                 disabled={scanning}
                 className="input-field disabled:opacity-50"
               />
-              <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+              <p className="text-caption sm:text-xs text-muted mt-2 font-mono">
                 Starts with <code className="text-cipher-gold">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'}) — never leaves your browser
               </p>
             </div>
 
             {/* Scan Period */}
             <div>
-              <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+              <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                 Scan Period <span className="text-danger">*</span>
               </label>
               <select
@@ -443,7 +443,7 @@ export function ScanMyTransactions() {
                 <option value="7d">Last 7 days (~8,064 blocks)</option>
                 <option value="birthday">Since wallet birthday 🎂</option>
               </select>
-              <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+              <p className="text-caption sm:text-xs text-muted mt-2 font-mono">
                 {scanPeriod === 'birthday'
                   ? 'Scan from wallet creation (may take 1-2 minutes)'
                   : 'How far back to scan for your transactions'}
@@ -453,7 +453,7 @@ export function ScanMyTransactions() {
             {/* Birthday Block Input (only show if birthday is selected) */}
             {scanPeriod === 'birthday' && (
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+                <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                   Wallet Birthday Block <span className="text-danger">*</span>
                 </label>
                 <input
@@ -464,7 +464,7 @@ export function ScanMyTransactions() {
                   disabled={scanning}
                   className="input-field disabled:opacity-50"
                 />
-                <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+                <p className="text-caption sm:text-xs text-muted mt-2 font-mono">
                   Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-gold">birthday</code>)
                 </p>
               </div>
@@ -490,7 +490,7 @@ export function ScanMyTransactions() {
                         <div className="absolute inset-0 border-4 border-cipher-gold border-t-transparent rounded-full animate-spin"></div>
                       </div>
                       <div>
-                        <div className="text-sm sm:text-base font-bold text-primary">
+                        <div className="text-sm sm:text-base font-semibold text-primary">
                           {scanPhase === 'fetching' && (
                             <>Fetching blocks<AnimatedDots /></>
                           )}
@@ -542,7 +542,7 @@ export function ScanMyTransactions() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div>
-                      <p className="font-bold mb-1 warning-title">Please don't close this page</p>
+                      <p className="font-semibold mb-1 warning-title">Please don't close this page</p>
                       <p className="warning-text font-mono">
                         This may take a moment. Your viewing key never leaves your browser.
                       </p>
@@ -621,7 +621,7 @@ export function ScanMyTransactions() {
                   <div className="flex items-center gap-3 text-xs flex-wrap">
                     {/* From */}
                     <div className="flex items-center gap-2">
-                      <span className="text-muted font-bold uppercase tracking-wider">From:</span>
+                      <span className="text-muted font-semibold uppercase tracking-wider">From:</span>
                       <StatusBadge status="shielded" />
                     </div>
 
@@ -632,7 +632,7 @@ export function ScanMyTransactions() {
                     {result.amount > 0 && (
                       <>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-muted font-bold uppercase tracking-wider">Amount:</span>
+                          <span className="text-muted font-semibold uppercase tracking-wider">Amount:</span>
                           <span className="text-cipher-green font-mono font-semibold">
                             +{result.amount.toString().replace(/\.?0+$/, '')} {CURRENCY}
                           </span>
@@ -643,7 +643,7 @@ export function ScanMyTransactions() {
 
                     {/* Transaction */}
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-muted font-bold uppercase tracking-wider whitespace-nowrap">TX:</span>
+                      <span className="text-muted font-semibold uppercase tracking-wider whitespace-nowrap">TX:</span>
                       <HashLink value={result.txid} href={`/tx/${result.txid}`} lead={12} tail={8} copy={false} />
                     </div>
 
@@ -652,7 +652,7 @@ export function ScanMyTransactions() {
 
                     {/* Block */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-muted font-bold uppercase tracking-wider">Block:</span>
+                      <span className="text-muted font-semibold uppercase tracking-wider">Block:</span>
                       <span className="text-secondary font-mono">
                         #{result.height.toLocaleString()}
                       </span>
@@ -671,7 +671,7 @@ export function ScanMyTransactions() {
                 {/* Message Body - Email Content Area */}
                 {result.memo && (
                   <div className="p-5 inbox-message-body">
-                    <div className="text-sm text-muted uppercase tracking-wider mb-3 font-bold">
+                    <div className="text-sm text-muted uppercase tracking-wider mb-3 font-semibold">
                       Message:
                     </div>
                     <p className="text-base text-primary leading-relaxed break-words pl-4 border-l-2 border-cipher-purple/30">

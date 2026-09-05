@@ -38,18 +38,18 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
       <CardBody>
         <div className="flex items-center gap-2 mb-5">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-          <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">NEXT_HALVING</h2>
+          <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">NEXT_HALVING</h2>
         </div>
 
         <div className="text-center mb-5">
-          <p className="text-3xl sm:text-4xl font-bold font-mono text-primary tabular-nums">
+          <p className="text-3xl sm:text-4xl font-semibold font-mono text-primary tabular-nums">
             {halving.blocksRemaining?.toLocaleString() ?? '—'}
           </p>
-          <p className="text-[10px] text-muted font-mono mt-1">blocks remaining</p>
+          <p className="text-caption text-muted font-mono mt-1">blocks remaining</p>
         </div>
 
         <div className="mb-5">
-          <div className="flex justify-between text-[10px] text-muted font-mono mb-1.5">
+          <div className="flex justify-between text-caption text-muted font-mono mb-1.5">
             <span>Current era progress</span>
             <span>{progress.toFixed(1)}%</span>
           </div>
@@ -63,31 +63,31 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
 
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted font-mono">Estimated time</span>
-            <span className="text-[11px] font-mono text-primary font-medium">
+            <span className="text-caption text-muted font-mono">Estimated time</span>
+            <span className="text-caption font-mono text-primary font-medium">
               ~{halving.estimatedSeconds ? formatDuration(halving.estimatedSeconds) : '—'}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted font-mono">Estimated date</span>
-            <span className="text-[11px] font-mono text-primary font-medium">{estDate ?? '—'}</span>
+            <span className="text-caption text-muted font-mono">Estimated date</span>
+            <span className="text-caption font-mono text-primary font-medium">{estDate ?? '—'}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted font-mono">Halving block</span>
-            <span className="text-[11px] font-mono text-primary font-medium">
+            <span className="text-caption text-muted font-mono">Halving block</span>
+            <span className="text-caption font-mono text-primary font-medium">
               {halving.halvingBlock?.toLocaleString() ?? '—'}
             </span>
           </div>
           <div className="border-t border-cipher-border my-2" />
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted font-mono">Current block subsidy</span>
-            <span className="text-[11px] font-mono text-cipher-yellow font-bold">
+            <span className="text-caption text-muted font-mono">Current block subsidy</span>
+            <span className="text-caption font-mono text-cipher-yellow font-semibold">
               {halving.currentSubsidy} ZEC
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[11px] text-muted font-mono">Next block subsidy</span>
-            <span className="text-[11px] font-mono text-cipher-yellow font-bold">
+            <span className="text-caption text-muted font-mono">Next block subsidy</span>
+            <span className="text-caption font-mono text-cipher-yellow font-semibold">
               {halving.nextSubsidy != null ? `${halving.nextSubsidy} ZEC` : '—'}
             </span>
           </div>
@@ -172,26 +172,26 @@ export function SupplyEmissionPanel({
       <CardBody>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-          <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">SUPPLY_&amp;_EMISSION</h2>
+          <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">SUPPLY_&amp;_EMISSION</h2>
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div>
-            <p className="text-[9px] text-muted font-mono uppercase mb-0.5">Circulating</p>
-            <p className="text-sm font-bold font-mono text-cipher-yellow tabular-nums">
+            <p className="text-caption text-muted font-mono uppercase mb-0.5">Circulating</p>
+            <p className="text-sm font-semibold font-mono text-cipher-yellow tabular-nums">
               {(circulating / 1_000_000).toFixed(2)}M ZEC
             </p>
-            <p className="text-[9px] text-muted font-mono">{circulatingPct.toFixed(1)}%</p>
+            <p className="text-caption text-muted font-mono">{circulatingPct.toFixed(1)}%</p>
           </div>
           <div>
-            <p className="text-[9px] text-muted font-mono uppercase mb-0.5">Remaining</p>
-            <p className="text-sm font-bold font-mono text-secondary tabular-nums">
+            <p className="text-caption text-muted font-mono uppercase mb-0.5">Remaining</p>
+            <p className="text-sm font-semibold font-mono text-secondary tabular-nums">
               {(remaining / 1_000_000).toFixed(2)}M ZEC
             </p>
           </div>
           <div>
-            <p className="text-[9px] text-muted font-mono uppercase mb-0.5">Daily Emission</p>
-            <p className="text-sm font-bold font-mono text-primary tabular-nums">
+            <p className="text-caption text-muted font-mono uppercase mb-0.5">Daily Emission</p>
+            <p className="text-sm font-semibold font-mono text-primary tabular-nums">
               ~{dailyEmission != null ? `${Math.round(dailyEmission).toLocaleString()}` : '—'} ZEC
             </p>
           </div>
@@ -209,13 +209,13 @@ export function SupplyEmissionPanel({
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 9 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 interval={7}
                 tickLine={false}
               />
               <YAxis
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 9 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v: number) => `${(v / 1_000_000).toFixed(0)}M`}
                 domain={[0, 21_000_000]}
                 tickLine={false}
@@ -227,8 +227,8 @@ export function SupplyEmissionPanel({
                   backgroundColor: colors.tooltipBg,
                   border: `1px solid ${colors.tooltipBorder}`,
                   borderRadius: 8,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontFamily: 'var(--font-geist-mono), monospace',
                 }}
                 itemStyle={{ color: colors.tooltipText }}
                 labelStyle={{ color: colors.tooltipText }}
@@ -256,7 +256,7 @@ export function SupplyEmissionPanel({
           </ResponsiveContainer>
         </div>
 
-        <p className="text-[9px] text-muted font-mono text-center mt-2">
+        <p className="text-caption text-muted font-mono text-center mt-2">
           21M cap · Halving every 840,000 blocks
         </p>
       </CardBody>

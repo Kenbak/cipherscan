@@ -59,10 +59,10 @@ export function RadialGauge({ value, size = 64, strokeWidth = 6, label, classNam
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold font-mono tabular-nums" style={{ color }}>
+        <span className="text-lg font-semibold font-mono tabular-nums" style={{ color }}>
           {Math.round(clamped)}
         </span>
-        {label && <span className="text-[8px] text-muted uppercase tracking-wider">{label}</span>}
+        {label && <span className="text-caption text-muted uppercase tracking-wider">{label}</span>}
       </div>
     </div>
   );

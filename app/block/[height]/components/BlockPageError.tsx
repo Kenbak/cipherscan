@@ -18,7 +18,7 @@ export function BlockPageError({
       <Card className="text-center" role="alert" ariaLive="assertive">
         <CardBody className="py-16">
           <div className="text-5xl mb-6" aria-hidden="true">{temporarilyUnavailable ? '⚠️' : '🔍'}</div>
-          <h1 className="text-2xl font-bold font-mono text-primary mb-3">
+          <h1 className="type-page font-mono text-primary mb-3">
             {temporarilyUnavailable ? 'Block Data Temporarily Unavailable' : 'Block No Longer Available'}
           </h1>
           <p className="text-secondary mb-3">

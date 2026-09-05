@@ -21,7 +21,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
     <div id={endpoint.id} className="card scroll-mt-20">
       {/* Method & Path */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <span className={`inline-block px-3 py-1 rounded font-mono text-sm font-bold ${
+        <span className={`inline-block px-3 py-1 rounded font-mono text-sm font-semibold ${
           endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-cipher-gold text-cipher-bg'
         }`}>
           {endpoint.method}
@@ -44,7 +44,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       {/* Parameters */}
       {endpoint.params.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-bold text-muted mb-2 uppercase">Parameters</h4>
+          <h4 className="text-sm font-semibold text-muted mb-2 uppercase">Parameters</h4>
           <div className="space-y-2">
             {endpoint.params.map((param, i) => (
               <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
@@ -52,7 +52,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
                   <code className="text-cipher-gold font-mono">{param.name}</code>
                   <span className="text-muted">({param.type})</span>
                   {param.required && (
-                    <span className="text-[10px] font-bold text-danger uppercase tracking-wider">required</span>
+                    <span className="text-caption font-semibold text-danger uppercase tracking-wider">required</span>
                   )}
                 </div>
                 <span className="text-secondary">- {param.description}</span>
@@ -65,7 +65,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       {/* Example Request */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-bold text-muted uppercase">Example Request</h4>
+          <h4 className="text-sm font-semibold text-muted uppercase">Example Request</h4>
           <button
             onClick={() => copyToClipboard(endpoint.example, endpoint.id)}
             className="text-xs text-cipher-gold hover:text-cipher-green transition-colors flex items-center gap-1"
@@ -104,7 +104,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
           >
             <path d="M6 4l8 6-8 6V4z" />
           </svg>
-          <h4 className="text-sm font-bold text-muted uppercase group-hover:text-secondary transition-colors">
+          <h4 className="text-sm font-semibold text-muted uppercase group-hover:text-secondary transition-colors">
             Example Response
           </h4>
         </button>

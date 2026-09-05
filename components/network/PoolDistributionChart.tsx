@@ -61,8 +61,8 @@ interface PoolPoint {
 }
 
 function segmentedClass(active: boolean) {
-  return `px-2 py-1 text-[10px] font-mono uppercase tracking-wide rounded transition whitespace-nowrap ${
-    active ? 'bg-cipher-gold/15 text-cipher-gold font-bold' : 'text-muted hover:text-primary'
+  return `px-2 py-1 text-caption font-mono uppercase tracking-wide rounded transition whitespace-nowrap ${
+    active ? 'bg-cipher-gold/15 text-cipher-gold font-semibold' : 'text-muted hover:text-primary'
   }`;
 }
 
@@ -79,7 +79,7 @@ function SupplyChartFrame({ yLabel, children }: { yLabel: string; children: Reac
   return (
     <div className="flex items-stretch gap-2">
       <div className="flex w-5 shrink-0 items-center justify-center" aria-hidden="true">
-        <span className="origin-center -rotate-90 whitespace-nowrap text-[10px] font-mono text-muted">
+        <span className="origin-center -rotate-90 whitespace-nowrap text-caption font-mono text-muted">
           {yLabel}
         </span>
       </div>
@@ -115,10 +115,10 @@ function RateTooltip({
         color: colors.tooltipText,
       }}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {rate != null ? (
         <p className="mb-1 tabular-nums">
-          <span className="text-cipher-gold font-bold">{rate.toFixed(2)}%</span>
+          <span className="text-cipher-gold font-semibold">{rate.toFixed(2)}%</span>
           <span className="text-muted"> shielded</span>
         </p>
       ) : null}
@@ -155,7 +155,7 @@ function CompositionTooltip({
         color: colors.tooltipText,
       }}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {payload.map((entry) => (
         <p key={String(entry.name)} className="tabular-nums text-secondary">
           <span style={{ color: entry.color }}>{entry.name}</span>
@@ -189,7 +189,7 @@ function PoolsTooltip({
         color: colors.tooltipText,
       }}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {payload
         .filter((entry) => Number(entry.value ?? 0) > 0)
         .map((entry) => (
@@ -315,21 +315,21 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
           <XAxis
             dataKey="date"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v) => formatChartDate(String(v))}
             interval="preserveStartEnd"
             label={supplyXAxisTitle('Date', axisFill)}
           />
           <YAxis
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v) => formatZecCompact(v)}
             domain={[0, maxSupplyZec]}
             width={Y_AXIS_WIDTH}
           />
         <Tooltip content={<PoolsTooltip colors={colors} />} />
         <Legend
-          wrapperStyle={{ fontSize: 11, cursor: 'pointer', paddingTop: 8 }}
+          wrapperStyle={{ fontSize: 12, cursor: 'pointer', paddingTop: 8 }}
           onClick={(data) => {
             const key = String(data.dataKey ?? '');
             if (!key) return;
@@ -357,20 +357,20 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
           <XAxis
             dataKey="date"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v) => formatChartDate(String(v))}
             interval="preserveStartEnd"
             label={supplyXAxisTitle('Date', axisFill)}
           />
           <YAxis
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v) => formatZecCompact(v)}
             domain={[0, maxSupplyZec]}
             width={Y_AXIS_WIDTH}
           />
         <Tooltip content={<CompositionTooltip colors={colors} />} />
-        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
         <Area type="monotone" dataKey="shielded" stackId="1" stroke={colors.shielded} fill={colors.shielded} fillOpacity={0.55} name="Shielded" />
         <Area type="monotone" dataKey="transparent" stackId="1" stroke={colors.transparent} fill={colors.transparent} fillOpacity={0.35} name="Transparent" />
       </AreaChart>
@@ -384,14 +384,14 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
           <XAxis
             dataKey="date"
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             tickFormatter={(v) => formatChartDate(String(v))}
             interval="preserveStartEnd"
             label={supplyXAxisTitle('Date', axisFill)}
           />
           <YAxis
             stroke={colors.axis}
-            tick={{ fill: colors.axis, fontSize: 10 }}
+            tick={{ fill: colors.axis, fontSize: 12 }}
             domain={[rateYMin, rateYMax]}
             tickFormatter={(v) => `${v}%`}
             width={48}

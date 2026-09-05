@@ -66,7 +66,7 @@ function SizeTooltip({ active, payload, colors, viewMode, unit, zecPrice }: {
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
       style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
     >
-      <p className="mb-1 text-[10px] uppercase tracking-wider text-muted">{row.label}</p>
+      <p className="mb-1 text-caption uppercase tracking-wider text-muted">{row.label}</p>
       <p className="tabular-nums text-secondary">{row.swapCount.toLocaleString()} swaps</p>
       <p className="tabular-nums text-secondary">{fv(row.volumeUsd)} volume</p>
     </div>
@@ -125,8 +125,8 @@ export function SwapSizeDistribution({ unit = 'usd', zecPrice = null }: { unit?:
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={chartData} margin={{ left: 0, right: 8 }}>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
-                <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={50} />
-                <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => fv(v)} width={50} />
+                <XAxis dataKey="label" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={50} />
+                <YAxis stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={(v: number) => fv(v)} width={50} />
                 <Tooltip content={<SizeTooltip colors={colors} viewMode={viewMode} unit={unit} zecPrice={zecPrice} />} cursor={{ fill: colors.barCursor }} />
                 <Bar dataKey={dataKey} fill="var(--color-cipher-purple)" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
               </BarChart>

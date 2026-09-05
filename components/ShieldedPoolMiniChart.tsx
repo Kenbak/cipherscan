@@ -54,7 +54,7 @@ function MiniTooltip({
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
       style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
     >
-      <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
+      <p className="mb-1.5 text-caption uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {SERIES.map(({ key, label: seriesLabel }) => {
         const entry = payload.find((p) => p.dataKey === key);
         if (!entry) return null;
@@ -108,15 +108,15 @@ export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ foote
         {latest && (
           <div className="grid grid-cols-3 gap-3 pb-2 mb-2 border-b border-cipher-border/50 shrink-0">
             <div>
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-0.5">Shielded</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-0.5">Shielded</span>
               <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatZecCompact(latest.shielded)} ZEC</span>
             </div>
             <div>
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-0.5">Transparent</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-0.5">Transparent</span>
               <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatZecCompact(latest.transparent)} ZEC</span>
             </div>
             <div>
-              <span className="text-[10px] font-mono text-muted uppercase tracking-widest block mb-0.5">Shielded %</span>
+              <span className="text-caption font-mono text-muted uppercase tracking-widest block mb-0.5">Shielded %</span>
               <span className="text-sm font-mono font-semibold text-primary tabular-nums">
                 {latest.shieldedSupplyPct != null ? `${latest.shieldedSupplyPct.toFixed(1)}%` : '—'}
               </span>
@@ -125,7 +125,7 @@ export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ foote
         )}
         <div className="flex items-center gap-3 mb-1 shrink-0">
           {SERIES.map(({ key, label }) => (
-            <span key={key} className="inline-flex items-center gap-1.5 text-[10px] font-mono text-muted uppercase tracking-wider">
+            <span key={key} className="inline-flex items-center gap-1.5 text-caption font-mono text-muted uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[key] }} />
               {label}
             </span>
@@ -141,7 +141,7 @@ export const ShieldedPoolMiniChart = memo(function ShieldedPoolMiniChart({ foote
               <XAxis
                 dataKey="date"
                 stroke={colors.axis}
-                tick={{ fill: colors.axis, fontSize: 10 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v) => formatChartDate(String(v))}
                 interval="preserveStartEnd"
                 tickLine={false}

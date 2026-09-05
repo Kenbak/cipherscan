@@ -133,7 +133,7 @@ export default function BroadcastClient() {
         <Link href="/tools" className="text-xs font-mono text-muted hover:text-primary transition-colors mb-4 inline-block">
           &larr; All Tools
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Broadcast Transaction</h1>
+        <h1 className="type-page text-primary">Broadcast Transaction</h1>
         <p className="text-sm text-secondary mt-1">Submit a signed raw transaction to the Zcash network</p>
       </div>
 

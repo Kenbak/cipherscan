@@ -254,7 +254,7 @@ function RadialClock({
             textAnchor="middle"
             dominantBaseline="central"
             fontSize={12}
-            fontFamily="monospace"
+            fontFamily="var(--font-geist-mono), monospace"
             fill="var(--color-text-muted)"
           >
             {String(h).padStart(2, '0')}
@@ -300,16 +300,16 @@ function RadialClock({
 
       {/* hub */}
       <circle cx={CX} cy={CY} r={HUB_R} fill="url(#hubGrad)" stroke="var(--color-border)" strokeOpacity={0.4} />
-      <text x={CX} y={CY - 22} textAnchor="middle" fontSize={34} fontFamily="monospace" fontWeight={700} fill="#FFD060">
+      <text x={CX} y={CY - 22} textAnchor="middle" fontSize={34} fontFamily="var(--font-geist-mono), monospace" fontWeight={600} fill="#FFD060">
         {String(currentHour).padStart(2, '0')}:00
       </text>
-      <text x={CX} y={CY + 2} textAnchor="middle" fontSize={11} fontFamily="monospace" fill="var(--color-text-muted)" letterSpacing="2">
+      <text x={CX} y={CY + 2} textAnchor="middle" fontSize={12} fontFamily="var(--font-geist-mono), monospace" fill="var(--color-text-muted)" letterSpacing="2">
         UTC
       </text>
-      <text x={CX} y={CY + 30} textAnchor="middle" fontSize={20} fontFamily="monospace" fontWeight={700} fill="#E5E7EB">
+      <text x={CX} y={CY + 30} textAnchor="middle" fontSize={20} fontFamily="var(--font-geist-mono), monospace" fontWeight={600} fill="#E5E7EB">
         {activityPct}%
       </text>
-      <text x={CX} y={CY + 48} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="var(--color-text-muted)" letterSpacing="1">
+      <text x={CX} y={CY + 48} textAnchor="middle" fontSize={12} fontFamily="var(--font-geist-mono), monospace" fill="var(--color-text-muted)" letterSpacing="1">
         OF PEAK
       </text>
     </svg>
@@ -327,14 +327,14 @@ function ResidualTooltip({ active, payload }: any) {
         border: '1px solid var(--color-border)',
         borderRadius: 8,
         padding: '8px 10px',
-        fontFamily: 'monospace',
-        fontSize: 11,
+        fontFamily: 'var(--font-geist-mono), monospace',
+        fontSize: 12,
       }}
     >
       <div className="text-secondary mb-1">{d.label}:00 UTC</div>
       <div className="text-muted">actual {d.actual}% of the day</div>
       <div className="text-muted">expected {d.predicted}% (humans only)</div>
-      <div style={{ color: up ? '#E2A66E' : '#A1A9AD', marginTop: 4, fontWeight: 700 }}>
+      <div style={{ color: up ? '#E2A66E' : '#A1A9AD', marginTop: 4, fontWeight: 600 }}>
         {up ? '+' : ''}{d.residual} pts · {up ? 'busier than people explain' : 'quieter than expected'}
       </div>
     </div>
@@ -506,7 +506,7 @@ export function UsageClockClient({
       </div>
 
       {/* Header */}
-      <h1 className="text-2xl sm:text-3xl font-bold text-primary">The Rhythm of Zcash</h1>
+      <h1 className="type-page text-primary">The Rhythm of Zcash</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
         Zcash is built to hide <span className="text-primary font-semibold">where</span> you are. But the chain still has a pulse — every block is timestamped, so the network&apos;s daily rhythm is public even when its geography isn&apos;t. We read that rhythm against where the nodes actually run. The mismatch is the interesting part.
       </p>
@@ -518,9 +518,9 @@ export function UsageClockClient({
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition ${
+              className={`px-3 py-1 text-caption font-mono rounded-md transition ${
                 period === p.key
-                  ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-bold'
+                  ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-semibold'
                   : 'text-muted hover:text-secondary'
               }`}
             >
@@ -529,11 +529,11 @@ export function UsageClockClient({
           ))}
         </div>
         {data && (
-          <div className="text-[11px] font-mono text-muted">
+          <div className="text-caption font-mono text-muted">
             {data.dateRange.from} → {data.dateRange.to} · {data.totalBlocks.toLocaleString()} blocks · {fmt(data.totalTxs)} txs
           </div>
         )}
-        {loading && <span className="text-[11px] font-mono text-cipher-gold animate-pulse">updating…</span>}
+        {loading && <span className="text-caption font-mono text-cipher-gold animate-pulse">updating…</span>}
       </div>
 
       {/* ===================== HERO: dial + thesis ===================== */}
@@ -574,14 +574,14 @@ export function UsageClockClient({
               aria-label="Hour of day (UTC)"
             />
           </div>
-          <p className="mt-3 text-[11px] font-mono text-muted leading-relaxed">
+          <p className="mt-3 text-caption font-mono text-muted leading-relaxed">
             Outer ring = transactions per UTC hour. Inner ring = how much of the node network is in sunlight. The hand marks the live hour — right now near <span className="text-secondary">{sunRegionLabel(hour)}</span>, with daylight over <span className="text-secondary">{litRegions.join(' · ') || 'open ocean only'}</span>.
           </p>
         </div>
 
         {/* Thesis + the headline differentiator */}
         <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 flex flex-col">
-          <h2 className="text-base font-bold text-primary">People and plumbing don&apos;t live in the same place</h2>
+          <h2 className="text-base font-semibold text-primary">People and plumbing don&apos;t live in the same place</h2>
           <p className="text-xs text-secondary leading-relaxed mt-2">
             A plain sun-clock guesses at users from sunlight alone. We can do better: the timing of activity hints at <em>when</em> people are awake, while the node map shows <em>where</em> the infrastructure physically sits. Lined up, they disagree — and that gap is something no sun overlay can show.
           </p>
@@ -593,7 +593,7 @@ export function UsageClockClient({
               { label: 'Asia–Pacific', timing: regionMix.asia, geo: nodeGeoSplit.asia, color: '#E8C48D' },
             ].map((r) => (
               <div key={r.label}>
-                <div className="flex items-center justify-between text-[10px] font-mono mb-1">
+                <div className="flex items-center justify-between text-caption font-mono mb-1">
                   <span className="text-secondary">{r.label}</span>
                   <span className="text-muted">
                     <span style={{ color: r.color }}>{Math.round(r.timing * 100)}%</span> by timing · {Math.round(r.geo * 100)}% of nodes
@@ -609,7 +609,7 @@ export function UsageClockClient({
             ))}
           </div>
 
-          <p className="text-[10px] text-muted leading-relaxed mt-auto pt-4">
+          <p className="text-caption text-muted leading-relaxed mt-auto pt-4">
             Thick bar: user base inferred from activity timing. Thin bar: where the nodes actually run. The biggest slice of users looks like <span className="text-secondary">{topTimingRegion}</span>, yet the nodes cluster in <span className="text-secondary">{topGeoRegion}</span>.
           </p>
         </div>
@@ -618,8 +618,8 @@ export function UsageClockClient({
       {/* ===================== GEOGRAPHIC PANEL (demoted) ===================== */}
       <div className="mt-6 rounded-xl border border-cipher-border overflow-hidden relative bg-cipher-bg-dark">
         <div className="px-4 py-2.5 border-b border-cipher-border/60 flex items-center justify-between">
-          <span className="text-[11px] font-mono font-bold text-secondary uppercase tracking-wider">Sun &amp; network · live</span>
-          <div className="flex items-center gap-3 text-[10px] font-mono">
+          <span className="text-caption font-mono font-semibold text-secondary uppercase tracking-wider">Sun &amp; network · live</span>
+          <div className="flex items-center gap-3 text-caption font-mono">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cipher-yellow-bright" /> <span className="text-muted">node, lit</span></span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cipher-yellow-bright/30" /> <span className="text-muted">node, dark</span></span>
           </div>
@@ -656,9 +656,9 @@ export function UsageClockClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8">
         {/* Correlation */}
         <div className="rounded-xl border border-cipher-border bg-cipher-surface p-5 flex flex-col">
-          <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">Daylight correlation</h3>
-          <div className="text-4xl font-bold font-mono text-cipher-gold">{correlation >= 0 ? '+' : ''}{correlation.toFixed(2)}</div>
-          <p className="text-[11px] text-muted mt-2 leading-relaxed">
+          <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider mb-2">Daylight correlation</h3>
+          <div className="text-4xl font-semibold font-mono text-cipher-gold">{correlation >= 0 ? '+' : ''}{correlation.toFixed(2)}</div>
+          <p className="text-caption text-muted mt-2 leading-relaxed">
             How tightly hourly activity tracks the share of nodes in daylight. {correlation > 0.4 ? 'Strongly positive: the network gets busier as it wakes into the sun.' : correlation < -0.2 ? 'Negative: usage runs against the network\'s own daylight.' : 'Weak: timing isn\'t cleanly explained by node geography.'}
           </p>
         </div>
@@ -666,22 +666,22 @@ export function UsageClockClient({
         {/* Residual */}
         <div className="rounded-xl border border-cipher-border bg-cipher-surface p-5 lg:col-span-2">
           <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
-            <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider">The machine hours</h3>
-            <div className="flex items-center gap-3 text-[9px] font-mono">
+            <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider">The machine hours</h3>
+            <div className="flex items-center gap-3 text-caption font-mono">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: '#E2A66E' }} /> <span className="text-muted">busier than people</span></span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{ background: '#A1A9AD' }} /> <span className="text-muted">quieter</span></span>
             </div>
           </div>
-          <p className="text-[10px] text-muted mb-2 leading-relaxed">
+          <p className="text-caption text-muted mb-2 leading-relaxed">
             We predict each hour&apos;s share of the day assuming people transact in their waking hours, in the timezones where the nodes sit. This shows <span className="text-secondary">actual minus predicted</span>. Orange hours are busier than human routine explains — when exchanges, miners and bots that run on machine time leave their mark. Hover any hour for the breakdown.
           </p>
           <div className="h-[160px]">
             <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
               <BarChart data={residualBars} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
                 <ReferenceLine y={0} stroke="var(--color-text-muted)" strokeOpacity={0.5} />
-                <XAxis dataKey="label" tick={{ fontSize: 9, fontFamily: 'monospace' }} stroke="var(--color-text-muted)" interval={2} tickFormatter={(l) => `${l}h`} />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fontFamily: 'var(--font-geist-mono), monospace' }} stroke="var(--color-text-muted)" interval={2} tickFormatter={(l) => `${l}h`} />
                 <YAxis
-                  tick={{ fontSize: 9, fontFamily: 'monospace' }}
+                  tick={{ fontSize: 12, fontFamily: 'var(--font-geist-mono), monospace' }}
                   stroke="var(--color-text-muted)"
                   width={40}
                   tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}pt`}
@@ -701,19 +701,19 @@ export function UsageClockClient({
       {/* ===================== HEATMAP ===================== */}
       <div className="mt-5 rounded-xl border border-cipher-border bg-cipher-surface p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider">Seven days, twenty-four hours</h3>
-          <span className="text-[10px] font-mono text-muted">brighter → busier · UTC</span>
+          <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider">Seven days, twenty-four hours</h3>
+          <span className="text-caption font-mono text-muted">brighter → busier · UTC</span>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[460px]">
             <div className="flex pl-9 mb-1">
               {[0, 6, 12, 18].map((h) => (
-                <div key={h} className="text-[9px] font-mono text-muted" style={{ width: '25%' }}>{String(h).padStart(2, '0')}h</div>
+                <div key={h} className="text-caption font-mono text-muted" style={{ width: '25%' }}>{String(h).padStart(2, '0')}h</div>
               ))}
             </div>
             {heat.grid.map((row, ri) => (
               <div key={ri} className="flex items-center gap-1 mb-1">
-                <div className="w-8 text-[9px] font-mono text-muted text-right pr-1">{DOW_LABELS[ri]}</div>
+                <div className="w-8 text-caption font-mono text-muted text-right pr-1">{DOW_LABELS[ri]}</div>
                 <div className="flex gap-[2px] flex-1">
                   {row.map((v, hi) => (
                     <div
@@ -734,9 +734,9 @@ export function UsageClockClient({
       <div className="mt-6 rounded-xl border border-cipher-border bg-cipher-surface p-5">
         <p className="text-sm text-secondary leading-relaxed">
           Across this window the network is busiest near{' '}
-          <span className="text-primary font-bold font-mono">{String(peakH).padStart(2, '0')}:00 UTC</span> and quietest near{' '}
-          <span className="text-primary font-bold font-mono">{String(lowH).padStart(2, '0')}:00 UTC</span>
-          {ratio > 0 && <> — a <span className="text-primary font-bold">{ratio}×</span> swing between its loudest and softest hour</>}.
+          <span className="text-primary font-semibold font-mono">{String(peakH).padStart(2, '0')}:00 UTC</span> and quietest near{' '}
+          <span className="text-primary font-semibold font-mono">{String(lowH).padStart(2, '0')}:00 UTC</span>
+          {ratio > 0 && <> — a <span className="text-primary font-semibold">{ratio}×</span> swing between its loudest and softest hour</>}.
           When it peaks, the sun sits over {sunRegionLabel(peakH)}. The timing leans toward a user base in{' '}
           <span className="text-cipher-gold font-semibold">{topTimingRegion}</span>, while the machines that carry the network mostly live in <span className="text-secondary">{topGeoRegion}</span>.
         </p>

@@ -50,7 +50,7 @@ const Icons = {
 function GlossaryItem({ term, definition }: { term: string; definition: string }) {
   return (
     <div className="py-3 border-b border-cipher-border last:border-0">
-      <span className="font-mono text-sm font-bold text-cipher-gold">{term}</span>
+      <span className="font-mono text-sm font-semibold text-cipher-gold">{term}</span>
       <p className="text-sm text-secondary leading-relaxed mt-1">{definition}</p>
     </div>
   );
@@ -67,7 +67,7 @@ export function CrosslinkLearn() {
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">
                 <span className="opacity-50">{'>'}</span> LEARN_CROSSLINK
               </p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-5">
+              <h1 className="type-page text-primary mb-5">
                 What is Crosslink?
               </h1>
               <p className="text-secondary leading-relaxed mb-4">
@@ -106,7 +106,7 @@ export function CrosslinkLearn() {
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                <span className="text-[10px] font-mono text-muted/40 ml-2">crosslink architecture</span>
+                <span className="text-caption font-mono text-muted ml-2">crosslink architecture</span>
               </div>
               <div className="p-5 sm:p-6 font-mono text-sm space-y-4">
                 <div className="flex items-center gap-3">
@@ -138,14 +138,14 @@ export function CrosslinkLearn() {
 
       {/* ROLES */}
       <div className="max-w-6xl mx-auto px-4 py-12">
-        <h2 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">{'>'} ROLES</h2>
+        <h2 className="text-xs font-mono text-muted lowercase tracking-tight mb-6">{'>'} ROLES</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
             <CardBody>
               <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
                 <Icons.Zap className="w-5 h-5 text-cipher-gold" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Miner</h3>
+              <h3 className="font-semibold text-primary mb-2">Miner</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Produce new blocks using Proof-of-Work. Every block earns <strong className="text-primary">5 cTAZ</strong> for
                 the miner. The desktop app CPU-mines by default.
@@ -158,7 +158,7 @@ export function CrosslinkLearn() {
               <div className="w-10 h-10 rounded-xl bg-cipher-purple/10 flex items-center justify-center mb-4">
                 <Icons.Shield className="w-5 h-5 text-cipher-purple" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Finalizer</h3>
+              <h3 className="font-semibold text-primary mb-2">Finalizer</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Run a validator node that votes to finalize blocks.
                 Top 100 finalizers by stake are active. Your node must stay online.
@@ -175,7 +175,7 @@ export function CrosslinkLearn() {
               <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
                 <Icons.Users className="w-5 h-5 text-cipher-gold" />
               </div>
-              <h3 className="font-bold text-primary mb-2">Staker (Protocol Guardian)</h3>
+              <h3 className="font-semibold text-primary mb-2">Staker (Protocol Guardian)</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Lock cTAZ in a delegation bond to a finalizer. Your stake earns a share of
                 the <strong className="text-primary">5 cTAZ</strong> block reward distributed to stakers.
@@ -191,7 +191,7 @@ export function CrosslinkLearn() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Layers className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} STAKING_DAY</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} STAKING_DAY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Staking actions are only allowed during recurring windows called &ldquo;Staking Days&rdquo; — designed
@@ -201,24 +201,24 @@ export function CrosslinkLearn() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">How It Works</h3>
+                <h3 className="font-semibold text-primary mb-4">How It Works</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">1</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-semibold">1</span>
                     <div>
                       <div className="font-medium text-primary">Window Opens</div>
                       <div className="text-xs text-secondary mt-0.5">Every <strong>{STAKING_DAY_PERIOD}</strong> blocks, a {STAKING_DAY_WINDOW}-block staking window opens</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">2</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-semibold">2</span>
                     <div>
                       <div className="font-medium text-primary">Perform Actions</div>
                       <div className="text-xs text-secondary mt-0.5">Stake, unstake, or withdraw bonds during the open window</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-bold">3</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-hover flex items-center justify-center flex-shrink-0 mt-0.5 font-mono text-xs text-muted font-semibold">3</span>
                     <div>
                       <div className="font-medium text-primary">Window Closes</div>
                       <div className="text-xs text-secondary mt-0.5">Wait for the next cycle. Retargeting (moving stake between finalizers) can be done anytime.</div>
@@ -230,7 +230,7 @@ export function CrosslinkLearn() {
 
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">Why Staking Days?</h3>
+                <h3 className="font-semibold text-primary mb-4">Why Staking Days?</h3>
                 <div className="space-y-3 text-sm text-secondary leading-relaxed">
                   <p>
                     <strong className="text-primary">Privacy protection:</strong> Grouping staking actions into windows
@@ -256,7 +256,7 @@ export function CrosslinkLearn() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Zap className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} SEASON_1_REWARDS</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} SEASON_1_REWARDS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Season 1 is allocated <strong className="text-primary">25 real ZEC</strong>, distributed pro rata
@@ -266,19 +266,19 @@ export function CrosslinkLearn() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-cipher-gold">5 cTAZ</span>
+                <span className="text-2xl font-mono font-semibold text-cipher-gold">5 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to miner</p>
               </CardBody>
             </Card>
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-cipher-gold">5 cTAZ</span>
+                <span className="text-2xl font-mono font-semibold text-cipher-gold">5 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to stakers (weighted)</p>
               </CardBody>
             </Card>
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-muted">1.25 cTAZ</span>
+                <span className="text-2xl font-mono font-semibold text-muted">1.25 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to Dev Fund</p>
               </CardBody>
             </Card>
@@ -300,7 +300,7 @@ export function CrosslinkLearn() {
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Book className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GLOSSARY</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} GLOSSARY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Key terms you&apos;ll see on the Crosslink explorer.
@@ -335,7 +335,7 @@ export function CrosslinkLearn() {
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
             <Icons.Zap className="w-5 h-5 text-cipher-gold" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GET_STARTED</h2>
+            <h2 className="text-xs font-mono text-muted lowercase tracking-tight">{'>'} GET_STARTED</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             Join the Crosslink feature net and start earning cTAZ.

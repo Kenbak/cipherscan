@@ -124,7 +124,7 @@ export function ZodlClient({
       </div>
 
       {/* Header */}
-      <h1 className="text-2xl sm:text-3xl font-bold text-primary">Miner ZODL Leaderboard</h1>
+      <h1 className="type-page text-primary">Miner ZODL Leaderboard</h1>
       <p className="text-sm text-secondary mt-2 max-w-3xl leading-relaxed">
         Every block mints new ZEC for whoever mined it. We follow the <span className="text-primary font-semibold">first move</span> those rewards make: still <span className="text-primary font-semibold">held</span>, swept into the <span style={{ color: SEG.shielded.color }} className="font-semibold">shielded pool</span>, or sent straight to an <span style={{ color: SEG.offramp.color }} className="font-semibold">exchange or bridge</span>. Shielding isn&apos;t selling — and as it turns out, most miners shield rather than dump.
       </p>
@@ -136,8 +136,8 @@ export function ZodlClient({
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition ${
-                period === p.key ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-bold' : 'text-muted hover:text-secondary'
+              className={`px-3 py-1 text-caption font-mono rounded-md transition ${
+                period === p.key ? 'bg-cipher-yellow/15 text-cipher-yellow-bright font-semibold' : 'text-muted hover:text-secondary'
               }`}
             >
               {p.label}
@@ -149,15 +149,15 @@ export function ZodlClient({
             <button
               key={s.key}
               onClick={() => setSortKey(s.key as any)}
-              className={`px-3 py-1 text-[11px] font-mono rounded-md transition whitespace-nowrap ${
-                sortKey === s.key ? 'bg-white/5 text-primary font-bold border border-white/10' : 'text-muted hover:text-secondary border border-transparent'
+              className={`px-3 py-1 text-caption font-mono rounded-md transition whitespace-nowrap ${
+                sortKey === s.key ? 'bg-white/5 text-primary font-semibold border border-white/10' : 'text-muted hover:text-secondary border border-transparent'
               }`}
             >
               {s.label}
             </button>
           ))}
         </div>
-        {loading && <span className="text-[11px] font-mono text-cipher-gold animate-pulse">updating…</span>}
+        {loading && <span className="text-caption font-mono text-cipher-gold animate-pulse">updating…</span>}
       </div>
 
       {/* Summary */}
@@ -170,15 +170,15 @@ export function ZodlClient({
             { label: 'To exchange / bridge', value: `${(summary.networkOfframpRatio * 100).toFixed(1)}%`, color: '', style: { color: SEG.offramp.color } },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-cipher-border bg-cipher-surface p-4 min-w-0">
-              <div className={`text-base sm:text-xl font-bold font-mono tabular-nums whitespace-nowrap ${s.color}`} style={(s as any).style}>{s.value}</div>
-              <div className="text-[10px] text-muted uppercase tracking-wider mt-1 font-mono truncate">{s.label}</div>
+              <div className={`text-base sm:text-xl font-semibold font-mono tabular-nums whitespace-nowrap ${s.color}`} style={(s as any).style}>{s.value}</div>
+              <div className="text-caption text-muted uppercase tracking-wider mt-1 font-mono truncate">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-[10px] font-mono text-muted">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-caption font-mono text-muted">
         {Object.values(SEG).map((s) => (
           <span key={s.label} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} /> {s.label}
@@ -206,10 +206,10 @@ export function ZodlClient({
                 className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-cipher-border bg-cipher-surface px-4 py-3 hover:border-cipher-yellow/30 transition-colors"
               >
                 <div className="flex items-center gap-3 sm:w-[200px] sm:flex-shrink-0">
-                  <div className={`w-6 text-sm font-mono font-bold ${i < 3 ? 'text-cipher-yellow-bright' : 'text-muted'}`}>{i + 1}</div>
+                  <div className={`w-6 text-sm font-mono font-semibold ${i < 3 ? 'text-cipher-yellow-bright' : 'text-muted'}`}>{i + 1}</div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-primary truncate">{p.pool}</div>
-                    <div className="text-[10px] text-muted font-mono">{fmtZec(p.earnedZat)} ZEC · {p.blocks.toLocaleString()} blocks</div>
+                    <div className="text-caption text-muted font-mono">{fmtZec(p.earnedZat)} ZEC · {p.blocks.toLocaleString()} blocks</div>
                   </div>
                 </div>
 
@@ -224,7 +224,7 @@ export function ZodlClient({
                       />
                     ) : null)}
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] font-mono text-muted">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-caption font-mono text-muted">
                     {segs.filter((s) => s.pct >= 0.5).map((s) => (
                       <span key={s.label}>
                         <span style={{ color: s.color }}>●</span> {s.label.split(' ')[0]} {s.pct.toFixed(0)}%
@@ -240,7 +240,7 @@ export function ZodlClient({
 
       {/* Methodology */}
       <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-5">
-        <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">How we read it</h3>
+        <h3 className="text-xs font-mono font-semibold text-secondary uppercase tracking-wider mb-2">How we read it</h3>
         <p className="text-xs text-muted leading-relaxed">
           We attribute each coinbase reward to a pool by its payout address, then trace where those coins go when spent.
           <span className="text-secondary"> Held</span> = never spent. <span style={{ color: SEG.shielded.color }}>Shielded</span> = swept into the shielded pool — a privacy move, not a sale, and likely still the miner&apos;s. <span style={{ color: SEG.offramp.color }}>Exchange / bridge</span> = sent to a labeled off-ramp, the clearest &ldquo;sold&rdquo; signal. <span className="text-secondary">Other transparent</span> = moved to an unlabeled address (rotation, cold storage, payouts) or not yet classified. We track the <span className="text-secondary">first hop</span> only: a pool that shields and later deshields to sell shows up here as &ldquo;shielded&rdquo; — where that money goes next is tracked on the <Link href="/turnstile" className="text-cipher-gold hover:underline">turnstile</Link> page. It&apos;s a directional read from public coinbase spends and our address labels, not an exact treasury.

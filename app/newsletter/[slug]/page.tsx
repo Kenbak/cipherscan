@@ -143,7 +143,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
             })}
           </time>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-primary mb-4 leading-tight tracking-tight">
+        <h1 className="type-page text-primary mb-4 ">
           {issue.title}
         </h1>
         {issue.summary && (
@@ -219,7 +219,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
       {sections.length > 3 && (
         <aside className="hidden xl:block absolute left-full top-0 ml-8 w-52 pt-48">
           <div className="sticky top-24">
-            <p className="text-[11px] font-mono text-muted uppercase tracking-wider mb-3">
+            <p className="text-caption font-mono text-muted uppercase tracking-wider mb-3">
               In this issue
             </p>
             <nav className="space-y-1.5 border-l border-cipher-border-alpha/40 pl-3">
@@ -227,7 +227,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className="block text-[13px] text-muted hover:text-primary transition-colors py-0.5 leading-snug"
+                  className="block text-data text-muted hover:text-primary transition-colors py-0.5 leading-snug"
                 >
                   {s.title.replace(/^Privacy Corner:\s*/i, 'Privacy Corner')}
                 </a>

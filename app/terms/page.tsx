@@ -22,7 +22,7 @@ export default function TermsPage() {
 
       <div className="prose-legal space-y-8 text-sm text-secondary leading-relaxed">
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">1. Acceptance</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">1. Acceptance</h2>
           <p>
             By accessing or using ZecBlock (<Link href="/" className="text-cipher-gold hover:underline">zecblock.com</Link>),
             you agree to these Terms of Service. If you do not agree, do not use the service.
@@ -31,7 +31,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">2. Description of Service</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">2. Description of Service</h2>
           <p>
             ZecBlock is a free, open-source Zcash blockchain explorer. We provide tools to browse
             publicly available blockchain data, decode transactions, check privacy metrics, swap
@@ -40,7 +40,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">3. No Financial Advice</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">3. No Financial Advice</h2>
           <p>
             Nothing on ZecBlock constitutes financial, investment, legal, or tax advice. Blockchain data,
             price information, and swap quotes are provided for informational purposes only. You are solely
@@ -49,7 +49,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">4. Swap &amp; On-Ramp Services</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">4. Swap &amp; On-Ramp Services</h2>
           <p className="mb-3">
             ZecBlock integrates third-party services to facilitate cross-chain swaps and fiat-to-crypto
             purchases. When using these features:
@@ -63,7 +63,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">5. User Responsibilities</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">5. User Responsibilities</h2>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>You are responsible for the security of your wallet, private keys, and viewing keys.</li>
             <li>You must comply with all applicable laws in your jurisdiction, including those related to cryptocurrency and financial regulations.</li>
@@ -73,7 +73,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">6. Intellectual Property</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">6. Intellectual Property</h2>
           <p>
             ZecBlock is open-source software. The source code is available on{' '}
             <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">
@@ -84,7 +84,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">7. Limitation of Liability</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">7. Limitation of Liability</h2>
           <p>
             To the maximum extent permitted by law, ZecBlock and Atmosphere Labs shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages, including loss of funds,
@@ -94,7 +94,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">8. Availability</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">8. Availability</h2>
           <p>
             We strive to keep ZecBlock available 24/7 but do not guarantee uninterrupted access. We may
             modify, suspend, or discontinue any part of the service at any time without notice.
@@ -102,7 +102,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">9. Changes</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">9. Changes</h2>
           <p>
             We may update these terms from time to time. Continued use of ZecBlock after changes
             constitutes acceptance of the revised terms.
@@ -110,7 +110,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-primary mb-3">10. Contact</h2>
+          <h2 className="text-lg font-semibold text-primary mb-3">10. Contact</h2>
           <p>
             Questions? Reach us on{' '}
             <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">

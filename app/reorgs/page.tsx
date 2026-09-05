@@ -231,11 +231,11 @@ const nodeColumns: DataTableColumn<MonitoredNode>[] = [
     align: 'center',
     cell: (node) => (
       <>
-        <span className={`text-xs font-mono font-bold ${NODE_STATUS_COLOR[node.status] || 'text-muted'}`}>
+        <span className={`text-xs font-mono font-semibold ${NODE_STATUS_COLOR[node.status] || 'text-muted'}`}>
           {NODE_STATUS_LABEL[node.status] || node.status}
         </span>
         {node.status === 'fork' && node.commonAncestor != null && node.height != null && (
-          <span className="block text-[10px] text-muted mt-0.5">
+          <span className="block text-caption text-muted mt-0.5">
             depth: {node.height - node.commonAncestor} · split @ #{node.commonAncestor.toLocaleString()}
           </span>
         )}
@@ -361,7 +361,7 @@ export default function UnclesPage() {
     return (
       <div className={`flex-1 rounded-lg border ${borderColor} bg-gradient-to-br ${bgGradient} p-4`}>
         <div className="flex items-center justify-between mb-3">
-          <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${labelColor}`}>
+          <span className={`text-caption font-mono uppercase tracking-wider font-semibold ${labelColor}`}>
             {label}
           </span>
           <Badge color={isOrphan ? 'orange' : 'green'}>
@@ -370,11 +370,11 @@ export default function UnclesPage() {
         </div>
         <div className="space-y-2.5">
           <div>
-            <span className="text-[10px] text-muted font-mono uppercase">Height</span>
+            <span className="text-caption text-muted font-mono uppercase">Height</span>
             <div className="text-sm font-mono text-primary">#{height.toLocaleString()}</div>
           </div>
           <div>
-            <span className="text-[10px] text-muted font-mono uppercase">Hash</span>
+            <span className="text-caption text-muted font-mono uppercase">Hash</span>
             <Link
               href={isOrphan ? `/block/${block.hash}` : `/block/${height}`}
               className={`text-xs font-mono break-all hover:underline block mt-0.5 ${isOrphan ? 'text-cipher-orange' : 'text-cipher-green'}`}
@@ -383,18 +383,18 @@ export default function UnclesPage() {
             </Link>
           </div>
           <div>
-            <span className="text-[10px] text-muted font-mono uppercase">Miner / Pool</span>
+            <span className="text-caption text-muted font-mono uppercase">Miner / Pool</span>
             <div className="mt-1">
               <PoolBadge pool={block.minerPool} url={block.minerPoolUrl} variant={variant} minerAddress={block.minerAddress} />
             </div>
           </div>
           <div className="flex gap-4">
             <div>
-              <span className="text-[10px] text-muted font-mono uppercase">TXs</span>
+              <span className="text-caption text-muted font-mono uppercase">TXs</span>
               <div className="text-xs font-mono text-secondary">{block.transactionCount ?? '—'}</div>
             </div>
             <div>
-              <span className="text-[10px] text-muted font-mono uppercase">Time</span>
+              <span className="text-caption text-muted font-mono uppercase">Time</span>
               <div className="text-xs font-mono text-secondary">
                 {block.timestamp ? formatRelativeTime(block.timestamp) : '—'}
               </div>
@@ -408,8 +408,8 @@ export default function UnclesPage() {
   const StatCard = ({ label, value, color = 'text-primary' }: { label: string; value: string | number; color?: string }) => (
     <Card variant="compact">
       <CardBody className="text-center py-4">
-        <div className={`text-2xl font-bold font-mono ${color}`}>{value}</div>
-        <div className="text-[10px] uppercase tracking-wider text-muted mt-1">{label}</div>
+        <div className={`text-2xl font-semibold font-mono ${color}`}>{value}</div>
+        <div className="text-caption uppercase tracking-wider text-muted mt-1">{label}</div>
       </CardBody>
     </Card>
   );
@@ -418,8 +418,8 @@ export default function UnclesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Header */}
       <div className="mb-8">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FORK_WATCH</span>
-        <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mt-1">
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; FORK_WATCH</span>
+        <h1 className="type-page font-mono text-primary mt-1">
           Fork Watch
         </h1>
         <p className="text-xs text-muted mt-2 max-w-2xl">
@@ -524,13 +524,13 @@ export default function UnclesPage() {
             <table className="w-full">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Orphaned Hash</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Canonical Hash</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Miner</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Source</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Time</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Height</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Orphaned Hash</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden md:table-cell">Canonical Hash</th>
+                  <th className="px-4 py-3 text-center text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">TXs</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border hidden sm:table-cell">Miner</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Source</th>
+                  <th className="px-4 py-3 text-right text-caption font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -649,7 +649,7 @@ export default function UnclesPage() {
       {/* Report Endpoint Info */}
       <Card className="mt-8">
         <CardBody>
-          <h3 className="text-sm font-bold font-mono text-primary mb-3">Report Competing Tips</h3>
+          <h3 className="text-sm font-semibold font-mono text-primary mb-3">Report Competing Tips</h3>
           <p className="text-xs text-secondary mb-3">
             Node operators can help monitor chain health by reporting their tip block hash.
             If your node sees a different block at the same height, it will be recorded as a potential fork.

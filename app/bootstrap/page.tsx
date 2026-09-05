@@ -72,7 +72,7 @@ function CopyBlock({ children }: { children: string }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-cipher-bg border border-cipher-border px-2 py-1 text-[10px] font-mono text-muted hover:text-primary rounded"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-cipher-bg border border-cipher-border px-2 py-1 text-caption font-mono text-muted hover:text-primary rounded"
       >
         {copied ? 'copied' : 'copy'}
       </button>
@@ -128,7 +128,7 @@ export default function BootstrapPage() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cipher-green opacity-60" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-green" />
                   </span>
-                  <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold font-mono text-secondary lowercase tracking-tight">
                     Latest snapshot
                   </h2>
                 </div>
@@ -144,21 +144,21 @@ export default function BootstrapPage() {
 
               <div className="mt-5 space-y-3 text-xs">
                 <div>
-                  <div className="text-muted font-mono uppercase tracking-wider text-[10px] mb-1">
+                  <div className="text-muted font-mono uppercase tracking-wider text-caption mb-1">
                     SHA256
                   </div>
                   <code className="block font-mono text-secondary break-all">{info.sha256}</code>
                 </div>
                 {info.tip_hash && (
                   <div>
-                    <div className="text-muted font-mono uppercase tracking-wider text-[10px] mb-1">
+                    <div className="text-muted font-mono uppercase tracking-wider text-caption mb-1">
                       Tip block hash (h{info.tip_height?.toLocaleString()})
                     </div>
                     <code className="block font-mono text-secondary break-all">{info.tip_hash}</code>
                   </div>
                 )}
                 <div>
-                  <div className="text-muted font-mono uppercase tracking-wider text-[10px] mb-1">
+                  <div className="text-muted font-mono uppercase tracking-wider text-caption mb-1">
                     Finalized block hash (h{info.finalized_height?.toLocaleString()})
                   </div>
                   <code className="block font-mono text-secondary break-all">{info.finalized_hash}</code>
@@ -189,10 +189,10 @@ export default function BootstrapPage() {
                   ))}
                 </div>
                 <div className="mt-4 p-3 block-hash-bg border border-cipher-border rounded">
-                  <p className="text-[10px] text-muted font-mono uppercase tracking-wider mb-2">
+                  <p className="text-caption text-muted font-mono uppercase tracking-wider mb-2">
                     Verify on your node
                   </p>
-                  <code className="text-[11px] font-mono text-secondary">
+                  <code className="text-caption font-mono text-secondary">
                     zebra-cli getblockhash {info.reference_hashes[0]?.height}
                   </code>
                 </div>
@@ -206,7 +206,7 @@ export default function BootstrapPage() {
               <h3 className="text-sm font-semibold text-primary mb-3">What&apos;s inside</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <div className="text-cipher-green font-mono uppercase tracking-wider text-[10px] mb-2">
+                  <div className="text-cipher-green font-mono uppercase tracking-wider text-caption mb-2">
                     Included (public data)
                   </div>
                   <ul className="space-y-1 text-secondary">
@@ -218,7 +218,7 @@ export default function BootstrapPage() {
                   </ul>
                 </div>
                 <div>
-                  <div className="text-cipher-orange font-mono uppercase tracking-wider text-[10px] mb-2">
+                  <div className="text-cipher-orange font-mono uppercase tracking-wider text-caption mb-2">
                     Never included
                   </div>
                   <ul className="space-y-1 text-secondary">
@@ -230,7 +230,7 @@ export default function BootstrapPage() {
                   </ul>
                 </div>
               </div>
-              <p className="mt-4 text-[11px] text-muted leading-relaxed">
+              <p className="mt-4 text-caption text-muted leading-relaxed">
                 Wallet keys and service state stay on our server. The archive only contains the
                 RocksDB blockchain state and BFT chain data — bytes that are identical on every
                 honest node at the same height.
@@ -354,8 +354,8 @@ mv ~/crosslink-seed.backup ~/.cache/zebra/${info.cache_dir_name}/secret.seed`}</
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-3">
-      <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1">{label}</div>
-      <div className="text-sm sm:text-base font-mono font-bold text-primary">{value}</div>
+      <div className="text-caption font-mono text-muted uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-sm sm:text-base font-mono font-semibold text-primary">{value}</div>
     </div>
   );
 }
@@ -363,7 +363,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function StepHeader({ n, title }: { n: number; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <span className="inline-flex w-5 h-5 rounded-full bg-cipher-hover text-muted text-[11px] font-mono items-center justify-center shrink-0">
+      <span className="inline-flex w-5 h-5 rounded-full bg-cipher-hover text-muted text-caption font-mono items-center justify-center shrink-0">
         {n}
       </span>
       <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">{title}</h4>

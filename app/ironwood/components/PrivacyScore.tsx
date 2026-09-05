@@ -300,7 +300,7 @@ export function PrivacyScore({
                 privacyColors={PRIVACY_COLORS}
                 denomLineColor={colors.denominated}
               />
-              <div className="shrink-0 text-[10px] font-mono text-muted">
+              <div className="shrink-0 text-caption font-mono text-muted">
                 {filteredTxs.length} txs in range · stacked volume
               </div>
             </div>
@@ -331,7 +331,7 @@ export function PrivacyScore({
                 activeGrades={visibleGrades}
                 onToggle={toggleGrade}
               />
-              <div className="shrink-0 text-[10px] font-mono text-muted">
+              <div className="shrink-0 text-caption font-mono text-muted">
                 {visiblePoints.length} txs in range · log scale
               </div>
             </div>

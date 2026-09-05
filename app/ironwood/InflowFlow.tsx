@@ -87,7 +87,7 @@ function SourceButton({
         <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
         <span className="text-xs text-secondary">{shortName(row.name)}</span>
       </div>
-      <span className="mt-0.5 pl-3.5 text-[10px] font-mono font-medium tabular-nums text-primary/90">
+      <span className="mt-0.5 pl-3.5 text-caption font-mono font-medium tabular-nums text-primary">
         {formatValue(row.zat)}
       </span>
     </button>
@@ -190,7 +190,7 @@ export function InflowFlow({
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden="true"
           >
-            <span className="-rotate-12 scale-[0.75] select-none whitespace-nowrap text-[1.5rem] font-bold font-mono tracking-[0.12em] text-black/[0.04] dark:text-white/[0.045] sm:scale-100 sm:text-5xl sm:tracking-[0.18em]">
+            <span className="-rotate-12 scale-[0.75] select-none whitespace-nowrap text-[1.5rem] font-semibold font-mono tracking-[0.12em] text-black/[0.04] dark:text-white/[0.045] sm:scale-100 sm:text-5xl sm:tracking-[0.18em]">
               ZecBlock
             </span>
           </div>
@@ -274,7 +274,7 @@ export function InflowFlow({
           </svg>
 
           <span
-            className="pointer-events-none absolute text-[8px] font-mono leading-none text-muted/55"
+            className="pointer-events-none absolute text-caption font-mono leading-none text-muted"
             style={{
               left: `${(layout.gateX / vbW) * 100}%`,
               top: 6,
@@ -304,7 +304,7 @@ export function InflowFlow({
             >
               Ironwood
             </span>
-            <span className="mt-0.5 block text-[10px] font-mono font-medium tabular-nums text-primary/90">
+            <span className="mt-0.5 block text-caption font-mono font-medium tabular-nums text-primary">
               {formatValue(ironwoodZat)}
             </span>
           </div>

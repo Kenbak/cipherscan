@@ -165,8 +165,8 @@ export default async function AddressLayout({
   return (
     <>
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12">
-        <span className="text-[10px] font-mono text-muted tracking-wider">&gt; ZCASH_ADDRESS</span>
-        <h1 className="mt-2 text-primary break-all">
+        <span className="text-caption font-mono text-muted tracking-wider">&gt; ZCASH_ADDRESS</span>
+        <h1 className="type-page mt-2 text-primary break-all">
           <span className="block text-lg sm:text-xl font-semibold">Zcash Address</span>
           <span className="block mt-2 text-sm sm:text-base font-mono font-normal">{address}</span>
         </h1>

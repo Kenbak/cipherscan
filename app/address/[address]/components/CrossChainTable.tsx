@@ -89,7 +89,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
                     {/* Value + Age */}
                     <div className="col-span-2 text-right">
                       <span className="text-xs text-muted font-mono block">${swap.sourceAmountUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      <span className="text-[10px] text-muted">{swapAge}</span>
+                      <span className="text-caption text-muted">{swapAge}</span>
                     </div>
 
                     {/* ZEC TX */}

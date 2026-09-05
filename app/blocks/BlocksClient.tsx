@@ -95,7 +95,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
             {block.miner_pool ? (
               <span className="text-xs font-mono text-primary">{block.miner_pool}</span>
             ) : (
-              <span className="text-xs font-mono text-muted/40">—</span>
+              <span className="text-xs font-mono text-muted">—</span>
             )}
           </div>
         );
@@ -138,7 +138,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
       className: 'hidden lg:table-cell',
       skeletonWidth: 'w-14',
       cell: (block) => {
-        if (block.total_fees == null) return <span className="font-mono text-xs text-muted/40">—</span>;
+        if (block.total_fees == null) return <span className="font-mono text-xs text-muted">—</span>;
         const feeZec = zatToZec(block.total_fees);
         return (
           <span className="font-mono text-xs text-muted tabular-nums">
@@ -159,7 +159,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
         const interval = gap !== null && gap >= 0 ? formatBlockInterval(gap) : null;
         const barPct = gap !== null ? Math.min(100, (gap / 300) * 100) : 0;
         if (!interval || !nextBlock) {
-          return <span className="font-mono text-xs text-muted/40">--</span>;
+          return <span className="font-mono text-xs text-muted">--</span>;
         }
         return (
           <div className="flex items-center justify-end gap-2" title={`${gap}s between block ${nextBlock.height.toLocaleString()} and ${block.height.toLocaleString()}`}>

@@ -37,9 +37,9 @@ type ViewMode = 'count' | 'volume';
 const CHART_HEIGHT = 340;
 
 function modePillClass(active: boolean) {
-  return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
+  return `px-1.5 py-0.5 text-caption font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
+      ? 'bg-cipher-gold/15 text-cipher-gold font-semibold'
       : 'text-muted hover:text-primary'
   }`;
 }
@@ -107,7 +107,7 @@ export function ShieldingDistributionChart() {
               <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: colors.axis, fontSize: 9 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 angle={-35}
                 textAnchor="end"
                 height={72}
@@ -115,7 +115,7 @@ export function ShieldingDistributionChart() {
                 label={privacyXAxisTitle('Amount range', colors.axis)}
               />
               <YAxis
-                tick={{ fill: colors.axis, fontSize: 11 }}
+                tick={{ fill: colors.axis, fontSize: 12 }}
                 tickFormatter={(v) => (mode === 'count' ? formatCount(v) : formatZec(v))}
                 width={52}
                 label={privacyYAxisLabel(yLabel, colors.axis)}
@@ -123,7 +123,7 @@ export function ShieldingDistributionChart() {
               <Tooltip
                 cursor={{ fill: colors.barCursorGold }}
                 contentStyle={tooltipStyle}
-                labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
+                labelStyle={{ color: colors.tooltipText, fontWeight: 600, marginBottom: '8px' }}
                 formatter={(value, name) => [
                   mode === 'count'
                     ? `${Number(value).toLocaleString()} txs`

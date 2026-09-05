@@ -52,7 +52,7 @@ export function ShieldFlowLegend({ className = '' }: { className?: string }) {
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-[10px] font-mono text-muted/60 ${className}`}
+      className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-caption font-mono text-muted ${className}`}
     >
       {items.map((type) => (
         <span key={type} className="inline-flex items-center gap-1.5">

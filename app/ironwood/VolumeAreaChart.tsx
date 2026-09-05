@@ -191,8 +191,8 @@ export function VolumeAreaChart({ data, width, height: chartHeight, colors, priv
             numTicks={5}
             tickLabelProps={() => ({
               fill: colors.axis,
-              fontSize: 9,
-              fontFamily: 'monospace',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono), monospace',
               textAnchor: 'end' as const,
               dx: -4,
               dy: 3,
@@ -208,8 +208,8 @@ export function VolumeAreaChart({ data, width, height: chartHeight, colors, priv
             numTicks={Math.min(6, buckets.length)}
             tickLabelProps={() => ({
               fill: colors.axis,
-              fontSize: 9,
-              fontFamily: 'monospace',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono), monospace',
               textAnchor: 'middle' as const,
               dy: 4,
             })}
@@ -217,8 +217,8 @@ export function VolumeAreaChart({ data, width, height: chartHeight, colors, priv
             label="Block height"
             labelProps={{
               fill: colors.axis,
-              fontSize: 10,
-              fontFamily: 'monospace',
+              fontSize: 12,
+              fontFamily: 'var(--font-geist-mono), monospace',
               textAnchor: 'middle',
             }}
             labelOffset={16}
@@ -235,7 +235,7 @@ export function VolumeAreaChart({ data, width, height: chartHeight, colors, priv
       {tooltip &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-[9999] rounded-md border border-cipher-border/50 bg-cipher-surface-solid/95 px-2.5 py-1.5 text-[10px] font-mono shadow-xl backdrop-blur-md"
+            className="pointer-events-none fixed z-[9999] rounded-md border border-cipher-border/50 bg-cipher-surface-solid/95 px-2.5 py-1.5 text-caption font-mono shadow-xl backdrop-blur-md"
             style={{ left: tooltip.x + 12, top: tooltip.y - 60 }}
           >
             <div className="mb-1 text-muted">Block ~{tooltip.bucket.height.toLocaleString()}</div>

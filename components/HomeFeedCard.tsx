@@ -126,7 +126,7 @@ export function HomeFeedCard({
                   <button
                     key={feed}
                     onClick={() => select(feed)}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-[13px] dropdown-item"
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-data dropdown-item"
                   >
                     {FEED_META[feed].menuLabel}
                     {feed === type && <CheckIcon />}

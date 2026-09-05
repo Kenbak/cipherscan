@@ -101,11 +101,11 @@ export function IronwoodBanner() {
   const activatedCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
       <span className="text-cipher-yellow font-medium">Ironwood is live</span>
-      <span className="text-muted/60 mx-1.5">·</span>
+      <span className="text-muted mx-1.5">·</span>
       <span className="hidden sm:inline">
         {state.ironwoodZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated
       </span>
-      <span className="text-muted/60 mx-1.5 hidden sm:inline">·</span>
+      <span className="text-muted mx-1.5 hidden sm:inline">·</span>
       {state.verifiedPct != null && (
         <span>{state.verifiedPct.toFixed(1)}% turnstile-verified</span>
       )}
@@ -115,9 +115,9 @@ export function IronwoodBanner() {
   const preActivationCopy = (
     <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
       <span className="text-cipher-yellow font-medium">Ironwood</span>
-      <span className="text-muted/60 mx-1.5">·</span>
+      <span className="text-muted mx-1.5">·</span>
       {days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`} remaining
-      <span className="hidden sm:inline text-muted/40 ml-1.5">
+      <span className="hidden sm:inline text-muted ml-1.5">
         ({state.blocksRemaining.toLocaleString()} blocks)
       </span>
     </span>
@@ -159,7 +159,7 @@ export function IronwoodBanner() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-yellow" />
               </span>
               {activatedCopy}
-              <span className="text-[11px] text-muted/40 group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-yellow/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>
@@ -167,7 +167,7 @@ export function IronwoodBanner() {
             <>
               <span className="h-2 w-2 rounded-full bg-cipher-yellow/50 animate-pulse" />
               {preActivationCopy}
-              <span className="text-[11px] text-muted/40 group-hover:text-cipher-yellow/60 transition-colors ml-1">
+              <span className="text-caption text-muted group-hover:text-cipher-yellow/60 transition-colors ml-1">
                 {actionLabel}
               </span>
             </>
@@ -176,7 +176,7 @@ export function IronwoodBanner() {
 
         <button
           onClick={handleDismiss}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/30 transition-colors hover:text-muted sm:right-6 lg:right-8"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-muted sm:right-6 lg:right-8"
           aria-label="Dismiss"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -128,7 +128,7 @@ export function MigrationActivity({
     )
     : <>ZEC migrated from Orchard to Ironwood per {periodLabel} (UTC).{timeAvg > 0 ? <> Avg: <span className="font-mono text-primary">{fmtValue(Math.round(timeAvg * 1e8), currencyMode, zecPrice)}/{periodLabel}</span>.</> : null}</>;
 
-  const statsRowClass = 'mb-4 flex flex-col gap-2 text-[11px] font-mono leading-snug text-muted sm:mb-3 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1 sm:text-[10px]';
+  const statsRowClass = 'mb-4 flex flex-col gap-2 text-caption font-mono leading-snug text-muted sm:mb-3 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1 sm:text-caption';
 
   const hasData = view === 'cohorts' ? cohortData.length > 0 : timeBuckets.length > 0;
 
@@ -148,7 +148,7 @@ export function MigrationActivity({
           <div className={statsRowClass}>
             <span>Total migrated <span className="text-cipher-yellow-bright">{totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
             <span>Peak cohort <span className="text-primary">{cohortPeak.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC</span></span>
-            <span>Active cohorts <span className="text-primary">{activeCohorts}</span>{avgCohort > 0 ? <span className="text-muted/70 sm:hidden"> · avg {avgCohort.toFixed(1)} txs</span> : null}</span>
+            <span>Active cohorts <span className="text-primary">{activeCohorts}</span>{avgCohort > 0 ? <span className="text-muted sm:hidden"> · avg {avgCohort.toFixed(1)} txs</span> : null}</span>
           </div>
         ) : view !== 'cohorts' && timeTotalTxs > 0 ? (
           <div className={statsRowClass}>
@@ -170,22 +170,22 @@ export function MigrationActivity({
               <BarChart data={cohortData} margin={{ top: 8, right: 12, bottom: 28, left: 12 }}>
                 <XAxis
                   dataKey="boundary"
-                  tick={{ fontSize: 10, fill: colors.axis }}
+                  tick={{ fontSize: 12, fill: colors.axis }}
                   tickFormatter={(v: number) => v.toLocaleString()}
-                  label={{ value: 'Block height', position: 'insideBottom', offset: -8, style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                  label={{ value: 'Block height', position: 'insideBottom', offset: -8, style: { fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: colors.axis }}
+                  tick={{ fontSize: 12, fill: colors.axis }}
                   width={44}
                   domain={[0, yMax]}
                   tickFormatter={(v) => Number(v).toLocaleString()}
-                  label={{ value: 'Volume (ZEC)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                  label={{ value: 'Volume (ZEC)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
                 />
                 <Tooltip
                   cursor={{ fill: colors.barCursor }}
                   contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontSize: 12 }}
                   itemStyle={{ color: colors.tooltipText }}
-                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-geist-mono)', fontSize: 12 }}
                   labelFormatter={(v) => `Boundary @ height ${Number(v).toLocaleString()}`}
                   formatter={(val: unknown, name: unknown) =>
                     name === 'volume'
@@ -207,24 +207,24 @@ export function MigrationActivity({
                 </defs>
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 9, fill: colors.axis }}
+                  tick={{ fontSize: 12, fill: colors.axis }}
                   interval={view === 'hourly' ? Math.max(0, Math.floor(timeBuckets.length / 12) - 1) : 'preserveStartEnd'}
                   angle={view === 'hourly' ? -35 : 0}
                   textAnchor={view === 'hourly' ? 'end' : 'middle'}
                   height={view === 'hourly' ? 48 : 32}
-                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: view === 'hourly' ? -4 : -8, style: { fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: view === 'hourly' ? -4 : -8, style: { fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: colors.axis }}
+                  tick={{ fontSize: 12, fill: colors.axis }}
                   width={50}
                   domain={[0, yMax]}
                   tickFormatter={(v) => Number(v).toLocaleString()}
-                  label={{ value: currencyMode === 'zec' ? 'Volume (ZEC)' : 'Volume (USD)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 10, fill: colors.axis, fontFamily: 'var(--font-mono)' } }}
+                  label={{ value: currencyMode === 'zec' ? 'Volume (ZEC)' : 'Volume (USD)', angle: -90, position: 'insideLeft', dx: -6, style: { textAnchor: 'middle', fontSize: 12, fill: colors.axis, fontFamily: 'var(--font-geist-mono)' } }}
                 />
                 <Tooltip
                   contentStyle={{ backgroundColor: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: '8px', fontSize: 12 }}
                   itemStyle={{ color: colors.tooltipText }}
-                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
+                  labelStyle={{ color: 'var(--color-text-muted, #8b8b9e)', fontFamily: 'var(--font-geist-mono)', fontSize: 12 }}
                   formatter={(val: unknown, name: unknown) =>
                     name === 'volume'
                       ? [`${Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZEC`, `Volume / ${periodLabel}`]

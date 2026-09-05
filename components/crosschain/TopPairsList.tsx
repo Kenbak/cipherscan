@@ -24,7 +24,7 @@ export function TopPairsList({ pairs }: { pairs: PopularPair[] }) {
 
   return (
     <div className="card">
-      <SectionHeader label="TOP_PAIRS" actions={<span className="text-[10px] text-muted font-mono">30d swap count</span>} />
+      <SectionHeader label="TOP_PAIRS" actions={<span className="text-caption text-muted font-mono">30d swap count</span>} />
       <div className="space-y-1">
         {pairs.map((pair, i) => {
           const pct = maxCount > 0 ? (pair.swapCount / maxCount) * 100 : 0;
@@ -34,13 +34,13 @@ export function TopPairsList({ pairs }: { pairs: PopularPair[] }) {
                 className="absolute inset-0 rounded-lg bg-glass-2"
                 style={{ width: `${pct}%` }}
               />
-              <span className="relative text-[10px] font-mono text-muted w-4 text-right tabular-nums">{i + 1}</span>
+              <span className="relative text-caption font-mono text-muted w-4 text-right tabular-nums">{i + 1}</span>
               <div className="relative">
                 <TokenChainIcon token={pair.token} chain={pair.chain} size={22} />
               </div>
               <div className="relative flex-1 min-w-0 flex items-center gap-2">
                 <span className="text-xs font-mono font-semibold text-primary">{pair.token}</span>
-                <span className="text-[10px] font-mono text-muted">{CHAIN_NAMES[pair.chain] || pair.chain}</span>
+                <span className="text-caption font-mono text-muted">{CHAIN_NAMES[pair.chain] || pair.chain}</span>
               </div>
               <span className="relative text-xs font-mono text-secondary tabular-nums">{pair.swapCount.toLocaleString()}</span>
             </div>

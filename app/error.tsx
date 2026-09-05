@@ -19,7 +19,7 @@ export default function AppError({
   return (
     <div className="mx-auto flex min-h-[50vh] max-w-2xl items-center px-4 py-16 text-center">
       <div className="card w-full p-8" role="alert">
-        <h1 className="text-xl font-semibold text-primary">This page could not be loaded</h1>
+        <h1 className="type-page text-primary">This page could not be loaded</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           ZecBlock kept the last known good chain data where available. Try
           this request again, or return to the explorer.

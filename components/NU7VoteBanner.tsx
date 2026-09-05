@@ -107,7 +107,7 @@ export function NU7VoteBanner() {
             <span className="text-cipher-gold font-medium">NU7 Vote</span>
             {countdownStr && (
               <>
-                <span className="text-muted/60 mx-1.5">·</span>
+                <span className="text-muted mx-1.5">·</span>
                 <span>{phaseLabel} in {countdownStr}</span>
               </>
             )}
@@ -123,31 +123,31 @@ export function NU7VoteBanner() {
             <span className="text-cipher-gold font-medium">NU7 Coinholder Vote</span>
             {countdownStr && (
               <>
-                <span className="text-muted/60 mx-1.5">·</span>
+                <span className="text-muted mx-1.5">·</span>
                 <span>{phaseLabel} in {countdownStr}</span>
               </>
             )}
             {phase === 'pre-snapshot' && (
               <>
-                <span className="text-muted/60 mx-1.5">·</span>
-                <span className="text-muted/80">Block #{NU7_VOTE.snapshotHeight.toLocaleString()}</span>
+                <span className="text-muted mx-1.5">·</span>
+                <span className="text-muted">Block #{NU7_VOTE.snapshotHeight.toLocaleString()}</span>
               </>
             )}
             {phase === 'active' && (
               <>
-                <span className="text-muted/60 mx-1.5">·</span>
+                <span className="text-muted mx-1.5">·</span>
                 <span>Cast your vote</span>
               </>
             )}
           </span>
-          <span className="text-[11px] text-muted/40 group-hover:text-cipher-gold/60 transition-colors ml-1">
+          <span className="text-caption text-muted group-hover:text-cipher-gold/60 transition-colors ml-1">
             Details →
           </span>
         </div>
 
         <button
           onClick={handleDismiss}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/30 transition-colors hover:text-muted sm:right-6 lg:right-8"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-muted sm:right-6 lg:right-8"
           aria-label="Dismiss"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

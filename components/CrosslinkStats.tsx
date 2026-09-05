@@ -32,14 +32,14 @@ function StatCard({ label, value, sub, color, tooltip }: {
 }) {
   return (
     <div className="flex flex-col items-center justify-center p-3 sm:p-4">
-      <span className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+      <span className="text-caption font-mono text-muted uppercase tracking-wider mb-1 flex items-center gap-1">
         {label}
         {tooltip && <Tooltip content={tooltip} />}
       </span>
-      <span className={`text-lg sm:text-xl font-mono font-bold ${color || 'text-primary'}`}>
+      <span className={`text-lg sm:text-xl font-mono font-semibold ${color || 'text-primary'}`}>
         {value}
       </span>
-      {sub && <span className="text-[10px] font-mono text-muted mt-0.5">{sub}</span>}
+      {sub && <span className="text-caption font-mono text-muted mt-0.5">{sub}</span>}
     </div>
   );
 }

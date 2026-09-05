@@ -71,7 +71,7 @@ function PrivacyRisksLoading() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+        <h1 className="type-page text-primary">
           Zcash Privacy Risk Analysis
         </h1>
         <p className="text-sm text-secondary mt-2">
@@ -337,7 +337,7 @@ function PrivacyRisksContent() {
                 </svg>
                 {tab.label}
                 {tab.key === 'batch' && batchStats && batchStats.highRisk > 0 && (
-                  <span className="text-[10px] font-mono bg-red-500/10 text-danger/70 font-bold w-5 h-5 rounded-full inline-flex items-center justify-center">
+                  <span className="text-caption font-mono bg-red-500/10 text-danger/70 font-semibold w-5 h-5 rounded-full inline-flex items-center justify-center">
                     {batchStats.highRisk}
                   </span>
                 )}
@@ -355,9 +355,9 @@ function PrivacyRisksContent() {
                 <button
                   key={period}
                   onClick={() => setPeriodFilter(period as PeriodFilter)}
-                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
+                  className={`px-2 py-0.5 text-caption font-mono rounded transition ${
                     periodFilter === period
-                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-bold'
+                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-semibold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >
@@ -370,15 +370,15 @@ function PrivacyRisksContent() {
               {(['ALL', 'HIGH', 'MEDIUM'] as RiskFilter[]).map((level) => {
                 const isActive = (activeTab === 'roundtrip' ? riskFilter : batchRiskFilter) === level;
                 const activeStyle = level === 'HIGH'
-                  ? 'bg-red-500/8 text-danger/80 font-bold'
+                  ? 'bg-red-500/8 text-danger/80 font-semibold'
                   : level === 'MEDIUM'
-                  ? 'bg-amber-500/8 text-amber-400/80 font-bold'
-                  : 'bg-cipher-gold/10 text-cipher-gold/80 font-bold';
+                  ? 'bg-amber-500/8 text-amber-400/80 font-semibold'
+                  : 'bg-cipher-gold/10 text-cipher-gold/80 font-semibold';
                 return (
                   <button
                     key={level}
                     onClick={() => activeTab === 'roundtrip' ? setRiskFilter(level) : setBatchRiskFilter(level)}
-                    className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
+                    className={`px-2 py-0.5 text-caption font-mono rounded transition ${
                       isActive ? activeStyle : 'text-muted hover:text-primary'
                     }`}
                   >
@@ -393,9 +393,9 @@ function PrivacyRisksContent() {
                 <button
                   key={option}
                   onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
-                  className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
+                  className={`px-2 py-0.5 text-caption font-mono rounded transition ${
                     (activeTab === 'roundtrip' ? sortBy : batchSortBy) === option
-                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-bold'
+                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-semibold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >
@@ -420,7 +420,7 @@ function PrivacyRisksContent() {
           {/* Spotlight — top risks at a glance */}
           {spotlightItems.length > 0 && (
             <div className="mb-5">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+              <p className="text-caption font-mono text-muted uppercase tracking-widest mb-3">
                 <span className="opacity-50">{'>'}</span> SPOTLIGHT
               </p>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -434,7 +434,7 @@ function PrivacyRisksContent() {
                     className="card card-compact text-left hover:border-cipher-gold/30 transition-colors group cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${
+                      <span className={`rounded-full px-2 py-0.5 text-caption font-mono uppercase tracking-[0.14em] ${
                         item.tone === 'HIGH'
                           ? 'bg-red-500/10 text-danger'
                           : item.tone === 'MEDIUM'
@@ -455,9 +455,9 @@ function PrivacyRisksContent() {
           {/* Popular amounts — inline bar */}
           {commonAmounts.length > 0 && (
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] text-muted font-mono mr-1">Popular:</span>
+              <span className="text-caption text-muted font-mono mr-1">Popular:</span>
               {commonAmounts.slice(0, 6).map((amount, i) => (
-                <span key={i} className="text-[10px] font-mono text-cipher-purple bg-cipher-purple/10 border border-cipher-purple/20 px-2 py-0.5 rounded-full">
+                <span key={i} className="text-caption font-mono text-cipher-purple bg-cipher-purple/10 border border-cipher-purple/20 px-2 py-0.5 rounded-full">
                   {amount.amountZec.toFixed(2)} ZEC
                 </span>
               ))}
@@ -598,25 +598,25 @@ function PrivacyRisksContent() {
           <div className="sticky top-24 space-y-4">
             {/* Stats */}
             <div className="card card-compact">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+              <p className="text-caption font-mono text-muted uppercase tracking-widest mb-3">
                 <span className="opacity-50">{'>'}</span> {activeTab === 'roundtrip' ? 'DETECTION_STATS' : 'BATCH_STATS'}
               </p>
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-secondary">Detected</span>
-                  <span className="text-base font-mono font-bold text-primary tabular-nums">
+                  <span className="text-base font-mono font-semibold text-primary tabular-nums">
                     {activeTab === 'roundtrip' ? (stats?.total || 0) : (batchStats?.filteredTotal || batchStats?.total || 0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-secondary">High Risk</span>
-                  <span className="text-base font-mono font-bold text-danger tabular-nums">
+                  <span className="text-base font-mono font-semibold text-danger tabular-nums">
                     {currentStats?.highRisk || 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-secondary">Medium</span>
-                  <span className="text-base font-mono font-bold text-cipher-yellow tabular-nums">
+                  <span className="text-base font-mono font-semibold text-cipher-yellow tabular-nums">
                     {currentStats?.mediumRisk || 0}
                   </span>
                 </div>
@@ -641,10 +641,10 @@ function PrivacyRisksContent() {
 
             {/* How to Read */}
             <div className="card card-compact">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-2">
+              <p className="text-caption font-mono text-muted uppercase tracking-widest mb-2">
                 <span className="opacity-50">{'>'}</span> HOW_TO_READ
               </p>
-              <p className="text-[11px] text-secondary leading-relaxed">
+              <p className="text-caption text-secondary leading-relaxed">
                 {activeTab === 'roundtrip'
                   ? 'Stronger signals combine a distinctive amount, short delay, and low ambiguity between candidate matches.'
                   : 'Stronger signals combine a matching anchor shield, repeated chunk sizes, and a tight withdrawal burst.'}
@@ -653,7 +653,7 @@ function PrivacyRisksContent() {
 
             {/* Privacy Tips */}
             <div className="card card-compact">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-3">
+              <p className="text-caption font-mono text-muted uppercase tracking-widest mb-3">
                 <span className="opacity-50">{'>'}</span> PRIVACY_TIPS
               </p>
               <div className="space-y-2">
@@ -664,7 +664,7 @@ function PrivacyRisksContent() {
                   { n: '04', text: 'Avoid transparent addresses' },
                 ].map((tip) => (
                   <div key={tip.n} className="flex gap-2 text-xs">
-                    <span className="font-mono text-muted/50 shrink-0">{tip.n}</span>
+                    <span className="font-mono text-muted shrink-0">{tip.n}</span>
                     <span className="text-secondary">{tip.text}</span>
                   </div>
                 ))}
@@ -674,10 +674,10 @@ function PrivacyRisksContent() {
             {/* Batch explainer (only on batch tab) */}
             {activeTab === 'batch' && (
               <div className="card card-compact">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-widest mb-2">
+                <p className="text-caption font-mono text-muted uppercase tracking-widest mb-2">
                   <span className="opacity-50">{'>'}</span> ABOUT_BATCH
                 </p>
-                <p className="text-[11px] text-secondary leading-relaxed">
+                <p className="text-caption text-secondary leading-relaxed">
                   When someone shields a large amount then withdraws in identical chunks,
                   this creates a detectable pattern. ML clustering detects both round and unusual amounts.
                 </p>
@@ -685,7 +685,7 @@ function PrivacyRisksContent() {
             )}
 
             {/* Disclaimer */}
-            <p className="text-[10px] text-muted/50 leading-relaxed px-1">
+            <p className="text-caption text-muted leading-relaxed px-1">
               ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
             </p>
           </div>
@@ -693,7 +693,7 @@ function PrivacyRisksContent() {
       </div>
 
       {/* Mobile-only disclaimer */}
-      <p className="lg:hidden text-[10px] text-muted/50 leading-relaxed mt-2 mb-8">
+      <p className="lg:hidden text-caption text-muted leading-relaxed mt-2 mb-8">
         ⚠ Results are heuristic-based (amount + timing). They indicate <em>potential</em> links, not proof.
       </p>
 

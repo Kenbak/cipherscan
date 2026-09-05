@@ -37,7 +37,7 @@ export function NodeMapExplorer() {
     <div>
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-primary">Node Map</h3>
-        <p className="mt-0.5 text-[11px] text-muted">
+        <p className="mt-0.5 text-caption text-muted">
           Three views of the same crawled network — a connection graph, or a world map colored by client or by host.
         </p>
       </div>
@@ -45,7 +45,7 @@ export function NodeMapExplorer() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <Tabs tabs={TABS} active={tab} onChange={setTab} className="border-b-0" />
       </div>
-      <p className="text-[11px] text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>
+      <p className="text-caption text-muted mb-4">{TAB_DESCRIPTIONS[tab]}</p>
 
       {/* Keep topology mounted (hidden) once loaded so the WebGL scene and
           computed force layout survive tab switches — avoids a full refetch +

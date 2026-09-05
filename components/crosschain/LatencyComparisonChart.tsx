@@ -73,8 +73,8 @@ function ChainYAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: {
         y={4}
         textAnchor="end"
         fill="currentColor"
-        fontSize={10}
-        fontFamily="monospace"
+        fontSize={12}
+        fontFamily="var(--font-geist-mono), monospace"
         className="text-secondary"
       >
         {displayName}
@@ -97,7 +97,7 @@ function LatencyTooltip({ active, payload, colors }: {
       className="rounded-lg border px-3 py-2 text-xs font-mono shadow-lg"
       style={{ backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder, color: colors.tooltipText }}
     >
-      <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{row.chainName}</p>
+      <p className="mb-2 text-caption uppercase tracking-wider text-muted">{row.chainName}</p>
       {row.inboundCount > 0 && (
         <p className="tabular-nums text-secondary">
           <span className="text-cipher-green">Buy ZEC</span>: {formatMinutes(row.inboundMedian)} median · {row.inboundCount.toLocaleString()} swaps
@@ -151,7 +151,7 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
       <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={chartHeight - 20}>
         <BarChart data={displayRows} layout="vertical" margin={{ left: 8, right: 24 }}>
           <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} horizontal={false} />
-          <XAxis type="number" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 10 }} tickFormatter={(v: number) => formatMinutes(v)} />
+          <XAxis type="number" stroke={colors.axis} tick={{ fill: colors.axis, fontSize: 12 }} tickFormatter={(v: number) => formatMinutes(v)} />
           <YAxis
             type="category"
             dataKey="chain"
@@ -161,7 +161,7 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
           />
           <Tooltip content={<LatencyTooltip colors={colors} />} cursor={{ fill: colors.barCursor }} />
           <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+            wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
             formatter={(value) => value === 'inboundMedian' ? 'Buy ZEC (inbound)' : 'Sell ZEC (outbound)'}
           />
           <Bar dataKey="inboundMedian" name="inboundMedian" fill="var(--color-cipher-green)" fillOpacity={0.85} radius={[0, 3, 3, 0]} barSize={9} />
@@ -173,12 +173,12 @@ export function LatencyComparisonChart({ inbound, outbound }: { inbound: Latency
         <div className="mt-3 pt-3 border-t border-cipher-border">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-[11px] font-mono text-cipher-gold hover:underline"
+            className="text-caption font-mono text-cipher-gold hover:underline"
           >
             {showAll ? '← Show top 10 only' : `Show ${longTail.length} more low-volume chains →`}
           </button>
           {!showAll && (
-            <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+            <p className="text-caption text-muted mt-1.5 leading-relaxed">
               {longTail.slice(0, 8).map((r) => r.chainName).join(', ')}
               {longTail.length > 8 ? `, +${longTail.length - 8} more` : ''} — under {topRows[topRows.length - 1]?.totalCount.toLocaleString()} swaps each, latency less statistically reliable.
             </p>

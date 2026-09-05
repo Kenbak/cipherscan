@@ -155,7 +155,7 @@ export default async function AboutPage() {
               {'>'} about
             </span>
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-mono mb-6 leading-[1.1]">
+          <h1 className="type-page font-mono mb-6 ">
             <span className="text-primary">Decode the blockchain.</span>
             <br />
             <span className="text-cipher-gold">Protect the user.</span>
@@ -166,7 +166,7 @@ export default async function AboutPage() {
             visualizing what privacy means on-chain. Making the invisible visible
             without compromising individuals.
           </p>
-          <p className="text-sm text-muted/60 font-mono">
+          <p className="text-sm text-muted font-mono">
             Created by <span className="text-primary">Kenbak</span>
           </p>
         </div>
@@ -174,7 +174,7 @@ export default async function AboutPage() {
         {/* Live Stats */}
         <div className="mb-20 sm:mb-28">
           <div className="mb-5">
-            <span className="font-mono text-[10px] text-muted tracking-[0.3em] uppercase">
+            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
               {'>'} live_stats
             </span>
           </div>
@@ -189,24 +189,24 @@ export default async function AboutPage() {
               { label: 'Mining Pools Tracked', value: String(stats.miningPools), color: 'text-cipher-orange' },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className={`text-xl sm:text-2xl lg:text-3xl font-bold font-mono ${stat.color} leading-none`}>
+                <div className={`text-xl sm:text-2xl lg:text-3xl font-semibold font-mono ${stat.color} leading-none`}>
                   {stat.value}
                 </div>
-                <div className="text-[9px] sm:text-[10px] text-muted/50 font-mono uppercase tracking-wider mt-2">
+                <div className="text-caption sm:text-caption text-muted font-mono uppercase tracking-wider mt-2">
                   {stat.label}
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-5">
-            <span className="text-[9px] text-muted/30 font-mono">LIVE FROM {NETWORK_LABEL}</span>
+            <span className="text-caption text-muted font-mono">LIVE FROM {NETWORK_LABEL}</span>
           </div>
         </div>
 
         {/* Timeline */}
         <div className="mb-20 sm:mb-28">
           <div className="mb-8">
-            <span className="font-mono text-[10px] text-muted tracking-[0.3em] uppercase">
+            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
               {'>'} timeline
             </span>
           </div>
@@ -221,15 +221,15 @@ export default async function AboutPage() {
                   <div className={`absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full ${item.dotColor}`} />
 
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="font-mono text-[10px] text-muted tracking-widest">
+                    <span className="font-mono text-caption text-muted tracking-widest">
                       {item.date}
                     </span>
-                    <span className={`font-mono text-[10px] font-bold tracking-widest ${item.tagColor}`}>
+                    <span className={`font-mono text-caption font-semibold tracking-widest ${item.tagColor}`}>
                       [{item.tag}]
                     </span>
                   </div>
 
-                  <h3 className="text-sm sm:text-base font-bold font-mono text-primary mb-1">
+                  <h3 className="text-sm sm:text-base font-semibold font-mono text-primary mb-1">
                     {item.title}
                   </h3>
                   <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-2xl">
@@ -241,8 +241,8 @@ export default async function AboutPage() {
               {/* Ongoing */}
               <div className="relative pl-8">
                 <div className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border border-muted/30 bg-transparent animate-pulse" />
-                <span className="font-mono text-[10px] text-muted tracking-widest">[BUILDING]</span>
-                <p className="text-xs text-muted/60 font-mono mt-1">More to come.</p>
+                <span className="font-mono text-caption text-muted tracking-widest">[BUILDING]</span>
+                <p className="text-xs text-muted font-mono mt-1">More to come.</p>
               </div>
             </div>
           </div>
@@ -251,7 +251,7 @@ export default async function AboutPage() {
         {/* Mission */}
         <div className="mb-20 sm:mb-28">
           <div className="mb-5">
-            <span className="font-mono text-[10px] text-muted tracking-[0.3em] uppercase">
+            <span className="font-mono text-caption text-muted tracking-[0.3em] uppercase">
               {'>'} why
             </span>
           </div>
@@ -271,7 +271,7 @@ export default async function AboutPage() {
         <div className="border border-cipher-border rounded-2xl p-6 sm:p-8 card-surface">
           <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-base sm:text-lg font-bold font-mono text-primary mb-2">
+              <h2 className="text-base sm:text-lg font-semibold font-mono text-primary mb-2">
                 Open source. Community funded.
               </h2>
               <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-lg">

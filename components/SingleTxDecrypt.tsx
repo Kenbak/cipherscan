@@ -136,7 +136,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
             <div className="space-y-4 sm:space-y-6">
               {/* Transaction ID */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+                <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                   Transaction ID
                 </label>
                 <input
@@ -151,7 +151,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
 
               {/* Viewing Key */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
+                <label className="block text-xs sm:text-sm font-semibold text-secondary mb-2 sm:mb-3 uppercase tracking-wider">
                   Unified Full Viewing Key
                 </label>
                 <input
@@ -162,7 +162,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                   disabled={loading}
                   className="input-field disabled:opacity-50"
                 />
-                <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
+                <p className="text-caption sm:text-xs text-muted mt-2 font-mono">
                   Starts with <code className="text-cipher-gold">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'})
                 </p>
               </div>
@@ -218,9 +218,9 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                 <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex items-start gap-2 sm:gap-3">
                     <span className="text-cipher-gold-bright">$</span>
-                    <span className="text-gray-400 break-all">./decrypt --wasm --zero-knowledge</span>
+                    <span className="text-muted break-all">./decrypt --wasm --zero-knowledge</span>
                   </div>
-                  <div className="pl-4 sm:pl-6 space-y-1.5 sm:space-y-2 text-cipher-green-bright mt-3 sm:mt-4 text-[10px] sm:text-xs">
+                  <div className="pl-4 sm:pl-6 space-y-1.5 sm:space-y-2 text-cipher-green-bright mt-3 sm:mt-4 text-caption sm:text-xs">
                     {loadingStep >= 0 && <p>[✓] Initializing WASM cryptographic engine...</p>}
                     {loadingStep >= 1 && <p>[✓] Parsing unified viewing key...</p>}
                     {loadingStep >= 2 && <p>[✓] Deriving zero-knowledge proof keys...</p>}
@@ -269,19 +269,19 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               <div className="terminal-body p-3 sm:p-4 md:p-6 font-mono flex-1 overflow-x-hidden">
                 <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <span className="text-cipher-gold-bright text-sm sm:text-base">$</span>
-                  <span className="text-gray-400 text-xs sm:text-sm break-all">cat DECRYPTED_MEMO.txt</span>
+                  <span className="text-muted text-xs sm:text-sm break-all">cat DECRYPTED_MEMO.txt</span>
                 </div>
 
                 <div className="h-px bg-gradient-to-r from-cipher-gold-bright/40 to-transparent mb-3 sm:mb-4" />
 
                 <div className="pl-3 sm:pl-4 md:pl-6 border-l-2 border-cipher-gold-bright/30">
-                  <p className="text-[10px] sm:text-xs text-cipher-gold-bright mb-2">[ DECRYPTED OUTPUT ]</p>
+                  <p className="text-caption sm:text-xs text-cipher-gold-bright mb-2">[ DECRYPTED OUTPUT ]</p>
 
                   {/* Amount */}
                   {amount > 0 && (
                     <div className="mb-3 sm:mb-4">
-                      <span className="text-xs sm:text-sm text-gray-400">Amount: </span>
-                      <span className="text-lg sm:text-xl font-bold text-cipher-green-bright font-mono">
+                      <span className="text-xs sm:text-sm text-muted">Amount: </span>
+                      <span className="text-lg sm:text-xl font-semibold text-cipher-green-bright font-mono">
                         +{amount.toString().replace(/\.?0+$/, '')} ZEC
                       </span>
                     </div>

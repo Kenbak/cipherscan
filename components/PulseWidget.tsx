@@ -68,7 +68,7 @@ export function PulseWidget() {
         <div className="rounded-xl border border-cipher-border bg-cipher-surface/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           {/* Intensity counts */}
           <div className="flex items-center gap-3 border-b border-cipher-border-subtle px-4 py-2.5">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted">7d signals</span>
+            <span className="font-mono text-caption uppercase tracking-widest text-muted">7d signals</span>
             <div className="flex items-center gap-3 ml-auto">
               {([
                 { key: 'extreme', label: 'E', opacity: 'opacity-100' },
@@ -77,7 +77,7 @@ export function PulseWidget() {
               ] as const).map(({ key, label, opacity }) => (
                 <div key={key} className="flex items-center gap-1">
                   <span className={`h-1.5 w-1.5 rounded-full bg-cipher-gold ${opacity}`} />
-                  <span className="font-mono text-[10px] tabular-nums text-secondary">
+                  <span className="font-mono text-caption tabular-nums text-secondary">
                     {summary?.bySeverity[key] ?? 0}
                   </span>
                 </div>
@@ -90,16 +90,16 @@ export function PulseWidget() {
             {(!summary || summary.recent.length === 0) ? (
               <div className="px-4 py-4 text-center">
                 <p className="text-xs text-muted font-mono">No anomalies in 7 days</p>
-                <p className="text-[10px] text-muted/60 mt-0.5">Network within normal parameters</p>
+                <p className="text-caption text-muted mt-0.5">Network within normal parameters</p>
               </div>
             ) : (
               summary.recent.slice(0, 3).map((event, i) => (
                 <div key={`${event.date}-${event.metric}`} className="flex items-center gap-2 px-4 py-2">
-                  <span className={`font-mono text-[10px] ${event.direction === 'up' ? 'text-cipher-gold' : 'text-blue-400'}`}>
+                  <span className={`font-mono text-caption ${event.direction === 'up' ? 'text-cipher-gold' : 'text-blue-400'}`}>
                     {event.direction === 'up' ? '▲' : '▼'}
                   </span>
                   <span className="text-xs text-primary truncate flex-1">{event.description}</span>
-                  <span className="text-[10px] font-mono text-muted shrink-0">
+                  <span className="text-caption font-mono text-muted shrink-0">
                     {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
@@ -111,10 +111,10 @@ export function PulseWidget() {
           <div className="border-t border-cipher-border-subtle px-4 py-2">
             <Link
               href="/pulse"
-              className="flex items-center justify-end gap-1 text-[11px] font-mono text-muted hover:text-primary transition-colors"
+              className="flex items-center justify-end gap-1 text-caption font-mono text-muted hover:text-primary transition-colors"
               onClick={() => setOpen(false)}
             >
-              View Pulse <span className="text-[9px]">→</span>
+              View Pulse <span className="text-caption">→</span>
             </Link>
           </div>
         </div>

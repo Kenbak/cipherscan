@@ -599,7 +599,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         // Type letter inside — only for medium-large bubbles
         if (drawRadius > 13 && b.state !== 'popping') {
           const letter = TYPE_LABEL[b.type];
-          const fontSize = Math.max(11, Math.min(drawRadius * 0.7, 22));
+          const fontSize = Math.max(12, Math.min(drawRadius * 0.7, 22));
           ctx.font = `600 ${fontSize}px ui-monospace, "SF Mono", Menlo, monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -792,13 +792,13 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-gold/20 rounded-br pointer-events-none" />
 
       {/* Top-left HUD label — shifts down in ambient to avoid EXIT button overlap */}
-      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-[9px] text-cipher-gold/30 tracking-widest pointer-events-none select-none`}>
+      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-caption text-cipher-gold/30 tracking-widest pointer-events-none select-none`}>
         MEMPOOL_LIVE // {transactions.length} TX
       </div>
 
       {/* Top-right timestamp */}
       <div
-        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-[9px] tracking-wider pointer-events-none select-none text-muted/60`}
+        className={`absolute ${ambient ? 'top-14' : 'top-4'} right-6 font-mono text-caption tracking-wider pointer-events-none select-none text-muted`}
       >
         {new Date().toISOString().slice(11, 19)} UTC
       </div>
@@ -819,7 +819,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               borderColor: 'var(--color-border)',
             }}
           >
-            <div className="font-mono text-cipher-gold mb-1.5 truncate text-[10px] tracking-wider">
+            <div className="font-mono text-cipher-gold mb-1.5 truncate text-caption tracking-wider">
               &gt; {hoveredTx.txid.slice(0, 16)}...{hoveredTx.txid.slice(-8)}
             </div>
             <div className="space-y-0.5">
@@ -854,7 +854,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
                 </div>
               ) : null}
             </div>
-            <div className="text-[10px] text-muted mt-1.5 pt-1.5 border-t border-cipher-border">Click to view transaction</div>
+            <div className="text-caption text-muted mt-1.5 pt-1.5 border-t border-cipher-border">Click to view transaction</div>
           </div>
         </div>
       )}
@@ -862,7 +862,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {/* Legend — hidden in fullscreen/ambient to avoid clutter */}
       {!isFullscreen && !ambient && (
         <div
-          className="absolute bottom-3 right-3 flex items-center gap-4 text-[10px] text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
+          className="absolute bottom-3 right-3 flex items-center gap-4 text-caption text-secondary font-mono backdrop-blur-sm rounded-lg px-3 py-1.5 border"
           style={{
             background: 'var(--color-surface)',
             borderColor: 'var(--color-border)',
@@ -887,11 +887,11 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-caption tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]
-          <kbd className="px-1 py-px rounded border border-white/15 text-[8px] text-white/40 tracking-normal">ESC</kbd>
+          <kbd className="px-1 py-px rounded border border-white/15 text-caption text-white/40 tracking-normal">ESC</kbd>
         </button>
       )}
 
@@ -903,11 +903,11 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             className="absolute bottom-6 left-6 font-mono pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.7 : 0.25 }}
           >
-            <div className="text-[11px] text-white/50 tracking-widest uppercase mb-1">
+            <div className="text-caption text-white/50 tracking-widest uppercase mb-1">
               ZecBlock {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
             </div>
             {stats && (
-              <div className="text-[10px] tracking-wider">
+              <div className="text-caption tracking-wider">
                 <span className="text-white/50">{stats.total} pending</span>
                 <span className="text-white/20 mx-1.5">·</span>
                 <span className="text-cipher-purple/60">{stats.shieldedPct}% shielded</span>
@@ -917,7 +917,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
 
           {/* Compact legend in ambient — top-right area, fades with cursor */}
           <div
-            className="absolute top-5 right-6 flex items-center gap-3 font-mono text-[9px] pointer-events-none select-none transition-opacity duration-1000"
+            className="absolute top-5 right-6 flex items-center gap-3 font-mono text-caption pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.5 : 0.2 }}
           >
             <span className="text-cipher-gold/70">T</span>
@@ -935,7 +935,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>
-            <p className="font-mono text-[10px] mt-1 text-muted/50">
+            <p className="font-mono text-caption mt-1 text-muted">
               awaiting pending transactions
             </p>
           </div>

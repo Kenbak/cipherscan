@@ -161,7 +161,7 @@ const columns: DataTableColumn<any>[] = [
         return (
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
             <TxTypeBadge category={poolLabelCategory(poolLabel)} label={poolLabel} />
-            <span className="text-[10px] text-muted">+ funding stream</span>
+            <span className="text-caption text-muted">+ funding stream</span>
           </span>
         );
       }
@@ -217,10 +217,10 @@ const columns: DataTableColumn<any>[] = [
       if (tx.vin?.[0]?.coinbase) return <span className="text-xs text-muted">—</span>;
       const feeZat = parseInt(tx.fee || 0);
       if (feeZat === 0) return <span className="text-xs text-muted">—</span>;
-      if (feeZat === 10000) return <span className="text-[10px] text-muted font-mono">Standard</span>;
+      if (feeZat === 10000) return <span className="text-caption text-muted font-mono">Standard</span>;
       const feeZec = zatToZec(feeZat);
       return (
-        <span className="text-[10px] text-muted font-mono tabular-nums">
+        <span className="text-caption text-muted font-mono tabular-nums">
           {feeZec < 0.001 ? feeZec.toFixed(5) : feeZec.toFixed(4)}
         </span>
       );
@@ -235,7 +235,7 @@ export const BlockTransactionsSection = forwardRef<HTMLDivElement, { data: Block
     return (
       <div ref={ref}>
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">Transactions</h2>
+          <h2 className="text-sm font-semibold text-secondary lowercase tracking-tight">Transactions</h2>
           <Badge color="muted">{data.transactionCount}</Badge>
         </div>
         <DataTable

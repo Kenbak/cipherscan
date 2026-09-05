@@ -8,7 +8,7 @@ export function PrivacyBarLegend({
   deshieldColor: string;
 }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] font-mono text-muted">
+    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-caption font-mono text-muted">
       <span className="inline-flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: shieldColor }} aria-hidden />
         Shield (in)

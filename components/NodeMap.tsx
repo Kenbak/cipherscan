@@ -210,8 +210,8 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               </svg>
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-primary">Network Node Map</h2>
-              <p className="text-[10px] sm:text-xs text-muted">Global distribution of Zcash network nodes</p>
+              <h2 className="text-base sm:text-lg font-semibold text-primary">Network Node Map</h2>
+              <p className="text-caption sm:text-xs text-muted">Global distribution of Zcash network nodes</p>
             </div>
           </div>
 
@@ -219,25 +219,25 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
             <div className="flex items-center gap-5 sm:gap-6">
               <div className="text-center">
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
+                  <span className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.activeNodes}</span>
                   {trends?.change24h !== null && trends?.change24h !== undefined && (
-                    <span className={`text-[10px] font-mono font-semibold ${
+                    <span className={`text-caption font-mono font-semibold ${
                       trends.change24h > 0 ? 'text-cipher-green' : trends.change24h < 0 ? 'text-danger' : 'text-muted'
                     }`}>
                       {trends.change24h > 0 ? '+' : ''}{trends.change24h}%
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-muted uppercase tracking-wider">Nodes</div>
+                <div className="text-caption text-muted uppercase tracking-wider">Nodes</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
-                <div className="text-[10px] text-muted uppercase tracking-wider">Countries</div>
+                <div className="font-semibold text-primary font-mono text-lg sm:text-xl">{stats.countries}</div>
+                <div className="text-caption text-muted uppercase tracking-wider">Countries</div>
               </div>
               {stats.torNodes > 0 && (
                 <div className="text-center">
-                  <div className="font-bold text-cipher-purple font-mono text-lg sm:text-xl">{stats.torNodes}</div>
-                  <div className="text-[10px] text-muted uppercase tracking-wider">Tor</div>
+                  <div className="font-semibold text-cipher-purple font-mono text-lg sm:text-xl">{stats.torNodes}</div>
+                  <div className="text-caption text-muted uppercase tracking-wider">Tor</div>
                 </div>
               )}
             </div>
@@ -393,8 +393,8 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill="#08090F"
-                    fontSize={radius > 16 ? 11 : 9}
-                    fontWeight="700"
+                    fontSize={12}
+                    fontWeight="600"
                     fontFamily="ui-monospace, 'JetBrains Mono', monospace"
                     className="pointer-events-none select-none"
                   >
@@ -413,7 +413,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
             </div>
             <div className="flex items-center gap-3 text-xs mt-1.5">
-              <span className="font-mono font-bold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
+              <span className="font-mono font-semibold" style={{ color: getNodeTier(hoveredNode.nodeCount).fill }}>
                 {hoveredNode.nodeCount} node{hoveredNode.nodeCount > 1 ? 's' : ''}
               </span>
               {hoveredNode.avgPingMs != null && hoveredNode.avgPingMs > 0 && (
@@ -421,12 +421,12 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               )}
             </div>
             {(hoveredNode.topClient || hoveredNode.topIsp) && (
-              <div className="flex items-center gap-2 text-[11px] font-mono text-muted mt-1">
+              <div className="flex items-center gap-2 text-caption font-mono text-muted mt-1">
                 {hoveredNode.topClient && (
                   <span>Mostly {clientLabel(hoveredNode.topClient)}</span>
                 )}
                 {hoveredNode.topClient && hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
-                  <span className="text-muted/40">&middot;</span>
+                  <span className="text-muted">&middot;</span>
                 )}
                 {hoveredNode.topIsp && hoveredNode.topIsp !== 'Unresolved' && (
                   <span className="truncate max-w-[160px]">{hoveredNode.topIsp}</span>
@@ -437,7 +437,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-[10px] pointer-events-none bg-cipher-surface-solid">
+        <div className="absolute bottom-3 left-3 backdrop-blur-sm border border-cipher-border rounded-lg px-3 py-2 text-caption pointer-events-none bg-cipher-surface-solid">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: NODE_TIERS.high.fill, boxShadow: `0 0 6px ${NODE_TIERS.high.glow}` }}></span>
@@ -479,7 +479,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       {trends && (
         <div className="px-4 sm:px-6 py-3 border-t border-cipher-border">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] text-muted uppercase tracking-wider font-mono">Trend</span>
+            <span className="text-caption text-muted uppercase tracking-wider font-mono">Trend</span>
             {[
               { label: '24h', value: trends.change24h },
               { label: '7d', value: trends.change7d },
@@ -487,7 +487,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
             ].map(({ label, value }) => (
               value !== null && value !== undefined ? (
                 <div key={label} className="flex items-center gap-1">
-                  <span className="text-[10px] text-muted font-mono">{label}</span>
+                  <span className="text-caption text-muted font-mono">{label}</span>
                   <span className={`text-xs font-mono font-semibold ${
                     value > 0 ? 'text-cipher-green' : value < 0 ? 'text-danger' : 'text-muted'
                   }`}>
@@ -506,7 +506,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-secondary">Top Countries</h3>
             {stats?.lastUpdated && (
-              <span className="text-[10px] text-muted font-mono hidden sm:inline">
+              <span className="text-caption text-muted font-mono hidden sm:inline">
                 Last sync: {new Date(stats.lastUpdated).toLocaleString()}
               </span>
             )}
@@ -525,8 +525,8 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
                   }`}
                 >
                   <span className="text-sm sm:text-base">{getFlagEmoji(country.countryCode)}</span>
-                  <span className={`text-[10px] sm:text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
-                  <span className="text-[10px] sm:text-xs font-mono font-bold" style={{ color: getNodeTier(country.nodeCount).fill }}>
+                  <span className={`text-caption sm:text-xs ${isActive ? 'text-primary font-semibold' : 'text-secondary'}`}>{country.country}</span>
+                  <span className="text-caption sm:text-xs font-mono font-semibold" style={{ color: getNodeTier(country.nodeCount).fill }}>
                     {country.nodeCount}
                   </span>
                 </button>
@@ -537,8 +537,8 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
               const othersCount = (stats?.activeNodes || 0) - top10Sum;
               return othersCount > 0 ? (
                 <span className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 bg-cipher-bg/50 border border-transparent">
-                  <span className="text-[10px] sm:text-xs text-muted">Others</span>
-                  <span className="text-[10px] sm:text-xs font-mono font-bold text-muted">{othersCount}</span>
+                  <span className="text-caption sm:text-xs text-muted">Others</span>
+                  <span className="text-caption sm:text-xs font-mono font-semibold text-muted">{othersCount}</span>
                 </span>
               ) : null;
             })()}

@@ -244,7 +244,7 @@ export function AddressGraph({ address }: { address: string }) {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-3 flex flex-wrap items-center gap-4 text-[11px] text-muted">
+      <div className="mb-3 flex flex-wrap items-center gap-4 text-caption text-muted">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.self }} />
           This address
@@ -280,7 +280,7 @@ export function AddressGraph({ address }: { address: string }) {
         </div>
 
         <div className="rounded-xl border border-cipher-border bg-[rgba(10,14,26,0.4)] overflow-hidden flex flex-col h-[560px]">
-          <div className="px-3 py-2 border-b border-cipher-border text-[11px] font-mono tracking-wider uppercase text-muted">
+          <div className="px-3 py-2 border-b border-cipher-border text-caption font-mono tracking-wider uppercase text-muted">
             {hovered ? 'Selection' : 'About this graph'}
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-3 text-xs">
@@ -339,7 +339,7 @@ export function AddressGraph({ address }: { address: string }) {
                   <button
                     type="button"
                     onClick={() => openAddress(hovered.id)}
-                    className="mt-3 font-mono text-[11px] text-cipher-gold hover:text-primary transition-colors"
+                    className="mt-3 font-mono text-caption text-cipher-gold hover:text-primary transition-colors"
                   >
                     Open address →
                   </button>

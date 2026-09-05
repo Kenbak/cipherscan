@@ -135,7 +135,7 @@ export default function RichListClient({
           <HashLink value={entry.address} href={`/address/${entry.address}`} lead={8} tail={8} />
           {/* Show label inline on mobile where label column is hidden */}
           {entry.label && (
-            <span className="text-[10px] text-muted md:hidden mt-0.5 flex items-center gap-1">
+            <span className="text-caption text-muted md:hidden mt-0.5 flex items-center gap-1">
               {entry.logoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={entry.logoUrl} alt="" width={12} height={12} className="rounded-sm" />
@@ -172,11 +172,11 @@ export default function RichListClient({
       skeletonWidth: 'w-24',
       cell: (entry) => (
         <>
-          <div className="font-mono text-sm text-primary font-bold">
+          <div className="font-mono text-sm text-primary font-semibold">
             {entry.balance >= 1000 ? formatZec(entry.balance) : entry.balance.toFixed(2)} ZEC
           </div>
           {zecPrice && (
-            <div className="text-[10px] text-muted font-mono">
+            <div className="text-caption text-muted font-mono">
               ${(entry.balance * zecPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
           )}
@@ -215,7 +215,7 @@ export default function RichListClient({
         <Card className="text-center">
           <CardBody className="py-16">
             <div className="text-5xl mb-6">&#x26A0;&#xFE0F;</div>
-            <h2 className="text-xl font-bold text-primary mb-3">Rich List Unavailable</h2>
+            <h2 className="text-xl font-semibold text-primary mb-3">Rich List Unavailable</h2>
             <p className="text-secondary mb-6">{error}</p>
             <button
               onClick={() => { setError(null); setPage(1); }}
@@ -248,13 +248,13 @@ export default function RichListClient({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 animate-fade-in-up stagger-2">
           <Card variant="compact">
             <CardBody>
-              <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
+              <div className="text-caption sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
                 Top 10 Concentration
               </div>
-              <div className="text-2xl font-bold text-primary font-mono">
+              <div className="text-2xl font-semibold text-primary font-mono">
                 {concentration.top10Pct.toFixed(1)}%
               </div>
-              <div className="text-[10px] text-muted mt-0.5">
+              <div className="text-caption text-muted mt-0.5">
                 {formatZec(concentration.top10)} of {formatZec(concentration.totalTransparent)} transparent ZEC
               </div>
             </CardBody>
@@ -262,13 +262,13 @@ export default function RichListClient({
 
           <Card variant="compact">
             <CardBody>
-              <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
+              <div className="text-caption sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
                 Top 100 Concentration
               </div>
-              <div className="text-2xl font-bold text-primary font-mono">
+              <div className="text-2xl font-semibold text-primary font-mono">
                 {concentration.top100Pct.toFixed(1)}%
               </div>
-              <div className="text-[10px] text-muted mt-0.5">
+              <div className="text-caption text-muted mt-0.5">
                 {formatZec(concentration.top100)} of {formatZec(concentration.totalTransparent)} transparent ZEC
               </div>
             </CardBody>
@@ -276,10 +276,10 @@ export default function RichListClient({
 
           <Card variant="compact">
             <CardBody>
-              <div className="text-[10px] sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
+              <div className="text-caption sm:text-xs text-muted font-mono uppercase tracking-wider mb-1">
                 Transparent Supply
               </div>
-              <div className="text-2xl font-bold text-primary font-mono">
+              <div className="text-2xl font-semibold text-primary font-mono">
                 {formatZec(concentration.totalTransparent)} ZEC
               </div>
               <div className="text-xs text-muted mt-0.5">
@@ -317,7 +317,7 @@ export default function RichListClient({
 
       {/* Note */}
       <div className="mt-8 text-center animate-fade-in-up stagger-4">
-        <p className="text-[11px] text-muted font-mono">
+        <p className="text-caption text-muted font-mono">
           Transparent addresses only &middot; Shielded balances are private by design
         </p>
       </div>

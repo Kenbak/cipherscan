@@ -113,7 +113,7 @@ export function Tooltip({ content, children }: TooltipProps) {
         // text labels. Full opacity (+ text-primary) only on hover/focus, so
         // it's there when you go looking for it but doesn't compete with
         // the label it's attached to at rest.
-        className="inline-flex text-muted/50 hover:text-primary transition-colors cursor-help"
+        className="inline-flex text-muted hover:text-primary transition-colors cursor-help"
         aria-label="More information"
       >
         {children || (

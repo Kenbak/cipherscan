@@ -99,9 +99,9 @@ export function MigrationTiers({
           Orchard → Ironwood migration volume by transaction size. Drag the scrubber to see how the distribution evolved.
         </p>
 
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 mb-4 text-[10px] font-mono text-muted">
-          <span><span className="text-primary font-bold text-sm">{totalTxs.toLocaleString()}</span> transactions</span>
-          <span><span className="text-primary font-bold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 mb-4 text-caption font-mono text-muted">
+          <span><span className="text-primary font-semibold text-sm">{totalTxs.toLocaleString()}</span> transactions</span>
+          <span><span className="text-primary font-semibold text-sm">{fmtValue(totalVolZat, currencyMode, zecPrice)}</span> total</span>
         </div>
 
         {/* Mobile — horizontal breakdown (iOS Storage-style) */}
@@ -111,13 +111,13 @@ export function MigrationTiers({
                 <div className="mb-1.5 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-xs font-mono font-semibold text-primary">{tier.label}</span>
-                    <span className="ml-2 text-[10px] font-mono text-muted">{tier.count.toLocaleString()} txs</span>
+                    <span className="ml-2 text-caption font-mono text-muted">{tier.count.toLocaleString()} txs</span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="text-xs font-mono font-bold tabular-nums text-primary">
+                    <span className="text-xs font-mono font-semibold tabular-nums text-primary">
                       {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                     </span>
-                    <span className="ml-1.5 text-[10px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</span>
+                    <span className="ml-1.5 text-caption font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</span>
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-glass-3">
@@ -140,10 +140,10 @@ export function MigrationTiers({
             const barPct = maxVol > 0 ? (tier.volumeZec / maxVol) * 100 : 0;
             return (
               <div key={tier.label} className="flex flex-col items-center">
-                <div className="mb-1 text-[11px] font-mono font-bold text-primary">
+                <div className="mb-1 text-caption font-mono font-semibold text-primary">
                   {fmtValue(tier.volumeZat, currencyMode, zecPrice)}
                 </div>
-                <div className="mb-2 text-[9px] font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
+                <div className="mb-2 text-caption font-mono text-muted">{formatTierVolumePct(tier.volumePct)}</div>
                 <div className="relative flex h-[140px] w-full justify-center">
                   <div className="relative h-full w-8 overflow-hidden rounded-t-md bg-glass-3">
                     <div
@@ -152,14 +152,14 @@ export function MigrationTiers({
                     />
                   </div>
                 </div>
-                <div className="mt-2 text-center text-[10px] font-mono text-muted">{tier.label}</div>
-                <div className="text-[10px] font-mono text-muted/60">{tier.count} txs</div>
+                <div className="mt-2 text-center text-caption font-mono text-muted">{tier.label}</div>
+                <div className="text-caption font-mono text-muted">{tier.count} txs</div>
               </div>
             );
           })}
         </div>
 
-        <div className="mb-4 mt-3 hidden text-center text-[10px] font-mono text-muted sm:block">
+        <div className="mb-4 mt-3 hidden text-center text-caption font-mono text-muted sm:block">
           Orchard → Ironwood volume by migration size · {totalTxs.toLocaleString()} total txs
         </div>
 
@@ -196,13 +196,13 @@ export function MigrationTiers({
             <button
               type="button"
               onClick={() => { setMode('live'); setScrubIdx(maxIdx); }}
-              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
+              className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-caption font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
             >
               <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-current opacity-30'}`} />
               Live
             </button>
           </div>
-          <div className="flex items-center justify-between text-[10px] font-mono text-muted mt-1">
+          <div className="flex items-center justify-between text-caption font-mono text-muted mt-1">
             <span>Block {allTxs[0]?.h?.toLocaleString() ?? '—'}</span>
             <span>{mode === 'live' ? `${totalTxs} migrations` : scrubDate ?? `${visibleTxs.length} migrations`}</span>
           </div>

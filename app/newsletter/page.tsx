@@ -20,7 +20,7 @@ export default function NewsletterPage() {
         <p className="text-xs text-muted font-mono uppercase tracking-[0.3em] mb-4">
           <span className="opacity-50">{'>'}</span> NEWSLETTER
         </p>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-mono text-primary mb-6">
+        <h1 className="type-page font-mono text-primary mb-6">
           ZecBlock Weekly
         </h1>
         <p className="text-lg sm:text-xl text-secondary max-w-2xl leading-relaxed">
@@ -56,7 +56,7 @@ export default function NewsletterPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       {issue.issue > 0 && (
-                        <span className="text-[10px] font-mono text-cipher-yellow bg-cipher-yellow/10 rounded px-2 py-0.5">
+                        <span className="text-caption font-mono text-cipher-yellow bg-cipher-yellow/10 rounded px-2 py-0.5">
                           #{issue.issue}
                         </span>
                       )}
@@ -68,7 +68,7 @@ export default function NewsletterPage() {
                         })}
                       </span>
                     </div>
-                    <h2 className="text-lg font-bold text-primary font-mono group-hover:text-primary transition-colors">
+                    <h2 className="text-lg font-semibold text-primary font-mono group-hover:text-primary transition-colors">
                       {issue.title}
                     </h2>
                     {issue.summary && (
@@ -97,7 +97,7 @@ export default function NewsletterPage() {
               Coming Soon
             </span>
 
-            <h2 className="text-2xl font-bold font-mono text-primary mb-4">
+            <h2 className="text-2xl font-semibold font-mono text-primary mb-4">
               First issue dropping soon
             </h2>
             <p className="text-secondary max-w-md mx-auto mb-8 leading-relaxed">
@@ -108,15 +108,15 @@ export default function NewsletterPage() {
             {/* What to expect */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto text-left">
               <div className="bg-cipher-bg/50 rounded-lg p-4">
-                <div className="text-cipher-green text-sm font-mono font-bold mb-1">Protocol</div>
+                <div className="text-cipher-green text-sm font-mono font-semibold mb-1">Protocol</div>
                 <div className="text-xs text-muted">Network upgrades, consensus changes, ZIP proposals</div>
               </div>
               <div className="bg-cipher-bg/50 rounded-lg p-4">
-                <div className="text-cipher-gold text-sm font-mono font-bold mb-1">On-Chain</div>
+                <div className="text-cipher-gold text-sm font-mono font-semibold mb-1">On-Chain</div>
                 <div className="text-xs text-muted">Shielded pool flows, node stats, mining trends</div>
               </div>
               <div className="bg-cipher-bg/50 rounded-lg p-4">
-                <div className="text-cipher-purple text-sm font-mono font-bold mb-1">Privacy</div>
+                <div className="text-cipher-purple text-sm font-mono font-semibold mb-1">Privacy</div>
                 <div className="text-xs text-muted">Privacy tips, risk analysis, ecosystem insights</div>
               </div>
             </div>

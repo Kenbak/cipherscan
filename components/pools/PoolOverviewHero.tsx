@@ -125,14 +125,14 @@ function SupplyLegendStat({
         ) : (
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
         )}
-        <span className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</span>
+        <span className="text-caption font-mono uppercase tracking-wider text-muted">{label}</span>
       </div>
-      <p className="mt-2 text-xl font-bold tabular-nums tracking-tight text-primary sm:text-2xl">
+      <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-primary sm:text-2xl">
         {formatZecCompact(zec)}
         <span className="ml-1.5 text-sm font-normal text-muted">ZEC</span>
       </p>
       <p className="mt-1 text-sm font-mono tabular-nums text-secondary">{capPct.toFixed(1)}% of 21M</p>
-      {footnote ? <p className="mt-1 text-[10px] font-mono text-muted">{footnote}</p> : null}
+      {footnote ? <p className="mt-1 text-caption font-mono text-muted">{footnote}</p> : null}
     </div>
   );
 }
@@ -384,7 +384,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
       <div className="mt-3 min-h-[1.25rem]">
         {readout.kind === 'idle' ? (
           mode === 'live' && shieldedDelta7d ? (
-            <p className="text-[11px] font-mono tabular-nums text-muted">
+            <p className="text-caption font-mono tabular-nums text-muted">
               <span className={shieldedDelta7d.zec >= 0 ? 'text-cipher-green' : 'text-cipher-orange'}>
                 {shieldedDelta7d.text}
               </span>
@@ -392,7 +392,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
               {shieldedPctOfMined.toFixed(1)}% of mined supply is private
             </p>
           ) : readout.scrubDate ? (
-            <p className="text-[11px] font-mono text-muted">Snapshot · {readout.scrubDate}</p>
+            <p className="text-caption font-mono text-muted">Snapshot · {readout.scrubDate}</p>
           ) : null
         ) : null}
 
@@ -407,7 +407,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
 
         {readout.kind === 'shielded' ? (
           <>
-            <p className="mb-2 text-[10px] font-mono uppercase tracking-wider text-muted">
+            <p className="mb-2 text-caption font-mono uppercase tracking-wider text-muted">
               Inside shielded
               {pinnedShielded ? (
                 <>
