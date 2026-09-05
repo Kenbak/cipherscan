@@ -41,9 +41,9 @@ function BandLabel({
 }) {
   if (mode === 'none') return null;
 
-  const titleClass = onDarkFill ? 'text-white/90' : 'text-slate-800';
-  const valueClass = onDarkFill ? 'text-white/75' : 'text-secondary';
-  const pctClass = onDarkFill ? 'text-white/80' : 'text-secondary';
+  const titleClass = onDarkFill ? 'text-white' : 'text-cipher-bg-dark';
+  const valueClass = titleClass;
+  const pctClass = titleClass;
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
@@ -60,10 +60,11 @@ function BandLabel({
   );
 }
 
-function segmentUsesDarkLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
+function segmentUsesLightLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
   if (segment.key === 'transparent') return isDark;
-  return !isDark;
+  // Collapsed shielded band uses gold in both themes.
+  return false;
 }
 
 function TopSegment({
@@ -90,7 +91,7 @@ function TopSegment({
   const labelMode = useSegmentLabelMode(ref, capPct);
   const ringActive = isDark ? 'ring-white/40' : 'ring-black/25';
   const ringIdle = isDark ? 'ring-white/10' : 'ring-black/10';
-  const onDarkFill = segmentUsesDarkLabel(segment, isDark);
+  const onDarkFill = segmentUsesLightLabel(segment, isDark);
 
   return (
     <button
@@ -120,7 +121,7 @@ function TopSegment({
           className={`absolute inset-0 rounded-[5px] ring-1 ring-inset ${active ? ringActive : ringIdle}`}
           style={{
             backgroundColor: segment.color,
-            opacity: segment.key === 'transparent' ? (isDark ? 0.32 : 0.55) : 0.9,
+            opacity: segment.key === 'transparent' ? (isDark ? 0.32 : 0.28) : (isDark ? 0.9 : 1),
           }}
         />
       )}
@@ -202,7 +203,7 @@ function ShieldedPoolStack({
           >
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: child.color, opacity: 0.9 }}
+              style={{ backgroundColor: child.color, opacity: isDark ? 0.9 : 1 }}
             />
           </div>
         );

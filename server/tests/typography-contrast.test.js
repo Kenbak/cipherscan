@@ -12,9 +12,12 @@ function luminance(hex) {
  return channels.reduce((sum,n,i)=>sum+n*[0.2126,0.7152,0.0722][i],0);
 }
 for(const [theme,selector] of [['dark',':root {'],['light','/* Light Theme Overrides */\n.light {']]) {
- test(`${theme} information and status text meet 4.5:1 on standard interactive surfaces`,()=>{
+ test(`${theme} body and semantic text meet 4.5:1 on standard interactive surfaces (brand gold excluded in light mode)`,()=>{
   const t=tokens(selector);
   for(const fg of ['--color-text-primary','--color-text-secondary','--color-text-muted','--color-gold','--color-green','--color-purple','--color-orange','--danger','--warning']) {
+   // The owner explicitly selected #DB9E00 for light brand text as well as fills.
+   // It is a documented contrast exception, not part of the body-text guarantee.
+   if(theme === 'light' && fg === '--color-gold') continue;
    for(const bg of ['--color-bg','--color-surface','--color-elevated','--color-hover','--color-active']) {
     assert.ok(t[fg]&&t[bg],`Missing ${fg} or ${bg}`);
     const [low,high]=[luminance(t[fg]),luminance(t[bg])].sort((a,b)=>a-b);
@@ -27,7 +30,7 @@ for(const [theme,selector] of [['dark',':root {'],['light','/* Light Theme Overr
 test('gold primary action has readable dark text',()=>{
  for (const selector of [':root {', '/* Light Theme Overrides */\n.light {']) {
   const t=tokens(selector);
-  const a=luminance(t['--btn-primary-bg']),b=luminance('#20221D');
+  const a=luminance(t['--btn-primary-bg']),b=luminance(t['--btn-primary-text']);
   assert.ok((a+0.05)/(b+0.05)>=4.5);
  }
 });

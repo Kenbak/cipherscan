@@ -1,17 +1,17 @@
 /** Assay information palette. Match semantic roles in app/globals.css. */
 export function getChartColors(theme: 'dark' | 'light') {
   const dark = theme === 'dark';
-  const gold = dark ? '#F8BC21' : '#866008';
-  const iris = dark ? '#B6A0E0' : '#6E5885';
-  const sage = dark ? '#91AC90' : '#587652';
-  const steel = dark ? '#A1A9AD' : '#667278';
-  const stone = dark ? '#7F897A' : '#64705F';
+  const gold = dark ? '#F8BC21' : '#DB9E00';
+  const iris = dark ? '#B6A0E0' : '#7040B5';
+  const sage = dark ? '#91AC90' : '#14734B';
+  const steel = dark ? '#A1A9AD' : '#687587';
+  const stone = dark ? '#7F897A' : '#526073';
   return {
-    grid: dark ? '#2C3037' : '#D7DBCF',
-    axis: dark ? '#9CA4B0' : '#606758',
+    grid: dark ? '#2C3037' : '#CED3DB',
+    axis: dark ? '#9CA4B0' : '#59616D',
     tooltipBg: dark ? '#111316' : '#FFFFFF',
-    tooltipBorder: dark ? '#2C3037' : '#D7DBCF',
-    tooltipText: dark ? '#F1F3F5' : '#20221D',
+    tooltipBorder: dark ? '#2C3037' : '#CED3DB',
+    tooltipText: dark ? '#F1F3F5' : '#171A20',
     ironwood: gold,
     orchard: iris,
     sapling: sage,
@@ -24,18 +24,18 @@ export function getChartColors(theme: 'dark' | 'light') {
     purple: iris,
     orchardPool: iris,
     ironwoodPool: gold,
-    verifiedRing: dark ? '#65C79A' : '#506F43',
+    verifiedRing: dark ? '#65C79A' : '#14734B',
     denominated: gold,
-    distinctive: dark ? '#D58D86' : '#A74640',
+    distinctive: dark ? '#D58D86' : '#B13D38',
     // Source identity stays consistent across composition and inflow views.
     inflowOrchard: iris,
     inflowTransparent: steel,
     inflowSapling: sage,
     inflowCoinbase: stone,
-    referenceLine: dark ? '#565D68' : '#B0B7A5',
-    cursor: dark ? '#9CA4B0' : '#606758',
-    gridStroke: dark ? '#20242A' : '#E7E9E1',
-    barCursor: dark ? 'rgba(248,188,33,0.08)' : 'rgba(134,96,8,0.08)',
-    barCursorGold: dark ? 'rgba(248,188,33,0.08)' : 'rgba(134,96,8,0.08)',
+    referenceLine: dark ? '#565D68' : '#A3ADBA',
+    cursor: dark ? '#9CA4B0' : '#59616D',
+    gridStroke: dark ? '#20242A' : '#E4E7EC',
+    barCursor: dark ? 'rgba(248,188,33,0.08)' : 'rgba(219,158,0,0.08)',
+    barCursorGold: dark ? 'rgba(248,188,33,0.08)' : 'rgba(219,158,0,0.08)',
   };
 }

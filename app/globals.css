@@ -87,7 +87,7 @@
   /* Forced-theme colors (deliberately static) */
   --color-cipher-bg-dark: #0B0C0E;
   --color-cipher-surface-dark: #111316;
-  --color-cipher-bg-light: #F8F7F3;
+  --color-cipher-bg-light: #F6F7F9;
   --color-cipher-surface-light: #FFFFFF;
   --color-cipher-border-light: #E2E8F0;
 
@@ -376,34 +376,34 @@
 
 /* Light Theme Overrides */
 .light {
-  --color-bg: #F8F7F3;
-  --color-elevated: #F0EFE9;
+  --color-bg: #F6F7F9;
+  --color-elevated: #EFF1F4;
   --color-surface: #FFFFFF;
   --color-surface-solid: #FFFFFF;
-  --color-hover: #EDECE5;
-  --color-active: #E5E7DC;
-  --color-border: #D7DBCF;
-  --color-border-subtle: #E7E9E1;
-  --color-border-rgb: 215 219 207;
+  --color-hover: #EBEEF2;
+  --color-active: #E2E6EC;
+  --color-border: #CED3DB;
+  --color-border-subtle: #E4E7EC;
+  --color-border-rgb: 206 211 219;
 
   /* Brand — RGB channels for Tailwind opacity support */
-  --color-gold-rgb: 134 96 8;
-  --color-green-rgb: 80 111 67;
-  --color-yellow-rgb: 134 96 8;
-  --color-purple-rgb: 110 88 133;
-  --color-orange-rgb: 136 88 50;
+  --color-gold-rgb: 219 158 0;
+  --color-green-rgb: 20 115 75;
+  --color-yellow-rgb: 219 158 0;
+  --color-purple-rgb: 112 64 181;
+  --color-orange-rgb: 163 74 22;
 
   /* Brand — hex shortcuts for use in custom CSS */
   --color-gold-accent: #DB9E00;
-  /* Small text and fine data strokes retain an accessible gold ink. */
-  --color-gold: #866008;
-  --color-gold-glow: #866008;
-  --color-gold-muted: #866008;
-  --color-green: #506F43;
-  --color-yellow: #866008;
-  --color-purple: #6E5885;
+  /* Owner-requested brand gold, including text. Lower contrast than body text on white. */
+  --color-gold: #DB9E00;
+  --color-gold-glow: #DB9E00;
+  --color-gold-muted: #DB9E00;
+  --color-green: #14734B;
+  --color-yellow: #DB9E00;
+  --color-purple: #7040B5;
   --color-purple-glow: #8B5CF6;
-  --color-orange: #885832;
+  --color-orange: #A34A16;
 
   /* Semantic flow colors — shield/deshield (matches ShieldFlowBadge) */
   --color-shielding: var(--color-green);
@@ -411,16 +411,16 @@
   --color-shielded-state: var(--color-purple);
 
   /* Semantic status colors — darker for light-surface contrast */
-  --danger: #A74640;
-  --warning: #885832;
+  --danger: #B13D38;
+  --warning: #A34A16;
 
   /* Light mode — clean, no ambient gradients */
   --body-ambient: none;
 
   /* Text - high contrast for readability */
-  --color-text-primary: #20221D;
-  --color-text-secondary: #4F5448;
-  --color-text-muted: #606758;
+  --color-text-primary: #171A20;
+  --color-text-secondary: #444B55;
+  --color-text-muted: #59616D;
 
   /* Node map */
   --color-map-dot: rgba(148, 163, 184, 0.5);
@@ -453,7 +453,7 @@
   --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
   --card-dark-border: rgba(0, 0, 0, 0.06);
-  --card-featured-border: rgba(134, 96, 8, 0.2);
+  --card-featured-border: rgba(219, 158, 0, 0.2);
   --card-interactive-shadow: none;
   --card-interactive-border-hover: var(--color-gold);
   --divider: rgba(0, 0, 0, 0.06);
@@ -465,12 +465,12 @@
   --badge-orange-bg: rgba(194, 65, 12, 0.12);
   --badge-amber-bg: rgba(217, 119, 6, 0.12);
   --badge-danger-bg: rgba(220, 38, 38, 0.12);
-  --badge-amber-text: #D97706;
+  --badge-amber-text: #DB9E00;
 
   /* Buttons */
   --btn-primary-bg: #DB9E00;
   --btn-primary-bg-hover: #DB9E00;
-  --btn-primary-text: #20221D;
+  --btn-primary-text: #171A20;
   --btn-primary-shadow-hover: none;
 
   /* Accent interaction states */

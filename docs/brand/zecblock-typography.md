@@ -28,9 +28,9 @@ Regular 400 carries information. Medium 500 establishes hierarchy and selection.
 
 ## Contrast and visibility
 
-Normal information text targets at least 4.5:1, including on hovered and selected standard surfaces. The automated check evaluates 90 combinations: nine foreground roles × five surface roles × two themes, plus dark text on a gold primary action. It does not round a failing value up to the threshold.
+Normal information text targets at least 4.5:1, including on hovered and selected standard surfaces. The automated check evaluates 85 combinations: nine dark foreground roles and eight light foreground roles × five surface roles, plus dark text on a gold primary action. It does not round a failing value up to the threshold.
 
-Dark roles remain clear neutral type on carbon. Light muted text is #606758, privacy #6E5885 and warning/deshielding #885832; these adjustments correct failures on selected/hovered surfaces. RGB opacity utility channels match the semantic hex values. Chart axes and tooltips use the same family and corresponding theme palette. Ordinary grey text utilities now use theme-aware semantic tokens.
+Dark roles remain clear neutral type on carbon. Light muted text is #59616D, privacy #7040B5 and warning/deshielding #A34A16; these adjustments correct failures on selected/hovered surfaces. RGB opacity utility channels match the semantic hex values. Chart axes and tooltips use the same family and corresponding theme palette. Ordinary grey text utilities now use theme-aware semantic tokens.
 
 Do not add opacity to `text-primary`, `text-secondary` or `text-muted`. Decorative marks and genuinely disabled controls may retain opacity. Color is not the only indicator of transaction state: words, icons, signed deltas and position remain.
 
@@ -44,3 +44,5 @@ Mobile text-entry fields use 16px to avoid automatic iOS focus zoom. Page titles
 - Browser inspection covers representative dense pages, including pools and mining in dark/light mode, computed 32px/500 page headings, 12px chart ticks and desktop overflow. The final mobile reflow browser check timed out; mobile zoom behavior is not fully verified. This is not a claim that every route, chart overlay or custom 3D surface has received a full WCAG audit. Recheck long labels, zoom and real data at each breakpoint when adding new components.
 
 References: [WCAG 2.2 contrast minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [text resizing](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md).
+
+Owner-selected exception (2026-09-05): light brand text now uses exact #DB9E00, matching logo and fills. This does not meet the 4.5:1 normal-text target on white and is explicitly excluded from the light text contrast matrix. This is a deliberate brand preference, not an accessibility pass. Body text, semantic states, axes and neutral values remain contrast-tested.
