@@ -50,7 +50,7 @@ const Icons = {
 function GlossaryItem({ term, definition }: { term: string; definition: string }) {
   return (
     <div className="py-3 border-b border-cipher-border last:border-0">
-      <span className="font-mono text-sm font-bold text-cipher-cyan">{term}</span>
+      <span className="font-mono text-sm font-bold text-cipher-gold">{term}</span>
       <p className="text-sm text-secondary leading-relaxed mt-1">{definition}</p>
     </div>
   );
@@ -83,7 +83,7 @@ export function CrosslinkLearn() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/validators"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-gold hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
                 >
                   <Icons.Shield className="w-3.5 h-3.5" />
                   <span>View Finalizers</span>
@@ -92,7 +92,7 @@ export function CrosslinkLearn() {
                   href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-gold text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.ExternalLink className="w-3.5 h-3.5" />
                   <span>Download Desktop App</span>
@@ -110,8 +110,8 @@ export function CrosslinkLearn() {
               </div>
               <div className="p-5 sm:p-6 font-mono text-sm space-y-4">
                 <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-cipher-cyan" />
-                  <span className="text-cipher-cyan">PoW Chain</span>
+                  <span className="w-3 h-3 rounded-full bg-cipher-gold" />
+                  <span className="text-cipher-gold">PoW Chain</span>
                   <span className="text-muted">miners produce blocks</span>
                 </div>
                 <div className="ml-1.5 border-l-2 border-cipher-border-alpha/30 h-4" />
@@ -140,10 +140,10 @@ export function CrosslinkLearn() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">{'>'} ROLES</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+          <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
+                <Icons.Zap className="w-5 h-5 text-cipher-gold" />
               </div>
               <h3 className="font-bold text-primary mb-2">Miner</h3>
               <p className="text-sm text-secondary leading-relaxed">
@@ -170,10 +170,10 @@ export function CrosslinkLearn() {
             </CardBody>
           </Card>
 
-          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+          <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <Icons.Users className="w-5 h-5 text-cipher-cyan" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
+                <Icons.Users className="w-5 h-5 text-cipher-gold" />
               </div>
               <h3 className="font-bold text-primary mb-2">Staker (Protocol Guardian)</h3>
               <p className="text-sm text-secondary leading-relaxed">
@@ -190,7 +190,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Layers className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Layers className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} STAKING_DAY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -255,7 +255,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Zap className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} SEASON_1_REWARDS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -266,13 +266,13 @@ export function CrosslinkLearn() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-cipher-cyan">5 cTAZ</span>
+                <span className="text-2xl font-mono font-bold text-cipher-gold">5 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to miner</p>
               </CardBody>
             </Card>
             <Card variant="compact" className="text-center">
               <CardBody>
-                <span className="text-2xl font-mono font-bold text-cipher-cyan">5 cTAZ</span>
+                <span className="text-2xl font-mono font-bold text-cipher-gold">5 cTAZ</span>
                 <p className="text-xs text-muted mt-1">per block to stakers (weighted)</p>
               </CardBody>
             </Card>
@@ -299,7 +299,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Book className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Book className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GLOSSARY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -334,7 +334,7 @@ export function CrosslinkLearn() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Zap className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} GET_STARTED</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -348,7 +348,7 @@ export function CrosslinkLearn() {
               rel="noopener noreferrer"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+              <span className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 text-cipher-gold">
                 <Icons.ExternalLink className="w-5 h-5" />
               </span>
               <div>
@@ -361,7 +361,7 @@ export function CrosslinkLearn() {
               href="/validators"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+              <span className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 text-cipher-gold">
                 <Icons.Shield className="w-5 h-5" />
               </span>
               <div>
@@ -374,7 +374,7 @@ export function CrosslinkLearn() {
               href="/"
               className="card card-compact card-interactive flex items-center gap-3 !p-4"
             >
-              <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+              <span className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 text-cipher-gold">
                 <Icons.Layers className="w-5 h-5" />
               </span>
               <div>

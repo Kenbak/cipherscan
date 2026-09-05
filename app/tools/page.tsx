@@ -92,15 +92,15 @@ export default function ToolsPage() {
             <Link key={tool.href} href={tool.href} className="block">
               <Card interactive>
                 <CardBody className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-cipher-cyan">
+                  <div className="w-10 h-10 rounded-lg bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-cipher-gold">
                       <IconComponent />
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
                       <h2 className="text-base font-semibold text-primary">{tool.title}</h2>
-                      <Badge color="cyan">{tool.badge}</Badge>
+                      <Badge color="gold">{tool.badge}</Badge>
                     </div>
                     <p className="text-sm text-secondary leading-relaxed">{tool.desc}</p>
                   </div>
@@ -128,19 +128,19 @@ export default function ToolsPage() {
                 <span className="text-muted hidden sm:inline">— Broadcast signed transaction</span>
               </div>
               <div className="flex items-center gap-3">
-                <Badge color="cyan">GET</Badge>
+                <Badge color="gold">GET</Badge>
                 <code className="text-primary">/api/tx/:txid</code>
                 <span className="text-muted hidden sm:inline">— Get transaction details</span>
               </div>
               <div className="flex items-center gap-3">
-                <Badge color="cyan">GET</Badge>
+                <Badge color="gold">GET</Badge>
                 <code className="text-primary">/api/search/anchor/:root</code>
                 <span className="text-muted hidden sm:inline">— Search anchor root (canonical + orphaned)</span>
               </div>
             </div>
             <p className="text-xs text-muted mt-4">
               Full documentation at{' '}
-              <Link href="/docs" className="text-cipher-cyan hover:underline font-mono">/docs</Link>
+              <Link href="/docs" className="text-cipher-gold hover:underline font-mono">/docs</Link>
             </p>
           </CardBody>
         </Card>

@@ -111,10 +111,10 @@ export function MigrationActivity({
 
   const shareText =
     view === 'cohorts' && activeCohorts > 0
-      ? `${totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated across ${activeCohorts} Orchard→Ironwood cohorts. Avg anonymity set: ${avgCohort.toFixed(1)} txs.\n\nhttps://cipherscan.app/ironwood`
+      ? `${totalVolumeZec.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated across ${activeCohorts} Orchard→Ironwood cohorts. Avg anonymity set: ${avgCohort.toFixed(1)} txs.\n\nhttps://zecblock.com/ironwood`
       : view !== 'cohorts' && timeTotalTxs > 0
-        ? `${timeTotalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated Orchard→Ironwood. Peak ${periodLabel}: ${(timePeak?.volume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC.\n\nhttps://cipherscan.app/ironwood`
-        : `Zcash Orchard → Ironwood migration activity on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+        ? `${timeTotalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC migrated Orchard→Ironwood. Peak ${periodLabel}: ${(timePeak?.volume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ZEC.\n\nhttps://zecblock.com/ironwood`
+        : `Zcash Orchard → Ironwood migration activity on ZecBlock.\n\nhttps://zecblock.com/ironwood`;
 
   const subtitle = view === 'cohorts'
     ? (

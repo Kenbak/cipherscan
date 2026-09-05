@@ -267,7 +267,7 @@ export function ChainFlowTable({
         <div className="mt-3 pt-3 border-t border-cipher-border">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-[11px] font-mono text-cipher-cyan hover:underline"
+            className="text-[11px] font-mono text-cipher-gold hover:underline"
           >
             {showAll ? '← Show top 8 only' : `Show ${tailRows.length} more chain${tailRows.length !== 1 ? 's' : ''} →`}
           </button>

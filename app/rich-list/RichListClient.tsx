@@ -46,12 +46,12 @@ export interface PaginationData {
   hasPrev: boolean;
 }
 
-type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'muted';
+type BadgeColor = 'gold' | 'purple' | 'green' | 'orange' | 'muted';
 
 function categoryColor(cat: string | null): BadgeColor {
   if (!cat) return 'muted';
   const c = cat.toLowerCase();
-  if (c === 'exchange') return 'cyan';
+  if (c === 'exchange') return 'gold';
   if (c === 'mining' || c === 'mining_pool') return 'orange';
   if (c === 'defi' || c === 'bridge') return 'green';
   if (c === 'custodian' || c === 'fund') return 'purple';
@@ -284,7 +284,7 @@ export default function RichListClient({
               </div>
               <div className="text-xs text-muted mt-0.5">
                 {labeledCount > 0 && (
-                  <Badge color="cyan">{labeledCount} labeled</Badge>
+                  <Badge color="gold">{labeledCount} labeled</Badge>
                 )}
               </div>
             </CardBody>

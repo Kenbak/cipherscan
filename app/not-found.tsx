@@ -42,12 +42,12 @@ export default function NotFound() {
       <div className="text-center animate-fade-in">
         {/* Glitchy 404 */}
         <div className="relative mb-6">
-          <h1 className="text-[100px] sm:text-[150px] font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-cipher-cyan via-cipher-purple to-cipher-green leading-none select-none">
+          <h1 className="text-[100px] sm:text-[150px] font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-cipher-gold via-cipher-purple to-cipher-green leading-none select-none">
             {glitchText}
           </h1>
           {/* Scan line effect */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-cyan to-transparent animate-scan"></div>
+            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-cipher-gold to-transparent animate-scan"></div>
           </div>
         </div>
 
@@ -65,13 +65,13 @@ export default function NotFound() {
         {/* Quick Links */}
         <div className="card max-w-2xl mx-auto !p-6">
           <p className="text-sm text-muted font-mono mb-6">
-            <span className="text-cipher-cyan">TIP:</span> Search for a block height, transaction hash, or address above.
+            <span className="text-cipher-gold">TIP:</span> Search for a block height, transaction hash, or address above.
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
               href="/"
-              className="card-bg hover:border-cipher-cyan border border-transparent rounded-lg p-3 transition group"
+              className="card-bg hover:border-cipher-gold border border-transparent rounded-lg p-3 transition group"
             >
               <div className="text-2xl mb-2">🏠</div>
               <div className="text-xs font-mono text-secondary group-hover:text-primary transition-colors">Home</div>

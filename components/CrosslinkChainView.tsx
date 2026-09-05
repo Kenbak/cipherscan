@@ -175,7 +175,7 @@ export function CrosslinkChainView({
   if (loading && blocks.length === 0) {
     return (
       <div className="card p-8 flex items-center justify-center min-h-[240px]">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
       </div>
     );
   }
@@ -229,7 +229,7 @@ export function CrosslinkChainView({
             {stats &&
               `Finalized through #${stats.finalizedHeight.toLocaleString()} · gap ${stats.finalityGap}`}
           </span>
-          <Link href="/chain" className="text-cipher-cyan hover:underline">
+          <Link href="/chain" className="text-cipher-gold hover:underline">
             Open Chain View →
           </Link>
         </div>
@@ -268,9 +268,9 @@ function ChainRow({
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
-    accentClass = 'bg-cipher-cyan';
-    borderClass = 'border-cipher-cyan/50';
+    badgeClass = 'text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-cipher-gold';
+    borderClass = 'border-cipher-gold/50';
   } else if (isVotingOn) {
     badgeLabel = 'VOTING';
     badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
@@ -278,20 +278,20 @@ function ChainRow({
     borderClass = 'border-cipher-orange/50';
   } else if (isFinalized) {
     badgeLabel = 'FINAL';
-    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
-    accentClass = 'bg-cipher-cyan-muted';
+    badgeClass = 'text-cipher-gold-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-gold-muted';
     borderClass = 'border-cipher-border';
   } else {
     badgeLabel = 'PENDING';
     badgeClass = 'text-neutral-500 dark:text-neutral-400 border-cipher-border';
-    accentClass = 'bg-cipher-cyan/50';
+    accentClass = 'bg-cipher-gold/50';
     borderClass = 'border-cipher-border';
   }
 
   return (
     <Link
       href={`/block/${block.height}`}
-      className={`group flex items-stretch rounded-md border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 transition-colors`}
+      className={`group flex items-stretch rounded-md border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-gold/60 transition-colors`}
     >
       <span className={`block w-1 shrink-0 ${accentClass}`} />
 
@@ -377,8 +377,8 @@ function BftChip({
   if (state === 'final') {
     return (
       <div className="flex items-center gap-1.5 text-[10px] font-mono">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-cyan-muted" />
-        <span className="text-cipher-cyan-muted uppercase tracking-wider">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cipher-gold-muted" />
+        <span className="text-cipher-gold-muted uppercase tracking-wider">
           bft ✓
         </span>
       </div>
@@ -586,12 +586,12 @@ function DivergencePanel({
           <span className="relative flex h-2.5 w-2.5 mt-1.5 shrink-0">
             <span
               className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                openEvent ? 'bg-cipher-orange' : 'bg-cipher-gold'
               }`}
             />
             <span
               className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                openEvent ? 'bg-cipher-orange' : 'bg-cipher-cyan'
+                openEvent ? 'bg-cipher-orange' : 'bg-cipher-gold'
               }`}
             />
           </span>
@@ -609,7 +609,7 @@ function DivergencePanel({
                   . Started {fmtAgo(openEvent.start_time)} at finalized block{' '}
                   <Link
                     href={`/block/${openEvent.start_finalized_height}`}
-                    className="text-cipher-cyan hover:underline"
+                    className="text-cipher-gold hover:underline"
                   >
                     #{openEvent.start_finalized_height.toLocaleString()}
                   </Link>
@@ -620,7 +620,7 @@ function DivergencePanel({
                   We&apos;ve diverged at finalized block{' '}
                   <Link
                     href={`/block/${recurringHeight[0]}`}
-                    className="text-cipher-cyan hover:underline"
+                    className="text-cipher-gold hover:underline"
                   >
                     #{recurringHeight[0].toLocaleString()}
                   </Link>{' '}
@@ -663,7 +663,7 @@ function DivergencePanel({
                   <td className="py-2 pr-4">
                     <Link
                       href={`/block/${e.start_finalized_height}`}
-                      className="text-cipher-cyan hover:underline"
+                      className="text-cipher-gold hover:underline"
                     >
                       #{e.start_finalized_height.toLocaleString()}
                     </Link>

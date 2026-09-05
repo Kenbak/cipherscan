@@ -287,7 +287,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
         <div className="mb-8 animate-fade-in-up stagger-3">
           <Suspense fallback={
             <div className="card p-8 flex items-center justify-center min-h-[300px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
             </div>
           }>
             {isCrosslink ? (
@@ -351,7 +351,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                     <div className="h-full bg-cipher-yellow" style={{ width: `${(stats.supply!.ironwood / stats.supply!.chainSupply) * 100}%` }} title="Ironwood" />
                   )}
                   <div className="h-full bg-cipher-purple" style={{ width: `${(stats.supply!.orchard / stats.supply!.chainSupply) * 100}%` }} title="Orchard" />
-                  <div className="h-full bg-cipher-cyan" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
+                  <div className="h-full bg-cipher-teal" style={{ width: `${(stats.supply!.sapling / stats.supply!.chainSupply) * 100}%` }} title="Sapling" />
                   <div className="h-full bg-cipher-border" style={{ width: `${(stats.supply!.sprout / stats.supply!.chainSupply) * 100}%` }} title="Sprout (legacy, deprecated)" />
                   <div className="h-full bg-gray-600" style={{ width: `${(stats.supply!.transparent / stats.supply!.chainSupply) * 100}%` }} title="Transparent" />
                 </div>
@@ -361,7 +361,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                     <PoolCard name="Ironwood" amount={stats.supply!.ironwood} color="amber" zecPrice={zecPrice} />
                   )}
                   <PoolCard name="Orchard" amount={stats.supply!.orchard} color="purple" zecPrice={zecPrice} />
-                  <PoolCard name="Sapling" amount={stats.supply!.sapling} color="cyan" zecPrice={zecPrice} />
+                  <PoolCard name="Sapling" amount={stats.supply!.sapling} color="gold" zecPrice={zecPrice} />
                   <PoolCard name="Sprout" amount={stats.supply!.sprout} color="muted" zecPrice={zecPrice} isSmall />
                 </div>
 
@@ -503,7 +503,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
                     </div>
                     <Link
                       href="/mining"
-                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-cyan hover:text-primary transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-mono text-cipher-gold hover:text-primary transition-colors"
                     >
                       <span>Pool distribution & miner behavior</span>
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,7 +524,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
 
 function breakdownColor(category: string): string {
   const c = category.toLowerCase();
-  if (c === 'exchange') return 'bg-cipher-cyan';
+  if (c === 'exchange') return 'bg-cipher-gold';
   if (c === 'mining' || c === 'mining_pool') return 'bg-cipher-yellow';
   if (c === 'defi' || c === 'bridge') return 'bg-cipher-green';
   if (c === 'custodian' || c === 'fund') return 'bg-cipher-purple';
@@ -733,14 +733,14 @@ function PoolCard({ name, amount, color, zecPrice, isSmall }: {
 }) {
   const colorMap: Record<string, string> = {
     green: 'text-cipher-green',
-    cyan: 'text-cipher-cyan',
+    gold: 'text-cipher-gold',
     amber: 'text-cipher-yellow',
     purple: 'text-cipher-purple',
     muted: 'text-muted',
   };
   const dotColor: Record<string, string> = {
     green: 'bg-cipher-green',
-    cyan: 'bg-cipher-cyan',
+    gold: 'bg-cipher-gold',
     amber: 'bg-cipher-yellow',
     purple: 'bg-cipher-purple',
     muted: 'bg-cipher-border',

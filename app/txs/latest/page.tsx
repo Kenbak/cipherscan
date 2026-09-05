@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
     && request.pageParamConsistent;
 
   return buildPageMetadata({
-    title: 'Latest Zcash Transactions | CipherScan',
+    title: 'Latest Zcash Transactions | ZecBlock',
     description: 'Browse the latest Zcash transactions including shielded, transparent, and coinbase transactions. Real-time transaction explorer.',
     path: isStableArchive ? getArchiveCanonicalPath(request) : '/txs',
     index: isStableArchive && request.page === 1,

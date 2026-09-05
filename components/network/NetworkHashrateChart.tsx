@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getChartColors } from '@/lib/chart-theme';
@@ -34,7 +34,7 @@ function HashratePeriodSelector({ value, onChange }: { value: Period; onChange: 
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -61,18 +61,17 @@ export function NetworkHashrateChart() {
   );
   const points = data?.points ?? [];
   const latest = points[points.length - 1];
-  const gradientId = 'network-hashrate-gradient';
 
   return (
     <ChartCard
       title="NETWORK_HASHRATE_TREND"
-      height={320}
+      height={280}
       watermarkSize="lg"
       controls={<HashratePeriodSelector value={period} onChange={setPeriod} />}
     >
       {latest && (
         <p className="text-xs font-mono text-muted mb-3">
-          Latest: <span className="text-cipher-cyan font-bold">{formatHashrate(latest.hashrate)}</span>
+          Latest: <span className="text-cipher-gold font-bold">{formatHashrate(latest.hashrate)}</span>
           <span className="text-muted/60"> ({latest.date}, {latest.blockCount} blocks)</span>
         </p>
       )}
@@ -82,8 +81,8 @@ export function NetworkHashrateChart() {
         </div>
       ) : (
         <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height={260}>
-          <AreaChart data={points}>
-            <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
+          <LineChart data={points}>
+            <CartesianGrid vertical={false} strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
             <XAxis
               dataKey="date"
               stroke={colors.axis}
@@ -110,21 +109,14 @@ export function NetworkHashrateChart() {
               labelFormatter={(d) => String(d)}
               formatter={(value) => [formatHashrate(Number(value)), 'Network hashrate']}
             />
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={colors.cyan} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={colors.cyan} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area
-              type="monotone"
+            <Line
+              type="linear"
               dataKey="hashrate"
-              stroke={colors.cyan}
+              stroke={colors.gold}
               strokeWidth={2}
-              fill={`url(#${gradientId})`}
               dot={false}
             />
-          </AreaChart>
+          </LineChart>
         </ResponsiveContainer>
       )}
     </ChartCard>

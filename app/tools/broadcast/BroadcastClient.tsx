@@ -224,7 +224,7 @@ export default function BroadcastClient() {
                       </span>
                     </div>
                     <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border w-fit flex items-center gap-2">
-                      <code className="text-xs text-cipher-cyan break-all block">{result.txid}</code>
+                      <code className="text-xs text-cipher-gold break-all block">{result.txid}</code>
                       <button
                         onClick={() => copyTxid(result.txid!)}
                         className={`p-1 rounded transition-colors flex-shrink-0 ${txidCopied ? 'text-cipher-green' : 'text-muted hover:text-primary'}`}
@@ -321,12 +321,12 @@ export default function BroadcastClient() {
               {/* Suggestion */}
               <div className="tx-summary-box border border-cipher-border rounded-lg p-3 md:p-4">
                 <div className="flex items-start gap-2 md:gap-3">
-                  <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-secondary text-xs md:text-sm leading-relaxed">
                     Try using the{' '}
-                    <Link href="/tools/decode" className="text-cipher-cyan hover:underline">Decode tool</Link>
+                    <Link href="/tools/decode" className="text-cipher-gold hover:underline">Decode tool</Link>
                     {' '}to inspect the transaction before broadcasting. This can help identify issues with the transaction format.
                   </p>
                 </div>
@@ -340,24 +340,24 @@ export default function BroadcastClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-primary mb-2">How to create a signed transaction</h3>
               <p className="text-sm text-secondary leading-relaxed mb-3">
-                Use a Zcash library (<code className="text-xs font-mono text-cipher-cyan">zcash_primitives</code>,{' '}
-                <code className="text-xs font-mono text-cipher-cyan">librustzcash</code>) or{' '}
-                <code className="text-xs font-mono text-cipher-cyan">zcash-cli</code> to construct and sign
+                Use a Zcash library (<code className="text-xs font-mono text-cipher-gold">zcash_primitives</code>,{' '}
+                <code className="text-xs font-mono text-cipher-gold">librustzcash</code>) or{' '}
+                <code className="text-xs font-mono text-cipher-gold">zcash-cli</code> to construct and sign
                 a transaction offline. The resulting hex can be pasted here.
               </p>
               <div className="flex flex-wrap gap-3 text-xs">
-                <Link href="/tools/decode" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/tools/decode" className="text-cipher-gold hover:underline font-mono">
                   &gt; Decode a transaction
                 </Link>
-                <Link href="/docs" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/docs" className="text-cipher-gold hover:underline font-mono">
                   &gt; API documentation
                 </Link>
               </div>

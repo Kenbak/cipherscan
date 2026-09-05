@@ -22,11 +22,11 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
       {/* Method & Path */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <span className={`inline-block px-3 py-1 rounded font-mono text-sm font-bold ${
-          endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-cipher-cyan text-cipher-bg'
+          endpoint.method === 'GET' ? 'bg-cipher-green text-cipher-bg' : 'bg-cipher-gold text-cipher-bg'
         }`}>
           {endpoint.method}
         </span>
-        <code className="text-base sm:text-lg text-cipher-cyan font-mono break-all">
+        <code className="text-base sm:text-lg text-cipher-gold font-mono break-all">
           {endpoint.path}
         </code>
       </div>
@@ -49,7 +49,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
             {endpoint.params.map((param, i) => (
               <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <code className="text-cipher-cyan font-mono">{param.name}</code>
+                  <code className="text-cipher-gold font-mono">{param.name}</code>
                   <span className="text-muted">({param.type})</span>
                   {param.required && (
                     <span className="text-[10px] font-bold text-danger uppercase tracking-wider">required</span>
@@ -68,7 +68,7 @@ export default function ApiEndpointComponent({ endpoint }: ApiEndpointProps) {
           <h4 className="text-sm font-bold text-muted uppercase">Example Request</h4>
           <button
             onClick={() => copyToClipboard(endpoint.example, endpoint.id)}
-            className="text-xs text-cipher-cyan hover:text-cipher-green transition-colors flex items-center gap-1"
+            className="text-xs text-cipher-gold hover:text-cipher-green transition-colors flex items-center gap-1"
             aria-label={`Copy example for ${endpoint.path}`}
           >
             {copiedEndpoint === endpoint.id ? (

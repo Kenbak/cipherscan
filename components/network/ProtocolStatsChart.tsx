@@ -80,7 +80,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           key={v}
           onClick={() => setView(v)}
           className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
-            view === v ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+            view === v ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {v === 'commitments' ? 'Trees' : 'Nullifiers'}
@@ -92,7 +92,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
           key={p}
           onClick={() => setPeriod(p)}
           className={`px-2 py-0.5 text-[10px] font-mono rounded transition-colors ${
-            period === p ? 'bg-cipher-cyan/20 text-cipher-cyan' : 'text-muted hover:text-secondary'
+            period === p ? 'bg-cipher-gold/20 text-cipher-gold' : 'text-muted hover:text-secondary'
           }`}
         >
           {p === 'all' ? 'All' : p.toUpperCase()}
@@ -134,7 +134,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 </div>
                 <div className="text-[10px] font-mono">
                   <span className="text-muted">Orchard tree: </span>
-                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardCommitments)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.orchardCommitments)}</span>
                 </div>
                 {(current.ironwoodCommitments || 0) > 0 && (
                   <div className="text-[10px] font-mono">
@@ -151,7 +151,7 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 </div>
                 <div className="text-[10px] font-mono">
                   <span className="text-muted">Orchard nullifiers: </span>
-                  <span className="text-emerald-400 font-semibold">{formatMillions(current.orchardNullifiers)}</span>
+                  <span className="text-cipher-green font-semibold">{formatMillions(current.orchardNullifiers)}</span>
                 </div>
                 {(current.ironwoodNullifiers || 0) > 0 && (
                   <div className="text-[10px] font-mono">
@@ -209,8 +209,8 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 type="monotone"
                 dataKey="orchardCommitments"
                 name="Orchard notes"
-                stroke="#34d399"
-                fill="#34d399"
+                stroke="#65C79A"
+                fill="#65C79A"
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}
@@ -242,8 +242,8 @@ export function ProtocolStatsChart({ initialData }: { initialData?: ProtocolStat
                 type="monotone"
                 dataKey="orchardNullifiers"
                 name="Orchard nullifiers"
-                stroke="#34d399"
-                fill="#34d399"
+                stroke="#65C79A"
+                fill="#65C79A"
                 fillOpacity={0.15}
                 strokeWidth={1.5}
                 dot={false}

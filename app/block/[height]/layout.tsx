@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         throw new Error('Chain tip payload is malformed');
       }
       if (Number(height) > tipHeight) {
-        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | CipherScan`;
+        const title = `Zcash Block #${formatNumber(Number(height))} — Estimated Arrival | ZecBlock`;
         const description = `Zcash block #${formatNumber(Number(height))} has not been mined yet. Estimated to arrive in approximately ${formatNumber(Number(height) - tipHeight)} blocks (~${Math.round((Number(height) - tipHeight) * 75 / 3600)} hours).`;
         return buildPageMetadata({
           title,
@@ -54,8 +54,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       }
     }
 
-    const title = `Zcash Block ${truncateHash(height)} Not Found | CipherScan`;
-    const description = `CipherScan could not find Zcash block ${truncateHash(height)}.`;
+    const title = `Zcash Block ${truncateHash(height)} Not Found | ZecBlock`;
+    const description = `ZecBlock could not find Zcash block ${truncateHash(height)}.`;
 
     return buildPageMetadata({
       title,
@@ -68,10 +68,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   if (resolution.state === 'unavailable') {
-    const title = `Zcash Block ${truncateHash(height)} Status Unknown | CipherScan`;
+    const title = `Zcash Block ${truncateHash(height)} Status Unknown | ZecBlock`;
     const fallback = buildPageMetadata({
       title,
-      description: `CipherScan cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
+      description: `ZecBlock cannot currently verify Zcash block ${truncateHash(height)} because the block index is temporarily unavailable.`,
       path: `/block/${encodeURIComponent(height)}`,
       index: false,
       imageAlt: title,
@@ -107,8 +107,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const replacementHash = block.canonicalBlock?.hash?.toLowerCase();
 
   const title = isOrphaned
-    ? `Orphaned Zcash Block #${blockLabel} | CipherScan`
-    : `Zcash Block #${blockLabel} | CipherScan`;
+    ? `Orphaned Zcash Block #${blockLabel} | ZecBlock`
+    : `Zcash Block #${blockLabel} | ZecBlock`;
 
   let description: string;
   if (isOrphaned) {

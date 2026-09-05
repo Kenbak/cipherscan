@@ -9,7 +9,7 @@ import type { ChartColors, TierTx } from './types';
 
 export const TIER_BOUNDARIES_ZAT = [1e8, 10e8, 100e8, 1000e8, 5000e8, 10000e8];
 export const TIER_LABELS = ['Under 1', '1–10', '10–100', '100–1K', '1K–5K', '5K–10K', '10K+'];
-export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#a78bfa', '#f59e0b', '#ef4444', '#dc2626', '#991b1b'];
+export const TIER_COLORS = ['#94a3b8', '#60a5fa', '#B6A0E0', '#f59e0b', '#ef4444', '#dc2626', '#991b1b'];
 
 export function formatTierVolumePct(pct: number): string {
   if (pct < 0.1 && pct > 0) return `${pct.toFixed(2)}%`;
@@ -92,7 +92,7 @@ export function MigrationTiers({
         title="Who's migrating?"
         sourceHeight={tipHeight}
         isLive={activated}
-        shareText={`Ironwood migration by size: ${tierData.map(t => `${t.label} ZEC: ${t.count} txs (${t.volumePct.toFixed(0)}% vol)`).join(' · ')}\n\nhttps://cipherscan.app/ironwood`}
+        shareText={`Ironwood migration by size: ${tierData.map(t => `${t.label} ZEC: ${t.count} txs (${t.volumePct.toFixed(0)}% vol)`).join(' · ')}\n\nhttps://zecblock.com/ironwood`}
         fileName="cipherscan-migration-tiers.png"
       >
         <p className="text-xs text-muted mb-5">
@@ -198,7 +198,7 @@ export function MigrationTiers({
               onClick={() => { setMode('live'); setScrubIdx(maxIdx); }}
               className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
             >
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-current opacity-30'}`} />
               Live
             </button>
           </div>

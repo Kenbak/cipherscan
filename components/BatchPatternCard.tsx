@@ -201,7 +201,7 @@ export function BatchPatternCard({ pattern }: { pattern: BatchPattern }) {
           </div>
           <Link
             href={`/tx/${pattern.matchingShield.txid}`}
-            className="font-mono text-cipher-cyan hover:underline truncate text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/60 rounded-sm"
+            className="font-mono text-cipher-gold hover:underline truncate text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cipher-gold/60 rounded-sm"
           >
             {pattern.matchingShield.txid.slice(0, 16)}…
           </Link>

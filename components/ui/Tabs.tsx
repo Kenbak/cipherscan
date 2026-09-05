@@ -6,7 +6,7 @@ import { useRef } from 'react';
  * Tabs — the one way to switch between content views.
  *
  * Underline style: mono uppercase labels on a bottom border, active tab
- * gets a cyan underline. Use for content switching (Overview / Raw, etc.).
+ * gets a gold underline. Use for content switching (Overview / Raw, etc.).
  * For data *filters* and small toggles use `.filter-group` / FilterGroup
  * (the segmented pill pattern) instead.
  */
@@ -61,7 +61,7 @@ export function Tabs<T extends string>({
             }}
             className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
               active === tab.id
-                ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                ? 'text-primary border-b-2 border-cipher-gold -mb-[1px]'
                 : 'text-muted hover:text-secondary'
             }`}
           >

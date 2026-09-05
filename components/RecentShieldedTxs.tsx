@@ -51,7 +51,7 @@ function migrationAmount(tx: ShieldedTx): number | null {
 }
 
 /**
- * Amount CipherScan is allowed to show for a shielded-activity row.
+ * Amount ZecBlock is allowed to show for a shielded-activity row.
  *
  * For a `partial` (shield/deshield) tx, the transparent-side value balance is
  * public on-chain data — it has to be, or the transparent value pool couldn't

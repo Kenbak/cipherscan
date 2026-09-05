@@ -2,7 +2,7 @@ import DecodeClient from './DecodeClient';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Decode Raw Transaction - Parse Zcash TX Hex | CipherScan',
+  title: 'Decode Raw Transaction - Parse Zcash TX Hex | ZecBlock',
   description: 'Free tool to decode raw Zcash transaction hex into human-readable fields. View inputs, outputs, shielded data, and more without broadcasting.',
   keywords: [
     'decode zcash transaction',

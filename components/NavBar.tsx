@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import { BrandLogo } from '@/components/BrandLogo';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
 import { DonateButton } from '@/components/DonateButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
-import { NETWORK_LABEL, NETWORK_COLOR, isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
+import { NETWORK_LABEL, isMainnet, isCrosslink, MAINNET_URL, TESTNET_URL, CROSSLINK_URL } from '@/lib/config';
 
 interface MenuItem {
   href: string;
@@ -155,22 +155,8 @@ export function NavBar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-3">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
-              <Image
-                src="/logo.png"
-                alt="CipherScan Logo"
-                width={24}
-                height={24}
-                quality={100}
-                unoptimized
-                className="transition-transform duration-200 group-hover:scale-105 sm:w-8 sm:h-8 object-contain"
-              />
-              <div>
-                <span className="text-base sm:text-lg font-bold font-mono text-cipher-cyan-bright">
-                  CIPHERSCAN
-                </span>
-                <p className={`text-[10px] sm:text-[11px] font-mono ${NETWORK_COLOR} leading-tight`}>[ {NETWORK_LABEL} ]</p>
-              </div>
+            <Link href="/" className="shrink-0 py-2" aria-label="ZecBlock home">
+              <BrandLogo network={NETWORK_LABEL} />
             </Link>
 
             {/* Desktop: Horizontal category dropdowns */}
@@ -322,7 +308,7 @@ export function NavBar() {
           <div className="absolute inset-y-0 right-0 w-full max-w-sm flex flex-col mobile-drawer shadow-2xl animate-slide-in-right">
             {/* Header */}
             <div className="flex items-center justify-between h-16 px-4 border-b navbar-border flex-shrink-0">
-              <span className="text-sm font-bold font-mono text-cipher-cyan-bright">CIPHERSCAN</span>
+              <BrandLogo />
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 rounded-md text-muted hover:text-primary transition"

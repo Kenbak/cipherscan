@@ -344,7 +344,7 @@ export function PoolOverviewHero({ data }: { data: PoolOverviewData }) {
     [pinnedShielded],
   );
 
-  const shareText = `${shieldedPctOfMined.toFixed(1)}% of mined ZEC is shielded (${formatZecCompact(shieldedZec)}). See the live supply map on CipherScan.\n\nhttps://cipherscan.app/pools`;
+  const shareText = `${shieldedPctOfMined.toFixed(1)}% of mined ZEC is shielded (${formatZecCompact(shieldedZec)}). See the live supply map on ZecBlock.\n\nhttps://zecblock.com/pools`;
 
   return (
     <ShareableCard

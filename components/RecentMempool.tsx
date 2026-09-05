@@ -53,7 +53,7 @@ function classifyTxType(tx: any): 'shielded' | 'mixed' | 'transparent' {
 }
 
 /**
- * Amount CipherScan is allowed to show for a pending mempool row — same rule
+ * Amount ZecBlock is allowed to show for a pending mempool row — same rule
  * as the confirmed shielded-activity table (see RecentShieldedTxs.tsx):
  * transparent value is always public, a shield/deshield's transparent-side
  * value balance is public, a fully-shielded tx's amount is not.
@@ -91,7 +91,7 @@ export const RecentMempool = memo(function RecentMempool({ footer }: { footer?: 
         valueBalanceOrchard: msg.data.valueBalanceOrchard || 0,
         valueBalanceIronwood: msg.data.valueBalanceIronwood || 0,
       };
-      setTxs(prev => [tx, ...prev].slice(0, 5));
+      setTxs(prev => [tx, ...prev.filter(existing => existing.txid !== tx.txid)].slice(0, 5));
       setLoading(false);
     } else if (msg.type === 'mempool_removed' && msg.data?.txid) {
       setTxs(prev => prev.filter(t => t.txid !== msg.data.txid));

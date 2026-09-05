@@ -36,7 +36,7 @@ function MatchState({ match, compact }: { match: boolean | null; compact?: boole
   }
   if (match) {
     return (
-      <span className={`font-mono text-cipher-cyan ${compact ? 'text-[10px]' : 'text-xs'}`}>
+      <span className={`font-mono text-cipher-gold ${compact ? 'text-[10px]' : 'text-xs'}`}>
         Match
       </span>
     );
@@ -140,7 +140,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatTile
-          label="CipherScan tip"
+          label="ZecBlock tip"
           value={`h${data.cipherscan.tip.toLocaleString()}`}
           sub={truncHash(data.cipherscan.tip_hash, 10)}
         />
@@ -162,7 +162,7 @@ export function StatusHero({ data }: { data: ForkMonitorData }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        <ReferenceNodePanel title="CipherScan" node={data.cipherscan} />
+        <ReferenceNodePanel title="ZecBlock" node={data.cipherscan} />
         <ReferenceNodePanel title="cTAZ reference" node={data.ctaz} />
       </div>
     </>
@@ -205,7 +205,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
       return 'w-3 h-3 rounded-full border-2 border-cipher-orange bg-cipher-orange/20';
     }
     if (anchor.match === true) {
-      return 'w-3 h-3 rounded-full bg-cipher-cyan/80 ring-2 ring-cipher-cyan/25';
+      return 'w-3 h-3 rounded-full bg-cipher-gold/80 ring-2 ring-cipher-gold/25';
     }
     return 'w-3 h-3 rounded-full bg-muted/40 ring-2 ring-cipher-border';
   };
@@ -265,7 +265,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
                   onFocus={() => setHoveredAnchor(anchor.height)}
                   onBlur={() => setHoveredAnchor((h) => (h === anchor.height ? null : h))}
                   onClick={() => copyAnchor(anchor)}
-                  className={`block transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cipher-cyan/40 rounded-full ${dotClass(anchor)}`}
+                  className={`block transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cipher-gold/40 rounded-full ${dotClass(anchor)}`}
                   aria-label={`Anchor height ${anchor.height}, ${anchor.label}`}
                 />
                 <div
@@ -309,7 +309,7 @@ export function ForkTimeline({ data }: { data: ForkMonitorData }) {
         </div>
 
         <p className="text-[10px] font-mono text-muted">
-          <span className="text-cipher-cyan">●</span> match
+          <span className="text-cipher-gold">●</span> match
           <span className="mx-2 text-cipher-border">·</span>
           <span className="text-cipher-orange">○</span> mismatch
           <span className="mx-2 text-cipher-border">·</span>
@@ -341,7 +341,7 @@ export function GuidancePanel({ data }: { data: ForkMonitorData }) {
     actions.push('Known anchors match. If your node differs, restart and reconnect before wiping cache.');
   }
   if (data.cipherscan.peers < 5) {
-    actions.push('CipherScan peer count is low. Peers measure connectivity, not fork correctness.');
+    actions.push('ZecBlock peer count is low. Peers measure connectivity, not fork correctness.');
   }
   actions.push('If your node is mining every block, pause mining until peers and anchor hashes align.');
 
@@ -369,7 +369,7 @@ const anchorColumns: DataTableColumn<Anchor>[] = [
   {
     id: 'height',
     header: 'Height',
-    cell: (a) => <span className="font-mono text-xs text-cipher-cyan">h{a.height.toLocaleString()}</span>,
+    cell: (a) => <span className="font-mono text-xs text-cipher-gold">h{a.height.toLocaleString()}</span>,
   },
   {
     id: 'label',
@@ -379,7 +379,7 @@ const anchorColumns: DataTableColumn<Anchor>[] = [
   },
   {
     id: 'cipherscan',
-    header: 'CipherScan',
+    header: 'ZecBlock',
     cell: (a) => (
       <span className="inline-flex items-center gap-1.5 font-mono text-xs text-secondary">
         <code>{truncHash(a.cipherscan_hash, 10)}</code>
@@ -458,7 +458,7 @@ export function CheckerPanel({
             value={checkHeight}
             onChange={(e) => setCheckHeight(e.target.value)}
             placeholder="e.g. 40762, 41800"
-            className="flex-1 px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40"
+            className="flex-1 px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-gold/40"
             onKeyDown={(e) => e.key === 'Enter' && onCheck()}
           />
           <button
@@ -503,7 +503,7 @@ export function CheckerPanel({
           value={bulkInput}
           onChange={(e) => setBulkInput(e.target.value)}
           placeholder={'39573 00228574fad9f6b8d88e8ad1edcee00565eb86cffa…\n39574 006e0a84682c81d539965fd0f3698e0d61bbd3bfc9…'}
-          className="w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-cyan/40 resize-y"
+          className="w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/30 focus:outline-none focus:border-cipher-gold/40 resize-y"
           rows={3}
           spellCheck={false}
         />
@@ -543,8 +543,8 @@ export function CheckerPanel({
 // Node registry
 // ---------------------------------------------------------------------------
 
-function branchBadgeColor(branch: string): 'cyan' | 'green' | 'orange' | 'muted' {
-  if (branch === 'reference') return 'cyan';
+function branchBadgeColor(branch: string): 'gold' | 'green' | 'orange' | 'muted' {
+  if (branch === 'reference') return 'gold';
   if (branch === 'other') return 'orange';
   return 'muted';
 }
@@ -593,7 +593,7 @@ export function NodeRegistryPanel({
   parseSamples,
 }: NodeRegistryProps) {
   const inputClass =
-    'w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-cyan/40';
+    'w-full px-3 py-2 text-xs font-mono bg-cipher-bg border border-cipher-border rounded-lg text-primary placeholder:text-muted/50 focus:outline-none focus:border-cipher-gold/40';
 
   return (
     <div>

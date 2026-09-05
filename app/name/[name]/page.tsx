@@ -23,15 +23,15 @@ const ZATS_PER_ZEC = 100_000_000;
 const formatZec = (zats: number): string =>
   `${(zats / ZATS_PER_ZEC).toLocaleString(undefined, { maximumFractionDigits: 8 })} ZEC`;
 
-const ACTION_COLOR: Record<EventAction, 'green' | 'cyan' | 'purple' | 'orange' | 'muted'> = {
+const ACTION_COLOR: Record<EventAction, 'green' | 'gold' | 'purple' | 'orange' | 'muted'> = {
   CLAIM: 'green',
   LIST: 'orange',
   SETPRICE: 'orange',
-  BUY: 'cyan',
+  BUY: 'gold',
   UPDATE: 'purple',
   DELIST: 'orange',
   RELEASE: 'muted',
-  TRANSFER: 'cyan',
+  TRANSFER: 'gold',
 };
 
 export default function NamePage() {
@@ -194,7 +194,7 @@ function RegisteredView({
               href={ZCASHNAMES_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+              className="inline-block mt-3 px-4 py-2 rounded bg-cipher-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-cipher-gold/30 transition-colors"
             >
               Buy on zcashnames.com →
             </a>
@@ -282,7 +282,7 @@ function AvailableView({
             href={ZCASHNAMES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-3 px-4 py-2 rounded bg-cipher-cyan/20 border border-cipher-cyan/40 text-cipher-cyan hover:bg-cipher-cyan/30 transition-colors"
+            className="inline-block mt-3 px-4 py-2 rounded bg-cipher-gold/20 border border-cipher-gold/40 text-cipher-gold hover:bg-cipher-gold/30 transition-colors"
           >
             Claim on zcashnames.com →
           </a>
@@ -310,7 +310,7 @@ function AvailableView({
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-white/5 ${i + 1 === name.length || (isLast && name.length > i + 1) ? 'text-cipher-cyan' : ''}`}
+                        className={`border-b border-white/5 ${i + 1 === name.length || (isLast && name.length > i + 1) ? 'text-cipher-gold' : ''}`}
                       >
                         <td className="py-2 pr-4 font-mono">{label} chars</td>
                         <td className="py-2 font-mono">{formatZec(zats)}</td>

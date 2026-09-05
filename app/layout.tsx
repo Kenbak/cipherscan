@@ -30,23 +30,23 @@ const baseUrl = getBaseUrl();
 
 const siteCopy = network === 'mainnet'
   ? {
-      title: 'CipherScan: Zcash Block Explorer & Privacy Analytics',
-      description: 'CipherScan is a Zcash block explorer for searching blocks, transactions, and addresses, with live shielded pool, privacy, and network analytics.',
-      keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'CipherScan', 'zcash rich list', 'zcash network'],
-      imageAlt: 'CipherScan - Zcash Block Explorer',
+      title: 'Zcash Block Explorer & Privacy Analytics | ZecBlock',
+      description: 'ZecBlock is a Zcash block explorer for searching blocks, transactions, and addresses, with live shielded pool, privacy, and network analytics.',
+      keywords: ['zcash block explorer', 'zcash explorer', 'ZEC explorer', 'zcash blockchain explorer', 'zcash transactions', 'zcash shielded pool', 'privacy', 'ZEC', 'ZecBlock', 'zcash rich list', 'zcash network'],
+      imageAlt: 'ZecBlock - Zcash Block Explorer',
     }
   : network === 'testnet'
     ? {
-        title: 'CipherScan Testnet - Zcash Testnet Explorer for TAZ',
-        description: 'Explore the Zcash testnet with CipherScan. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
-        keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'CipherScan testnet'],
-        imageAlt: 'CipherScan - Zcash Testnet Explorer for TAZ',
+        title: 'ZecBlock Testnet - Zcash Testnet Explorer for TAZ',
+        description: 'Explore the Zcash testnet with ZecBlock. Search TAZ blocks, transactions, and addresses, monitor pending transactions, and inspect testnet network activity.',
+        keywords: ['zcash testnet', 'TAZ', 'TAZ explorer', 'zcash testnet explorer', 'zcash testnet transactions', 'ZecBlock testnet'],
+        imageAlt: 'ZecBlock - Zcash Testnet Explorer for TAZ',
       }
     : {
-        title: 'CipherScan Crosslink - Zcash Crosslink Explorer',
+        title: 'ZecBlock Crosslink - Zcash Crosslink Explorer',
         description: 'Explore the Zcash Crosslink feature network, including blocks, finality, staking, and validators.',
         keywords: ['zcash crosslink', 'crosslink explorer', 'zcash finality', 'cTAZ'],
-        imageAlt: 'CipherScan - Zcash Crosslink Explorer',
+        imageAlt: 'ZecBlock - Zcash Crosslink Explorer',
       };
 
 const rootPageMetadata = buildPageMetadata({
@@ -59,11 +59,11 @@ export const metadata: Metadata = {
   ...rootPageMetadata,
   authors: [{ name: "Kenbak" }],
   creator: "Kenbak",
-  publisher: "CipherScan",
+  publisher: "ZecBlock",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/brand/zecblock-mark.svg",
+    shortcut: "/brand/zecblock-mark.svg",
+    apple: "/apple-icon",
   },
   manifest: "/manifest.json",
   alternates: {
@@ -80,10 +80,10 @@ export const metadata: Metadata = {
 // "cipherscan" brand query; Organization with sameAs links the domain to
 // our social/code profiles for entity disambiguation.
 const websiteAlternateNames = network === 'mainnet'
-  ? ['CipherScan Zcash Explorer', 'cipherscan.app']
+  ? ['ZecBlock Zcash Explorer', 'zecblock.com']
   : network === 'testnet'
-    ? ['CipherScan Testnet', 'Zcash Testnet Explorer', 'TAZ Explorer']
-    : ['CipherScan Crosslink', 'Zcash Crosslink Explorer'];
+    ? ['ZecBlock Testnet', 'Zcash Testnet Explorer', 'TAZ Explorer']
+    : ['ZecBlock Crosslink', 'Zcash Crosslink Explorer'];
 
 const siteJsonLd = {
   '@context': 'https://schema.org',
@@ -91,18 +91,18 @@ const siteJsonLd = {
     {
       '@type': 'WebSite',
       '@id': `${baseUrl}/#website`,
-      name: 'CipherScan',
+      name: 'ZecBlock',
       alternateName: websiteAlternateNames,
       description: siteCopy.description,
       url: `${baseUrl}/`,
-      publisher: { '@id': 'https://cipherscan.app/#organization' },
+      publisher: { '@id': 'https://zecblock.com/#organization' },
     },
     {
       '@type': 'Organization',
-      '@id': 'https://cipherscan.app/#organization',
-      name: 'CipherScan',
-      url: 'https://cipherscan.app',
-      logo: 'https://cipherscan.app/apple-touch-icon.png',
+      '@id': 'https://zecblock.com/#organization',
+      name: 'ZecBlock',
+      url: 'https://zecblock.com',
+      logo: 'https://zecblock.com/brand/zecblock-mark.svg',
       sameAs: [
         'https://twitter.com/cipherscan_app',
         'https://github.com/Kenbak/cipherscan',

@@ -32,16 +32,16 @@ export default function TxError({
             </div>
             <h2 className="text-lg font-semibold text-primary mb-2">Something Went Wrong</h2>
             <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
-              CipherScan hit an unexpected error rendering this transaction. This has been logged.
+              ZecBlock hit an unexpected error rendering this transaction. This has been logged.
             </p>
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={reset}
-                className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm"
+                className="text-cipher-gold hover:text-cipher-yellow transition-colors font-mono text-sm"
               >
                 Try again
               </button>
-              <Link href="/" className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm">
+              <Link href="/" className="text-cipher-gold hover:text-cipher-yellow transition-colors font-mono text-sm">
                 &larr; Back to Explorer
               </Link>
             </div>

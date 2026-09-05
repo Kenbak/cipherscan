@@ -707,7 +707,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
     category: 'Network',
     method: 'GET',
     path: '/api/network/peers',
-    description: 'Get privacy-preserving aggregate information about peers currently connected to CipherScan.',
+    description: 'Get privacy-preserving aggregate information about peers currently connected to ZecBlock.',
     params: [],
     example: `curl ${baseUrl}/api/network/peers`,
     response: {
@@ -1274,7 +1274,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
         signature: 'eaBfFGlJ...'
       }
     },
-    note: 'This resolver is hosted on the CipherScan frontend origin, not the Express blockchain API. Returns 404 if the name is not registered. Listing is null if the name is not for sale. Price is in zatoshis (1 ZEC = 100,000,000 zatoshis).'
+    note: 'This resolver is hosted on the ZecBlock frontend origin, not the Express blockchain API. Returns 404 if the name is not registered. Listing is null if the name is not for sale. Price is in zatoshis (1 ZEC = 100,000,000 zatoshis).'
   },
   {
     id: 'name-events',
@@ -1293,7 +1293,7 @@ export const getEndpoints = (baseUrl: string): ApiEndpoint[] => [
       ],
       total: 2
     },
-    note: 'This resolver is hosted on the CipherScan frontend origin, not the Express blockchain API. Actions: CLAIM, LIST, DELIST, UPDATE, BUY.'
+    note: 'This resolver is hosted on the ZecBlock frontend origin, not the Express blockchain API. Actions: CLAIM, LIST, DELIST, UPDATE, BUY.'
   },
 
   // ============================================================================

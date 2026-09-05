@@ -296,7 +296,7 @@ export function MigrationClient({
         <div className="mt-8 rounded-xl border border-cipher-border bg-cipher-surface p-6 text-center">
           <h2 className="text-sm font-bold text-primary">Migration data unavailable</h2>
           <p className="text-xs text-muted mt-2">
-            CipherScan could not load Ironwood data for this network. Try again shortly.
+            ZecBlock could not load Ironwood data for this network. Try again shortly.
           </p>
         </div>
       ) : (

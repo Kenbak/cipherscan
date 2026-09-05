@@ -77,7 +77,7 @@ export default function AnchorSearchClient() {
             value={root}
             onChange={(e) => setRoot(e.target.value)}
             placeholder="Enter 64-char hex anchor root (Sapling or Orchard)..."
-            className="flex-1 px-4 py-3 bg-cipher-surface border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-cyan/50"
+            className="flex-1 px-4 py-3 bg-cipher-surface border border-cipher-border rounded-lg text-primary font-mono text-sm placeholder:text-muted focus:outline-none focus:border-cipher-gold/50"
           />
           <button
             type="submit"
@@ -97,7 +97,7 @@ export default function AnchorSearchClient() {
             result.orphaned.length > 0 && result.canonical.length === 0
               ? 'bg-red-500/5 border-red-500/30'
               : result.found
-                ? 'bg-cipher-cyan/5 border-cipher-cyan/30'
+                ? 'bg-cipher-gold/5 border-cipher-gold/30'
                 : 'bg-cipher-surface border-cipher-border'
           }`}>
             <div className="flex items-start gap-3">
@@ -125,7 +125,7 @@ export default function AnchorSearchClient() {
               <div className="space-y-2">
                 {result.canonical.map((block) => (
                   <div key={block.hash} className="p-3 bg-cipher-surface border border-cipher-border rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-sm">
+                    <Link href={`/block/${block.height}`} className="text-cipher-gold hover:underline font-mono text-sm">
                       #{block.height.toLocaleString()}
                     </Link>
                     <span className={`text-xs px-2 py-0.5 rounded font-mono ${

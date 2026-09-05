@@ -107,7 +107,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
       </div>
     );
   }
@@ -178,7 +178,7 @@ export function NodeGeoLayerMap({ mode }: { mode: GeoLayerMode }) {
       </svg>
 
       {hovered && (
-        <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
+        <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-gold/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
           <div className="flex items-center gap-2">
             <span className="text-lg">{getFlagEmoji(hovered.countryCode)}</span>
             <span className="font-semibold text-primary text-sm">{hovered.country}</span>

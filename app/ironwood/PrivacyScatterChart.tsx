@@ -466,7 +466,7 @@ function ScatterTooltip({
             {point.familyConfidence && (
               <span className={`text-[9px] px-1 py-px rounded ${
                 point.familyConfidence === 'high'
-                  ? 'bg-emerald-500/20 text-emerald-400'
+                  ? 'bg-cipher-green/20 text-cipher-green'
                   : point.familyConfidence === 'medium'
                     ? 'bg-amber-500/20 text-amber-400'
                     : 'bg-zinc-500/20 text-zinc-400'
@@ -483,7 +483,7 @@ function ScatterTooltip({
           )}
         </div>
       )}
-      <div className="mt-2 text-[10px] text-cipher-cyan-bright">
+      <div className="mt-2 text-[10px] text-cipher-gold-bright">
         Click to view transaction &rarr;
       </div>
     </div>

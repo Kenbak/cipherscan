@@ -58,7 +58,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
           onClick={() => setPeriod(p)}
           className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             period === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -76,7 +76,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
     >
       {loading ? (
         <div className="flex items-center justify-center h-[340px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
         </div>
       ) : (
         <div>
@@ -88,8 +88,8 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
             <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="feeBand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.cyan} stopOpacity={0.2} />
-                  <stop offset="95%" stopColor={colors.cyan} stopOpacity={0.02} />
+                  <stop offset="5%" stopColor={colors.gold} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={colors.gold} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="2 6" stroke={colors.grid} opacity={0.5} />
@@ -144,7 +144,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
               <Area
                 type="monotone"
                 dataKey="p90"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 fill="url(#feeBand)"
@@ -153,7 +153,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
               <Area
                 type="monotone"
                 dataKey="p75"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={1}
                 strokeOpacity={0.6}
                 fill="none"
@@ -170,7 +170,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
               <Area
                 type="monotone"
                 dataKey="p25"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={1}
                 strokeOpacity={0.6}
                 fill="none"
@@ -179,7 +179,7 @@ export function FeeDistributionChart({ initialData }: { initialData?: FeeDistrib
               <Area
                 type="monotone"
                 dataKey="p10"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 fill="none"

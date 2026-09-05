@@ -110,7 +110,7 @@ export default async function BlockPage({
       '@type': 'WebSite',
       '@id': `${baseUrl}/#website`,
       url: `${baseUrl}/`,
-      name: 'CipherScan',
+      name: 'ZecBlock',
     },
     mainEntity: {
       '@type': 'Thing',

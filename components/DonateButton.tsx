@@ -71,7 +71,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
       >
         {/* Scan line effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-          <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cipher-cyan/20 to-transparent animate-scan" />
+          <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cipher-gold/20 to-transparent animate-scan" />
         </div>
 
         <div className="p-6 sm:p-8">
@@ -79,10 +79,10 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           <div className="flex justify-between items-start mb-5">
             <div>
               <p className="text-[10px] font-mono text-muted tracking-widest uppercase mb-1">
-                {'>'} SUPPORT_CIPHERSCAN
+                {'>'} SUPPORT_ZECBLOCK
               </p>
               <h2 className="text-lg font-semibold tracking-tight text-primary">
-                Support CipherScan
+                Support ZecBlock
               </h2>
               <p className="text-sm text-secondary mt-1">
                 Help keep this explorer free, open-source &amp; ad-free
@@ -119,7 +119,7 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
                   />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/logo.png"
+                    src="/brand/zecblock-mark.svg"
                     alt=""
                     width={logoSize}
                     height={logoSize}
@@ -140,11 +140,11 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
           {/* Address + copy */}
           <button
             onClick={copyAddress}
-            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-cyan/30 transition"
+            className="modal-inner-card rounded-lg px-4 py-3 mb-4 w-full text-left cursor-pointer hover:ring-1 hover:ring-cipher-gold/30 transition"
           >
             <p className="text-[10px] font-mono text-muted tracking-wider uppercase mb-1.5 flex items-center justify-between">
               <span>Shielded · Unified Address</span>
-              <span className="flex items-center gap-1 text-cipher-cyan">
+              <span className="flex items-center gap-1 text-cipher-gold">
                 {copied ? (
                   <>
                     <svg className="w-3 h-3 text-cipher-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -190,8 +190,8 @@ export function DonateButton({ compact = false, variant = 'default' }: DonateBut
         <button
           onClick={() => setShowModal(true)}
           className={`donate-btn inline-flex items-center justify-center ${compact ? 'p-1.5' : 'space-x-2 px-3 sm:px-4 py-2'} transition rounded-lg ${compact ? '' : 'font-mono text-xs sm:text-sm'}`}
-          title={compact ? 'Support CipherScan' : undefined}
-          aria-label={compact ? 'Support CipherScan' : undefined}
+          title={compact ? 'Support ZecBlock' : undefined}
+          aria-label={compact ? 'Support ZecBlock' : undefined}
         >
           <svg
             className={compact ? 'w-4 h-4' : 'w-4 h-4 flex-shrink-0'}

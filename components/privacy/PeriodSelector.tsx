@@ -12,7 +12,7 @@ export function PeriodSelector({ value, onChange }: { value: Period; onChange: (
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
               : 'text-muted hover:text-primary'
           }`}
         >

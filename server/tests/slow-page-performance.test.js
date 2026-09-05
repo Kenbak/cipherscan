@@ -210,7 +210,7 @@ test('all list SSR fetches use chain-tip tagged ISR with deadline', async () => 
     './TxsClient': { __esModule: true, default: () => null },
   });
   const pages = [
-    loadTypeScriptModule('app/blocks/page.tsx', {
+    loadTypeScriptModule('app/blocks/BlocksPage.tsx', {
       ...commonImports,
       './BlocksClient': { __esModule: true, default: () => null },
     }),
@@ -250,9 +250,9 @@ test('latest list ISR throws on unavailable data while dynamic handlers keep she
     async () => { throw new Error('network unavailable'); },
   ];
 
-  // blocks/page.tsx accepts unavailablePolicy as a prop
+  // Shared blocks renderer accepts the internal outage policy; route entry props stay Next-compatible.
   for (const failure of failures) {
-    const page = loadTypeScriptModule('app/blocks/page.tsx', {
+    const page = loadTypeScriptModule('app/blocks/BlocksPage.tsx', {
       'react/jsx-runtime': jsxRuntime,
       './BlocksClient': { __esModule: true, default: () => null },
       '@/lib/api-config': { getApiUrl: () => 'https://api.invalid' },

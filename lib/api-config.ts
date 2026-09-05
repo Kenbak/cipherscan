@@ -35,7 +35,7 @@ function detectNetwork(): Network {
 
   // Client-side: detect from hostname.
   const hostname = window.location.hostname;
-  if (hostname === 'cipherscan.app' || hostname.includes('mainnet')) return 'mainnet';
+  if (['zecblock.com', 'www.zecblock.com', 'cipherscan.app'].includes(hostname) || hostname.includes('mainnet')) return 'mainnet';
   if (hostname.includes('crosslink')) return 'crosslink-testnet';
   return 'testnet';
 }

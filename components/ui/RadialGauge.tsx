@@ -2,8 +2,8 @@
 
 /** Score-band color used consistently across health/reliability visuals. */
 export function scoreColor(value: number): string {
-  if (value >= 80) return '#34D399';
-  if (value >= 60) return '#F4B728';
+  if (value >= 80) return '#65C79A';
+  if (value >= 60) return '#F8BC21';
   return '#EF4444';
 }
 

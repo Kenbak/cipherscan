@@ -55,7 +55,7 @@ export const TX_CATEGORY_CONFIG: Record<TxCategory, { label: string; color: Badg
   ironwood: { label: 'IRONWOOD', color: 'amber', icon: <ShieldedIcon size={ICON_SIZE} /> },
   orchard: { label: 'ORCHARD', color: 'purple', icon: <ShieldedIcon size={ICON_SIZE} /> },
   orchard_sapling: { label: 'ORCHARD+SAPLING', color: 'purple', icon: <ShieldedIcon size={ICON_SIZE} /> },
-  sapling: { label: 'SAPLING', color: 'cyan', icon: <ShieldedIcon size={ICON_SIZE} /> },
+  sapling: { label: 'SAPLING', color: 'gold', icon: <ShieldedIcon size={ICON_SIZE} /> },
   // Generic "fully shielded, pool unknown/unspecified" — used where per-pool
   // detail isn't available or isn't the point (e.g. a mempool row before
   // it's clear which pool dominates). Purple is the app's long-standing

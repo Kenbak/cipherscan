@@ -1,4 +1,4 @@
-import BlocksPage, { generateMetadata as generateBlocksMetadata } from '../page';
+import BlocksPage, { generateMetadata as generateBlocksMetadata } from '../BlocksPage';
 
 export const revalidate = 30;
 

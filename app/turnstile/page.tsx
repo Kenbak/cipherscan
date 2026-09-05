@@ -47,7 +47,7 @@ export default function TurnstilePage() {
           href="/"
           className="text-[10px] font-mono text-muted hover:text-primary transition-colors"
         >
-          <span className="text-cipher-cyan font-bold">CipherScan</span>
+          <span className="text-cipher-gold font-bold">ZecBlock</span>
           <span className="text-muted/60"> — Zcash Block Explorer</span>
         </Link>
       </div>

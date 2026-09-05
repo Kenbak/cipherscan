@@ -2,6 +2,7 @@
 
 import { useRef, useCallback, useState, type ReactNode } from 'react';
 import { toPng } from 'html-to-image';
+import { BrandLogo } from '@/components/BrandLogo';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export function ShareableCard({
@@ -10,8 +11,7 @@ export function ShareableCard({
   sourceHeight,
   isLive = true,
   shareText,
-  fileName = 'cipherscan.png',
-  watermark = true,
+  fileName = 'zecblock.png',
   footerNote,
   className = 'mt-4',
 }: {
@@ -28,7 +28,7 @@ export function ShareableCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const [copyStatus, setCopyStatus] = useState<'idle' | 'capturing' | 'copied'>('idle');
-  const captureBg = theme === 'light' ? '#ffffff' : '#0f1419';
+  const captureBg = theme === 'light' ? '#ffffff' : '#111316';
 
   const captureCard = useCallback(async () => {
     if (!cardRef.current) return null;
@@ -81,17 +81,6 @@ export function ShareableCard({
         ref={cardRef}
         className="relative overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface p-4 sm:p-6"
       >
-      {watermark ? (
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-visible"
-          aria-hidden="true"
-        >
-          <span className="-rotate-12 scale-[0.82] select-none whitespace-nowrap text-[2rem] font-bold font-mono tracking-[0.14em] text-black/[0.04] dark:text-white/[0.045] sm:scale-100 sm:text-5xl sm:tracking-[0.2em] lg:text-6xl">
-            CIPHERSCAN
-          </span>
-        </div>
-      ) : null}
-
       <div className="relative min-w-0">
         <div className="mb-4 sm:mb-5 flex items-start justify-between gap-2 sm:gap-3">
           <h2 className="text-sm font-bold text-primary">{title}</h2>
@@ -155,7 +144,7 @@ export function ShareableCard({
               ) : (
                 <>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-cipher-border/40 bg-glass-3/50 px-2 py-0.5">
-                    <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-muted/50'}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-cipher-green animate-pulse' : 'bg-muted/50'}`} />
                     <span>{isLive ? 'LIVE' : 'SNAPSHOT'}</span>
                   </span>
                   <span className="text-muted/60">·</span>
@@ -164,13 +153,12 @@ export function ShareableCard({
               )}
             </div>
             <div className="order-2 flex items-center justify-center gap-2 sm:order-1 sm:min-w-0 sm:justify-start">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" />
+              <BrandLogo compact />
               <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-                <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">
-                  CIPHERSCAN
+                <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">
+                  ZecBlock
                 </span>
-                <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+                <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
               </div>
             </div>
           </div>

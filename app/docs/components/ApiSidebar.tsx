@@ -33,7 +33,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
       {/* Mobile toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-6 right-6 z-50 bg-cipher-cyan text-cipher-bg p-4 rounded-full shadow-lg hover:bg-cipher-green transition-colors"
+        className="lg:hidden fixed bottom-6 right-6 z-50 bg-cipher-gold text-cipher-bg p-4 rounded-full shadow-lg hover:bg-cipher-green transition-colors"
         aria-label="Toggle API navigation"
         aria-expanded={isOpen}
       >
@@ -83,7 +83,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Filter endpoints..."
-              className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded border border-cipher-border bg-transparent text-primary placeholder:text-muted focus:border-cipher-cyan focus:outline-none transition-colors"
+              className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded border border-cipher-border bg-transparent text-primary placeholder:text-muted focus:border-cipher-gold focus:outline-none transition-colors"
             />
             {search && (
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted">
@@ -111,7 +111,7 @@ export default function ApiSidebar({ categories }: ApiSidebarProps) {
                             text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0
                             ${endpoint.method === 'GET'
                               ? 'text-cipher-green bg-cipher-green/10'
-                              : 'text-cipher-cyan bg-cipher-cyan/10'
+                              : 'text-cipher-gold bg-cipher-gold/10'
                             }
                           `}>
                             {endpoint.method}

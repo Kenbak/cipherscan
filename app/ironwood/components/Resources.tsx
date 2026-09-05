@@ -10,14 +10,14 @@ export function Resources() {
         denomination. Cohorts are grouped by 144-block anchor boundaries (~3h).
       </p>
       <div className="flex flex-wrap gap-4 mt-4 text-[11px] font-mono">
-        <a href="https://zips.z.cash/zip-0258" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
+        <a href="https://zips.z.cash/zip-0258" target="_blank" rel="noopener" className="text-cipher-gold hover:underline">
           ZIP-258 (NU6.3 Deployment)
         </a>
-        <a href="https://zips.z.cash/zip-0318" target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">
+        <a href="https://zips.z.cash/zip-0318" target="_blank" rel="noopener" className="text-cipher-gold hover:underline">
           ZIP-318 (Migration Spec)
         </a>
-        <Link href="/privacy-risks" className="text-cipher-cyan hover:underline">
-          CipherScan Privacy Scanner
+        <Link href="/privacy-risks" className="text-cipher-gold hover:underline">
+          ZecBlock Privacy Scanner
         </Link>
       </div>
     </div>

@@ -282,7 +282,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
     return (await fetch(dataUrl)).blob();
   }, []);
 
-  const shareText = `${sceneState.migratedPct.toFixed(1)}% of Orchard ZEC has migrated to Ironwood. Watch the migration live on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+  const shareText = `${sceneState.migratedPct.toFixed(1)}% of Orchard ZEC has migrated to Ironwood. Watch the migration live on ZecBlock.\n\nhttps://zecblock.com/ironwood`;
 
   const handleCopy = useCallback(async () => {
     setCopyStatus('capturing');
@@ -336,7 +336,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           aria-hidden="true"
         >
           <span className="-rotate-12 scale-[0.82] select-none whitespace-nowrap text-[2rem] font-bold font-mono tracking-[0.14em] text-white/[0.03] sm:scale-100 sm:text-5xl sm:tracking-[0.2em] lg:text-6xl">
-            CIPHERSCAN
+            ZecBlock
           </span>
         </div>
 
@@ -503,7 +503,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                     className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
                     style={{
                       width: `${mode === 'live' ? 100 : scrubPct}%`,
-                      background: `linear-gradient(90deg, #A78BFA, #F4B728)`,
+                      background: `linear-gradient(90deg, #B6A0E0, #F8BC21)`,
                     }}
                   />
                 </div>
@@ -523,7 +523,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
                 onClick={handleLive}
                 className="shrink-0 rounded-full border border-cipher-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted hover:border-cipher-border transition"
               >
-                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-current opacity-30'}`} />
+                <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-current opacity-30'}`} />
                 Live
               </button>
             </div>
@@ -546,7 +546,7 @@ export function TurnstileHero(props: TurnstileHeroProps) {
           <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-2.5 sm:text-left">
             <div className="order-1 flex items-center justify-center gap-2 text-[10px] font-mono text-muted/80 sm:order-2 sm:shrink-0 sm:justify-end">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-cipher-border/40 bg-glass-3/50 px-2 py-0.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-muted/50'}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-cipher-green animate-pulse' : 'bg-muted/50'}`} />
                 <span>{mode === 'live' ? 'LIVE' : 'SNAPSHOT'}</span>
               </span>
               <span className="text-muted/60">·</span>
@@ -554,12 +554,12 @@ export function TurnstileHero(props: TurnstileHeroProps) {
             </div>
             <div className="order-2 flex items-center justify-center gap-2 sm:order-1 sm:min-w-0 sm:justify-start">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" />
+              <img src="/brand/zecblock-mark.svg" alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" />
               <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-                <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">
-                  CIPHERSCAN
+                <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">
+                  ZecBlock
                 </span>
-                <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+                <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
               </div>
             </div>
           </div>

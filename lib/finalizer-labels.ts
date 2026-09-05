@@ -27,10 +27,10 @@ export interface FinalizerLabel {
  * to get the raw form, and add an entry below.
  */
 const KNOWN_FINALIZERS: Record<string, FinalizerLabel> = {
-  // CipherScan testnet finalizer (Atmosphere Labs).
+  // ZecBlock testnet finalizer (Atmosphere Labs).
   // GUI form: 79ce78ee4b5ce05b0fe11213941c4ed1584b09e57e6f15135006a46f2d98172c
   '2c17982d6fa4065013156f7ee5094b58d14e1c941312e10f5be05c4bee78ce79': {
-    name: 'CipherScan',
+    name: 'ZecBlock',
     url: 'https://crosslink.cipherscan.app',
     description: 'Atmosphere Labs — Zcash explorer & Crosslink validator',
   },

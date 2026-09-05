@@ -31,7 +31,7 @@ export function MempoolPendingView({
   const txTypeLabel =
     mempoolTx.type === 'shielded' ? 'SHIELDED' : mempoolTx.type === 'mixed' ? 'MIXED' : 'TRANSPARENT';
   const txTypeColor =
-    mempoolTx.type === 'shielded' ? 'purple' : mempoolTx.type === 'mixed' ? 'yellow' : 'cyan';
+    mempoolTx.type === 'shielded' ? 'purple' : mempoolTx.type === 'mixed' ? 'yellow' : 'gold';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 animate-fade-in">
@@ -203,7 +203,7 @@ export function MempoolPendingView({
                     >
                       <Link
                         href={`/address/${out.address}`}
-                        className="text-xs font-mono text-cipher-cyan hover:underline truncate max-w-[60%]"
+                        className="text-xs font-mono text-cipher-gold hover:underline truncate max-w-[60%]"
                       >
                         {out.address}
                       </Link>
@@ -221,7 +221,7 @@ export function MempoolPendingView({
       <div className="mt-6 text-center">
         <Link
           href="/mempool"
-          className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm"
+          className="text-cipher-gold hover:text-cipher-yellow transition-colors font-mono text-sm"
         >
           View Mempool &rarr;
         </Link>

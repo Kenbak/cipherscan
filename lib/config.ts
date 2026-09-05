@@ -12,7 +12,7 @@ function detectNetwork(): 'mainnet' | 'testnet' | 'crosslink' {
     const hostname = window.location.hostname;
     if (hostname.includes('crosslink')) return 'crosslink';
     if (hostname.includes('testnet.')) return 'testnet';
-    if (hostname === 'cipherscan.app' || hostname === 'www.cipherscan.app') return 'mainnet';
+    if (['zecblock.com', 'www.zecblock.com', 'cipherscan.app', 'www.cipherscan.app'].includes(hostname)) return 'mainnet';
   }
 
   // Default to testnet for local dev
@@ -42,7 +42,7 @@ export const RPC_CONFIG = {
 export const NETWORK_COLOR = isCrosslink ? 'text-cipher-purple' : isMainnet ? 'text-cipher-yellow' : 'text-gray-400';
 
 // Domain URLs
-export const MAINNET_URL = 'https://cipherscan.app';
+export const MAINNET_URL = 'https://zecblock.com';
 export const TESTNET_URL = 'https://testnet.cipherscan.app';
 export const CROSSLINK_URL = 'https://crosslink.cipherscan.app';
 

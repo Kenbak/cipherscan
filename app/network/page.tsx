@@ -141,7 +141,7 @@ export default async function NetworkPage() {
               from shielded ZEC (held in zero-knowledge pools where balances are private but
               the pool totals remain verifiable). Mining pool distribution is derived from
               coinbase markers and shows how concentrated block production currently is.
-              Peer software percentages are a sample from CipherScan&apos;s live connections,
+              Peer software percentages are a sample from ZecBlock&apos;s live connections,
               not a complete census of every Zcash node.
             </p>
           </div>

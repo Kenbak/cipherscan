@@ -24,7 +24,7 @@ export function AddressTabBar({
           onClick={() => onTabChange('transactions')}
           className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
             activeTab === 'transactions'
-              ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+              ? 'text-primary border-b-2 border-cipher-gold -mb-[1px]'
               : 'text-muted hover:text-secondary'
           }`}
         >
@@ -35,7 +35,7 @@ export function AddressTabBar({
             onClick={() => onTabChange('crosschain')}
             className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
               activeTab === 'crosschain'
-                ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                ? 'text-primary border-b-2 border-cipher-gold -mb-[1px]'
                 : 'text-muted hover:text-secondary'
             }`}
           >
@@ -47,7 +47,7 @@ export function AddressTabBar({
             onClick={() => onTabChange('graph')}
             className={`pb-2 font-mono text-xs tracking-wider uppercase transition-colors ${
               activeTab === 'graph'
-                ? 'text-primary border-b-2 border-cipher-cyan -mb-[1px]'
+                ? 'text-primary border-b-2 border-cipher-gold -mb-[1px]'
                 : 'text-muted hover:text-secondary'
             }`}
           >

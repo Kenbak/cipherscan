@@ -27,14 +27,14 @@ interface Block {
 const PAGE_SIZE = 25;
 
 const INTERVAL_TEXT_COLORS = {
-  'fast':      'text-cipher-cyan',
+  'fast':      'text-cipher-gold',
   'normal':    'text-cipher-green',
   'slow':      'text-amber-400',
   'very-slow': 'text-danger',
 } as const;
 
 const INTERVAL_BAR_COLORS = {
-  'fast':      'bg-cipher-cyan/50',
+  'fast':      'bg-cipher-gold/50',
   'normal':    'bg-cipher-green/50',
   'slow':      'bg-amber-400/50',
   'very-slow': 'bg-red-400/50',
@@ -120,7 +120,7 @@ function blockColumns(blocks: Block[], trailingBlock: Block | null): DataTableCo
           <div className="flex items-center justify-end gap-2">
             <div className="w-16 lg:w-24 h-1 rounded-full bg-cipher-border-alpha/40 overflow-hidden">
               <div
-                className="h-full rounded-full bg-cipher-cyan/60 group-hover:bg-cipher-cyan transition-colors"
+                className="h-full rounded-full bg-cipher-gold/60 group-hover:bg-cipher-gold transition-colors"
                 style={{ width: `${sizePct}%` }}
               />
             </div>

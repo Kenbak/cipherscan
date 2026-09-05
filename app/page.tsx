@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HomeFeedCard } from '@/components/HomeFeedCard';
@@ -100,35 +99,29 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="home-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <div className="home-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12">
       {/* Hero Section - z-index for dropdown to appear above widgets */}
-      <div className="text-center mb-10 sm:mb-14 relative z-30">
-        {/* Tagline - SEO friendly */}
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-primary mb-3 sm:mb-4 animate-fade-in inline-flex items-center justify-center gap-3 tracking-tight text-balance">
-          <Image
-            src="/zec-logo.png"
-            alt="Zcash"
-            width={32}
-            height={32}
-            priority
-            className="w-7 h-7 sm:w-8 sm:h-8"
-          />
-          {crosslinkMode
-            ? 'CipherScan: Zcash Crosslink Explorer'
-            : isTestnet
-              ? 'CipherScan: Zcash Testnet Explorer (TAZ)'
-              : 'CipherScan: Zcash Block Explorer'}
-        </h1>
-        <p className="text-sm sm:text-base text-muted/60 mb-7 sm:mb-8 max-w-xl mx-auto text-center leading-relaxed">
-          {crosslinkMode
-            ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
-            : isTestnet
-              ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-              : 'Explore blocks, transactions, and addresses on the Zcash blockchain. Track shielded pool activity, privacy scores, and network health — all in real time.'}
-        </p>
+      <div className="home-hero relative z-30">
+        <div className="home-introduction">
+          <h1 className="text-primary">
+            {crosslinkMode
+              ? 'Zcash Crosslink Explorer'
+              : isTestnet
+                ? 'Zcash Testnet Explorer (TAZ)'
+                : 'Zcash Block Explorer'}
+          </h1>
+          <p className="text-sm text-secondary mt-3 max-w-md leading-relaxed">
+            {crosslinkMode
+              ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
+              : isTestnet
+                ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
+                : 'Inspect blocks, transactions, and addresses. Follow shielded pools and network activity on Zcash.'}
+          </p>
 
-        {/* Search Section */}
-        <div>
+        </div>
+
+        {/* Search shares the centered introduction width. */}
+        <div className="home-command">
           <SearchBar />
         </div>
       </div>
@@ -141,7 +134,7 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/learn/crosslink"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
             >
               Learn Crosslink →
             </Link>
@@ -149,7 +142,7 @@ export default async function Home() {
               href="https://github.com/ShieldedLabs/crosslink_monolith/releases/tag/season-1-workshop-1"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
             >
               Join Season 1 →
             </a>
@@ -181,7 +174,7 @@ export default async function Home() {
           </div>
         </>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 mt-10 sm:mt-12 lg:mt-16">
+        <div className="home-feeds grid grid-cols-1 lg:grid-cols-2 gap-8">
           <HomeFeedCard
             storageKey="cipherscan-home-card-left"
             defaultType="blocks"

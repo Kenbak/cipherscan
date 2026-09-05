@@ -101,11 +101,10 @@ export function NU7VoteBanner() {
         {/* Mobile */}
         <div className="flex h-full items-center gap-2 pr-8 sm:hidden">
           <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-cyan opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-cyan" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-gold" />
           </span>
           <span className="min-w-0 flex-1 truncate text-xs font-mono text-muted">
-            <span className="text-cipher-cyan font-medium">NU7 Vote</span>
+            <span className="text-cipher-gold font-medium">NU7 Vote</span>
             {countdownStr && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>
@@ -118,11 +117,10 @@ export function NU7VoteBanner() {
         {/* Desktop */}
         <div className="hidden h-full items-center justify-center gap-3 sm:flex">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cipher-cyan opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-cyan" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-cipher-gold" />
           </span>
           <span className="text-xs font-mono text-muted group-hover:text-secondary transition-colors">
-            <span className="text-cipher-cyan font-medium">NU7 Coinholder Vote</span>
+            <span className="text-cipher-gold font-medium">NU7 Coinholder Vote</span>
             {countdownStr && (
               <>
                 <span className="text-muted/60 mx-1.5">·</span>
@@ -142,7 +140,7 @@ export function NU7VoteBanner() {
               </>
             )}
           </span>
-          <span className="text-[11px] text-muted/40 group-hover:text-cipher-cyan/60 transition-colors ml-1">
+          <span className="text-[11px] text-muted/40 group-hover:text-cipher-gold/60 transition-colors ml-1">
             Details →
           </span>
         </div>

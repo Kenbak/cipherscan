@@ -163,7 +163,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
         <Card variant="glass">
           <CardBody>
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="w-5 h-5 border-2 border-cipher-cyan border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-cipher-gold border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-muted font-mono">Turnstile view is rebuilding — data will appear shortly</p>
               <p className="text-[10px] text-muted/60 font-mono">Auto-retries in 60s</p>
             </div>
@@ -402,7 +402,7 @@ export function TurnstileTracker({ showCardHeader = false }: TurnstileTrackerPro
                           type="checkbox"
                           checked={showDetail}
                           onChange={e => setShowDetail(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-cyan"
+                          className="w-3.5 h-3.5 rounded border-glass-12 bg-glass-4 accent-cipher-gold"
                         />
                         <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
                           Show full breakdown

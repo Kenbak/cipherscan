@@ -1,7 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Zcash On-Chain Valuation Metrics | CipherScan',
+  title: 'Zcash On-Chain Valuation Metrics | ZecBlock',
   description:
     'Realized price vs market price, MVRV ratio, SOPR, and NUPL for Zcash — Glassnode-level on-chain analytics built from transparent UTXO data.',
   keywords: [
@@ -14,7 +14,7 @@ export const metadata = buildPageMetadata({
   ],
   path: '/valuation',
   networks: ['mainnet'],
-  imageAlt: 'CipherScan Zcash on-chain valuation metrics',
+  imageAlt: 'ZecBlock Zcash on-chain valuation metrics',
 });
 
 export default function ValuationLayout({ children }: { children: React.ReactNode }) {

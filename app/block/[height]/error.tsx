@@ -28,16 +28,16 @@ export default function BlockError({
           <div className="text-5xl mb-6" aria-hidden="true">⚠️</div>
           <h1 className="text-2xl font-bold font-mono text-primary mb-3">Something Went Wrong</h1>
           <p className="text-secondary mb-6">
-            CipherScan hit an unexpected error rendering this block. This has been logged.
+            ZecBlock hit an unexpected error rendering this block. This has been logged.
           </p>
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={reset}
-              className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm"
+              className="text-cipher-gold hover:text-cipher-green transition-colors font-mono text-sm"
             >
               Try again
             </button>
-            <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+            <Link href="/" className="text-cipher-gold hover:text-cipher-green transition-colors font-mono text-sm">
               ← Back to Explorer
             </Link>
           </div>

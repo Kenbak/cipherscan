@@ -5,7 +5,7 @@ export default function AppLoading() {
     <div
       className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
       aria-busy="true"
-      aria-label="Loading CipherScan"
+      aria-label="Loading ZecBlock"
     >
       <div className="mb-10 space-y-3 text-center">
         <div className="mx-auto h-8 w-72 max-w-full animate-pulse rounded-md bg-glass-3" />

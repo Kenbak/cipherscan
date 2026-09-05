@@ -11,7 +11,7 @@ const ClockIcon = () => (
   </svg>
 );
 
-/** Small pill nav button — replaces a bare arrow icon crammed next to the title. Same border/hover treatment as ExportButton (no cyan tint), not a bespoke style of its own. */
+/** Small pill nav button — replaces a bare arrow icon crammed next to the title. Same border/hover treatment as ExportButton (no gold tint), not a bespoke style of its own. */
 function BlockNavPill({ height, hash, direction }: { height: number; hash?: string; direction: 'prev' | 'next' }) {
   const disabled = !hash;
   return (

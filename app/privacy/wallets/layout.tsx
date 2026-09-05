@@ -1,7 +1,7 @@
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Wallet Anonymity Analysis | CipherScan',
+  title: 'Wallet Anonymity Analysis | ZecBlock',
   description:
     'Analyze Zcash wallet fingerprints, fee lane anonymity sets, and estimated wallet usage. See how transaction fees, expiry heights, and action padding reveal wallet identity.',
   path: '/privacy/wallets',

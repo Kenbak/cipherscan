@@ -317,7 +317,7 @@ export default function DecodeClient() {
           {/* Human-readable summary box */}
           <div className="tx-summary-box border border-cipher-border rounded-lg p-3 md:p-4">
             <div className="flex items-start gap-2 md:gap-3">
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-cipher-gold flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-secondary text-xs md:text-sm leading-relaxed">
@@ -349,7 +349,7 @@ export default function DecodeClient() {
                   <InfoRow
                     icon={Icons.Shield}
                     label="Network Upgrade"
-                    value={<Badge color="cyan">{result.consensusBranchName}</Badge>}
+                    value={<Badge color="gold">{result.consensusBranchName}</Badge>}
                     tooltip="The consensus branch this transaction targets"
                   />
                 )}
@@ -411,7 +411,7 @@ export default function DecodeClient() {
                     <div className="h-3 rounded-full overflow-hidden flex bg-cipher-elevated">
                       {comp.transparentPct > 0 && (
                         <div
-                          className="h-full bg-cipher-cyan/70 transition-[width] duration-700"
+                          className="h-full bg-cipher-gold/70 transition-[width] duration-700"
                           style={{ width: `${comp.transparentPct}%` }}
                           title={`Public: ${comp.transparentBytes.toLocaleString()} bytes`}
                         />
@@ -426,7 +426,7 @@ export default function DecodeClient() {
                     </div>
                     <div className="space-y-1.5 mt-3">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-sm bg-cipher-cyan/70" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-cipher-gold/70" />
                         <span className="text-xs text-muted">
                           Public data ({comp.transparentPct.toFixed(0)}%)
                         </span>
@@ -455,12 +455,12 @@ export default function DecodeClient() {
                   <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
                     <Icons.ArrowLeft />
                     Inputs
-                    <Badge color="cyan" className="ml-1">{totalInputCount}</Badge>
+                    <Badge color="gold" className="ml-1">{totalInputCount}</Badge>
                   </h3>
                   {result.vin.length > 0 && (
                     <button
                       onClick={() => setShowInputs(!showInputs)}
-                      className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                      className="text-sm text-cipher-gold hover:text-cipher-green transition-colors font-mono"
                     >
                       {showInputs ? 'Summary' : 'Details'}
                     </button>
@@ -502,7 +502,7 @@ export default function DecodeClient() {
                     {result.vin.map((vin, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-gold/50 transition"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -535,7 +535,7 @@ export default function DecodeClient() {
                               </label>
                               <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
                                 <Link href={`/tx/${vin.txid}`}>
-                                  <code className="text-xs text-cipher-cyan hover:underline break-all block">
+                                  <code className="text-xs text-cipher-gold hover:underline break-all block">
                                     {vin.txid}
                                   </code>
                                 </Link>
@@ -586,7 +586,7 @@ export default function DecodeClient() {
                   {result.vout.length > 0 && (
                     <button
                       onClick={() => setShowOutputs(!showOutputs)}
-                      className="text-sm text-cipher-cyan hover:text-cipher-green transition-colors font-mono"
+                      className="text-sm text-cipher-gold hover:text-cipher-green transition-colors font-mono"
                     >
                       {showOutputs ? 'Summary' : 'Details'}
                     </button>
@@ -629,7 +629,7 @@ export default function DecodeClient() {
                     {result.vout.map((vout, i) => (
                       <div
                         key={i}
-                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-cyan/50 transition"
+                        className="block-tx-row p-4 rounded-lg border border-cipher-border hover:border-cipher-gold/50 transition"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                           <div className="flex items-center gap-2">
@@ -647,7 +647,7 @@ export default function DecodeClient() {
                             </label>
                             <div className="block-hash-bg px-3 py-2 rounded border border-cipher-border">
                               <Link href={`/address/${vout.scriptPubKey.address}`}>
-                                <code className="text-xs text-cipher-cyan hover:underline break-all block">
+                                <code className="text-xs text-cipher-gold hover:underline break-all block">
                                   {vout.scriptPubKey.address}
                                 </code>
                               </Link>
@@ -694,7 +694,7 @@ export default function DecodeClient() {
                   <div className="space-y-3">
                     {/* Sapling Spends */}
                     {result.nSpendsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING SPENDS" />
@@ -709,7 +709,7 @@ export default function DecodeClient() {
 
                     {/* Sapling Outputs */}
                     {result.nOutputsSapling > 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Shield />} label="SAPLING OUTPUTS" />
@@ -724,7 +724,7 @@ export default function DecodeClient() {
 
                     {/* Sapling Value Balance */}
                     {result.valueBalanceSapling !== undefined && result.valueBalanceSapling !== 0 && (
-                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-cyan/20">
+                      <div className="shielded-input-row p-4 rounded-lg border border-cipher-gold/20">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TxTypeBadge category="sapling" icon={<Icons.Currency />} label="SAPLING VALUE BALANCE" />
@@ -813,8 +813,8 @@ export default function DecodeClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -823,14 +823,14 @@ export default function DecodeClient() {
               <p className="text-sm text-secondary leading-relaxed mb-3">
                 A raw transaction is a hex-encoded representation of a Zcash transaction containing all
                 inputs, outputs, and signatures. You can obtain one from a wallet, the{' '}
-                <code className="text-xs font-mono text-cipher-cyan">getrawtransaction</code>{' '}
+                <code className="text-xs font-mono text-cipher-gold">getrawtransaction</code>{' '}
                 RPC call, or by constructing one programmatically.
               </p>
               <div className="flex flex-wrap gap-3 text-xs">
-                <Link href="/tools/broadcast" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/tools/broadcast" className="text-cipher-gold hover:underline font-mono">
                   &gt; Broadcast a transaction
                 </Link>
-                <Link href="/docs" className="text-cipher-cyan hover:underline font-mono">
+                <Link href="/docs" className="text-cipher-gold hover:underline font-mono">
                   &gt; API documentation
                 </Link>
               </div>

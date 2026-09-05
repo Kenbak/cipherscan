@@ -65,11 +65,11 @@ function MetricCell({
   tooltip: string;
   value: string | number;
   suffix?: string;
-  color?: 'purple' | 'cyan' | 'muted';
+  color?: 'purple' | 'gold' | 'muted';
 }) {
   const colorClass = {
     purple: 'text-primary',
-    cyan: 'text-primary',
+    gold: 'text-primary',
     muted: 'text-primary',
   }[color];
 

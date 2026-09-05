@@ -49,38 +49,38 @@ type GraphNodeData = Record<string, unknown> & PrivacyGraphNode & { isFocus: boo
 
 const palettes = {
   txFocus: {
-    border: 'border-cipher-cyan/50',
-    bg: 'bg-cipher-cyan/10',
-    title: 'text-cipher-cyan',
-    label: 'var(--color-cyan-glow, #00E5FF)',
+    border: 'border-cipher-gold/50',
+    bg: 'bg-cipher-gold/10',
+    title: 'text-cipher-gold',
+    label: 'var(--color-gold-glow, #F8BC21)',
     amount: 'var(--color-text-primary)',
   },
   tx: {
-    border: 'border-cipher-cyan-muted/40',
-    bg: 'bg-cipher-cyan/5',
-    title: 'text-cipher-cyan-muted',
-    label: 'var(--color-cyan-muted, #5EBBCE)',
+    border: 'border-cipher-gold-muted/40',
+    bg: 'bg-cipher-gold/5',
+    title: 'text-cipher-gold-muted',
+    label: 'var(--color-gold-muted, #B59959)',
     amount: 'var(--color-text-primary)',
   },
   cluster: {
     border: 'border-cipher-green/40',
     bg: 'bg-cipher-green/10',
     title: 'text-cipher-green',
-    label: 'var(--color-green, #00E676)',
+    label: 'var(--color-green, #65C79A)',
     amount: 'var(--color-text-primary)',
   },
   address: {
     border: 'border-cipher-yellow/40',
     bg: 'bg-cipher-yellow/10',
     title: 'text-cipher-yellow',
-    label: 'var(--color-yellow, #F4B728)',
+    label: 'var(--color-yellow, #F8BC21)',
     amount: 'var(--color-text-primary)',
   },
   pool: {
     border: 'border-cipher-purple/30',
     bg: 'bg-cipher-purple/5',
     title: 'text-cipher-purple',
-    label: 'var(--color-purple, #A78BFA)',
+    label: 'var(--color-purple, #B6A0E0)',
     amount: 'var(--color-text-primary)',
   },
 };
@@ -194,9 +194,9 @@ function buildLayout(nodes: PrivacyGraphNode[], edges: GraphEdge[], focusNodeId?
 
 function edgeStroke(type: string): string {
   switch (type) {
-    case 'PAIR_LINK': return 'var(--color-cyan, #56D4C8)';
+    case 'PAIR_LINK': return 'var(--color-gold, #91AC90)';
     case 'transparent_output': return 'var(--color-yellow, #E8C48D)';
-    case 'pool_entry': return 'var(--color-purple, #A78BFA)';
+    case 'pool_entry': return 'var(--color-purple, #B6A0E0)';
     default: return 'var(--color-cipher-blue)';
   }
 }

@@ -147,7 +147,7 @@ export default function MempoolClient() {
           subtitle="Transactions waiting to be mined into the next Zcash block, streamed in real time. Shielded, transparent, and mixed transactions are labeled as they enter the queue."
         />
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-gold border-t-transparent" />
           <p className="text-secondary ml-4 font-mono">Loading mempool...</p>
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function MempoolClient() {
         <MetricCard label="Total TXs" value={data?.count || 0} />
         <MetricCard label="Shielded" value={data?.stats.shielded || 0} accent="purple" />
         <MetricCard label="Transparent" value={data?.stats.transparent || 0} />
-        <MetricCard label="Privacy Score" value={`${data?.stats.shieldedPercentage.toFixed(0) || 0}%`} accent="cyan" />
+        <MetricCard label="Privacy Score" value={`${data?.stats.shieldedPercentage.toFixed(0) || 0}%`} accent="gold" />
       </div>
 
       {/* Bubble Visualization - always mounted to avoid layout shift */}
@@ -252,7 +252,7 @@ export default function MempoolClient() {
           <path strokeLinecap="round" d="M12 16v-4M12 8h.01" />
         </svg>
         <p className="leading-relaxed">
-          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-cyan font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
+          Each bubble is a pending transaction. <span className="text-secondary">Size</span> reflects byte size; <span className="text-secondary">color &amp; letter</span> mark the privacy type — <span className="text-cipher-gold font-mono">T</span> transparent, <span className="text-cipher-orange font-mono">M</span> mixed, <span className="text-cipher-purple font-mono">S</span> shielded. Hover to inspect, click to open, drag to fling. When a block is mined, a shockwave clears the confirmed transactions.
         </p>
       </div>
 
@@ -265,7 +265,7 @@ export default function MempoolClient() {
             className="px-1"
             actions={
               <>
-              <Badge color="cyan">{data.showing} of {data.count}</Badge>
+              <Badge color="gold">{data.showing} of {data.count}</Badge>
             <button
               onClick={() => setShowTable(!showTable)}
               className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors font-mono"
@@ -335,7 +335,7 @@ export default function MempoolClient() {
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedSpend > 0 ? (
-                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-gold">{tx.vShieldedSpend}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vin}</span>
                             )}
@@ -346,7 +346,7 @@ export default function MempoolClient() {
                             ) : tx.orchardActions && tx.orchardActions > 0 ? (
                               <span className="font-mono text-xs text-cipher-purple">{tx.orchardActions}<span className="text-muted ml-1">orchard</span></span>
                             ) : tx.vShieldedOutput > 0 ? (
-                              <span className="font-mono text-xs text-cipher-cyan">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
+                              <span className="font-mono text-xs text-cipher-gold">{tx.vShieldedOutput}<span className="text-muted ml-1">sapling</span></span>
                             ) : (
                               <span className="font-mono text-xs text-muted">{tx.vout}</span>
                             )}
@@ -382,7 +382,7 @@ export default function MempoolClient() {
               <p className="text-secondary">Use zero-knowledge proofs to hide sender, receiver, and amount.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-cipher-cyan">Mixed Transactions</p>
+              <p className="font-medium text-cipher-gold">Mixed Transactions</p>
               <p className="text-secondary">Shielding (transparent → shielded) or deshielding (shielded → transparent).</p>
             </div>
             <div className="space-y-1">

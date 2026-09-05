@@ -8,7 +8,7 @@
 export const CLIENT_COLORS: Record<string, string> = {
   Zebra: '#FBBF24',
   Zakura: '#F472B6',
-  zcashd: '#5B9CF6',
+  zcashd: '#A1A9AD',
   Seeder: '#9B8AFB',
   Other: '#7D8A9A',
   Unknown: '#4B5563',
@@ -30,7 +30,7 @@ export function clientColor(client: string | null | undefined): string {
 export const CLIENT_BADGE_CLASSES: Record<string, string> = {
   Zebra: 'bg-[#FBBF24]/15 text-[#FBBF24] border-[#FBBF24]/30',
   Zakura: 'bg-[#F472B6]/15 text-[#F472B6] border-[#F472B6]/30',
-  zcashd: 'bg-[#5B9CF6]/15 text-[#5B9CF6] border-[#5B9CF6]/30',
+  zcashd: 'bg-[#A1A9AD]/15 text-[#A1A9AD] border-[#A1A9AD]/30',
   Seeder: 'bg-[#9B8AFB]/15 text-[#9B8AFB] border-[#9B8AFB]/30',
   Other: 'bg-[#7D8A9A]/15 text-[#7D8A9A] border-[#7D8A9A]/30',
   Unknown: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
@@ -49,8 +49,8 @@ export function clientBadgeClass(client: string | null | undefined): string {
  * that's fine, we're not persisting it anywhere.
  */
 const ISP_PALETTE = [
-  '#56D4C8', '#E8C48D', '#5B9CF6', '#a78bfa', '#f59e0b',
-  '#22c55e', '#ef4444', '#ec4899', '#14b8a6', '#64748b',
+  '#91AC90', '#E8C48D', '#A1A9AD', '#B6A0E0', '#f59e0b',
+  '#22c55e', '#ef4444', '#ec4899', '#91AC90', '#64748b',
 ];
 export const ISP_OTHER_COLOR = '#4B5563';
 export const ISP_UNRESOLVED_COLOR = '#374151';

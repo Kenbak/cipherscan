@@ -618,7 +618,7 @@ function TrendsChart() {
                 yAxisId="right"
                 type="monotone"
                 dataKey="shieldedPct"
-                stroke={colors.cyan}
+                stroke={colors.gold}
                 strokeWidth={2}
                 dot={false}
                 hide={!!hidden['shieldedPct']}

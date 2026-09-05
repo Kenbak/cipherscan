@@ -24,16 +24,16 @@ const WALLET_STATUS_META: Record<
   WalletStatus,
   { dot: string; short: string; group: string; summary: string }
 > = {
-  zip318: { dot: 'bg-emerald-400', short: 'Compliant', group: 'ZIP-318 compliant', summary: 'compliant' },
-  ready: { dot: 'bg-cyan-400', short: 'Ready', group: 'Migration ready', summary: 'ready' },
+  zip318: { dot: 'bg-cipher-green', short: 'Compliant', group: 'ZIP-318 compliant', summary: 'compliant' },
+  ready: { dot: 'bg-gold-400', short: 'Ready', group: 'Migration ready', summary: 'ready' },
   in_progress: { dot: 'bg-amber-300', short: 'Waiting', group: 'Waiting on release', summary: 'waiting' },
   unknown: { dot: 'bg-muted/70', short: 'Unknown', group: 'Unknown', summary: 'unknown' },
 };
 
 export function WalletStatusBadge({ status }: { status: WalletStatus }) {
   const styles = {
-    zip318: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10',
-    ready: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/5',
+    zip318: 'text-cipher-green border-cipher-green/30 bg-cipher-green/10',
+    ready: 'text-gold-400 border-gold-400/20 bg-gold-400/5',
     in_progress: 'text-amber-300 border-amber-300/30 bg-amber-300/10',
     unknown: 'text-muted border-cipher-border/50 bg-glass-3',
   };
@@ -83,7 +83,7 @@ export function WalletReadiness() {
               <tr key={w.name} className="border-b border-cipher-border/20 last:border-0">
                 <td className="py-2.5 pr-4 font-mono text-primary">
                   {w.link ? (
-                    <a href={w.link} target="_blank" rel="noopener" className="text-cipher-cyan hover:underline">{w.name}</a>
+                    <a href={w.link} target="_blank" rel="noopener" className="text-cipher-gold hover:underline">{w.name}</a>
                   ) : w.name}
                 </td>
                 <td className="py-2.5 pr-4">
@@ -140,7 +140,7 @@ export function WalletReadiness() {
                               href={w.link}
                               target="_blank"
                               rel="noopener"
-                              className="mt-2 inline-flex text-[11px] font-mono text-cipher-cyan hover:underline"
+                              className="mt-2 inline-flex text-[11px] font-mono text-cipher-gold hover:underline"
                             >
                               Open link →
                             </a>

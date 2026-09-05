@@ -2,7 +2,7 @@ import { buildPageMetadata } from '@/lib/seo';
 import NodesClient from './NodesClient';
 
 export const metadata = buildPageMetadata({
-  title: 'Zcash Network Nodes | CipherScan',
+  title: 'Zcash Network Nodes | ZecBlock',
   description: 'Explore the Zcash peer-to-peer network: verified reachable nodes, client implementations, version adoption, and geographic distribution.',
   keywords: ['zcash nodes', 'zcash network nodes', 'zcash peer network', 'zebra nodes', 'zakura nodes', 'zcash node map', 'zcash network topology'],
   path: '/network/nodes',
@@ -20,7 +20,7 @@ export default function NodesPage() {
           </h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <p>
-              This page shows every Zcash node verified as reachable by CipherScan&apos;s
+              This page shows every Zcash node verified as reachable by ZecBlock&apos;s
               network crawler. Each node is discovered via recursive peer exchange and
               confirmed through a full protocol handshake, providing accurate client
               identification (Zebra, Zakura, zcashd) and version information.

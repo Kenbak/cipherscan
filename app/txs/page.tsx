@@ -21,7 +21,7 @@ export async function generateMetadata({ searchParams }: TransactionsPageProps):
 
   if (request.type === 'shielded') {
     return buildPageMetadata({
-      title: `Zcash Shielded Transactions${pageSuffix} | CipherScan`,
+      title: `Zcash Shielded Transactions${pageSuffix} | ZecBlock`,
       description: request.page > 1
         ? `Browse Zcash shielded transaction archive page ${request.page}, including shielding and unshielding flows across privacy pools.`
         : 'Browse shielded Zcash transactions and track shielding and unshielding flows across Ironwood, Orchard, and Sapling privacy pools.',
@@ -32,7 +32,7 @@ export async function generateMetadata({ searchParams }: TransactionsPageProps):
   }
 
   return buildPageMetadata({
-    title: `Latest Zcash Transactions${pageSuffix} | CipherScan`,
+    title: `Latest Zcash Transactions${pageSuffix} | ZecBlock`,
     description: request.page > 1
       ? `Browse Zcash transaction archive page ${request.page}, with transaction hashes, block heights, transaction types, sizes, and confirmation times.`
       : 'Browse the latest Zcash transactions including shielded, transparent, and coinbase transactions. Real-time transaction explorer.',

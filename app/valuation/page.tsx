@@ -218,7 +218,7 @@ export default function ValuationPage() {
             onClick={() => setPeriod(p)}
             className={`px-3 py-1 rounded-full text-xs font-mono transition-colors ${
               period === p
-                ? 'bg-cipher-cyan/15 text-cipher-cyan border border-cipher-cyan/30'
+                ? 'bg-cipher-gold/15 text-cipher-gold border border-cipher-gold/30'
                 : 'text-cipher-text-muted hover:text-cipher-text-secondary border border-transparent'
             }`}
           >
@@ -269,7 +269,7 @@ export default function ValuationPage() {
                   <Line
                     type="monotone"
                     dataKey="priceUsd"
-                    stroke={colors.cyan}
+                    stroke={colors.gold}
                     dot={false}
                     strokeWidth={2}
                     connectNulls
@@ -327,8 +327,8 @@ export default function ValuationPage() {
                   <Area
                     type="monotone"
                     dataKey="mvrv"
-                    stroke={colors.cyan}
-                    fill={`${colors.cyan}15`}
+                    stroke={colors.gold}
+                    fill={`${colors.gold}15`}
                     strokeWidth={2}
                     dot={false}
                     connectNulls
@@ -377,7 +377,7 @@ export default function ValuationPage() {
                   <Area
                     type="monotone"
                     dataKey="sopr"
-                    stroke="#34D399"
+                    stroke="#65C79A"
                     fill="rgba(52,211,153,0.1)"
                     strokeWidth={2}
                     dot={false}
@@ -428,7 +428,7 @@ export default function ValuationPage() {
                   <Area
                     type="monotone"
                     dataKey="nupl"
-                    stroke="#A78BFA"
+                    stroke="#B6A0E0"
                     fill="rgba(167,139,250,0.1)"
                     strokeWidth={2}
                     dot={false}
@@ -502,9 +502,9 @@ export default function ValuationPage() {
                   />
                   <Area type="monotone" dataKey="gt2y" stackId="1" stroke="#6366f1" fill="#6366f1" fillOpacity={0.8} />
                   <Area type="monotone" dataKey="b1_2y" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.7} />
-                  <Area type="monotone" dataKey="b6_12m" stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="b3_6m" stackId="1" stroke="#56D4C8" fill="#56D4C8" fillOpacity={0.5} />
-                  <Area type="monotone" dataKey="b1_3m" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} />
+                  <Area type="monotone" dataKey="b6_12m" stackId="1" stroke="#B6A0E0" fill="#B6A0E0" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="b3_6m" stackId="1" stroke="#91AC90" fill="#91AC90" fillOpacity={0.5} />
+                  <Area type="monotone" dataKey="b1_3m" stackId="1" stroke="#65C79A" fill="#65C79A" fillOpacity={0.5} />
                   <Area type="monotone" dataKey="lt1m" stackId="1" stroke="#fbbf24" fill="#fbbf24" fillOpacity={0.5} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -569,8 +569,8 @@ export default function ValuationPage() {
                     yAxisId="cdd"
                     type="monotone"
                     dataKey="cdd"
-                    stroke={colors.cyan}
-                    fill={`${colors.cyan}15`}
+                    stroke={colors.gold}
+                    fill={`${colors.gold}15`}
                     strokeWidth={2}
                     dot={false}
                     connectNulls
@@ -626,7 +626,7 @@ export default function ValuationPage() {
                   transparent UTXOs back to their original mining or deshielding event and not
                   repricing on subsequent transparent moves). This produces a lower realized cap
                   figure. Neither method is incorrect — they reflect different definitions of
-                  &quot;cost basis.&quot; CipherScan follows the industry-standard UTXO creation
+                  &quot;cost basis.&quot; ZecBlock follows the industry-standard UTXO creation
                   date method for cross-chain comparability.
                 </p>
               </div>

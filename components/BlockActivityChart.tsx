@@ -20,10 +20,9 @@ const DEFAULT_BLOCKS = 60;
  * Block Activity Chart
  *
  * A mempool.space-style visualization of recent blocks as vertical bars,
- * where each bar's HEIGHT scales with the block's byte size (log-scaled
- * so small coinbase-only blocks are still visible next to full blocks).
+ * where each bar's HEIGHT scales with the block's byte size on a linear scale.
  *
- * Color-coded by finality state: green (finalized), cyan (pending), orange
+ * Color-coded by finality state: green (finalized), gold (pending), orange
  * (being voted on right now). Hover for details, click to open block detail.
  *
  * Works for any Zcash chain because it only needs /api/blocks — we just
@@ -33,7 +32,7 @@ const DEFAULT_BLOCKS = 60;
 export function BlockActivityChart({
   limit = DEFAULT_BLOCKS,
   title = 'Block Activity',
-  subtitle = 'Bar height scales with block size. Click any bar to open the block.',
+  subtitle = 'Bar height shows block size in bytes on a linear scale. Click any bar to open the block.',
   refreshMs = 15_000,
 }: {
   limit?: number;
@@ -98,14 +97,8 @@ export function BlockActivityChart({
     [ordered]
   );
 
-  // Log-scaled bar height: small blocks stay visible (>= 8% of chart).
-  const barHeight = (size: number): number => {
-    if (maxSize <= 0) return 20;
-    const logMax = Math.log10(Math.max(maxSize, 2048));
-    const logS = Math.log10(Math.max(size, 1024));
-    const pct = (logS / logMax) * 100;
-    return Math.max(8, Math.min(100, pct));
-  };
+  // True zero baseline: height represents bytes without minimum-size inflation.
+  const barHeight = (size: number): number => Math.max(0, size) / maxSize * 100;
 
   const hoveredBlock = hovered ? ordered.find((b) => b.hash === hovered) : null;
 
@@ -138,7 +131,7 @@ export function BlockActivityChart({
         {/* Chart */}
         {loading && ordered.length === 0 ? (
           <div className="h-48 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
           </div>
         ) : ordered.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-sm text-muted">
@@ -149,7 +142,7 @@ export function BlockActivityChart({
             {/* Y axis scale ticks */}
             <div className="absolute inset-y-0 left-0 w-12 flex flex-col justify-between text-[9px] font-mono text-muted/60 pointer-events-none pr-2 text-right">
               <span>{fmtBytes(maxSize)}</span>
-              <span>{fmtBytes(maxSize / 4)}</span>
+              <span>{fmtBytes(maxSize / 2)}</span>
               <span>0</span>
             </div>
 
@@ -190,7 +183,7 @@ export function BlockActivityChart({
               {hoveredBlock ? (
                 <Link
                   href={`/block/${hoveredBlock.height}`}
-                  className="card px-4 py-2.5 flex items-center gap-4 hover:border-cipher-cyan transition-colors"
+                  className="card px-4 py-2.5 flex items-center gap-4 hover:border-cipher-gold transition-colors"
                 >
                   <div>
                     <div className="text-[10px] text-muted font-mono uppercase tracking-wider">
@@ -234,7 +227,7 @@ export function BlockActivityChart({
                           ? 'text-cipher-orange'
                           : finalizedHeight !== null && hoveredBlock.height <= finalizedHeight
                           ? 'text-cipher-green'
-                          : 'text-cipher-cyan'
+                          : 'text-cipher-gold'
                       }`}
                     >
                       {hoveredBlock.hash === votedHash
@@ -256,7 +249,7 @@ export function BlockActivityChart({
             <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-mono text-muted">
               <LegendSwatch color="bg-cipher-green/80" label="finalized" />
               <LegendSwatch color="bg-cipher-orange/80" label="voting now" />
-              <LegendSwatch color="bg-cipher-cyan/70" label="pending" />
+              <LegendSwatch color="bg-cipher-gold/70" label="pending" />
             </div>
           </div>
         )}
@@ -284,17 +277,19 @@ function BlockBar({
     ? 'bg-cipher-orange/80 hover:bg-cipher-orange border-cipher-orange'
     : isFinalized
     ? 'bg-cipher-green/70 hover:bg-cipher-green/90 border-cipher-green'
-    : 'bg-cipher-cyan/60 hover:bg-cipher-cyan/80 border-cipher-cyan';
+    : 'bg-cipher-gold/60 hover:bg-cipher-gold/80 border-cipher-gold';
 
   return (
     <Link
       href={`/block/${block.height}`}
       className={`relative shrink-0 w-[6px] sm:w-[8px] rounded-t-sm border-t ${color} transition-[height,transform,box-shadow] ${
-        isHovered ? 'ring-2 ring-white/20 scale-110' : ''
+        isHovered ? 'ring-1 ring-cipher-gold' : ''
       } ${isVoting ? 'animate-pulse' : ''}`}
       style={{ height: `${heightPct}%` }}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
+      onFocus={() => onHoverChange(true)}
+      onBlur={() => onHoverChange(false)}
       aria-label={`Block ${block.height}, ${block.size} bytes`}
     />
   );

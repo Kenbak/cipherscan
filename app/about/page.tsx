@@ -4,7 +4,7 @@ import { NETWORK_LABEL } from '@/lib/config';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'About | CipherScan',
+  title: 'About | ZecBlock',
   description:
     'Privacy-first Zcash blockchain explorer. Born at the Zypherpunk hackathon. Making privacy visual, understandable, and accessible to all.',
   path: '/about',
@@ -61,8 +61,8 @@ const timeline = [
   {
     date: 'NOV 2025',
     tag: 'ORIGIN',
-    tagColor: 'text-cipher-cyan',
-    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
+    tagColor: 'text-cipher-gold',
+    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Built at Zypherpunk',
     description:
       "Created at the world's first Zcash privacy hackathon. 300+ projects. Won 4 tracks: Project Tachyon, Gemini, Raybot, and Network State. From zero to a working explorer in days.",
@@ -88,8 +88,8 @@ const timeline = [
   {
     date: 'JAN 2026',
     tag: 'ANALYTICS',
-    tagColor: 'text-cipher-cyan',
-    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
+    tagColor: 'text-cipher-gold',
+    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Privacy Risks & Batch Patterns',
     description:
       'Advanced deshielding pattern detection and linkability analysis. Identifying on-chain behaviors that compromise Zcash privacy — and making that data accessible to everyone.',
@@ -115,8 +115,8 @@ const timeline = [
   {
     date: 'APR 2026',
     tag: 'MONITORING',
-    tagColor: 'text-cipher-cyan',
-    dotColor: 'bg-cipher-cyan shadow-[0_0_8px_rgb(var(--color-cyan-rgb)_/_0.6)]',
+    tagColor: 'text-cipher-gold',
+    dotColor: 'bg-cipher-gold shadow-[0_0_8px_rgb(var(--color-gold-rgb)_/_0.6)]',
     title: 'Fork Watch & Network Health',
     description:
       'Real-time chain reorganization detection and monitoring. Tracking network consensus health, stale blocks, and reorg depth — critical infrastructure visibility.',
@@ -126,7 +126,7 @@ const timeline = [
     tag: 'INDEXER',
     tagColor: 'text-cipher-purple',
     dotColor: 'bg-cipher-purple shadow-[0_0_8px_rgb(var(--color-purple-rgb)_/_0.6)]',
-    title: 'CipherScan Rust Indexer',
+    title: 'ZecBlock Rust Indexer',
     description:
       'High-performance Rust-based blockchain indexer. Full chain state in PostgreSQL — every transaction, output, and shielded action indexed for instant queries across 3.3M+ blocks.',
   },
@@ -158,10 +158,10 @@ export default async function AboutPage() {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-mono mb-6 leading-[1.1]">
             <span className="text-primary">Decode the blockchain.</span>
             <br />
-            <span className="text-cipher-cyan">Protect the user.</span>
+            <span className="text-cipher-gold">Protect the user.</span>
           </h1>
           <p className="text-base sm:text-lg text-muted max-w-2xl leading-relaxed mb-6">
-            CipherScan is a privacy-first Zcash blockchain explorer.
+            ZecBlock is a privacy-first Zcash blockchain explorer.
             Not just a block browser — a tool for understanding, analyzing, and
             visualizing what privacy means on-chain. Making the invisible visible
             without compromising individuals.
@@ -181,7 +181,7 @@ export default async function AboutPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8">
             {[
-              { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-cyan' },
+              { label: 'Blocks Indexed', value: fmt(stats.blocksIndexed), color: 'text-cipher-gold' },
               { label: 'Transactions Tracked', value: fmt(stats.totalTransactions), color: 'text-cipher-yellow' },
               { label: 'Shielded TXs Analyzed', value: fmt(stats.shieldedTxAnalyzed), color: 'text-cipher-purple' },
               { label: 'Chain Data Indexed', value: stats.chainSizeGB ? `${stats.chainSizeGB} GB` : '...', color: 'text-cipher-green' },
@@ -213,7 +213,7 @@ export default async function AboutPage() {
 
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-cipher-cyan/40 via-cipher-purple/20 to-transparent" />
+            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gradient-to-b from-cipher-gold/40 via-cipher-purple/20 to-transparent" />
 
             <div className="space-y-8 sm:space-y-10">
               {timeline.map((item, i) => (
@@ -261,7 +261,7 @@ export default async function AboutPage() {
             understand it, measure it, or improve it.
           </p>
           <p className="text-sm sm:text-base text-muted leading-relaxed max-w-2xl">
-            CipherScan makes privacy visual, understandable, and accessible to all — developers,
+            ZecBlock makes privacy visual, understandable, and accessible to all — developers,
             researchers, and everyday users. We show the shielded pool&apos;s health, detect patterns
             that risk privacy, and provide the tools to explore a blockchain designed to be private.
           </p>
@@ -275,7 +275,7 @@ export default async function AboutPage() {
                 Open source. Community funded.
               </h2>
               <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-lg">
-                CipherScan is fully open source and funded by the Zcash community.
+                ZecBlock is fully open source and funded by the Zcash community.
                 Contributions, issues, and feedback are welcome.
               </p>
             </div>
@@ -284,7 +284,7 @@ export default async function AboutPage() {
                 href="https://github.com/Kenbak/cipherscan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-cyan/40 transition-colors duration-150"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-gold/40 transition-colors duration-150"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -295,7 +295,7 @@ export default async function AboutPage() {
                 href="https://twitter.com/cipherscan_app"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-cyan/40 transition-colors duration-150"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-cipher-border rounded-lg font-mono text-xs text-muted hover:text-primary hover:border-cipher-gold/40 transition-colors duration-150"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -304,7 +304,7 @@ export default async function AboutPage() {
               </a>
               <Link
                 href="/docs"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-cipher-cyan/10 border border-cipher-cyan/30 rounded-lg font-mono text-xs text-cipher-cyan hover:bg-cipher-cyan/20 transition-colors duration-150"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-cipher-gold/10 border border-cipher-gold/30 rounded-lg font-mono text-xs text-cipher-gold hover:bg-cipher-gold/20 transition-colors duration-150"
               >
                 API Docs
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

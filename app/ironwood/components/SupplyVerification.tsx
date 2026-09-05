@@ -1,12 +1,6 @@
 'use client';
 
 import { type ReactNode } from 'react';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
 import { ShareableCard } from '@/components/ShareableCard';
 import { fmtValue, type CurrencyMode } from '@/hooks/useCurrencyToggle';
 import type { ChartColors, Overview, PoolRow } from './types';
@@ -98,18 +92,12 @@ export function SupplyVerification({
   const hasSupplyData = sv != null && sv.chainSupplyZat != null;
   const verifiedPct = hasSupplyData ? sv.verifiedPct : null;
 
-  // Donut data: two segments — verified (green) and Orchard/unverified (purple)
-  // Use a minimum visual value so the Orchard segment is always clearly visible
-  const minVisualPct = 5;
-  const orchardVisualPct = verifiedPct != null ? Math.max(100 - verifiedPct, minVisualPct) : 50;
-  const ringData = [
-    { name: 'Verified', value: 100 - orchardVisualPct },
-    { name: 'Orchard', value: orchardVisualPct },
-  ];
-  const RING_COLORS = [colors.verifiedRing, colors.orchardPool];
-  const shareText = verifiedPct != null
-    ? `${verifiedPct.toFixed(1)}% of Zcash supply cryptographically verified. No inflation detected.\n\nhttps://cipherscan.app/ironwood`
-    : `Zcash Ironwood migration tracker\n\nhttps://cipherscan.app/ironwood`;
+  // Exact server proportion. Invalid or unavailable data must never draw a fake split.
+  const validVerifiedPct = verifiedPct != null && Number.isFinite(verifiedPct) && verifiedPct >= 0 && verifiedPct <= 100
+    ? verifiedPct : null;
+  const shareText = validVerifiedPct != null
+    ? `${validVerifiedPct.toFixed(1)}% of Zcash supply turnstile-verified.\n\nhttps://zecblock.com/ironwood`
+    : `Zcash Ironwood migration tracker\n\nhttps://zecblock.com/ironwood`;
 
   return (
     <div id="supply" className="scroll-mt-20">
@@ -121,49 +109,28 @@ export function SupplyVerification({
         fileName="cipherscan-supply.png"
       >
       <div className="grid grid-cols-1 sm:grid-cols-[2fr_3fr] lg:grid-cols-[5fr_7fr] gap-6 sm:gap-10 lg:gap-14 items-center">
-        {/* Left: Ring */}
-        <div className="flex flex-col items-center justify-center w-full px-2 sm:px-6 lg:px-10 py-2 sm:py-4">
-          <div className="relative w-44 h-44 sm:w-48 sm:h-48">
-            <ResponsiveContainer initialDimension={{ width: 500, height: 300 }} width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={ringData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="70%"
-                  outerRadius="95%"
-                  strokeWidth={0}
-                  startAngle={90}
-                  endAngle={-270}
-                  animationDuration={800}
-                >
-                  {ringData.map((_, i) => (
-                    <Cell key={i} fill={RING_COLORS[i]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Center */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold font-mono text-primary leading-none">
-                {verifiedPct != null ? `${verifiedPct.toFixed(1)}%` : '—'}
-              </span>
-              <span className="text-[10px] text-emerald-400/70 mt-1 font-medium">turnstile-verified</span>
-            </div>
-          </div>
-
-          {/* Legend below ring */}
-          <div className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap mt-4 text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-muted">Verified</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.orchardPool }} />
-              <span className="text-muted">Orchard</span>
-            </div>
-          </div>
+        <div className="w-full py-4">
+          <p className="text-xs font-mono text-muted mb-3">TURNSTILE_VERIFICATION</p>
+          <p className="text-4xl font-mono font-medium tracking-tight text-primary tabular-nums">
+            {validVerifiedPct != null ? `${validVerifiedPct.toFixed(1)}%` : '—'}
+          </p>
+          <p className="text-sm text-secondary mt-2 mb-6">
+            {validVerifiedPct != null ? 'of chain supply turnstile-verified' : 'Supply verification unavailable'}
+          </p>
+          {validVerifiedPct != null && (
+            <>
+              <div className="flex h-3 w-full overflow-hidden bg-cipher-hover" role="img"
+                aria-label={`${validVerifiedPct}% verified; ${100 - validVerifiedPct}% pending Orchard verification`}>
+                <div style={{ width: `${validVerifiedPct}%`, backgroundColor: colors.verifiedRing }} />
+                <div style={{ width: `${100 - validVerifiedPct}%`, backgroundColor: colors.orchardPool }} />
+              </div>
+              <div className="flex justify-between mt-3 gap-4 text-xs font-mono text-secondary">
+                <span>Verified <span className="text-primary">{validVerifiedPct.toFixed(1)}%</span></span>
+                <span>Pending <span className="text-cipher-purple">{(100 - validVerifiedPct).toFixed(1)}%</span></span>
+              </div>
+              <p className="mt-5 text-xs text-muted leading-relaxed">The remaining Orchard balance is pending turnstile verification. Bar lengths show the actual proportions.</p>
+            </>
+          )}
         </div>
 
         {/* Right: Pool breakdown */}
@@ -172,8 +139,8 @@ export function SupplyVerification({
             <span className="text-xs font-bold text-primary">Pool balances</span>
             {supplyMatch != null && (
               <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                <span className={`text-[10px] font-mono ${supplyMatch ? 'text-emerald-400/70' : 'text-red-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${supplyMatch ? 'bg-cipher-green animate-pulse' : 'bg-red-400'}`} />
+                <span className={`text-[10px] font-mono ${supplyMatch ? 'text-cipher-green' : 'text-red-400'}`}>
                   {supplyMatch ? 'No inflation' : 'Mismatch'}
                 </span>
               </div>
@@ -201,7 +168,7 @@ export function SupplyVerification({
           <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-cipher-border/30 px-2 sm:px-3">
             <div className="flex items-center gap-2">
               <span className="text-[11px] sm:text-xs font-bold text-primary">Max supply</span>
-              {supplyBalanced && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+              {supplyBalanced && <span className="w-1.5 h-1.5 rounded-full bg-cipher-green" />}
             </div>
             <span className="text-[11px] sm:text-sm font-mono font-bold text-primary">{fmtValue(MAX_SUPPLY_ZAT, currencyMode, zecPrice)}</span>
           </div>

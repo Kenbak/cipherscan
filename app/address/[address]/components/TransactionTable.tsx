@@ -38,7 +38,7 @@ export function TransactionTable({
         <CardHeader>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-muted tracking-wider">&gt; TRANSACTIONS</span>
-            <Badge color="cyan">{totalTxCount}</Badge>
+            <Badge color="gold">{totalTxCount}</Badge>
           </div>
           <span className="text-sm text-muted font-normal font-mono ml-auto">
             {totalPages > 1 ? `page ${currentPage} of ${totalPages}` : `${totalTxCount} total`}
@@ -66,7 +66,7 @@ export function TransactionTable({
                 {/* Transaction Rows */}
                 <div className="space-y-2 min-w-[800px]">
                   {sortedTxs.map((tx, index) => (
-                    <div key={tx.txid || index} onClick={() => router.push(`/tx/${tx.txid}`)} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition cursor-pointer group">
+                    <div key={tx.txid || index} onClick={() => router.push(`/tx/${tx.txid}`)} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-gold transition cursor-pointer group">
                       {/* Type Column */}
                       <div className="col-span-1">
                         {tx.type === 'received' ? (
@@ -87,7 +87,7 @@ export function TransactionTable({
                           <Link
                             href={`/block/${tx.blockHeight}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-cipher-cyan hover:underline"
+                            className="text-xs text-cipher-gold hover:underline"
                           >
                             #{tx.blockHeight}
                           </Link>

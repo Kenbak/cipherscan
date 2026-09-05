@@ -215,8 +215,8 @@ export function PrivacyScore({
   const hasFilteredData = filteredTxs.length > 0;
   const shareText =
     hasFilteredData && complianceStats
-      ? `ZIP-318 compliance: ${(complianceStats.green / complianceStats.total * 100).toFixed(1)}% fully compliant (${complianceStats.green}/${complianceStats.total} txs). ${headlineStats.txPct.toFixed(0)}% use standard denominations.\n\nhttps://cipherscan.app/ironwood`
-      : `Zcash migration privacy on CipherScan.\n\nhttps://cipherscan.app/ironwood`;
+      ? `ZIP-318 compliance: ${(complianceStats.green / complianceStats.total * 100).toFixed(1)}% fully compliant (${complianceStats.green}/${complianceStats.total} txs). ${headlineStats.txPct.toFixed(0)}% use standard denominations.\n\nhttps://zecblock.com/ironwood`
+      : `Zcash migration privacy on ZecBlock.\n\nhttps://zecblock.com/ironwood`;
 
   return (
     <div

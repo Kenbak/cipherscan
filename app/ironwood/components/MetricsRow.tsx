@@ -127,9 +127,9 @@ export function MetricsRow({
           {/* Brand footer */}
           <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-cipher-border/20 pt-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
-            <span className="text-[11px] font-bold font-mono text-cipher-cyan-bright tracking-tight">CIPHERSCAN</span>
-            <span className="text-[10px] font-mono text-muted/55">cipherscan.app</span>
+            <img src="/brand/zecblock-mark.svg" alt="" width={20} height={20} className="h-5 w-5 object-contain" />
+            <span className="text-[11px] font-bold font-mono text-cipher-gold-bright tracking-tight">ZecBlock</span>
+            <span className="text-[10px] font-mono text-muted/55">zecblock.com</span>
           </div>
 
         </div>
@@ -152,7 +152,7 @@ export function MetricsRow({
   return (
     <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
       <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="h-2 w-2 rounded-full bg-cipher-green animate-pulse" />
         <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">Ironwood live</span>
       </div>
 

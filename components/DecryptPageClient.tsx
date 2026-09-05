@@ -70,8 +70,8 @@ export default function DecryptPageClient() {
       <Card variant="glass" className="mt-8">
         <CardBody>
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <Icons.Info className="w-5 h-5 text-cipher-cyan" />
+            <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+              <Icons.Info className="w-5 h-5 text-cipher-gold" />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-primary text-lg mb-3">How to Get a Viewing Key</h3>
@@ -87,7 +87,7 @@ export default function DecryptPageClient() {
                   rel="noopener noreferrer"
                   className="card card-compact card-interactive text-center"
                 >
-                  <span className="text-sm font-medium text-cipher-cyan">Vizor</span>
+                  <span className="text-sm font-medium text-cipher-gold">Vizor</span>
                   <span className="text-xs text-muted block mt-1">Mobile</span>
                 </a>
                 <a
@@ -96,7 +96,7 @@ export default function DecryptPageClient() {
                   rel="noopener noreferrer"
                   className="card card-compact card-interactive text-center"
                 >
-                  <span className="text-sm font-medium text-cipher-cyan">Zkool</span>
+                  <span className="text-sm font-medium text-cipher-gold">Zkool</span>
                   <span className="text-xs text-muted block mt-1">Mobile</span>
                 </a>
                 <a
@@ -105,7 +105,7 @@ export default function DecryptPageClient() {
                   rel="noopener noreferrer"
                   className="card card-compact card-interactive text-center"
                 >
-                  <span className="text-sm font-medium text-cipher-cyan">Zingo CLI</span>
+                  <span className="text-sm font-medium text-cipher-gold">Zingo CLI</span>
                   <span className="text-xs text-muted block mt-1">Command-line</span>
                 </a>
               </div>

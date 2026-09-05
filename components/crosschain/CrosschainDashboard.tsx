@@ -300,7 +300,7 @@ export function CrosschainDashboard() {
       <div className="card text-center py-12">
         <h2 className="text-2xl font-bold font-mono text-secondary mb-4">Cross-Chain Data Unavailable</h2>
         <p className="text-muted max-w-lg mx-auto mb-6">{error || 'No cross-chain data available'}</p>
-        <Link href="/" className="px-4 py-2 card-bg border border-cipher-border text-secondary rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm">Back to Explorer</Link>
+        <Link href="/" className="px-4 py-2 card-bg border border-cipher-border text-secondary rounded-lg hover:border-cipher-gold transition-colors font-mono text-sm">Back to Explorer</Link>
       </div>
     );
   }
@@ -370,7 +370,7 @@ export function CrosschainDashboard() {
         if (!explorerUrl) return null;
         const isInternal = explorerUrl.startsWith('/');
         const icon = (
-          <svg className="w-3.5 h-3.5 text-muted hover:text-cipher-cyan transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5 text-muted hover:text-cipher-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         );
@@ -466,7 +466,7 @@ export function CrosschainDashboard() {
                   <button
                     onClick={loadMore}
                     disabled={historyLoading}
-                    className="px-4 py-1.5 text-[11px] font-mono text-cipher-cyan border border-cipher-cyan/30 rounded-lg hover:bg-cipher-cyan/10 transition-colors disabled:opacity-40"
+                    className="px-4 py-1.5 text-[11px] font-mono text-cipher-gold border border-cipher-gold/30 rounded-lg hover:bg-cipher-gold/10 transition-colors disabled:opacity-40"
                   >
                     {historyLoading ? 'Loading...' : 'Load more'}
                   </button>
@@ -502,7 +502,7 @@ export function CrosschainDashboard() {
       <div className="text-center pt-4">
         <p className="text-[10px] text-muted font-mono">
           Powered by{' '}
-          <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
+          <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">NEAR Intents</a>
           {' '}· {stats.totalSwapsAllTime.toLocaleString()} swaps indexed
         </p>
       </div>

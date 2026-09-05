@@ -174,7 +174,7 @@ function TerminalHero() {
       if (part === '[shielded]' || part === '[encrypted — use viewing key]')
         return <span key={i} className="text-cipher-purple">{part}</span>;
       if (/^"[a-z_]+"$/.test(part))
-        return <span key={i} className="text-cyan-600">{part}</span>;
+        return <span key={i} className="text-gold-600">{part}</span>;
       return <span key={i}>{part}</span>;
     });
   };
@@ -191,7 +191,7 @@ function TerminalHero() {
       <div className="p-5 sm:p-6 font-mono text-sm leading-relaxed">
         <pre className="whitespace-pre-wrap text-muted/80">
           {renderText(terminalText)}
-          <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} text-cipher-cyan transition-opacity duration-100`}>▋</span>
+          <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} text-cipher-gold transition-opacity duration-100`}>▋</span>
         </pre>
       </div>
     </div>
@@ -199,15 +199,15 @@ function TerminalHero() {
 }
 
 // Address network toggle component
-function NetworkToggle({ value, onChange, accentColor = 'cyan' }: {
+function NetworkToggle({ value, onChange, accentColor = 'gold' }: {
   value: 'mainnet' | 'testnet';
   onChange: (v: 'mainnet' | 'testnet') => void;
-  accentColor?: 'cyan' | 'purple' | 'default';
+  accentColor?: 'gold' | 'purple' | 'default';
 }) {
   const activeClass = accentColor === 'purple'
     ? 'filter-btn-active !bg-cipher-purple !text-white !shadow-none'
-    : accentColor === 'cyan'
-      ? 'filter-btn-active !bg-cipher-cyan !text-cipher-bg !shadow-none'
+    : accentColor === 'gold'
+      ? 'filter-btn-active !bg-cipher-gold !text-cipher-bg !shadow-none'
       : 'filter-btn-active';
 
   return (
@@ -272,7 +272,7 @@ export default function LearnPage() {
                   href="https://forum.zcashcommunity.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-cyan hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-cipher-gold hover:bg-cipher-green text-cipher-bg font-medium rounded-lg transition-colors"
                 >
                   <Icons.Users className="w-3.5 h-3.5" />
                   <span>Join Forum</span>
@@ -281,7 +281,7 @@ export default function LearnPage() {
                   href="http://pool.tazminer.com:3000"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-gold text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.Gift className="w-3.5 h-3.5" />
                   <span>Mine TAZ in browser</span>
@@ -290,7 +290,7 @@ export default function LearnPage() {
                   href="https://discord.gg/zcash"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-cyan text-secondary hover:text-primary rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-cipher-border hover:border-cipher-gold text-secondary hover:text-primary rounded-lg transition-colors"
                 >
                   <Icons.Chat className="w-3.5 h-3.5" />
                   <span>Discord</span>
@@ -312,10 +312,10 @@ export default function LearnPage() {
         <h2 className="text-xs font-mono text-muted uppercase tracking-wider mb-6">{'>'} KEY_CONCEPTS</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Zero-Knowledge Proofs */}
-          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+          <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <Icons.Layers className="w-5 h-5 text-cipher-cyan" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
+                <Icons.Layers className="w-5 h-5 text-cipher-gold" />
               </div>
               <h3 className="font-bold text-primary mb-2">Zero-Knowledge Proofs</h3>
               <p className="text-sm text-secondary leading-relaxed">
@@ -333,12 +333,12 @@ export default function LearnPage() {
               </div>
               <h3 className="font-bold text-primary mb-2">Shielded Pools</h3>
               <p className="text-sm text-secondary leading-relaxed">
-                <strong className="text-cipher-cyan">Ironwood</strong> is the latest pool — formally verified
+                <strong className="text-cipher-gold">Ironwood</strong> is the latest pool — formally verified
                 cryptography with a quantum-recoverable design.
                 Older pools (<strong className="text-cipher-purple">Orchard</strong>, <strong className="text-cipher-purple">Sapling</strong>)
                 remain active. The transparent pool works like Bitcoin. Always shield your ZEC.
               </p>
-              <Link href="/ironwood" className="inline-flex items-center gap-1 text-sm text-cipher-cyan hover:text-cipher-green mt-3 transition-colors">
+              <Link href="/ironwood" className="inline-flex items-center gap-1 text-sm text-cipher-gold hover:text-cipher-green mt-3 transition-colors">
                 <span>Ironwood Dashboard</span>
                 <Icons.ChevronRight className="w-3 h-3" />
               </Link>
@@ -346,17 +346,17 @@ export default function LearnPage() {
           </Card>
 
           {/* Encrypted Memos */}
-          <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+          <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
             <CardBody>
-              <div className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center mb-4">
-                <Icons.Lock className="w-5 h-5 text-cipher-cyan" />
+              <div className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center mb-4">
+                <Icons.Lock className="w-5 h-5 text-cipher-gold" />
               </div>
               <h3 className="font-bold text-primary mb-2">Encrypted Memos</h3>
               <p className="text-sm text-secondary leading-relaxed">
                 Every shielded transaction includes a 512-byte encrypted memo visible only
                 to the recipient. Messages, payment references, or structured data — completely private.
               </p>
-              <Link href="/decrypt" className="inline-flex items-center gap-1 text-sm text-cipher-cyan hover:text-cipher-green mt-3 transition-colors">
+              <Link href="/decrypt" className="inline-flex items-center gap-1 text-sm text-cipher-gold hover:text-cipher-green mt-3 transition-colors">
                 <span>Try the Decrypt Tool</span>
                 <Icons.ChevronRight className="w-3 h-3" />
               </Link>
@@ -371,7 +371,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Key className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Key className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ADDRESS_TYPES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -385,8 +385,8 @@ export default function LearnPage() {
               <CardBody>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Icons.Target className="w-4 h-4 text-cipher-cyan" />
-                    <h3 className="font-bold text-cipher-cyan font-mono text-sm">Unified (u...)</h3>
+                    <Icons.Target className="w-4 h-4 text-cipher-gold" />
+                    <h3 className="font-bold text-cipher-gold font-mono text-sm">Unified (u...)</h3>
                   </div>
                   <Badge color="green">RECOMMENDED</Badge>
                 </div>
@@ -394,9 +394,9 @@ export default function LearnPage() {
                   Contains Orchard, Sapling, and Transparent receivers in one address.
                   Wallets automatically pick the most private option.
                 </p>
-                <NetworkToggle value={unifiedNetwork} onChange={setUnifiedNetwork} accentColor="cyan" />
+                <NetworkToggle value={unifiedNetwork} onChange={setUnifiedNetwork} accentColor="gold" />
                 <div className="relative group mt-3">
-                  <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                  <code className="text-xs text-cipher-gold break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
                     {addressExamples[unifiedNetwork].unified}
                   </code>
                   <CopyButton text={addressExamples[unifiedNetwork].unified} />
@@ -458,12 +458,12 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Globe className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Globe className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} ZCASH_NAMES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
             The <strong className="text-primary">Zcash Name System (ZNS)</strong> maps human-readable names to Zcash Unified Addresses.
-            Instead of sharing a 200-character address, you can share a name like <code className="text-cipher-cyan font-mono text-sm">alice</code>.
+            Instead of sharing a 200-character address, you can share a name like <code className="text-cipher-gold font-mono text-sm">alice</code>.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -472,24 +472,24 @@ export default function LearnPage() {
                 <h3 className="font-bold text-primary mb-4">How It Works</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">1</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">1</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Claim a name</div>
                       <div className="text-xs text-secondary mt-0.5">Register a name at zcashnames.com. Shorter names cost more (1-char = 6 ZEC, 7+ chars = 0.25 ZEC).</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">2</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">2</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Link to your address</div>
                       <div className="text-xs text-secondary mt-0.5">Your name resolves to a Unified Address. Update it anytime without losing the name.</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-cyan">3</span>
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-cipher-gold">3</span>
                     <div>
                       <div className="font-medium text-primary text-sm">Share it</div>
-                      <div className="text-xs text-secondary mt-0.5">Anyone can search your name on CipherScan or resolve it in a wallet to find your address.</div>
+                      <div className="text-xs text-secondary mt-0.5">Anyone can search your name on ZecBlock or resolve it in a wallet to find your address.</div>
                     </div>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export default function LearnPage() {
 
             <Card variant="compact">
               <CardBody>
-                <h3 className="font-bold text-primary mb-4">Try It on CipherScan</h3>
+                <h3 className="font-bold text-primary mb-4">Try It on ZecBlock</h3>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Search any ZNS name in the search bar to see its resolved address, registration details,
                   marketplace status, and full event history.
@@ -526,10 +526,10 @@ export default function LearnPage() {
                     <Link
                       key={ex.name}
                       href={`/name/${ex.name}`}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-cipher-bg/50 border border-cipher-border hover:border-cipher-cyan/30 transition group"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-cipher-bg/50 border border-cipher-border hover:border-cipher-gold/30 transition group"
                     >
                       <div>
-                        <code className="text-sm text-cipher-cyan font-mono group-hover:text-cipher-green transition-colors">{ex.name}</code>
+                        <code className="text-sm text-cipher-gold font-mono group-hover:text-cipher-green transition-colors">{ex.name}</code>
                         <span className="text-xs text-muted ml-2">{ex.desc}</span>
                       </div>
                       <Icons.ChevronRight className="w-3 h-3 text-muted group-hover:text-primary transition-colors" />
@@ -565,7 +565,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Eye className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Eye className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} VIEWING_KEYS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -580,8 +580,8 @@ export default function LearnPage() {
                 <h3 className="font-bold text-primary mb-4">When to use a Viewing Key</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icons.Eye className="w-3.5 h-3.5 text-cipher-cyan" />
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Icons.Eye className="w-3.5 h-3.5 text-cipher-gold" />
                     </span>
                     <div>
                       <div className="font-medium text-primary text-sm">Auditing</div>
@@ -589,8 +589,8 @@ export default function LearnPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icons.Shield className="w-3.5 h-3.5 text-cipher-cyan" />
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Icons.Shield className="w-3.5 h-3.5 text-cipher-gold" />
                     </span>
                     <div>
                       <div className="font-medium text-primary text-sm">Transparency</div>
@@ -598,12 +598,12 @@ export default function LearnPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-md bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icons.Lock className="w-3.5 h-3.5 text-cipher-cyan" />
+                    <span className="w-6 h-6 rounded-md bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Icons.Lock className="w-3.5 h-3.5 text-cipher-gold" />
                     </span>
                     <div>
                       <div className="font-medium text-primary text-sm">Decrypt Memos</div>
-                      <div className="text-xs text-secondary mt-0.5">Read encrypted messages on CipherScan without exposing your spending key</div>
+                      <div className="text-xs text-secondary mt-0.5">Read encrypted messages on ZecBlock without exposing your spending key</div>
                     </div>
                   </div>
                 </div>
@@ -632,16 +632,16 @@ export default function LearnPage() {
                   </div>
                   <div className="bg-cipher-bg/50 border border-cipher-border rounded-lg p-3">
                     <div className="font-medium text-primary mb-1">Zingo CLI</div>
-                    <code className="text-xs text-cipher-cyan font-mono bg-cipher-surface px-2 py-1 rounded">exportufvk</code>
+                    <code className="text-xs text-cipher-gold font-mono bg-cipher-surface px-2 py-1 rounded">exportufvk</code>
                   </div>
                 </div>
 
                 {/* Example key */}
                 <div className="mt-4 pt-4 border-t border-cipher-border">
                   <div className="text-xs text-muted font-mono uppercase tracking-wide mb-2">Example Viewing Key</div>
-                  <NetworkToggle value={viewingKeyNetwork} onChange={setViewingKeyNetwork} accentColor="cyan" />
+                  <NetworkToggle value={viewingKeyNetwork} onChange={setViewingKeyNetwork} accentColor="gold" />
                   <div className="relative group mt-3">
-                    <code className="text-xs text-cipher-cyan break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
+                    <code className="text-xs text-cipher-gold break-all font-mono block bg-cipher-bg/50 p-3 rounded-lg border border-cipher-border">
                       {viewingKeyExamples[viewingKeyNetwork]}
                     </code>
                     <CopyButton text={viewingKeyExamples[viewingKeyNetwork]} />
@@ -659,7 +659,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Shield className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Shield className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} NETWORK_PRIVACY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -669,7 +669,7 @@ export default function LearnPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Nym */}
-            <Card variant="glass" className="border-l-2 border-l-cipher-cyan/30">
+            <Card variant="glass" className="border-l-2 border-l-cipher-gold/30">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-primary text-lg">Nym Mixnet</h3>
@@ -694,7 +694,7 @@ export default function LearnPage() {
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-primary text-lg">Tor</h3>
-                  <Badge color="cyan">WIDELY AVAILABLE</Badge>
+                  <Badge color="gold">WIDELY AVAILABLE</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-4 leading-relaxed">
                   Onion routing through 3 volunteer relays. Hides your IP from the destination but vulnerable
@@ -751,7 +751,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Wallet className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Wallet className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} WALLETS</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -761,7 +761,7 @@ export default function LearnPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Zodl */}
-            <Card variant="compact" className="card-interactive border-cipher-cyan/20">
+            <Card variant="compact" className="card-interactive border-cipher-gold/20">
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-primary text-lg">Zodl</h3>
@@ -789,7 +789,7 @@ export default function LearnPage() {
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-primary text-lg">Vizor</h3>
-                  <Badge color="cyan">ADVANCED</Badge>
+                  <Badge color="gold">ADVANCED</Badge>
                 </div>
                 <p className="text-sm text-secondary mb-5 leading-relaxed">
                   Privacy-first Zcash wallet with shielded-by-default transactions, memo support, and a clean mobile experience.
@@ -827,20 +827,20 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Code className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Code className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} DEVELOPER_RESOURCES</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
-            Build on Zcash using CipherScan&apos;s infrastructure or the official Zcash developer tools.
+            Build on Zcash using ZecBlock&apos;s infrastructure or the official Zcash developer tools.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* CipherScan Infrastructure */}
+            {/* ZecBlock Infrastructure */}
             <Card variant="compact">
               <CardBody>
                 <div className="flex items-center gap-2 mb-5">
-                  <Icons.Database className="w-4 h-4 text-cipher-cyan" />
-                  <h3 className="font-bold text-cipher-cyan">CipherScan Infrastructure</h3>
+                  <Icons.Database className="w-4 h-4 text-cipher-gold" />
+                  <h3 className="font-bold text-cipher-gold">ZecBlock Infrastructure</h3>
                 </div>
 
                 <div className="space-y-3">
@@ -853,7 +853,7 @@ export default function LearnPage() {
                     <div key={ep.label}>
                       <div className="text-xs text-muted font-mono mb-1 uppercase tracking-wide">{ep.label}</div>
                       <div className="relative group">
-                        <code className="text-xs text-cipher-cyan font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
+                        <code className="text-xs text-cipher-gold font-mono block bg-cipher-bg/50 p-2.5 rounded-lg border border-cipher-border">
                           {ep.value}
                         </code>
                         <CopyButton text={ep.value} />
@@ -947,7 +947,7 @@ export default function LearnPage() {
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-14">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Users className="w-5 h-5 text-cipher-cyan" />
+            <Icons.Users className="w-5 h-5 text-cipher-gold" />
             <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} COMMUNITY</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
@@ -969,7 +969,7 @@ export default function LearnPage() {
                 rel="noopener noreferrer"
                 className="card card-compact card-interactive flex items-start gap-3 !p-4"
               >
-                <span className="w-8 h-8 rounded-lg bg-cipher-hover flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+                <span className="w-8 h-8 rounded-lg bg-cipher-hover flex items-center justify-center flex-shrink-0 text-cipher-gold">
                   <item.icon className="w-4 h-4" />
                 </span>
                 <div>
@@ -984,7 +984,7 @@ export default function LearnPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             <Link
               href="/newsletter"
-              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+              className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
             >
               Weekly Newsletter
             </Link>
@@ -1001,7 +1001,7 @@ export default function LearnPage() {
                 href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-cyan/30 transition text-center"
+                className="text-xs font-mono text-muted hover:text-primary px-3 py-2.5 rounded-lg border border-white/[0.06] hover:border-cipher-gold/30 transition text-center"
               >
                 {item.label}
               </a>
@@ -1011,16 +1011,16 @@ export default function LearnPage() {
       </div>
 
       {/* ═══════════════════════════════════════ */}
-      {/* EXPLORE CIPHERSCAN */}
+      {/* EXPLORE ZecBlock */}
       {/* ═══════════════════════════════════════ */}
       <div className="border-t border-cipher-border">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Zap className="w-5 h-5 text-cipher-cyan" />
-            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} EXPLORE_CIPHERSCAN</h2>
+            <Icons.Zap className="w-5 h-5 text-cipher-gold" />
+            <h2 className="text-xs font-mono text-muted uppercase tracking-wider">{'>'} EXPLORE_ZECBLOCK</h2>
           </div>
           <p className="text-secondary mb-8 max-w-2xl">
-            Use what you&apos;ve learned — CipherScan gives you live access to Zcash blockchain data.
+            Use what you&apos;ve learned — ZecBlock gives you live access to Zcash blockchain data.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1035,7 +1035,7 @@ export default function LearnPage() {
                 href={item.href}
                 className="card card-compact card-interactive flex items-center gap-3 !p-4"
               >
-                <span className="w-10 h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0 text-cipher-cyan">
+                <span className="w-10 h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0 text-cipher-gold">
                   <item.icon className="w-5 h-5" />
                 </span>
                 <div>

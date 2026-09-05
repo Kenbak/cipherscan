@@ -12,9 +12,9 @@ export const ZCASH_LAUNCH_DATE = '2016-10-28';
 
 export const ZCASH_SUPPLY_MILESTONES: ZcashMilestone[] = [
   { id: 'sprout', label: 'Sprout', date: ZCASH_LAUNCH_DATE, color: '#64748b' },
-  { id: 'sapling', label: 'Sapling', date: '2018-12-18', color: '#56D4C8' },
-  { id: 'orchard', label: 'Orchard', date: '2022-05-31', color: '#A78BFA' },
-  { id: 'ironwood', label: 'Ironwood', date: '2026-07-28', color: '#F4B728' },
+  { id: 'sapling', label: 'Sapling', date: '2018-12-18', color: '#91AC90' },
+  { id: 'orchard', label: 'Orchard', date: '2022-05-31', color: '#B6A0E0' },
+  { id: 'ironwood', label: 'Ironwood', date: '2026-07-28', color: '#F8BC21' },
 ];
 
 export function milestonePositionPct(

@@ -57,9 +57,9 @@ export interface MempoolBubblesHandle {
 function readThemeColors() {
   if (typeof window === 'undefined') {
     return {
-      cyan: '0 212 255',
-      purple: '167 139 250',
-      orange: '255 107 53',
+      gold: '248 188 33',
+      purple: '182 160 224',
+      orange: '226 166 110',
       isLight: false,
       labelText: 'rgba(255, 255, 255, 0.95)',
       labelShadow: 'rgba(0, 0, 0, 0.45)',
@@ -68,9 +68,9 @@ function readThemeColors() {
   const root = getComputedStyle(document.documentElement);
   const isLight = document.documentElement.classList.contains('light');
   return {
-    cyan: root.getPropertyValue('--color-cyan-rgb').trim() || '0 212 255',
-    purple: root.getPropertyValue('--color-purple-rgb').trim() || '167 139 250',
-    orange: root.getPropertyValue('--color-orange-rgb').trim() || '255 107 53',
+    gold: root.getPropertyValue('--color-gold-rgb').trim() || '248 188 33',
+    purple: root.getPropertyValue('--color-purple-rgb').trim() || '182 160 224',
+    orange: root.getPropertyValue('--color-orange-rgb').trim() || '226 166 110',
     isLight,
     labelText: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.92)',
     labelShadow: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.45)',
@@ -108,10 +108,10 @@ function buildColors(theme: ReturnType<typeof readThemeColors>): Record<'transpa
       label: theme.labelText,
     },
     transparent: {
-      fill: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${fillA - 0.12})`,
-      stroke: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
-      glow: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${glowA - 0.06})`,
-      pop: `rgba(${theme.cyan.replace(/ /g, ', ')}, ${popA - 0.15})`,
+      fill: `rgba(${theme.gold.replace(/ /g, ', ')}, ${fillA - 0.12})`,
+      stroke: `rgba(${theme.gold.replace(/ /g, ', ')}, ${strokeA - 0.15})`,
+      glow: `rgba(${theme.gold.replace(/ /g, ', ')}, ${glowA - 0.06})`,
+      pop: `rgba(${theme.gold.replace(/ /g, ', ')}, ${popA - 0.15})`,
       label: theme.labelText,
     },
   };
@@ -315,85 +315,9 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       ctx.clearRect(0, 0, w, h);
 
       timeRef.current += 1;
-      const t = timeRef.current;
       const bubbles = bubblesRef.current;
       const theme = themeRef.current;
-      const cyanRgb = theme.cyan.replace(/ /g, ', ');
-      const purpleRgb = theme.purple.replace(/ /g, ', ');
-      // In light mode, the canvas sits on a near-white surface; ambient effects
-      // use dark tints, grid lines use black, hex chars use brand cyan at low alpha.
-      const tintRgb = theme.isLight ? '15, 23, 42' : '255, 255, 255';
-      const gridLineAlpha = theme.isLight ? 0.03 : 0.02;
-      const gridDotAlpha = theme.isLight ? 0.06 : 0.04;
-      const hexCharAlpha = theme.isLight ? 0.07 : 0.04;
-      const ambientCyanAlpha = theme.isLight ? 0.05 : 0.03;
-      const ambientPurpleAlpha = theme.isLight ? 0.04 : 0.025;
-      const scanAlpha = theme.isLight ? 0.05 : 0.03;
-
-      // === BACKGROUND LAYER (cypherpunk vibe) ===
-
-      // Radial gradient atmosphere (cyan/purple corners)
-      const bgGrad1 = ctx.createRadialGradient(w * 0.15, h * 0.2, 0, w * 0.15, h * 0.2, w * 0.5);
-      bgGrad1.addColorStop(0, `rgba(${cyanRgb}, ${ambientCyanAlpha})`);
-      bgGrad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = bgGrad1;
-      ctx.fillRect(0, 0, w, h);
-
-      const bgGrad2 = ctx.createRadialGradient(w * 0.85, h * 0.8, 0, w * 0.85, h * 0.8, w * 0.5);
-      bgGrad2.addColorStop(0, `rgba(${purpleRgb}, ${ambientPurpleAlpha})`);
-      bgGrad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = bgGrad2;
-      ctx.fillRect(0, 0, w, h);
-
-      // Grid lines
-      const gridSpacing = 50;
-      ctx.strokeStyle = `rgba(${tintRgb}, ${gridLineAlpha})`;
-      ctx.lineWidth = 0.5;
-      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, h);
-        ctx.stroke();
-      }
-      for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(w, gy);
-        ctx.stroke();
-      }
-
-      // Grid intersection dots
-      ctx.fillStyle = `rgba(${tintRgb}, ${gridDotAlpha})`;
-      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
-        for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
-          ctx.beginPath();
-          ctx.arc(gx, gy, 1, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      // Floating hex characters (faint, drifting slowly)
-      ctx.font = '10px ui-monospace, "SF Mono", Menlo, monospace';
-      ctx.fillStyle = `rgba(${cyanRgb}, ${hexCharAlpha})`;
-      const hexChars = '0123456789abcdef';
-      const seed = t * 0.3;
-      for (let i = 0; i < 20; i++) {
-        const hx = ((Math.sin(seed * 0.01 + i * 7.3) * 0.5 + 0.5) * w);
-        const hy = ((Math.cos(seed * 0.008 + i * 4.1) * 0.5 + 0.5) * h);
-        const char1 = hexChars[Math.floor(Math.abs(Math.sin(i * 13.7 + t * 0.005)) * 16)];
-        const char2 = hexChars[Math.floor(Math.abs(Math.cos(i * 9.2 + t * 0.007)) * 16)];
-        ctx.fillText(`${char1}${char2}`, hx, hy);
-      }
-
-      // Scan line
-      const scanY = (t * 0.5) % (h + 40) - 20;
-      const scanGrad = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 15);
-      scanGrad.addColorStop(0, `rgba(${cyanRgb}, 0)`);
-      scanGrad.addColorStop(0.5, `rgba(${cyanRgb}, ${scanAlpha})`);
-      scanGrad.addColorStop(1, `rgba(${cyanRgb}, 0)`);
-      ctx.fillStyle = scanGrad;
-      ctx.fillRect(0, scanY - 15, w, 30);
-
+      const goldRgb = theme.gold.replace(/ /g, ', ');
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
 
@@ -711,13 +635,13 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
         const waveAlpha = Math.max(0, 0.4 * (1 - wave.r / waveMaxR));
         if (waveAlpha > 0.01) {
           ctx.save();
-          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha})`;
+          ctx.strokeStyle = `rgba(${goldRgb}, ${waveAlpha})`;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(w / 2, h / 2, wave.r, 0, Math.PI * 2);
           ctx.stroke();
           // Softer trailing ring for depth
-          ctx.strokeStyle = `rgba(${cyanRgb}, ${waveAlpha * 0.35})`;
+          ctx.strokeStyle = `rgba(${goldRgb}, ${waveAlpha * 0.35})`;
           ctx.lineWidth = 7;
           ctx.beginPath();
           ctx.arc(w / 2, h / 2, Math.max(0, wave.r - 10), 0, Math.PI * 2);
@@ -862,13 +786,13 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       />
 
       {/* HUD corner brackets */}
-      <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-cyan/20 rounded-tl pointer-events-none" />
-      <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-cyan/20 rounded-tr pointer-events-none" />
-      <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-cyan/20 rounded-bl pointer-events-none" />
-      <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-cyan/20 rounded-br pointer-events-none" />
+      <div className="absolute top-2 left-2 w-5 h-5 border-t border-l border-cipher-gold/20 rounded-tl pointer-events-none" />
+      <div className="absolute top-2 right-2 w-5 h-5 border-t border-r border-cipher-gold/20 rounded-tr pointer-events-none" />
+      <div className="absolute bottom-2 left-2 w-5 h-5 border-b border-l border-cipher-gold/20 rounded-bl pointer-events-none" />
+      <div className="absolute bottom-2 right-2 w-5 h-5 border-b border-r border-cipher-gold/20 rounded-br pointer-events-none" />
 
       {/* Top-left HUD label — shifts down in ambient to avoid EXIT button overlap */}
-      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-[9px] text-cipher-cyan/30 tracking-widest pointer-events-none select-none`}>
+      <div className={`absolute ${ambient ? 'top-14' : 'top-4'} left-6 font-mono text-[9px] text-cipher-gold/30 tracking-widest pointer-events-none select-none`}>
         MEMPOOL_LIVE // {transactions.length} TX
       </div>
 
@@ -895,7 +819,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
               borderColor: 'var(--color-border)',
             }}
           >
-            <div className="font-mono text-cipher-cyan mb-1.5 truncate text-[10px] tracking-wider">
+            <div className="font-mono text-cipher-gold mb-1.5 truncate text-[10px] tracking-wider">
               &gt; {hoveredTx.txid.slice(0, 16)}...{hoveredTx.txid.slice(-8)}
             </div>
             <div className="space-y-0.5">
@@ -904,7 +828,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
                 <span className={
                   hoveredTx.type === 'shielded' ? 'text-cipher-purple font-mono' :
                   hoveredTx.type === 'mixed' ? 'text-cipher-orange font-mono' :
-                  'text-cipher-cyan font-mono'
+                  'text-cipher-gold font-mono'
                 }>
                   {hoveredTx.type.toUpperCase()}
                 </span>
@@ -945,7 +869,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
           }}
         >
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-cipher-cyan/40 border border-cipher-cyan/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-cipher-gold/40 border border-cipher-gold/70" />
             <span>T · Transparent</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -963,7 +887,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {!ambient && isFullscreen && (
         <button
           onClick={toggleFullscreen}
-          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-cyan/70 border border-cipher-cyan/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-cyan/60 hover:bg-cipher-cyan/10 transition duration-300"
+          className="absolute top-5 left-5 z-50 flex items-center gap-2 px-3 py-1.5 rounded font-mono text-[10px] tracking-[0.25em] text-cipher-gold/70 border border-cipher-gold/25 bg-cipher-bg-dark/80 backdrop-blur-sm hover:text-primary hover:border-cipher-gold/60 hover:bg-cipher-gold/10 transition duration-300"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           [ EXIT ]
@@ -980,7 +904,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             style={{ opacity: cursorVisible ? 0.7 : 0.25 }}
           >
             <div className="text-[11px] text-white/50 tracking-widest uppercase mb-1">
-              CipherScan {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
+              ZecBlock {typeof window !== 'undefined' && window.location.hostname.includes('testnet') ? 'Testnet' : 'Mainnet'}
             </div>
             {stats && (
               <div className="text-[10px] tracking-wider">
@@ -996,7 +920,7 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
             className="absolute top-5 right-6 flex items-center gap-3 font-mono text-[9px] pointer-events-none select-none transition-opacity duration-1000"
             style={{ opacity: cursorVisible ? 0.5 : 0.2 }}
           >
-            <span className="text-cipher-cyan/70">T</span>
+            <span className="text-cipher-gold/70">T</span>
             <span className="text-cipher-orange/70">M</span>
             <span className="text-cipher-purple/70">S</span>
           </div>
@@ -1006,8 +930,8 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       {/* Empty state overlay */}
       {transactions.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-          <div className="w-8 h-8 border border-cipher-cyan/20 rounded-full flex items-center justify-center animate-pulse">
-            <div className="w-2 h-2 bg-cipher-cyan/40 rounded-full" />
+          <div className="w-8 h-8 border border-cipher-gold/20 rounded-full flex items-center justify-center animate-pulse">
+            <div className="w-2 h-2 bg-cipher-gold/40 rounded-full" />
           </div>
           <div className="text-center">
             <p className="text-muted font-mono text-xs tracking-wider">&gt; SCANNING MEMPOOL...</p>

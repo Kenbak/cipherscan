@@ -76,7 +76,7 @@ interface NodeMapProps {
 
 // Color tiers based on node count (cipher-yellow intensity scale)
 const NODE_TIERS = {
-  high: { fill: '#F4B728', glow: '#F4B728', label: '10+' },      // cipher-yellow (full)
+  high: { fill: '#F8BC21', glow: '#F8BC21', label: '10+' },      // cipher-yellow (full)
   medium: { fill: '#D49A20', glow: '#D49A20', label: '5-9' },    // mid yellow
   low: { fill: '#A07818', glow: '#A07818', label: '2-4' },       // deep yellow
   single: { fill: '#7A6030', glow: '#7A6030', label: '1' },      // muted yellow
@@ -177,7 +177,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
     return (
       <div className="bg-cipher-surface border border-cipher-border rounded-xl p-6">
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-cyan border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cipher-gold border-t-transparent" />
           <span className="ml-3 text-secondary font-mono">Loading node map...</span>
         </div>
       </div>
@@ -204,8 +204,8 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
       <div className="px-4 sm:px-6 py-4 border-b border-cipher-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cipher-cyan/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cipher-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -252,10 +252,10 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
         {selectedCountryData && (
           <button
             onClick={() => setSelectedCountry(null)}
-            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-cyan/30 rounded-lg px-3 py-1.5 text-xs font-mono transition hover:border-cipher-cyan/60 bg-cipher-surface-solid"
+            className="absolute top-3 right-3 z-10 flex items-center gap-2 backdrop-blur-sm border border-cipher-gold/30 rounded-lg px-3 py-1.5 text-xs font-mono transition hover:border-cipher-gold/60 bg-cipher-surface-solid"
           >
             <span>{getFlagEmoji(selectedCountryData.countryCode)}</span>
-            <span className="text-cipher-cyan font-semibold">{selectedCountryData.country}</span>
+            <span className="text-cipher-gold font-semibold">{selectedCountryData.country}</span>
             <span className="text-muted">({selectedCountryData.nodeCount})</span>
             <span className="text-muted hover:text-primary ml-1">✕</span>
           </button>
@@ -304,7 +304,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
             {/* Scan line animation */}
             <linearGradient id="scanGradient" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="transparent" />
-              <stop offset="50%" stopColor="#F4B728" stopOpacity="0.08" />
+              <stop offset="50%" stopColor="#F8BC21" stopOpacity="0.08" />
               <stop offset="100%" stopColor="transparent" />
             </linearGradient>
           </defs>
@@ -407,7 +407,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
 
         {/* Hover tooltip (country + count only, no city) */}
         {hoveredNode && (
-            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-cyan/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
+            <div className="absolute top-3 left-3 backdrop-blur-sm border border-cipher-gold/20 rounded-lg px-4 py-3 shadow-2xl z-10 pointer-events-none bg-cipher-surface-solid">
             <div className="flex items-center gap-2">
               <span className="text-lg">{getFlagEmoji(hoveredNode.countryCode)}</span>
               <span className="font-semibold text-primary text-sm">{hoveredNode.country}</span>
@@ -520,7 +520,7 @@ export function NodeMap({ initialLocations, initialStats }: NodeMapProps) {
                   onClick={() => setSelectedCountry(isActive ? null : country.countryCode)}
                   className={`flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition ${
                     isActive
-                      ? 'bg-cipher-cyan/10 border border-cipher-cyan/30 ring-1 ring-cipher-cyan/20'
+                      ? 'bg-cipher-gold/10 border border-cipher-gold/30 ring-1 ring-cipher-gold/20'
                       : 'bg-cipher-bg/50 border border-transparent hover:bg-cipher-bg hover:border-cipher-border'
                   }`}
                 >

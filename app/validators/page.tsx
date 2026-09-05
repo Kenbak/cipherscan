@@ -148,12 +148,12 @@ export default function ValidatorsPage() {
                 <span className="text-[10px] font-mono text-muted uppercase w-16">Connected</span>
                 <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
                   <div
-                    className="bg-cyan-500 transition-[width] duration-500"
+                    className="bg-gold-500 transition-[width] duration-500"
                     style={{ width: `${data.liveness.connectedPercent}%` }}
                     title={`Connected: ${data.liveness.connectedCount} finalizers (${data.liveness.connectedStakeZec?.toFixed(2)} ${CURRENCY})`}
                   />
                 </div>
-                <span className="text-[10px] font-mono text-cyan-400 w-24 text-right">
+                <span className="text-[10px] font-mono text-gold-400 w-24 text-right">
                   {data.liveness.connectedCount} ({data.liveness.connectedPercent}%)
                 </span>
               </div>
@@ -164,12 +164,12 @@ export default function ValidatorsPage() {
             <span className="text-[10px] font-mono text-muted uppercase w-16">Voted</span>
             <div className="flex-1 flex rounded-full overflow-hidden h-3 bg-cipher-border-alpha/30">
               <div
-                className="bg-emerald-500 transition-[width] duration-500"
+                className="bg-cipher-green transition-[width] duration-500"
                 style={{ width: `${data.liveness.onlinePercent}%` }}
                 title={`Voted: ${data.liveness.onlineCount} finalizers (${data.liveness.onlineStakeZec.toFixed(2)} ${CURRENCY})`}
               />
             </div>
-            <span className="text-[10px] font-mono text-emerald-400 w-24 text-right">
+            <span className="text-[10px] font-mono text-cipher-green w-24 text-right">
               {data.liveness.onlineCount} ({data.liveness.onlinePercent}%)
             </span>
           </div>
@@ -218,7 +218,7 @@ export default function ValidatorsPage() {
                 value={filter}
                 onChange={(e) => setFilter(e.target.value.toLowerCase().trim())}
                 placeholder="Filter by name or public key"
-                className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted/60 focus:outline-none focus:border-cipher-cyan/60 transition-colors"
+                className="w-full bg-cipher-bg border border-cipher-border rounded-md px-3 py-2.5 pl-9 text-sm font-mono text-primary placeholder:text-muted/60 focus:outline-none focus:border-cipher-gold/60 transition-colors"
               />
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -245,7 +245,7 @@ export default function ValidatorsPage() {
               <thead>
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-12 sm:w-16">Rank</th>
-                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10" title="Peer discovery status: cyan = connected, green = voted, red = silent">Status</th>
+                  <th className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-10" title="Peer discovery status: gold = connected, green = voted, red = silent">Status</th>
                   <th className="px-3 sm:px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Finalizer</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border">Stake ({CURRENCY})</th>
                   <th className="px-3 sm:px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted border-b border-cipher-border w-20 sm:w-24">Share</th>
@@ -305,7 +305,7 @@ export default function ValidatorsPage() {
                           if (member.connected) {
                             return (
                               <span
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-500"
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-gold-500"
                                 title={`Connected (${agoText})${member.voted ? ' + voted' : ''}`}
                               />
                             );
@@ -313,7 +313,7 @@ export default function ValidatorsPage() {
                           if (member.voted === true) {
                             return (
                               <span
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-cipher-green"
                                 title={`Voted (not directly connected${agoText ? `, last seen ${agoText}` : ''})`}
                               />
                             );
@@ -370,7 +370,7 @@ export default function ValidatorsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-12 h-1.5 rounded-full bg-cipher-border-alpha/50 overflow-hidden hidden sm:block">
                             <div
-                              className="h-full rounded-full bg-cipher-cyan"
+                              className="h-full rounded-full bg-cipher-gold"
                               style={{ width: `${Math.min(share, 100)}%` }}
                             />
                           </div>
@@ -388,14 +388,14 @@ export default function ValidatorsPage() {
                           const color = pct >= 95
                             ? 'bg-cipher-green'
                             : pct >= 70
-                            ? 'bg-cipher-cyan'
+                            ? 'bg-cipher-gold'
                             : pct >= 30
                             ? 'bg-cipher-orange'
                             : 'bg-red-500';
                           const textColor = pct >= 95
                             ? 'text-cipher-green'
                             : pct >= 70
-                            ? 'text-cipher-cyan'
+                            ? 'text-cipher-gold'
                             : pct >= 30
                             ? 'text-cipher-orange'
                             : 'text-danger';
@@ -438,7 +438,7 @@ export default function ValidatorsPage() {
                 return (
                   <div
                     key={member.identity}
-                    className="bg-cipher-cyan/70 transition-[width] duration-300 border-r border-cipher-bg last:border-r-0"
+                    className="bg-cipher-gold/70 transition-[width] duration-300 border-r border-cipher-bg last:border-r-0"
                     style={{ width: `${share}%` }}
                     title={`${name} — ${share.toFixed(1)}%`}
                   />

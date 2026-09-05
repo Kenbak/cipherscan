@@ -33,7 +33,7 @@ export function TxNotFoundView({
           <div className="text-center py-12">
             {isChecking ? (
               <>
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-cyan border-t-transparent mx-auto mb-5" aria-hidden="true"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-cipher-gold border-t-transparent mx-auto mb-5" aria-hidden="true"></div>
                 <p className="text-sm text-secondary font-mono">Looking up transaction...</p>
               </>
             ) : (
@@ -53,12 +53,12 @@ export function TxNotFoundView({
                 </h2>
                 <p className="text-sm text-secondary mb-6 max-w-md mx-auto">
                   {isUnavailable
-                    ? 'CipherScan could not reach the transaction data service. Try this lookup again shortly.'
+                    ? 'ZecBlock could not reach the transaction data service. Try this lookup again shortly.'
                     : 'This transaction is not in the indexed chain or current mempool.'}
                 </p>
                 <Link
                   href="/"
-                  className="text-cipher-cyan hover:text-cipher-yellow transition-colors font-mono text-sm"
+                  className="text-cipher-gold hover:text-cipher-yellow transition-colors font-mono text-sm"
                 >
                   &larr; Back to Explorer
                 </Link>

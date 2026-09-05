@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 
-export type BadgeColor = 'cyan' | 'purple' | 'green' | 'orange' | 'amber' | 'danger' | 'muted';
+export type BadgeColor = 'gold' | 'purple' | 'green' | 'orange' | 'amber' | 'danger' | 'muted';
 
 interface BadgeProps {
   children: ReactNode;
@@ -26,7 +26,7 @@ interface BadgeProps {
  * Small status indicators with semantic colors.
  *
  * Colors:
- * - cyan: Information, links, highlights
+ * - gold: Information, links, highlights
  * - purple: Shielded, privacy-related
  * - green: Success, confirmed
  * - orange: Warning, attention
@@ -34,13 +34,13 @@ interface BadgeProps {
  */
 export function Badge({
   children,
-  color = 'cyan',
+  color = 'gold',
   icon,
   className = '',
   variant = 'solid',
 }: BadgeProps) {
   const colorClasses: Record<BadgeColor, string> = {
-    cyan: 'badge-cyan',
+    gold: 'badge-gold',
     purple: 'badge-purple',
     green: 'badge-green',
     orange: 'badge-orange',
@@ -164,7 +164,7 @@ interface CountBadgeProps {
   className?: string;
 }
 
-export function CountBadge({ count, color = 'cyan', className = '' }: CountBadgeProps) {
+export function CountBadge({ count, color = 'gold', className = '' }: CountBadgeProps) {
   return (
     <Badge color={color} className={`badge-count ${className}`}>
       {count}

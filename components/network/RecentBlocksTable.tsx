@@ -25,7 +25,7 @@ const columns: DataTableColumn<RecentBlock>[] = [
     header: 'Block',
     skeletonWidth: 'w-24',
     cell: (b) => (
-      <Link href={`/block/${b.height}`} className="font-mono text-sm text-cipher-cyan hover:underline">
+      <Link href={`/block/${b.height}`} className="font-mono text-sm text-cipher-gold hover:underline">
         {b.height.toLocaleString()}
       </Link>
     ),
@@ -79,7 +79,7 @@ export function RecentBlocksTable({ initialData }: { initialData?: RecentBlocksR
       <SectionHeader
         label="RECENT_BLOCKS"
         actions={
-          <Link href="/blocks" className="text-xs font-mono text-cipher-cyan hover:underline">
+          <Link href="/blocks" className="text-xs font-mono text-cipher-gold hover:underline">
             View all →
           </Link>
         }

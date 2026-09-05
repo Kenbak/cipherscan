@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 const PAGE_NAME = 'Zcash Ironwood Upgrade & Migration Tracker';
 const PAGE_DESCRIPTION =
-  'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on CipherScan.';
+  'Track the Zcash Ironwood (NU6.3) activation, Orchard migration, Ironwood shielded supply, and observable turnstile activity on ZecBlock.';
 
 async function fetchJson(
   apiBase: string,
@@ -50,7 +50,7 @@ export default async function MigrationPage() {
     name: 'Zcash Ironwood Upgrade and Migration Data',
     description:
       'Live Zcash Ironwood activation and Orchard-to-Ironwood migration data, including pool balances, supply verification, migration velocity, cohort anonymity, and privacy analysis.',
-    creator: { '@id': 'https://cipherscan.app/#organization' },
+    creator: { '@id': 'https://zecblock.com/#organization' },
     isPartOf: { '@id': `${baseUrl}/#website` },
     mainEntityOfPage: { '@id': `${pageUrl}#webpage` },
   };

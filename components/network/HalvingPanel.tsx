@@ -55,7 +55,7 @@ export function HalvingPanel({ halving }: { halving: HalvingInfo | null }) {
           </div>
           <div className="h-2.5 bg-cipher-bg rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-yellow transition-[width] duration-700 rounded-full"
+              className="h-full bg-gradient-to-r from-cipher-gold to-cipher-yellow transition-[width] duration-700 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -202,8 +202,8 @@ export function SupplyEmissionPanel({
             <AreaChart data={emissionData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="emissionGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5B9CF6" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#5B9CF6" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="#A1A9AD" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#A1A9AD" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -240,7 +240,7 @@ export function SupplyEmissionPanel({
                   x={nowPoint.date}
                   y={nowPoint.supply}
                   r={4}
-                  fill="#5B9CF6"
+                  fill="#A1A9AD"
                   stroke="#fff"
                   strokeWidth={1.5}
                 />
@@ -248,7 +248,7 @@ export function SupplyEmissionPanel({
               <Area
                 type="monotone"
                 dataKey="supply"
-                stroke="#5B9CF6"
+                stroke="#A1A9AD"
                 strokeWidth={2}
                 fill="url(#emissionGradient)"
               />

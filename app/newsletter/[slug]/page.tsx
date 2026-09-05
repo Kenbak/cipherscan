@@ -10,7 +10,7 @@ interface PageProps {
 }
 
 function getIssueDescription(summary: string, date: string): string {
-  const description = summary || `CipherScan Weekly issue published ${date}.`;
+  const description = summary || `ZecBlock Weekly issue published ${date}.`;
   if (description.length <= 160) return description;
 
   const candidate = description.slice(0, 159);
@@ -34,8 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const issue = getNewsletter(slug);
   if (!issue) {
     return buildPageMetadata({
-      title: 'Newsletter Issue Not Found | CipherScan',
-      description: 'This CipherScan Weekly newsletter issue could not be found.',
+      title: 'Newsletter Issue Not Found | ZecBlock',
+      description: 'This ZecBlock Weekly newsletter issue could not be found.',
       path: `/newsletter/${encodeURIComponent(slug)}`,
       index: false,
       canonical: false,
@@ -44,12 +44,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return buildPageMetadata({
-    title: `${issue.title} | CipherScan`,
+    title: `${issue.title} | ZecBlock`,
     description: getIssueDescription(issue.summary, issue.date),
     path: `/newsletter/${issue.slug}`,
     type: 'article',
     networks: ['mainnet'],
-    imageAlt: `${issue.title} from CipherScan Weekly`,
+    imageAlt: `${issue.title} from ZecBlock Weekly`,
   });
 }
 
@@ -79,7 +79,7 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
     description,
     datePublished,
     inLanguage: 'en-US',
-    image: `${baseUrl}/og-image.png?v=2`,
+    image: `${baseUrl}/opengraph-image`,
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': pageUrl,
@@ -87,23 +87,23 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
     isPartOf: {
       '@type': 'WebSite',
       '@id': `${baseUrl}/#website`,
-      name: 'CipherScan',
+      name: 'ZecBlock',
       url: `${baseUrl}/`,
     },
     author: {
       '@type': 'Organization',
-      '@id': 'https://cipherscan.app/#organization',
-      name: 'CipherScan',
-      url: 'https://cipherscan.app',
+      '@id': 'https://zecblock.com/#organization',
+      name: 'ZecBlock',
+      url: 'https://zecblock.com',
     },
     publisher: {
       '@type': 'Organization',
-      '@id': 'https://cipherscan.app/#organization',
-      name: 'CipherScan',
-      url: 'https://cipherscan.app',
+      '@id': 'https://zecblock.com/#organization',
+      name: 'ZecBlock',
+      url: 'https://zecblock.com',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://cipherscan.app/apple-touch-icon.png',
+        url: 'https://zecblock.com/apple-touch-icon.png',
       },
     },
   };
@@ -176,10 +176,10 @@ export default async function NewsletterIssuePage({ params }: PageProps) {
         <aside className="mt-10 rounded-xl border border-cipher-yellow/20 bg-cipher-yellow/5 p-5">
           <p className="text-xs font-mono text-cipher-yellow uppercase tracking-wider">Live Zcash data</p>
           <p className="text-sm text-secondary mt-2">
-            Continue from this dated report with CipherScan&apos;s current Zcash Ironwood upgrade and
+            Continue from this dated report with ZecBlock&apos;s current Zcash Ironwood upgrade and
             Orchard migration data.
           </p>
-          <Link href="/ironwood" className="inline-flex mt-3 text-sm font-mono text-cipher-cyan hover:underline">
+          <Link href="/ironwood" className="inline-flex mt-3 text-sm font-mono text-cipher-gold hover:underline">
             Open the Zcash Ironwood tracker →
           </Link>
         </aside>

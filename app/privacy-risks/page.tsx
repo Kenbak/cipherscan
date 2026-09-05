@@ -357,7 +357,7 @@ function PrivacyRisksContent() {
                   onClick={() => setPeriodFilter(period as PeriodFilter)}
                   className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
                     periodFilter === period
-                      ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
+                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-bold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >
@@ -373,7 +373,7 @@ function PrivacyRisksContent() {
                   ? 'bg-red-500/8 text-danger/80 font-bold'
                   : level === 'MEDIUM'
                   ? 'bg-amber-500/8 text-amber-400/80 font-bold'
-                  : 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold';
+                  : 'bg-cipher-gold/10 text-cipher-gold/80 font-bold';
                 return (
                   <button
                     key={level}
@@ -395,7 +395,7 @@ function PrivacyRisksContent() {
                   onClick={() => activeTab === 'roundtrip' ? setSortBy(option) : setBatchSortBy(option)}
                   className={`px-2 py-0.5 text-[11px] font-mono rounded transition ${
                     (activeTab === 'roundtrip' ? sortBy : batchSortBy) === option
-                      ? 'bg-cipher-cyan/10 text-cipher-cyan/80 font-bold'
+                      ? 'bg-cipher-gold/10 text-cipher-gold/80 font-bold'
                       : 'text-muted hover:text-primary'
                   }`}
                 >
@@ -431,7 +431,7 @@ function PrivacyRisksContent() {
                       const el = document.getElementById(item.anchorId);
                       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }}
-                    className="card card-compact text-left hover:border-cipher-cyan/30 transition-colors group cursor-pointer"
+                    className="card card-compact text-left hover:border-cipher-gold/30 transition-colors group cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${
@@ -439,7 +439,7 @@ function PrivacyRisksContent() {
                           ? 'bg-red-500/10 text-danger'
                           : item.tone === 'MEDIUM'
                             ? 'bg-cipher-yellow/10 text-cipher-yellow'
-                            : 'bg-cipher-cyan/10 text-cipher-cyan'
+                            : 'bg-cipher-gold/10 text-cipher-gold'
                       }`}>
                         {item.tone}
                       </span>
@@ -512,7 +512,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMore}
                         disabled={loadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-gold/40 transition disabled:opacity-50"
                       >
                         {loadingMore ? 'Loading...' : `Load More (${stats ? stats.total - transactions.length : '...'} remaining)`}
                       </button>
@@ -574,7 +574,7 @@ function PrivacyRisksContent() {
                       <button
                         onClick={loadMoreBatch}
                         disabled={batchLoadingMore}
-                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-cyan/40 transition disabled:opacity-50"
+                        className="px-5 py-2 text-xs font-mono font-semibold rounded-lg border border-cipher-border text-secondary hover:text-primary hover:border-cipher-gold/40 transition disabled:opacity-50"
                       >
                         {batchLoadingMore ? 'Loading...' : 'Load More'}
                       </button>

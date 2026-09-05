@@ -198,7 +198,7 @@ export default function ForkMonitorPage() {
         <span className="text-[10px] font-mono text-muted tracking-wider">&gt; FORK_MONITOR</span>
         <h1 className="text-2xl sm:text-3xl font-bold font-mono text-primary mt-1">Crosslink Fork Monitor</h1>
         <p className="text-xs text-muted mt-2 max-w-2xl leading-relaxed">
-          Compare CipherScan and cTAZ at fixed anchor heights during chain incidents. Verify your node,
+          Compare ZecBlock and cTAZ at fixed anchor heights during chain incidents. Verify your node,
           report your tip, and see which branch other operators follow.
         </p>
       </div>
@@ -240,7 +240,7 @@ export default function ForkMonitorPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 text-xs font-mono whitespace-nowrap transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-cipher-cyan text-cipher-cyan'
+                    ? 'border-cipher-gold text-cipher-gold'
                     : 'border-transparent text-muted hover:text-secondary'
                 }`}
               >

@@ -20,7 +20,7 @@ const STAT_TOOLTIPS: Record<string, string> = {
   'Finality Gap': 'Blocks between the PoW tip and the last finalized block. A smaller gap means faster finalization.',
   'Finalizers': 'Validator nodes that vote on blocks to confirm them as final. More finalizers means stronger security.',
   'Total Stake': 'Total cTAZ locked in delegation bonds across all finalizers. Stake determines voting power.',
-  'Peers': 'Number of network peers connected to the CipherScan node. More peers means better network visibility.',
+  'Peers': 'Number of network peers connected to the ZecBlock node. More peers means better network visibility.',
 };
 
 function StatCard({ label, value, sub, color, tooltip }: {

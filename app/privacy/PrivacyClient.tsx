@@ -165,7 +165,7 @@ export default function PrivacyClient() {
           subtitle="How well the chain uses shielded pools and private transaction patterns."
         />
         <div className="flex items-center justify-center py-20 text-sm font-mono text-muted">
-          <div className="mr-3 h-8 w-8 animate-spin rounded-full border-2 border-cipher-cyan/30 border-t-cipher-cyan" />
+          <div className="mr-3 h-8 w-8 animate-spin rounded-full border-2 border-cipher-gold/30 border-t-cipher-gold" />
           Loading privacy statistics…
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function PrivacyClient() {
             <p className="mb-6 text-sm text-secondary">
               {error || 'Statistics are being calculated. Check back soon.'}
             </p>
-            <Link href="/" className="text-sm font-mono text-cipher-cyan hover:underline">
+            <Link href="/" className="text-sm font-mono text-cipher-gold hover:underline">
               Back to explorer
             </Link>
           </CardBody>
@@ -240,7 +240,7 @@ export default function PrivacyClient() {
               </div>
               <a
                 href="#how-it-works"
-                className="text-[11px] font-mono text-cipher-cyan transition-colors hover:text-primary"
+                className="text-[11px] font-mono text-cipher-gold transition-colors hover:text-primary"
               >
                 How it works ↓
               </a>
@@ -265,7 +265,7 @@ export default function PrivacyClient() {
                     </div>
                     <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-cipher-border/30">
                       <div
-                        className="h-full rounded-full bg-cipher-cyan/80"
+                        className="h-full rounded-full bg-cipher-gold/80"
                         style={{ width: `${row.max > 0 ? (row.score / row.max) * 100 : 0}%` }}
                       />
                     </div>
@@ -292,7 +292,7 @@ export default function PrivacyClient() {
             <div className="mt-4 flex justify-end border-t border-cipher-border/30 pt-4">
               <Link
                 href="/txs?type=shielded"
-                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-cyan/40 hover:text-primary"
+                className="inline-flex items-center gap-2 rounded-lg border border-cipher-border/60 px-3 py-2 text-[11px] font-mono text-primary transition-colors hover:border-cipher-gold/40 hover:text-primary"
               >
                 View all shielded transactions
                 <span aria-hidden>→</span>
@@ -336,13 +336,13 @@ export default function PrivacyClient() {
             <Link
               key={href}
               href={href}
-              className="group flex h-full flex-col rounded-xl border border-glass-6 bg-glass-3 p-5 transition-colors hover:border-cipher-cyan/30"
+              className="group flex h-full flex-col rounded-xl border border-glass-6 bg-glass-3 p-5 transition-colors hover:border-cipher-gold/30"
             >
               <p className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
                 {title}
               </p>
               <p className="mt-2 flex-1 text-xs leading-relaxed text-muted">{description}</p>
-              <span className="mt-4 text-[10px] font-mono text-cipher-cyan">Open →</span>
+              <span className="mt-4 text-[10px] font-mono text-cipher-gold">Open →</span>
             </Link>
           ))}
         </div>

@@ -66,7 +66,7 @@ export function InputsSection({ data, copiedText, onCopy }: InputsSectionProps) 
                     <span className="text-xs text-muted font-mono">Block Reward</span>
                     {data.coinbaseText && (
                       <div className="block-hash-bg px-2 py-1 rounded border border-cipher-border">
-                        <code className="text-[10px] text-cipher-cyan break-all">
+                        <code className="text-[10px] text-cipher-gold break-all">
                           {data.coinbaseText}
                         </code>
                       </div>

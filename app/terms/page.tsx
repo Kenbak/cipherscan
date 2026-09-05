@@ -3,8 +3,8 @@ import { buildPageMetadata } from '@/lib/seo';
 import { PageHeader } from '@/components/ui/SectionHeader';
 
 export const metadata = buildPageMetadata({
-  title: 'Terms of Service | CipherScan',
-  description: 'Review the terms for using CipherScan\'s Zcash explorer, APIs, privacy tools, and blockchain data, including availability and liability limits.',
+  title: 'Terms of Service | ZecBlock',
+  description: 'Review the terms for using ZecBlock\'s Zcash explorer, APIs, privacy tools, and blockchain data, including availability and liability limits.',
   path: '/terms',
   networks: ['mainnet'],
 });
@@ -24,16 +24,16 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">1. Acceptance</h2>
           <p>
-            By accessing or using CipherScan (<Link href="/" className="text-cipher-cyan hover:underline">cipherscan.app</Link>),
+            By accessing or using ZecBlock (<Link href="/" className="text-cipher-gold hover:underline">zecblock.com</Link>),
             you agree to these Terms of Service. If you do not agree, do not use the service.
-            CipherScan is operated by Atmosphere Labs (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;).
+            ZecBlock is operated by Atmosphere Labs (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;).
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">2. Description of Service</h2>
           <p>
-            CipherScan is a free, open-source Zcash blockchain explorer. We provide tools to browse
+            ZecBlock is a free, open-source Zcash blockchain explorer. We provide tools to browse
             publicly available blockchain data, decode transactions, check privacy metrics, swap
             cryptocurrency, and access developer APIs. The service is provided &ldquo;as is&rdquo; without warranty.
           </p>
@@ -42,7 +42,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">3. No Financial Advice</h2>
           <p>
-            Nothing on CipherScan constitutes financial, investment, legal, or tax advice. Blockchain data,
+            Nothing on ZecBlock constitutes financial, investment, legal, or tax advice. Blockchain data,
             price information, and swap quotes are provided for informational purposes only. You are solely
             responsible for your financial decisions.
           </p>
@@ -51,7 +51,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">4. Swap &amp; On-Ramp Services</h2>
           <p className="mb-3">
-            CipherScan integrates third-party services to facilitate cross-chain swaps and fiat-to-crypto
+            ZecBlock integrates third-party services to facilitate cross-chain swaps and fiat-to-crypto
             purchases. When using these features:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
@@ -67,7 +67,7 @@ export default function TermsPage() {
           <ul className="list-disc pl-5 space-y-1.5">
             <li>You are responsible for the security of your wallet, private keys, and viewing keys.</li>
             <li>You must comply with all applicable laws in your jurisdiction, including those related to cryptocurrency and financial regulations.</li>
-            <li>You agree not to use CipherScan for any unlawful purpose, including money laundering, fraud, or sanctions evasion.</li>
+            <li>You agree not to use ZecBlock for any unlawful purpose, including money laundering, fraud, or sanctions evasion.</li>
             <li>You agree not to abuse our API or infrastructure (e.g. excessive automated requests).</li>
           </ul>
         </section>
@@ -75,18 +75,18 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">6. Intellectual Property</h2>
           <p>
-            CipherScan is open-source software. The source code is available on{' '}
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+            ZecBlock is open-source software. The source code is available on{' '}
+            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">
               GitHub
             </a>{' '}
-            under its respective license. The CipherScan name, logo, and branding are trademarks of Atmosphere Labs.
+            under its respective license. The ZecBlock name, logo, and branding are trademarks of Atmosphere Labs.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">7. Limitation of Liability</h2>
           <p>
-            To the maximum extent permitted by law, CipherScan and Atmosphere Labs shall not be liable for any
+            To the maximum extent permitted by law, ZecBlock and Atmosphere Labs shall not be liable for any
             indirect, incidental, special, consequential, or punitive damages, including loss of funds,
             arising from your use of the service. Our total liability is limited to the amount you paid us
             (which is zero — the service is free).
@@ -96,7 +96,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">8. Availability</h2>
           <p>
-            We strive to keep CipherScan available 24/7 but do not guarantee uninterrupted access. We may
+            We strive to keep ZecBlock available 24/7 but do not guarantee uninterrupted access. We may
             modify, suspend, or discontinue any part of the service at any time without notice.
           </p>
         </section>
@@ -104,7 +104,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold text-primary mb-3">9. Changes</h2>
           <p>
-            We may update these terms from time to time. Continued use of CipherScan after changes
+            We may update these terms from time to time. Continued use of ZecBlock after changes
             constitutes acceptance of the revised terms.
           </p>
         </section>
@@ -113,11 +113,11 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-primary mb-3">10. Contact</h2>
           <p>
             Questions? Reach us on{' '}
-            <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+            <a href="https://twitter.com/cipherscan_app" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">
               X / Twitter
             </a>{' '}
             or open an issue on{' '}
-            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">
+            <a href="https://github.com/Kenbak/cipherscan" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">
               GitHub
             </a>.
           </p>

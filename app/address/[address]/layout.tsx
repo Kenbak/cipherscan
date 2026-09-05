@@ -82,8 +82,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (resolution.state === 'unavailable') {
     const fallback = buildPageMetadata({
-      title: `Zcash Address ${shortAddr} | CipherScan`,
-      description: `CipherScan cannot currently verify public activity for Zcash address ${shortAddr} because the address index is temporarily unavailable.`,
+      title: `Zcash Address ${shortAddr} | ZecBlock`,
+      description: `ZecBlock cannot currently verify public activity for Zcash address ${shortAddr} because the address index is temporarily unavailable.`,
       path,
       index: false,
     });
@@ -97,7 +97,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const meta = resolution.meta;
 
   const typeLabel = getAddressTypeLabel(address, meta.type);
-  const title = `Zcash Address ${shortAddr} | CipherScan`;
+  const title = `Zcash Address ${shortAddr} | ZecBlock`;
 
   const descParts = [`${typeLabel} Zcash address.`];
   if (!meta.isShielded) {
@@ -108,7 +108,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } else {
     descParts.push('Balance and transaction history are encrypted with zero-knowledge proofs.');
   }
-  descParts.push('View on CipherScan.');
+  descParts.push('View on ZecBlock.');
 
   const description = descParts.join(' ');
 

@@ -23,7 +23,7 @@ export function InfoRow({
   /** Optional help text shown via the shared Tooltip component */
   tooltip?: string;
   valueClass?: string;
-  /** Makes the value clickable (adds pointer + cyan hover) */
+  /** Makes the value clickable (adds pointer + gold hover) */
   onClick?: () => void;
   className?: string;
 }) {

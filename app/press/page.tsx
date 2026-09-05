@@ -3,37 +3,34 @@ import Link from 'next/link';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Press & Brand | CipherScan',
+  title: 'Press & Brand | ZecBlock',
   description:
-    'Download CipherScan logos, brand colors, and media copy. Press resources for journalists and brand assets for partners.',
+    'Download ZecBlock logos, brand colors, and media copy. Press resources for journalists and brand assets for partners.',
   path: '/press',
   networks: ['mainnet'],
 });
 
 const BOILERPLATE =
-  'CipherScan is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes shielded pool activity, supply verification, and network health visible without compromising user privacy — no viewing keys stored, no address tracking. Live at cipherscan.app.';
+  'ZecBlock is a privacy-first Zcash blockchain explorer built by Atmosphere Labs. It makes shielded pool activity, supply verification, and network health visible without compromising user privacy — no viewing keys stored, no address tracking. Live at zecblock.com.';
 
-/** Core CipherScan brand colors — logo + wordmark */
+/** Core ZecBlock brand colors — logo + wordmark */
 const COLORS = [
-  { name: 'Cipher Cyan', hex: '#00D4FF', role: 'Wordmark, links, primary accent' },
-  { name: 'Cipher Yellow', hex: '#F4B728', role: 'Logo square, ZEC emphasis' },
+  { name: 'ZecBlock Gold', hex: '#F8BC21', role: 'Supplied identity / square mark' },
+  { name: 'Graphite', hex: '#0B0C0E', role: 'Dark canvas' },
+  { name: 'Iris', hex: '#B6A0E0', role: 'Privacy and shielded activity' },
 ] as const;
 
 const DOWNLOADS = [
-  { label: 'Wordmark (SVG)', href: '/brand/cipherscan-wordmark.svg', note: 'Mark + CIPHERSCAN — transparent background' },
-  { label: 'Wordmark on dark (SVG)', href: '/brand/cipherscan-wordmark-dark-bg.svg', note: 'Mark + CIPHERSCAN on #08090F' },
-  { label: 'Logo mark only (PNG)', href: '/logo.png', note: 'Icon without text' },
-  { label: 'App icon 512×512', href: '/icon-512.png', note: 'Square icon for app stores & social' },
-  { label: 'App icon 192×192', href: '/icon-192.png', note: 'PWA / smaller contexts' },
-  { label: 'Apple touch icon', href: '/apple-touch-icon.png', note: '180×180 home-screen icon' },
-  { label: 'Favicon', href: '/favicon.ico', note: 'Browser tab icon' },
+  { label: 'Wordmark for dark backgrounds (PNG)', href: '/brand/zecblock-white.png', note: 'Original supplied artwork, transparent background' },
+  { label: 'Wordmark for light backgrounds (PNG)', href: '/brand/zecblock-black.png', note: 'Original supplied artwork, transparent background' },
+  { label: 'Square mark (SVG)', href: '/brand/zecblock-mark.svg', note: 'Gold square, scalable' },
 ] as const;
 
 const CONTACTS = [
   {
     label: 'Website',
-    value: 'cipherscan.app',
-    href: 'https://cipherscan.app',
+    value: 'zecblock.com',
+    href: 'https://zecblock.com',
     external: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -90,7 +87,7 @@ function DownloadRow({ label, href, note }: { label: string; href: string; note:
         <a
           href={href}
           download
-          className="text-sm font-mono font-semibold text-cipher-cyan hover:text-primary transition-colors"
+          className="text-sm font-mono font-semibold text-cipher-gold hover:text-primary transition-colors"
         >
           {label}
         </a>
@@ -117,8 +114,7 @@ function WordmarkPreview({ variant }: { variant: 'dark' | 'light' }) {
       }`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="" className="h-8 w-8 shrink-0 object-contain" width={32} height={32} />
-      <span className="text-lg font-bold font-mono tracking-wider text-cipher-cyan-bright">CIPHERSCAN</span>
+      <img src={isDark ? "/brand/zecblock-white.png" : "/brand/zecblock-black.png"} alt="ZecBlock" className="h-auto w-48" width={424} height={99} />
     </div>
   );
 }
@@ -133,8 +129,8 @@ function LogoPreview({ variant }: { variant: 'dark' | 'light' }) {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.png"
-        alt={isDark ? 'CipherScan logo on dark background' : 'CipherScan logo on light background'}
+        src="/brand/zecblock-mark.svg"
+        alt={isDark ? 'ZecBlock logo on dark background' : 'ZecBlock logo on light background'}
         className="max-h-full max-w-full object-contain"
         width={72}
         height={72}
@@ -169,7 +165,7 @@ function ContactCard({
 }) {
   const inner = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cipher-cyan/10 text-cipher-cyan">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cipher-gold/10 text-cipher-gold">
         {icon}
       </span>
       <div className="min-w-0">
@@ -182,7 +178,7 @@ function ContactCard({
   );
 
   const className =
-    'group flex items-center gap-3 rounded-xl border border-cipher-border/25 bg-glass-3/20 px-4 py-3 transition-colors hover:border-cipher-cyan/25 hover:bg-glass-4/40';
+    'group flex items-center gap-3 rounded-xl border border-cipher-border/25 bg-glass-3/20 px-4 py-3 transition-colors hover:border-cipher-gold/25 hover:bg-glass-4/40';
 
   if (external) {
     return (
@@ -265,7 +261,7 @@ export default function PressPage() {
       </section>
 
       <section className="mb-10 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h2 className="text-sm font-bold text-primary mb-2">About CipherScan</h2>
+        <h2 className="text-sm font-bold text-primary mb-2">About ZecBlock</h2>
         <p className="text-xs font-mono text-muted mb-3">Copy-paste for articles, listings, and partner pages.</p>
         <blockquote className="rounded-lg border border-cipher-border/25 bg-glass-3/30 px-4 py-3 text-sm leading-relaxed text-secondary">
           {BOILERPLATE}

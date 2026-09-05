@@ -30,9 +30,9 @@ type Severity = 'all' | 'extreme' | 'strong' | 'mild';
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<string, { dot: string; text: string; bar: string; label: string }> = {
-  extreme: { dot: 'bg-cipher-cyan', text: 'text-cipher-cyan', bar: 'bg-cipher-cyan', label: 'Extreme' },
-  strong: { dot: 'bg-cipher-cyan/70', text: 'text-cipher-cyan/70', bar: 'bg-cipher-cyan/70', label: 'Strong' },
-  mild: { dot: 'bg-cipher-cyan/40', text: 'text-cipher-cyan/40', bar: 'bg-cipher-cyan/40', label: 'Mild' },
+  extreme: { dot: 'bg-cipher-gold', text: 'text-cipher-gold', bar: 'bg-cipher-gold', label: 'Extreme' },
+  strong: { dot: 'bg-cipher-gold/70', text: 'text-cipher-gold/70', bar: 'bg-cipher-gold/70', label: 'Strong' },
+  mild: { dot: 'bg-cipher-gold/40', text: 'text-cipher-gold/40', bar: 'bg-cipher-gold/40', label: 'Mild' },
 };
 
 const METRIC_LABELS: Record<string, string> = {
@@ -72,7 +72,7 @@ function FilterPill<T extends string>({
   active,
   onClick,
   children,
-  activeClass = 'bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30',
+  activeClass = 'bg-cipher-gold/15 text-cipher-gold border-cipher-gold/30',
 }: {
   active: boolean;
   onClick: () => void;
@@ -143,7 +143,7 @@ function EventRow({
       {/* Metric chip */}
       <button
         onClick={() => onMetricClick(event.metric)}
-        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-cipher-cyan/40 hover:text-primary sm:block"
+        className="hidden shrink-0 rounded-full border border-cipher-border/40 bg-glass-3 px-2.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-cipher-gold/40 hover:text-primary sm:block"
       >
         {METRIC_LABELS[event.metric] || event.metric}
       </button>
@@ -207,7 +207,7 @@ export default function PulsePage() {
       {/* ─── KPI strip ──────────────────────────────────────── */}
       <div className="mt-4 overflow-hidden rounded-2xl border border-cipher-border bg-cipher-surface">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-          <span className="h-2 w-2 rounded-full bg-cipher-cyan animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-cipher-gold animate-pulse" />
           <span className="font-mono text-[10px] uppercase tracking-wider text-secondary">
             Pulse · last {days} days
           </span>
@@ -288,7 +288,7 @@ export default function PulsePage() {
           </div>
         ) : grouped.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-cipher-green" />
             <p className="text-sm text-secondary">No anomalies in this period.</p>
             <p className="font-mono text-xs text-muted">The network is within normal parameters.</p>
           </div>

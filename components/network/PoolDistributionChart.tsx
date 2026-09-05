@@ -62,7 +62,7 @@ interface PoolPoint {
 
 function segmentedClass(active: boolean) {
   return `px-2 py-1 text-[10px] font-mono uppercase tracking-wide rounded transition whitespace-nowrap ${
-    active ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold' : 'text-muted hover:text-primary'
+    active ? 'bg-cipher-gold/15 text-cipher-gold font-bold' : 'text-muted hover:text-primary'
   }`;
 }
 
@@ -118,7 +118,7 @@ function RateTooltip({
       <p className="mb-2 text-[10px] uppercase tracking-wider text-muted">{tooltipDate(payload, label)}</p>
       {rate != null ? (
         <p className="mb-1 tabular-nums">
-          <span className="text-cipher-cyan font-bold">{rate.toFixed(2)}%</span>
+          <span className="text-cipher-gold font-bold">{rate.toFixed(2)}%</span>
           <span className="text-muted"> shielded</span>
         </p>
       ) : null}
@@ -264,7 +264,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
 
   const meta = VIEW_META[view];
   const axisFill = colors.axis;
-  const shareText = `Zcash supply history (${meta.shortLabel}, ${period.toUpperCase()}) on CipherScan.\n\nhttps://cipherscan.app/pools#supply`;
+  const shareText = `Zcash supply history (${meta.shortLabel}, ${period.toUpperCase()}) on ZecBlock.\n\nhttps://zecblock.com/pools#supply`;
 
   const controls = (
     <div className="mb-4 flex flex-wrap items-center justify-end gap-2" data-html2canvas-ignore="true">
@@ -400,7 +400,7 @@ export function PoolDistributionChart({ initialData }: { initialData?: PoolHisto
         <Line
           type="monotone"
           dataKey="shieldedPct"
-          stroke={colors.cyan ?? colors.shielded}
+          stroke={colors.gold ?? colors.shielded}
           strokeWidth={2.5}
           dot={false}
           name="Shielding rate"

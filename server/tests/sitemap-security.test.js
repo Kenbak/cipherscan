@@ -436,7 +436,7 @@ test('block metadata uses resolved canonical identity through the shared builder
 
 test('shared metadata policy indexes blocks only on mainnet', () => {
   const cases = [
-    { network: 'mainnet', baseUrl: 'https://cipherscan.app', index: true },
+    { network: 'mainnet', baseUrl: 'https://zecblock.com', index: true },
     { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', index: false },
     { network: 'crosslink-testnet', baseUrl: 'https://crosslink.cipherscan.app', index: false },
   ];
@@ -498,8 +498,8 @@ test('block consumers share one resolver and transaction JSON-LD escapes opening
 test('sitemap serializers escape, deduplicate, bound, and omit ignored fields', () => {
   const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const xml = sitemap.serializeUrlSet([
-    { url: 'https://cipherscan.app/a?x=1&y=<two>', lastModified: '2026-07-15' },
-    { url: 'https://cipherscan.app/a?x=1&y=<two>' },
+    { url: 'https://zecblock.com/a?x=1&y=<two>', lastModified: '2026-07-15' },
+    { url: 'https://zecblock.com/a?x=1&y=<two>' },
   ]);
 
   assert.equal((xml.match(/<url>/g) || []).length, 1);
@@ -509,7 +509,7 @@ test('sitemap serializers escape, deduplicate, bound, and omit ignored fields', 
   assert.equal(xml.includes('<changefreq>'), false);
 
   const tooMany = Array.from({ length: sitemap.MAX_SITEMAP_URLS + 1 }, (_, index) => ({
-    url: `https://cipherscan.app/block/${index}`,
+    url: `https://zecblock.com/block/${index}`,
   }));
   assert.throws(() => sitemap.serializeUrlSet(tooMany), /cannot contain more than/);
 });
@@ -528,21 +528,21 @@ test('sitemap cohorts are disjoint and block ranges require aligned explicit con
   const newsletters = [{
     slug: '2026-07-15', title: 'Issue', summary: '', date: '2026-07-15', issue: 1, content: '',
   }];
-  const core = sitemap.getStaticSitemapEntries('core', 'https://cipherscan.app', newsletters);
-  const content = sitemap.getStaticSitemapEntries('content', 'https://cipherscan.app', newsletters);
-  const tools = sitemap.getStaticSitemapEntries('tools', 'https://cipherscan.app', newsletters);
+  const core = sitemap.getStaticSitemapEntries('core', 'https://zecblock.com', newsletters);
+  const content = sitemap.getStaticSitemapEntries('content', 'https://zecblock.com', newsletters);
+  const tools = sitemap.getStaticSitemapEntries('tools', 'https://zecblock.com', newsletters);
   const allUrls = [...core, ...content, ...tools].map((entry) => entry.url);
 
   assert.equal(new Set(allUrls).size, allUrls.length);
-  assert.ok(allUrls.includes('https://cipherscan.app/privacy/wallets'));
-  assert.ok(allUrls.includes('https://cipherscan.app/newsletter/2026-07-15'));
-  assert.ok(allUrls.includes('https://cipherscan.app/tools/unit-converter'));
-  assert.equal(allUrls.includes('https://cipherscan.app/migration'), false);
+  assert.ok(allUrls.includes('https://zecblock.com/privacy/wallets'));
+  assert.ok(allUrls.includes('https://zecblock.com/newsletter/2026-07-15'));
+  assert.ok(allUrls.includes('https://zecblock.com/tools/unit-converter'));
+  assert.equal(allUrls.includes('https://zecblock.com/migration'), false);
 
-  const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://cipherscan.app', ranges);
-  assert.ok(indexEntries.some(({ url }) => url === 'https://cipherscan.app/sitemap-core.xml'));
+  const indexEntries = sitemap.getMainnetSitemapIndexEntries('https://zecblock.com', ranges);
+  assert.ok(indexEntries.some(({ url }) => url === 'https://zecblock.com/sitemap-core.xml'));
   assert.ok(indexEntries.some(({ url }) => (
-    url === 'https://cipherscan.app/sitemap-blocks-3400000-3449999.xml'
+    url === 'https://zecblock.com/sitemap-blocks-3400000-3449999.xml'
   )));
 });
 
@@ -581,7 +581,7 @@ test('legacy migration and swap routes permanently consolidate authority', async
 test('root sitemap is a mainnet index, a testnet homepage set, and an empty Crosslink set', async () => {
   const sitemap = loadTypeScriptModule('lib/sitemaps.ts');
   const cases = [
-    { network: 'mainnet', baseUrl: 'https://cipherscan.app', root: 'sitemapindex' },
+    { network: 'mainnet', baseUrl: 'https://zecblock.com', root: 'sitemapindex' },
     { network: 'testnet', baseUrl: 'https://testnet.cipherscan.app', root: 'urlset' },
     { network: 'crosslink-testnet', baseUrl: null, root: 'urlset' },
   ];
@@ -605,7 +605,7 @@ test('root sitemap is a mainnet index, a testnet homepage set, and an empty Cros
     assert.match(xml, new RegExp(`<${testCase.root}`));
 
     if (testCase.network === 'mainnet') {
-      assert.match(xml, /https:\/\/cipherscan\.app\/sitemap-core\.xml/);
+      assert.match(xml, /https:\/\/zecblock\.com\/sitemap-core\.xml/);
       assert.equal(xml.includes('<priority>'), false);
     } else if (testCase.network === 'testnet') {
       assert.match(xml, /https:\/\/testnet\.cipherscan\.app\//);
@@ -629,7 +629,7 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
       getApiUrl: () => 'https://api.mainnet.cipherscan.app',
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
       getNetwork: () => network,
     },
     '@/lib/sitemaps': sitemap,
@@ -642,19 +642,19 @@ test('child sitemap isolates static cohorts and returns explicit 404/503 failure
 
   global.fetch = async () => new Response(null, { status: 503 });
   const route = loadRoute();
-  const core = await route.GET(new Request('https://cipherscan.app/sitemaps/core'), {
+  const core = await route.GET(new Request('https://zecblock.com/sitemaps/core'), {
     params: Promise.resolve({ slug: 'core' }),
   });
   assert.equal(core.status, 200);
-  assert.match(await core.text(), /https:\/\/cipherscan\.app\/privacy\/wallets/);
+  assert.match(await core.text(), /https:\/\/zecblock\.com\/privacy\/wallets/);
 
-  const unavailable = await route.GET(new Request('https://cipherscan.app/sitemaps/addresses'), {
+  const unavailable = await route.GET(new Request('https://zecblock.com/sitemaps/addresses'), {
     params: Promise.resolve({ slug: 'addresses' }),
   });
   assert.equal(unavailable.status, 503);
   assert.equal(unavailable.headers.get('retry-after'), '60');
 
-  const unknown = await route.GET(new Request('https://cipherscan.app/sitemaps/blocks-1-50000'), {
+  const unknown = await route.GET(new Request('https://zecblock.com/sitemaps/blocks-1-50000'), {
     params: Promise.resolve({ slug: 'blocks-1-50000' }),
   });
   assert.equal(unknown.status, 404);
@@ -677,7 +677,7 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
     '@/lib/refresh-cache': refreshCache,
     '@/lib/seo': {
       getApiUrl: () => 'https://api.mainnet.cipherscan.app',
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
       getNetwork: () => 'mainnet',
     },
     '@/lib/sitemaps': sitemap,
@@ -695,13 +695,13 @@ test('ZNS child sitemap coalesces one bounded registration refresh', async () =>
   });
 
   const responses = await Promise.all(Array.from({ length: 3 }, () => route.GET(
-    new Request('https://cipherscan.app/sitemaps/names'),
+    new Request('https://zecblock.com/sitemaps/names'),
     { params: Promise.resolve({ slug: 'names' }) },
   )));
   const bodies = await Promise.all(responses.map((response) => response.text()));
   assert.equal(statusCalls, 1);
   assert.equal(registrationCalls, 10);
-  assert.ok(bodies.every((body) => body.includes('https://cipherscan.app/name/name4999')));
+  assert.ok(bodies.every((body) => body.includes('https://zecblock.com/name/name4999')));
 });
 
 test('transaction archive metadata indexes only unfiltered first pages', async () => {
@@ -715,7 +715,7 @@ test('transaction archive metadata indexes only unfiltered first pages', async (
     },
     '@/lib/seo': {
       buildPageMetadata: (options) => options,
-      getBaseUrl: () => 'https://cipherscan.app',
+      getBaseUrl: () => 'https://zecblock.com',
     },
     '@/lib/server-fetch': {
       fetchWithDeadline: (url, init) => global.fetch(url, init),

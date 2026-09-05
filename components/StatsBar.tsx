@@ -95,14 +95,14 @@ function formatCompact(num: number): string {
 function StatItem({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
   return (
     <Link href={href} className="flex items-center gap-1.5 text-xs sm:text-[13px] font-mono text-muted hover:text-primary transition-colors whitespace-nowrap">
-      <span className="text-muted/50">{label}</span>
+      <span className="text-muted">{label}</span>
       <span className="text-secondary">{children}</span>
     </Link>
   );
 }
 
 function Sep() {
-  return <span className="text-muted/60 mx-0.5 sm:mx-0">|</span>;
+  return <span aria-hidden="true" className="h-3 border-l border-cipher-border mx-0.5 sm:mx-0" />;
 }
 
 const CheckIcon = () => (

@@ -160,7 +160,7 @@ export function ComplianceSummary({
 const FAMILY_META: Record<string, { label: string; color: string }> = {
   'zip318-current-sdk': { label: 'ZODL / Vizor', color: '#4ade80' },
   'cake-zkool2-compatible': { label: 'Cake/zkool2', color: '#f97316' },
-  'multi-action-migration': { label: 'Multi-action', color: '#a78bfa' },
+  'multi-action-migration': { label: 'Multi-action', color: '#B6A0E0' },
   unknown: { label: 'Unknown', color: '#6b7280' },
 };
 

@@ -324,14 +324,14 @@ mv ~/crosslink-seed.backup ~/.cache/zebra/${info.cache_dir_name}/secret.seed`}</
                   unreachable, no new snapshot is written.
                 </p>
                 <p>
-                  You are still trusting CipherScan to host an honest snapshot. For maximum
+                  You are still trusting ZecBlock to host an honest snapshot. For maximum
                   assurance: after restoring, compare your finalized block hash against a second
                   source (e.g.{' '}
                   <a
                     href="https://ctaz.frontiercompute.cash"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-cipher-cyan hover:underline"
+                    className="text-cipher-gold hover:underline"
                   >
                     ctaz.frontiercompute.cash
                   </a>

@@ -163,7 +163,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                   className="input-field disabled:opacity-50"
                 />
                 <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-                  Starts with <code className="text-cipher-cyan">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'})
+                  Starts with <code className="text-cipher-gold">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'})
                 </p>
               </div>
 
@@ -203,10 +203,10 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
           )}
 
           {loading && (
-            <div className="border border-cipher-cyan-bright/40 rounded-2xl overflow-hidden shadow-lg flex flex-col lg:h-full terminal-container">
-              <div className="terminal-header border-b border-cipher-cyan-bright/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
-                <Icons.Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan-bright" />
-                <span className="font-mono text-xs sm:text-sm text-cipher-cyan-bright truncate">DECRYPTING.log</span>
+            <div className="border border-cipher-gold-bright/40 rounded-2xl overflow-hidden shadow-lg flex flex-col lg:h-full terminal-container">
+              <div className="terminal-header border-b border-cipher-gold-bright/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
+                <Icons.Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold-bright" />
+                <span className="font-mono text-xs sm:text-sm text-cipher-gold-bright truncate">DECRYPTING.log</span>
                 <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-cipher-yellow-bright"></div>
@@ -217,7 +217,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
               <div className="terminal-body p-3 sm:p-4 md:p-6 font-mono flex-1">
                 <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <span className="text-cipher-cyan-bright">$</span>
+                    <span className="text-cipher-gold-bright">$</span>
                     <span className="text-gray-400 break-all">./decrypt --wasm --zero-knowledge</span>
                   </div>
                   <div className="pl-4 sm:pl-6 space-y-1.5 sm:space-y-2 text-cipher-green-bright mt-3 sm:mt-4 text-[10px] sm:text-xs">
@@ -236,7 +236,7 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-cipher-cyan-bright mt-3 sm:mt-4">
+                  <div className="flex items-center gap-2 text-cipher-gold-bright mt-3 sm:mt-4">
                     <span className="animate-pulse">▊</span>
                   </div>
                 </div>
@@ -255,8 +255,8 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
           )}
 
           {memo && (
-            <div className="border border-cipher-cyan-bright/40 rounded-2xl overflow-hidden shadow-lg flex flex-col lg:h-full terminal-container">
-              <div className="terminal-header border-b border-cipher-cyan-bright/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
+            <div className="border border-cipher-gold-bright/40 rounded-2xl overflow-hidden shadow-lg flex flex-col lg:h-full terminal-container">
+              <div className="terminal-header border-b border-cipher-gold-bright/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3">
                 <Icons.Check className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-green-bright" />
                 <span className="font-mono text-xs sm:text-sm text-cipher-green-bright truncate">DECRYPTED_MEMO.txt</span>
                 <div className="ml-auto flex gap-1.5 sm:gap-2 flex-shrink-0">
@@ -268,14 +268,14 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
 
               <div className="terminal-body p-3 sm:p-4 md:p-6 font-mono flex-1 overflow-x-hidden">
                 <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <span className="text-cipher-cyan-bright text-sm sm:text-base">$</span>
+                  <span className="text-cipher-gold-bright text-sm sm:text-base">$</span>
                   <span className="text-gray-400 text-xs sm:text-sm break-all">cat DECRYPTED_MEMO.txt</span>
                 </div>
 
-                <div className="h-px bg-gradient-to-r from-cipher-cyan-bright/40 to-transparent mb-3 sm:mb-4" />
+                <div className="h-px bg-gradient-to-r from-cipher-gold-bright/40 to-transparent mb-3 sm:mb-4" />
 
-                <div className="pl-3 sm:pl-4 md:pl-6 border-l-2 border-cipher-cyan-bright/30">
-                  <p className="text-[10px] sm:text-xs text-cipher-cyan-bright mb-2">[ DECRYPTED OUTPUT ]</p>
+                <div className="pl-3 sm:pl-4 md:pl-6 border-l-2 border-cipher-gold-bright/30">
+                  <p className="text-[10px] sm:text-xs text-cipher-gold-bright mb-2">[ DECRYPTED OUTPUT ]</p>
 
                   {/* Amount */}
                   {amount > 0 && (
@@ -293,13 +293,13 @@ export function SingleTxDecrypt({ prefillTxid }: { prefillTxid?: string | null }
                   </p>
                 </div>
 
-                <div className="h-px bg-gradient-to-r from-cipher-cyan-bright/40 to-transparent mt-4 sm:mt-6" />
+                <div className="h-px bg-gradient-to-r from-cipher-gold-bright/40 to-transparent mt-4 sm:mt-6" />
 
-                <div className="flex items-center gap-2 mt-3 sm:mt-4 text-cipher-cyan-bright text-xs sm:text-sm">
+                <div className="flex items-center gap-2 mt-3 sm:mt-4 text-cipher-gold-bright text-xs sm:text-sm">
                   <Icons.Check className="w-4 h-4" />
                   <span className="break-words">Decryption successful • Zero-knowledge verified</span>
                 </div>
-                <div className="flex items-center gap-2 mt-2 text-cipher-cyan-bright">
+                <div className="flex items-center gap-2 mt-2 text-cipher-gold-bright">
                   <span className="animate-pulse">▊</span>
                 </div>
               </div>

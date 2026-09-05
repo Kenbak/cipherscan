@@ -74,7 +74,7 @@ export function InflowSources({
       <div className="grid grid-cols-1 gap-2 border-t border-cipher-border/20 pt-4 sm:grid-cols-3">
         <IronwoodLedgerStat
           icon={
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-emerald-400/80">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className="text-cipher-green/80">
               <path d="M1 5h6M5 2l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           }
@@ -127,7 +127,7 @@ export function IronwoodInflowCard({
 }) {
   const netZat = sources.totalInZat - sources.totalOutZat;
   const fmt = (zat: number) => fmtValue(zat, currencyMode, zecPrice);
-  const shareText = `Ironwood pool inflows on Zcash: ${fmt(sources.totalInZat)} in, ${fmt(sources.totalOutZat)} out, ${fmt(netZat)} net.\n\nhttps://cipherscan.app/ironwood`;
+  const shareText = `Ironwood pool inflows on Zcash: ${fmt(sources.totalInZat)} in, ${fmt(sources.totalOutZat)} out, ${fmt(netZat)} net.\n\nhttps://zecblock.com/ironwood`;
 
   return (
     <ShareableCard

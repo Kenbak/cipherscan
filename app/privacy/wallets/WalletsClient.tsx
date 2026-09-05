@@ -170,7 +170,7 @@ export default function WalletsClient() {
                 label="Standard Fee"
                 value={`${feeLanes.buckets.standard.pct}%`}
                 subtext={`${formatNumber(feeLanes.buckets.standard.count)} txs`}
-                accent="cyan"
+                accent="gold"
               />
               <StatCard
                 label="Priority Fee (4x)"
@@ -249,8 +249,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="standard"
                       stackId="1"
-                      stroke="#56D4C8"
-                      fill="#56D4C8"
+                      stroke="#91AC90"
+                      fill="#91AC90"
                       fillOpacity={0.6}
                       name="Standard"
                     />
@@ -258,8 +258,8 @@ export default function WalletsClient() {
                       type="monotone"
                       dataKey="priority"
                       stackId="1"
-                      stroke="#F4B728"
-                      fill="#F4B728"
+                      stroke="#F8BC21"
+                      fill="#F8BC21"
                       fillOpacity={0.6}
                       name="Priority"
                     />
@@ -331,7 +331,7 @@ export default function WalletsClient() {
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-secondary">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-8 h-5 rounded-full bg-emerald-400/20 border border-emerald-400/40" />
+                <span className="inline-block w-8 h-5 rounded-full bg-cipher-green/20 border border-cipher-green/40" />
                 Confirmed
               </span>
               <span className="flex items-center gap-1.5">
@@ -474,18 +474,18 @@ export default function WalletsClient() {
 // ============================================================================
 
 const WALLET_COLORS: Record<string, string> = {
-  'ZODL / Vizor (Ironwood sends)': '#56D4C8',
+  'ZODL / Vizor (Ironwood sends)': '#91AC90',
   'ZODL / Vizor (ZIP-318 migration)': '#6366f1',
   'SDK wallets (cross-pool)': '#818cf8',
   'SDK wallets (Orchard pool)': '#22c55e',
-  'SDK wallets (shielding/deshielding)': '#14b8a6',
+  'SDK wallets (shielding/deshielding)': '#91AC90',
   'Cake Wallet (probable)': '#ec4899',
   'Brave': '#f59e0b',
   'Nozy': '#a855f7',
-  'Zkool (historical)': '#F4B728',
+  'Zkool (historical)': '#F8BC21',
   'Unknown / Other': '#64748b',
 };
-const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#14b8a6'];
+const USAGE_COLORS_FALLBACK = ['#22c55e', '#ec4899', '#6366f1', '#91AC90'];
 
 function StatCard({
   label,
@@ -496,11 +496,11 @@ function StatCard({
   label: string;
   value: string;
   subtext: string;
-  accent: 'cyan' | 'yellow' | 'amber';
+  accent: 'gold' | 'yellow' | 'amber';
 }) {
   const accentColor = {
-    cyan: '#56D4C8',
-    yellow: '#F4B728',
+    gold: '#91AC90',
+    yellow: '#F8BC21',
     amber: '#f59e0b',
   }[accent];
 
@@ -527,7 +527,7 @@ function BatteryBar({
       {buckets.standard.pct > 0 && (
         <div
           className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${buckets.standard.pct}%`, background: '#56D4C8' }}
+          style={{ width: `${buckets.standard.pct}%`, background: '#91AC90' }}
           title={`Standard: ${buckets.standard.pct}%`}
         >
           {buckets.standard.pct > 10 && `${buckets.standard.pct}%`}
@@ -536,7 +536,7 @@ function BatteryBar({
       {buckets.priority.pct > 0 && (
         <div
           className="h-full transition-[width] duration-500 flex items-center justify-center text-xs font-medium text-slate-900"
-          style={{ width: `${Math.max(buckets.priority.pct, 1)}%`, background: '#F4B728' }}
+          style={{ width: `${Math.max(buckets.priority.pct, 1)}%`, background: '#F8BC21' }}
           title={`Priority: ${buckets.priority.pct}%`}
         >
           {buckets.priority.pct > 5 && `${buckets.priority.pct}%`}
@@ -660,7 +660,7 @@ function NymBadge({ status }: { status?: 'supported' | 'partial' | 'none' }) {
 
 function SignalPill({ label, signal }: { label: string; signal: WalletSignal }) {
   const styles = {
-    high: 'bg-emerald-400/15 border-emerald-400/30 text-emerald-300',
+    high: 'bg-cipher-green/15 border-cipher-green/30 text-cipher-green',
     medium: 'bg-amber-400/15 border-amber-400/30 text-amber-300',
     low: 'bg-slate-500/15 border-slate-500/30 text-slate-400',
   }[signal.confidence];

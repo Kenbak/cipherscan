@@ -2,7 +2,7 @@ import UnitConverterClient from './UnitConverterClient';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'ZEC / Zatoshi Unit Converter | CipherScan',
+  title: 'ZEC / Zatoshi Unit Converter | ZecBlock',
   description: 'Convert between ZEC and zatoshis (1 ZEC = 100,000,000 zatoshis). Free Zcash unit converter for developers and users.',
   keywords: [
     'zcash unit converter',

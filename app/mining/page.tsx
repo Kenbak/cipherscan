@@ -30,8 +30,8 @@ const PERIODS = ['24h', '3d', '7d', '30d', '90d', '1y'] as const;
 type Period = typeof PERIODS[number];
 
 const POOL_COLORS = [
-  '#56D4C8', '#E8C48D', '#22c55e', '#a78bfa', '#f59e0b',
-  '#ef4444', '#6366f1', '#ec4899', '#14b8a6', '#64748b',
+  '#91AC90', '#E8C48D', '#22c55e', '#B6A0E0', '#f59e0b',
+  '#ef4444', '#6366f1', '#ec4899', '#91AC90', '#64748b',
   '#84cc16', '#f97316',
 ];
 
@@ -98,7 +98,7 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
           onClick={() => onChange(p)}
           className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
             value === p
-              ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+              ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
               : 'text-muted hover:text-primary'
           }`}
         >
@@ -610,7 +610,7 @@ function MinerBehaviorSection() {
         <p className="text-xs text-secondary mt-1 font-sans">
           How much of their block rewards miners move vs leave unspent. A high moved ratio means rewards changed address
           quickly; it does not prove they were sold. The{' '}
-          <Link href="/zodl" className="text-cipher-cyan hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), and most of it turns out to be shielding, not selling.
+          <Link href="/zodl" className="text-cipher-gold hover:underline">ZODL leaderboard</Link> breaks each pool&apos;s spending down by destination (shielded vs. exchange vs. transparent), and most of it turns out to be shielding, not selling.
         </p>
       </div>
 
@@ -707,7 +707,7 @@ function MinerBehaviorSection() {
                 wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
                 formatter={(value) => value === 'earned' ? 'Earned' : value === 'spent' ? 'Moved/Sold' : 'Held'}
               />
-              <Bar dataKey="earned" fill={colors.cyan} fillOpacity={0.3} stroke={colors.cyan} />
+              <Bar dataKey="earned" fill={colors.gold} fillOpacity={0.3} stroke={colors.gold} />
               <Bar dataKey="spent" fill="#f59e0b" fillOpacity={0.7} />
               <Bar dataKey="held" fill={colors.orchard} fillOpacity={0.7} />
             </BarChart>

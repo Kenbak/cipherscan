@@ -229,7 +229,7 @@ export default function NodesClient() {
                     Verified via protocol handshake during network crawl.
                   </p>
                 </div>
-                <span className="shrink-0 font-mono text-xs text-cipher-cyan">
+                <span className="shrink-0 font-mono text-xs text-cipher-gold">
                   {coveragePct}% identified
                 </span>
               </div>
@@ -312,7 +312,7 @@ export default function NodesClient() {
                     <span className="min-w-0 flex-1 truncate font-mono text-xs text-primary">
                       {v.version}
                     </span>
-                    <span className="font-mono text-xs font-semibold text-cipher-cyan">{v.count}</span>
+                    <span className="font-mono text-xs font-semibold text-cipher-gold">{v.count}</span>
                   </div>
                 ))}
               </div>
@@ -362,7 +362,7 @@ export default function NodesClient() {
                     <h3 className="text-sm font-semibold text-primary">Reliability &amp; Performance</h3>
                     <p className="text-[11px] text-muted mt-0.5">Uptime across crawl cycles, handshake latency, service flags</p>
                   </div>
-                  <Badge className="text-[10px] bg-cipher-cyan/15 text-cipher-cyan border-cipher-cyan/30 whitespace-nowrap">
+                  <Badge className="text-[10px] bg-cipher-gold/15 text-cipher-gold border-cipher-gold/30 whitespace-nowrap">
                     {reliability.services.fullNodePct}% full nodes
                   </Badge>
                 </div>
@@ -390,7 +390,7 @@ export default function NodesClient() {
                       <div key={b.label} className="flex items-center gap-2 text-[11px]">
                         <span className="font-mono text-muted w-20">{b.label}</span>
                         <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-cipher-cyan/70" style={{ width: `${(b.count / max) * 100}%` }} />
+                          <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(b.count / max) * 100}%` }} />
                         </div>
                         <span className="font-mono tabular-nums text-primary w-8 text-right">{b.count}</span>
                       </div>
@@ -418,7 +418,7 @@ export default function NodesClient() {
                 <div className="space-y-2.5">
                   {upgrade.versions.map(v => (
                     <div key={v.protocolVersion} className="flex items-center gap-2 text-[11px]">
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${v.isLatest ? 'bg-cipher-green' : 'bg-amber-400'}`} />
                       <span className="font-mono text-secondary w-16">{v.protocolVersion}</span>
                       <span className="text-muted truncate">{v.clients.join(', ')}</span>
                       <span className="ml-auto font-mono tabular-nums font-semibold text-primary">{v.nodeCount}</span>
@@ -443,7 +443,7 @@ export default function NodesClient() {
                     <Badge className={`text-[10px] ${
                       concentration.concentrationRisk === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' :
                       concentration.concentrationRisk === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                      'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                      'bg-cipher-green/15 text-cipher-green border-cipher-green/30'
                     }`}>
                       {concentration.concentrationRisk.toUpperCase()}
                     </Badge>
@@ -463,7 +463,7 @@ export default function NodesClient() {
                         <div key={isp.isp} className="flex items-center gap-2 text-[11px]">
                           <span className="text-secondary truncate w-28 shrink-0">{isp.isp}</span>
                           <div className="flex-1 h-1.5 bg-cipher-border/40 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-cipher-cyan/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
+                            <div className="h-full rounded-full bg-cipher-gold/70" style={{ width: `${(isp.percentage / max) * 100}%` }} />
                           </div>
                           <span className="font-mono tabular-nums text-primary w-8 text-right">{isp.nodeCount}</span>
                           <span className="font-mono tabular-nums text-muted w-11 text-right">{isp.percentage}%</span>
@@ -609,7 +609,7 @@ function SortHeader({
       onClick={() => onClick(col)}
     >
       {label}
-      {active && <span className="ml-0.5 text-cipher-cyan">{dir === 'asc' ? '↑' : '↓'}</span>}
+      {active && <span className="ml-0.5 text-cipher-gold">{dir === 'asc' ? '↑' : '↓'}</span>}
     </th>
   );
 }

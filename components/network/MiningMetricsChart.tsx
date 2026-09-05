@@ -13,11 +13,11 @@ import { ChartCard } from './ChartCard';
 type MetricKey = 'solrate' | 'difficulty' | 'blockTime' | 'txFees' | 'txCount';
 
 const METRICS: { key: MetricKey; label: string; color: string; format: (v: number) => string }[] = [
-  { key: 'solrate', label: 'Solrate', color: 'cyan', format: (v) => formatHashrate(v) },
+  { key: 'solrate', label: 'Solrate', color: 'gold', format: (v) => formatHashrate(v) },
   { key: 'difficulty', label: 'Difficulty', color: 'yellow', format: (v) => formatDifficulty(v) },
   { key: 'blockTime', label: 'Block time', color: 'green', format: (v) => `~${Math.round(v)}s` },
   { key: 'txFees', label: 'TX fees', color: 'purple', format: (v) => `${v.toFixed(6)} ZEC` },
-  { key: 'txCount', label: 'TX count', color: 'cyan', format: (v) => v.toFixed(1) },
+  { key: 'txCount', label: 'TX count', color: 'gold', format: (v) => v.toFixed(1) },
 ];
 
 interface MiningMetricsData {
@@ -40,7 +40,7 @@ export function MiningMetricsChart() {
   const latest = data?.latest ?? {};
 
   const metric = METRICS.find((m) => m.key === active)!;
-  const stroke = metric.color === 'cyan' ? colors.cyan : metric.color === 'yellow' ? colors.yellow : metric.color === 'green' ? colors.orchard : colors.purple;
+  const stroke = metric.color === 'gold' ? colors.gold : metric.color === 'yellow' ? colors.yellow : metric.color === 'green' ? colors.orchard : colors.purple;
 
   return (
     <div className="space-y-4">
@@ -50,7 +50,7 @@ export function MiningMetricsChart() {
             key={m.key}
             type="button"
             onClick={() => setActive(m.key)}
-            className={`card p-3 text-left transition ${active === m.key ? 'ring-1 ring-cipher-cyan/40' : 'opacity-80 hover:opacity-100'}`}
+            className={`card p-3 text-left transition ${active === m.key ? 'ring-1 ring-cipher-gold/40' : 'opacity-80 hover:opacity-100'}`}
           >
             <p className="text-[10px] text-muted font-mono uppercase mb-1">{m.label}</p>
             <p className="text-sm font-bold font-mono text-primary whitespace-nowrap truncate">

@@ -72,7 +72,7 @@ function FinalizerHero({
               href={label.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-cipher-cyan hover:underline mt-1.5 font-mono"
+              className="inline-flex items-center gap-1 text-xs text-cipher-gold hover:underline mt-1.5 font-mono"
             >
               <svg
                 className="w-3 h-3"
@@ -101,7 +101,7 @@ function FinalizerHero({
             </code>
             <button
               onClick={() => setShowFullPubkey((v) => !v)}
-              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-cyan/40 shrink-0"
+              className="hidden sm:inline-block text-[10px] font-mono text-muted hover:text-primary transition-colors px-2 py-1 rounded border border-cipher-border hover:border-cipher-gold/40 shrink-0"
             >
               {showFullPubkey ? 'short' : 'full'}
             </button>
@@ -274,7 +274,7 @@ export default function FinalizerPage() {
             </h2>
             <p className="text-secondary mb-4">{error}</p>
             <p className="text-xs text-muted font-mono break-all max-w-md mx-auto">{pubkey}</p>
-            <Link href="/validators" className="mt-6 inline-block text-cipher-cyan hover:underline">
+            <Link href="/validators" className="mt-6 inline-block text-cipher-gold hover:underline">
               &larr; View all finalizers
             </Link>
           </CardBody>
@@ -383,7 +383,7 @@ export default function FinalizerPage() {
                         <StakingActionBadge type={a.action_type} compact />
                       </td>
                       <td className="px-3 sm:px-4 py-3">
-                        <Link href={`/block/${a.block_height}`} className="text-cipher-cyan hover:underline font-mono">
+                        <Link href={`/block/${a.block_height}`} className="text-cipher-gold hover:underline font-mono">
                           #{a.block_height.toLocaleString()}
                         </Link>
                       </td>
@@ -412,7 +412,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
   const accent = participation_pct >= 95
     ? 'text-cipher-green'
     : participation_pct >= 70
-    ? 'text-cipher-cyan'
+    ? 'text-cipher-gold'
     : participation_pct >= 30
     ? 'text-cipher-orange'
     : 'text-danger';
@@ -420,7 +420,7 @@ function ParticipationPanel({ participation }: { participation: Participation })
   const barColor = participation_pct >= 95
     ? 'bg-cipher-green'
     : participation_pct >= 70
-    ? 'bg-cipher-cyan'
+    ? 'bg-cipher-gold'
     : participation_pct >= 30
     ? 'bg-cipher-orange'
     : 'bg-red-500';
@@ -608,7 +608,7 @@ function DelegatorsPanel({ actions }: { actions: StakeAction[] }) {
                     <td className="px-3 sm:px-4 py-3">
                       <Link
                         href={`/block/${d.lastActionHeight}`}
-                        className="text-cipher-cyan hover:underline font-mono"
+                        className="text-cipher-gold hover:underline font-mono"
                       >
                         #{d.lastActionHeight.toLocaleString()}
                       </Link>

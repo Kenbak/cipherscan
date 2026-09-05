@@ -252,7 +252,7 @@ function buildUrl(path: string, params?: Record<string, string | number | boolea
 }
 
 /**
- * Shared data-fetching hook for CipherScan API endpoints.
+ * Shared data-fetching hook for ZecBlock API endpoints.
  *
  * Builds the URL from `path` and optional `params`, fetches via getApiUrl(),
  * and manages loading/error/data state. Replaces the ~58 copies of the same

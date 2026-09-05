@@ -17,10 +17,10 @@ import { useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const ORCHARD_DARK = new THREE.Color('#A78BFA');
-const IRONWOOD_DARK = new THREE.Color('#F4B728');
-const ORCHARD_LIGHT = new THREE.Color('#7C3AED');
-const IRONWOOD_LIGHT = new THREE.Color('#D49B00');
+const ORCHARD_DARK = new THREE.Color('#B6A0E0');
+const IRONWOOD_DARK = new THREE.Color('#F8BC21');
+const ORCHARD_LIGHT = new THREE.Color('#75628E');
+const IRONWOOD_LIGHT = new THREE.Color('#866008');
 
 const ORCHARD_X = -2.7;
 const IRONWOOD_X = 2.7;

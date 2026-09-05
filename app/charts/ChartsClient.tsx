@@ -66,12 +66,12 @@ const CATEGORIES: { key: Category; label: string }[] = [
 ];
 
 const CATEGORY_ACCENT: Record<string, string> = {
-  privacy: '#a78bfa',
-  pools: '#56D4C8',
+  privacy: '#B6A0E0',
+  pools: '#91AC90',
   mining: '#E8C48D',
-  network: '#5B9CF6',
+  network: '#A1A9AD',
   fees: '#f97316',
-  valuation: '#56D4C8',
+  valuation: '#91AC90',
 };
 
 function formatCompact(val: number): string {
@@ -303,7 +303,7 @@ function NodeMapMiniViz() {
               cx={x}
               cy={y}
               r={r}
-              fill="#F4B728"
+              fill="#F8BC21"
               opacity={Math.min(0.85, 0.3 + n.count * 0.04)}
             />
           );
@@ -363,8 +363,8 @@ function MempoolMiniViz() {
   }, []);
 
   const colors: Record<string, string> = {
-    shielded: '#a78bfa',
-    mixed: '#56D4C8',
+    shielded: '#B6A0E0',
+    mixed: '#91AC90',
     transparent: '#f97316',
   };
 
@@ -430,8 +430,8 @@ function RiskScannerMiniViz({ data }: { data: { high: number; medium: number; lo
           <div className="text-[8px] font-mono text-amber-400/60 uppercase">Med</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold font-mono text-emerald-400">{data.low.toLocaleString()}</div>
-          <div className="text-[8px] font-mono text-emerald-400/60 uppercase">Low</div>
+          <div className="text-lg font-bold font-mono text-cipher-green">{data.low.toLocaleString()}</div>
+          <div className="text-[8px] font-mono text-cipher-green/60 uppercase">Low</div>
         </div>
       </div>
     </div>
@@ -570,7 +570,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
       {category === 'all' && !search.trim() && (
         <section className="mt-12">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="w-2 h-2 rounded-full bg-cipher-green" />
             <h2 className="text-sm font-bold font-mono text-secondary uppercase tracking-wider">
               Live Visualizations
             </h2>
@@ -582,7 +582,7 @@ export function ChartsClient({ initialData, riskCounts }: { initialData: Record<
               <Link
                 key={v.id}
                 href={v.href}
-                className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition duration-200 hover:border-emerald-400/30 hover:shadow-lg hover:shadow-black/10"
+                className="group block rounded-xl border border-cipher-border/40 bg-cipher-surface overflow-hidden transition duration-200 hover:border-cipher-green/30 hover:shadow-lg hover:shadow-black/10"
               >
                 <div className="h-[180px] relative overflow-hidden pointer-events-none">
                   <LiveVizPreview id={v.id} riskData={riskCounts} />

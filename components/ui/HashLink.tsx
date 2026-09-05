@@ -24,7 +24,7 @@ export function HashLink({
   copy = true,
   full = false,
   responsive = false,
-  accent = 'cyan',
+  accent = 'gold',
   linkClassName,
   className = '',
 }: {
@@ -43,7 +43,7 @@ export function HashLink({
   /** Table mode: shorter truncation (8/-4) on mobile, lead/tail on sm+ */
   responsive?: boolean;
   /** Hover accent for links (purple for shielded contexts) */
-  accent?: 'cyan' | 'purple';
+  accent?: 'gold' | 'purple';
   /** Extra classes on the link/code element itself */
   linkClassName?: string;
   className?: string;

@@ -30,7 +30,7 @@ function getIntensity(summary: PulseSummary | null): PulseIntensity {
 const INTENSITY_CONFIG: Record<PulseIntensity, { duration: string; opacity: string; glow: string }> = {
   calm: { duration: '3s', opacity: 'opacity-40', glow: '' },
   medium: { duration: '1.5s', opacity: 'opacity-70', glow: '' },
-  active: { duration: '0.8s', opacity: 'opacity-100', glow: 'shadow-[0_0_12px_rgba(86,212,200,0.4)]' },
+  active: { duration: '0.8s', opacity: 'opacity-100', glow: '' },
 };
 
 export function PulseWidget() {
@@ -76,7 +76,7 @@ export function PulseWidget() {
                 { key: 'mild', label: 'M', opacity: 'opacity-40' },
               ] as const).map(({ key, label, opacity }) => (
                 <div key={key} className="flex items-center gap-1">
-                  <span className={`h-1.5 w-1.5 rounded-full bg-cipher-cyan ${opacity}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full bg-cipher-gold ${opacity}`} />
                   <span className="font-mono text-[10px] tabular-nums text-secondary">
                     {summary?.bySeverity[key] ?? 0}
                   </span>
@@ -95,7 +95,7 @@ export function PulseWidget() {
             ) : (
               summary.recent.slice(0, 3).map((event, i) => (
                 <div key={`${event.date}-${event.metric}`} className="flex items-center gap-2 px-4 py-2">
-                  <span className={`font-mono text-[10px] ${event.direction === 'up' ? 'text-cipher-cyan' : 'text-blue-400'}`}>
+                  <span className={`font-mono text-[10px] ${event.direction === 'up' ? 'text-cipher-gold' : 'text-blue-400'}`}>
                     {event.direction === 'up' ? '▲' : '▼'}
                   </span>
                   <span className="text-xs text-primary truncate flex-1">{event.description}</span>
@@ -123,7 +123,7 @@ export function PulseWidget() {
       {/* Pulse heartbeat icon */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition hover:border-cipher-cyan/40 ${config.glow}`}
+        className={`relative flex items-center justify-center w-9 h-9 rounded-full border border-cipher-border/60 transition hover:border-cipher-gold/40 ${config.glow}`}
         style={{ background: 'var(--card-glass-bg)', backdropFilter: 'var(--card-glass-blur)' }}
         aria-label="Network Pulse"
         title="Network Pulse"
@@ -132,7 +132,7 @@ export function PulseWidget() {
           viewBox="0 0 32 16"
           fill="none"
           className={`w-5 h-2.5 ${config.opacity}`}
-          style={{ filter: intensity === 'active' ? 'drop-shadow(0 0 3px rgba(86,212,200,0.6))' : undefined }}
+
         >
           <path
             d="M0 8 H8 L11 2 L14 14 L17 4 L20 12 L22 8 H32"
@@ -140,7 +140,7 @@ export function PulseWidget() {
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-cipher-cyan"
+            className="text-cipher-gold"
             style={{
               strokeDasharray: '60',
               strokeDashoffset: '60',

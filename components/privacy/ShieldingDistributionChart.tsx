@@ -39,7 +39,7 @@ const CHART_HEIGHT = 340;
 function modePillClass(active: boolean) {
   return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+      ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
       : 'text-muted hover:text-primary'
   }`;
 }
@@ -93,7 +93,7 @@ export function ShieldingDistributionChart() {
     <ChartCard title="Shielding distribution" height={400} controls={controls}>
       {loading ? (
         <div className="flex h-[340px] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-cyan/30 border-t-cipher-cyan" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-gold/30 border-t-cipher-gold" />
         </div>
       ) : (
         <div>
@@ -121,7 +121,7 @@ export function ShieldingDistributionChart() {
                 label={privacyYAxisLabel(yLabel, colors.axis)}
               />
               <Tooltip
-                cursor={{ fill: colors.barCursorCyan }}
+                cursor={{ fill: colors.barCursorGold }}
                 contentStyle={tooltipStyle}
                 labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                 formatter={(value, name) => [
@@ -131,11 +131,11 @@ export function ShieldingDistributionChart() {
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
-              <Bar dataKey="shield" fill={colors.cyan} name="shield" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="shield" fill={colors.gold} name="shield" radius={[3, 3, 0, 0]} />
               <Bar dataKey="deshield" fill={colors.transparent} name="deshield" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <PrivacyBarLegend shieldColor={colors.cyan} deshieldColor={colors.transparent} />
+          <PrivacyBarLegend shieldColor={colors.gold} deshieldColor={colors.transparent} />
         </div>
       )}
     </ChartCard>

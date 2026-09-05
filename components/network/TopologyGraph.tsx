@@ -193,7 +193,7 @@ function Scene({
     <group ref={groupRef}>
       <lineSegments geometry={lineGeom}>
         <lineBasicMaterial
-          color="#56D4C8"
+          color="#91AC90"
           transparent
           opacity={focus ? 0.05 : 0.2}
           blending={THREE.AdditiveBlending}
@@ -422,7 +422,7 @@ export function TopologyGraph() {
             >
               <ambientLight intensity={0.6} />
               <pointLight position={[100, 100, 100]} intensity={1.2} />
-              <pointLight position={[-100, -80, -60]} intensity={0.5} color="#5B9CF6" />
+              <pointLight position={[-100, -80, -60]} intensity={0.5} color="#A1A9AD" />
               <Scene
                 nodes={nodes}
                 edgePairs={edgePairs}
@@ -460,7 +460,7 @@ export function TopologyGraph() {
                 onFocus={() => setSearchOpen(true)}
                 onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
                 placeholder="Find a hub (client / country)…"
-                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-[11px] font-mono text-primary placeholder:text-muted/70 backdrop-blur-sm focus:outline-none focus:border-cipher-cyan/50"
+                className="w-full rounded-md bg-cipher-card/90 border border-cipher-border px-2.5 py-1.5 text-[11px] font-mono text-primary placeholder:text-muted/70 backdrop-blur-sm focus:outline-none focus:border-cipher-gold/50"
               />
               {searchOpen && searchResults.length > 0 && (
                 <div className="mt-1 rounded-md bg-cipher-card/95 border border-cipher-border backdrop-blur-sm overflow-hidden">

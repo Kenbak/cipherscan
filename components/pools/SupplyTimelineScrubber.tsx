@@ -210,7 +210,7 @@ export function SupplyTimelineScrubber({
           onClick={onLive}
           className={`mt-0 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition ${
             mode === 'live'
-              ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400'
+              ? 'border-cipher-green/40 bg-cipher-green/10 text-cipher-green'
               : isDark
                 ? 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
                 : 'border-black/15 text-muted hover:border-black/25 hover:text-secondary'
@@ -218,7 +218,7 @@ export function SupplyTimelineScrubber({
         >
           <span
             className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${
-              mode === 'live' ? 'bg-emerald-400 animate-pulse' : isDark ? 'bg-white/30' : 'bg-black/25'
+              mode === 'live' ? 'bg-cipher-green animate-pulse' : isDark ? 'bg-white/30' : 'bg-black/25'
             }`}
           />
           Live

@@ -72,7 +72,7 @@ const BFT_SIZE = 48;
 const BFT_NODE_WIDTH = 260;
 
 // Brand palette
-const COLOR_POW_DIM = 'rgba(86, 212, 200, 0.65)';
+const COLOR_POW_DIM = 'rgba(232, 184, 75, 0.65)';
 const COLOR_BFT = 'rgba(239, 108, 96, 0.95)';
 const COLOR_BFT_EDGE = 'rgba(239, 108, 96, 0.7)';
 const COLOR_VOTING = 'rgba(255, 107, 53, 1)';
@@ -118,9 +118,9 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
   if (isTip) {
     badgeLabel = 'TIP';
-    badgeClass = 'text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40';
-    accentClass = 'bg-cipher-cyan';
-    borderClass = 'border-cipher-cyan/50';
+    badgeClass = 'text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40';
+    accentClass = 'bg-cipher-gold';
+    borderClass = 'border-cipher-gold/50';
   } else if (state === 'voting') {
     badgeLabel = 'VOTING';
     badgeClass = 'text-cipher-orange bg-cipher-orange/10 border-cipher-orange/40';
@@ -128,13 +128,13 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
     borderClass = 'border-cipher-orange/50';
   } else if (state === 'finalized') {
     badgeLabel = 'FINAL';
-    badgeClass = 'text-cipher-cyan-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
-    accentClass = 'bg-cipher-cyan-muted';
+    badgeClass = 'text-cipher-gold-muted bg-[rgba(94,187,206,0.08)] border-[rgba(94,187,206,0.3)]';
+    accentClass = 'bg-cipher-gold-muted';
     borderClass = 'border-cipher-border';
   } else {
     badgeLabel = 'PENDING';
     badgeClass = 'border-cipher-border';
-    accentClass = 'bg-cipher-cyan/50';
+    accentClass = 'bg-cipher-gold/50';
     borderClass = 'border-cipher-border';
   }
 
@@ -162,7 +162,7 @@ function PowBlockNode({ data }: NodeProps<Node<PowNodeData>>) {
 
       <Link
         href={`/block/${block.height}`}
-        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-cyan/60 hover:shadow-[0_0_20px_rgba(0,212,255,0.12)] transition`}
+        className={`group absolute inset-0 flex items-stretch rounded-lg border ${borderClass} bg-white dark:bg-white/[0.03] overflow-hidden hover:border-cipher-gold/60 hover:shadow-[0_0_20px_rgba(248,188,33,0.12)] transition`}
       >
         <span className={`block w-1 shrink-0 ${accentClass}`} />
 
@@ -309,7 +309,7 @@ function BftDecisionNode({ data }: NodeProps<Node<BftNodeData>>) {
                     className="flex items-center gap-1.5 text-[10px] font-mono text-secondary hover:text-primary truncate"
                   >
                     {label && (
-                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-[8px] uppercase tracking-wider text-cipher-cyan bg-cipher-cyan/10 border-cipher-cyan/40">
+                      <span className="shrink-0 inline-flex items-center px-1 py-[1px] rounded border text-[8px] uppercase tracking-wider text-cipher-gold bg-cipher-gold/10 border-cipher-gold/40">
                         {label.name}
                       </span>
                     )}
@@ -693,7 +693,7 @@ export function CrosslinkChainGraph({
       <div className="card p-3 sm:p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-x-6 md:gap-y-2 text-xs">
           <div className="flex items-start gap-2.5">
-            <span className="mt-1 inline-block w-5 h-3 rounded-sm bg-cipher-cyan-muted/25 border border-cipher-cyan-muted/50 shrink-0" />
+            <span className="mt-1 inline-block w-5 h-3 rounded-sm bg-cipher-gold-muted/25 border border-cipher-gold-muted/50 shrink-0" />
             <p className="text-secondary leading-snug">
               <span className="text-primary font-semibold">Left — PoW blocks.</span>{' '}
               Produced by miners. Click one to inspect its transactions.
@@ -741,7 +741,7 @@ export function CrosslinkChainGraph({
       >
         {loading && nodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-cyan border-t-transparent" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-cipher-gold border-t-transparent" />
           </div>
         )}
 
@@ -818,7 +818,7 @@ export function CrosslinkChainGraph({
           <button
             onClick={loadOlder}
             disabled={loadingMore || limit >= 200}
-            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-cyan/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
+            className="text-xs font-mono px-3 py-1.5 rounded-md border border-cipher-border hover:border-cipher-gold/50 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed text-secondary transition-colors"
           >
             {limit >= 500
               ? 'Maximum history loaded'

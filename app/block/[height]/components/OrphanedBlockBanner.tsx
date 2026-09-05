@@ -54,7 +54,7 @@ export function OrphanedBlockBanner({ data }: { data: BlockData }) {
           </div>
 
           {data.canonicalBlock ? (
-            <div className="flex-1 rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-cyan-950/20 p-3">
+            <div className="flex-1 rounded-lg border border-cipher-green/30 bg-gradient-to-br from-emerald-950/30 to-gold-950/20 p-3">
               <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-cipher-green">Canonical</span>
               <div className="mt-2 space-y-1.5">
                 <HashLink

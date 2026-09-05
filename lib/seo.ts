@@ -27,7 +27,7 @@ export function getNetwork(): SeoNetwork {
 export function getBaseUrl(): string {
   const network = getNetwork();
   const urls: Record<SeoNetwork, string> = {
-    mainnet: 'https://cipherscan.app',
+    mainnet: 'https://zecblock.com',
     testnet: 'https://testnet.cipherscan.app',
     'crosslink-testnet': 'https://crosslink.cipherscan.app',
   };
@@ -78,7 +78,7 @@ export function buildPageMetadata({
 }: BuildPageMetadataOptions): Metadata {
   const network = getNetwork();
   const canonical = absoluteUrl(path);
-  const image = absoluteUrl('/og-image.png?v=2');
+  const image = absoluteUrl('/opengraph-image');
   const isCrosslink = network === 'crosslink-testnet';
   const allowedOnNetwork = networks ? networks.includes(network) : true;
   // Testnet is a developer utility rather than a second copy of the explorer
@@ -96,14 +96,14 @@ export function buildPageMetadata({
     title,
     description,
     url: canonical,
-    siteName: 'CipherScan',
+    siteName: 'ZecBlock',
     locale: 'en_US',
     images: [
       {
         url: image,
-        width: 1051,
-        height: 520,
-        alt: imageAlt || `${title} — CipherScan`,
+        width: 1200,
+        height: 630,
+        alt: imageAlt || `${title} — ZecBlock`,
       },
     ],
   };

@@ -108,7 +108,7 @@ export function FlowVolumeChart() {
   );
 
   const poolLabel = POOL_OPTIONS.find((p) => p.key === poolFilter)?.label ?? 'All';
-  const shareText = `Zcash shielding and deshielding flow (${poolLabel}, ${period.toUpperCase()}) on CipherScan.\n\nhttps://cipherscan.app/pools#flows`;
+  const shareText = `Zcash shielding and deshielding flow (${poolLabel}, ${period.toUpperCase()}) on ZecBlock.\n\nhttps://zecblock.com/pools#flows`;
 
   const barSize = useMemo(
     () => Math.max(4, Math.floor(600 / Math.max(points.length, 1))),

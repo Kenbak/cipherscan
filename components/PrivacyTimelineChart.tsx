@@ -41,7 +41,7 @@ export function PrivacyTimelineChart({
   height = 180,
   compact = false,
   yLabel = 'Value',
-  color = '#5B9CF6',
+  color = '#A1A9AD',
 }: PrivacyTimelineChartProps) {
   if (points.length === 0) {
     return null;
@@ -72,7 +72,7 @@ export function PrivacyTimelineChart({
               label={compact ? undefined : { value: yLabel, angle: -90, position: 'insideLeft', fill: '#94A3B8', fontSize: 10 }}
             />
             <Tooltip
-              cursor={{ strokeDasharray: '3 3', stroke: '#56D4C8' }}
+              cursor={{ strokeDasharray: '3 3', stroke: '#91AC90' }}
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const point = payload[0].payload as PrivacyTimelinePoint;

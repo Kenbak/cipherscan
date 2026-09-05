@@ -52,7 +52,7 @@ export function TxHeaderBadges({ data, classification }: TxHeaderBadgesProps) {
         )}
         {allBridges.length > 0 && (
           <Badge
-            color="cyan"
+            color="gold"
             variant="subtle"
             icon={
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

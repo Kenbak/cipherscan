@@ -422,7 +422,7 @@ export function ScanMyTransactions() {
                 className="input-field disabled:opacity-50"
               />
               <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-                Starts with <code className="text-cipher-cyan">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'}) — never leaves your browser
+                Starts with <code className="text-cipher-gold">{VIEWING_KEY_PREFIX}</code> ({isMainnet ? 'mainnet' : 'testnet'}) — never leaves your browser
               </p>
             </div>
 
@@ -465,7 +465,7 @@ export function ScanMyTransactions() {
                   className="input-field disabled:opacity-50"
                 />
                 <p className="text-[10px] sm:text-xs text-muted mt-2 font-mono">
-                  Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-cyan">birthday</code>)
+                  Find this in your wallet settings (e.g., Zingo CLI: <code className="text-cipher-gold">birthday</code>)
                 </p>
               </div>
             )}
@@ -481,13 +481,13 @@ export function ScanMyTransactions() {
             {scanning && (
               <div className="space-y-4">
                 {/* Phase indicator with animated dots */}
-                <div className="scan-progress-bg border border-cipher-cyan/30 rounded-lg p-4 sm:p-5">
+                <div className="scan-progress-bg border border-cipher-gold/30 rounded-lg p-4 sm:p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {/* Animated spinner */}
                       <div className="relative w-8 h-8 sm:w-10 sm:h-10">
-                        <div className="absolute inset-0 border-4 border-cipher-cyan/20 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-cipher-cyan border-t-transparent rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 border-4 border-cipher-gold/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-cipher-gold border-t-transparent rounded-full animate-spin"></div>
                       </div>
                       <div>
                         <div className="text-sm sm:text-base font-bold text-primary">
@@ -531,7 +531,7 @@ export function ScanMyTransactions() {
                   {/* Progress bar */}
                   <div className="h-2 sm:h-3 progress-bar-bg rounded-full overflow-hidden mb-3">
                     <div
-                      className="h-full bg-gradient-to-r from-cipher-cyan to-cipher-green transition-[width] duration-300"
+                      className="h-full bg-gradient-to-r from-cipher-gold to-cipher-green transition-[width] duration-300"
                       style={{ width: `${scanProgress}%` }}
                     />
                   </div>
@@ -563,7 +563,7 @@ export function ScanMyTransactions() {
                   </p>
                   <button
                     onClick={resetScan}
-                    className="mt-3 text-xs sm:text-sm text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
+                    className="mt-3 text-xs sm:text-sm text-cipher-gold hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
                   >
                     <Icons.Refresh />
                     Try again
@@ -577,14 +577,14 @@ export function ScanMyTransactions() {
 
       {/* Results - Encrypted Mail Client */}
       {scanResults.length > 0 && (
-        <div ref={resultsRef} className="scroll-mt-8 border border-cipher-cyan/40 rounded-2xl overflow-hidden shadow-lg inbox-container">
+        <div ref={resultsRef} className="scroll-mt-8 border border-cipher-gold/40 rounded-2xl overflow-hidden shadow-lg inbox-container">
           {/* Terminal-Style Header */}
-          <div className="inbox-header border-b border-cipher-cyan/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="inbox-header border-b border-cipher-gold/30 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-cyan flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cipher-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              <span className="font-mono text-xs sm:text-sm text-cipher-cyan truncate">~/encrypted_inbox</span>
+              <span className="font-mono text-xs sm:text-sm text-cipher-gold truncate">~/encrypted_inbox</span>
               <span className="hidden sm:inline text-xs text-muted font-mono">
                 [{scanResults.length} msg{scanResults.length > 1 ? 's' : ''}]
               </span>
@@ -593,7 +593,7 @@ export function ScanMyTransactions() {
               {!scanning && (
                 <button
                   onClick={scanMyTransactions}
-                  className="text-xs text-cipher-cyan hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
+                  className="text-xs text-cipher-gold hover:text-cipher-green font-mono flex items-center gap-1 transition-colors"
                   title="Refresh inbox"
                 >
                   <Icons.Refresh />
@@ -613,7 +613,7 @@ export function ScanMyTransactions() {
             {scanResults.map((result, idx) => (
               <div
                 key={idx}
-                className="inbox-message border border-cipher-cyan/20 rounded-xl overflow-hidden hover:border-cipher-cyan/50 transition-colors duration-200 animate-fade-in"
+                className="inbox-message border border-cipher-gold/20 rounded-xl overflow-hidden hover:border-cipher-gold/50 transition-colors duration-200 animate-fade-in"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 {/* Message Header - Old School Email Style (Single Line) */}
@@ -684,7 +684,7 @@ export function ScanMyTransactions() {
           </div>
 
           {/* Terminal Footer */}
-          <div className="inbox-footer px-4 py-3 border-t border-cipher-cyan/30">
+          <div className="inbox-footer px-4 py-3 border-t border-cipher-gold/30">
             <div className="flex items-center justify-between text-xs text-muted font-mono">
               <span>
                 ✓ {scanResults.length} message{scanResults.length > 1 ? 's' : ''} decrypted

@@ -21,14 +21,14 @@ export default function PrivacyPage() {
             </p>
             <p>
               Pool balances and flow volume are on{' '}
-              <Link href="/pools" className="text-cipher-cyan hover:underline">
+              <Link href="/pools" className="text-cipher-gold hover:underline">
                 Shielded Pools
               </Link>
               . Post-deshield destinations are on{' '}
-              <Link href="/turnstile" className="text-cipher-cyan hover:underline">
+              <Link href="/turnstile" className="text-cipher-gold hover:underline">
                 Turnstile
               </Link>
-              . All metrics come from CipherScan&apos;s index — no third-party analytics.
+              . All metrics come from ZecBlock&apos;s index — no third-party analytics.
             </p>
           </div>
         </div>

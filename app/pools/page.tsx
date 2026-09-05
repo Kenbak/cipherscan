@@ -43,7 +43,7 @@ function TurnstileLinkCard() {
   return (
     <Link
       href="/turnstile"
-      className="group flex items-center justify-between gap-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 transition-colors hover:border-cipher-cyan/30"
+      className="group flex items-center justify-between gap-4 rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6 transition-colors hover:border-cipher-gold/30"
     >
       <div>
         <p className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
@@ -54,7 +54,7 @@ function TurnstileLinkCard() {
           elsewhere?
         </p>
       </div>
-      <span className="shrink-0 text-[10px] font-mono text-cipher-cyan">Open →</span>
+      <span className="shrink-0 text-[10px] font-mono text-cipher-gold">Open →</span>
     </Link>
   );
 }
@@ -94,7 +94,7 @@ function RecentLargeFlows() {
         <SectionHeader
           label="RECENT_LARGE_FLOWS"
           actions={
-            <Link href="/txs?type=shielded" className="text-[10px] font-mono text-cipher-cyan hover:underline">
+            <Link href="/txs?type=shielded" className="text-[10px] font-mono text-cipher-gold hover:underline">
               View all →
             </Link>
           }

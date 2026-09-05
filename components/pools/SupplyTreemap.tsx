@@ -43,7 +43,7 @@ function BandLabel({
 
   const titleClass = onDarkFill ? 'text-white/90' : 'text-slate-800';
   const valueClass = onDarkFill ? 'text-white/75' : 'text-slate-700';
-  const pctClass = onDarkFill ? 'text-white/55' : 'text-slate-500';
+  const pctClass = onDarkFill ? 'text-white/80' : 'text-slate-700';
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
@@ -63,7 +63,7 @@ function BandLabel({
 function segmentUsesDarkLabel(segment: SupplySegmentInput, isDark: boolean): boolean {
   if (segment.hatch) return isDark;
   if (segment.key === 'transparent') return isDark;
-  return true;
+  return !isDark;
 }
 
 function TopSegment({
@@ -96,10 +96,12 @@ function TopSegment({
     <button
       ref={ref}
       type="button"
-      className={`relative min-w-0 overflow-hidden rounded-md transition-opacity duration-150 ${dimmed ? 'opacity-30' : 'opacity-100'} ${className ?? ''}`}
+      className={`relative min-w-0 overflow-hidden rounded-md transition-opacity duration-150 ${dimmed ? 'opacity-70' : 'opacity-100'} ${className ?? ''}`}
       style={style}
       onMouseEnter={() => onHover(segment.key)}
       onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(segment.key)}
+      onBlur={() => onHover(null)}
       onClick={onClick}
       aria-label={`${segment.label}, ${formatZecCompact(segment.zat / 1e8)} ZEC, ${capPct.toFixed(1)} percent of cap`}
     >
@@ -227,7 +229,7 @@ export function SupplyTreemap({
 
   return (
     <div
-      className="flex h-[220px] w-full gap-0.5 p-0.5 sm:h-[280px]"
+      className="flex h-[132px] w-full gap-0.5 p-0.5 sm:h-[156px]"
       role="img"
       aria-label="Zcash supply map: transparent, shielded, and unmined portions of the 21 million cap"
       onMouseLeave={handleMapLeave}

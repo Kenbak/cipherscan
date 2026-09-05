@@ -51,8 +51,8 @@ export async function generateMetadata({
   const resolution = await resolveName(name);
   if (resolution.state === 'error') {
     return buildPageMetadata({
-      title: `${name} Zcash Name | CipherScan`,
-      description: `Look up the Zcash Name ${name} on CipherScan. Registration details are temporarily unavailable.`,
+      title: `${name} Zcash Name | ZecBlock`,
+      description: `Look up the Zcash Name ${name} on ZecBlock. Registration details are temporarily unavailable.`,
       path,
       index: false,
     });
@@ -60,8 +60,8 @@ export async function generateMetadata({
 
   if (resolution.state === 'available') {
     return buildPageMetadata({
-      title: `${name} Is Available | Zcash Names | CipherScan`,
-      description: `${name} is currently available as a Zcash Name. View claim pricing and registration details on CipherScan.`,
+      title: `${name} Is Available | Zcash Names | ZecBlock`,
+      description: `${name} is currently available as a Zcash Name. View claim pricing and registration details on ZecBlock.`,
       path,
       index: false,
     });
@@ -73,8 +73,8 @@ export async function generateMetadata({
     : registration.address;
 
   return buildPageMetadata({
-    title: `${name} Zcash Name | CipherScan`,
-    description: `${name} is a registered Zcash Name resolving to ${shortAddress}. View its status and registration history on CipherScan.`,
+    title: `${name} Zcash Name | ZecBlock`,
+    description: `${name} is a registered Zcash Name resolving to ${shortAddress}. View its status and registration history on ZecBlock.`,
     path,
     networks: ['mainnet'],
     imageAlt: `${name} registered Zcash Name`,

@@ -23,7 +23,7 @@ export function BlockPageError({
           </h1>
           <p className="text-secondary mb-3">
             {temporarilyUnavailable
-              ? 'CipherScan could not refresh this block from the block index. Please try again shortly.'
+              ? 'ZecBlock could not refresh this block from the block index. Please try again shortly.'
               : 'This block is no longer present in the block index.'}
           </p>
           {initialSummary ? (
@@ -37,7 +37,7 @@ export function BlockPageError({
               <code className="font-mono text-secondary break-all">{identifier}</code>
             </p>
           )}
-          <Link href="/" className="text-cipher-cyan hover:text-cipher-green transition-colors font-mono text-sm">
+          <Link href="/" className="text-cipher-gold hover:text-cipher-green transition-colors font-mono text-sm">
             ← Back to Explorer
           </Link>
         </CardBody>

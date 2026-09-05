@@ -38,7 +38,7 @@ export function EmptyAddressView({ address, copiedText, onCopy }: EmptyAddressVi
               Valid transparent address with no transaction history.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cipher-surface rounded-lg text-xs text-muted font-mono border border-glass-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-cipher-cyan" />
+              <span className="w-1.5 h-1.5 rounded-full bg-cipher-gold" />
               Balance: 0 ZEC
             </div>
           </div>
@@ -92,11 +92,11 @@ export function IndexingIssueView({ address, copiedText, onCopy }: IndexingIssue
             <ul className="text-xs text-secondary space-y-2 font-mono">
               <li className="flex items-start gap-2">
                 <span className="text-muted mt-0.5">$</span>
-                <span>RPC methods <code className="text-cipher-cyan">getaddressbalance</code> / <code className="text-cipher-cyan">getaddresstxids</code> unavailable</span>
+                <span>RPC methods <code className="text-cipher-gold">getaddressbalance</code> / <code className="text-cipher-gold">getaddresstxids</code> unavailable</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-muted mt-0.5">$</span>
-                <span>Requires <code className="text-cipher-cyan">addressindex=1</code> in node config</span>
+                <span>Requires <code className="text-cipher-gold">addressindex=1</code> in node config</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-muted mt-0.5">$</span>
@@ -105,8 +105,8 @@ export function IndexingIssueView({ address, copiedText, onCopy }: IndexingIssue
             </ul>
           </div>
 
-          <div className="p-3 rounded-lg bg-cipher-cyan/5 border border-cipher-cyan/10">
-            <p className="text-xs text-cipher-cyan font-mono">
+          <div className="p-3 rounded-lg bg-cipher-gold/5 border border-cipher-gold/10">
+            <p className="text-xs text-cipher-gold font-mono">
               &gt; TIP: Search by transaction hash (txid) to view individual transactions
             </p>
           </div>

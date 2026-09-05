@@ -68,11 +68,12 @@ function handleApiRateLimit(request: NextRequest): NextResponse {
   return response;
 }
 
-const CANONICAL_HOST = 'cipherscan.app';
+const CANONICAL_HOST = 'zecblock.com';
 const REDIRECT_HOSTS = [
   'zecexplorer.com',
   'www.zecexplorer.com',
-  'zecblock.com',
+  'cipherscan.app',
+  'www.cipherscan.app',
   'www.zecblock.com',
   'zecblocks.com',
   'www.zecblocks.com',

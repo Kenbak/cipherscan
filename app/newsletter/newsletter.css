@@ -98,15 +98,15 @@
     padding: 1.125rem 1.25rem;
     border-radius: 0.875rem;
     border: 1px solid rgba(232, 196, 141, 0.25);
-    background: linear-gradient(135deg, rgba(232, 196, 141, 0.08), rgba(86, 212, 200, 0.04));
+    background: linear-gradient(135deg, rgba(232, 196, 141, 0.08), rgba(232, 184, 75, 0.04));
     font-size: 1.0625rem;
     line-height: 1.7;
     color: var(--color-text-secondary);
   }
 
   .nl-callout--recovery {
-    border-color: rgba(86, 212, 200, 0.25);
-    background: linear-gradient(135deg, rgba(86, 212, 200, 0.08), rgba(86, 212, 200, 0.02));
+    border-color: rgba(232, 184, 75, 0.25);
+    background: linear-gradient(135deg, rgba(232, 184, 75, 0.08), rgba(232, 184, 75, 0.02));
   }
 
   .nl-callout strong {
@@ -131,7 +131,7 @@
     bottom: 0.75rem;
     width: 2px;
     transform: translateX(-50%);
-    background: rgba(86, 212, 200, 0.35);
+    background: rgba(232, 184, 75, 0.35);
   }
 
   .nl-longform-timeline-item {
@@ -157,8 +157,8 @@
     height: 8px;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    background: var(--color-cyan);
-    box-shadow: 0 0 0 3px rgba(86, 212, 200, 0.15);
+    background: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(232, 184, 75, 0.15);
   }
 
   .nl-longform-timeline-date {
@@ -204,12 +204,12 @@
     border-left-width: 3px;
   }
 
-  .nl-stat-breakdown-item--held { border-left-color: #F4B728; }
-  .nl-stat-breakdown-item--reshielded { border-left-color: #00E676; }
+  .nl-stat-breakdown-item--held { border-left-color: #F8BC21; }
+  .nl-stat-breakdown-item--reshielded { border-left-color: #65C79A; }
   .nl-stat-breakdown-item--transferred { border-left-color: #64748b; }
-  .nl-stat-breakdown-item--bridge { border-left-color: #A78BFA; }
-  .nl-stat-breakdown-item--exchange { border-left-color: #FF6B35; }
-  .nl-stat-breakdown-item--default { border-left-color: var(--color-cyan); }
+  .nl-stat-breakdown-item--bridge { border-left-color: #B6A0E0; }
+  .nl-stat-breakdown-item--exchange { border-left-color: #E2A66E; }
+  .nl-stat-breakdown-item--default { border-left-color: var(--color-gold); }
 
   .nl-stat-breakdown-head {
     display: flex;
@@ -247,9 +247,9 @@
   /* Pull quotes with attribution */
   .newsletter-content .nl-longform .nl-pullquote {
     margin: 2rem 0;
-    border: 1px solid rgba(86, 212, 200, 0.22);
+    border: 1px solid rgba(232, 184, 75, 0.22);
     border-radius: 1rem;
-    background: linear-gradient(135deg, rgba(86, 212, 200, 0.07), rgba(86, 212, 200, 0.02));
+    background: linear-gradient(135deg, rgba(232, 184, 75, 0.07), rgba(232, 184, 75, 0.02));
     overflow: hidden;
   }
 
@@ -270,7 +270,7 @@
     display: block;
     font-size: 2rem;
     line-height: 1;
-    color: var(--color-cyan);
+    color: var(--color-gold);
     opacity: 0.5;
     margin-bottom: 0.25rem;
     font-style: normal;
@@ -279,25 +279,25 @@
   .newsletter-content .nl-longform .nl-pullquote-attr {
     margin: 0;
     padding: 0.75rem 1.5rem;
-    border-top: 1px solid rgba(86, 212, 200, 0.12);
-    background: rgba(86, 212, 200, 0.04);
+    border-top: 1px solid rgba(232, 184, 75, 0.12);
+    background: rgba(232, 184, 75, 0.04);
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.04em;
-    color: var(--color-cyan);
+    color: var(--color-gold);
     font-style: normal;
   }
 
   .newsletter-content .nl-longform .nl-blockquote {
     margin: 2rem 0;
-    border-left: 3px solid var(--color-cyan);
+    border-left: 3px solid var(--color-gold);
     padding: 1.125rem 1.375rem;
     font-size: 1.0625rem;
     line-height: 1.75;
     font-style: italic;
     color: var(--color-text-primary);
-    background: rgba(86, 212, 200, 0.05);
+    background: rgba(232, 184, 75, 0.05);
     border-radius: 0 0.75rem 0.75rem 0;
   }
 
@@ -328,7 +328,7 @@
   }
 
   .nl-blockquote {
-    border-left: 3px solid var(--color-cyan);
+    border-left: 3px solid var(--color-gold);
     padding: 0.75rem 1.25rem;
     margin: 1.5rem 0;
     font-style: italic;
@@ -350,9 +350,9 @@
   }
 
   .nl-link {
-    color: var(--color-cyan);
+    color: var(--color-gold);
     text-decoration: underline;
-    text-decoration-color: rgba(86, 212, 200, 0.3);
+    text-decoration-color: rgba(232, 184, 75, 0.3);
     text-underline-offset: 2px;
     transition: color 0.15s ease;
   }
@@ -361,13 +361,13 @@
   .nl-privacy-corner a.nl-link,
   .nl-story-card a.nl-link,
   .nl-attribution a.nl-link {
-    color: var(--color-cyan);
+    color: var(--color-gold);
     font-style: normal;
   }
 
   .nl-link:hover {
-    color: var(--color-cyan-glow);
-    text-decoration-color: var(--color-cyan);
+    color: var(--color-gold-glow);
+    text-decoration-color: var(--color-gold);
   }
 
   .nl-attribution {
@@ -387,13 +387,13 @@
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.8125rem;
     font-weight: 500;
-    color: var(--color-cyan);
+    color: var(--color-gold);
     text-decoration: none;
     transition: color 0.15s ease;
   }
 
   .nl-story-source:hover {
-    color: var(--color-cyan-glow);
+    color: var(--color-gold-glow);
   }
 
   .nl-code {
@@ -428,7 +428,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: var(--color-cyan);
+    background: var(--color-gold);
     opacity: 0.5;
   }
 
@@ -447,11 +447,11 @@
   }
 
   .nl-story-card:hover {
-    border-color: rgba(86, 212, 200, 0.2);
+    border-color: rgba(232, 184, 75, 0.2);
   }
 
   .nl-story-card--featured {
-    background: linear-gradient(135deg, rgba(86, 212, 200, 0.06), rgba(232, 196, 141, 0.04));
+    background: linear-gradient(135deg, rgba(232, 184, 75, 0.06), rgba(232, 196, 141, 0.04));
     border-color: rgba(232, 196, 141, 0.2);
   }
 
@@ -560,10 +560,10 @@
   }
 
   .nl-privacy-corner {
-    border: 1px solid rgba(86, 212, 200, 0.2);
+    border: 1px solid rgba(232, 184, 75, 0.2);
     border-radius: 1rem;
     padding: 1.5rem 1.75rem;
-    background: linear-gradient(160deg, rgba(86, 212, 200, 0.05), rgba(91, 156, 246, 0.04));
+    background: linear-gradient(160deg, rgba(232, 184, 75, 0.05), rgba(91, 156, 246, 0.04));
   }
 
   .nl-privacy-corner-header {
@@ -576,8 +576,8 @@
     font-size: 0.625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-cyan);
-    background: rgba(86, 212, 200, 0.1);
+    color: var(--color-gold);
+    background: rgba(232, 184, 75, 0.1);
     border-radius: 9999px;
     padding: 0.25rem 0.625rem;
     margin-bottom: 0.75rem;
@@ -638,7 +638,7 @@
   }
 
   .nl-grant-label--approved { color: var(--color-green, #4ade80); }
-  .nl-grant-label--review { color: var(--color-cyan); }
+  .nl-grant-label--review { color: var(--color-gold); }
   .nl-grant-label--declined { color: #f87171; }
   .nl-grant-label--new { color: var(--color-yellow); }
   .nl-grant-label--neutral { color: var(--color-text-muted); }
@@ -735,7 +735,7 @@
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--color-cyan);
+    color: var(--color-gold);
     margin-bottom: 0.375rem;
   }
 
@@ -811,7 +811,7 @@
   .nl-donate-addr {
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.6875rem;
-    color: var(--color-cyan);
+    color: var(--color-gold);
     word-break: break-all;
     background: none;
     border: none;

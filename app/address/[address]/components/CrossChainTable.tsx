@@ -19,7 +19,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-muted tracking-wider">&gt; BRIDGES</span>
-              <Badge color="cyan">{crossChain.totalSwaps}</Badge>
+              <Badge color="gold">{crossChain.totalSwaps}</Badge>
             </div>
             <span className="text-xs sm:text-sm text-muted font-normal font-mono sm:ml-auto">
               ${crossChain.totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })} vol · <span className="text-cipher-green">{crossChain.entryCount} in</span> · <span className="text-danger">{crossChain.exitCount} out</span>
@@ -55,7 +55,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
                 const toChain = swap.direction === 'inflow' ? 'zec' : swap.destChain;
 
                 return (
-                  <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-cyan transition group">
+                  <div key={swap.id} className="grid grid-cols-12 gap-3 items-center block-tx-row p-3 rounded-lg border border-cipher-border hover:border-cipher-gold transition group">
                     {/* Direction */}
                     <div className="col-span-1">
                       {swap.direction === 'inflow' ? (
@@ -95,7 +95,7 @@ export function CrossChainTable({ crossChain }: CrossChainTableProps) {
                     {/* ZEC TX */}
                     <div className="col-span-2 text-right">
                       {swap.zecTxid ? (
-                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-cyan hover:underline font-mono group-hover:text-primary transition-colors">
+                        <Link href={`/tx/${swap.zecTxid}`} className="text-xs text-cipher-gold hover:underline font-mono group-hover:text-primary transition-colors">
                           {swap.zecTxid.slice(0, 8)}...
                         </Link>
                       ) : (

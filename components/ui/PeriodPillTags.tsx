@@ -14,8 +14,8 @@ interface PeriodPillTagsProps<T extends string> {
 }
 
 /**
- * Neutral period/filter pills — elevated active state, no brand cyan.
- * Cyan is reserved for links and primary CTAs; filters use surface contrast.
+ * Neutral period/filter pills — elevated active state, no brand gold.
+ * Gold is reserved for links and primary CTAs; filters use surface contrast.
  */
 export function PeriodPillTags<T extends string>({
   options,

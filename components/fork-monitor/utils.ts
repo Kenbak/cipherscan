@@ -33,7 +33,7 @@ export function parseHeightHashLines(input: string): { height: number; hash: str
 export function branchLabel(branch: string): string {
   const labels: Record<string, string> = {
     reference: 'Reference',
-    cipherscan: 'CipherScan',
+    cipherscan: 'ZecBlock',
     ctaz: 'cTAZ',
     other: 'Other',
     unknown: 'Unknown',
@@ -45,8 +45,8 @@ export function makeCommunityReport(data: ForkMonitorData): string {
   const cs = data.cipherscan;
   const ct = data.ctaz;
   const lines = [
-    `CipherScan fork monitor: ${data.status}`,
-    `CipherScan: h${cs.tip} ${cs.tip_hash || 'no-tip-hash'} peers=${cs.peers} finalized=${cs.finalized}`,
+    `ZecBlock fork monitor: ${data.status}`,
+    `ZecBlock: h${cs.tip} ${cs.tip_hash || 'no-tip-hash'} peers=${cs.peers} finalized=${cs.finalized}`,
   ];
   if (ct) {
     lines.push(`cTAZ: h${ct.tip} ${ct.tip_hash || 'no-tip-hash'} peers=${ct.peers} finalized=${ct.finalized}`);
@@ -63,9 +63,9 @@ export function statusMeta(data: ForkMonitorData) {
   if (data.status === 'aligned') {
     return {
       label: 'Chains aligned',
-      detail: 'Known anchor hashes match between CipherScan and cTAZ.',
+      detail: 'Known anchor hashes match between ZecBlock and cTAZ.',
       badge: 'green' as const,
-      accent: 'border-l-cipher-cyan',
+      accent: 'border-l-cipher-gold',
     };
   }
   if (data.status === 'diverged') {
@@ -80,7 +80,7 @@ export function statusMeta(data: ForkMonitorData) {
   }
   return {
     label: 'cTAZ unavailable',
-    detail: 'CipherScan anchors are live; cTAZ comparison is temporarily offline.',
+    detail: 'ZecBlock anchors are live; cTAZ comparison is temporarily offline.',
     badge: 'muted' as const,
     accent: 'border-l-cipher-border',
   };

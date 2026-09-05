@@ -95,7 +95,7 @@ const forkColumns: DataTableColumn<ForkEvent>[] = [
     id: 'height',
     header: 'Height',
     cell: (fork) => (
-      <Link href={`/block/${fork.forkHeight}`} className="text-cipher-cyan hover:underline font-mono text-xs">
+      <Link href={`/block/${fork.forkHeight}`} className="text-cipher-gold hover:underline font-mono text-xs">
         #{fork.forkHeight.toLocaleString()}
       </Link>
     ),
@@ -105,7 +105,7 @@ const forkColumns: DataTableColumn<ForkEvent>[] = [
     header: 'Depth',
     align: 'center',
     cell: (fork) => (
-      <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'cyan' : 'muted'}>
+      <Badge color={fork.depth > 3 ? 'orange' : fork.depth > 1 ? 'gold' : 'muted'}>
         {fork.depth} block{fork.depth !== 1 ? 's' : ''}
       </Badge>
     ),
@@ -124,7 +124,7 @@ const forkColumns: DataTableColumn<ForkEvent>[] = [
     id: 'source',
     header: 'Source',
     cell: (fork) => (
-      <Badge color={fork.source === 'external' ? 'purple' : 'cyan'}>
+      <Badge color={fork.source === 'external' ? 'purple' : 'gold'}>
         {fork.source}
       </Badge>
     ),
@@ -154,7 +154,7 @@ const forkColumns: DataTableColumn<ForkEvent>[] = [
 const NODE_STATUS_COLOR: Record<string, string> = {
   agree: 'text-cipher-green',
   behind: 'text-cipher-yellow',
-  ahead: 'text-cipher-cyan',
+  ahead: 'text-cipher-gold',
   fork: 'text-cipher-orange',
   offline: 'text-red-500',
   pending: 'text-muted',
@@ -324,7 +324,7 @@ export default function UnclesPage() {
     }
     const colorClass = variant === 'orphan'
       ? 'bg-orange-950/50 text-cipher-orange border-orange-500/30'
-      : 'bg-emerald-950/50 text-cipher-green border-emerald-500/30';
+      : 'bg-emerald-950/50 text-cipher-green border-cipher-green/30';
     const content = (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-semibold border ${colorClass}`}>
         {pool}
@@ -352,10 +352,10 @@ export default function UnclesPage() {
     height: number;
   }) => {
     const isOrphan = variant === 'orphan';
-    const borderColor = isOrphan ? 'border-orange-500/30' : 'border-emerald-500/30';
+    const borderColor = isOrphan ? 'border-orange-500/30' : 'border-cipher-green/30';
     const bgGradient = isOrphan
       ? 'from-orange-950/30 to-red-950/20'
-      : 'from-emerald-950/30 to-cyan-950/20';
+      : 'from-emerald-950/30 to-gold-950/20';
     const labelColor = isOrphan ? 'text-cipher-orange' : 'text-cipher-green';
 
     return (
@@ -444,7 +444,7 @@ export default function UnclesPage() {
           onClick={() => setTab('forks')}
           className={`px-4 py-2 text-xs font-mono transition-colors border-b-2 ${
             tab === 'forks'
-              ? 'border-cipher-cyan text-cipher-cyan'
+              ? 'border-cipher-gold text-cipher-gold'
               : 'border-transparent text-muted hover:text-secondary'
           }`}
         >
@@ -454,7 +454,7 @@ export default function UnclesPage() {
           onClick={() => setTab('orphans')}
           className={`px-4 py-2 text-xs font-mono transition-colors border-b-2 ${
             tab === 'orphans'
-              ? 'border-cipher-cyan text-cipher-cyan'
+              ? 'border-cipher-gold text-cipher-gold'
               : 'border-transparent text-muted hover:text-secondary'
           }`}
         >
@@ -464,7 +464,7 @@ export default function UnclesPage() {
           onClick={() => setTab('nodes')}
           className={`px-4 py-2 text-xs font-mono transition-colors border-b-2 ${
             tab === 'nodes'
-              ? 'border-cipher-cyan text-cipher-cyan'
+              ? 'border-cipher-gold text-cipher-gold'
               : 'border-transparent text-muted hover:text-secondary'
           }`}
         >
@@ -486,7 +486,7 @@ export default function UnclesPage() {
             <EmptyState
               title={error}
               action={
-                <button onClick={fetchData} className="text-xs font-mono text-cipher-cyan hover:underline">
+                <button onClick={fetchData} className="text-xs font-mono text-cipher-gold hover:underline">
                   Retry
                 </button>
               }
@@ -501,7 +501,7 @@ export default function UnclesPage() {
             <EmptyState
               icon="🛡️"
               title="No Reorg Events Recorded"
-              description={<>Chain reorganization events will appear here when detected. External nodes can report competing tips via the <code className="text-cipher-cyan">POST /api/uncle/report</code> endpoint.</>}
+              description={<>Chain reorganization events will appear here when detected. External nodes can report competing tips via the <code className="text-cipher-gold">POST /api/uncle/report</code> endpoint.</>}
             />
           </CardBody>
         </Card>
@@ -541,7 +541,7 @@ export default function UnclesPage() {
                       onClick={() => setExpandedOrphan(expandedOrphan === block.id ? null : block.id)}
                     >
                       <td className="px-4 h-[44px] border-b border-cipher-border">
-                        <Link href={`/block/${block.height}`} className="text-cipher-cyan hover:underline font-mono text-xs" onClick={e => e.stopPropagation()}>
+                        <Link href={`/block/${block.height}`} className="text-cipher-gold hover:underline font-mono text-xs" onClick={e => e.stopPropagation()}>
                           #{block.height.toLocaleString()}
                         </Link>
                       </td>
@@ -577,15 +577,15 @@ export default function UnclesPage() {
                             <span className="text-xs text-muted">—</span>
                           )
                         ) : block.minerAddress ? (
-                          <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-cyan hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
+                          <Link href={`/address/${block.minerAddress}`} className="text-xs font-mono text-cipher-gold hover:underline truncate block max-w-[120px]" title={block.minerAddress} onClick={e => e.stopPropagation()}>
                             {block.minerPool}
                           </Link>
                         ) : (
-                          <span className="text-xs font-mono text-cipher-cyan">{block.minerPool}</span>
+                          <span className="text-xs font-mono text-cipher-gold">{block.minerPool}</span>
                         )}
                       </td>
                       <td className="px-4 h-[44px] border-b border-cipher-border">
-                        <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'cyan' : 'muted'}>
+                        <Badge color={block.source === 'external' ? 'purple' : block.source === 'reindex' ? 'gold' : 'muted'}>
                           {block.source}
                         </Badge>
                       </td>
@@ -655,7 +655,7 @@ export default function UnclesPage() {
             If your node sees a different block at the same height, it will be recorded as a potential fork.
           </p>
           <div className="bg-cipher-surface rounded-lg p-4 border border-cipher-border">
-            <code className="text-xs text-cipher-cyan font-mono block mb-2">
+            <code className="text-xs text-cipher-gold font-mono block mb-2">
               POST {API_URL}/api/uncle/report
             </code>
             <pre className="text-xs text-muted font-mono">

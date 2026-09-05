@@ -39,9 +39,9 @@ interface GraphResponse {
 }
 
 const COLORS = {
-  self: '#56D4C8',
+  self: '#91AC90',
   entity: '#E8C48D',
-  counterparty: '#5B9CF6',
+  counterparty: '#A1A9AD',
   text: 'rgba(255, 255, 255, 0.85)',
   textDim: 'rgba(255, 255, 255, 0.4)',
 };
@@ -339,7 +339,7 @@ export function AddressGraph({ address }: { address: string }) {
                   <button
                     type="button"
                     onClick={() => openAddress(hovered.id)}
-                    className="mt-3 font-mono text-[11px] text-cipher-cyan hover:text-primary transition-colors"
+                    className="mt-3 font-mono text-[11px] text-cipher-gold hover:text-primary transition-colors"
                   >
                     Open address →
                   </button>

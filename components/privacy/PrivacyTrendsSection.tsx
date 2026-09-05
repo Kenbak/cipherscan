@@ -58,7 +58,7 @@ function filterTrendsByPeriod(daily: TrendDay[], period: Period): TrendDay[] {
 function segmentedClass(active: boolean) {
   return `px-1.5 py-0.5 text-[10px] font-mono rounded transition whitespace-nowrap ${
     active
-      ? 'bg-cipher-cyan/15 text-cipher-cyan font-bold'
+      ? 'bg-cipher-gold/15 text-cipher-gold font-bold'
       : 'text-muted hover:text-primary'
   }`;
 }
@@ -80,20 +80,20 @@ function buildShareText(
   chartData: TrendDay[],
 ) {
   const periodLabel = period === 'all' ? 'all time' : period.toUpperCase();
-  const url = 'https://cipherscan.app/privacy';
+  const url = 'https://zecblock.com/privacy';
   const latest = chartData[chartData.length - 1];
 
   if (view === 'score') {
     const score = latest?.privacyScore ?? privacyScore;
-    return `Zcash Privacy Score: ${score}/100 (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash Privacy Score: ${score}/100 (${periodLabel}) on ZecBlock\n\n${url}`;
   }
   if (view === 'adoption' && latest) {
-    return `Zcash shielded tx share: ${latest.shieldedPercentage.toFixed(1)}% (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash shielded tx share: ${latest.shieldedPercentage.toFixed(1)}% (${periodLabel}) on ZecBlock\n\n${url}`;
   }
   if (view === 'activity' && latest) {
-    return `Zcash shielded activity: ${latest.shielded.toLocaleString()} shielded txs (${periodLabel}) on CipherScan\n\n${url}`;
+    return `Zcash shielded activity: ${latest.shielded.toLocaleString()} shielded txs (${periodLabel}) on ZecBlock\n\n${url}`;
   }
-  return `Zcash privacy metrics on CipherScan (${periodLabel})\n\n${url}`;
+  return `Zcash privacy metrics on ZecBlock (${periodLabel})\n\n${url}`;
 }
 
 export function PrivacyTrendsSection({
@@ -218,7 +218,7 @@ export function PrivacyTrendsSection({
                 <Line
                   type="monotone"
                   dataKey="shieldedPercentage"
-                  stroke={colors.cyan}
+                  stroke={colors.gold}
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -249,7 +249,7 @@ export function PrivacyTrendsSection({
                   labelFormatter={(label) => formatTrendDate(label)}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, color: colors.axis }} />
-                <Bar dataKey="shielded" name="Shielded" fill={colors.cyan} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="shielded" name="Shielded" fill={colors.gold} radius={[3, 3, 0, 0]} />
                 <Bar
                   dataKey="transparent"
                   name="Transparent"
@@ -264,8 +264,8 @@ export function PrivacyTrendsSection({
               <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
                 <defs>
                   <linearGradient id="privacyScoreFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={colors.cyan} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={colors.cyan} stopOpacity={0} />
+                    <stop offset="5%" stopColor={colors.gold} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={colors.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="2 6" stroke={colors.gridStroke} />
@@ -292,7 +292,7 @@ export function PrivacyTrendsSection({
                 <Area
                   type="monotone"
                   dataKey="privacyScore"
-                  stroke={colors.cyan}
+                  stroke={colors.gold}
                   strokeWidth={2}
                   fill="url(#privacyScoreFill)"
                 />

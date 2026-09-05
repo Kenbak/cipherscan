@@ -46,7 +46,7 @@ function FlowAddressNode({ address }: { address: string }) {
   return (
     <Link href={`/address/${address}`} className="transition-colors">
       <Badge
-        color={labelInfo.isOfficial ? 'cyan' : 'muted'}
+        color={labelInfo.isOfficial ? 'gold' : 'muted'}
         variant="subtle"
         className="badge-link"
         icon={labelInfo.isOfficial ? <CheckmarkIcon /> : undefined}

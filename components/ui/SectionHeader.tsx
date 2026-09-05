@@ -34,7 +34,7 @@ export function PageHeader({
       </p>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary font-sans">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-primary font-sans">{title}</h1>
           {subtitle && (
             <div className="text-sm text-secondary mt-2 max-w-2xl font-sans">{subtitle}</div>
           )}
@@ -82,7 +82,7 @@ export function SectionHeader({
     <div className={`flex items-start sm:items-center justify-between gap-2 mb-4 flex-wrap ${className}`}>
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-        <h2 className={`${LABEL_SIZE[size]} font-bold font-mono text-secondary uppercase tracking-wider`}>
+        <h2 className={`${LABEL_SIZE[size]} font-medium font-mono text-primary lowercase tracking-tight`}>
           {label}
         </h2>
         {live && (

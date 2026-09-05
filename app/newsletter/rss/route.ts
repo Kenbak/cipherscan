@@ -11,20 +11,20 @@ function escapeXml(str: string): string {
 
 export async function GET() {
   const newsletters = getAllNewsletters();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cipherscan.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zecblock.com';
 
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/rss-style.xsl"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>CipherScan Weekly</title>
+    <title>ZecBlock Weekly</title>
     <description>Weekly Zcash intelligence — protocol updates, network stats, and privacy insights. No tracking.</description>
     <link>${siteUrl}/newsletter</link>
     <atom:link href="${siteUrl}/newsletter/rss" rel="self" type="application/rss+xml"/>
     <language>en</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <docs>https://www.rssboard.org/rss-specification</docs>
-    <generator>CipherScan</generator>${newsletters
+    <generator>ZecBlock</generator>${newsletters
       .map(
         (n) => `
     <item>

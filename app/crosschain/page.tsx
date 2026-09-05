@@ -12,8 +12,8 @@ export default function CrosschainPage() {
             <h1 className="text-2xl font-bold font-mono text-secondary mb-4">Cross-Chain Available on Mainnet Only</h1>
             <p className="text-muted max-w-lg mx-auto mb-6">NEAR Intents cross-chain swaps are only available for ZEC mainnet.</p>
             <div className="flex justify-center gap-4">
-              <a href="https://cipherscan.app/crosschain" className="px-4 py-2 bg-cipher-green/20 border border-cipher-green text-cipher-green rounded-lg hover:bg-cipher-green/30 transition-colors font-mono text-sm">View on Mainnet</a>
-              <Link href="/" className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-secondary rounded-lg hover:border-cipher-cyan transition-colors font-mono text-sm">Back to Explorer</Link>
+              <a href="https://zecblock.com/crosschain" className="px-4 py-2 bg-cipher-green/20 border border-cipher-green text-cipher-green rounded-lg hover:bg-cipher-green/30 transition-colors font-mono text-sm">View on Mainnet</a>
+              <Link href="/" className="px-4 py-2 bg-cipher-surface/30 border border-cipher-border text-secondary rounded-lg hover:border-cipher-gold transition-colors font-mono text-sm">Back to Explorer</Link>
             </div>
           </div>
         </div>
@@ -30,7 +30,7 @@ export default function CrosschainPage() {
           subtitle={
             <span className="text-muted font-mono italic">
               Real-time swap data across 15+ chains via{' '}
-              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-cyan hover:underline">NEAR Intents</a>
+              <a href="https://near.org/intents" target="_blank" rel="noopener noreferrer" className="text-cipher-gold hover:underline">NEAR Intents</a>
             </span>
           }
           actions={

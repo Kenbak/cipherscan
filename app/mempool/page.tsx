@@ -16,7 +16,7 @@ export default function MempoolPage() {
               The mempool is the staging area of the Zcash network: every transaction
               broadcast by a wallet waits here until a miner includes it in a block. With a
               75-second block target, most transactions clear the mempool within a couple of
-              minutes. CipherScan streams mempool entries and removals live over WebSocket
+              minutes. ZecBlock streams mempool entries and removals live over WebSocket
               from its own Zebra full node.
             </p>
             <p>

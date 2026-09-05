@@ -223,7 +223,7 @@ export default function BlendCheckPage() {
                   value={amount}
                   onChange={handleAmountChange}
                   placeholder="0.00"
-                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-cyan/40 focus:shadow-[0_0_0_3px_rgba(0,212,255,0.06)] transition"
+                  className="w-full px-5 py-4 rounded-xl border border-cipher-border bg-cipher-hover text-2xl font-mono text-primary placeholder:text-muted/20 focus:outline-none focus:border-cipher-gold/40 focus:shadow-[0_0_0_3px_rgba(248,188,33,0.06)] transition"
                   autoFocus
                 />
                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted font-mono text-lg">
@@ -237,7 +237,7 @@ export default function BlendCheckPage() {
                     onClick={() => handleSuggestionClick(q)}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                       amount === formatZec(q)
-                        ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
+                        ? 'border-cipher-gold/40 bg-cipher-gold/10 text-cipher-gold'
                         : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                     }`}
                   >
@@ -248,7 +248,7 @@ export default function BlendCheckPage() {
 
               {loading && (
                 <div className="flex items-center gap-2 text-muted text-xs font-mono mt-5">
-                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-cyan border-t-transparent" />
+                  <div className="animate-spin rounded-full h-3 w-3 border border-cipher-gold border-t-transparent" />
                   Scanning shielded pool...
                 </div>
               )}
@@ -301,7 +301,7 @@ export default function BlendCheckPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-primary">
-                      Try <span className="font-mono font-semibold text-cipher-cyan">{formatZec(bestNearby.amount)} ZEC</span> instead?
+                      Try <span className="font-mono font-semibold text-cipher-gold">{formatZec(bestNearby.amount)} ZEC</span> instead?
                     </p>
                     <p className="text-xs text-muted mt-0.5">
                       {formatNumber(bestNearby.count)} others used this amount recently
@@ -331,9 +331,9 @@ export default function BlendCheckPage() {
                     </p>
                     <p className="text-xs text-muted mt-2">
                       {bestNearby ? (
-                        <>Try rounding to <button onClick={() => handleSuggestionClick(bestNearby.amount)} className="text-cipher-cyan font-mono hover:underline">{formatZec(bestNearby.amount)} ZEC</button> instead.</>
+                        <>Try rounding to <button onClick={() => handleSuggestionClick(bestNearby.amount)} className="text-cipher-gold font-mono hover:underline">{formatZec(bestNearby.amount)} ZEC</button> instead.</>
                       ) : (
-                        <>Try a round number like <button onClick={() => handleSuggestionClick(1)} className="text-cipher-cyan font-mono hover:underline">1</button>, <button onClick={() => handleSuggestionClick(5)} className="text-cipher-cyan font-mono hover:underline">5</button>, or <button onClick={() => handleSuggestionClick(10)} className="text-cipher-cyan font-mono hover:underline">10 ZEC</button>.</>
+                        <>Try a round number like <button onClick={() => handleSuggestionClick(1)} className="text-cipher-gold font-mono hover:underline">1</button>, <button onClick={() => handleSuggestionClick(5)} className="text-cipher-gold font-mono hover:underline">5</button>, or <button onClick={() => handleSuggestionClick(10)} className="text-cipher-gold font-mono hover:underline">10 ZEC</button>.</>
                       )}
                     </p>
                   </div>
@@ -353,7 +353,7 @@ export default function BlendCheckPage() {
                           onClick={() => setSelectedPlanIdx(i)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition ${
                             selectedPlanIdx === i
-                              ? 'border-cipher-cyan/40 bg-cipher-cyan/10 text-cipher-cyan'
+                              ? 'border-cipher-gold/40 bg-cipher-gold/10 text-cipher-gold'
                               : 'border-cipher-border text-muted hover:text-primary hover:border-white/[0.12]'
                           }`}
                         >
@@ -446,7 +446,7 @@ export default function BlendCheckPage() {
                                 setCopied(true);
                                 setTimeout(() => setCopied(false), 2000);
                               }}
-                              className="text-xs font-mono text-cipher-cyan hover:text-cipher-green transition-colors flex items-center gap-1.5"
+                              className="text-xs font-mono text-cipher-gold hover:text-cipher-green transition-colors flex items-center gap-1.5"
                             >
                               {copied ? (
                                 <>
@@ -549,11 +549,11 @@ export default function BlendCheckPage() {
                             onClick={() => handleSuggestionClick(np.amount)}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition text-left group ${
                               isSelected
-                                ? 'border-cipher-cyan/30 bg-cipher-cyan/5'
+                                ? 'border-cipher-gold/30 bg-cipher-gold/5'
                                 : 'border-transparent hover:border-cipher-border hover:bg-cipher-hover'
                             }`}
                           >
-                            <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-cyan font-semibold' : 'text-primary'}`}>
+                            <span className={`font-mono text-sm w-24 shrink-0 ${isSelected ? 'text-cipher-gold font-semibold' : 'text-primary'}`}>
                               {formatZec(np.amount)}
                             </span>
                             <div className="flex-1 h-1.5 rounded-full bg-cipher-hover overflow-hidden">
@@ -614,19 +614,19 @@ export default function BlendCheckPage() {
                   </p>
                   <div className="pt-3 border-t border-cipher-border space-y-2 text-xs text-muted font-mono">
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Use round numbers: 1, 2.5, 5, 10, 25, 50, 100 ZEC
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Split large or odd amounts into multiple transactions
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Shield the leftover at a different time to avoid correlation
                     </p>
                     <p className="flex gap-2">
-                      <span className="text-cipher-cyan shrink-0">$</span>
+                      <span className="text-cipher-gold shrink-0">$</span>
                       Use a unified address (u1...) for maximum privacy
                     </p>
                   </div>

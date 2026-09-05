@@ -66,7 +66,7 @@ export function AnonymitySetChart() {
     >
       {loading ? (
         <div className="flex h-[340px] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-cyan/30 border-t-cipher-cyan" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cipher-gold/30 border-t-cipher-gold" />
         </div>
       ) : (
         <div>
@@ -94,7 +94,7 @@ export function AnonymitySetChart() {
                 label={privacyYAxisLabel('Transactions', colors.axis)}
               />
               <Tooltip
-                cursor={{ fill: colors.barCursorCyan }}
+                cursor={{ fill: colors.barCursorGold }}
                 contentStyle={tooltipStyle}
                 labelStyle={{ color: colors.tooltipText, fontWeight: 'bold', marginBottom: '8px' }}
                 formatter={(value, name) => [
@@ -102,11 +102,11 @@ export function AnonymitySetChart() {
                   String(name) === 'shield' ? 'Shield (in)' : 'Deshield (out)',
                 ]}
               />
-              <Bar dataKey="shield" fill={colors.cyan} name="shield" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="shield" fill={colors.gold} name="shield" radius={[3, 3, 0, 0]} />
               <Bar dataKey="deshield" fill={colors.transparent} name="deshield" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <PrivacyBarLegend shieldColor={colors.cyan} deshieldColor={colors.transparent} />
+          <PrivacyBarLegend shieldColor={colors.gold} deshieldColor={colors.transparent} />
         </div>
       )}
     </ChartCard>

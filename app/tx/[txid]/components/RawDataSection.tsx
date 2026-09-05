@@ -56,7 +56,7 @@ export function RawDataSection({
       <Card>
         <CardBody>
           <div className="flex items-center justify-center py-12">
-            <div className="w-5 h-5 border-2 border-cipher-cyan/30 border-t-cipher-cyan rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-cipher-gold/30 border-t-cipher-gold rounded-full animate-spin" />
             <span className="ml-3 text-sm text-muted">Loading raw transaction...</span>
           </div>
         </CardBody>

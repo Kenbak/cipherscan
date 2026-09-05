@@ -257,7 +257,7 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
       {/* Countdown + Context */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden mb-8">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-4 py-2.5 sm:px-5">
-          <span className="h-2 w-2 rounded-full bg-cipher-cyan animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-cipher-gold animate-pulse" />
           <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">
             {countdownLabel}
           </span>
@@ -397,10 +397,10 @@ export function NU7VoteClient({ initialData }: { initialData: InitialData }) {
 
       {/* Methodology */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface p-5 sm:p-6">
-        <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">What CipherScan shows</h3>
+        <h3 className="text-xs font-mono font-bold text-secondary uppercase tracking-wider mb-2">What ZecBlock shows</h3>
         <p className="text-xs text-muted leading-relaxed max-w-3xl">
           This page displays public vote parameters, countdowns, and live chain state from the Valar
-          zvote-1 REST API. CipherScan cannot determine individual eligibility, reveal
+          zvote-1 REST API. ZecBlock cannot determine individual eligibility, reveal
           encrypted vote choices before tally, or verify the protocol without an independent
           full node. The Ironwood supply shown is an upper bound on eligible ZEC — not a turnout estimate.
         </p>
@@ -462,7 +462,7 @@ function VoteTab({
               ))}
             </div>
             <p className="mt-4 text-[10px] text-muted leading-relaxed">
-              Use a supported wallet to vote. CipherScan does not handle votes or keys.
+              Use a supported wallet to vote. ZecBlock does not handle votes or keys.
             </p>
           </div>
         </div>
@@ -498,7 +498,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
     return (
       <div className="h-64 rounded-2xl border border-cipher-border bg-cipher-surface flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-cyan rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-cipher-border border-t-cipher-gold rounded-full animate-spin" />
           <span className="text-xs font-mono text-muted">Connecting to zvote-1…</span>
         </div>
       </div>
@@ -516,7 +516,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
       {/* Chain overview — compact stats bar */}
       <div className="rounded-2xl border border-cipher-border bg-cipher-surface overflow-hidden">
         <div className="flex items-center gap-2 border-b border-cipher-border-subtle px-5 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-cipher-green animate-pulse" />
           <span className="text-[10px] font-mono uppercase tracking-wider text-secondary">zvote-1</span>
           <span className="text-[10px] text-muted ml-1">— the dedicated voting chain</span>
           <span className="ml-auto text-[10px] font-mono text-muted">
@@ -569,12 +569,12 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                           {b.time ? formatBlockTime(b.time) : '—'}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-cipher-cyan/10 text-cipher-cyan-bright font-semibold text-[10px]">
+                          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-cipher-gold/10 text-cipher-gold-bright font-semibold text-[10px]">
                             {b.txCount}
                           </span>
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-emerald-400' : 'text-cipher-yellow'}`}>
+                          <span className={`tabular-nums ${b.sigCount === chainState.validators.length ? 'text-cipher-green' : 'text-cipher-yellow'}`}>
                             {b.sigCount}/{chainState.validators.length}
                           </span>
                         </td>
@@ -606,7 +606,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   <div className="flex items-center justify-between">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
                       ceremonyStatus === 'Finalized'
-                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'
+                        ? 'border-cipher-green/30 text-cipher-green bg-cipher-green/5'
                         : 'border-cipher-yellow/30 text-cipher-yellow bg-cipher-yellow/5'
                     }`}>
                       {ceremonyStatus}
@@ -622,7 +622,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                     </div>
                     <div className="h-1.5 rounded-full bg-glass-6 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-emerald-400 transition-[width] duration-500"
+                        className="h-full rounded-full bg-cipher-green transition-[width] duration-500"
                         style={{ width: `${(chainState.ceremony.ackCount / Math.max(chainState.ceremony.validatorCount, 1)) * 100}%` }}
                       />
                     </div>
@@ -648,7 +648,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                   <div className="grid grid-cols-2 gap-1.5">
                     {chainState.validators.map(v => (
                       <div key={v.operatorAddress} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-glass-1">
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${v.jailed ? 'bg-red-400' : 'bg-cipher-green'}`} />
                         <span className="text-[11px] font-mono text-secondary truncate">{v.moniker}</span>
                       </div>
                     ))}
@@ -679,7 +679,7 @@ function ChainExplorerTab({ chainState }: { chainState: ChainState | null }) {
                 );
                 return (
                   <div key={s.label} className="px-4 py-3 flex flex-col items-center text-center">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 mb-2" />
+                    <span className="h-2 w-2 rounded-full bg-cipher-green mb-2" />
                     <span className="text-[11px] font-mono font-semibold text-primary">{s.label}</span>
                     <div className="flex items-center gap-1 mt-1.5">
                       <RoleDot label="V" title="Validator" active />
@@ -745,8 +745,8 @@ function PhaseBadge({ phase }: { phase: Phase }) {
   return <Badge color={c.color}>{c.label}</Badge>;
 }
 
-function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'cyan' }) {
-  const valueColor = accent === 'yellow' ? 'text-cipher-yellow-bright' : accent === 'cyan' ? 'text-cipher-cyan-bright' : 'text-primary';
+function MetricCell({ label, value, accent }: { label: string; value: string; accent?: 'yellow' | 'gold' }) {
+  const valueColor = accent === 'yellow' ? 'text-cipher-yellow-bright' : accent === 'gold' ? 'text-cipher-gold-bright' : 'text-primary';
   return (
     <div>
       <div className="text-[10px] font-mono uppercase tracking-wider text-muted">{label}</div>
@@ -795,7 +795,7 @@ function StatusRow({ label, value, accent, mono }: { label: string; value: strin
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs font-mono text-muted">{label}</span>
-      <span className={`text-xs font-mono font-semibold ${accent ? 'text-emerald-400' : 'text-secondary'} ${mono ? 'tabular-nums' : ''}`}>
+      <span className={`text-xs font-mono font-semibold ${accent ? 'text-cipher-green' : 'text-secondary'} ${mono ? 'tabular-nums' : ''}`}>
         {value}
       </span>
     </div>
@@ -804,7 +804,7 @@ function StatusRow({ label, value, accent, mono }: { label: string; value: strin
 
 function WalletBadge({ status }: { status: 'confirmed' | 'expected' | 'unknown' }) {
   if (status === 'confirmed') {
-    return <span className="text-[10px] font-mono font-semibold text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 rounded-full px-2 py-0.5">Confirmed</span>;
+    return <span className="text-[10px] font-mono font-semibold text-cipher-green border border-cipher-green/20 bg-cipher-green/5 rounded-full px-2 py-0.5">Confirmed</span>;
   }
   if (status === 'expected') {
     return <span className="text-[10px] font-mono font-semibold text-cipher-yellow border border-cipher-yellow/20 bg-cipher-yellow/5 rounded-full px-2 py-0.5">Expected</span>;

@@ -97,7 +97,7 @@ export function FutureBlockView({
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={`/block/${targetHeight}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-cyan/10 border border-cipher-cyan/30 text-cipher-cyan font-mono text-sm hover:bg-cipher-cyan/20 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cipher-gold/10 border border-cipher-gold/30 text-cipher-gold font-mono text-sm hover:bg-cipher-gold/20 transition-colors"
               >
                 View Block →
               </Link>
@@ -201,7 +201,7 @@ export function FutureBlockView({
               Current Height
             </div>
             <div className="flex-1 font-mono text-xs sm:text-sm text-primary">
-              <Link href={`/block/${currentHeight}`} className="text-cipher-cyan hover:underline">
+              <Link href={`/block/${currentHeight}`} className="text-cipher-gold hover:underline">
                 #{currentHeight.toLocaleString()}
               </Link>
             </div>
@@ -251,7 +251,7 @@ export function FutureBlockView({
             </div>
             <div className="h-1.5 rounded-full bg-cipher-border overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-cipher-cyan to-cipher-purple transition-[width] duration-1000"
+                className="h-full rounded-full bg-gradient-to-r from-cipher-gold to-cipher-purple transition-[width] duration-1000"
                 style={{ width: `${Math.min(progress * 100, 100)}%` }}
               />
             </div>

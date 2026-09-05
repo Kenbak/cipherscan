@@ -30,7 +30,7 @@ export function ChartCard({
         <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-3 mb-4 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs text-muted font-mono uppercase tracking-widest opacity-50">{'>'}</span>
-            <h2 className="text-xs sm:text-sm font-bold font-mono text-secondary uppercase tracking-wider truncate">{title}</h2>
+            <h2 className="text-xs sm:text-sm font-medium font-mono text-secondary uppercase tracking-wider truncate">{title}</h2>
           </div>
           {controls}
         </div>
@@ -40,6 +40,7 @@ export function ChartCard({
           </div>
           <div className={`relative z-[1] px-0.5 pb-1 ${fill ? 'h-full' : ''}`}>{children}</div>
         </div>
+        <div className="chart-signature" aria-hidden="true">zecblock.com</div>
       </CardBody>
     </Card>
   );

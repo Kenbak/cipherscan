@@ -2,7 +2,7 @@ import DecryptPageClient from '@/components/DecryptPageClient';
 import { buildPageMetadata } from '@/lib/seo';
 
 export const metadata = buildPageMetadata({
-  title: 'Decrypt Zcash Transaction Memos | CipherScan',
+  title: 'Decrypt Zcash Transaction Memos | ZecBlock',
   description: 'Decrypt Orchard and Ironwood transaction memos in your browser using a Zcash viewing key. Your key never leaves your device.',
   keywords: [
     'zcash decrypt memo',
@@ -22,7 +22,7 @@ export const metadata = buildPageMetadata({
     'UFVK decrypt',
   ],
   path: '/decrypt',
-  imageAlt: 'CipherScan - Zcash Decrypt Memo Tool',
+  imageAlt: 'ZecBlock - Zcash Decrypt Memo Tool',
   networks: ['mainnet'],
 });
 
@@ -32,7 +32,7 @@ const jsonLd = {
   '@type': 'WebApplication',
   name: 'Zcash Decrypt Memo Tool',
   description: 'Free online tool to decrypt Zcash shielded transaction memos using a Unified Full Viewing Key (UFVK). Supports Orchard and Ironwood transactions. 100% client-side decryption using WebAssembly.',
-  url: 'https://cipherscan.app/decrypt',
+  url: 'https://zecblock.com/decrypt',
   applicationCategory: 'UtilityApplication',
   operatingSystem: 'Web Browser',
   offers: {
@@ -42,8 +42,8 @@ const jsonLd = {
   },
   creator: {
     '@type': 'Organization',
-    name: 'CipherScan',
-    url: 'https://cipherscan.app',
+    name: 'ZecBlock',
+    url: 'https://zecblock.com',
   },
   featureList: [
     'Decrypt Zcash shielded transaction memos',
@@ -57,7 +57,7 @@ const jsonLd = {
 const faqs = [
   {
     question: 'How do I decrypt a Zcash memo?',
-    answer: 'Enter the transaction ID and your Unified Full Viewing Key (UFVK) in the tool above. CipherScan decrypts the memo entirely in your browser using WebAssembly — your viewing key is never sent to any server.',
+    answer: 'Enter the transaction ID and your Unified Full Viewing Key (UFVK) in the tool above. ZecBlock decrypts the memo entirely in your browser using WebAssembly — your viewing key is never sent to any server.',
   },
   {
     question: 'Is it safe to use my viewing key here?',
@@ -140,7 +140,7 @@ export default function DecryptPage() {
             <p className="text-xs text-muted leading-relaxed max-w-2xl">
               Zcash is one of the only cryptocurrencies with encrypted memos on shielded transactions —
               free-text or structured data protected by the same zero-knowledge cryptography that hides amounts
-              and addresses. CipherScan&apos;s decrypt tool is free and open-source, decoding Orchard and Ironwood
+              and addresses. ZecBlock&apos;s decrypt tool is free and open-source, decoding Orchard and Ironwood
               memos entirely in WebAssembly with no server round-trip and no node or CLI required.
             </p>
           </section>
