@@ -114,10 +114,6 @@ const siteJsonLd = {
 function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
-      />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-cipher-surface focus:px-4 focus:py-2 focus:text-primary focus:shadow-lg"
@@ -160,6 +156,21 @@ export default function RootLayout({
       <head>
         {/* Supports sitemap-detection tools; robots.txt remains the standards-based declaration. */}
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+        {/*
+          Site-wide structured data. This lives here, in the server-rendered
+          <head>, rather than inside AppContent: AppContent sits under
+          ThemeProvider/WebSocketProvider, so it is part of a client subtree,
+          and React 19 hoists a <script> rendered by a component out of its
+          position. The server emitted it in <body> while the client hoisted
+          it, and that divergence was the hydration mismatch reported against
+          the element immediately after it (the skip link). Rendering it from
+          the server-only layout keeps it in the initial HTML for crawlers,
+          which is the whole point of using a plain <script> for JSON-LD.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
         {/*
           next/script's beforeInteractive strategy is Next's own documented
           mechanism for exactly this case (must run before hydration/paint

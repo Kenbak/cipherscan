@@ -9,7 +9,9 @@ import { PageHeader, SkeletonTable } from '@/components/ui';
 export default function TxsLoading() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-fade-in">
-      <PageHeader eyebrow="ALL_TRANSACTIONS" title="Latest Zcash Transactions" />
+      {/* titleAsHeading={false}: this fallback and the resolved page share
+          one streamed HTML response, so a second <h1> would ship with it. */}
+      <PageHeader eyebrow="ALL_TRANSACTIONS" title="Latest Zcash Transactions" titleAsHeading={false} />
       <SkeletonTable rows={25} className="mt-4" label="Loading transactions…" />
     </div>
   );

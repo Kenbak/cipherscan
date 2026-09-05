@@ -99,34 +99,47 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="home-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12">
-      {/* Hero Section - z-index for dropdown to appear above widgets */}
-      <div className="home-hero relative z-30">
-        <div className="home-introduction">
-          <h1 className="type-page text-primary">
-            {crosslinkMode
-              ? 'Zcash Crosslink Explorer'
-              : isTestnet
-                ? 'Zcash Testnet Explorer (TAZ)'
-                : 'Zcash Block Explorer'}
-            <span className="home-title-mark" aria-hidden="true" />
-          </h1>
-          <p className="text-sm text-secondary mt-3 max-w-md leading-relaxed">
-            {crosslinkMode
-              ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
-              : isTestnet
-                ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-                : 'Inspect the Zcash network. Blocks, transactions and shielded pools.'}
-          </p>
+    <div className="home-page">
+      {/* Full-bleed hero band. The band, not the container, owns the hero's
+          vertical rhythm, and it deliberately has no border of its own — the
+          texture fades out instead, so it does not add a fourth chrome edge
+          under the nav. No `overflow: hidden` here: the search suggestions
+          dropdown is absolutely positioned inside and must escape the band. */}
+      <section className="home-hero-band">
+        {/* Graticule substrate — pure CSS hairlines, no data, no meaning. */}
+        <div className="hero-lattice" aria-hidden="true" />
+        {/* Shares the max-w-7xl container so the hero, the logo above it and
+            the feed tables below all start on the same left edge.
+            z-index so the search dropdown sits above the widgets below. */}
+        <div className="home-hero relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="home-introduction">
+            {/* Kept small on purpose: this line is the indexable page subject,
+                not the visual centrepiece. The search field below is what the
+                page is actually for, so it gets the visual weight. */}
+            <h1 className="type-section text-primary">
+              {crosslinkMode
+                ? 'The Zcash Crosslink Explorer'
+                : isTestnet
+                  ? 'The Zcash Testnet Explorer (TAZ)'
+                  : 'The Zcash Blockchain Explorer'}
+            </h1>
+            <p className="home-hero-intro text-secondary">
+              {crosslinkMode
+                ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
+                : isTestnet
+                  ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
+                  : 'Inspect the Zcash network. Blocks, transactions and shielded pools.'}
+            </p>
+          </div>
 
+          {/* Search shares the centered hero column; input contents remain left-aligned. */}
+          <div className="home-command">
+            <SearchBar />
+          </div>
         </div>
+      </section>
 
-        {/* Search shares the centered hero column; input contents remain left-aligned. */}
-        <div className="home-command">
-          <SearchBar />
-        </div>
-      </div>
-
+      <div className="home-body max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10 lg:pb-12">
       {/* Crosslink: Network Stats + Staking Day */}
       {crosslinkMode && (
         <div className="relative z-10 space-y-4">
@@ -204,6 +217,7 @@ export default async function Home() {
             </Link>
           }
         />
+      </div>
       </div>
     </div>
   );

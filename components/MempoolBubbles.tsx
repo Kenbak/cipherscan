@@ -318,6 +318,39 @@ export const MempoolBubbles = forwardRef<MempoolBubblesHandle, MempoolBubblesPro
       const bubbles = bubblesRef.current;
       const theme = themeRef.current;
       const goldRgb = theme.gold.replace(/ /g, ', ');
+
+      // === BACKGROUND GRATICULE ===
+      // The rebrand stripped this canvas's whole background layer. Most of
+      // that was right to lose — cyan/purple ambient washes, a scan line, and
+      // drifting hex glyphs that implied chain data which did not exist. The
+      // grid was not decoration though: it gives the bubbles a reference
+      // plane, and it is the same language as the homepage hero graticule.
+      // Restored neutral (not gold) because colored bubbles sit on top of it.
+      const gridTint = theme.isLight ? '15, 23, 42' : '255, 255, 255';
+      const gridSpacing = 50;
+      ctx.strokeStyle = `rgba(${gridTint}, ${theme.isLight ? 0.03 : 0.02})`;
+      ctx.lineWidth = 0.5;
+      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
+        ctx.stroke();
+      }
+      for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(${gridTint}, ${theme.isLight ? 0.06 : 0.04})`;
+      for (let gx = gridSpacing; gx < w; gx += gridSpacing) {
+        for (let gy = gridSpacing; gy < h; gy += gridSpacing) {
+          ctx.beginPath();
+          ctx.arc(gx, gy, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       // Remove dead bubbles
       bubblesRef.current = bubbles.filter(b => b.state !== 'dead');
 

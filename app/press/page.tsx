@@ -22,7 +22,8 @@ const COLORS = [
 ] as const;
 
 const DOWNLOADS = [
-  { label: 'ZecBlock logotype (PNG)', href: '/brand/zecblock-dot.png', note: 'Original supplied artwork with gold terminal dot; white lettering for dark backgrounds' },
+  { label: 'ZecBlock logotype — dark backgrounds (PNG)', href: '/brand/zecblock-logotype.png', note: 'Supplied artwork, unmodified: gold block and "Zec", white "Block"' },
+  { label: 'ZecBlock logotype — light backgrounds (PNG)', href: '/brand/zecblock-logotype-light.png', note: 'Supplied artwork, unmodified: gold block and "Zec", black "Block"' },
   { label: 'Square icon (SVG)', href: '/brand/zecblock-mark.svg', note: 'Small-format icon for favicons' },
 ] as const;
 

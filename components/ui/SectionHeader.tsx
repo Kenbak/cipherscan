@@ -16,6 +16,7 @@ export function PageHeader({
   actions,
   children,
   className = '',
+  titleAsHeading = true,
 }: {
   /** Mono uppercase label, e.g. "MINING" — rendered as "> MINING" */
   eyebrow: string;
@@ -26,7 +27,19 @@ export function PageHeader({
   /** Optional extra header content rendered below the title row (quote, banner) */
   children?: ReactNode;
   className?: string;
+  /**
+   * Render the title as a plain element instead of the page H1.
+   *
+   * Only for `loading.tsx` skeletons: Next streams the loading fallback and
+   * the resolved page into the *same* initial HTML response, so a skeleton
+   * that emits its own `<h1>` puts two H1s on the page — which breaks the
+   * one-H1-per-document rule in AGENTS.md. The skeleton still shows the real
+   * title (it must, or the shell is a thin duplicate page); it just isn't a
+   * second heading in the outline.
+   */
+  titleAsHeading?: boolean;
 }) {
+  const Title = titleAsHeading ? 'h1' : 'div';
   return (
     <div className={`mb-8 animate-fade-in ${className}`}>
       <p className="type-label text-muted uppercase mb-3">
@@ -34,7 +47,7 @@ export function PageHeader({
       </p>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="type-page text-primary font-sans">{title}</h1>
+          <Title className="type-page text-primary font-sans">{title}</Title>
           {subtitle && (
             <div className="type-prose text-secondary mt-3 max-w-2xl font-sans">{subtitle}</div>
           )}

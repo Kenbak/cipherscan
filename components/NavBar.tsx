@@ -151,16 +151,21 @@ export function NavBar() {
 
   return (
     <>
-      <nav className="navbar-container backdrop-blur-xl border-b sticky top-0 z-50" ref={navRef}>
+      {/* No bottom border: the nav is the first element of one continuous
+          chrome band (see "ONE CHROME BAND" in globals.css). */}
+      <nav className="navbar-container backdrop-blur-xl sticky top-0 z-50" ref={navRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 gap-3">
             {/* Logo */}
             <Link href="/" className="shrink-0 py-2" aria-label="ZecBlock home">
-              <BrandLogo network={NETWORK_LABEL} />
+              {/* Above the fold — keep it out of the LCP critical path. */}
+              <BrandLogo priority />
             </Link>
 
             {/* Desktop: Horizontal category dropdowns */}
-            <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
+            {/* Anchored beside the logo rather than centered, so the whole
+                chrome band shares the page's left edge. */}
+            <div className="hidden md:flex items-center gap-0.5 flex-1 justify-start lg:ml-6">
               {categories.map(cat => (
                 <div key={cat.id} className="relative">
                   <button
@@ -219,20 +224,39 @@ export function NavBar() {
                 </a>
               )}
 
-              {/* Network switcher — globe icon dropdown, desktop only */}
-              <div className="hidden md:block relative">
+              {/* Separates the gold action from the neutral network control so
+                  they stop reading as one cluster. Rendered only alongside
+                  Buy ZEC, which is desktop mainnet-only. */}
+              {isMainnet && <span className="hidden md:block w-px h-4 bg-cipher-border" aria-hidden="true" />}
+
+              {/* Network switcher. It also *labels* the current network: the
+                  control that changes the network is the one place that should
+                  name it, so the label is never stale and never duplicated. */}
+              <div className="relative">
                 <button
                   onClick={() => toggleDropdown('network')}
-                  className={`p-2 rounded-md transition-colors duration-150 ${
+                  className={`flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-md transition-colors duration-150 ${
                     openDropdown === 'network' ? 'text-primary bg-cipher-hover' : 'text-muted hover:text-primary'
                   }`}
                   title={isMainnet ? 'Mainnet' : isCrosslink ? 'Crosslink' : 'Testnet'}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Deliberately neutral, glyph and label both: "Buy ZEC" is
+                      the gold action next to it, and the network name is the
+                      information here — the word already says which chain. */}
+                  <svg
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.6 9h16.8M3.6 15h16.8" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a15.3 15.3 0 014 9 15.3 15.3 0 01-4 9 15.3 15.3 0 01-4-9 15.3 15.3 0 014-9z" />
                   </svg>
+                  <span className="text-caption font-mono tracking-wide text-secondary">
+                    {NETWORK_LABEL}
+                  </span>
                 </button>
 
                 {openDropdown === 'network' && (

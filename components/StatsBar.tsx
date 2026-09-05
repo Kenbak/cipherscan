@@ -391,12 +391,14 @@ export function StatsBar() {
     .filter((item) => item.node !== null);
 
   return (
-    <div ref={barRef} className="stats-bar backdrop-blur-xl sticky top-[var(--app-nav-height,4rem)] z-40 border-b border-cipher-border/30">
+    <div ref={barRef} className="stats-bar backdrop-blur-xl sticky top-[var(--app-nav-height,4rem)] z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-10 sm:h-11 items-center gap-2">
+        <div className="flex h-9 sm:h-10 items-center gap-2">
           <div
             ref={scrollRef}
-            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center xl:justify-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
+            /* Left-anchored, sharing the edge held by the logo, hero and feeds.
+               Centering it left a visible staircase against that column. */
+            className={`${scrollFadeClass} flex-1 min-w-0 flex items-center overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch] no-scrollbar`}
           >
             <div className="flex items-center gap-3 sm:gap-4 pr-4">
               {visibleItems.map(({ id, node }, i) => (

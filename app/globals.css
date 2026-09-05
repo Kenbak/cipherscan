@@ -187,8 +187,11 @@
   --color-elevated: #191B1F;
   --color-surface: #111316;
   --color-surface-solid: #111316;
-  --color-hover: #1B1E23;
-  --color-active: #252930;
+  /* Kept close to the surface: with translucent panels an opaque, lighter
+     hover reads heavier than the panel it sits in. Stays hex — the contrast
+     matrix parses these tokens as #rrggbb. */
+  --color-hover: #15171B;
+  --color-active: #1E2127;
   /* Hairlines are the edge of a surface, not an outline drawn around it.
      They stay just visible against both canvas and surface; separation is
      carried by luminance + --card-shadow, so rules can be this quiet. */
@@ -291,13 +294,17 @@
   /* Cards — a surface is milled from the canvas, not drawn on it: one quiet
      hairline, one lit top edge, one ambient shadow. --card-highlight is the
      lit edge and is always composited after the shadow. */
+  /* Translucent so a panel settles into the canvas instead of sitting on it
+     as a solid block. No backdrop-filter: a page can hold dozens of cards
+     and blurring each one is expensive for an effect nothing shows through. */
+  --card-surface: rgb(17 19 22 / 0.35);
   --card-border: var(--color-border);
   --card-border-hover: rgba(255, 255, 255, 0.11);
   --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --card-blur: none;
   --card-shadow: var(--shadow-card);
   --card-shadow-hover: var(--shadow-card-hover);
-  --card-glass-bg: var(--color-surface);
+  --card-glass-bg: var(--card-surface);
   --card-glass-blur: none;
   --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
@@ -383,6 +390,10 @@
   /* Privacy visuals */
   --risk-connector-color: rgb(var(--color-purple-rgb) / 0.25);
   --reactflow-bg-opacity: 1;
+
+  /* Homepage hero graticule (.hero-lattice) */
+  --hero-graticule: rgb(var(--color-gold-rgb) / 0.055);
+  --hero-lattice-opacity: 1;
 }
 
 /* Light Theme Overrides */
@@ -391,8 +402,9 @@
   --color-elevated: #EFF1F4;
   --color-surface: #FFFFFF;
   --color-surface-solid: #FFFFFF;
-  --color-hover: #EBEEF2;
-  --color-active: #E2E6EC;
+  /* Same intent as dark: a quieter step away from the canvas. */
+  --color-hover: #F0F2F6;
+  --color-active: #E7EAEF;
   /* Quieter than the previous #CED3DB, which outlined every container and
      made light mode read as a grey wireframe. Elevation now comes from
      --card-shadow plus the white top edge. */
@@ -459,13 +471,15 @@
 
   /* Cards — white surface lifted off the canvas by shadow, with a white
      top edge so the hairline reads as a rounded edge rather than an outline. */
+  /* Same intent as dark: let a little of the canvas through the panel. */
+  --card-surface: rgb(255 255 255 / 0.5);
   --card-border: var(--color-border);
   --card-border-hover: #CBD2DC;
   --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   --card-blur: none;
   --card-shadow: var(--shadow-card);
   --card-shadow-hover: var(--shadow-card-hover);
-  --card-glass-bg: var(--color-surface);
+  --card-glass-bg: var(--card-surface);
   --card-glass-blur: none;
   --card-glass-border: var(--color-border);
   --card-dark-bg: var(--color-bg);
@@ -550,6 +564,11 @@
   /* Privacy visuals */
   --risk-connector-color: rgb(var(--color-purple-rgb) / 0.4);
   --reactflow-bg-opacity: 0.5;
+
+  /* Gold at low alpha over near-white loses far more contrast than the same
+     alpha over carbon, so paper needs a higher figure to read at all. */
+  --hero-graticule: rgb(var(--color-gold-rgb) / 0.22);
+  --hero-lattice-opacity: 1;
 }
 
 @layer base {
@@ -600,7 +619,7 @@
   /* Card System — shadow-based elevation plus a lit top edge. The highlight
      is listed last so it composites over the ambient shadow. */
   .card {
-    background: var(--color-surface);
+    background: var(--card-surface);
     backdrop-filter: var(--card-blur);
     -webkit-backdrop-filter: var(--card-blur);
     border: 1px solid var(--card-border);
@@ -974,6 +993,21 @@
     background-color: var(--navbar-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ===== ONE CHROME BAND =====
+     The navbar, stats strip and notice all paint --navbar-bg, so the
+     hairlines between them only chopped a single surface into three
+     look-alike strips. They now read as one band with one closing edge,
+     owned by whichever element is last — the notice is dismissible, so
+     the stats strip takes the edge back when no notice follows it. */
+  .stats-bar,
+  .ironwood-banner {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stats-bar:has(~ .ironwood-banner) {
+    border-bottom-color: transparent;
   }
 
   /* Block page fact-row sizing (BlockFactsCard) — only meaningful once those
@@ -1746,38 +1780,75 @@
 
 /* Assay identity and shared information surfaces. */
 :root {
-  --brand-image-opacity: 1;
-  --brand-dark-display: block;
-  --brand-light-display: none;
   --color-brand-mark: #F8BC21;
-}
-.light {
-  --brand-dark-display: none;
-  --brand-light-display: block;
+  /* Which logotype variant shows. Dark is the default theme. */
+  --brand-on-dark: 1;
+  --brand-on-light: 0;
 }
 
-  .brand-logo { position: relative; display: inline-block; width: 112px; line-height: 0; flex-shrink: 0; }
-  .brand-logo img { width: 100%; height: auto; }
-  .brand-logo.brand-logo-compact { width: 96px; }
-  /* The transparent artwork is the mask: color boundaries fall in its blank gaps. */
-  .brand-logo > img { opacity: var(--brand-image-opacity, 1); }
-  .light .brand-logo { --brand-image-opacity: 0; }
-  .brand-logo .brand-logo-ink { position: absolute; inset: 0; display: var(--brand-light-display); background: linear-gradient(to right, #DB9E00 35.3%, #20221D 35.3%, #20221D 92.5%, #DB9E00 92.5%); mask: url('/brand/zecblock-dot.png') center / contain no-repeat; }
-  .brand-logo[data-tone="dark"] { --brand-image-opacity: 1; }
-  .brand-logo[data-tone="light"] { --brand-image-opacity: 0; }
-  .brand-logo[data-tone="dark"] .brand-logo-ink { display: none; }
-  .brand-logo[data-tone="light"] .brand-logo-ink { display: block; }
-  .brand-lockup { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-  .brand-network { font: 0.75rem/1.2 var(--font-geist-mono); letter-spacing: 0.02em; color: var(--color-text-muted); }
-  .home-hero { width: min(100%, 800px); margin: 0 auto; padding: 12px 0 28px; text-align: center; }
+  /* Logotype. This artwork carries symmetric transparent padding, so its
+     glyphs occupy 57% of the image height where the previous one filled
+     96% — 124px matched the old optical size exactly, and 114px is the
+     slightly smaller setting the owner preferred. Height follows the
+     422x98 aspect ratio. */
+  .brand-logo { position: relative; display: inline-block; width: 114px; line-height: 0; flex-shrink: 0; }
+  .brand-logo img { width: 100%; height: auto; display: block; }
+  .brand-logo.brand-logo-compact { width: 98px; }
+  /* Two pixel-aligned variants stacked; the theme picks one. Swapped by CSS
+     variable rather than in JS so SSR emits the right one and there is no
+     flash or hydration mismatch. */
+  .brand-logo .brand-logo-on-dark { opacity: var(--brand-on-dark, 1); }
+  .brand-logo .brand-logo-on-light { position: absolute; inset: 0; opacity: var(--brand-on-light, 0); }
+  .light .brand-logo { --brand-on-dark: 0; --brand-on-light: 1; }
+  .brand-logo[data-tone="dark"] { --brand-on-dark: 1; --brand-on-light: 0; }
+  .brand-logo[data-tone="light"] { --brand-on-dark: 0; --brand-on-light: 1; }
+  /* Hero band — spans the document so its substrate reads as a zone rather
+     than a decoration sitting inside the content column. */
+  .home-hero-band { position: relative; padding: 40px 0 36px; }
+
+  /* Graticule: the faint square grid of an instrument's backing paper.
+     Hairlines, not filled cells — filled cells at any alpha average out
+     into a flat olive wash, which is what made the first attempt muddy.
+     A 1px line stays a line and never tints the surface it sits on. */
+  .hero-lattice {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--hero-lattice-opacity, 1);
+    background-image:
+      linear-gradient(to right, var(--hero-graticule) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hero-graticule) 1px, transparent 1px);
+    background-size: 64px 64px;
+    /* Vignette: two masks intersected so the grid dissolves on all four
+       sides. The band then needs no border of its own, which keeps it
+       from becoming a fourth chrome edge under the nav. */
+    -webkit-mask-image:
+      linear-gradient(to bottom, #000 0%, #000 30%, transparent 96%),
+      linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
+    mask-image:
+      linear-gradient(to bottom, #000 0%, #000 30%, transparent 96%),
+      linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  /* Left-aligned on the container edge, matching the feeds below. */
+  .home-hero { text-align: left; }
+  /* A step above type-section's 16px/500 so it carries as the page
+     heading, while staying far below a display title. */
+  .home-hero h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
   .home-introduction, .home-command { min-width: 0; }
-  .home-introduction p { max-width: 620px; margin: 16px auto 0; font-size: 15px; line-height: 1.65; text-wrap: balance; }
-  .home-hero h1 { font-family: var(--font-geist-sans); font-size: clamp(1.875rem, 3vw, 2.5rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1.2; }
-  .home-title-mark { display: inline-block; width: 0.22em; height: 0.22em; margin-left: 0.22em; background: var(--color-gold-accent); }
-  .home-command { width: min(100%, 800px); margin-top: 28px; text-align: left; }
+  .home-hero-intro { max-width: 62ch; margin: 8px 0 0; font-size: 14px; line-height: 1.6; }
+  .home-command { width: min(100%, 720px); margin-top: 18px; text-align: left; }
   .home-hero form { width: 100%; max-width: none; margin: 0; padding: 0; }
-  .home-hero .search-input-hero { min-height: 60px; background: var(--color-surface); font-size: 14px; }
-  .home-feeds { margin-top: 28px; }
+  /* 50px, not 60px: the command field should be the clearly dominant
+     control in the band without becoming the largest object on the page. */
+  /* Opaque on purpose, unlike the cards: the graticule sits directly
+     behind this field and must not read through the command area. */
+  .home-hero .search-input-hero { min-height: 50px; background: var(--color-surface); font-size: 14px; }
+  /* The hero band owns the space above; the body wrapper adds the rest. */
+  .home-body { padding-top: 32px; }
+  .home-feeds { margin-top: 0; }
   .home-feeds > div { min-width: 0; }
   .home-page .home-table-section h2 { text-transform: lowercase; letter-spacing: -0.02em; font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
   .home-page table th { font-family: var(--font-geist-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.04em; }
@@ -1791,12 +1862,13 @@
   .recharts-default-tooltip { box-shadow: none; font-family: var(--font-geist-mono); }
   .chart-signature { text-align: right; font: 0.75rem/1.5 var(--font-geist-mono); color: var(--color-text-muted); padding-top: 8px; }
   @media (max-width: 640px) {
-    .home-hero { padding-top: 0; padding-bottom: 16px; }
-    .home-hero h1 { font-size: 1.75rem; }
-    .home-introduction p { font-size: 14px; }
-    .home-command { margin-top: 24px; }
+    .home-hero-band { padding: 26px 0 24px; }
+    .home-hero h1 { font-size: 18px; }
+    .home-hero-intro { font-size: 13px; }
+    .home-command { margin-top: 18px; }
+    .home-body { padding-top: 24px; }
     .home-hero .search-input-hero { font-size: 12px; }
-    .home-hero .search-input-hero { min-height: 56px; }
+    .home-hero .search-input-hero { min-height: 46px; }
   }
 
 /* Explicit roles override page-specific utility combinations. Layout stays local. */
