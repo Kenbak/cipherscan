@@ -1,0 +1,8 @@
+**
+!server/api/
+!server/api/**
+!server/lib/
+!server/lib/**
+server/api/.env
+server/api/.env.*
+!server/api/.env.example

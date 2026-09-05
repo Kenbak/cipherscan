@@ -47,7 +47,7 @@ jobs:
             context: .
             dockerfile: Dockerfile
           - name: api
-            context: server/api
+            context: .
             dockerfile: server/api/Dockerfile
     steps:
       - uses: actions/checkout@v6
