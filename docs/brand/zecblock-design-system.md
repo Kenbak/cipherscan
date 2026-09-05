@@ -141,3 +141,7 @@ Recent blocks, shielded activity, and mempool now use the same surface, border, 
 ### Light palette clarification — 2026-09-05
 
 The owner explicitly requested #DB9E00 on gold text, including Buy ZEC, not only fills. Gold/yellow CSS and RGB channels, chart and flow palettes, Ironwood scene and pool marks now match that exact color. Light neutrals are #F6F7F9 canvas, #FFFFFF surface, #171A20 primary, #444B55 secondary and #59616D muted; the previous olive cast is removed. Semantic hues are #14734B green, #7040B5 violet and #A34A16 orange. Sapling category badges use green to match the pool chart; Ironwood retains gold. Supply segments no longer fade their light-mode colored fills, and overlay labels use full-opacity contrasting ink. Gold text is an explicit exception to the normal-text contrast target; the test matrix now checks 85 body/semantic combinations, excluding light gold, plus primary-action text. This remains local, not deployed.
+
+### Hero alignment — 2026-09-05
+
+Owner-approved refinement keeps the centered 800px hero column, with the heading, description, command search and examples aligned to its left edge. Mainnet introduction: “Inspect the Zcash network. Blocks, transactions and shielded pools.” A small static gold square follows the unchanged H1; it is decorative and hidden from assistive technology. Hero bottom padding is 28px on desktop (previously 52px) and 16px on mobile (previously 24px), bringing feeds closer. Network-specific testnet/Crosslink copy, metadata and data architecture are preserved. Local implementation only.

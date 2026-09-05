@@ -109,18 +109,19 @@ export default async function Home() {
               : isTestnet
                 ? 'Zcash Testnet Explorer (TAZ)'
                 : 'Zcash Block Explorer'}
+            <span className="home-title-mark" aria-hidden="true" />
           </h1>
           <p className="text-sm text-secondary mt-3 max-w-md leading-relaxed">
             {crosslinkMode
               ? 'Explore the Zcash Crosslink hybrid PoW/PoS feature net. Track finality, staking windows, validators, and blocks in real time.'
               : isTestnet
                 ? 'Search TAZ blocks, transactions, and addresses on the Zcash testnet. Monitor pending transactions and network activity before using mainnet.'
-                : 'Inspect blocks, transactions, and addresses. Follow shielded pools and network activity on Zcash.'}
+                : 'Inspect the Zcash network. Blocks, transactions and shielded pools.'}
           </p>
 
         </div>
 
-        {/* Search shares the centered introduction width. */}
+        {/* Search and introduction share one left edge within the centered column. */}
         <div className="home-command">
           <SearchBar />
         </div>
