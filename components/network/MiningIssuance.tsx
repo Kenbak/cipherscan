@@ -12,6 +12,7 @@ export function MiningIssuance() {
   return <section id="issuance" className="network-section mb-6">
     <SectionHeader label="ISSUANCE" />
     <div className="grid md:grid-cols-2 gap-5">
+      {halving ? <HalvingPanel halving={halving} /> : <Card><CardBody><p className="text-sm text-muted">{loading ? 'Loading halving observations…' : 'Halving observations are unavailable.'}</p></CardBody></Card>}
       <Card><CardBody>
         <h3 className="font-mono text-sm text-primary mb-3">Block subsidy &amp; miner allocation</h3>
         <p className="text-sm text-secondary mb-6">Newly issued ZEC is split between miners and the funding allocations active at the current height. Transaction fees are separate.</p>
@@ -25,7 +26,6 @@ export function MiningIssuance() {
         </dl>
         <p className="text-caption text-muted mt-5">Daily issuance assumes 1,152 blocks at the current subsidy. Halving dates are estimates based on recent block intervals. The activation height determines the subsidy change.</p>
       </CardBody></Card>
-      {halving ? <HalvingPanel halving={halving} /> : <Card><CardBody><p className="text-sm text-muted">{loading ? 'Loading halving observations…' : 'Halving observations are unavailable.'}</p></CardBody></Card>}
     </div>
     {error && halving && <p role="status" className="text-caption text-warning mt-3">Could not refresh issuance data. Last received values are shown.</p>}
   </section>;

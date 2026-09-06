@@ -166,6 +166,7 @@ export default function NetworkClient({ initialData }: { initialData: NetworkPag
       </section>
 
       <section id="network-activity" className="network-section mb-10" aria-label="Block cadence and observed fees">
+        <SectionHeader label="ACTIVITY" />
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
           <BlockCadenceChart initialData={initialData.recentBlocks} initialFetchedAt={initialData.fetchedAt} chainHeight={height} now={now} />
           <div id="network-fees" className="network-section h-full"><FeeDistributionChart initialData={initialData.feeDistribution} /></div>
